@@ -31,9 +31,6 @@ public:
     template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator<(const StringView<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
 
-    template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator==(const StringView<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
-
     static constexpr bool isContiguous = true;
     static constexpr SizeType NotFound = SizeType(-1);
     static constexpr int stringType = TStringType;
@@ -340,6 +337,16 @@ public:
     HYP_FORCE_INLINE constexpr const CharType* operator*() const
     {
         return m_begin;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator==(const StringView& other) const
+    {
+        if (Data() == other.Data() && (!Data() || Size() == other.Size()))
+        {
+            return true;
+        }
+
+        return Memory::StrEqual(Data(), other.Data(), MathUtil::Min(Size(), other.Size()));
     }
 
     /*! \brief Inversion of the equality operator.
@@ -666,17 +673,6 @@ constexpr bool operator<(const StringView<TStringType>& lhs, const StringView<TS
     }
 
     return utf::StringCompare<typename StringView<TStringType>::CharType, StringView<TStringType>::isUtf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
-}
-
-template <int TStringType>
-constexpr bool operator==(const StringView<TStringType>& lhs, const StringView<TStringType>& rhs)
-{
-    if (lhs.Data() == rhs.Data() && (!lhs.Data() || lhs.Size() == rhs.Size()))
-    {
-        return true;
-    }
-
-    return Memory::StrEqual(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Size(), rhs.Size()));
 }
 
 } // namespace utilities

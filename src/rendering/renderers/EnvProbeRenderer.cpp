@@ -333,14 +333,14 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
             const GpuImageViewRef& imageView = g_renderBackend->GetTextureImageView(prefilteredEnvMap, mipIndex, 1);
             Assert(imageView != nullptr);
 
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet", frameIndex);
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet"_sh, frameIndex);
             AssertDebug(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("UniformBuffer", uniformBuffer);
-            descriptorSet->SetElement("ColorTexture", colorAttachment->GetImageView());
-            descriptorSet->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
-            descriptorSet->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
-            descriptorSet->SetElement("OutImage", imageView);
+            descriptorSet->SetElement("UniformBuffer"_sh, uniformBuffer);
+            descriptorSet->SetElement("ColorTexture"_sh, colorAttachment->GetImageView());
+            descriptorSet->SetElement("SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+            descriptorSet->SetElement("SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+            descriptorSet->SetElement("OutImage"_sh, imageView);
         }
 
         Assert(descriptorTable->Create());
@@ -373,7 +373,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         frame->renderQueue << BindDescriptorTable(
             descriptorTables[mipIndex],
             pipelines[mipIndex],
-            { { "Global", { { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+            { { "Global"_sh, { { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
             frame->GetFrameIndex());
 
         frame->renderQueue << DispatchCompute(
@@ -485,21 +485,21 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            const DescriptorSetRef& computeShDescriptorSet = computeShDescriptorTables[i]->GetDescriptorSet("ComputeSHDescriptorSet", frameIndex);
+            const DescriptorSetRef& computeShDescriptorSet = computeShDescriptorTables[i]->GetDescriptorSet("ComputeSHDescriptorSet"_sh, frameIndex);
             Assert(computeShDescriptorSet != nullptr);
 
-            computeShDescriptorSet->SetElement("InColorCubemap", colorAttachment->GetImageView());
-            computeShDescriptorSet->SetElement("InNormalsCubemap", normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
-            computeShDescriptorSet->SetElement("InDepthCubemap", depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
-            computeShDescriptorSet->SetElement("InputSHTilesBuffer", shTilesBuffers[i]);
+            computeShDescriptorSet->SetElement("InColorCubemap"_sh, colorAttachment->GetImageView());
+            computeShDescriptorSet->SetElement("InNormalsCubemap"_sh, normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+            computeShDescriptorSet->SetElement("InDepthCubemap"_sh, depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+            computeShDescriptorSet->SetElement("InputSHTilesBuffer"_sh, shTilesBuffers[i]);
 
             if (i != ShNumLevels - 1)
             {
-                computeShDescriptorSet->SetElement("OutputSHTilesBuffer", shTilesBuffers[i + 1]);
+                computeShDescriptorSet->SetElement("OutputSHTilesBuffer"_sh, shTilesBuffers[i + 1]);
             }
             else
             {
-                computeShDescriptorSet->SetElement("OutputSHTilesBuffer", shTilesBuffers[i]);
+                computeShDescriptorSet->SetElement("OutputSHTilesBuffer"_sh, shTilesBuffers[i]);
             }
         }
 
@@ -573,9 +573,9 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
         pipelines[MODE_CLEAR].second,
-        { { "Global",
-            { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+        { { "Global"_sh,
+            { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pipelines[MODE_CLEAR].second);
@@ -586,9 +586,9 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
         pipelines[MODE_BUILD_COEFFICIENTS].second,
-        { { "Global",
-            { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+        { { "Global"_sh,
+            { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pipelines[MODE_BUILD_COEFFICIENTS].second);
@@ -630,9 +630,9 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
             asyncRenderQueue << BindDescriptorTable(
                 computeShDescriptorTables[i - 1],
                 pipelines[MODE_REDUCE].second,
-                { { "Global",
-                    { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                        { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+                { { "Global"_sh,
+                    { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                        { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
                 frame->GetFrameIndex());
 
             asyncRenderQueue << BindComputePipeline(pipelines[MODE_REDUCE].second);
@@ -651,9 +651,9 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[finalizeShBufferIndex],
         pipelines[MODE_FINALIZE].second,
-        { { "Global",
-            { { "CurrentLight", ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+        { { "Global"_sh,
+            { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pipelines[MODE_FINALIZE].second);

@@ -685,8 +685,8 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
     // @NOTE: Can't reliably use the Attributes namespace values, as they might noe be
     // initialized yet by the time this constructor is called (static init order fiasco)
     static const ArrayMap<StringHash, ClassFlags> s_attributeToFlags = {
-        { "abstract", ClassFlags::ABSTRACT },
-        { "noscriptbindings", ClassFlags::NO_SCRIPT_BINDINGS }
+        { "abstract"_sh, ClassFlags::ABSTRACT },
+        { "noscriptbindings"_sh, ClassFlags::NO_SCRIPT_BINDINGS }
     };
 
     // Apply flags for all values in s_attributeToFlags
@@ -810,7 +810,7 @@ void Class::Initialize()
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     if (UseHandles())
     {
-        if (const ClassAttributeValue& poolAttribute = GetAttributeDeep("pool"))
+        if (const ClassAttributeValue& poolAttribute = GetAttributeDeep("pool"_sh))
         {
             if (poolAttribute.IsString())
             {

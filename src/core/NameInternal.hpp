@@ -164,12 +164,12 @@ struct StringHash
     }
 
     template <SizeType Sz>
-    constexpr StringHash(const char (&str)[Sz])
+    consteval explicit StringHash(const char (&str)[Sz])
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }
 
-    constexpr StringHash(const char* str)
+    constexpr explicit StringHash(const char* str)
         : hashCode(HashCode::GetHashCode(str).Value())
     {
     }
@@ -200,6 +200,7 @@ struct StringHash
 
     constexpr StringHash(const StringHash& other) = default;
     constexpr StringHash& operator=(const StringHash& other) = default;
+
     constexpr StringHash(StringHash&& other) noexcept = default;
     constexpr StringHash& operator=(StringHash&& other) noexcept = default;
 

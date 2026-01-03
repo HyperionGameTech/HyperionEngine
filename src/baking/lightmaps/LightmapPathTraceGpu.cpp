@@ -300,7 +300,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
     ShaderRef shader = g_shaderManager->GetOrCreate(NAME("LightmapPathTracer"), shaderProperties);
     Assert(shader);
 
-    const DescriptorSetDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("RTRadianceDescriptorSet");
+    const DescriptorSetDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("RTRadianceDescriptorSet"_sh);
     Assert(decl != nullptr);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -308,15 +308,15 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
         DescriptorSetRef& descriptorSet = jd.Sets[frameIndex];
         descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(decl));
 
-        descriptorSet->SetElement("TLAS", m_tlas);
-        descriptorSet->SetElement("MeshDescriptionsBuffer", m_tlas->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement("HitsBuffer", jd.HitsBufferGpu);
-        descriptorSet->SetElement("RaysBuffer", jd.RayBuffers[frameIndex]);
+        descriptorSet->SetElement("TLAS"_sh, m_tlas);
+        descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
+        descriptorSet->SetElement("HitsBuffer"_sh, jd.HitsBufferGpu);
+        descriptorSet->SetElement("RaysBuffer"_sh, jd.RayBuffers[frameIndex]);
 
-        descriptorSet->SetElement("LightsBuffer", g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-        descriptorSet->SetElement("RTRadianceUniforms", jd.UniformBuffers[frameIndex]);
+        descriptorSet->SetElement("RTRadianceUniforms"_sh, jd.UniformBuffers[frameIndex]);
 
         Assert(descriptorSet->Create());
     }
@@ -454,8 +454,8 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
         jd.RayBuffers[frame->GetFrameIndex()]->Copy(rayData.ByteSize(), rayData.Data());
     }
 
-    constexpr StringHash GlobalSetName = "Global";
-    constexpr StringHash MaterialSetName = "Material";
+    constexpr StringHash GlobalSetName = "Global"_sh;
+    constexpr StringHash MaterialSetName = "Material"_sh;
 
     const DescriptorTableDeclaration& decl = *m_raytracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
 
@@ -464,8 +464,8 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     frame->renderQueue << BindDescriptorSet(
         g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
         m_raytracingPipeline,
-        { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-            { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
+        { { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+            { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
 
     frame->renderQueue << BindDescriptorSet(
         g_renderInterface->globalDescriptorTable->GetDescriptorSet(MaterialSetName, frame->GetFrameIndex()),

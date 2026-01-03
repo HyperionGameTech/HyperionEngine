@@ -261,7 +261,7 @@ UTF8StringView ConfigurationTable::GetDefaultConfigName(const Class* cls)
 {
     if (cls)
     {
-        if (const ClassAttributeValue& configNameAttributeValue = cls->GetAttribute("configname"))
+        if (const ClassAttributeValue& configNameAttributeValue = cls->GetAttribute("configname"_sh))
         {
             return configNameAttributeValue.GetString();
         }

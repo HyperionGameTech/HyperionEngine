@@ -167,12 +167,12 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
     {
-        const DescriptorSetRef& descriptorSet = state.computeDescriptorTable->GetDescriptorSet("UpdateParticlesDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = state.computeDescriptorTable->GetDescriptorSet("UpdateParticlesDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("ParticlesBuffer", state.particleBuffer);
-        descriptorSet->SetElement("IndirectDrawCommandsBuffer", state.indirectBuffer);
-        descriptorSet->SetElement("NoiseMap", g_renderBackend->GetTextureImageView(state.noiseMap));
+        descriptorSet->SetElement("ParticlesBuffer"_sh, state.particleBuffer);
+        descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
+        descriptorSet->SetElement("NoiseMap"_sh, g_renderBackend->GetTextureImageView(state.noiseMap));
     }
 
     DeferCreate(state.computeDescriptorTable);
@@ -191,11 +191,11 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
     {
-        const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("ParticlesBuffer", state.particleBuffer);
-        descriptorSet->SetElement("ParticleTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("ParticlesBuffer"_sh, state.particleBuffer);
+        descriptorSet->SetElement("ParticleTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
     DeferCreate(state.graphicsDescriptorTable);
@@ -253,10 +253,10 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     {
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet", frameIndex);
+            const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet"_sh, frameIndex);
             AssertDebug(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("ParticleTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->particleTexture)));
+            descriptorSet->SetElement("ParticleTexture"_sh, g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->particleTexture)));
         }
     }
 
@@ -303,10 +303,10 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         rq << BindDescriptorTable(
             state.computeDescriptorTable,
             state.updatePipeline,
-            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
+            { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
             frameIndex);
 
-        const uint32 viewDescriptorSetIndex = state.computeDescriptorTable->GetDescriptorSetIndex("View");
+        const uint32 viewDescriptorSetIndex = state.computeDescriptorTable->GetDescriptorSetIndex("View"_sh);
 
         if (viewDescriptorSetIndex != ~0u)
         {
@@ -347,10 +347,10 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         rq << BindDescriptorTable(
             state.graphicsDescriptorTable,
             *state.graphicsPipelineHandle,
-            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
+            { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
             frameIndex);
 
-        const uint32 viewDescriptorSetIndex = state.graphicsDescriptorTable->GetDescriptorSetIndex("View");
+        const uint32 viewDescriptorSetIndex = state.graphicsDescriptorTable->GetDescriptorSetIndex("View"_sh);
 
         if (viewDescriptorSetIndex != ~0u)
         {

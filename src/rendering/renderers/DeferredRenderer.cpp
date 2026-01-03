@@ -497,8 +497,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             frame->renderQueue << BindDescriptorSet(
                 g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
                 pipeline,
-                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                    { "CurrentLight", ShaderDataOffset<LightShaderData>(light, 0) } },
+                { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                    { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(light, 0) } },
                 globalDescriptorSetIndex);
 
             frame->renderQueue << BindDescriptorSet(
@@ -675,7 +675,7 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
 
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
-        const DescriptorSetDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("LightmapVolume");
+        const DescriptorSetDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("LightmapVolume"_sh);
         Assert(decl != nullptr);
 
         const DescriptorSetLayout layout { decl };
@@ -758,7 +758,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         frame->renderQueue << BindDescriptorSet(
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
             graphicsPipeline,
-            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
+            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
             globalDescriptorSetIndex);
 
         if (viewDescriptorSetIndex != ~0u)
@@ -934,10 +934,10 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     frame->renderQueue << BindDescriptorTable(
         data.descriptorTable,
         graphicsPipeline,
-        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view ? renderSetup.view->GetCamera() : nullptr, 0) } } } },
+        { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view ? renderSetup.view->GetCamera() : nullptr, 0) } } } },
         frame->GetFrameIndex());
 
-    const uint32 viewDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("View");
+    const uint32 viewDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("View"_sh);
 
     if (viewDescriptorSetIndex != ~0u)
     {
@@ -1180,8 +1180,8 @@ void EnvGridPass::Render(Frame* frame, const RenderSetup& rs)
         frame->renderQueue << BindDescriptorSet(
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
             graphicsPipeline,
-            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
+            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
             globalDescriptorSetIndex);
 
         frame->renderQueue << BindDescriptorSet(
@@ -1436,8 +1436,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << BindDescriptorSet(
                 descriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
                 graphicsPipeline,
-                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                    { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
+                { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                    { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
                 globalDescriptorSetIndex);
 
             frame->renderQueue << BindDescriptorSet(
@@ -1799,7 +1799,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View"_sh);
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };

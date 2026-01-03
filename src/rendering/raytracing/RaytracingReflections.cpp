@@ -47,7 +47,8 @@ struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
         // remove result image from global descriptor set
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)->SetElement("RTRadianceResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+                ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         return result;
@@ -92,16 +93,16 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
     {
         Assert(tlas != nullptr);
 
-        descriptorSet->SetElement("TLAS", tlas);
-        descriptorSet->SetElement("MeshDescriptionsBuffer", tlas->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement("OutputImage", g_renderBackend->GetTextureImageView(m_texture));
-        descriptorSet->SetElement("RTRadianceUniforms", m_uniformBuffers[frameIndex]);
-        descriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("TLAS"_sh, tlas);
+        descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, tlas->GetMeshDescriptionsBuffer());
+        descriptorSet->SetElement("OutputImage"_sh, g_renderBackend->GetTextureImageView(m_texture));
+        descriptorSet->SetElement("RTRadianceUniforms"_sh, m_uniformBuffers[frameIndex]);
+        descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     };
 
     if (m_raytracingPipeline != nullptr)
     {
-        DescriptorSet* descriptorSet = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex());
+        DescriptorSet* descriptorSet = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet"_sh, frame->GetFrameIndex());
         Assert(descriptorSet != nullptr);
 
         setDescriptorElements(descriptorSet, pd->raytracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
@@ -122,7 +123,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        DescriptorSet* descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
+        DescriptorSet* descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
         setDescriptorElements(descriptorSet, pd->raytracingTlases[frameIndex], frameIndex);
@@ -137,8 +138,8 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
     {
         descriptorTable->Update(frameIndex, /* force */ true);
 
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-            ->SetElement("RTRadianceResultTexture", g_renderBackend->GetTextureImageView(m_temporalBlending->GetResultTexture()));
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+            ->SetElement("RTRadianceResultTexture"_sh, g_renderBackend->GetTextureImageView(m_temporalBlending->GetResultTexture()));
     }
 }
 
@@ -212,7 +213,7 @@ void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         }
     }
 
-    const uint32 viewDescriptorSetIndex = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+    const uint32 viewDescriptorSetIndex = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View"_sh);
     AssertDebug(viewDescriptorSetIndex != ~0u);
 
     frame->renderQueue << BindRaytracingPipeline(m_raytracingPipeline);
@@ -220,10 +221,10 @@ void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << BindDescriptorTable(
         m_raytracingPipeline->GetDescriptorTable(),
         m_raytracingPipeline,
-        { { "Global",
-            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { "Global"_sh,
+            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << BindDescriptorSet(

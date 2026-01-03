@@ -147,9 +147,9 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         GpuImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumArrayLayers());
         DeferCreate(mipImageView);
 
-        const DescriptorSetRef& generateMipmapsDescriptorSet = descriptorTable->GetDescriptorSet("GenerateMipmapsDescriptorSet", 0);
+        const DescriptorSetRef& generateMipmapsDescriptorSet = descriptorTable->GetDescriptorSet("GenerateMipmapsDescriptorSet"_sh, 0);
         Assert(generateMipmapsDescriptorSet != nullptr);
-        generateMipmapsDescriptorSet->SetElement("InputTexture", mipLevel == 0 ? textureImageView : mipImageViews[mipLevel - 1]);
+        generateMipmapsDescriptorSet->SetElement("InputTexture"_sh, mipLevel == 0 ? textureImageView : mipImageViews[mipLevel - 1]);
         DeferCreate(descriptorTable);
 
         mipImageViews[mipLevel] = std::move(mipImageView);

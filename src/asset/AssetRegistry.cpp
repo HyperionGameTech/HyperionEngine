@@ -39,9 +39,9 @@ static const ThreadId& s_assetRegistryThread = g_simThread;
 static constexpr bool UseSingleThread = false;
 
 static constexpr const StringHash PredefinedTransientPackageNames[] = {
-    "$Memory",
-    "$Temp",
-    "$Import"
+    "$Memory"_sh,
+    "$Temp"_sh,
+    "$Import"_sh
 };
 
 extern HYP_API const FilePath& GetResourceDirectory();

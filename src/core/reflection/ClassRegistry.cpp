@@ -331,7 +331,7 @@ void ClassRegistry::Initialize()
 
     auto hypObjectBaseClassIt = m_classesByTypeId.FindIf([](auto&& item)
         {
-            return item.second->GetName() == "ObjectBase";
+            return item.second->GetName() == "ObjectBase"_sh;
         });
 
     HYP_CORE_ASSERT(hypObjectBaseClassIt != m_classesByTypeId.End(), "ObjectBase class not registered");

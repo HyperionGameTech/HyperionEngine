@@ -246,7 +246,7 @@ void GaussianSplattingInstance::Record(Frame* frame, const RenderSetup& renderSe
         frame->renderQueue << BindDescriptorTable(
             m_updateSplatDistances->GetDescriptorTable(),
             m_updateSplatDistances,
-            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frame->GetFrameIndex());
 
         frame->renderQueue << DispatchCompute(
@@ -335,7 +335,7 @@ void GaussianSplattingInstance::Record(Frame* frame, const RenderSetup& renderSe
             frame->renderQueue << BindDescriptorTable(
                 m_sortSplats->GetDescriptorTable(),
                 m_sortSplats,
-                { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+                { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
                 frame->GetFrameIndex());
 
             frame->renderQueue << DispatchCompute(
@@ -389,7 +389,7 @@ void GaussianSplattingInstance::Record(Frame* frame, const RenderSetup& renderSe
         frame->renderQueue << BindDescriptorTable(
             m_updateSplats->GetDescriptorTable(),
             m_updateSplats,
-            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frame->GetFrameIndex());
 
         frame->renderQueue << DispatchCompute(
@@ -436,12 +436,12 @@ void GaussianSplattingInstance::CreateGraphicsPipeline()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("GaussianSplattingDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("GaussianSplattingDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("SplatIndicesBuffer", m_splatIndicesBuffer);
-        descriptorSet->SetElement("SplatInstancesBuffer", m_splatBuffer);
-        descriptorSet->SetElement("GaussianSplattingSceneShaderData", m_sceneBuffer);
+        descriptorSet->SetElement("SplatIndicesBuffer"_sh, m_splatIndicesBuffer);
+        descriptorSet->SetElement("SplatInstancesBuffer"_sh, m_splatBuffer);
+        descriptorSet->SetElement("GaussianSplattingSceneShaderData"_sh, m_sceneBuffer);
     }
 
     DeferCreate(descriptorTable);
@@ -478,13 +478,13 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = updateSplatsDescriptorTable->GetDescriptorSet("UpdateSplatsDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = updateSplatsDescriptorTable->GetDescriptorSet("UpdateSplatsDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("SplatIndicesBuffer", m_splatIndicesBuffer);
-        descriptorSet->SetElement("SplatInstancesBuffer", m_splatBuffer);
-        descriptorSet->SetElement("IndirectDrawCommandsBuffer", m_indirectBuffer);
-        descriptorSet->SetElement("GaussianSplattingSceneShaderData", m_sceneBuffer);
+        descriptorSet->SetElement("SplatIndicesBuffer"_sh, m_splatIndicesBuffer);
+        descriptorSet->SetElement("SplatInstancesBuffer"_sh, m_splatBuffer);
+        descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, m_indirectBuffer);
+        descriptorSet->SetElement("GaussianSplattingSceneShaderData"_sh, m_sceneBuffer);
     }
 
     DeferCreate(updateSplatsDescriptorTable);
@@ -506,12 +506,12 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = updateSplatDistancesDescriptorTable->GetDescriptorSet("UpdateDistancesDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = updateSplatDistancesDescriptorTable->GetDescriptorSet("UpdateDistancesDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("SplatIndicesBuffer", m_splatIndicesBuffer);
-        descriptorSet->SetElement("SplatInstancesBuffer", m_splatBuffer);
-        descriptorSet->SetElement("GaussianSplattingSceneShaderData", m_sceneBuffer);
+        descriptorSet->SetElement("SplatIndicesBuffer"_sh, m_splatIndicesBuffer);
+        descriptorSet->SetElement("SplatInstancesBuffer"_sh, m_splatBuffer);
+        descriptorSet->SetElement("GaussianSplattingSceneShaderData"_sh, m_sceneBuffer);
     }
 
     DeferCreate(updateSplatDistancesDescriptorTable);
@@ -537,12 +537,12 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            const DescriptorSetRef& descriptorSet = sortSplatsDescriptorTable->GetDescriptorSet("SortSplatsDescriptorSet", frameIndex);
+            const DescriptorSetRef& descriptorSet = sortSplatsDescriptorTable->GetDescriptorSet("SortSplatsDescriptorSet"_sh, frameIndex);
             Assert(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("SplatIndicesBuffer", m_splatIndicesBuffer);
-            descriptorSet->SetElement("SplatInstancesBuffer", m_splatBuffer);
-            descriptorSet->SetElement("GaussianSplattingSceneShaderData", m_sceneBuffer);
+            descriptorSet->SetElement("SplatIndicesBuffer"_sh, m_splatIndicesBuffer);
+            descriptorSet->SetElement("SplatInstancesBuffer"_sh, m_splatBuffer);
+            descriptorSet->SetElement("GaussianSplattingSceneShaderData"_sh, m_sceneBuffer);
         }
 
         DeferCreate(sortSplatsDescriptorTable);
@@ -679,9 +679,9 @@ void GaussianSplatting::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, renderSetup.view->GetViewport());
 
     frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex),
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
         graphicsPipeline,
-        { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
+        { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
         globalDescriptorSetIndex);
 
     if (viewDescriptorSetIndex != ~0u)

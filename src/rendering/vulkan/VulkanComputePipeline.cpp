@@ -10,7 +10,6 @@
 #include <rendering/vulkan/VulkanShader.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/debug/Debug.hpp>
