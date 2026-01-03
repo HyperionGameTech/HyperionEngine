@@ -360,7 +360,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
         return;
     }
 
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
+    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
 
     if (!axisTag)
     {
@@ -510,7 +510,7 @@ bool TranslateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const Mous
         return false;
     }
 
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"))
+    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
     {
         meshComponent->material->SetParameter(
             MATERIAL_KEY_ALBEDO,
@@ -545,7 +545,7 @@ bool TranslateEditorGizmo::OnMouseMove(const Handle<Camera>& camera, const Mouse
         return false;
     }
 
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
+    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
 
     if (!axisTag)
     {
@@ -725,19 +725,19 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
             node->SetWorldScale(2.5f);
 
-            Handle<Node> axisX = node->FindChildByName("Translate_X");
+            Handle<Node> axisX = node->FindChildByName("Translate_X"_sh);
             AssertDebug(axisX != nullptr);
             axisX->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
 
-            Handle<Node> axisY = node->FindChildByName("Translate_Y");
+            Handle<Node> axisY = node->FindChildByName("Translate_Y"_sh);
             AssertDebug(axisY != nullptr);
             axisY->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
 
-            Handle<Node> axisZ = node->FindChildByName("Translate_Z");
+            Handle<Node> axisZ = node->FindChildByName("Translate_Z"_sh);
             AssertDebug(axisZ != nullptr);
             axisZ->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
 
-            Handle<Node> centroid = node->FindChildByName("Translate_Centroid");
+            Handle<Node> centroid = node->FindChildByName("Translate_Centroid"_sh);
             AssertDebug(centroid != nullptr);
             centroid->AddTag(NodeTag(NAME("TransformWidgetAxis"), -1));
 
@@ -816,15 +816,15 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
 
             node->SetWorldScale(2.5f);
 
-            Handle<Node> axisX = node->FindChildByName("Rotate_X");
+            Handle<Node> axisX = node->FindChildByName("Rotate_X"_sh);
             AssertDebug(axisX != nullptr);
             axisX->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
 
-            Handle<Node> axisY = node->FindChildByName("Rotate_Y");
+            Handle<Node> axisY = node->FindChildByName("Rotate_Y"_sh);
             AssertDebug(axisY != nullptr);
             axisY->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
 
-            Handle<Node> axisZ = node->FindChildByName("Rotate_Z");
+            Handle<Node> axisZ = node->FindChildByName("Rotate_Z"_sh);
             AssertDebug(axisZ != nullptr);
             axisZ->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
 
@@ -904,7 +904,7 @@ void RotateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const MouseEve
         return;
     }
 
-    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis");
+    const NodeTag& axisTag = node->GetTag("TransformWidgetAxis"_sh);
 
     if (!axisTag)
     {
@@ -1033,7 +1033,7 @@ bool RotateEditorGizmo::OnMouseLeave(const Handle<Camera>& camera, const MouseEv
         return false;
     }
 
-    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"))
+    if (const NodeTag& tag = node->GetTag("TransformWidgetElementColor"_sh))
     {
         meshComponent->material->SetParameter(
             MATERIAL_KEY_ALBEDO,
@@ -1439,8 +1439,8 @@ EditorSubsystem::EditorSubsystem()
                             // InitActiveSceneSelection();
                         }));
 
-                m_delegateHandlers.Remove("OnPackageAdded");
-                m_delegateHandlers.Remove("OnPackageRemoved");
+                m_delegateHandlers.Remove("OnPackageAdded"_sh);
+                m_delegateHandlers.Remove("OnPackageRemoved"_sh);
 
                 SetActiveScene(activeScene);
             })
@@ -1485,9 +1485,9 @@ EditorSubsystem::EditorSubsystem()
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneAdded);
                 m_delegateHandlers.Remove(&project->GetWorld()->OnSceneRemoved);
 
-                m_delegateHandlers.Remove("SetBuildBVHFlag");
-                m_delegateHandlers.Remove("OnPackageAdded");
-                m_delegateHandlers.Remove("OnPackageRemoved");
+                m_delegateHandlers.Remove("SetBuildBVHFlag"_sh);
+                m_delegateHandlers.Remove("OnPackageAdded"_sh);
+                m_delegateHandlers.Remove("OnPackageRemoved"_sh);
 
                 // if (m_contentBrowserDirectoryList && m_contentBrowserDirectoryList->GetDataSource())
                 // {
@@ -2375,7 +2375,7 @@ void EditorSubsystem::ClearWatchedNodes()
         dataSource->Clear();
     }
 
-    m_editorDelegates->RemoveNodeWatchers("SceneView");
+    m_editorDelegates->RemoveNodeWatchers("SceneView"_sh);
 }
 
 void EditorSubsystem::UpdateWatchedNodes()
@@ -2432,12 +2432,12 @@ void EditorSubsystem::InitDetailView()
 
     detailsListView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-    m_editorDelegates->RemoveNodeWatchers("DetailView");
+    m_editorDelegates->RemoveNodeWatchers("DetailView"_sh);
 
     m_delegateHandlers.Remove(&OnFocusedNodeChanged);
     m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, cls = Node::StaticClass(), detailsListViewWeak = detailsListView.ToWeak(), outlineListViewWeak = outlineListView.ToWeak()](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
         {
-            m_editorDelegates->RemoveNodeWatchers("DetailView");
+            m_editorDelegates->RemoveNodeWatchers("DetailView"_sh);
 
             if (shouldSelectInOutline)
             {
@@ -2844,7 +2844,7 @@ void EditorSubsystem::InitContentBrowser()
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
 
-    m_contentBrowserDirectoryList = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List"));
+    m_contentBrowserDirectoryList = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List"_sh));
     Assert(m_contentBrowserDirectoryList != nullptr);
 
     m_contentBrowserDirectoryList->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetPackage> {}));
@@ -2857,7 +2857,7 @@ void EditorSubsystem::InitContentBrowser()
                 {
                     if (listViewItem != nullptr)
                     {
-                        if (const NodeTag& assetPackageTag = listViewItem->GetNodeTag("AssetPackage"); assetPackageTag.IsValid())
+                        if (const NodeTag& assetPackageTag = listViewItem->GetNodeTag("AssetPackage"_sh); assetPackageTag.IsValid())
                         {
                             if (Handle<AssetPackage> assetPackage = g_assetManager->GetAssetRegistry()->GetPackageFromPath(assetPackageTag.ToString(), /* createIfNotExist */ false); assetPackage.IsValid())
                             {
@@ -2875,18 +2875,18 @@ void EditorSubsystem::InitContentBrowser()
                     SetSelectedPackage(Handle<AssetPackage>::Null());
                 }));
 
-    m_contentBrowserContents = ObjCast<UIGrid>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents"));
+    m_contentBrowserContents = ObjCast<UIGrid>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents"_sh));
     Assert(m_contentBrowserContents != nullptr);
 
     // create data source that handles AssetObject and AssetPackage (so we display as subfolders)
     m_contentBrowserContents->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetObject> {}, TypeWrapper<AssetPackage> {}));
     m_contentBrowserContents->SetIsVisible(false);
 
-    m_contentBrowserContentsEmpty = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
+    m_contentBrowserContentsEmpty = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty"_sh);
     Assert(m_contentBrowserContentsEmpty != nullptr);
     m_contentBrowserContentsEmpty->SetIsVisible(true);
 
-    Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
+    Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button"_sh);
     Assert(importButton != nullptr);
 
     importButton->OnClick.RemoveAllDetached();

@@ -720,7 +720,7 @@ public:
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&HandleFoundMember, &attributeNameLower](const auto& it)
                         {
-                            if (const ClassAttributeValue& attr = it.GetAttribute("xmlattribute"); attr.IsValid())
+                            if (const ClassAttributeValue& attr = it.GetAttribute("xmlattribute"_sh); attr.IsValid())
                             {
                                 return String(attr.GetString()).ToLower() == attributeNameLower;
                             }
@@ -745,7 +745,7 @@ public:
 
                     auto memberIt = FindIf(memberList.Begin(), memberList.End(), [&HandleFoundMember, &attributeNameLower](const auto& it)
                         {
-                            if (it.GetAttribute("xmlattribute").IsValid())
+                            if (it.GetAttribute("xmlattribute"_sh).IsValid())
                             {
                                 return false;
                             }

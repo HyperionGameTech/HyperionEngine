@@ -824,12 +824,12 @@ public:
 
                 if (componentInterface->GetClass())
                 {
-                    if (const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("label"))
+                    if (const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("label"_sh))
                     {
                         componentHeaderTextOpt = attr.GetString();
                     }
 
-                    if (const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("description"))
+                    if (const ClassAttributeValue& attr = componentInterface->GetClass()->GetAttribute("description"_sh))
                     {
                         componentDescriptionOpt = attr.GetString();
                     }

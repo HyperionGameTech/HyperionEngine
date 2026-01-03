@@ -119,7 +119,7 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
     m_descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
     Assert(m_descriptorSet != nullptr);
 
-    m_descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
+    m_descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
 
     Assert(m_descriptorSet->Create());
 
@@ -179,9 +179,9 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
 
     frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex),
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
         graphicsPipeline,
-        { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
+        { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
         globalDescriptorSetIndex);
 
     frame->renderQueue << BindDescriptorSet(

@@ -60,11 +60,11 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("CombineShadowMapsDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("CombineShadowMapsDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("Src0", views[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-        descriptorSet->SetElement("Src1", views[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+        descriptorSet->SetElement("Src0"_sh, views[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+        descriptorSet->SetElement("Src1"_sh, views[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
     }
 
     DeferCreate(descriptorTable);
@@ -96,11 +96,11 @@ static ComputePipelineRef CreateBlurShadowMapPipeline(const GpuImageViewRef& inp
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("BlurShadowMapDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("BlurShadowMapDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("InputTexture", input);
-        descriptorSet->SetElement("OutputTexture", output);
+        descriptorSet->SetElement("InputTexture"_sh, input);
+        descriptorSet->SetElement("OutputTexture"_sh, output);
     }
 
     DeferCreate(descriptorTable);

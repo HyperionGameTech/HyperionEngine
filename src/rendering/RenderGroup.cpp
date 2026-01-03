@@ -273,10 +273,10 @@ static void RenderAll(
         frame->renderQueue << BindDescriptorSet(
             globalDescriptorSet,
             pipeline,
-            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { "CurrentLight", ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
+            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
             globalDescriptorSetIndex);
     }
 
@@ -311,13 +311,13 @@ static void RenderAll(
             AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
             DescriptorSetOffsetMap offsets = {
-                { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                { "CurrentEntity", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
+                { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
+                { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
             };
 
             if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
-                offsets.Add("MaterialsBuffer", ShaderDataOffset<MaterialShaderData>(drawCalls.materials[i], 0));
+                offsets.Add("MaterialsBuffer"_sh, ShaderDataOffset<MaterialShaderData>(drawCalls.materials[i], 0));
             }
 
             frame->renderQueue << BindDescriptorSet(entityDescriptorSet, pipeline, offsets, entityDescriptorSetIndex);
@@ -378,11 +378,11 @@ static void RenderAll(
 
         if (entityDescriptorSet.IsValid())
         {
-            DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) } });
+            DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) } });
 
             if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
             {
-                offsets.Add("MaterialsBuffer", ShaderDataOffset<MaterialShaderData>(instancedDrawCalls.materials[i], 0));
+                offsets.Add("MaterialsBuffer"_sh, ShaderDataOffset<MaterialShaderData>(instancedDrawCalls.materials[i], 0));
             }
 
             frame->renderQueue << BindDescriptorSet(
@@ -409,7 +409,7 @@ static void RenderAll(
         frame->renderQueue << BindDescriptorSet(
             instancingDescriptorSet,
             pipeline,
-            { { "EntityInstanceBatchesBuffer", uint32(offset) } },
+            { { "EntityInstanceBatchesBuffer"_sh, uint32(offset) } },
             instancingDescriptorSetIndex);
 
         if (!prevMesh || prevMesh != instancedDrawCalls.meshes[i])
@@ -501,10 +501,10 @@ static void RenderAll_Parallel(
         rootQueue << BindDescriptorSet(
             globalDescriptorSet,
             pipeline,
-            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { "CurrentLight", ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
+            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
             globalDescriptorSetIndex);
     }
 
@@ -546,7 +546,7 @@ static void RenderAll_Parallel(
 
                 auto& renderQueue = *parallelRenderingState->localQueues[batchIndex];
 
-                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Entity");
+                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Entity"_sh);
                 const DescriptorSetRef& entityDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex);
 
                 const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
@@ -560,13 +560,13 @@ static void RenderAll_Parallel(
                         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
                         DescriptorSetOffsetMap offsets = {
-                            { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
-                            { "CurrentEntity", ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
+                            { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
+                            { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
                         };
 
                         if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {
-                            offsets.Add("MaterialsBuffer", ShaderDataOffset<MaterialShaderData>(drawCalls.materials[i], 0));
+                            offsets.Add("MaterialsBuffer"_sh, ShaderDataOffset<MaterialShaderData>(drawCalls.materials[i], 0));
                         }
 
                         renderQueue << BindDescriptorSet(entityDescriptorSet, pipeline, offsets, entityDescriptorSetIndex);
@@ -651,7 +651,7 @@ static void RenderAll_Parallel(
 
                     if (entityDescriptorSet.IsValid())
                     {
-                        DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer", ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) } });
+                        DescriptorSetOffsetMap offsets({ { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i], 0) } });
 
                         if (g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
                         {
@@ -682,7 +682,7 @@ static void RenderAll_Parallel(
                     renderQueue << BindDescriptorSet(
                         instancingDescriptorSet,
                         pipeline,
-                        { { "EntityInstanceBatchesBuffer", uint32(offset) } },
+                        { { "EntityInstanceBatchesBuffer"_sh, uint32(offset) } },
                         instancingDescriptorSetIndex);
 
                     if (!prevMesh || prevMesh != instancedDrawCalls.meshes[i])

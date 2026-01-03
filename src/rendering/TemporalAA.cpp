@@ -100,19 +100,19 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
 
     const auto setDescriptorElements = [this, &textures](DescriptorSetBase* descriptorSet, uint32 frameIndex)
     {
-        descriptorSet->SetElement("InColorTexture", m_inputImageView);
-        descriptorSet->SetElement("InPrevColorTexture", g_renderBackend->GetTextureImageView((*textures[(frameIndex + 1) % 2])));
+        descriptorSet->SetElement("InColorTexture"_sh, m_inputImageView);
+        descriptorSet->SetElement("InPrevColorTexture"_sh, g_renderBackend->GetTextureImageView((*textures[(frameIndex + 1) % 2])));
 
-        descriptorSet->SetElement("InVelocityTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        descriptorSet->SetElement("InVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
 
-        descriptorSet->SetElement("InDepthTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        descriptorSet->SetElement("InDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 
-        descriptorSet->SetElement("SamplerLinear", g_renderInterface->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("SamplerNearest", g_renderInterface->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-        descriptorSet->SetElement("OutColorImage", g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
+        descriptorSet->SetElement("OutColorImage"_sh, g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
 
-        descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
+        descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
     };
 
     if (!m_uniformBuffer)
@@ -151,7 +151,7 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             // create descriptor sets for depth pyramid generation.
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("TemporalAADescriptorSet", frameIndex);
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("TemporalAADescriptorSet"_sh, frameIndex);
             Assert(descriptorSet != nullptr);
 
             setDescriptorElements(descriptorSet, frameIndex);
@@ -165,7 +165,7 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
         return;
     }
 
-    const DescriptorSetRef& descriptorSet = m_computePipeline->GetDescriptorTable()->GetDescriptorSet("TemporalAADescriptorSet", frame->GetFrameIndex());
+    const DescriptorSetRef& descriptorSet = m_computePipeline->GetDescriptorTable()->GetDescriptorSet("TemporalAADescriptorSet"_sh, frame->GetFrameIndex());
     Assert(descriptorSet != nullptr);
 
     setDescriptorElements(descriptorSet, frame->GetFrameIndex());

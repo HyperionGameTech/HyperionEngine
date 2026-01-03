@@ -493,7 +493,7 @@ bool ObjectToJSON(
     while (cls != nullptr)
     {
         // look for signature void ToJSON(Value& out)
-        if (const Method* toJsonMethod = cls->GetMethod("ToJSON", /* deep */ false))
+        if (const Method* toJsonMethod = cls->GetMethod("ToJSON"_sh, /* deep */ false))
         {
             if (toJsonMethod->GetParameters().Size() != 2
                 || toJsonMethod->GetTypeId() != TypeId::Void()
@@ -1576,7 +1576,7 @@ bool JSONToHypData(const Json::Value& jsonValue, const TypeInfo& typeInfo, Boxed
         // first check for $Class property to override type
         if (auto classValue = jsonValue.Get("$Class"); classValue && classValue.IsString())
         {
-            const Class* derivedClass = GetClass(*classValue.AsString().ToAnsi());
+            const Class* derivedClass = GetClass(StringHash(classValue.AsString()));
 
             if (derivedClass)
             {

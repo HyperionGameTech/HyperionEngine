@@ -198,11 +198,11 @@ void SSGI::CreateComputePipelines()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("SSGIDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("SSGIDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("OutImage", g_renderBackend->GetTextureImageView(m_resultTexture));
-        descriptorSet->SetElement("UniformBuffer", m_uniformBuffers[frameIndex]);
+        descriptorSet->SetElement("OutImage"_sh, g_renderBackend->GetTextureImageView(m_resultTexture));
+        descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffers[frameIndex]);
     }
 
     DeferCreate(descriptorTable);
@@ -238,12 +238,12 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << BindDescriptorTable(
         m_computePipeline->GetDescriptorTable(),
         m_computePipeline,
-        { { "Global",
-            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { "Global"_sh,
+            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frameIndex);
 
-    const uint32 viewDescriptorSetIndex = m_computePipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+    const uint32 viewDescriptorSetIndex = m_computePipeline->GetDescriptorTable()->GetDescriptorSetIndex("View"_sh);
 
     if (viewDescriptorSetIndex != ~0u)
     {

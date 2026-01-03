@@ -43,7 +43,7 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
         return;
     }
 
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material"_sh);
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
@@ -105,7 +105,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
 
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material"_sh);
     Assert(decl != nullptr);
 
     DescriptorSetLayout layout { decl };
@@ -160,7 +160,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
 
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material");
+    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material"_sh);
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };

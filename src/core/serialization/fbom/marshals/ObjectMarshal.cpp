@@ -66,7 +66,7 @@ static void CollectAssetReferenceMembers(
             if (const ClassAttributeValue& targetAttr = member.GetAttribute(s_nameResolveAsset))
             {
                 // Get the target member
-                pTargetMember = cls->GetMember(*targetAttr.GetString(), MemberType::Property | MemberType::Field);
+                pTargetMember = cls->GetMember(targetAttr.GetString(), MemberType::Property | MemberType::Field);
 
                 if (!pTargetMember)
                 {

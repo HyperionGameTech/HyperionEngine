@@ -103,7 +103,7 @@ public:
             return false;
         }
 
-        const Name name = Name(StringHash(*methodName));
+        const Name name = Name(StringHash(methodName));
 
         const Method* method = Class_GetMethod(nativeObject->InstanceClass(), &name);
         if (!method)
