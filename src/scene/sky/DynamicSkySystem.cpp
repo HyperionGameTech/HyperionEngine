@@ -2,7 +2,7 @@
 
 #include <ScenePch.hpp>
 
-#include <scene/sky/DynamicSkySubsystem.hpp>
+#include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>
@@ -27,31 +27,31 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <DynamicSkySubsystem.generated.inl>
+#include <DynamicSkySystem.generated.inl>
 
 namespace Hyperion {
 
 static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
 static constexpr LockstepGameCounter::TickUnit DynamicSkyUpdateTimer = LockstepGameCounter::TickUnit(1.0f); // update every second
 
-DynamicSkySubsystem::DynamicSkySubsystem()
-    : DynamicSkySubsystem(DefaultSkyCubemapDimensions)
+DynamicSkySystem::DynamicSkySystem()
+    : DynamicSkySystem(DefaultSkyCubemapDimensions)
 {
 }
 
-DynamicSkySubsystem::DynamicSkySubsystem(Vec2u dimensions)
+DynamicSkySystem::DynamicSkySystem(Vec2u dimensions)
     : m_dimensions(dimensions),
       m_updateTimer { DynamicSkyUpdateTimer }
 {
 }
 
-DynamicSkySubsystem::~DynamicSkySubsystem()
+DynamicSkySystem::~DynamicSkySystem()
 {
 }
 
-void DynamicSkySubsystem::Init()
+void DynamicSkySystem::Init()
 {
-    Subsystem::Init();
+    SystemBase::Init();
 
     { // atmospheric scattering capture setup
         m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
@@ -139,10 +139,12 @@ void DynamicSkySubsystem::Init()
     }
 }
 
-void DynamicSkySubsystem::OnAddedToWorld()
+void DynamicSkySystem::OnAddedToWorld(World* world)
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
+
+    SystemBase::OnAddedToWorld(world);
 
     GetWorld()->AddScene(m_renderScene);
     GetWorld()->AddScene(m_visScene);
@@ -151,34 +153,15 @@ void DynamicSkySubsystem::OnAddedToWorld()
     m_envProbe->SetNeedsRender(true);
 }
 
-void DynamicSkySubsystem::OnRemovedFromWorld()
+void DynamicSkySystem::OnRemovedFromWorld(World* world)
 {
+    SystemBase::OnRemovedFromWorld(world);
+
     GetWorld()->RemoveScene(m_renderScene);
     GetWorld()->RemoveScene(m_visScene);
 }
 
-void DynamicSkySubsystem::OnSceneAttached(const Handle<Scene>& scene)
-{
-    if (scene == m_renderScene)
-    {
-        return;
-    }
-
-    Assert(m_skyboxEntity);
-    // scene->GetRoot()->AddChild(m_skyboxEntity);
-}
-
-void DynamicSkySubsystem::OnSceneDetached(Scene* scene)
-{
-    if (scene == m_renderScene)
-    {
-        return;
-    }
-
-    // scene->GetRoot()->RemoveChild(m_skyboxEntity);
-}
-
-void DynamicSkySubsystem::Update(float delta)
+void DynamicSkySystem::Process(float delta, Span<Handle<Scene>>)
 {
     if (!m_envProbe)
     {

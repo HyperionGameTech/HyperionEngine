@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <scene/SystemExecutionGroup.hpp>
-
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
@@ -24,6 +22,8 @@ class Subsystem;
 class WorldGrid;
 class WorldGridLayer;
 class PhysicsWorldBase;
+class SystemBase;
+class SystemExecutionGroup;
 
 struct GameState;
 
@@ -202,6 +202,26 @@ public:
     HYP_METHOD()
     SystemBase* AddSystem(const Handle<SystemBase>& system);
 
+    /* \brief Adds a System of the given type to the World.
+     *  \tparam SystemType The type of System to add.
+     *  \tparam Args The types of the arguments to pass to the System's constructor.
+     *  \param[in] args The arguments to pass to the System's constructor.
+     *  \returns If the system was successfully added, a pointer to the System instance.
+     *   If a System of the exact same type already exists, a pointer to that system will be returned.
+     *   Otherwise, nullptr will be returned.
+     */
+    template <class SystemType, class... Args>
+    SystemBase* AddSystemT(Args&&... args)
+    {
+        SystemType* existingSystem = GetSystem<SystemType>();
+        if (existingSystem != nullptr)
+        {
+            return existingSystem;
+        }
+
+        return AddSystem(CreateObject<SystemType>(std::forward<Args>(args)...));
+    }
+
     /*! \brief Remove a system from this world.
      *  \param[in] system The system to remove from this world.
      *  \returns A boolean indicating if the system was successfully removed or not. */
@@ -216,26 +236,24 @@ public:
     template <class SystemType>
     SystemType* GetSystem() const
     {
-        static const TypeId s_typeId = TypeId::ForType<SystemType>();
-
-        auto it = m_systems.FindIf([](const Handle<SystemBase>& system)
+        auto it = m_systems.FindIf([staticClass = SystemType::StaticClass()](const Handle<SystemBase>& system)
             {
-                return system->Id().GetTypeId() == s_typeId;
+                return reinterpret_cast<const ObjectBase*>(system.Get())->InstanceClass() == staticClass;
             });
 
         if (it != m_systems.End())
         {
-            return *it;
+            return ObjCast<SystemType>(*it);
         }
 
         it = m_systems.FindIf([](const Handle<SystemBase>& system)
             {
-                return Hyperion::IsA(Hyperion::GetClass<SystemBase>(), system->InstanceClass());
+                return Hyperion::IsA(SystemType::StaticClass(), reinterpret_cast<const ObjectBase*>(system.Get())->InstanceClass());
             });
 
         if (it != m_systems.End())
         {
-            return *it;
+            return ObjCast<SystemType>(*it);
         }
 
         return nullptr;
@@ -247,12 +265,7 @@ public:
         return GetSystem<SystemBase>() != nullptr;
     }
 
-    HYP_FORCE_INLINE Array<SystemExecutionGroup>& GetSystemExecutionGroups()
-    {
-        return m_systemExecutionGroups;
-    }
-
-    HYP_FORCE_INLINE const Array<SystemExecutionGroup>& GetSystemExecutionGroups() const
+    HYP_FORCE_INLINE const Array<SystemExecutionGroup*>& GetSystemExecutionGroups() const
     {
         return m_systemExecutionGroups;
     }
@@ -326,7 +339,7 @@ private:
     HYP_FIELD(Property = "Systems")
     Array<Handle<SystemBase>> m_systems;
 
-    Array<SystemExecutionGroup> m_systemExecutionGroups;
+    Array<SystemExecutionGroup*> m_systemExecutionGroups;
     SystemExecutionGroup* m_rootSynchronousExecutionGroup;
 
     Array<Handle<View>> m_views;
