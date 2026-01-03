@@ -49,8 +49,6 @@ static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
 #pragma region Render commands
 
-HYP_DISABLE_OPTIMIZATION;
-
 struct CreateTextureGpuImage : RenderCommand
 {
     Handle<TextureAsset> textureAsset;

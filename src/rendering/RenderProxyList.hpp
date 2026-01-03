@@ -137,11 +137,6 @@ public:
     bool useOrdering : 1 = false;                  //!< are mesh entities sorted using an indirect array to map sort order?
     bool disableBuildRenderCollection : 1 = false; //!< Disable building out RenderCollection. Set to true in the case of custom render collection building (See UIRenderer)
 
-#ifdef HYP_DEBUG_MODE
-    bool debugIsDestroyed : 1 = false; //!< Set to true in the destructor. Used to catch use-after-free bugs.
-    bool debugIsSynced : 1 = false;
-#endif
-
     Viewport viewport;
     int priority;
 

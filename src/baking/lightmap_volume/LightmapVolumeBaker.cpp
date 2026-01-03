@@ -42,8 +42,6 @@ void Baker<LightmapVolume>::Initialize_Internal()
     // no-op
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 void Baker<LightmapVolume>::Build()
 {
     HYP_SCOPE;

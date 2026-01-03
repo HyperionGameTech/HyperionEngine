@@ -415,9 +415,9 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
         return nullptr;
     }
 
-    EntityBatchAllocatorBase* pBatchAllocator = GetEntityBatchAllocator(typeId);
+    EntityBatchAllocatorBase* batchAllocator = GetEntityBatchAllocator(typeId);
 
-    if (!pBatchAllocator)
+    if (!batchAllocator)
     {
         Mutex& mtx = GetEntityBatchAllocatorCreateFnMapMutex();
         CreateFnMap& funcs = GetEntityBatchAllocatorCreateFnMap();
@@ -432,18 +432,18 @@ EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator(const TypeId& typeId)
         createFn = createFnIt->second;
         AssertDebug(createFn != nullptr);
 
-        pBatchAllocator = createFn();
-        AssertDebug(pBatchAllocator != nullptr);
-        AssertDebug(pBatchAllocator->GetGpuBufferHolder() == nullptr);
+        batchAllocator = createFn();
+        AssertDebug(batchAllocator != nullptr);
+        AssertDebug(batchAllocator->GetGpuBufferHolder() == nullptr);
 
-        if (!SetEntityBatchAllocator(typeId, pBatchAllocator))
+        if (!SetEntityBatchAllocator(typeId, batchAllocator))
         {
-            PoolDelete(*g_renderPool, pBatchAllocator);
-            pBatchAllocator = nullptr;
+            PoolDelete(*g_renderPool, batchAllocator);
+            batchAllocator = nullptr;
         }
     }
 
-    return pBatchAllocator;
+    return batchAllocator;
 }
 
 void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn)

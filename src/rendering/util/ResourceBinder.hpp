@@ -109,7 +109,7 @@ public:
     virtual void ApplyUpdates() = 0;
 
     // Get a bitset containing all the bound resources of a given type.
-    virtual const Bitset& GetBoundIndices(TypeId typeId) const = 0;
+    virtual const TBitset<RenderAllocator>& GetBoundIndices(TypeId typeId) const = 0;
 
     virtual uint32 TotalBoundResources() const = 0;
 
@@ -129,6 +129,8 @@ protected:
 template <class T, auto OnBindingChanged = (void (*)(T*, uint32, uint32)) nullptr>
 class ResourceBinder : public ResourceBinderBase
 {
+    using BitsetType = TBitset<RenderAllocator>;
+
     struct Impl final
     {
         explicit Impl(const TypeInfo* typeInfo)
@@ -139,7 +141,7 @@ class ResourceBinder : public ResourceBinderBase
         void ReleaseBindings(ResourceBindingAllocatorBase* allocator)
         {
             // Unbind all objects that were bound in the last frame
-            for (Bitset::BitIndex i : lastFrameIds)
+            for (typename BitsetType::BitIndex i : lastFrameIds)
             {
                 const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
 
@@ -208,22 +210,27 @@ class ResourceBinder : public ResourceBinderBase
 
         void ApplyUpdates(ResourceBindingAllocatorBase* allocator)
         {
-            const Bitset removed = GetRemoved();
-            const Bitset newlyAdded = GetNewlyAdded();
-            const Bitset after = (lastFrameIds & ~removed) | newlyAdded;
-            const Bitset unchanged = currentFrameIds & lastFrameIds;
+            const BitsetType removed = GetRemoved();
+            const BitsetType newlyAdded = GetNewlyAdded();
+            const BitsetType after = (lastFrameIds & ~removed) | newlyAdded;
+            const BitsetType unchanged = currentFrameIds & lastFrameIds;
 
             AssertDebug(after.Count() <= allocator->maxSize);
 
             // NOTE: We do removed bits first, to free up slots for the newly added elements to claim a binding index.
             if (removed.AnyBitsSet())
             {
-                Array<KeyValuePair<WeakHandle<T>, uint32>> removedElements;
+                Array<KeyValuePair<WeakHandle<T>, uint32>, RenderTempAllocator> removedElements;
                 removedElements.Reserve(removed.Count());
 
-                for (Bitset::BitIndex i : removed)
+                for (typename BitsetType::BitIndex bit : removed)
                 {
-                    const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(i + 1) });
+                    if (forceRebindBits.Test(bit))
+                    {
+                        forceRebindBits.Set(bit, false);
+                    }
+
+                    const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(bit + 1) });
 
                     auto it = bindings.FindAs(id);
                     AssertDebug(it != bindings.End());
@@ -251,7 +258,7 @@ class ResourceBinder : public ResourceBinderBase
                 }
             }
 
-            for (Bitset::BitIndex bit : newlyAdded)
+            for (typename BitsetType::BitIndex bit : newlyAdded)
             {
                 if (forceRebindBits.Test(bit))
                 {
@@ -289,7 +296,7 @@ class ResourceBinder : public ResourceBinderBase
             if (forceRebindBits.AnyBitsSet())
             {
                 // go through unchanged and compare versions to see if we need to unbind+rebind to same slot
-                for (Bitset::BitIndex bit : forceRebindBits)
+                for (typename BitsetType::BitIndex bit : forceRebindBits)
                 {
                     const ObjId<T> id = ObjId<T>(ObjIdBase { TypeInfo_GetId(*typeInfo), uint32(bit + 1) });
 
@@ -315,32 +322,32 @@ class ResourceBinder : public ResourceBinderBase
             lastFrameIds = currentFrameIds;
         }
 
-        HYP_FORCE_INLINE Bitset GetNewlyAdded() const
+        HYP_FORCE_INLINE BitsetType GetNewlyAdded() const
         {
             const SizeType count = MathUtil::Max(lastFrameIds.NumBits(), currentFrameIds.NumBits());
 
-            return Bitset(currentFrameIds).SetNumBits(count) & ~Bitset(lastFrameIds).SetNumBits(count);
+            return BitsetType(currentFrameIds).SetNumBits(count) & ~BitsetType(lastFrameIds).SetNumBits(count);
         }
 
-        HYP_FORCE_INLINE Bitset GetRemoved() const
+        HYP_FORCE_INLINE BitsetType GetRemoved() const
         {
             const SizeType count = MathUtil::Max(lastFrameIds.NumBits(), currentFrameIds.NumBits());
 
-            return Bitset(lastFrameIds).SetNumBits(count) & ~Bitset(currentFrameIds).SetNumBits(count);
+            return BitsetType(lastFrameIds).SetNumBits(count) & ~BitsetType(currentFrameIds).SetNumBits(count);
         }
 
         const TypeInfo* typeInfo;
         // these bitsets are used to track which objects were bound in the last frame with bitwise operations
-        Bitset lastFrameIds;
-        Bitset currentFrameIds;
-        Bitset forceRebindBits;
+        BitsetType lastFrameIds;
+        BitsetType currentFrameIds;
+        BitsetType forceRebindBits;
         HashMap<WeakHandle<T>, uint32> bindings;
     };
 
 public:
     explicit ResourceBinder(ResourceBindingAllocatorBase* bindingAllocator)
         : ResourceBinderBase(bindingAllocator),
-          m_impl(&TypeOf<T>())
+          m_baseImpl(nullptr)
     {
     }
 
@@ -352,10 +359,16 @@ public:
 
     virtual ~ResourceBinder() override
     {
-        m_impl.ReleaseBindings(m_bindingAllocator);
+        if (m_baseImpl)
+        {
+            m_baseImpl->ReleaseBindings(m_bindingAllocator);
+
+            delete m_baseImpl;
+            m_baseImpl = nullptr;
+        }
 
         // Loop over the set bits and destruct subclass impls
-        for (Bitset::BitIndex i : m_subclassImplsInitialized)
+        for (typename BitsetType::BitIndex i : m_subclassImplsInitialized)
         {
             AssertDebug(i < m_subclassImpls.Size());
 
@@ -369,6 +382,9 @@ public:
     virtual void Initialize() override
     {
         AssertDebug(m_bindingAllocator != nullptr);
+
+        AssertDebug(m_baseImpl == nullptr);
+        m_baseImpl = new Impl(&TypeOf<T>());
 
         const SizeType numDescendants = GetNumDescendants(TypeId::ForType<T>());
 
@@ -389,7 +405,7 @@ public:
 
         if (objectTypeId == baseTypeId)
         {
-            m_impl.Consider(m_bindingAllocator, pResource, forceRebind);
+            m_baseImpl->Consider(m_bindingAllocator, pResource, forceRebind);
 
             return;
         }
@@ -418,7 +434,7 @@ public:
 
         if (objectTypeId == typeId)
         {
-            m_impl.Deconsider(m_bindingAllocator, pResource);
+            m_baseImpl->Deconsider(m_bindingAllocator, pResource);
         }
         else
         {
@@ -447,7 +463,7 @@ public:
 
         if (objectTypeId == typeId)
         {
-            m_impl.SetForceRebind(pResource, forceRebind);
+            m_baseImpl->SetForceRebind(pResource, forceRebind);
         }
         else
         {
@@ -473,9 +489,9 @@ public:
         if (objectTypeId == typeId)
         {
             const ObjIdBase id = pResource->Id();
-            const auto it = m_impl.bindings.FindAs(ObjId<T>(id));
+            const auto it = m_baseImpl->bindings.FindAs(ObjId<T>(id));
 
-            if (it != m_impl.bindings.End())
+            if (it != m_baseImpl->bindings.End())
             {
                 return it->second;
             }
@@ -508,18 +524,18 @@ public:
 
     virtual void ApplyUpdates() override
     {
-        m_impl.ApplyUpdates(m_bindingAllocator);
+        m_baseImpl->ApplyUpdates(m_bindingAllocator);
 
-        for (Bitset::BitIndex i : m_subclassImplsInitialized)
+        for (typename BitsetType::BitIndex i : m_subclassImplsInitialized)
         {
             Impl& impl = m_subclassImpls[i].Get();
             impl.ApplyUpdates(m_bindingAllocator);
         }
     }
 
-    virtual const Bitset& GetBoundIndices(TypeId typeId) const override
+    virtual const BitsetType& GetBoundIndices(TypeId typeId) const override
     {
-        static const Bitset s_emptyBitset;
+        static const BitsetType s_emptyBitset;
 
         const TypeId baseTypeId = TypeId::ForType<T>();
 
@@ -530,7 +546,7 @@ public:
 
         if (typeId == baseTypeId)
         {
-            return m_impl.lastFrameIds;
+            return m_baseImpl->lastFrameIds;
         }
         else
         {
@@ -551,9 +567,9 @@ public:
 
     virtual uint32 TotalBoundResources() const override
     {
-        uint32 total = m_impl.currentFrameIds.Count();
+        uint32 total = m_baseImpl->currentFrameIds.Count();
 
-        for (Bitset::BitIndex i : m_subclassImplsInitialized)
+        for (typename BitsetType::BitIndex i : m_subclassImplsInitialized)
         {
             total += m_subclassImpls[i].Get().currentFrameIds.Count();
         }
@@ -563,11 +579,11 @@ public:
 
 protected:
     // base class impl
-    Impl m_impl;
+    Impl* m_baseImpl;
 
     // per-subtype implementations (only constructed and setup on first Consider() call with that type)
-    Array<ValueStorage<Impl>> m_subclassImpls;
-    Bitset m_subclassImplsInitialized;
+    Array<ValueStorage<Impl>, FixedAllocator<32>> m_subclassImpls;
+    TBitset<FixedAllocator<32>> m_subclassImplsInitialized;
 };
 
 } // namespace Hyperion
