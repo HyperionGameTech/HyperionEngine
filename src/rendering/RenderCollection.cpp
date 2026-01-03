@@ -493,10 +493,6 @@ RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool 
 RenderProxyList::~RenderProxyList()
 {
 #ifdef HYP_DEBUG_MODE
-    debugIsDestroyed = true;
-#endif
-
-#ifdef HYP_DEBUG_MODE
     int numRenderProxies = 0;
 
     ForEachResourceTracker(resourceTrackers.ToSpan(), [&](auto&& resourceTracker)
