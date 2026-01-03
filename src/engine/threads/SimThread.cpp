@@ -186,6 +186,12 @@ void SimThread::operator()()
     InitObject(defaultWorld);
     g_engineDriver->SetDefaultWorld(defaultWorld);
 
+    while (!RenderApi::IsInit())
+    {
+        //we need to wait for g_renderInstance to be non-null
+        ThreadSleep(0);
+    }
+
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)
     {

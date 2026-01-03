@@ -194,7 +194,7 @@ public:
 
     ShaderPropertyCache* shaderPropertyCache;
 
-    Array<World*> renderWorlds;
+    Array<World*> renderWorlds[RingBufferDepth];
 
 private:
     void CreateBlueNoiseBuffer();
