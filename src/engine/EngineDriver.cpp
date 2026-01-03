@@ -496,7 +496,7 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
     worldUpdateTaskBatch.AwaitCompletion();
 
-    static const auto s_removeNonUnique = []<class ArrayType>(ArrayType& elems)
+    static const auto RemoveNonUnique = []<class ArrayType>(ArrayType& elems)
     {
         for (SizeType idx = 0; idx < elems.Size();)
         {
@@ -511,9 +511,9 @@ void EngineDriver::UpdateSim(float delta)
         }
     };
 
-    s_removeNonUnique(views);
-    s_removeNonUnique(subsystems);
-    s_removeNonUnique(scenes);
+    RemoveNonUnique(views);
+    RemoveNonUnique(subsystems);
+    RemoveNonUnique(scenes);
 
     for (View* view : views)
     {
