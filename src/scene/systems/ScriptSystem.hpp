@@ -11,7 +11,7 @@
 
 namespace Hyperion {
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Serialize=false)
 class ScriptSystem final : public SystemBase
 {
     HYP_OBJECT_BODY(ScriptSystem);

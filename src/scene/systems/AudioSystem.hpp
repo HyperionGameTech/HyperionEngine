@@ -8,7 +8,7 @@
 
 namespace Hyperion {
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Serialize=false)
 class AudioSystem : public SystemBase
 {
     HYP_OBJECT_BODY(AudioSystem);

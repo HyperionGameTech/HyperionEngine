@@ -10,7 +10,7 @@ namespace Hyperion {
 
 class LightmapVolume;
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Serialize=false)
 class LightmapSystem : public SystemBase
 {
     HYP_OBJECT_BODY(LightmapSystem);

@@ -44,7 +44,7 @@ bool SystemExecutionGroup::IsValidForSystem(const SystemBase* systemPtr) const
 
     for (const auto& it : m_systems)
     {
-        const SystemBase* otherSystem = it.second.Get();
+        SystemBase* otherSystem = it.second;
 
         for (TypeId componentTypeId : componentTypeIds)
         {
@@ -71,10 +71,14 @@ bool SystemExecutionGroup::IsValidForSystem(const SystemBase* systemPtr) const
     return true;
 }
 
-SystemBase* SystemExecutionGroup::AddSystem(const Handle<SystemBase>& system)
+SystemBase* SystemExecutionGroup::AddSystem(SystemBase* system)
 {
-    Assert(system.IsValid());
-    Assert(IsValidForSystem(system.Get()), "System is not valid for this SystemExecutionGroup");
+    if (!system)
+    {
+        return nullptr;
+    }
+
+    Assert(IsValidForSystem(system), "System is not valid for this SystemExecutionGroup");
 
     const TypeId typeId = GetTypeIdForClass(system->InstanceClass());
 
@@ -97,7 +101,7 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
 
     for (auto& it : m_systems)
     {
-        SystemBase* system = it.second.Get();
+        SystemBase* system = it.second;
 
         m_performanceClocks.Set(system, PerformanceClock());
     }
@@ -109,7 +113,7 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
 
     for (auto& it : m_systems)
     {
-        SystemBase* system = it.second.Get();
+        SystemBase* system = it.second;
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
         HYP_LOG(Entity, Debug, "\t\tSystem: {}", system->GetName());
@@ -152,7 +156,7 @@ void SystemExecutionGroup::FinishProcessing(bool executeBlocking)
 
     for (auto& it : m_systems)
     {
-        SystemBase* system = it.second.Get();
+        SystemBase* system = it.second;
 
         if (system->m_afterProcessProcs.Any())
         {

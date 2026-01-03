@@ -166,13 +166,6 @@ void World::Init()
         InitObject(m_worldGrid);
     }
 
-    AddSystem(CreateObject<VisibilityStateUpdaterSystem>());
-    AddSystem(CreateObject<LightmapSystem>());
-    AddSystem(CreateObject<AnimationSystem>());
-    AddSystem(CreateObject<AudioSystem>());
-    AddSystem(CreateObject<PhysicsSystem>());
-    AddSystem(CreateObject<ScriptSystem>());
-
     for (auto& it : m_subsystems)
     {
         const Handle<Subsystem>& subsystem = it.second;
@@ -248,6 +241,53 @@ void World::Init()
             scenesStreamingLayer->AddStreamingObject(scene, scene->GetStreamingCentroid());
         }
     }
+    
+    for (const Handle<SystemBase>& system : m_systems)
+    {
+        AssertDebug(system != nullptr);
+
+        if (!system)
+        {
+            continue;
+        }
+
+        system->InitComponentInfos_Internal();
+
+        const bool wasAdded = AddSystemToExecutionGroup(system);
+
+        system->m_world = this;
+
+        InitObject(system);
+
+        if (wasAdded)
+        {
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                if (scene != nullptr)
+                {
+                    scene->GetEntityManager()->NotifySystemOfExistingEntities(system);
+                }
+            }
+        }
+    }
+
+    if (!HasSystem<VisibilityStateUpdaterSystem>())
+        AddSystem(CreateObject<VisibilityStateUpdaterSystem>());
+    
+    if (!HasSystem<LightmapSystem>())
+        AddSystem(CreateObject<LightmapSystem>());
+    
+    if (!HasSystem<AnimationSystem>())
+        AddSystem(CreateObject<AnimationSystem>());
+    
+    if (!HasSystem<AudioSystem>())
+        AddSystem(CreateObject<AudioSystem>());
+    
+    if (!HasSystem<PhysicsSystem>())
+        AddSystem(CreateObject<PhysicsSystem>());
+
+    if (!HasSystem<ScriptSystem>())
+        AddSystem(CreateObject<ScriptSystem>());
 
     for (const Handle<View>& view : m_views)
     {
@@ -1220,7 +1260,49 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     Assert(system.IsValid());
     Assert(system->m_world == nullptr || system->m_world == this);
 
-    system->InitComponentInfos_Internal();
+    auto it = m_systems.FindIf([&system](const Handle<SystemBase>& otherSystem)
+        {
+            return otherSystem->InstanceClass() == system->InstanceClass();
+        });
+
+    AssertDebug(it == m_systems.End(), "System of type {} already exists in world {}", system->InstanceClass()->GetName(), GetName());
+    if (it != m_systems.End())
+    {
+        // cannot add system if one already exists
+        return *it;
+    }
+
+    m_systems.PushBack(system);
+
+    // If the World is initialized, call Initialize() on the System.
+    if (IsInitCalled())
+    {
+        system->InitComponentInfos_Internal();
+
+        const bool wasAdded = AddSystemToExecutionGroup(system);
+
+        system->m_world = this;
+
+        InitObject(system);
+
+        if (wasAdded)
+        {
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                if (scene != nullptr)
+                {
+                    scene->GetEntityManager()->NotifySystemOfExistingEntities(system);
+                }
+            }
+        }
+    }
+
+    return system;
+}
+
+bool World::AddSystemToExecutionGroup(SystemBase* system)
+{
+    Assert(system != nullptr);
 
     bool wasAdded = false;
 
@@ -1228,7 +1310,7 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
     {
         for (SystemExecutionGroup& systemExecutionGroup : m_systemExecutionGroups)
         {
-            if (systemExecutionGroup.IsValidForSystem(system.Get()))
+            if (systemExecutionGroup.IsValidForSystem(system))
             {
                 if (systemExecutionGroup.AddSystem(system))
                 {
@@ -1250,23 +1332,7 @@ SystemBase* World::AddSystem(const Handle<SystemBase>& system)
         }
     }
 
-    system->m_world = this;
-
-    // If the World is initialized, call Initialize() on the System.
-    if (IsInitCalled() && wasAdded)
-    {
-        InitObject(system);
-
-        for (const Handle<Scene>& scene : m_scenes)
-        {
-            if (scene != nullptr)
-            {
-                scene->GetEntityManager()->NotifySystemOfExistingEntities(system);
-            }
-        }
-    }
-
-    return system;
+    return wasAdded;
 }
 
 } // namespace Hyperion

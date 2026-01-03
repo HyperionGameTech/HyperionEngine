@@ -17,7 +17,7 @@ namespace Hyperion {
 class Skeleton;
 class SkeletonAsset;
 
-HYP_CLASS(NoScriptBindings)
+HYP_CLASS(NoScriptBindings, Serialize=false)
 class AnimationSystem : public SystemBase
 {
     HYP_OBJECT_BODY(AnimationSystem);
