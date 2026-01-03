@@ -39,6 +39,7 @@
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <scene/View.hpp>
+#include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 #include <scene/Light.hpp>
@@ -569,7 +570,7 @@ struct ViewFrameData
 
 struct FrameData
 {
-    HashMap<View*, ViewFrameData*> viewFrameData;
+    HashMap<View*, ViewFrameData*, NodeAllocator<RenderAllocator>> viewFrameData;
 
     WorldShaderData worldBufferData {};
 };
@@ -695,10 +696,10 @@ static void SyncResources(
         return;
     }
 
-    Array<ElementType*, RenderAllocator> removed;
+    Array<ElementType*, RenderTempAllocator> removed;
     dst.GetRemoved(removed, false);
 
-    Array<ElementType*, RenderAllocator> added;
+    Array<ElementType*, RenderTempAllocator> added;
     dst.GetAdded(added, false);
 
     for (ElementType* pResource : added)
@@ -758,7 +759,7 @@ static void SyncResources(
         }
     }
 
-    Array<ElementType*, RenderAllocator> changed;
+    Array<ElementType*, RenderTempAllocator> changed;
 
     if constexpr (!std::is_same_v<ProxyType, NullProxy>)
     {
@@ -1156,37 +1157,50 @@ void BeginFrameRender()
 
     RenderCommands::Flush();
 
-    for (auto it = fd.viewFrameData.Begin(); it != fd.viewFrameData.End(); ++it)
+    Array<View*, RenderTempAllocator> visitedViews;
+
+    for (World* world : g_renderInterface->renderWorlds)
     {
-        ViewFrameData& vfd = *it->second;
-        AssertDebug(vfd.rplShared != nullptr);
-
-        if (!vfd.viewData)
+        for (View* view : world->GetViews())
         {
-            vfd.viewData = GetViewData(vfd.view);
-            vfd.viewData->AddRef();
+            if (visitedViews.Contains(view))
+            {
+                continue;
+            }
+
+            visitedViews.PushBack(view);
+
+            ViewFrameData& vfd = *GetViewFrameData(view, slot);
+
+            if (!vfd.viewData)
+            {
+                vfd.viewData = GetViewData(vfd.view);
+                vfd.viewData->AddRef();
+            }
+
+            AssertDebug(vfd.rplShared != nullptr);
+
+            bool readLockAcquired = false;
+            vfd.rplShared->BeginRead(&readLockAcquired);
+
+            if (!readLockAcquired)
+            {
+                HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
+
+                continue;
+            }
+
+    #ifdef HYP_DEBUG_MODE
+            vfd.rplShared->debugIsSynced = true;
+    #endif
+
+            AssertDebug(vfd.rplShared->debugIsDestroyed == false, "RenderProxyList for view {} has been destroyed!", vfd.view->Id());
+
+            // copy dependencies from shared to ViewData
+            CopyDependencies(vfd.viewData->rplRender, *vfd.rplShared);
+
+            vfd.rplShared->EndRead();
         }
-
-        bool readLockAcquired = false;
-        vfd.rplShared->BeginRead(&readLockAcquired);
-
-        if (!readLockAcquired)
-        {
-            HYP_LOG(Rendering, Warning, "Read lock for RenderProxyList could not be acquired, may result in invalid resource bindings or stale pointers!!!");
-
-            continue;
-        }
-
-#ifdef HYP_DEBUG_MODE
-        vfd.rplShared->debugIsSynced = true;
-#endif
-
-        AssertDebug(vfd.rplShared->debugIsDestroyed == false, "RenderProxyList for view {} has been destroyed!", vfd.view->Id());
-
-        // copy dependencies from shared to ViewData
-        CopyDependencies(vfd.viewData->rplRender, *vfd.rplShared);
-
-        vfd.rplShared->EndRead();
     }
 
     {
@@ -1285,9 +1299,9 @@ void BeginFrameRender()
     }
 
     // Build draw call lists
-    for (auto it = fd.viewFrameData.Begin(); it != fd.viewFrameData.End(); ++it)
+    for (View* view : visitedViews)
     {
-        ViewFrameData& vfd = *it->second;
+        ViewFrameData& vfd = *GetViewFrameData(view, slot);
         AssertDebug(vfd.rplShared != nullptr);
         AssertDebug(vfd.viewData != nullptr);
 

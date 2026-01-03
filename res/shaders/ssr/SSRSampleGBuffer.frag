@@ -105,6 +105,7 @@ void main(void)
 
     float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
+
     if (depth > 0.99999)
     {
         out_color = vec4(0.0);

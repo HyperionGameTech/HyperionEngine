@@ -184,7 +184,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(resolution);
 
-    auto addOwnedAttachment = [&](uint32 binding, TextureFormat format) -> AttachmentRef
+    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> AttachmentRef
     {
         TextureDesc textureDesc;
         textureDesc.type = TT_TEX2D;
@@ -205,7 +205,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             StoreOperation::STORE);
     };
 
-    auto addSharedAttachment = [&](uint32 binding) -> AttachmentRef
+    auto AddSharedAttachment = [&](uint32 binding) -> AttachmentRef
     {
         Assert(parentFramebuffer != nullptr);
 
@@ -226,7 +226,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         {
             const TextureFormat format = GetImageFormat(GBufferTargetName(i));
 
-            addOwnedAttachment(i, format);
+            AddOwnedAttachment(i, format);
         }
     }
     else
@@ -240,12 +240,12 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             {
                 // debug bucket creates its own depth attachment
                 const TextureFormat format = GetImageFormat(GBufferTargetName(i));
-                addOwnedAttachment(i, format);
+                AddOwnedAttachment(i, format);
 
                 continue;
             }
 
-            addSharedAttachment(i);
+            AddSharedAttachment(i);
         }
     }
 
