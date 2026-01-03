@@ -107,7 +107,7 @@ static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource
         Handle<ObjectBase> nativeObject = data->nativeObject.Lock();
         AssertDebug(nativeObject != nullptr);
 
-        if (const Method* method = nativeObject->InstanceClass()->GetMethod(methodName))
+        if (const Method* method = nativeObject->InstanceClass()->GetMethod(StringHash(methodName)))
         {
             if constexpr (!std::is_void_v<ReturnType>)
             {

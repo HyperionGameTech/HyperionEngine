@@ -1151,7 +1151,7 @@ struct DescriptorSetOffsetMap
     {
     }
 
-    DescriptorSetOffsetMap(std::initializer_list<Pair<const char*, uint32>> v)
+    DescriptorSetOffsetMap(std::initializer_list<Pair<StringHash, uint32>> v)
         : keys(),
           values(),
           count(v.size())
@@ -1166,7 +1166,7 @@ struct DescriptorSetOffsetMap
     }
 
     template <SizeType Count>
-    DescriptorSetOffsetMap(Pair<const char*, uint32> const (&kv)[Count])
+    DescriptorSetOffsetMap(Pair<StringHash, uint32> const (&kv)[Count])
         : keys(),
           values(),
           count(Count)
@@ -1208,7 +1208,7 @@ struct DescriptorTableOffsetMap
     {
     }
 
-    DescriptorTableOffsetMap(std::initializer_list<Pair<const char*, DescriptorSetOffsetMap>> v)
+    DescriptorTableOffsetMap(std::initializer_list<Pair<StringHash, DescriptorSetOffsetMap>> v)
         : setNames(),
           setOffsets(),
           count(v.size())
@@ -1223,7 +1223,7 @@ struct DescriptorTableOffsetMap
     }
 
     template <SizeType Count>
-    DescriptorTableOffsetMap(Pair<const char*, DescriptorSetOffsetMap> const (&v)[Count])
+    DescriptorTableOffsetMap(Pair<StringHash, DescriptorSetOffsetMap> const (&v)[Count])
         : setNames(),
           setOffsets(),
           count(Count)

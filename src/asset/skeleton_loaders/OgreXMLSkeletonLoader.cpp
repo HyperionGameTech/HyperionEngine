@@ -268,7 +268,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
                 continue;
             }
 
-            if (rootBone->GetName() == *item.parentName)
+            if (rootBone->GetName() == StringHash(item.parentName))
             {
                 boneDesc.parentName = rootBone->GetName();
 
@@ -277,7 +277,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
                 continue;
             }
 
-            if (Handle<Bone> parentBone = ObjCast<Bone>(rootBone->FindChildByName(*item.parentName)); parentBone.IsValid())
+            if (Handle<Bone> parentBone = ObjCast<Bone>(rootBone->FindChildByName(StringHash(item.parentName))); parentBone.IsValid())
             {
                 boneDesc.parentName = parentBone->GetName();
 

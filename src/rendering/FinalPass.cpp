@@ -75,11 +75,11 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
 
                 if (imageView != nullptr)
                 {
-                    descriptorSet->SetElement("InTexture", imageView);
+                    descriptorSet->SetElement("InTexture"_sh, imageView);
                 }
                 else
                 {
-                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+                    descriptorSet->SetElement("InTexture"_sh, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
                 }
             }
 
@@ -139,11 +139,11 @@ FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
 
         if (m_uiLayerImageView != nullptr)
         {
-            descriptorSet->SetElement("InTexture", m_uiLayerImageView);
+            descriptorSet->SetElement("InTexture"_sh, m_uiLayerImageView);
         }
         else
         {
-            descriptorSet->SetElement("InTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("InTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         Assert(descriptorSet->Create());
@@ -197,11 +197,11 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
             if (m_uiLayerImageView != nullptr)
             {
-                descriptorSet->SetElement("InTexture", m_uiLayerImageView);
+                descriptorSet->SetElement("InTexture"_sh, m_uiLayerImageView);
             }
             else
             {
-                descriptorSet->SetElement("InTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+                descriptorSet->SetElement("InTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
             }
         }
 
@@ -217,7 +217,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     const uint32 globalDescriptorSetIndex = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorSetIndex("Global"_sh);
 
-    const uint32 descriptorSetIndex = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorSetIndex("RenderTextureToScreenDescriptorSet");
+    const uint32 descriptorSetIndex = passData->renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorSetIndex("RenderTextureToScreenDescriptorSet"_sh);
     AssertDebug(descriptorSetIndex != ~0u);
 
     frame->renderQueue << BeginFramebuffer(framebuffer);

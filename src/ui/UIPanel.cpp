@@ -278,7 +278,7 @@ void UIPanel::UpdateScrollbarSize(ScrollAxis axis)
 
     Assert(scrollbar != nullptr);
 
-    Handle<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb", /* deep */ false);
+    Handle<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb"_sh, /* deep */ false);
 
     if (thumb)
     {
@@ -294,7 +294,7 @@ void UIPanel::UpdateScrollbarSize(ScrollAxis axis)
         thumb->OnMouseDown
             .Bind([this, axis, thumbWeak = thumb.ToWeak()](const MouseEvent& eventData) -> UIEventHandlerResult
                 {
-                    if (Handle<UIObject> thumb = thumbWeak.Lock())
+                    if (Handle<UIObject> thumb = thumbWeak.Lock(); thumb.IsValid())
                     {
                         const int i = ScrollAxisToIndex(axis);
                         Assert(i != -1);
@@ -379,7 +379,7 @@ void UIPanel::UpdateScrollbarThumbPosition(ScrollAxis axis)
         return;
     }
 
-    Handle<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb", /* deep */ false);
+    Handle<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb"_sh, /* deep */ false);
 
     if (!thumb)
     {
