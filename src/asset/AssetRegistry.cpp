@@ -1644,7 +1644,7 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 
                 if (manifestPath.Exists() && !manifestPath.IsDirectory())
                 {
-                    TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, loadSubpackages).Await();
+                    TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, loadSubpackages, /* forceLoad */ false).Await();
 
                     // build virtual package path from filesystem path
                     if (subpackageResult.HasError())
@@ -2131,7 +2131,7 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
                     continue;
                 }
 
-                TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false).Await();
+                TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ false).Await();
 
                 if (subpackageResult.HasError())
                 {
@@ -2173,7 +2173,8 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
 
 Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
     const FilePath& manifestPath,
-    bool loadSubpackages)
+    bool loadSubpackages,
+    bool forceLoad)
 {
     HYP_SCOPE;
 
@@ -2181,7 +2182,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
     Task<TResult<Handle<AssetPackage>>> future;
 
-    PostTask([this, manifestPath = manifestPath, loadSubpackages]() -> TResult<Handle<AssetPackage>>
+    PostTask([this, manifestPath = manifestPath, loadSubpackages, forceLoad]() -> TResult<Handle<AssetPackage>>
         {
             Handle<AssetPackage> outPackage;
 
@@ -2222,6 +2223,15 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 return HYP_MAKE_ERROR(Error, "Package manifest JSON does not contain a valid 'Path' or 'Name' field");
             }
 
+            if (!forceLoad)
+            {
+                // try to get existing package if not forcing load
+                if (Handle<AssetPackage> existingPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false); existingPackage.IsValid())
+                {
+                    return existingPackage;
+                }
+            }
+
             Handle<AssetPackage> parentPackage;
 
             {
@@ -2250,7 +2260,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                         HYP_LOG(Assets, Debug, "Loading parent package '{}' for package at '{}' from manifest '{}'", parentPackagePathString, packagePath, parentManifestPath);
 
                         // attempt to load parent package from manifest
-                        if (TResult<Handle<AssetPackage>> parentPackageResult = LoadPackageFromManifest(parentManifestPath, /* loadSubpackages */ false).Await(); parentPackageResult.HasError())
+                        if (TResult<Handle<AssetPackage>> parentPackageResult = LoadPackageFromManifest(parentManifestPath, /* loadSubpackages */ false, /* forceLoad */ true).Await(); parentPackageResult.HasError())
                         {
                             return HYP_MAKE_ERROR(Error, "Failed to load parent package '{}' for package at '{}' from manifest '{}': {}", parentPackagePathString, packagePath, parentManifestPath, parentPackageResult.GetError().GetMessage());
                         }
@@ -2315,7 +2325,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 {
                     HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
 
-                    TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false).Await();
+                    TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false, /* forceLoad */ true).Await();
 
                     if (dependencyPackageResult.HasError())
                     {
@@ -2431,7 +2441,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                         if (entry.Basename() == "PackageManifest.json")
                         {
                             // Load WITH sub-subpackages recursively
-                            TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(entry, /* loadSubpackages */ true).Await();
+                            TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(entry, /* loadSubpackages */ true, /* forceLoad */ false).Await();
 
                             if (subpackageResult.HasError())
                             {

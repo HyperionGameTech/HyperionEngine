@@ -73,7 +73,7 @@ namespace Baking {
 
 // Changing tile size will change the number of jobs that get enqueued.
 // Smaller tile size = more jobs required to complete the bake
-static constexpr uint32 TileSize = 128;
+static constexpr uint32 TileSize = 64;
 
 // Too many concurrent jobs will cause excessive memory usage and thrashing
 static constexpr uint32 MaxConcurrentJobs = 8;

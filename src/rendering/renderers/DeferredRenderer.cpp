@@ -1358,7 +1358,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         m_ssrRenderer->Render(frame, rs);
     }
 
-    FixedArray<Array<EnvProbe*>, CMT_MAX> probesPerCubemapType;
+    FixedArray<Array<EnvProbe*, RenderTempAllocator>, CMT_MAX> probesPerCubemapType;
 
     for (uint32 cubemapType = 0; cubemapType < CMT_MAX; cubemapType++)
     {
@@ -1385,7 +1385,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         const EnvProbeType envProbeType = EnvProbeTypes[envProbeTypeIndex];
         const CubemapType cubemapType = CubemapTypes[envProbeTypeIndex];
 
-        const Array<EnvProbe*>& probes = probesPerCubemapType[cubemapType];
+        const Array<EnvProbe*, RenderTempAllocator>& probes = probesPerCubemapType[cubemapType];
 
         if (probes.Empty())
         {
@@ -2600,7 +2600,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         RenderSetup newRenderSetup = rs;
 
-        // if (const auto& skyProbes = rpl.trackedEnvProbes.GetElements<SkyProbe>(); skyProbes.Any())
         if (const auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>(); skyProbes.Any())
         {
             newRenderSetup.envProbe = skyProbes.Front();
