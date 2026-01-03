@@ -422,9 +422,6 @@ extern "C"
         delete g_renderBackend;
         g_renderBackend = nullptr;
 
-        delete g_renderArena;
-        g_renderArena = nullptr;
-
         delete g_sceneArena;
         g_sceneArena = nullptr;
 
