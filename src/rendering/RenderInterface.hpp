@@ -41,6 +41,7 @@ struct Viewport;
 class FinalPass;
 class ResourceBinderBase;
 class ShaderPropertyCache;
+class World;
 
 namespace RenderApi {
 
@@ -192,6 +193,8 @@ public:
     FinalPass* finalPass;
 
     ShaderPropertyCache* shaderPropertyCache;
+
+    Array<World*> renderWorlds;
 
 private:
     void CreateBlueNoiseBuffer();
