@@ -97,6 +97,14 @@ public:
         return m_systems.Find(s_typeId) != m_systems.End();
     }
 
+    HYP_FORCE_INLINE bool HasSystem(const SystemBase* system) const
+    {
+        return m_systems.FindIf([system](const auto& item)
+            {
+                return item.second == system;
+            }) != m_systems.End();
+    }
+
     /*! \brief Adds a System to the SystemExecutionGroup.
      *
      *  \param[in] system The System to add.
@@ -130,6 +138,28 @@ public:
         static const TypeId s_typeId = TypeId::ForType<SystemType>();
 
         return m_systems.Erase(s_typeId);
+    }
+
+    bool RemoveSystem(const SystemBase* system)
+    {
+        if (!system)
+        {
+            return false;
+        }
+
+        auto it = m_systems.FindIf([system](const auto& item)
+            {
+                return item.second == system;
+            });
+
+        if (it != m_systems.End())
+        {
+            m_systems.Erase(it);
+
+            return true;
+        }
+
+        return false;
     }
 
     /*! \brief Start processing all Systems in the SystemExecutionGroup.
