@@ -2,11 +2,9 @@
 
 #pragma once
 
-#include <rendering/RenderObject.hpp>
-
 #include <scene/Scene.hpp>
+#include <scene/System.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/Subsystem.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -15,14 +13,14 @@
 namespace Hyperion {
 
 HYP_CLASS()
-class HYP_API DynamicSkySubsystem : public Subsystem
+class HYP_API DynamicSkySystem : public SystemBase
 {
-    HYP_OBJECT_BODY(DynamicSkySubsystem);
+    HYP_OBJECT_BODY(DynamicSkySystem);
 
 public:
-    DynamicSkySubsystem();
-    explicit DynamicSkySubsystem(Vec2u dimensions);
-    virtual ~DynamicSkySubsystem() override;
+    DynamicSkySystem();
+    explicit DynamicSkySystem(Vec2u dimensions);
+    virtual ~DynamicSkySystem() override;
 
     HYP_FORCE_INLINE const Handle<Texture>& GetCubemap() const
     {
@@ -34,14 +32,23 @@ public:
         return m_envProbe;
     }
 
-    virtual void OnAddedToWorld() override;
-    virtual void OnRemovedFromWorld() override;
-    virtual void OnSceneAttached(const Handle<Scene>& scene) override;
-    virtual void OnSceneDetached(Scene* scene) override;
-    virtual void Update(float delta) override;
+    virtual void OnAddedToWorld(World* world) override;
+    virtual void OnRemovedFromWorld(World* world) override;
+    
+    virtual bool RequiresSimThread() const override
+    {
+        return true;
+    }
+
+    virtual void Process(float delta, Span<Handle<Scene>> scenes) override;
 
 private:
     virtual void Init() override;
+
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return { };
+    }
 
     Vec2u m_dimensions;
     Handle<Texture> m_cubemap;

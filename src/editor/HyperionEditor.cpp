@@ -26,7 +26,7 @@
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/FirstPersonCamera.hpp>
 
-#include <scene/sky/DynamicSkySubsystem.hpp>
+#include <scene/sky/DynamicSkySystem.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
@@ -142,7 +142,7 @@ void HyperionEditor::OnLaunch_Impl()
     InitObject(sun);
     scene->GetRoot()->AddChild(sun);
 
-    GetWorld()->AddSubsystem<DynamicSkySubsystem>();
+    GetWorld()->AddSystemT<DynamicSkySystem>();
 
     const ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT

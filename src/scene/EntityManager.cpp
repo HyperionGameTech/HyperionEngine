@@ -120,9 +120,9 @@ EntityManager::EntityManager(const ThreadId& ownerThreadId, Scene* scene, EnumFl
 
     if (m_world != nullptr)
     {
-        for (SystemExecutionGroup& group : m_world->GetSystemExecutionGroups())
+        for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
         {
-            m_systemExecutionGroups.PushBack(&group);
+            m_systemExecutionGroups.PushBack(group);
         }
     }
 }
@@ -388,9 +388,9 @@ void EntityManager::SetWorld(World* world)
 
     if (m_world != nullptr)
     {
-        for (SystemExecutionGroup& group : m_world->GetSystemExecutionGroups())
+        for (SystemExecutionGroup* group : m_world->GetSystemExecutionGroups())
         {
-            m_systemExecutionGroups.PushBack(&group);
+            m_systemExecutionGroups.PushBack(group);
         }
 
         systems.Clear();
@@ -1277,6 +1277,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds)
 {
     HYP_SCOPE;
