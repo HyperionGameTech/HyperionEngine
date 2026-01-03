@@ -520,10 +520,27 @@ public:
 struct ViewData
 {
     View* view = nullptr;
-    RenderProxyList rplRender { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+    RenderProxyList* rplRender = nullptr;
     RenderCollector renderCollector;
     uint32 framesSinceUsed = 0;
     uint32 numRefs = 0; // number of ViewFrameData holding refs to this
+
+    ViewData()
+    {
+        rplRender = PoolNew<RenderProxyList>(*g_renderPool,
+            g_renderPool, /* isShared */ false, /* useRefCounting */ false);
+    }
+
+    ViewData(const ViewData& other) = delete;
+    ViewData& operator=(const ViewData& other) = delete;
+    
+    ViewData(ViewData&& other) noexcept = delete;
+    ViewData& operator=(ViewData&& other) noexcept = delete;
+
+    ~ViewData()
+    {
+        // NOTE: intentionally not deleting rplRender here
+    }
 
     void AddRef()
     {
@@ -568,6 +585,9 @@ struct ViewFrameData
 struct FrameData
 {
     HashMap<View*, ViewFrameData*> viewFrameData;
+
+    Array<RenderProxyList*> ownedLists; // render thread side owned lists
+    Array<RenderProxyList*> sharedLists;
 
     WorldShaderData worldBufferData {};
 };
@@ -678,8 +698,6 @@ static void SyncResources(
     ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& dst,
     const ResourceTracker<AllocatorType, ObjId<ElementType>, ElementType*, ProxyType>& src)
 {
-    dst.Advance();
-
     SyncResourcesImpl(dst, src.GetSubclassImpl(-1));
 
     for (Bitset::BitIndex subclassIndex : src.GetSubclassIndices())
@@ -974,7 +992,10 @@ RenderProxyList& GetConsumerProxyList(View* view)
 
     AssertDebug(view != nullptr);
 
-    return GetViewData(view)->rplRender;
+    ViewData* vd = GetViewData(view);
+    AssertDebug(vd != nullptr);
+
+    return *vd->rplRender;
 }
 
 RenderCollector& GetRenderCollector(View* view)
@@ -1135,7 +1156,6 @@ void EndFrameSim()
     s_fullSemaphore.release();
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void BeginFrameRender()
 {
     HYP_SCOPE;
@@ -1154,7 +1174,7 @@ void BeginFrameRender()
 
     RenderCommands::Flush();
 
-    Array<View*, RenderAllocator> activeViews;
+    Array<View*, RenderTempAllocator> activeViews;
 
     // collect views for worlds enqueued to be rendered
     for (World* world : g_renderInterface->renderWorlds[slot])
@@ -1174,7 +1194,8 @@ void BeginFrameRender()
         }
     }
 
-    for (auto& it : s_frameData[slot].viewFrameData)
+    // ensure ViewData and render-side owned lists exists
+    for (auto& it : fd.viewFrameData)
     {
         View* view = it.first;
         ViewFrameData& vfd = *it.second;
@@ -1185,10 +1206,42 @@ void BeginFrameRender()
             AssertDebug(vfd.viewData != nullptr);
 
             vfd.viewData->AddRef();
+
+            AssertDebug(vfd.rplShared != nullptr);
+            
+            fd.ownedLists.PushBack(vfd.viewData->rplRender);
+            fd.sharedLists.PushBack(vfd.rplShared);
+        }
+    }
+
+    // copy deps to render side owned lists
+    AssertDebug(fd.ownedLists.Size() == fd.sharedLists.Size());
+
+    for (SizeType i = 0; i < fd.ownedLists.Size(); i++)
+    {
+        RenderProxyList* rplRender = fd.ownedLists[i];
+        AssertDebug(rplRender != nullptr);
+
+        RenderProxyList* rplShared = fd.sharedLists[i];
+        
+        // Advance render side owned lists ResourceTrackers before we copy dependencies over
+        int resourceTrackerIndex = 0;
+        StaticForEach<typename RenderProxyList::ResourceTrackerTypes>([rplRender, &resourceTrackerIndex]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>)
+            {
+                ResourceTrackerType& resourceTracker = static_cast<ResourceTrackerType&>(*rplRender->resourceTrackers[resourceTrackerIndex]);
+                resourceTracker.Advance();
+
+                ++resourceTrackerIndex;
+            });
+
+        if (!rplShared)
+        {
+            static RenderProxyList s_defaultRenderProxyList { g_renderPool, /* isShared */ false, /* useRefCounting */ false };
+            rplShared = &s_defaultRenderProxyList;
         }
 
         bool readLockAcquired = false;
-        vfd.rplShared->BeginRead(&readLockAcquired);
+        rplShared->BeginRead(&readLockAcquired);
 
         if (!readLockAcquired)
         {
@@ -1197,16 +1250,10 @@ void BeginFrameRender()
             continue;
         }
 
-#ifdef HYP_DEBUG_MODE
-        vfd.rplShared->debugIsSynced = true;
-#endif
-
-        AssertDebug(vfd.rplShared->debugIsDestroyed == false, "RenderProxyList for view {} has been destroyed!", vfd.view->Id());
-
         // copy dependencies from shared to ViewData
-        CopyDependencies(vfd.viewData->rplRender, *vfd.rplShared);
+        CopyDependencies(*rplRender, *rplShared);
 
-        vfd.rplShared->EndRead();
+        rplShared->EndRead();
     }
 
     {
@@ -1253,7 +1300,7 @@ void BeginFrameRender()
     {
         if (subtypeData.indicesPendingUpdate.Count() != 0)
         {
-            Bitset currentBoundIndices;
+            TBitset<RenderAllocator> currentBoundIndices;
 
             for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
             {
@@ -1317,15 +1364,15 @@ void BeginFrameRender()
         {
             continue;
         }
-
-        vd.rplRender.BeginRead();
-
-        vd.renderCollector.BuildRenderGroups(vd.view, vd.rplRender);
+        
+        vd.rplRender->BeginRead();
+        
+        vd.renderCollector.BuildRenderGroups(vd.view, *vd.rplRender);
 
         /// TODO: Use View's bucket mask property to pass to BuildDrawCalls().
         vd.renderCollector.BuildDrawCalls(0);
 
-        vd.rplRender.EndRead();
+        vd.rplRender->EndRead();
     }
 }
 
@@ -1370,9 +1417,19 @@ void EndFrameRender()
                     PoolDelete(*g_renderPool, &vd);
                 }
 
-#ifdef HYP_DEBUG_MODE
-                vfd.rplShared->debugIsSynced = false;
-#endif
+                if (vfd.rplShared != nullptr)
+                {
+                    auto rplSharedIt = frameData.sharedLists.Find(vfd.rplShared);
+                    AssertDebug(rplSharedIt != frameData.sharedLists.End());
+
+                    if (rplSharedIt != frameData.sharedLists.End())
+                    {
+                        // set to null to preserve indices; don't erase
+                        *rplSharedIt = nullptr;
+                    }
+
+                    vfd.rplShared = nullptr;
+                }
 
                 PoolDelete(*g_framePools[slot], &vfd);
 
@@ -1448,8 +1505,6 @@ void EndFrameRender()
 
     s_freeSemaphore.release();
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace RenderApi
 

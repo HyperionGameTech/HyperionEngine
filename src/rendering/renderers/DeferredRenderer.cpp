@@ -2422,12 +2422,9 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     const bool useEnvGridIrradiance = rpl.GetEnvGrids().NumCurrent() && m_rendererConfig.envGridGiEnabled;
     const bool useEnvGridRadiance = rpl.GetEnvGrids().NumCurrent() && m_rendererConfig.envGridRadianceEnabled;
 
-    const bool useTemporalAa = passData.temporalAa != nullptr && m_rendererConfig.taaEnabled;
+    const bool useTAA = passData.temporalAa != nullptr && m_rendererConfig.taaEnabled;
 
-    const bool useReflectionProbes = rpl.GetEnvProbes().GetElements<SkyProbe>().Any()
-        || rpl.GetEnvProbes().GetElements<ReflectionProbe>().Any();
-
-    if (useTemporalAa)
+    if (useTAA)
     {
         // apply jitter to camera for TAA
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(view->GetCamera()));
@@ -2543,11 +2540,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (useReflectionProbes || passData.reflectionsPass->ShouldRenderSSR())
-    {
-        passData.reflectionsPass->SetPushConstants(&deferredData, sizeof(deferredData));
-        passData.reflectionsPass->Render(frame, rs);
-    }
+    passData.reflectionsPass->SetPushConstants(&deferredData, sizeof(deferredData));
+    passData.reflectionsPass->Render(frame, rs);
 
     if ((useRaytracingGlobalIllumination || useRaytracingReflections) && view->GetRaytracingView().IsValid())
     {
@@ -2727,7 +2721,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     passData.tonemapPass->Render(frame, rs);
 
-    if (useTemporalAa)
+    if (useTAA)
     {
         passData.temporalAa->Render(frame, rs);
     }

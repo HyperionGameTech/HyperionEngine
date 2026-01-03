@@ -2032,7 +2032,7 @@ template <class T, class AllocatorType>
 struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
 {
 };
-HYP_DISABLE_OPTIMIZATION;
+
 template <class T, class AllocatorType>
 struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<GenericArrayWrapper>
 {
@@ -2152,7 +2152,6 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         return { FBOMResult::FBOM_OK };
     }
 };
-HYP_ENABLE_OPTIMIZATION;
 
 /// FixedArray
 
