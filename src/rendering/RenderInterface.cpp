@@ -90,9 +90,6 @@ static_assert(MaxFramesBeforeDiscard >= MinSafeDeleteCycles,
 // iterations per frame for cleaning up unused resources for passes
 static constexpr int FrameCleanupBudget = 16;
 
-// size of render thread arena in bytes (reset every frame)
-static constexpr SizeType RenderArenaSize = 1 * 1024 * 1024;
-
 // thread-local frame index for the game and render threads
 // @NOTE: thread local so initialized to 0 on each thread by default
 static thread_local uint32* s_threadFrameIndex;
@@ -828,9 +825,6 @@ void Init()
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
-    AssertDebug(g_renderArena == nullptr);
-    g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
-
     s_resources = PoolNew<ResourceContainer>(*g_renderPool);
 
 #ifdef HYP_VULKAN
@@ -1180,35 +1174,18 @@ void BeginFrameRender()
         }
     }
 
-    // create ViewDatas
     for (auto& it : s_frameData[slot].viewFrameData)
     {
         View* view = it.first;
-        ViewFrameData* vfd = it.second;
-        AssertDebug(vfd != nullptr);
+        ViewFrameData& vfd = *it.second;
 
-        HYP_LOG_TEMP("ACTIVE VIEWDATA FOR VIEW {}", view->Id());
-        HYP_LOG_TEMP("  ViewFrameData at {}", (void*)vfd);
-        for (Scene* s : view->GetScenes())
+        if (!vfd.viewData)
         {
-            HYP_LOG_TEMP("    Has Scene {} (name: {}, world: {})", s->Id(), *s->GetName(), s->GetWorld() ? *s->GetWorld()->GetName() : "null");
+            vfd.viewData = GetViewData(view);
+            AssertDebug(vfd.viewData != nullptr);
+
+            vfd.viewData->AddRef();
         }
-
-        if (vfd->viewData != nullptr)
-        {
-            continue;
-        }
-
-        vfd->viewData = GetViewData(view);
-        AssertDebug(vfd->viewData != nullptr);
-
-        vfd->viewData->AddRef();
-    }
-
-    for (View* view : activeViews)
-    {
-        ViewFrameData& vfd = *GetViewFrameData(view, slot);
-        AssertDebug(vfd.viewData != nullptr);
 
         bool readLockAcquired = false;
         vfd.rplShared->BeginRead(&readLockAcquired);
@@ -1461,8 +1438,6 @@ void EndFrameRender()
     g_engineStats->Advance();
 
     g_safeDeleter->Iterate();
-
-    g_renderArena->Reset();
 
     g_renderBackend->ReleaseTransientMemory();
     g_renderBackend->NextFrame();

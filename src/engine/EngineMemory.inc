@@ -22,6 +22,7 @@ static constexpr SizeType ScriptPoolBlockSize = 16 * 1024 * 1024;
 
 static constexpr SizeType SceneArenaSize = 1 * 1024 * 1024;
 static constexpr SizeType StreamingArenaSize = 1 * 1024 * 1024;
+static constexpr SizeType RenderArenaSize = 1 * 1024 * 1024;
 
 HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX];
 #endif

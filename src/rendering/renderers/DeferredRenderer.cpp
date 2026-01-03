@@ -100,10 +100,10 @@ static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties 
 };
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX - 1] = {
-    StringHash("GBufferAlbedoTexture"),
-    StringHash("GBufferNormalsTexture"),
-    StringHash("GBufferMaterialTexture"),
-    StringHash("GBufferVelocityTexture")
+    "GBufferAlbedoTexture"_sh,
+    "GBufferNormalsTexture"_sh,
+    "GBufferMaterialTexture"_sh,
+    "GBufferVelocityTexture"_sh
 };
 
 static EngineStatTimer s_deferredPassTimer("Rendering/Deferred/DeferredPass");
@@ -449,21 +449,21 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 directPassDescriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
                 Assert(directPassDescriptorSet.IsValid());
 
-                directPassDescriptorSet->SetElement("MaterialsBuffer", g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frame->GetFrameIndex()));
-                directPassDescriptorSet->SetElement("LTCSampler", m_ltcSampler);
-                directPassDescriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
-                directPassDescriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
+                directPassDescriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frame->GetFrameIndex()));
+                directPassDescriptorSet->SetElement("LTCSampler"_sh, m_ltcSampler);
+                directPassDescriptorSet->SetElement("LTCMatrixTexture"_sh, g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
+                directPassDescriptorSet->SetElement("LTCBRDFTexture"_sh, g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
 
                 Assert(directPassDescriptorSet->Create());
             }
 
-            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Global");
-            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorSetIndex("View");
+            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Global"_sh);
+            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorSetIndex("View"_sh);
             const uint32 materialDescriptorSetIndex = lightType == LT_AREA_RECT
-                ? pipeline->GetDescriptorSetIndex("Material")
+                ? pipeline->GetDescriptorSetIndex("Material"_sh)
                 : ~0u;
 
-            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorSetIndex("DeferredDirectDescriptorSet");
+            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorSetIndex("DeferredDirectDescriptorSet"_sh);
 
             if (pipelineChanged)
             {
@@ -475,7 +475,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
                 {
                     frame->renderQueue << BindDescriptorSet(
-                        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material", frame->GetFrameIndex()),
+                        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material"_sh, frame->GetFrameIndex()),
                         pipeline,
                         {},
                         materialDescriptorSetIndex);
@@ -495,7 +495,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             }
 
             frame->renderQueue << BindDescriptorSet(
-                g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frame->GetFrameIndex()),
+                g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
                 pipeline,
                 { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                     { "CurrentLight", ShaderDataOffset<LightShaderData>(light, 0) } },
@@ -694,11 +694,11 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         Assert(uniformBuffer->Create());
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        descriptorSet->SetElement("IrradianceTexture", g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("RadianceTexture", g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("Sampler", g_renderInterface->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("GBufferSampler", g_renderInterface->placeholderData->GetSamplerNearest());
-        descriptorSet->SetElement("LightmapVolumeUniforms", uniformBuffer);
+        descriptorSet->SetElement("IrradianceTexture"_sh, g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("RadianceTexture"_sh, g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("Sampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("GBufferSampler"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("LightmapVolumeUniforms"_sh, uniformBuffer);
 
         Assert(descriptorSet->Create());
     }
@@ -756,7 +756,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
 
         frame->renderQueue << BindDescriptorSet(
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frame->GetFrameIndex()),
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
             graphicsPipeline,
             { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
             globalDescriptorSetIndex);
@@ -866,12 +866,12 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume", frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("DataMap", proxy->volumeTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
-        descriptorSet->SetElement("NoiseMap", proxy->noiseTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
-        descriptorSet->SetElement("FogVolumeUniforms", data.uniformBuffer);
+        descriptorSet->SetElement("DataMap"_sh, proxy->volumeTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("NoiseMap"_sh, proxy->noiseTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("FogVolumeUniforms"_sh, data.uniformBuffer);
     }
 
     data.volumeTexture = proxy->volumeTexture;
@@ -1178,7 +1178,7 @@ void EnvGridPass::Render(Frame* frame, const RenderSetup& rs)
         }
 
         frame->renderQueue << BindDescriptorSet(
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex),
+            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
             graphicsPipeline,
             { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                 { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
@@ -1416,8 +1416,8 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
         }
 
-        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global");
-        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View");
+        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
+        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
 
         for (EnvProbe* envProbe : probes)
         {
@@ -1434,7 +1434,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
             //     RenderApi::GetFrameIndex_RenderThread());
 
             frame->renderQueue << BindDescriptorSet(
-                descriptorTable->GetDescriptorSet("Global", frameIndex),
+                descriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
                 graphicsPipeline,
                 { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                     { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
@@ -1473,10 +1473,10 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
                 for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
                 {
-                    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
+                    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet"_sh, frameIndex);
                     Assert(descriptorSet != nullptr);
 
-                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(ssrTexture));
+                    descriptorSet->SetElement("InTexture"_sh, g_renderBackend->GetTextureImageView(ssrTexture));
                 }
 
                 DeferCreate(descriptorTable);
@@ -1778,14 +1778,14 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRend
     const DescriptorTableDeclaration* descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
     Assert(descriptorTableDecl != nullptr);
 
-    DescriptorSetDeclaration* decl = descriptorTableDecl->FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet");
+    DescriptorSetDeclaration* decl = descriptorTableDecl->FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet"_sh);
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
 
     DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
     descriptorSet->SetDebugName(NAME("FinalPassDescriptorSet"));
-    descriptorSet->SetElement("InTexture", inputImageView);
+    descriptorSet->SetElement("InTexture"_sh, inputImageView);
 
     Assert(descriptorSet->Create());
 
@@ -1824,7 +1824,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
             // not including depth texture here (hence the - 1)
             for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
             {
-                descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+                descriptorSet->SetElement("GBufferTextures"_sh, gbufferElementIndex++, opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
             }
         }
         else
@@ -1835,15 +1835,11 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
             }
         }
 
-        descriptorSet->SetElement("GBufferDepthTexture", depthAttachment->GetImageView());
-
-        descriptorSet->SetElement("GBufferMipChain", g_renderBackend->GetTextureImageView(passData.mipChain));
-
-        descriptorSet->SetElement("PostProcessingUniforms", passData.postProcessing->GetUniformBuffer());
-
-        descriptorSet->SetElement("DepthPyramidResult", passData.depthPyramidRenderer->GetResultImageView());
-
-        descriptorSet->SetElement("TAAResultTexture", g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture()));
+        descriptorSet->SetElement("GBufferDepthTexture"_sh, depthAttachment->GetImageView());
+        descriptorSet->SetElement("GBufferMipChain"_sh, g_renderBackend->GetTextureImageView(passData.mipChain));
+        descriptorSet->SetElement("PostProcessingUniforms"_sh, passData.postProcessing->GetUniformBuffer());
+        descriptorSet->SetElement("DepthPyramidResult"_sh, passData.depthPyramidRenderer->GetResultImageView());
+        descriptorSet->SetElement("TAAResultTexture"_sh, g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture()));
 
         // Set SSR texture - use placeholder if not available yet
         Texture* ssrTexture = passData.reflectionsPass->ShouldRenderSSR()
@@ -1852,40 +1848,40 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         if (ssrTexture)
         {
-            descriptorSet->SetElement("SSRResultTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(ssrTexture)));
+            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderBackend->GetTextureImageView(MakeStrongRef(ssrTexture)));
             passData.cachedSsrTexture = ssrTexture;
         }
         else
         {
-            descriptorSet->SetElement("SSRResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
             passData.cachedSsrTexture = nullptr;
         }
 
         if (passData.ssgi)
         {
-            descriptorSet->SetElement("SSGIResultTexture", g_renderBackend->GetTextureImageView(passData.ssgi->GetFinalResultTexture()));
+            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderBackend->GetTextureImageView(passData.ssgi->GetFinalResultTexture()));
         }
         else
         {
-            descriptorSet->SetElement("SSGIResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
         if (passData.hbao)
         {
-            descriptorSet->SetElement("SSAOResultTexture", passData.hbao->GetFinalImageView());
+            descriptorSet->SetElement("SSAOResultTexture"_sh, passData.hbao->GetFinalImageView());
         }
         else
         {
-            descriptorSet->SetElement("SSAOResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
-        descriptorSet->SetElement("DeferredResult", passData.combinePass->GetFinalImageView());
-        descriptorSet->SetElement("DeferredIndirectResultTexture", passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+        descriptorSet->SetElement("DeferredResult"_sh, passData.combinePass->GetFinalImageView());
+        descriptorSet->SetElement("DeferredIndirectResultTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
-        descriptorSet->SetElement("ReflectionProbeResultTexture", passData.reflectionsPass->GetFinalImageView());
+        descriptorSet->SetElement("ReflectionProbeResultTexture"_sh, passData.reflectionsPass->GetFinalImageView());
 
-        descriptorSet->SetElement("EnvGridRadianceResultTexture", passData.envGridRadiancePass->GetFinalImageView());
-        descriptorSet->SetElement("EnvGridIrradianceResultTexture", passData.envGridIrradiancePass->GetFinalImageView());
+        descriptorSet->SetElement("EnvGridRadianceResultTexture"_sh, passData.envGridRadiancePass->GetFinalImageView());
+        descriptorSet->SetElement("EnvGridIrradianceResultTexture"_sh, passData.envGridIrradiancePass->GetFinalImageView());
 
         HYP_GFX_ASSERT(descriptorSet->Create());
 
@@ -1911,10 +1907,10 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("InTexture", passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+        descriptorSet->SetElement("InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
     }
 
     Assert(descriptorTable->Create());
@@ -2481,11 +2477,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             {
                 if (!currentSsrTexture)
                 {
-                    passData.descriptorSets[i]->SetElement("SSRResultTexture", g_renderInterface->placeholderData->GetImageView2D1x1R8());
+                    passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
                     continue;
                 }
 
-                passData.descriptorSets[i]->SetElement("SSRResultTexture", g_renderBackend->GetTextureImageView(MakeStrongRef(currentSsrTexture)));
+                passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderBackend->GetTextureImageView(MakeStrongRef(currentSsrTexture)));
             }
 
             passData.cachedSsrTexture = currentSsrTexture;

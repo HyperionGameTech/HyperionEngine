@@ -7,6 +7,7 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
+#include <engine/EngineMemory.hpp>
 #include <engine/DebugDrawer.hpp>
 
 #include <rendering/PostFX.hpp>
@@ -174,10 +175,21 @@ void RenderThread::Update()
     }
 
     RenderApi::EndFrameRender();
+ 
+    g_renderArena->Reset();
 }
 
 void RenderThread::operator()()
 {
+    AssertDebug(g_renderArena == nullptr);
+    g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
+    
+    AtExit([]()
+        {
+            delete g_renderArena;
+            g_renderArena = nullptr;
+        });
+
     RenderApi::Init();
 
     /// HAX !!! We should only upload gpu resources on first use for debug draer
