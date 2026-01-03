@@ -33,7 +33,7 @@
 
 namespace Hyperion {
 
-static const Name s_nameMainWorld = NAME("MainWorld");
+static const Name s_nameMainWorld = NAME("World");
 
 Game::Game()
     : m_isLaunched(false)

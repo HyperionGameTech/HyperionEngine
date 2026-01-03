@@ -138,8 +138,8 @@ void main()
 
     vec4 reflections = Texture2D(GBufferSampler, ReflectionProbeResultTexture, texcoord);
 
-    vec4 raytracingReflections = Texture2D(GBufferSampler, raytracingReflections, texcoord);
-    reflections = reflections * (1.0 - raytracingReflections.a) + raytracingReflections * raytracingReflections.a;
+    // vec4 raytracingReflections = Texture2D(GBufferSampler, raytracingReflections, texcoord);
+    // reflections = reflections * (1.0 - raytracingReflections.a) + raytracingReflections * raytracingReflections.a;
 
     ibl = ibl * (1.0 - reflections.a) + (reflections.rgb * reflections.a);
 
