@@ -195,9 +195,24 @@ public:
 
     /*! \brief Adds a System to the World.
      *  \param[in] system The System to add.
+     *  \returns If the system was successfully added, a pointer to the System instance.
+     *   If a System of the exact same type already exists, a pointer to that system will be returned.
+     *   Otherwise, nullptr will be returned.
      */
+    HYP_METHOD()
     SystemBase* AddSystem(const Handle<SystemBase>& system);
 
+    /*! \brief Remove a system from this world.
+     *  \param[in] system The system to remove from this world.
+     *  \returns A boolean indicating if the system was successfully removed or not. */
+    HYP_METHOD()
+    bool RemoveSystem(SystemBase* system);
+
+    /*! \brief Get a system instance by type. If a system with the exact type exists, that will be returned.
+     *  A second pass using IsA() to check for type matches is performed if the first one doesn't succeed,
+     *  allowing for SystemType to be a base class of the instance's class.
+     *  \tparam SystemType The type to query for
+     *  \returns A pointer to the system if one exists on this world, nullptr otherwise. */
     template <class SystemType>
     SystemType* GetSystem() const
     {
@@ -287,6 +302,12 @@ private:
 
     HYP_METHOD(Property = "StreamingLayers", Serialize, LoadOrder = 100)
     Array<WGLayerDesc, DynamicAllocator> SerializeStreamingLayers() const;
+
+    HYP_METHOD(Property = "Systems", Serialize)
+    void DeserializeSystems(const Array<Handle<SystemBase>>& systems);
+
+    HYP_METHOD(Property = "Systems", Serialize)
+    Array<Handle<SystemBase>> SerializeSystems() const;
 
     /// Serialization ///
 
