@@ -17,8 +17,9 @@ Name SystemBase::GetName() const
 
 void SystemBase::InitComponentInfos_Internal()
 {
-    m_componentTypeIds.Clear();
-    m_componentInfos.Clear();
+    if (!m_componentInfos.Empty())
+        // already init
+        return;
 
     Array<ComponentInfo> componentDescriptorsArray = GetComponentDescriptors().ToArray();
     m_componentTypeIds.Reserve(componentDescriptorsArray.Size());
