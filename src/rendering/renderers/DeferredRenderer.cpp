@@ -1578,8 +1578,9 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 RaytracingPassData::~RaytracingPassData()
 {
-    SafeDelete(std::move(raytracingDescriptorSets));
     SafeDelete(std::move(raytracingTlases));
+    SafeDelete(std::move(raytracingDescriptorSets));
+    SafeDelete(std::move(raytracingUniforms));
 }
 
 #pragma endregion RaytracingPassData
