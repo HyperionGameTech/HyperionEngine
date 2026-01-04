@@ -142,7 +142,7 @@ void HyperionEditor::OnLaunch_Impl()
     InitObject(sun);
     scene->GetRoot()->AddChild(sun);
 
-    GetWorld()->AddSystemT<DynamicSkySystem>();
+    //GetWorld()->AddSystemT<DynamicSkySystem>();
 
     const ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT

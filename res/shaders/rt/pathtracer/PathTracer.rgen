@@ -90,13 +90,6 @@ layout(location = 0) rayPayloadEXT RayPayload payload;
 #define NUM_SAMPLES 1
 #define NUM_BOUNCES 8
 
-struct RayBounceInfo
-{
-    vec4 throughput;
-    vec4 emissive;
-    vec4 radiance; // set in 2nd pass
-};
-
 float CheckInShadow(vec3 position, vec3 normal, vec3 lightDir)
 {
     vec3 origin = position + normal * 0.01;
@@ -112,78 +105,23 @@ float CheckInShadow(vec3 position, vec3 normal, vec3 lightDir)
     return float(rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
 }
 
-void BuildONB(in vec3 n, out vec3 t, out vec3 b)
+float CheckInShadowDistance(vec3 position, vec3 normal, vec3 lightDir, float maxDist)
 {
-    float sign = n.z >= 0.0 ? 1.0 : -1.0;
-    float a = -1.0 / (sign + n.z);
-    float bxy = n.x * n.y * a;
-    t = vec3(1.0 + sign * n.x * n.x * a, sign * bxy, -sign * n.x);
-    b = vec3(bxy, sign + n.y * n.y * a, -n.y);
-}
+    vec3 origin = position + normal * 0.01;
+    vec3 direction = lightDir;
 
-vec2 ConcentricDisk(vec2 u)
-{
-    float sx = 2.0 * u.x - 1.0;
-    float sy = 2.0 * u.y - 1.0;
-    if (sx == 0.0 && sy == 0.0) return vec2(0.0);
-    float r, theta;
-    if (abs(sx) > abs(sy))
-    {
-        r = abs(sx);
-        theta = (HYP_FMATH_PI * 0.25) * (sy / sx);
-    }
-    else
-    {
-        r = abs(sy);
-        theta = (HYP_FMATH_PI * 0.5) - (HYP_FMATH_PI * 0.25) * (sx / sy);
-    }
-    return r * vec2(cos(theta), sin(theta));
-}
+    rayQueryEXT rq;
+    rayQueryInitializeEXT(rq, tlas,
+        gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT,
+        0xff, origin, 0.0001, direction, max(0.0, maxDist));
 
-void SpinFrame(inout vec3 t, inout vec3 b, float angle)
-{
-    float s = sin(angle), c = cos(angle);
-    vec3 t0 = t;
-    t =  c * t0 + s * b;
-    b = -s * t0 + c * b;
+    rayQueryProceedEXT(rq);
+
+    return float(rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
 }
 
 vec3 radiance = vec3(0.0);
 vec3 beta = vec3(1.0);
-
-vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
-{
-    float a = roughness * roughness;
-    
-    // Sample in polar coordinates
-    float phi = 2.0 * HYP_FMATH_PI * xi.x;
-    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a*a - 1.0) * xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    
-    // Convert to cartesian
-    vec3 H;
-    H.x = sinTheta * cos(phi);
-    H.y = sinTheta * sin(phi);
-    H.z = cosTheta;
-    
-    // Transform to world space
-    vec3 T1, T2;
-    ComputeOrthonormalBasis(N, T1, T2);
-    return normalize(T1 * H.x + T2 * H.y + N * H.z);
-}
-
-float GGX_PDF(float NdotH, float HdotV, float roughness)
-{
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float D = a2 / (HYP_FMATH_PI * pow(NdotH * NdotH * (a2 - 1.0) + 1.0, 2.0));
-    return (D * NdotH) / (4.0 * HdotV);
-}
-
-vec3 F_Schlick(vec3 f0, float cosTheta)
-{
-    return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
-}
 
 void main() 
 {
@@ -245,18 +183,54 @@ void main()
             world_shader_data.frame_counter % 256);
 
         vec3 origin = worldPosition.xyz + N0 * RAY_OFFSET;
-
         vec3 direction;
         vec2 rnd = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
-        direction = SampleCosineDir(rnd, N0);
+        vec3 F0_init = CalculateF0(albedo, metalness);
+        vec3 F_init = F_Schlick(F0_init, max(dot(N0, V), 0.0));
+        float specProb = clamp(max(max(F_init.r, F_init.g), F_init.b), 0.05, 0.95);
+
+        bool chooseSpecular = (RandomFloat(ray_seed) < specProb);
+        
+        if (chooseSpecular) {
+            vec3 H = SampleGGX(rnd, roughness, N0);
+            direction = reflect(-V, H);
+        } else {
+            direction = normalize(SampleCosineDir(rnd, N0));
+        }
 
         vec3 radiance = vec3(0.0);
         vec3 beta = vec3(1.0);
         
-        // Store view direction for specular calculations
-        vec3 viewDir = normalize(camera.position.xyz - worldPosition.xyz);
-
+        {
+            vec3 L = direction;
+            float NdotL = max(dot(N0, L), 0.0);
+            float NdotV = max(dot(N0, V), 0.0);
+            
+            if (NdotL > 0.0 && NdotV > 0.0) {
+                vec3 H = normalize(V + L);
+                float NdotH = max(dot(N0, H), 0.0);
+                float LdotH = max(dot(L, H), 0.0);
+                
+                vec3 F = F_Schlick(F0_init, LdotH);
+                float D = DistributionGGX(NdotH, roughness);
+                float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
+                
+                vec3 specularBrdf = F * D * G;
+                vec3 diffuseBrdf = (1.0 - F) * (1.0 - metalness) * albedo * HYP_FMATH_ONE_OVER_PI;
+                
+                vec3 brdf = diffuseBrdf + specularBrdf;
+                
+                if (chooseSpecular) {
+                    float pdf = (D * NdotH) / (4.0 * LdotH);
+                    beta = brdf * NdotL / max(pdf * specProb, 1e-6);
+                } else {
+                    float pdf = NdotL * HYP_FMATH_ONE_OVER_PI;
+                    beta = brdf * NdotL / max(pdf * (1.0 - specProb), 1e-6);
+                }
+            }
+        }
+        
         for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex) {
             // perform scene trace using global payload
             payload.distance = -1.0;
@@ -284,13 +258,15 @@ void main()
                 radiance += beta * payload.emissive.rgb;
             }
 
-            // Calculate material properties - using albedo from the hit point
-            vec3 diffuseColor = albedo * (1.0 - metalness);
-            vec3 f0 = mix(vec3(0.04), albedo, metalness);
-
-            beta *= diffuseColor * HYP_FMATH_ONE_OVER_PI;
+            vec3 hitAlbedo = payload.throughput.rgb;
             
-            // Process light contributions
+            float hitRoughness = 1.0;
+            float hitMetalness = 0.0;
+            
+            vec3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
+            vec3 f0 = CalculateF0(hitAlbedo, hitMetalness);
+            
+            // lights
             for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
                 const Light light = HYP_GET_LIGHT(light_index);
                 vec3 light_color = light.color.rgb * light.position_intensity.w;
@@ -304,58 +280,57 @@ void main()
                     if (shadow > 0.0) {
                         float NdotL = max(dot(N, L), 0.0);
                         
-                        // Add specular term
-                        vec3 H = normalize(direction + L);
-                        float NdotH = max(dot(N, H), 0.0);
-                        float HdotV = max(dot(H, direction), 0.0);
-                        float NdotV = max(dot(N, V), 0.0);
-                        
-                        // Calculate fresnel
-                        vec3 F = F_Schlick(f0, HdotV);
-                        
-                        // Geometric term
-                        float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
-
-                        // Distribution term
-                        float D = GGX_PDF(NdotH, HdotV, roughness);
-                        
-                        // Add both diffuse and specular components
-                        radiance += beta * shadow * light_color * (
-                            diffuseColor * NdotL * HYP_FMATH_ONE_OVER_PI +  // Diffuse
-                            F * G * D * NdotL                               // Specular
-                        );
+                        if (NdotL > 0.0) {
+                            // Specular term
+                            vec3 H = normalize(-direction + L);
+                            float NdotH = max(dot(N, H), 0.0);
+                            float LdotH = max(dot(L, H), 0.0);
+                            float NdotV = max(dot(N, -direction), 0.0);
+                            
+                            vec3 F = F_Schlick(f0, LdotH);
+                            float G = V_SmithGGXCorrelated(hitRoughness, NdotV, NdotL);
+                            float D = DistributionGGX(NdotH, hitRoughness);
+                            
+                            // Diffuse: (1-F) * diffuseColor / PI * NdotL
+                            // Specular: F * D * G * NdotL (G already has 1/(4*NdotL*NdotV) baked in)
+                            radiance += beta * shadow * light_color * NdotL * (
+                                (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 
+                                F * G * D
+                            );
+                        }
                     }
                 } else if (light.type == HYP_LIGHT_TYPE_POINT) {
-                    vec3 L = normalize(light.position_intensity.xyz - hitPos);
-                    float d = length(light.position_intensity.xyz - hitPos);
-                    float attenuation = 1.0 / (d * d);
-
+                    vec3 toLight = light.position_intensity.xyz - hitPos;
+                    float d2 = max(dot(toLight, toLight), 1e-6);
+                    float d = sqrt(d2);
+                    vec3 L = toLight / d;
+                    
+                    float shadow = 1.0 - CheckInShadowDistance(hitPos, N, L, max(0.0, d - RAY_OFFSET));
                     float NdotL = max(dot(N, L), 0.0);
-                    
-                    // Add specular term
-                    vec3 H = normalize(direction + L);
-                    float NdotH = max(dot(N, H), 0.0);
-                    float HdotV = max(dot(H, direction), 0.0);
-                    float NdotV = max(dot(N, V), 0.0);
-                    
-                    // Calculate fresnel
-                    vec3 F = F_Schlick(f0, HdotV);
 
-                    // Geometric term
-                    float G = V_SmithGGXCorrelated(roughness, NdotV, NdotL);
-
-                    // Distribution term
-                    float D = GGX_PDF(NdotH, HdotV, roughness);
-                    
-                    radiance += beta * light_color * attenuation * (
-                        diffuseColor * NdotL * HYP_FMATH_ONE_OVER_PI +  // Diffuse
-                        F * G * D * NdotL                               // Specular
-                    );
-                } else {
-                    /// ... TODO
+                    if (shadow > 0.0 && NdotL > 0.0) {
+                        float attenuation = 1.0 / d2;
+                        
+                        vec3 H = normalize(-direction + L);
+                        float NdotH = max(dot(N, H), 0.0);
+                        float LdotH = max(dot(L, H), 0.0);
+                        float NdotV = max(dot(N, -direction), 0.0);
+                        
+                        vec3 F = F_Schlick(f0, LdotH);
+                        float G = V_SmithGGXCorrelated(hitRoughness, NdotV, NdotL);
+                        float D = DistributionGGX(NdotH, hitRoughness);
+                        
+                        // Diffuse: (1-F) * diffuseColor / PI * NdotL
+                        // Specular: F * D * G * NdotL (G already has 1/(4*NdotL*NdotV) baked in)
+                        radiance += beta * light_color * attenuation * shadow * NdotL * (
+                            (1.0 - F) * diffuseColor * HYP_FMATH_ONE_OVER_PI + 
+                            F * G * D
+                        );
+                    }
                 }
             }
 
+            // Russian Roulette
             if (bounceIndex >= 3) {
                 float p = clamp(max(max(beta.r, beta.g), beta.b), 0.05, 0.99);
                 if (RandomFloat(ray_seed) > p) {
@@ -364,11 +339,17 @@ void main()
                 beta /= vec3(p);
             }
 
-
-
             rnd = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
+            // Sample next direction (Diffuse - cosine weighted)
             direction = normalize(SampleCosineDir(rnd, N));
+            
+            // Perform cosine weighted sampling:
+            // BRDF = diffuseColor / PI
+            // PDF = cos(theta) / PI = NdotL / PI
+            // Throughput *= BRDF * cos(theta) / PDF = diffuseColor / PI * NdotL / (NdotL / PI) = diffuseColor
+            beta *= diffuseColor;
+
             origin = hitPos + N * RAY_OFFSET;
         } // end bounces
 

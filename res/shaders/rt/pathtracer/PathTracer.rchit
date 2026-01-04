@@ -239,8 +239,6 @@ void main()
         
         roughness = roughness_sample;
     }
-
-    vec3 direct_lighting = vec3(0.0);
     
     const vec3 V = normalize(camera.position.xyz - position);
     const float NdotV = max(0.0001, dot(normal, V));
@@ -250,41 +248,6 @@ void main()
     const float reflectance = 0.16 * material_reflectance * material_reflectance;
     vec4 F0 = vec4(material_color.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
     vec4 F90 = vec4(clamp(dot(F0, vec4(50.0 * 0.33)), 0.0, 1.0));
-
-    // float closest_light_dist = HYP_FMATH_INFINITY;
-    // uint closest_light_index = ~0u;
-
-    // for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
-    //     const Light light = HYP_GET_LIGHT(light_index);
-
-    //     // skip directional lights
-    //     /// \todo : Implement more light types besides point lights
-    //     if (light.type != HYP_LIGHT_TYPE_POINT) {
-    //         continue;
-    //     }
-
-    //     float light_dist = CheckLightIntersection(light, hit_position, gl_WorldRayDirectionEXT);
-
-    //     if (light_dist < closest_light_dist) {
-    //         closest_light_dist = light_dist;
-    //         closest_light_index = light_index;
-    //     }
-    // }
-
-    uint ray_seed = InitRandomSeed(InitRandomSeed(gl_LaunchIDEXT.x * 2, gl_LaunchIDEXT.x * 2 + 1), gl_PrimitiveID);
-
-    // // russian roulette to select a light
-    // if (closest_light_index != ~0u && RandomFloat(ray_seed) < 0.5) {
-    //     const Light light = HYP_GET_LIGHT(closest_light_index);
-
-    //     payload.distance = closest_light_dist;
-    //     payload.emissive = light.color * light.position_intensity.w;
-    //     payload.throughput = vec4(0.0);
-    //     payload.normal = normal;
-    //     payload.roughness = 0.0;
-
-    //     return;
-    // }
 
     payload.emissive = vec4(0.0);
     payload.throughput = vec4(material_color.rgb, metalness); // metalness is stored in the alpha channel

@@ -140,6 +140,13 @@ static inline void PoolFree(Pool& pool, void* ptr)
     pool.Free(ptr);
 }
 
+#define HYP_POOL_NEW(pool, T, ...)                                                      \
+    ([]() {                                                                             \
+        void* address = (pool).Allocate(sizeof(T), alignof(T));                         \
+        HYP_CORE_ASSERT(address != nullptr, "Failed to allocate " #T " from pool!");    \
+        return new (address) T(__VA_ARGS__);                                            \
+    })()
+
 template <class T, class... Args>
 static inline HYP_NODISCARD T* PoolNew(Pool& pool, Args&&... args)
 {

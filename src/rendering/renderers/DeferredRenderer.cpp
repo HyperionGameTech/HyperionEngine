@@ -1578,6 +1578,7 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 RaytracingPassData::~RaytracingPassData()
 {
+    SafeDelete(std::move(raytracingDescriptorSets));
     SafeDelete(std::move(raytracingTlases));
 }
 
@@ -2126,11 +2127,11 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             RaytracingPassData* pdCasted = ObjCast<RaytracingPassData>(pd.Get());
             Assert(pdCasted != nullptr);
 
-            RenderSetup newRs = rs.Fork();
-            newRs.passData = pd;
-            newRs.view = view;
+            RenderSetup newRS = rs.Fork();
+            newRS.passData = pd;
+            newRS.view = view;
 
-            UpdateRaytracingView(frame, newRs);
+            UpdateRaytracingView(frame, newRS);
         }
 
         for (Light* light : rpl.GetLights())
@@ -2217,17 +2218,17 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     }
 
     {
-        RenderSetup newRs = rs.Fork();
+        RenderSetup envProbeBaseRS = rs.Fork();
 
         // Set sky as fallback probe
         if (envProbes[EPT_SKY].Any())
         {
-            newRs.envProbe = envProbes[EPT_SKY].Front();
+            envProbeBaseRS.envProbe = envProbes[EPT_SKY].Front();
         }
 
         if (lights[LT_DIRECTIONAL].Any())
         {
-            newRs.light = lights[LT_DIRECTIONAL].Front();
+            envProbeBaseRS.light = lights[LT_DIRECTIONAL].Front();
         }
 
         if (envProbes.Any())
@@ -2244,10 +2245,10 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                             continue; // skip baked
                         }
 
-                        RenderSetup envProbeRs = newRs.Fork();
-                        envProbeRs.envProbe = envProbe;
+                        RenderSetup envProbeRS = envProbeBaseRS.Fork();
+                        envProbeRS.envProbe = envProbe;
 
-                        renderer->RenderFrame(frame, envProbeRs);
+                        renderer->RenderFrame(frame, envProbeRS);
                     }
                 }
                 else
@@ -2261,20 +2262,17 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             for (EnvGrid* envGrid : envGrids)
             {
-                RenderSetup envGridRs = newRs.Fork();
+                RenderSetup envGridRS = envProbeBaseRS.Fork();
 
                 // Set global directional light as fallback
                 if (envGridLights.Contains(envGrid))
                 {
-                    envGridRs.light = envGridLights[envGrid];
+                    envGridRS.light = envGridLights[envGrid];
                 }
 
-                envGridRs.envGrid = envGrid;
+                envGridRS.envGrid = envGrid;
 
-                g_renderInterface->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridRs);
-
-                envGridRs.light = nullptr;
-                envGridRs.envGrid = nullptr;
+                g_renderInterface->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridRS);
             }
         }
     }
@@ -2288,19 +2286,19 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        RenderSetup newRs = rs.Fork();
+        RenderSetup viewRS = rs.Fork();
 
         const Handle<DeferredRendererPassData>& pd = ObjCast<DeferredRendererPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
         AssertDebug(pd->viewport.extent.Volume() != 0);
 
-        newRs.view = view;
-        newRs.passData = pd;
+        viewRS.view = view;
+        viewRS.passData = pd;
 
-        RenderFrameForView(frame, newRs);
+        RenderFrameForView(frame, viewRS);
 
-        newRs.view = nullptr;
-        newRs.passData = nullptr;
+        viewRS.view = nullptr;
+        viewRS.passData = nullptr;
 
         if (view->GetFlags() & ViewFlags::ENABLE_READBACK)
         {
@@ -2560,19 +2558,28 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
                 raytracingPassData->parentPass = &passData;
 
-                RenderSetup newRs = rs;
-                newRs.passData = raytracingPassData;
+                RenderSetup raytracingRS = rs.Fork();
+                raytracingRS.passData = raytracingPassData;
+
+                // set sky as fallback
+
+                // Set first found sky probe as fallback probe
+                auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>();
+                if (skyProbes.Any())
+                {
+                    raytracingRS.envProbe = skyProbes.Front();
+                }
 
                 if (useRaytracingReflections)
                 {
                     AssertDebug(passData.raytracingReflections != nullptr);
-                    passData.raytracingReflections->Render(frame, newRs);
+                    passData.raytracingReflections->Render(frame, raytracingRS);
                 }
 
                 if (useRaytracingGlobalIllumination)
                 {
                     AssertDebug(passData.ddgi != nullptr);
-                    passData.ddgi->Render(frame, newRs);
+                    passData.ddgi->Render(frame, raytracingRS);
                 }
 
                 // unset parent pass after using it
@@ -2614,12 +2621,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // apply baked lighting over lightmapped objects
         for (LightmapVolume* lightmapVolume : rpl.GetLightmapVolumes())
         {
-            RenderSetup newRs = rs.Fork();
-            newRs.volume = lightmapVolume;
+            RenderSetup lightmapPassRS = rs.Fork();
+            lightmapPassRS.volume = lightmapVolume;
 
             // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
             // Apply lightmaps over the now shaded opaque objects.
-            passData.lightmapPass->RenderToFramebuffer(frame, newRs, passData.deferredShadingFramebuffer);
+            passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.deferredShadingFramebuffer);
         }
 
         frame->renderQueue << EndFramebuffer(passData.deferredShadingFramebuffer);
@@ -2668,10 +2675,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // render fog volumes
         for (FogVolume* fogVolume : rpl.GetFogVolumes())
         {
-            RenderSetup newRs = rs.Fork();
-            newRs.volume = fogVolume;
+            RenderSetup fogVolumeRS = rs.Fork();
+            fogVolumeRS.volume = fogVolume;
 
-            passData.fogVolumePass->RenderToFramebuffer(frame, newRs, translucentPassFramebuffer);
+            passData.fogVolumePass->RenderToFramebuffer(frame, fogVolumeRS, translucentPassFramebuffer);
         }
 
         // render particles
@@ -2679,10 +2686,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         {
             for (ParticleVolume* particleVolume : rpl.GetParticleVolumes())
             {
-                RenderSetup newRs = rs.Fork();
-                newRs.volume = particleVolume;
+                RenderSetup particleVolumeRS = rs.Fork();
+                particleVolumeRS.volume = particleVolume;
 
-                g_renderInterface->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, newRs);
+                g_renderInterface->globalRenderers[GRT_PARTICLE_VOLUME][0]->RenderFrame(frame, particleVolumeRS);
             }
         }
 
@@ -2784,12 +2791,26 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
         AssertDebug(meshProxy->mesh != nullptr && meshProxy->mesh->IsReady());
         AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
+        const RenderBucket bucket = meshProxy->material->GetRenderAttributes().bucket;
+
+        if (bucket != RB_OPAQUE
+            && bucket != RB_LIGHTMAP
+            && bucket != RB_TRANSLUCENT)
+        {
+            continue;
+        }
+
+        const GpuBlasRef& cachedBlas = m_meshRTData.GetOrCreateBLAS(entity, meshProxy->mesh, meshProxy->material);
+        
+        if (!cachedBlas)
+        {
+            HYP_LOG(Rendering, Error, "Failed to build BLAS for Mesh {}", meshProxy->mesh->GetName());
+            continue;
+        }
+
         GpuBlasRef& blas = meshProxy->raytracingData.blas;
-
-        const bool materialsDiffer = blas != nullptr
-            && blas->GetMaterial() != meshProxy->material;
-
-        if (!blas || materialsDiffer)
+    
+        if (blas != cachedBlas)
         {
             if (blas != nullptr)
             {
@@ -2797,18 +2818,13 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
                 {
                     pd->raytracingTlases[frameIndex]->RemoveGpuBlas(blas);
                 }
-
-                SafeDelete(std::move(blas));
             }
+            
+            blas = cachedBlas;
+        }
 
-            blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
-
-            if (!blas)
-            {
-                HYP_LOG(Rendering, Error, "Failed to build BLAS for Mesh {}", meshProxy->mesh->GetName());
-                continue;
-            }
-
+        if (!blas->IsCreated())
+        {
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
 
             const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);

@@ -108,40 +108,6 @@ HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadi
 #define MAX_THROUGHPUT_LUMINANCE 10.0
 #define ROUGHNESS_FLOOR 0.05
 
-vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
-{
-    float a = roughness * roughness;
-
-    // Sample in polar coordinates
-    float phi = 2.0 * HYP_FMATH_PI * xi.x;
-    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-
-    // Convert to cartesian
-    vec3 H;
-    H.x = sinTheta * cos(phi);
-    H.y = sinTheta * sin(phi);
-    H.z = cosTheta;
-
-    // Transform to world space
-    vec3 T1, T2;
-    ComputeOrthonormalBasis(N, T1, T2);
-    return normalize(T1 * H.x + T2 * H.y + N * H.z);
-}
-
-float GGX_PDF(float NdotH, float HdotV, float roughness)
-{
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float D = a2 / (HYP_FMATH_PI * pow(NdotH * NdotH * (a2 - 1.0) + 1.0, 2.0));
-    return (D * NdotH) / (4.0 * HdotV);
-}
-
-vec3 F_Schlick(vec3 f0, float cosTheta)
-{
-    return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
-}
-
 vec3 ClampLuminance(in vec3 c, float max_lum)
 {
     float lum = Luminance(c);
@@ -150,30 +116,6 @@ vec3 ClampLuminance(in vec3 c, float max_lum)
         return c * (max_lum / max(lum, 1e-6));
     }
     return c;
-}
-#endif
-
-#ifdef MODE_FULL
-// GGX NDF and geometry helpers
-float D_GGX(float NdotH, float roughness)
-{
-    float a = max(roughness, ROUGHNESS_FLOOR);
-    float a2 = a * a;
-    float d = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
-    return a2 / (HYP_FMATH_PI * d * d);
-}
-
-float G_SchlickGGX(float NdotX, float k)
-{
-    return NdotX / (NdotX * (1.0 - k) + k);
-}
-
-float G_Smith(float NdotV, float NdotL, float roughness)
-{
-    float a = max(roughness, ROUGHNESS_FLOOR);
-    float k = (a + 1.0);
-    k = (k * k) * 0.125; // (a+1)^2 / 8
-    return G_SchlickGGX(NdotV, k) * G_SchlickGGX(NdotL, k);
 }
 #endif
 
@@ -452,7 +394,7 @@ void main()
             vec3 N = normalize(payload.normal);
             vec3 baseColor = clamp(payload.throughput.rgb, vec3(0.0), vec3(1.0));
             float metalness = clamp(payload.throughput.a, 0.0, 1.0);
-            float roughness = max(0.5, ROUGHNESS_FLOOR);
+            float roughness = clamp(payload.roughness, ROUGHNESS_FLOOR, 1.0);
 
             // emissive contribution
             if (any(greaterThan(payload.emissive.rgb, vec3(0.0))))
@@ -485,7 +427,7 @@ void main()
                             vec3 H = normalize(V + L);
                             float NdotH = max(dot(N, H), 0.0);
                             float HdotV = max(dot(H, V), 0.0);
-                            float D = D_GGX(NdotH, roughness);
+                            float D = DistributionGGX(NdotH, roughness);
                             float G = G_Smith(NdotV, NdotL, roughness);
                             vec3 F = F_Schlick(F0, HdotV);
                             vec3 Lo_s = (D * G) * F / max(4.0 * NdotL * NdotV, 1e-6);
@@ -510,7 +452,7 @@ void main()
                             vec3 H = normalize(V + L);
                             float NdotH = max(dot(N, H), 0.0);
                             float HdotV = max(dot(H, V), 0.0);
-                            float D = D_GGX(NdotH, roughness);
+                            float D = DistributionGGX(NdotH, roughness);
                             float G = G_Smith(NdotV, NdotL, roughness);
                             vec3 F = F_Schlick(F0, HdotV);
                             vec3 Lo_s = (D * G) * F / max(4.0 * NdotL * NdotV, 1e-6);

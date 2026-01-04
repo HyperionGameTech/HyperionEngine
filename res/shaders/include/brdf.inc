@@ -70,6 +70,20 @@ vec3 ImportanceSampleGTR2(float rgh, float r1, float r2)
     return vec3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
 }
 
+float V_SmithGGXCorrelated(float roughness, float NoV, float NoL)
+{
+    // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
+    float a2 = roughness * roughness;
+    // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
+    float lambdaV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
+    float lambdaL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
+    float v = 0.5 / max(lambdaV + lambdaL, 0.00001);
+    // a2=0 => v = 1 / 4*NoL*NoV   => min=1/4, max=+inf
+    // a2=1 => v = 1 / 2*(NoL+NoV) => min=1/4, max=+inf
+    // clamp to the maximum value representable in mediump
+    return v;
+}
+
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
     // float a = roughness*roughness;
@@ -118,17 +132,54 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return r2 / (d * d * HYP_FMATH_PI);
 }
 
-float V_SmithGGXCorrelated(float roughness, float NoV, float NoL) {
-    // Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
-    float a2 = roughness * roughness;
-    // TODO: lambdaV can be pre-computed for all the lights, it should be moved out of this function
-    float lambdaV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
-    float lambdaL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
-    float v = 0.5 / max(lambdaV + lambdaL, 0.00001);
-    // a2=0 => v = 1 / 4*NoL*NoV   => min=1/4, max=+inf
-    // a2=1 => v = 1 / 2*(NoL+NoV) => min=1/4, max=+inf
-    // clamp to the maximum value representable in mediump
-    return v;
+float DistributionGGX(float NdotH, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float d = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
+    return a2 / (HYP_FMATH_PI * d * d);
+}
+
+float GGX_PDF(float NdotH, float HdotV, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float D = a2 / (HYP_FMATH_PI * pow(NdotH * NdotH * (a2 - 1.0) + 1.0, 2.0));
+    return (D * NdotH) / (4.0 * HdotV);
+}
+
+vec3 SampleGGX(vec2 xi, float roughness, vec3 N)
+{
+    float a = roughness * roughness;
+
+    // Sample in polar coordinates
+    float phi = 2.0 * HYP_FMATH_PI * xi.x;
+    float cosTheta = sqrt((1.0 - xi.y) / (1.0 + (a * a - 1.0) * xi.y));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+    // Convert to cartesian
+    vec3 H;
+    H.x = sinTheta * cos(phi);
+    H.y = sinTheta * sin(phi);
+    H.z = cosTheta;
+
+    // Transform to world space
+    vec3 T1, T2;
+    ComputeOrthonormalBasis(N, T1, T2);
+    return normalize(T1 * H.x + T2 * H.y + N * H.z);
+}
+
+float G_SchlickGGX(float NdotX, float k)
+{
+    return NdotX / (NdotX * (1.0 - k) + k);
+}
+
+float G_Smith(float NdotV, float NdotL, float roughness)
+{
+    float a = roughness;
+    float k = (a + 1.0);
+    k = (k * k) * 0.125; // (a+1)^2 / 8
+    return G_SchlickGGX(NdotV, k) * G_SchlickGGX(NdotL, k);
 }
 
 float Trowbridge(float NdotH, float roughness)
@@ -146,6 +197,11 @@ float CookTorranceG(float NdotL, float NdotV, float HdotV, float NdotH)
     float second = 2 * NdotH * NdotL / HdotV;
     return min(1, min(first, second));
     //return min(1, 2 * (NdotH / LdotH) * min(NdotL, NdotV));
+}
+
+vec3 F_Schlick(vec3 f0, float cosTheta)
+{
+    return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
 }
 
 vec3 SchlickFresnel(vec3 f0, vec3 f90, float u)

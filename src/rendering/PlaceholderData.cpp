@@ -226,7 +226,7 @@ void PlaceholderData::Create()
 
 #pragma region Textures
     using PlaceholderBufferData = Pair<ByteBuffer, bool>;
-    auto initBufferData = []<class... Args>(PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto InitBufferData = []<class... Args>(PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
         if (!bufferData.second)
         {
@@ -235,7 +235,7 @@ void PlaceholderData::Create()
         }
     };
 
-    auto loadOrInitTexture = [&initBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto loadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
         if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
         {
@@ -244,7 +244,7 @@ void PlaceholderData::Create()
         }
         else
         {
-            initBufferData(bufferData, fillFn, std::forward<Args>(args)...);
+            InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
 
             texture = CreateObject<Texture>(textureDesc, TextureData { bufferData.first });
             texture->SetName(CreateNameFromDynamicString(*name));
@@ -258,6 +258,7 @@ void PlaceholderData::Create()
     };
 
     PlaceholderBufferData placeholderBufferTex2d {};
+    PlaceholderBufferData placeholderBufferTex3d {};
     PlaceholderBufferData placeholderBufferCubemap {};
 
     loadOrInitTexture(
@@ -267,15 +268,14 @@ void PlaceholderData::Create()
         TextureDesc {
             TT_TEX2D,
             TF_RGBA8,
-            Vec3u::One(),
+            Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
+            TWM_REPEAT,
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
-        Vec2u::One());
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
     loadOrInitTexture(
         defaultTexture3d,
@@ -290,9 +290,8 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
-        Vec2u::One());
+        placeholderBufferTex3d,
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
     loadOrInitTexture(
         defaultCubemap,
@@ -301,15 +300,14 @@ void PlaceholderData::Create()
         TextureDesc {
             TT_CUBEMAP,
             TF_RGBA8,
-            Vec3u::One(),
+            Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
+            TWM_REPEAT,
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferCubemap,
-        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>,
-        Vec2u::One());
+        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>);
 
     loadOrInitTexture(
         defaultTexture2dArray,
@@ -318,15 +316,14 @@ void PlaceholderData::Create()
         TextureDesc {
             TT_TEX2D_ARRAY,
             TF_RGBA8,
-            Vec3u::One(),
+            Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
+            TWM_REPEAT,
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>,
-        Vec2u::One());
+        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
     loadOrInitTexture(
         defaultCubemapArray,
@@ -335,15 +332,14 @@ void PlaceholderData::Create()
         TextureDesc {
             TT_CUBEMAP_ARRAY,
             TF_RGBA8,
-            Vec3u::One(),
+            Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
+            TWM_REPEAT,
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferCubemap,
-        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>,
-        Vec2u::One());
+        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>);
 
 #pragma endregion Textures
 
