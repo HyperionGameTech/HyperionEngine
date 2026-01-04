@@ -62,7 +62,7 @@ namespace Hyperion.Editor.ViewModels
             _onSelectedNodeChanged?.Remove();
             _onSelectedNodeChanged = scene.GetOnRootNodeChangedDelegate().Bind((Node newRoot, Node oldRoot) =>
             {
-                Dispatcher.UIThread.Invoke(() =>
+                Dispatcher.UIThread.Post(() =>
                 {
                     _scene = scene;
                     RootNodes.Clear();

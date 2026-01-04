@@ -9,6 +9,7 @@
 #include <rendering/TemporalAA.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/MeshRTData.hpp>
 
 #include <rendering/raytracing/RaytracingReflections.hpp>
 
@@ -443,6 +444,7 @@ public:
     // Set only while rendering to this pass
     DeferredRendererPassData* parentPass = nullptr;
 
+    FixedArray<DescriptorSetRef, NumFramesInFlight> raytracingDescriptorSets;
     FixedArray<GpuTlasRef, NumFramesInFlight> raytracingTlases;
 
     virtual ~RaytracingPassData() override;
@@ -516,6 +518,8 @@ private:
     LastFrameData m_lastFrameData;
 
     RendererConfig m_rendererConfig;
+
+    MeshRTData m_meshRTData;
 };
 
 } // namespace Hyperion

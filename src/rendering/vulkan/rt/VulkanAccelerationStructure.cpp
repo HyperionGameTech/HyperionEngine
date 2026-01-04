@@ -503,7 +503,7 @@ void VulkanGpuTlas::AddGpuBlas(const VulkanGpuBlasRef& blas)
 {
     HYP_GFX_ASSERT(blas != nullptr);
 
-    if (m_blas.FindAs(blas.Get()) != m_blas.End())
+    if (m_blas.Find(blas) != m_blas.End())
     {
         // already has the GpuBlas
         return;
@@ -540,10 +540,9 @@ void VulkanGpuTlas::RemoveGpuBlas(const VulkanGpuBlasRef& blas)
         return;
     }
 
-    auto it = m_blas.FindIf([pBlas = blas.Get()](auto&& item)
-        {
-            return item.Get() == pBlas;
-        });
+    auto it = m_blas.Find(blas);
+
+    AssertDebug(it != m_blas.End());
 
     if (it != m_blas.End())
     {
@@ -558,12 +557,12 @@ void VulkanGpuTlas::RemoveGpuBlas(const VulkanGpuBlasRef& blas)
 
 bool VulkanGpuTlas::HasGpuBlas(const VulkanGpuBlasRef& blas)
 {
-    if (!blas.IsValid())
+    if (!blas)
     {
         return false;
     }
 
-    return m_blas.FindAs(blas.Get()) != m_blas.End();
+    return m_blas.Find(blas) != m_blas.End();
 }
 
 RendererResult VulkanGpuTlas::BuildInstancesBuffer()

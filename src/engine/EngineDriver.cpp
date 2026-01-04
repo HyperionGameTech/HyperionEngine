@@ -613,7 +613,6 @@ void EngineDriver::UpdateSim(float delta)
 
     if (updatedEntities[Bucket_RenderProxy].Any() || updatedEntities[Bucket_Visibility].Any())
     { // remove tags for updates that were applied
-
         for (Scene* scene : scenes)
         {
             scene->GetEntityManager()->Unlock();

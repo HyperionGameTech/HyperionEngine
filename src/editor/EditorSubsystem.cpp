@@ -3120,8 +3120,6 @@ void EditorSubsystem::NewProject()
 
     defaultScene->GetRoot()->AddChild(sun);
 
-    //project->GetWorld()->AddSystemT<DynamicSkySystem>();
-
     OpenProject(project);
 }
 
@@ -3161,6 +3159,9 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
         InitObject(project);
 
         m_currentProject = project;
+        
+        // temp
+        project->GetWorld()->AddSystemT<DynamicSkySystem>();
 
         // if (Result saveResult = project->Save(); saveResult.HasError())
         // {
