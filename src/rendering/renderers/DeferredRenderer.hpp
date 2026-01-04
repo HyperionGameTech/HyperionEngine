@@ -443,7 +443,8 @@ class HYP_API RaytracingPassData : public PassData
 public:
     // Set only while rendering to this pass
     DeferredRendererPassData* parentPass = nullptr;
-
+    
+    FixedArray<GpuBufferRef, NumFramesInFlight> raytracingUniforms;
     FixedArray<DescriptorSetRef, NumFramesInFlight> raytracingDescriptorSets;
     FixedArray<GpuTlasRef, NumFramesInFlight> raytracingTlases;
 

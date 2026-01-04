@@ -59,8 +59,6 @@ public:
 
 private:
     void CreateImages();
-    void CreateUniformBuffer();
-    void CreateRaytracingPipeline();
     void CreateTemporalBlending();
 
     void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
@@ -74,7 +72,6 @@ private:
     UniquePtr<TemporalBlending> m_temporalBlending;
 
     RaytracingPipelineRef m_raytracingPipeline;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
 
     Mat4f m_previousViewMatrix;
 };
