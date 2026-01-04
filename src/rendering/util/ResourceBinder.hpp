@@ -381,6 +381,11 @@ public:
 
     virtual void Initialize() override
     {
+        if (IsInitialized())
+        {
+            return;
+        }
+
         AssertDebug(m_bindingAllocator != nullptr);
 
         AssertDebug(m_baseImpl == nullptr);
@@ -578,6 +583,11 @@ public:
     }
 
 protected:
+    bool IsInitialized() const
+    {
+        return m_baseImpl != nullptr;
+    }
+
     // base class impl
     Impl* m_baseImpl;
 

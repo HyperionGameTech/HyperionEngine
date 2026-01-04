@@ -84,7 +84,7 @@ namespace Hyperion.Editor.ViewModels
 
         public void SetSelectedNode(Node? node, Scene? scene = null, bool isRootNode = false)
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
             
             SelectedNode = node;
             CurrentScene = scene;
@@ -94,7 +94,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void RefreshProperties()
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
 
             Properties.Clear();
             Actions.Clear();

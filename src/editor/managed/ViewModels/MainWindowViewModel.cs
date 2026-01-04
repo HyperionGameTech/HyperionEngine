@@ -1,10 +1,11 @@
-using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
 using Hyperion.Editor.Commands;
+using System;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Threading;
+using System.Windows.Input;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -115,9 +116,8 @@ namespace Hyperion.Editor.ViewModels
         private bool _isReady = false;
 
         private EditorSubsystem _editorSubsystem;
-    
-        private List<SceneViewModel> _scenes = new List<SceneViewModel>();
-        public List<SceneViewModel> Scenes => _scenes;
+
+        public ObservableCollection<SceneViewModel> Scenes { get; } = new();
         
         private SceneViewModel? _activeScene;
         public SceneViewModel? ActiveScene
@@ -194,7 +194,7 @@ namespace Hyperion.Editor.ViewModels
 
         private void Init(HyperionEditorGame editorGame)
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
 
             World? world = editorGame.World;
             if (world == null)
@@ -214,14 +214,19 @@ namespace Hyperion.Editor.ViewModels
 
             EditorState editorState = EditorState.Instance;
 
+            _currentProjectChangedHandler?.Remove();
             _currentProjectChangedHandler = editorState.GetOnCurrentProjectChangedDelegate()
                 .Bind(HandleCurrentProjectChanged);
 
             // handle active scene changes
+            _activeSceneChangedHandler?.Remove();
             _activeSceneChangedHandler = _editorSubsystem.GetOnActiveSceneChangedDelegate()
                 .Bind(HandleActiveSceneChanged);
 
             SceneHierarchy.SelectedNodeChanged += OnSceneHierarchyNodeSelected;
+
+            EngineManager.SceneAdded += OnSceneAdded;
+            EngineManager.SceneRemoved += OnSceneRemoved;
 
             BindFocusedNodeChanged();
 
@@ -239,6 +244,9 @@ namespace Hyperion.Editor.ViewModels
 
         public void Dispose()
         {
+            EngineManager.SceneAdded -= OnSceneAdded;
+            EngineManager.SceneRemoved -= OnSceneRemoved;
+
             _gameModeChangedHandler?.Remove();
             _focusedNodeChangedHandler?.Remove();
             _currentProjectChangedHandler?.Remove();
@@ -263,12 +271,14 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                _activeScene = _scenes.Find(s => s.Scene == scene);
+                _activeScene = Scenes
+                    .Where(s => s.Scene == scene)
+                    .FirstOrDefault();
                 
                 if (_activeScene == null)
                 {
                     _activeScene = new SceneViewModel(scene, isActive: true);
-                    _scenes.Add(_activeScene);
+                    Scenes.Add(_activeScene);
 
                     OnPropertyChanged(nameof(Scenes));
                 }
@@ -320,24 +330,27 @@ namespace Hyperion.Editor.ViewModels
                     });
                 });
 
-            OnPropertyChanged(nameof(CanSetGameModePlaying));
-            OnPropertyChanged(nameof(CanSetGameModePaused));
-            OnPropertyChanged(nameof(CanSetGameModeStopped));
-
-            OnPropertyChanged(nameof(CanSelectGizmo));
-
-            // Update scenes list
-            _scenes.Clear();
-
-            if (project != null)
+            Dispatcher.UIThread.Post(() =>
             {
-                foreach (Scene scene in project.World.GetScenes())
-                {
-                    _scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
-                }
-            }
+                OnPropertyChanged(nameof(CanSetGameModePlaying));
+                OnPropertyChanged(nameof(CanSetGameModePaused));
+                OnPropertyChanged(nameof(CanSetGameModeStopped));
 
-            OnPropertyChanged(nameof(Scenes));
+                OnPropertyChanged(nameof(CanSelectGizmo));
+
+                // Update scenes list
+                Scenes.Clear();
+
+                if (project != null)
+                {
+                    foreach (Scene scene in project.World.GetScenes())
+                    {
+                        Scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+                    }
+                }
+
+                OnPropertyChanged(nameof(Scenes));
+            });
         }
 
         private void OnSceneHierarchyNodeSelected(Node? node)
@@ -361,6 +374,60 @@ namespace Hyperion.Editor.ViewModels
 
             bool isRootNode = SceneHierarchy.IsRootNode(node);
             Inspector.SetSelectedNode(node, SceneHierarchy.Scene, isRootNode);
+        }
+
+        private void OnSceneAdded(World world, Scene scene)
+        {
+            Action action = () =>
+            {
+                foreach (SceneViewModel svm in Scenes)
+                {
+                    if (svm.Scene.Id == scene.Id)
+                    {
+                        return; // already exists
+                    }
+                }
+
+                Scenes.Add(new SceneViewModel(scene, isActive: _activeScene?.Scene?.Id == scene.Id));
+
+                OnPropertyChanged(nameof(Scenes));
+            };
+
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                action();
+
+                return;
+            }
+
+            Dispatcher.UIThread.Post(action);
+        }
+
+        private void OnSceneRemoved(World world, Scene scene)
+        {
+            Action action = () =>
+            {
+                for (int i = 0; i < Scenes.Count; i++)
+                {
+                    if (Scenes[i].Scene.Id == scene.Id)
+                    {
+                        Scenes.RemoveAt(i);
+
+                        OnPropertyChanged(nameof(Scenes));
+
+                        return;
+                    }
+                }
+            };
+
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                action();
+
+                return;
+            }
+
+            Dispatcher.UIThread.Post(action);
         }
 
         private void BindFocusedNodeChanged()
