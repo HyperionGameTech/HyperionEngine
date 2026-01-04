@@ -38,7 +38,7 @@ namespace Hyperion.Editor.ViewModels
 
         public void LoadPackages()
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
 
             Logger.Log(LogType.Debug, "Loading content browser packages...");
 

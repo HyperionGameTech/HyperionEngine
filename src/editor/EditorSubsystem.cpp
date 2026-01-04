@@ -3120,7 +3120,7 @@ void EditorSubsystem::NewProject()
 
     defaultScene->GetRoot()->AddChild(sun);
 
-    project->GetWorld()->AddSystemT<DynamicSkySystem>();
+    //project->GetWorld()->AddSystemT<DynamicSkySystem>();
 
     OpenProject(project);
 }

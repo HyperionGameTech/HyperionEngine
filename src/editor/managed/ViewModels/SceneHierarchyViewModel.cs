@@ -16,7 +16,7 @@ namespace Hyperion.Editor.ViewModels
             get => _selectedNode;
             set
             {
-                Dispatcher.UIThread.CheckAccess();
+                Dispatcher.UIThread.VerifyAccess();
                 if (SetProperty(ref _selectedNode, value) && !_suppressSelectionNotifications)
                 {
                     SelectedNodeChanged?.Invoke(_selectedNode?.Node);
@@ -33,7 +33,7 @@ namespace Hyperion.Editor.ViewModels
 
         public void AttachToScene(Scene? scene)
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
 
             _scene = scene;
             RootNodes.Clear();
@@ -76,7 +76,7 @@ namespace Hyperion.Editor.ViewModels
 
         void DetachFromScene()
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
 
             _scene = null;
             RootNodes.Clear();
@@ -87,7 +87,7 @@ namespace Hyperion.Editor.ViewModels
 
         public void SelectNodeFromEngine(Node? node)
         {
-            Dispatcher.UIThread.CheckAccess();
+            Dispatcher.UIThread.VerifyAccess();
 
             _suppressSelectionNotifications = true;
 

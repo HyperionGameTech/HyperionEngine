@@ -389,6 +389,11 @@ struct ResourceSubtypeData final
         for (SizeType i = 0; i < NumResourceBinders; i++)
         {
             this->resourceBinders[i] = resourceBinders[i];
+
+            if (resourceBinders[i])
+            {
+                resourceBinders[i]->Initialize();
+            }
         }
 
         // if ProxyType != NullProxy then we setup proxy pool

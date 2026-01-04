@@ -12,8 +12,8 @@ namespace Hyperion.Editor.ViewModels
         public AssetPackage Package => _package;
         public Name Name => _package.Name;
 
-        public ObservableCollection<AssetPackageViewModel> Subpackages { get; } = new ObservableCollection<AssetPackageViewModel>();
-        public ObservableCollection<AssetObjectViewModel> Assets { get; } = new ObservableCollection<AssetObjectViewModel>();
+        public ObservableCollection<AssetPackageViewModel> Subpackages { get; } = new();
+        public ObservableCollection<AssetObjectViewModel> Assets { get; } = new();
 
         private DelegateHandler _onAssetAddedHandler;
         private DelegateHandler _onAssetRemovedHandler;
