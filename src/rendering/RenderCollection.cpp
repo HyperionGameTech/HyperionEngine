@@ -49,6 +49,10 @@ namespace Hyperion {
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
+namespace CoreApi {
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
+
 static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 
 #pragma region ParallelRenderingState
@@ -232,8 +236,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
 
+    static const bool s_isPathTracer = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.PathTracing.Enabled").ToBool();
+
     // if lightmap volume is set we need stencil testing
-    if (hasLightmaps)
+    if (hasLightmaps && !s_isPathTracer)
     {
         const uint8 stencilReferenceValue = GetLightmapStencilValue(proxy.lightmapElementId) & LightmapStencilMask;
 

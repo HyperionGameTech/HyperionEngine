@@ -22,6 +22,11 @@ namespace Hyperion.Editor
 
         private static DelegateHandler? _onCurrentProjectChanged;
         private static DelegateHandler? _gameLaunchedHandler;
+        private static DelegateHandler? _onSceneAddedHandler;
+        private static DelegateHandler? _onSceneRemovedHandler;
+
+        public static event Action<World, Scene>? SceneAdded;
+        public static event Action<World, Scene>? SceneRemoved;
 
         private static bool _editorViewportsEnabled = false;
 
@@ -107,12 +112,28 @@ namespace Hyperion.Editor
 
             CurrentProject = editorState.CurrentProject;
 
+            _onSceneAddedHandler?.Remove();
+            _onSceneRemovedHandler?.Remove();
+
             _onCurrentProjectChanged?.Remove();
             _onCurrentProjectChanged = editorState.GetOnCurrentProjectChangedDelegate().Bind((EditorProject newProject) =>
             {
                 CurrentProject = newProject;
 
                 Logger.Log(LogType.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
+
+                if (CurrentProject != null)
+                {
+                    _onSceneAddedHandler = CurrentProject.World.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>
+                    {
+                        SceneAdded?.Invoke(world, scene);
+                    });
+
+                    _onSceneRemovedHandler = CurrentProject.World.GetOnSceneRemovedDelegate().Bind((World world, Scene scene) =>
+                    {
+                        SceneRemoved?.Invoke(world, scene);
+                    });
+                }
             });
 
             SetEditorViewportsEnabled(true);
@@ -125,7 +146,19 @@ namespace Hyperion.Editor
 
             _onCurrentProjectChanged?.Remove();
             _onCurrentProjectChanged = null;
-            
+
+            _onSceneAddedHandler?.Remove();
+            _onSceneAddedHandler = game.World.GetOnSceneAddedDelegate().Bind((World world, Scene scene) =>
+            {
+                SceneAdded?.Invoke(world, scene);
+            });
+
+            _onSceneRemovedHandler?.Remove();
+            _onSceneRemovedHandler = game.World.GetOnSceneRemovedDelegate().Bind((World world, Scene scene) =>
+            {
+                SceneRemoved?.Invoke(world, scene);
+            });
+
             EngineDriver.Instance.GameInstance = game;
             GameInstance = game;
 
@@ -134,6 +167,11 @@ namespace Hyperion.Editor
 
         public static void Shutdown()
         {
+            _gameLaunchedHandler?.Remove();
+            _onCurrentProjectChanged?.Remove();
+            _onSceneAddedHandler?.Remove();
+            _onSceneRemovedHandler?.Remove();
+
             EditorGame = null;
 
             NativeBindings.Hyp_Shutdown();

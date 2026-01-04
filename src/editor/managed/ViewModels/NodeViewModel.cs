@@ -88,7 +88,7 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                Dispatcher.UIThread.Invoke(() => target!.Children.Add(new NodeViewModel(child, target)));
+                Dispatcher.UIThread.Post(() => target!.Children.Add(new NodeViewModel(child, target)));
             });
 
             _onChildRemoved = node.GetOnChildRemovedDelegate().Bind((Node child, bool isDirect) =>
@@ -100,7 +100,7 @@ namespace Hyperion.Editor.ViewModels
                     return;
                 }
 
-                Dispatcher.UIThread.Invoke(() =>
+                Dispatcher.UIThread.Post(() =>
                 {
                     for (int i = 0; i < target!.Children.Count; i++)
                     {
