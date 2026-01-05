@@ -14,11 +14,10 @@
 
 #include <core/Defines.hpp>
 
-#include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/RenderBackend.hpp>
 
 #include <core/math/Mat4f.hpp>
 

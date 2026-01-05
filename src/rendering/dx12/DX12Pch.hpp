@@ -4,12 +4,9 @@
 
 #include <HyperionPch.hpp>
 
-#include <d3d12.h>
-#include <wrl.h>
-
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineMemory.hpp>
 
-using Microsoft::WRL::ComPtr;
+#include <rendering/dx12/DX12Shared.hpp>
 
 #endif // __cplusplus
