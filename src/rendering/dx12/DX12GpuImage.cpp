@@ -152,8 +152,8 @@ void DX12GpuImage::CopyFromBuffer(
 }
 
 void DX12GpuImage::CopyToBuffer(
-    CommandBuffer* commandBuffer,
-    GpuBuffer* dstBuffer) const
+    DX12CommandBuffer* commandBuffer,
+    DX12GpuBuffer* dstBuffer) const
 {
     // @TODO
 }

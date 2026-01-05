@@ -7,7 +7,6 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/GpuImage.hpp>
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>

@@ -311,11 +311,20 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
     set(HYP_DX12 1)
 
     message(STATUS "Using DirectX 12 as rendering backend")
+    
+    # check for D3D12MemoryAllocator thirdparty module
+    if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator/CMakeLists.txt")
+        add_subdirectory(${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/thirdparty/D3D12MemoryAllocator_build)
+        
+        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator/include)
+
+        set(RENDERER_LIBRARIES
+            ${RENDERER_LIBRARIES}
+            D3D12MemoryAllocator)
+    endif()
 else()
     message(FATAL_ERROR "No rendering backend found!")
 endif()
-
-
 
 if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
     # if glslang folder exists, link with it.
@@ -482,8 +491,28 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         set(subdir_basename "")
         set(sub_library_name "")
         set(should_skip_module FALSE)
+        set(should_recurse TRUE)
 
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
+
+        # handle thirdparty modules separately
+        if(dir MATCHES "thirdparty")
+            # set(should_recurse FALSE) # do not recurse into thirdparty, let them handle themselves
+            # set(should_skip_module TRUE)
+
+            # if (dir MATCHES "D3D12MemoryAllocator" AND NOT RENDERING_BACKEND STREQUAL "DX12")
+            #     # Skip it since we are not using DX12
+            #     return()
+            # endif()
+
+            # # just add the thirdparty module as is and return
+            # add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/thirdparty/${subdir_basename})
+            # include_directories(BEFORE ${dir}/include)
+
+            # message(STATUS "Added thirdparty CMakeLists.txt from ${dir}, including headers from ${dir}/include")
+
+            return()
+        endif()
 
         if(dir MATCHES "dotnet/runtime")
             set(sub_library_name "hyperion-dotnet-runtime")

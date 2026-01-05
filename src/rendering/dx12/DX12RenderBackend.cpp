@@ -12,8 +12,6 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <dxgi1_6.h>
-
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
@@ -60,7 +58,8 @@ public:
 
 DX12RenderBackend::DX12RenderBackend()
     : m_renderConfig(MakePimpl<DX12RenderConfig>()),
-      m_currentFrameIndex(0)
+      m_currentFrameIndex(0),
+      m_allocator(nullptr)
 {
 }
 

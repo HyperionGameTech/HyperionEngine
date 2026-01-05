@@ -10,6 +10,8 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/dx12/DX12Shared.hpp>
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -67,7 +69,7 @@ public:
 #endif
 
 private:
-    // @TODO
+    ComPtr<ID3D12Resource> m_buffer;
 };
 
 } // namespace Hyperion

@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include <dxgi1_4.h>
-#include <d3d12.h>
-#include <wrl.h>
-
 #include <rendering/RenderBackend.hpp>
 
+#include <rendering/dx12/DX12Shared.hpp>
+
 #include <core/memory/Pimpl.hpp>
+
+#include <D3D12MemAlloc.h>
+
+#include <dxgi1_6.h>
 
 namespace Hyperion {
 
@@ -19,6 +21,31 @@ class DX12RenderBackend final : public IRenderBackend
 public:
     DX12RenderBackend();
     ~DX12RenderBackend() override;
+
+    HYP_FORCE_INLINE ID3D12Device* GetDevice() const
+    {
+        return m_device.Get();
+    }
+
+    HYP_FORCE_INLINE ID3D12CommandQueue* GetDirectQueue() const
+    {
+        return m_directQueue.Get();
+    }
+    
+    HYP_FORCE_INLINE ID3D12CommandQueue* GetComputeQueue() const
+    {
+        return m_computeQueue.Get();
+    }
+
+    HYP_FORCE_INLINE ID3D12CommandQueue* GetCopyQueue() const
+    {
+        return m_copyQueue.Get();
+    }
+
+    HYP_FORCE_INLINE D3D12MA::Allocator* GetAllocator() const
+    {
+        return m_allocator;
+    }
 
     RendererResult Initialize() override;
     RendererResult Destroy() override;
@@ -106,14 +133,16 @@ private:
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
     
-    Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgiFactory;
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
+    ComPtr<IDXGIFactory4> m_dxgiFactory;
+    ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 
-    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+    ComPtr<ID3D12Device> m_device;
 
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_directQueue;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_computeQueue;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_copyQueue;
+    ComPtr<ID3D12CommandQueue> m_directQueue;
+    ComPtr<ID3D12CommandQueue> m_computeQueue;
+    ComPtr<ID3D12CommandQueue> m_copyQueue;
+
+    D3D12MA::Allocator* m_allocator;
 };
 
 } // namespace Hyperion
