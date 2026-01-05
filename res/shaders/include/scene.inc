@@ -36,29 +36,36 @@ struct Camera
 
 struct Light
 {
+    // 0
     uint type;
+    // 4
     uint material_index; // for area lights - ~0u == no material
+    // 8
     uint radius_falloff; // packed as half
+    // 12
     uint flags;
 
-    vec2 area_size; // for area lights = area size, for spot lights = spot angles
-
+    // 16
     vec4 position_intensity; // position or direction
+    // 32
     vec4 color;
+    // 48
+    vec4 normal;             // for area lights/spot lights - x,y,z = normal - w = layer index for shadow maps
 
-    vec4 normal;             // for area lights - x,y,z = normal
-
-    /// shadow map data
+    // 64
     mat4 shadow_matrix;
+    // 128
     vec4 aabb_min;
+    // 144
     vec4 aabb_max;
+    // 160
     vec4 dimensions_scale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
+    // 176
     vec2 offset_uv;
-    uint layer_index; // atlas index, also used for point light shadow map index
 
-    vec4 _pad0;
-    vec4 _pad1;
-    vec4 _pad2;
+    // 184
+    vec2 area_size; // for area lights = area size, for spot lights = spot angles
+    // 192
 };
 
 // Maps to LightFlags
@@ -69,6 +76,8 @@ struct Light
 #define LF_SHADOW_VSM 0x8
 #define LF_SHADOW_FILTER_MASK (LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING | LF_SHADOW_VSM)
 #define LF_DEFAULT (LF_SHADOW | LF_SHADOW_PCF)
+
+#define LIGHT_LAYER_INDEX(light) (floatBitsToUint(light.normal.w))
 
 struct LightmapVolume
 {

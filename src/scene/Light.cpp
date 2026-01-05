@@ -671,7 +671,6 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     bufferData.color = Vec4f(m_color);
     bufferData.radiusFalloffPacked = (uint32(Float16(m_falloff).Raw()) << 16) | Float16(m_radius).Raw();
     bufferData.positionIntensity = Vec4f(m_position, m_intensity);
-    bufferData.normal = Vec4f(m_normal, 0.0f);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()
     bufferData.flags = m_flags;
 
@@ -679,9 +678,15 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     {
     case LT_AREA_RECT:
         bufferData.areaSize = m_areaSize;
+        bufferData.areaNormal[0] = m_normal.x;
+        bufferData.areaNormal[1] = m_normal.y;
+        bufferData.areaNormal[2] = m_normal.z;
         break;
     case LT_SPOT:
         bufferData.areaSize = m_spotAngles;
+        bufferData.spotLightDir[0] = m_normal.x;
+        bufferData.spotLightDir[1] = m_normal.y;
+        bufferData.spotLightDir[2] = m_normal.z;
         break;
     case LT_POINT:
         break;

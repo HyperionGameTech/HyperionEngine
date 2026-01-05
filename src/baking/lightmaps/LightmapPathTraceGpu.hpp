@@ -54,8 +54,9 @@ public:
 private:
     struct JobData
     {
-        FixedArray<GpuBufferRef, NumFramesInFlight> UniformBuffers;
-        FixedArray<GpuBufferRef, NumFramesInFlight> RayBuffers;
+        GpuBufferRef cBuffer;
+        GpuBufferRef raysBuffer;
+        GpuBufferRef lightsBuffer;
         FixedArray<DescriptorSetRef, NumFramesInFlight> Sets;
         GpuBufferRef HitsBufferGpu;
         bool IsCreated = false;

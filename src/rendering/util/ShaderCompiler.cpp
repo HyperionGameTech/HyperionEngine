@@ -907,7 +907,11 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
 
     glslang_spv_options_t spvOptions {};
     spvOptions.disable_optimizer = false;
+#ifdef HYP_DEBUG_MODE
+    spvOptions.generate_debug_info = true;
+    spvOptions.strip_debug_info = false;
     spvOptions.validate = true;
+#endif
 
     glslang_program_SPIRV_generate_with_options(program, stage, &spvOptions);
 

@@ -55,11 +55,6 @@ HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 
 #include "../../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
-{
-    Light lights[];
-};
-
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
@@ -79,9 +74,14 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 #include "../../include/rt/RTRadiance.inc"
 #include "../../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadianceUniformBuffer
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingConstants
 {
-    RTRadianceUniforms rt_radiance_uniforms;
+    RayTracingConstants rayTracingConstants;
+};
+
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+{
+    Light lights[MAX_LIGHTS];
 };
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
@@ -125,7 +125,7 @@ vec3 beta = vec3(1.0);
 
 void main() 
 {
-    const ivec2 resolution = rt_radiance_uniforms.output_image_resolution;
+    const ivec2 resolution = rayTracingConstants.output_image_resolution;
     
     const int pixel_index = int(gl_LaunchIDEXT.x * 2) + int(world_shader_data.frame_counter & 1);
     const ivec2 storage_coord = ivec2(
@@ -265,22 +265,26 @@ void main()
             
             vec3 diffuseColor = hitAlbedo * (1.0 - hitMetalness);
             vec3 f0 = CalculateF0(hitAlbedo, hitMetalness);
-            
+
             // lights
-            for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++) {
-                const Light light = HYP_GET_LIGHT(light_index);
+            for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
+            {
+                const Light light = lights[light_index];
                 vec3 light_color = light.color.rgb * light.position_intensity.w;
 
-                if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL) {
+                if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
+                {
                     vec3 light_direction = normalize(light.position_intensity.xyz);
                     vec3 L = light_direction;
 
                     // shadow check
                     float shadow = 1.0 - CheckInShadow(hitPos, N, L);
-                    if (shadow > 0.0) {
+                    if (shadow > 0.0)
+                    {
                         float NdotL = max(dot(N, L), 0.0);
                         
-                        if (NdotL > 0.0) {
+                        if (NdotL > 0.0)
+                        {
                             // Specular term
                             vec3 H = normalize(-direction + L);
                             float NdotH = max(dot(N, H), 0.0);
@@ -299,7 +303,9 @@ void main()
                             );
                         }
                     }
-                } else if (light.type == HYP_LIGHT_TYPE_POINT) {
+                }
+                else if (light.type == HYP_LIGHT_TYPE_POINT)
+                {
                     vec3 toLight = light.position_intensity.xyz - hitPos;
                     float d2 = max(dot(toLight, toLight), 1e-6);
                     float d = sqrt(d2);
@@ -308,7 +314,8 @@ void main()
                     float shadow = 1.0 - CheckInShadowDistance(hitPos, N, L, max(0.0, d - RAY_OFFSET));
                     float NdotL = max(dot(N, L), 0.0);
 
-                    if (shadow > 0.0 && NdotL > 0.0) {
+                    if (shadow > 0.0 && NdotL > 0.0)
+                    {
                         float attenuation = 1.0 / d2;
                         
                         vec3 H = normalize(-direction + L);
@@ -358,6 +365,9 @@ void main()
 
 
     vec3 finalColor = accumRadiance.rgb / float(NUM_SAMPLES);
+
+    // // temp debug
+    // finalColor = vec4(rayTracingConstants.light_indices[0]).xyz;
 
     // // // test
     // float inShadow = 1.0-CheckInShadow(ray.origin.xyz, ray.direction.xyz, HYP_GET_LIGHT(0).position_intensity.xyz);

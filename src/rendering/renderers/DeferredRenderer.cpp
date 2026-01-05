@@ -1580,7 +1580,8 @@ RaytracingPassData::~RaytracingPassData()
 {
     SafeDelete(std::move(raytracingTlases));
     SafeDelete(std::move(raytracingDescriptorSets));
-    SafeDelete(std::move(raytracingUniforms));
+    SafeDelete(std::move(constants));
+    SafeDelete(std::move(lightsBuffer));
 }
 
 #pragma endregion RaytracingPassData

@@ -262,7 +262,7 @@ public:
     template <class SystemType>
     HYP_FORCE_INLINE bool HasSystem() const
     {
-        return GetSystem<SystemBase>() != nullptr;
+        return GetSystem<SystemType>() != nullptr;
     }
 
     HYP_FORCE_INLINE const Array<SystemExecutionGroup*>& GetSystemExecutionGroups() const
