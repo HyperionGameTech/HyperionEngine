@@ -3107,7 +3107,7 @@ void EditorSubsystem::NewProject()
     InitObject(project);
 
     Handle<Scene> defaultScene = CreateObject<Scene>();
-    defaultScene->SetName(NAME("MainScene"));
+    defaultScene->SetName(NAME("DefaultScene"));
     defaultScene->SetSceneFlags(SceneFlags::DEFAULT);
     project->AddScene(defaultScene);
 

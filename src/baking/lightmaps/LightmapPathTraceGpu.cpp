@@ -70,6 +70,8 @@ struct GpuLightmapperReadyNotification : Semaphore<int>
 {
 };
 
+static constexpr uint32 MaxBoundLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);  
+
 #pragma region Render commands
 
 struct CreateLightmapGPUPathTracerUniformBuffer : RenderCommand
@@ -84,7 +86,7 @@ struct CreateLightmapGPUPathTracerUniformBuffer : RenderCommand
     virtual RendererResult operator()() override
     {
         HYP_GFX_CHECK(uniformBuffer->Create());
-        uniformBuffer->Memset(sizeof(RTRadianceUniforms), 0x0);
+        uniformBuffer->Memset(sizeof(RayTracingConstants), 0x0);
 
         return {};
     }
@@ -134,8 +136,9 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 
     for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
-        SafeDelete(std::move(it.second.UniformBuffers));
-        SafeDelete(std::move(it.second.RayBuffers));
+        SafeDelete(std::move(it.second.cBuffer));
+        SafeDelete(std::move(it.second.raysBuffer));
+        SafeDelete(std::move(it.second.lightsBuffer));
         SafeDelete(std::move(it.second.HitsBufferGpu));
     }
 }
@@ -144,33 +147,20 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
 
-    for (GpuBufferRef& uniformBuffer : jd.UniformBuffers)
-    {
-        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
-    }
+    jd.cBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
+    PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.cBuffer);
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        jd.UniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
+    jd.raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.raysBuffer->SetRequireCpuAccessible(true);
 
-        PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.UniformBuffers[frameIndex]);
-    }
-
-    for (GpuBufferRef& rayBuffer : jd.RayBuffers)
-    {
-        rayBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
-        rayBuffer->SetRequireCpuAccessible(true);
-    }
+    jd.lightsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
 
     // ATOMIC_COUNTER type allows readback to cpu.
     jd.HitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
     DeferCreate(jd.HitsBufferGpu);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        DeferCreate(jd.RayBuffers[frameIndex]);
-    }
+    DeferCreate(jd.raysBuffer);
+    DeferCreate(jd.lightsBuffer);
 }
 
 void LightmapRenderer_GpuPathTracing::Create()
@@ -281,6 +271,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
 
     /// Shader
     ShaderProperties shaderProperties;
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
 
     switch (m_shadingType)
     {
@@ -311,12 +302,12 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
         descriptorSet->SetElement("TLAS"_sh, m_tlas);
         descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
         descriptorSet->SetElement("HitsBuffer"_sh, jd.HitsBufferGpu);
-        descriptorSet->SetElement("RaysBuffer"_sh, jd.RayBuffers[frameIndex]);
+        descriptorSet->SetElement("RaysBuffer"_sh, jd.raysBuffer);
 
-        descriptorSet->SetElement("LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("Lights"_sh, jd.lightsBuffer);
         descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-        descriptorSet->SetElement("RTRadianceUniforms"_sh, jd.UniformBuffers[frameIndex]);
+        descriptorSet->SetElement("RayTracingConstants"_sh, jd.cBuffer);
 
         Assert(descriptorSet->Create());
     }
@@ -333,39 +324,67 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
 
 void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* job, uint32 rayOffset)
 {
-    RTRadianceUniforms uniforms {};
-    Memory::MemSet(&uniforms, 0, sizeof(uniforms));
-
-    uniforms.rayOffset = rayOffset;
-
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(m_lightmapper->GetView());
-    rpl.BeginRead();
-    HYP_DEFER({ rpl.EndRead(); });
-
-    const uint32 maxBoundLights = ArraySize(uniforms.lightIndices);
-    uint32 numBoundLights = 0;
-
-    for (Light* light : rpl.GetLights())
+    struct UpdateConstants
     {
-        const LightType lightType = light->GetLightType();
+        View* view = nullptr;
+        GpuBuffer* cBuffer = nullptr;
+        GpuBuffer* lightsBuffer = nullptr;
+        uint32 rayOffset;
 
-        if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+        void operator()(Frame*)
         {
-            continue;
+            AssertDebug(view && cBuffer && lightsBuffer);
+
+            RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+            rpl.BeginRead();
+            HYP_DEFER({ rpl.EndRead(); });
+
+            RayTracingConstants uniforms {};
+            Memory::MemSet(&uniforms, 0, sizeof(uniforms));
+
+            uniforms.rayOffset = rayOffset;
+
+            uint32 numBoundLights = 0;
+
+            for (Light* light : rpl.GetLights())
+            {
+                const LightType lightType = light->GetLightType();
+
+                if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+                {
+                    continue;
+                }
+
+                if (numBoundLights >= MaxBoundLights)
+                {
+                    break;
+                }
+                
+                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+                Assert(lightProxy != nullptr);
+
+                lightsBuffer->Copy(numBoundLights * sizeof(LightShaderData), sizeof(LightShaderData), &lightProxy->bufferData);
+
+                uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+            }
+
+            uniforms.numBoundLights = numBoundLights;
+
+            cBuffer->Copy(sizeof(uniforms), &uniforms);
+            cBuffer->Flush(0, sizeof(uniforms));
+
+            lightsBuffer->Flush(0, sizeof(LightShaderData) * numBoundLights);
         }
-
-        if (numBoundLights >= maxBoundLights)
-        {
-            break;
-        }
-
-        uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
-    }
-
-    uniforms.numBoundLights = numBoundLights;
-
+    };
+    
     JobData& jd = m_jobData[job];
-    jd.UniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
+
+    frame->OnFrameEnd.Bind(UpdateConstants {
+        m_lightmapper->GetView(),
+        jd.cBuffer,
+        jd.lightsBuffer,
+        rayOffset
+    }).Detach();
 }
 
 void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* job, Span<LightmapHit> outHits)
@@ -441,7 +460,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     Assert(m_tlas && m_tlas->IsCreated());
 
     { // rays buffer
-        Array<Vec4f> rayData;
+        Array<Vec4f, DynamicAllocator> rayData;
         rayData.Resize(rays.Size() * 2);
 
         for (SizeType i = 0; i < rays.Size(); i++)
@@ -449,9 +468,23 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             rayData[i * 2] = Vec4f(rays[i].ray.position, 1.0f);
             rayData[i * 2 + 1] = Vec4f(rays[i].ray.direction, 0.0f);
         }
+        
+        GpuBufferRef& raysBuffer = jd.raysBuffer;
 
-        Assert(jd.RayBuffers[frame->GetFrameIndex()]->Size() >= rayData.ByteSize());
-        jd.RayBuffers[frame->GetFrameIndex()]->Copy(rayData.ByteSize(), rayData.Data());
+        struct UpdateRaysBuffer
+        {
+            GpuBuffer* raysBuffer;
+            Array<Vec4f, DynamicAllocator> rayData;
+
+            void operator()(Frame*)
+            {
+                Assert(raysBuffer->Size() >= rayData.ByteSize());
+                raysBuffer->Copy(rayData.ByteSize(), rayData.Data());
+                raysBuffer->Flush(0, rayData.ByteSize());
+            }
+        };
+
+        frame->OnFrameEnd.Bind(UpdateRaysBuffer { raysBuffer, std::move(rayData) }).Detach();
     }
 
     constexpr StringHash GlobalSetName = "Global"_sh;

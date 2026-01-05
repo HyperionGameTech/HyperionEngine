@@ -38,11 +38,6 @@ HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 #include "../../include/BlueNoise.glsl"
 #include "../../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, LightsBuffer) readonly buffer LightsBuffer
-{
-    Light lights[];
-};
-
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
@@ -71,6 +66,11 @@ HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, HitsBuffer, standard = scalar) buff
     vec4 hits[];
 };
 
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+{
+    Light lights[MAX_LIGHTS];
+};
+
 struct LightmapRay
 {
     vec3 origin;
@@ -82,9 +82,9 @@ HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, RaysBuffer, standard = scalar) read
     vec4 ray_data[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadianceUniformBuffer
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingConstants
 {
-    RTRadianceUniforms rt_radiance_uniforms;
+    RayTracingConstants rayTracingConstants;
 };
 
 #ifdef MODE_IRRADIANCE
@@ -210,7 +210,7 @@ void main()
     vec3 tangent;
     vec3 bitangent;
 
-    uint ray_seed = InitRandomSeed(((rt_radiance_uniforms.ray_offset + ray_index) * 2), ((rt_radiance_uniforms.ray_offset + ray_index) * 2) + 1);
+    uint ray_seed = InitRandomSeed(((rayTracingConstants.ray_offset + ray_index) * 2), ((rayTracingConstants.ray_offset + ray_index) * 2) + 1);
 
 #ifdef MODE_IRRADIANCE
     vec4 accumRadiance = vec4(0.0);
@@ -263,9 +263,9 @@ void main()
 
             beta *= albedo * (1.0 - metalness) * HYP_FMATH_ONE_OVER_PI;
 
-            for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++)
+            for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
             {
-                const Light light = HYP_GET_LIGHT(light_index);
+                const Light light = lights[light_index];
                 vec3 light_color = light.color.rgb * light.position_intensity.w;
 
                 if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
@@ -321,7 +321,7 @@ void main()
 
     vec3 radiance = vec3(0.0);
 
-    for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++)
+    for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
     {
         const Light light = HYP_GET_LIGHT(light_index);
 
@@ -409,7 +409,7 @@ void main()
             vec3 F0 = mix(vec3(0.04), baseColor, metalness);
             if (dot(diffuseColor, diffuseColor) > 0.0)
             {
-                for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++)
+                for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
                 {
                     const Light light = HYP_GET_LIGHT(light_index);
 

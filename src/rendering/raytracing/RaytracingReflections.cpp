@@ -97,13 +97,21 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
         descriptorSet->SetElement("TLAS"_sh, tlas);
         descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, tlas->GetMeshDescriptionsBuffer());
         descriptorSet->SetElement("OutputImage"_sh, g_renderBackend->GetTextureImageView(m_texture));
-        descriptorSet->SetElement("RTRadianceUniforms"_sh, pd->raytracingUniforms[frameIndex]);
+        descriptorSet->SetElement("RayTracingConstants"_sh, pd->constants);
+        descriptorSet->SetElement("Lights"_sh, pd->lightsBuffer);
         descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     };
 
     if (!m_raytracingPipeline)
     {
-        ShaderRef shader = g_shaderManager->GetOrCreate(s_shaderNames[IsPathTracer()]);
+        const uint32 maxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);
+
+        ShaderRef shader = g_shaderManager->GetOrCreate(
+            s_shaderNames[IsPathTracer()],
+            ShaderProperties({
+                { NAME("MAX_LIGHTS"), int(maxLights) }
+            }));
+
         Assert(shader != nullptr);
 
         m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, DescriptorTableRef::Null());
@@ -144,7 +152,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
     else
     {
         descriptorSet->UpdateDirtyState();
-        descriptorSet->Update();
+        descriptorSet->Update(true); // temp
     }
 }
 
@@ -152,47 +160,92 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
 {
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
+    
+    static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32); // lights are stored in Vec4u
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
-    rpl.BeginRead();
-    HYP_DEFER({ rpl.EndRead(); });
-
-    RTRadianceUniforms uniforms {};
-    uniforms.minRoughness = 0.4f;
-    uniforms.outputImageResolution = Vec2i(m_config.extent);
-
-    uint32 numBoundLights = 0;
-
-    const uint32 maxBoundLights = ArraySize(uniforms.lightIndices);
-
-    for (Light* light : rpl.GetLights())
+    GpuBufferRef& constants = pd->constants;
+    if (!constants)
     {
-        const LightType lightType = light->GetLightType();
-
-        if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
-        {
-            continue;
-        }
-
-        if (numBoundLights >= maxBoundLights)
-        {
-            break;
-        }
-
-        uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+        constants = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
+        constants->SetRequireCpuAccessible(true);
+        constants->SetDebugName(NAME("RaytracingConstants"));
+        Assert(constants->Create());
     }
 
-    uniforms.numBoundLights = numBoundLights;
-
-    GpuBufferRef& uniformBuffer = pd->raytracingUniforms[frame->GetFrameIndex()];
-    if (!uniformBuffer)
+    GpuBufferRef& lightsBuffer = pd->lightsBuffer;
+    if (!lightsBuffer)
     {
-        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-        uniformBuffer->SetDebugName(NAME_FMT("RaytracingUniforms_{}", frame->GetFrameIndex()));
-        Assert(uniformBuffer->Create());
+        lightsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxLights);
+        lightsBuffer->SetRequireCpuAccessible(true);
+        lightsBuffer->SetDebugName(NAME("RaytracingLightsBuffer"));
+        Assert(lightsBuffer->Create());
     }
 
-    uniformBuffer->Copy(sizeof(uniforms), &uniforms);
+    struct UpdateRayTracingBuffers
+    {
+        Vec2i extent;
+        View* view = nullptr;
+        RaytracingPassData* passData = nullptr;
+
+        void operator()(Frame*)
+        {
+            AssertDebug(view && passData);
+
+            RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+            rpl.BeginRead();
+            HYP_DEFER({ rpl.EndRead(); });
+            
+            GpuBufferRef& lightsBuffer = passData->lightsBuffer;
+            AssertDebug(lightsBuffer != nullptr);
+
+            GpuBufferRef& constants = passData->constants;
+            AssertDebug(constants != nullptr);
+
+            RayTracingConstants constantData {};
+            constantData.minRoughness = 0.4f;
+            constantData.outputImageResolution = extent;
+
+            uint32 numBoundLights = 0;
+    
+            uint32* lightIndicesU32 = reinterpret_cast<uint32*>(constantData.lightIndices);
+            Memory::MemSet(lightIndicesU32, 0, sizeof(constantData.lightIndices));
+
+            for (Light* light : rpl.GetLights())
+            {
+                const LightType lightType = light->GetLightType();
+
+                if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+                {
+                    continue;
+                }
+
+                if (numBoundLights >= MaxLights)
+                {
+                    break;
+                }
+
+                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+                Assert(lightProxy != nullptr);
+                
+                lightsBuffer->Copy(numBoundLights * sizeof(LightShaderData), sizeof(LightShaderData), &lightProxy->bufferData);
+
+                lightIndicesU32[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+            }
+
+            constantData.numBoundLights = numBoundLights;
+
+            constants->Copy(sizeof(RayTracingConstants), &constantData);
+            constants->Flush(0, sizeof(RayTracingConstants));
+
+            lightsBuffer->Flush(0, sizeof(LightShaderData) * numBoundLights);
+        }
+    };
+
+    g_renderBackend->GetCurrentFrame()->OnFrameEnd.Bind(UpdateRayTracingBuffers {
+        Vec2i(m_config.extent),
+        renderSetup.view,
+        pd
+    }).Detach();
 }
 
 void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)

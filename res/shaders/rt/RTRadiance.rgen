@@ -68,9 +68,14 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 #include "../include/rt/RTRadiance.inc"
 #include "../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadianceUniformBuffer
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingConstants
 {
-    RTRadianceUniforms rt_radiance_uniforms;
+    RayTracingConstants rayTracingConstants;
+};
+
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+{
+    Light lights[MAX_LIGHTS];
 };
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
@@ -81,7 +86,7 @@ layout(location = 0) rayPayloadEXT RayPayload payload;
 
 void main()
 {
-    const ivec2 resolution = rt_radiance_uniforms.output_image_resolution;
+    const ivec2 resolution = rayTracingConstants.output_image_resolution;
     
     const int pixel_index = int(gl_LaunchIDEXT.x * 2) + int(world_shader_data.frame_counter & 1);
 
@@ -115,7 +120,7 @@ void main()
     float roughness = materialParams.roughness;
 
 #if defined(USE_MIN_ROUGHNESS) && USE_MIN_ROUGHNESS
-    if (roughness > rt_radiance_uniforms.min_roughness) {
+    if (roughness > rayTracingConstants.min_roughness) {
         imageStore(image, storage_coord, vec4(0.0));
         return;
     }
@@ -167,7 +172,7 @@ void main()
 
 #if defined(USE_MIN_ROUGHNESS) && USE_MIN_ROUGHNESS
     // interpolate alpha based on roughness compared to minimum roughness needed for reflection
-    color.a = 1.0 - (roughness / rt_radiance_uniforms.min_roughness);
+    color.a = 1.0 - (roughness / rayTracingConstants.min_roughness);
 #endif
 
     imageStore(image, storage_coord, color);

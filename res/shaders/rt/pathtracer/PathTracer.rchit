@@ -79,14 +79,9 @@ HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer Ma
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingConstants
 {
-    Light lights[];
-};
-
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadianceUniformBuffer
-{
-    RTRadianceUniforms rt_radiance_uniforms;
+    RayTracingConstants rayTracingConstants;
 };
 
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CameraShaderData

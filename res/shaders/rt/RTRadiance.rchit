@@ -76,14 +76,14 @@ HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer Ma
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingConstants
 {
-    Light lights[];
+    RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RTRadianceUniforms) uniform RTRadianceUniformBuffer
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
 {
-    RTRadianceUniforms rt_radiance_uniforms;
+    Light lights[MAX_LIGHTS];
 };
 
 HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
@@ -213,9 +213,9 @@ void main()
 
     vec4 direct_lighting = vec4(0.0);
 
-    for (uint light_index = 0; light_index < rt_radiance_uniforms.num_bound_lights; light_index++)
+    for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
     {
-        const Light light = HYP_GET_LIGHT(light_index);
+        const Light light = lights[light_index];
 
         // Only support point and directional lights for RT reflections.
         if (light.type != HYP_LIGHT_TYPE_DIRECTIONAL && light.type != HYP_LIGHT_TYPE_POINT)

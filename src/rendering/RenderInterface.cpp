@@ -1529,7 +1529,7 @@ RenderInterface::RenderInterface()
 
     gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CBUFF>(1, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CBUFF>(0, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::SSBO>(0, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::SSBO>(0, /* cpuAccessible */ false);
     gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::SSBO>(0, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::SSBO>(0, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::SSBO>(0, /* cpuAccessible */ true);

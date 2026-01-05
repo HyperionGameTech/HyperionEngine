@@ -233,7 +233,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
             {
                 case HYP_LIGHT_TYPE_POINT:
                 {
-                    uint layerIndex = light.layer_index;
+                    uint layerIndex = floatBitsToUint(light.normal.w);
                     uint flags = light.flags;
                     vec3 worldToLight = currentPos - light.position_intensity.xyz;
 
