@@ -259,7 +259,6 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
             OnCurrentWindowChanged(nullptr);
         }
 
-        SafeDelete(std::move(*it));
         m_windows.Erase(it);
     }
 }
@@ -1376,6 +1375,8 @@ int Win32AppContext::PollEvents(Event& event)
     return 0;
 }
 
+#if HYP_VULKAN
+
 VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     Win32ApplicationWindow* window,
     IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)
@@ -1475,6 +1476,8 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
 
     return surface;
 }
+
+#endif // !HYP_VULKAN
 
 #else
 

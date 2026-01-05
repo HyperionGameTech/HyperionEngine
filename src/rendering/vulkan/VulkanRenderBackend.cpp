@@ -56,11 +56,6 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-#ifdef HYP_WINDOWS
-void Win32_RegisterWindowClass(const WideString& className);
-void Win32_UnregisterWindowClass(const WideString& className);
-#endif
-
 #pragma region VulkanRenderConfig
 
 class VulkanRenderConfig final : public IRenderConfig
@@ -1191,7 +1186,7 @@ VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDumm
     // may be created on main thread, which may not be the render thread if -RenderOnMainThread is not set.
     AssertOnThread(g_mainThread | g_renderThread);
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     Win32ApplicationWindow* win32Window = nullptr;
     if (window != nullptr)
     {
@@ -1200,7 +1195,7 @@ VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDumm
     }
 
     return Win32AppContext::CreateVulkanSurface(win32Window, ppOutDummySurfaceContext);
-#elif defined(HYP_MACOS)
+#elif HYP_MACOS
     CocoaApplicationWindow* cocoaWindow = nullptr;
     if (window != nullptr)
     {
@@ -1209,7 +1204,7 @@ VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDumm
     }
 
     return CocoaAppContext::CreateVulkanSurface(cocoaWindow, ppOutDummySurfaceContext);
-#elif defined(HYP_SDL)
+#elif HYP_SDL
     SDLApplicationWindow* sdlWindow = nullptr;
     if (window != nullptr)
     {
@@ -1243,7 +1238,7 @@ VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* windo
 
 RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)
 {
-#ifdef HYP_MACOS
+#if HYP_MACOS
     if (const CocoaAppContext* cocoaAppContext = ObjCast<CocoaAppContext>(g_appContext))
     {
         static constexpr const char* RequiredExtensions[] = {
@@ -1284,7 +1279,7 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
     }
 #endif
 
-#ifdef HYP_SDL
+#if HYP_SDL
     if (const SDLAppContext* sdlAppContext = ObjCast<SDLAppContext>(g_appContext))
     {
         uint32 numExtensions = 0;
@@ -1306,7 +1301,7 @@ RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExten
     }
 #endif
 
-#ifdef HYP_WINDOWS
+#if HYP_WINDOWS
     if (const Win32AppContext* win32AppContext = ObjCast<Win32AppContext>(g_appContext))
     {
         // extensions required for Win32 surface support

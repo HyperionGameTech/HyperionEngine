@@ -6,9 +6,10 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
-
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/Entity.hpp>
 

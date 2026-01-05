@@ -36,7 +36,7 @@ HYP_API const FilePath& GetResourceDirectory();
 HYP_API const FilePath& GetCacheDirectory();
 HYP_API const FilePath& GetTempDirectory();
 
-#ifndef HYP_WINDOWS
+#if !HYP_WINDOWS
 using HWND = void*;
 #endif
 

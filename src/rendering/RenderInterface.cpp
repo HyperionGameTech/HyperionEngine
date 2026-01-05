@@ -852,8 +852,8 @@ void Init()
 
 #if HYP_VULKAN
     g_renderBackend = new VulkanRenderBackend();
-#else
-#error Unsupported rendering backend
+#elif HYP_DX12
+    g_renderBackend = new DX12RenderBackend();
 #endif
 
     for (ResourceBinderBase* resourceBinder : s_resourceBinders)

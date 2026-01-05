@@ -21,25 +21,25 @@ class VulkanGpuBuffer final : public GpuBufferBase
 
 public:
     VulkanGpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
-    virtual ~VulkanGpuBuffer() override;
+    ~VulkanGpuBuffer() override;
 
     HYP_FORCE_INLINE VkBuffer GetVulkanHandle() const
     {
         return m_handle;
     }
 
-    virtual bool IsCreated() const override;
-    virtual bool IsCpuAccessible() const override;
+    bool IsCreated() const override;
+    bool IsCpuAccessible() const override;
 
-    virtual void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const override;
-    virtual void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
+    void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState) const override;
+    void InsertBarrier(VulkanCommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
 
-    virtual void CopyFrom(
+    void CopyFrom(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuBuffer* srcBuffer,
         uint32 count) override;
 
-    virtual void CopyFrom(
+    void CopyFrom(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuBuffer* srcBuffer,
         uint32 srcOffset, uint32 dstOffset,
@@ -49,29 +49,29 @@ public:
 
     uint64 GetBufferDeviceAddress() const;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual RendererResult EnsureCapacity(
+    RendererResult EnsureCapacity(
         SizeType minimumSize,
         bool* outSizeChanged = nullptr) override;
 
-    virtual RendererResult EnsureCapacity(
+    RendererResult EnsureCapacity(
         SizeType minimumSize,
         SizeType alignment,
         bool* outSizeChanged = nullptr) override;
 
-    virtual void Memset(SizeType count, ubyte value) override;
+    void Memset(SizeType count, ubyte value) override;
 
-    virtual void Copy(SizeType count, const void* ptr) override;
-    virtual void Copy(SizeType offset, SizeType count, const void* ptr) override;
+    void Copy(SizeType count, const void* ptr) override;
+    void Copy(SizeType offset, SizeType count, const void* ptr) override;
 
-    virtual void Read(SizeType count, void* outPtr) const override;
-    virtual void Read(SizeType offset, SizeType count, void* outPtr) const override;
+    void Read(SizeType count, void* outPtr) const override;
+    void Read(SizeType offset, SizeType count, void* outPtr) const override;
 
-    virtual void Map() const override;
-    virtual void Unmap() const override;
+    void Map() const override;
+    void Unmap() const override;
 
-    virtual void Flush(SizeType offset, SizeType count) override;
+    void Flush(SizeType offset, SizeType count) override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

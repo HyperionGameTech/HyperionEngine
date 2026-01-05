@@ -110,6 +110,8 @@ Handle<Game> g_gameInstance; // active game instance, read/write only from the m
 
 #if HYP_VULKAN
 VulkanRenderBackend* g_renderBackend;
+#elif HYP_DX12
+DX12RenderBackend* g_renderBackend;
 #endif
 
 static void HandleFatalError(const char* message)
