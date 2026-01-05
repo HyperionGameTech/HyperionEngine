@@ -42,9 +42,9 @@ HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, ProbeRayData) buffer ProbeRayDataBuffer
     ProbeRayData probe_rays[];
 };
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
+HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, Lights) uniform Lights
 {
-    Light lights[];
+    Light lights[MAX_LIGHTS];
 };
 
 #include "../../include/rt/probe/shared.inc"
@@ -63,9 +63,6 @@ HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCube
 #include "../../include/shadows.inc"
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
-
-#define HYP_GET_LIGHT(index) \
-    lights[ddgiUniforms.light_indices[(index / 4)][index % 4]]
 
 #define RAY_OFFSET 0.025
 #define NUM_BOUNCES 3
@@ -114,7 +111,8 @@ void main()
     RayBounceInfo bounces[NUM_BOUNCES];
     uint num_bounces = 0;
 
-    for (int bounce_index = 0; bounce_index < NUM_BOUNCES; bounce_index++) {
+    for (int bounce_index = 0; bounce_index < NUM_BOUNCES; bounce_index++)
+    {
         payload.distance = -1.0;
 
         vec3 normal = payload.normal;
@@ -128,19 +126,23 @@ void main()
         ray_data[bounce_index].normal = vec4(payload.normal, 0.0);
         ray_data[bounce_index].direction_depth = vec4(direction, payload.distance);
 
-        if (payload.distance < 0.0) {
+        if (payload.distance < 0.0)
+        {
             // hit the sky, sample the environment map
-            if (current_env_probe.texture_index != ~0u) {
+            if (current_env_probe.texture_index != ~0u)
+            {
                 uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
 
                 bounces[bounce_index].emissive += EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], direction, 0.0);
             }
             
-            for (uint light_index = 0; light_index < ddgiUniforms.num_bound_lights; light_index++) {
-                const Light light = HYP_GET_LIGHT(light_index);
+            for (uint light_index = 0; light_index < ddgiUniforms.num_bound_lights; light_index++)
+            {
+                const Light light = lights[light_index];
 
                 // Only handle directional lights here
-                if (light.type != HYP_LIGHT_TYPE_DIRECTIONAL) {
+                if (light.type != HYP_LIGHT_TYPE_DIRECTIONAL)
+                {
                     continue;
                 }
 
@@ -171,17 +173,20 @@ void main()
         ++num_bounces;
     }
 
-    for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--) {
+    for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--)
+    {
         vec4 radiance = bounces[bounce_index].emissive;
 
-        if (bounce_index != num_bounces - 1) {
+        if (bounce_index != num_bounces - 1)
+        {
             radiance += ray_data[bounce_index + 1].color * bounces[bounce_index].throughput;
         }
 
         // As the throughput is multiplied by the albedo, the probability of the ray getting discarded is higher
         float p = max(radiance.r, max(radiance.g, radiance.b));
 
-        if (RandomFloat(ray_seed) > p) {
+        if (RandomFloat(ray_seed) > p)
+        {
             break;
         }
 

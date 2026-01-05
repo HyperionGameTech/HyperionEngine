@@ -82,7 +82,7 @@ HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, RaysBuffer, standard = scalar) read
     vec4 ray_data[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingConstants
+HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };

@@ -40,20 +40,21 @@ enum ProbeSystemUpdates : uint32
 
 static constexpr TextureFormat DdgiIrradianceFormat = TF_RGBA16F;
 static constexpr TextureFormat DdgiDepthFormat = TF_RG16F;
+static constexpr uint32 MaxBoundLights = sizeof(DDGIUniforms::lightIndices) / sizeof(uint32);
 
 #pragma region Render commands
 
 struct SetDDGIDescriptors : RenderCommand
 {
-    FixedArray<GpuBufferRef, NumFramesInFlight> uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> cBuffers;
     GpuImageViewRef irradianceImageView;
     GpuImageViewRef depthImageView;
 
     SetDDGIDescriptors(
-        const FixedArray<GpuBufferRef, NumFramesInFlight>& uniformBuffers,
+        const FixedArray<GpuBufferRef, NumFramesInFlight>& cBuffers,
         const GpuImageViewRef& irradianceImageView,
         const GpuImageViewRef& depthImageView)
-        : uniformBuffers(uniformBuffers),
+        : cBuffers(cBuffers),
           irradianceImageView(irradianceImageView),
           depthImageView(depthImageView)
     {
@@ -66,7 +67,7 @@ struct SetDDGIDescriptors : RenderCommand
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("DDGIUniforms"_sh, uniformBuffers[frameIndex]);
+                ->SetElement("DDGIUniforms"_sh, cBuffers[frameIndex]);
 
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
                 ->SetElement("DDGIIrradianceTexture"_sh, irradianceImageView);
@@ -139,7 +140,8 @@ DDGI::DDGI(DDGIInfo&& gridInfo)
 
 DDGI::~DDGI()
 {
-    SafeDelete(std::move(m_uniformBuffers));
+    SafeDelete(std::move(m_cBuffers));
+    SafeDelete(std::move(m_lightsBuffers));
     SafeDelete(std::move(m_radianceBuffer));
     SafeDelete(std::move(m_irradianceImage));
     SafeDelete(std::move(m_irradianceImageView));
@@ -173,25 +175,30 @@ void DDGI::Create()
             }
         }
     }
-
+    
+    CreateConstantBuffers();
     CreateStorageBuffers();
-    CreateUniformBuffer();
 
     PUSH_RENDER_COMMAND(
         SetDDGIDescriptors,
-        m_uniformBuffers,
+        m_cBuffers,
         m_irradianceImageView,
         m_depthImageView);
 }
 
-void DDGI::CreateUniformBuffer()
+void DDGI::CreateConstantBuffers()
 {
     m_uniforms.flags = PROBE_SYSTEM_FLAGS_FIRST_RUN;
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms));
-        Assert(m_uniformBuffers[frameIndex]->Create());
+        m_cBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms));
+        Assert(m_cBuffers[frameIndex]->Create());
+        m_cBuffers[frameIndex]->Memset(sizeof(DDGIUniforms), 0);
+        
+        m_lightsBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
+        Assert(m_lightsBuffers[frameIndex]->Create());
+        m_lightsBuffers[frameIndex]->Memset(sizeof(LightShaderData) * MaxBoundLights, 0);
     }
 }
 
@@ -272,7 +279,8 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 
         descriptorSet->SetElement("TLAS"_sh, tlas);
         descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
-        descriptorSet->SetElement("DDGIUniforms"_sh, m_uniformBuffers[frameIndex]);
+        descriptorSet->SetElement("DDGIUniforms"_sh, m_cBuffers[frameIndex]);
+        descriptorSet->SetElement("Lights"_sh, m_lightsBuffers[frameIndex]);
         descriptorSet->SetElement("ProbeRayData"_sh, m_radianceBuffer);
         descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     };
@@ -291,7 +299,12 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
     }
 
     // Create raytracing pipeline
-    ShaderRef raytracingShader = g_shaderManager->GetOrCreate(NAME("DDGI"));
+    ShaderRef raytracingShader = g_shaderManager->GetOrCreate(
+        NAME("DDGI"),
+        ShaderProperties({
+            { NAME("MAX_LIGHTS"), int(MaxBoundLights) }
+        }));
+
     Assert(raytracingShader != nullptr);
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
@@ -338,7 +351,7 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
             const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet"_sh, frameIndex);
             Assert(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("DDGIUniforms"_sh, m_uniformBuffers[frameIndex]);
+            descriptorSet->SetElement("DDGIUniforms"_sh, m_cBuffers[frameIndex]);
             descriptorSet->SetElement("ProbeRayData"_sh, m_radianceBuffer);
 
             descriptorSet->SetElement("OutputIrradianceImage"_sh, m_irradianceImageView);
@@ -354,6 +367,8 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 
 void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
 {
+    const uint32 frameIndex = frame->GetFrameIndex();
+
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
@@ -371,8 +386,6 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     m_uniforms.numRaysPerProbe = m_gridInfo.numRaysPerProbe;
     m_uniforms.numBoundLights = 0;
 
-    const uint32 maxBoundLights = sizeof(m_uniforms.lightIndices) / (sizeof(uint32));
-
     uint32* lightIndicesU32 = reinterpret_cast<uint32*>(m_uniforms.lightIndices);
     Memory::MemSet(lightIndicesU32, 0, sizeof(m_uniforms.lightIndices));
 
@@ -385,15 +398,26 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
             continue;
         }
 
-        if (m_uniforms.numBoundLights >= maxBoundLights)
+        if (m_uniforms.numBoundLights >= MaxBoundLights)
         {
             break;
         }
+        
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+        Assert(lightProxy != nullptr);
+                
+
+        m_lightsBuffers[frameIndex]->Copy(
+            m_uniforms.numBoundLights * sizeof(LightShaderData),
+            sizeof(LightShaderData),
+            &lightProxy->bufferData);
 
         lightIndicesU32[m_uniforms.numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
     }
 
-    m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(DDGIUniforms), &m_uniforms);
+    m_cBuffers[frameIndex]->Copy(sizeof(DDGIUniforms), &m_uniforms);
+
+    m_lightsBuffers[frameIndex]->Flush(0, sizeof(LightShaderData) * m_uniforms.numBoundLights);
 
     m_uniforms.flags &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }

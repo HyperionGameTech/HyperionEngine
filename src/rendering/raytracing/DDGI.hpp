@@ -137,7 +137,7 @@ public:
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
-    void CreateUniformBuffer();
+    void CreateConstantBuffers();
     void CreateStorageBuffers();
 
     void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
@@ -155,7 +155,8 @@ private:
 
     RaytracingPipelineRef m_pipeline;
 
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_lightsBuffers;
     GpuBufferRef m_radianceBuffer;
 
     GpuImageRef m_irradianceImage;

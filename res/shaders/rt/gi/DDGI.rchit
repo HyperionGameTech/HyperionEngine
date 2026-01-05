@@ -81,14 +81,6 @@ HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, MaterialsBuffer) readonly buffer Material
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
-{
-    Light lights[];
-};
-
-#define HYP_GET_LIGHT(index) \
-    lights[ddgiUniforms.light_indices[(index / 4)][index % 4]]
-
 HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
 
 void main()
