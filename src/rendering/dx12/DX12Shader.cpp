@@ -35,4 +35,11 @@ RendererResult DX12Shader::Create()
     HYPERION_RETURN_OK;
 }
 
+#ifdef HYP_DEBUG_MODE
+void DX12Shader::SetDebugName(Name name)
+{
+    // @TODO
+}
+#endif
+
 } // namespace Hyperion

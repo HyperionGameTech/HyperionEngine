@@ -3,6 +3,9 @@
 #include <HyperionPch.hpp>
 
 #include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12CommandBuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
+#include <rendering/dx12/DX12Frame.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>

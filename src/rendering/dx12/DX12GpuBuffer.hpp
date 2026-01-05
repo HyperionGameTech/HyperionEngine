@@ -20,14 +20,26 @@ class DX12GpuBuffer final : public GpuBufferBase
 public:
     DX12GpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
     ~DX12GpuBuffer() override;
+    
+    RendererResult Create() override;
 
     bool IsCreated() const override;
     bool IsCpuAccessible() const override;
 
     void InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceState newState) const override;
     void InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceState newState, ShaderModuleType shaderType) const override;
+    
+    void CopyFrom(
+        DX12CommandBuffer* commandBuffer,
+        const DX12GpuBuffer* srcBuffer,
+        uint32 count) override;
 
-    RendererResult Create() override;
+    void CopyFrom(
+        DX12CommandBuffer* commandBuffer,
+        const DX12GpuBuffer* srcBuffer,
+        uint32 srcOffset, uint32 dstOffset,
+        uint32 count) override;
+
     RendererResult EnsureCapacity(
         SizeType minimumSize,
         bool* outSizeChanged = nullptr) override;

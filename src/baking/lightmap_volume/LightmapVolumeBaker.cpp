@@ -5,10 +5,20 @@
 #include <baking/lightmap_volume/LightmapVolumeBaker.hpp>
 #include <baking/lightmap_volume/LightmapVolumeBakeJob.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/Texture.hpp>
+#include <rendering/RenderCommand.hpp>
+#include <rendering/RenderBackend.hpp>
+#include <rendering/Frame.hpp>
+#include <rendering/RenderQueue.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/LightmapVolume.hpp>
@@ -20,10 +30,381 @@
 
 #include <core/threading/TaskThread.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 namespace Hyperion {
 namespace Baking {
 
 static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(~0u);
+
+static constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
+    TF_R11G11B10F, // Radiance
+    TF_R11G11B10F  // Irradiance
+};
+
+#pragma region Render commands
+
+struct BlitAtlasElements : RenderCommand
+{
+    Array<LightmapElement> lightmapElements;
+    Array<Handle<Texture>> atlasTextures;
+    HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>> elementTextures;
+
+    BlitAtlasElements(
+        const Array<LightmapElement>& lightmapElements,
+        Array<Handle<Texture>>&& atlasTextures,
+        HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
+        : lightmapElements(lightmapElements),
+          atlasTextures(std::move(atlasTextures)),
+          elementTextures(std::move(elementTextures))
+    {
+    }
+
+    virtual ~BlitAtlasElements() override
+    {
+        for (auto& it : elementTextures)
+        {
+            SafeDelete(std::move(it.second));
+        }
+
+        SafeDelete(std::move(atlasTextures));
+    }
+
+    virtual RendererResult operator()() override
+    {
+        AssertDebug(!elementTextures.Empty());
+
+        // Ensure the array of atlas textures are resized to the correct count
+        Assert(atlasTextures.Size() == uint32(LTT_MAX));
+
+        Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+        Assert(currentFrame != nullptr);
+
+        RenderQueue& renderQueue = currentFrame->postRenderQueue;
+
+        for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
+        {
+            if (!atlasTextures[textureTypeIndex])
+            {
+                AssertDebug(false, "No atlas texture for lightmap texture type {}", uint32(LightmapTextureType(textureTypeIndex)));
+
+                continue;
+            }
+
+            const Handle<Texture>& atlasTexture = atlasTextures[textureTypeIndex];
+            Assert(atlasTexture != nullptr && atlasTexture->GetGpuImage()->IsCreated());
+
+            for (auto& elementTexturesIt : elementTextures)
+            {
+                uint16 atlasIndex;
+                uint16 elementIndex;
+                LightmapElement::GetAtlasAndElementIndex(elementTexturesIt.first, atlasIndex, elementIndex);
+
+                /// \todo : Add assertion that atlasIndex == our current atlas index
+
+                Assert(elementIndex < lightmapElements.Size());
+
+                const LightmapElement& element = lightmapElements[elementIndex];
+                const Handle<Texture>& elementTexture = elementTexturesIt.second[textureTypeIndex];
+
+                if (!elementTexture)
+                {
+                    AssertDebug(false, "Missing element texture!");
+                    continue;
+                }
+
+                Assert(element.offsetCoords.x < atlasTexture->GetExtent().x);
+                Assert(element.offsetCoords.y < atlasTexture->GetExtent().y);
+                Assert(element.offsetCoords.x + element.dimensions.x <= atlasTexture->GetExtent().x);
+                Assert(element.offsetCoords.y + element.dimensions.y <= atlasTexture->GetExtent().y);
+
+                renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_COPY_DST);
+                renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_COPY_SRC);
+
+                renderQueue << Blit(
+                    elementTexture->GetGpuImage(),
+                    atlasTexture->GetGpuImage(),
+                    Rect<uint32> {
+                        0, 0,
+                        element.dimensions.x, element.dimensions.y },
+                    Rect<uint32> {
+                        element.offsetCoords.x, element.offsetCoords.y,
+                        element.offsetCoords.x + element.dimensions.x, element.offsetCoords.y + element.dimensions.y });
+
+                renderQueue << InsertBarrier(elementTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+                renderQueue << InsertBarrier(atlasTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+            }
+        }
+
+        // Add readback to update TextureData for the lightmap atlas texture
+        currentFrame->OnFrameEnd
+            .Bind([atlasTextures = atlasTextures](Frame* frame)
+                {
+                    for (uint32 textureTypeIndex = 0; textureTypeIndex < uint32(LTT_MAX); textureTypeIndex++)
+                    {
+                        if (!atlasTextures[textureTypeIndex])
+                        {
+                            continue;
+                        }
+
+                        const Handle<Texture>& atlasTexture = atlasTextures[textureTypeIndex];
+                        Assert(atlasTexture.IsValid() && atlasTexture->IsReady());
+
+                        atlasTexture->EnqueueReadback([atlasTextureWeak = atlasTexture.ToWeak()](ByteBuffer&& byteBuffer)
+                            {
+                                Handle<Texture> atlasTexture = atlasTextureWeak.Lock();
+                                if (!atlasTexture)
+                                {
+                                    return;
+                                }
+
+                                Handle<AssetPackage> package;
+
+                                const Handle<TextureAsset>& prevTextureAsset = atlasTexture->GetAsset();
+
+                                if (prevTextureAsset)
+                                {
+                                    package = prevTextureAsset->GetPackage();
+
+                                    if (package)
+                                    {
+                                        if (Result removeAssetResult = package->RemoveAssetObject(prevTextureAsset).Await(); removeAssetResult.HasError())
+                                        {
+                                            HYP_LOG(Lightmap, Error, "Failed to remove previous texture asset {} from package {}: {}",
+                                                prevTextureAsset->GetName(),
+                                                package->BuildPackagePath(),
+                                                removeAssetResult.GetError().GetMessage());
+                                        }
+                                    }
+                                }
+
+                                TextureDesc textureDesc = atlasTexture->GetTextureDesc();
+                                textureDesc.mipOffsets = { 0 };
+
+                                TextureData textureData { std::move(byteBuffer) };
+
+                                Handle<TextureAsset> newTextureAsset = CreateObject<TextureAsset>(
+                                    atlasTexture->GetName(),
+                                    textureDesc,
+                                    std::move(textureData));
+
+                                InitObject(newTextureAsset);
+
+                                if (package)
+                                {
+                                    if (Result result = package->AddAssetObject(newTextureAsset).Await(); result.HasError())
+                                    {
+                                        HYP_LOG(Lightmap, Error, "Failed to add texture asset '{}' to package {}: {}",
+                                            newTextureAsset->GetName(),
+                                            package->BuildPackagePath(),
+                                            result.GetError().GetMessage());
+
+                                        package.Reset();
+                                    }
+                                }
+
+                                if (!package)
+                                {
+                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset).Await(); result.HasError())
+                                    {
+                                        HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", newTextureAsset->GetName(), result.GetError().GetMessage());
+                                    }
+                                }
+
+                                atlasTexture->SetAsset(newTextureAsset);
+                            });
+                    }
+                })
+            .Detach();
+
+        return {};
+    }
+};
+
+#pragma endregion Render commands
+
+#pragma region LightmapVolume baking helpers
+
+static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapTextureType textureType)
+{
+    static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
+    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetUUID(), elementIndex, TextureTypeNames[uint32(textureType)]);
+}
+
+static void UpdateAtlasTextures(
+    LightmapVolume* lmv,
+    uint16 atlasIndex,
+    HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
+{
+    HYP_LOG(Lightmap, Debug, "Updating atlas textures for LightmapVolume {}", lmv->Id());
+
+    for (auto& it : elementTextures)
+    {
+        for (uint32 i = 0; i < uint32(LTT_MAX); i++)
+        {
+            AssertDebug(it.second[i] != nullptr, "Element texture for type {} is null!", uint32(LightmapTextureType(i)));
+
+            InitObject(it.second[i]);
+        }
+    }
+
+    Assert(atlasIndex < lmv->GetAtlases().Size());
+
+    LightmapVolumeAtlas& atlas = lmv->GetAtlases()[atlasIndex];
+
+    Handle<Texture> radianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapTextureType::LTT_RADIANCE);
+    if (!radianceTexture)
+    {
+        radianceTexture = CreateObject<Texture>(
+            TextureDesc {
+                TT_TEX2D,
+                AtlasTextureFormats[LTT_RADIANCE],
+                Vec3u { atlas.atlasDimensions, 1 },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE });
+
+        radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetUUID()));
+
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()).Await(); result.HasError())
+        {
+            HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", radianceTexture->GetName(), result.GetError().GetMessage());
+        }
+
+        InitObject(radianceTexture);
+
+        lmv->SetAtlasTexture(atlasIndex, LightmapTextureType::LTT_RADIANCE, radianceTexture);
+    }
+
+    Handle<Texture> irradianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapTextureType::LTT_IRRADIANCE);
+    if (!irradianceTexture)
+    {
+        irradianceTexture = CreateObject<Texture>(
+            TextureDesc {
+                TT_TEX2D,
+                AtlasTextureFormats[LTT_IRRADIANCE],
+                Vec3u { atlas.atlasDimensions, 1 },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE });
+
+        irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetUUID()));
+
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()).Await(); result.HasError())
+        {
+            HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
+        }
+
+        InitObject(irradianceTexture);
+
+        lmv->SetAtlasTexture(atlasIndex, LightmapTextureType::LTT_IRRADIANCE, irradianceTexture);
+    }
+
+    lmv->SetNeedsRenderProxyUpdate();
+
+    Array<Handle<Texture>> atlasTextures;
+    atlasTextures.Resize(uint32(LTT_MAX));
+    atlasTextures[LTT_IRRADIANCE] = irradianceTexture;
+    atlasTextures[LTT_RADIANCE] = radianceTexture;
+
+    PUSH_RENDER_COMMAND(
+        BlitAtlasElements,
+        atlas.elements,
+        std::move(atlasTextures),
+        std::move(elementTextures));
+}
+
+static bool BuildElementTextures(
+    LightmapVolume* lmv,
+    const BakeData<LightmapVolume>& bakeData,
+    LightmapElementId elementId)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    uint16 atlasIndex;
+    uint16 elementIndex;
+    LightmapElement::GetAtlasAndElementIndex(elementId, atlasIndex, elementIndex);
+
+    if (atlasIndex >= lmv->GetAtlases().Size())
+    {
+        return false;
+    }
+
+    if (elementIndex >= lmv->GetAtlases()[atlasIndex].elements.Size())
+    {
+        return false;
+    }
+
+    LightmapElement& element = lmv->GetAtlases()[atlasIndex].elements[elementIndex];
+
+    const Vec2u elementDimensions = element.dimensions;
+
+    FixedArray<typename Baking::BakeData<LightmapVolume>::BitmapType, uint32(LTT_MAX)> bitmaps = {
+        bakeData.ToBitmapRadiance(),  /* RADIANCE */
+        bakeData.ToBitmapIrradiance() /* IRRADIANCE */
+    };
+
+    FixedArray<Handle<Texture>, LTT_MAX> elementTextures;
+
+    static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
+
+    for (uint32 i = 0; i < uint32(LTT_MAX); i++)
+    {
+        Optional<typename Baking::BakeData<LightmapVolume>::BitmapType> tempBitmap;
+
+        typename Baking::BakeData<LightmapVolume>::BitmapType* pBitmap = &bitmaps[i];
+
+        if (elementDimensions.x != bitmaps[i].GetWidth() || elementDimensions.y != bitmaps[i].GetHeight())
+        {
+            typename Baking::BakeData<LightmapVolume>::BitmapType& rescaledBitmap = tempBitmap.Emplace(elementDimensions.x, elementDimensions.y);
+
+            Rect<uint32> srcRect {
+                0, 0,
+                pBitmap->GetWidth(),
+                pBitmap->GetHeight()
+            };
+
+            Rect<uint32> dstRect {
+                0, 0,
+                elementDimensions.x,
+                elementDimensions.y
+            };
+
+            rescaledBitmap.Blit(*pBitmap, srcRect, dstRect);
+
+            pBitmap = &rescaledBitmap;
+        }
+
+        Handle<Texture>& texture = elementTextures[i];
+
+        texture = CreateObject<Texture>(
+            TextureDesc {
+                TT_TEX2D,
+                pBitmap->GetFormat(),
+                Vec3u { elementDimensions, 1 },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE },
+            TextureData { ByteBuffer(pBitmap->ToByteView()) });
+
+        Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize(),
+            "Bitmap byte size {} does not match texture byte size {}",
+            pBitmap->GetByteSize(),
+            texture->GetTextureDesc().GetByteSize());
+
+        texture->SetName(GenerateElementTextureName(lmv, elementIndex, LightmapTextureType(i)));
+        InitObject(texture);
+    }
+
+    UpdateAtlasTextures(lmv, atlasIndex, { { elementId, std::move(elementTextures) } });
+
+    return true;
+}
+
+#pragma endregion LightmapVolume baking helpers
+
+#pragma region Baker<LightmapVolume>
 
 Baker<LightmapVolume>::Baker(LightmapperConfig&& config, const Handle<LightmapVolume>& volume)
     : BakerBase(std::move(config), volume, MakeStrongRef(volume->GetScene()), volume->GetWorldBounds()),
@@ -115,7 +496,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
     AssertDebug(m_lightmapElementId != InvalidLightmapElementId);
 
-    if (!m_volume->BuildElementTextures(m_bakeData, m_lightmapElementId))
+    if (!BuildElementTextures(m_volume, m_bakeData, m_lightmapElementId))
     {
         HYP_LOG(Lightmap, Error, "Failed to build LightmapElement textures for LightmapVolume, element id: {}", m_lightmapElementId);
         return;
@@ -260,6 +641,8 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         }
     }
 }
+
+#pragma endregion Baker<LightmapVolume>
 
 } // namespace Baking
 } // namespace Hyperion

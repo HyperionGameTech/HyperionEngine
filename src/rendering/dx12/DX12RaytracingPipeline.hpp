@@ -1,0 +1,39 @@
+/* Copyright (c) 2026 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
+
+namespace Hyperion {
+
+HYP_CLASS(NoScriptBindings)
+class DX12RaytracingPipeline final : public RaytracingPipelineBase
+{
+    HYP_OBJECT_BODY(DX12RaytracingPipeline);
+
+public:
+    DX12RaytracingPipeline();
+    DX12RaytracingPipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable);
+    ~DX12RaytracingPipeline() override;
+
+    bool IsCreated() const override;
+
+    RendererResult Create() override;
+
+    void Bind(CommandBuffer* commandBuffer) override;
+    void TraceRays(CommandBuffer* commandBuffer, const Vec3u& extent) const override;
+
+    void SetPushConstants(const void* data, SizeType size) override;
+
+#ifdef HYP_DEBUG_MODE
+    void SetDebugName(Name name) override;
+#endif
+};
+
+} // namespace Hyperion

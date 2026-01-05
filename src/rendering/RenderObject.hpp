@@ -61,14 +61,6 @@ namespace Hyperion {
                                               \
     using DX12##T##Ref = Handle<DX12##T>;    \
     using DX12##T##WeakRef = WeakHandle<DX12##T>;
-#else
-#define DECLARE_GFX_TYPE(T)             \
-    DECLARE_GFX_TYPE_BASE(T);           \
-                                        \
-    using T = T##Base;                  \
-    using T##Ref = T##BaseRef;          \
-    using T##WeakRef = T##BaseWeakRef;  \
-
 #endif
 
 /*! \brief Enqueues a render object to be created with the given args on the render thread, or creates it immediately if already on the render thread.

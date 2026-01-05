@@ -3,7 +3,11 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12Attachment.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
+#include <rendering/dx12/DX12GpuImageView.hpp>
 #include <rendering/dx12/DX12RenderBackend.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <DX12Attachment.generated.inl>
 

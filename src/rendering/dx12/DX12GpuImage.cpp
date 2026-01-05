@@ -151,6 +151,13 @@ void DX12GpuImage::CopyFromBuffer(
     // @TODO
 }
 
+void DX12GpuImage::CopyToBuffer(
+    CommandBuffer* commandBuffer,
+    GpuBuffer* dstBuffer) const
+{
+    // @TODO
+}
+
 DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const
 {
     // @TODO

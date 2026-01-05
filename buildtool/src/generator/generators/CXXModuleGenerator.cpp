@@ -146,6 +146,19 @@ Result CXXModuleGenerator::GenerateClassDeclHeader(const Analyzer& analyzer, Byt
     for (const ClassInfo& classInfo : allClasses)
     {
         const ClassDefinition& cls = *classInfo.definition;
+        
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
+        }
+
+        // add endif at end of scope if the class is conditionally defined
+        HYP_DEFER({
+            if (cls.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+            }
+        });
 
         Array<String> namespaceParts = cls.namespaceParts;
         namespaceParts.PopFront(); // remove 'Hyperion'
@@ -233,6 +246,19 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
                 namespaceParts.PopFront();
             }
         }
+        
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
+        }
+
+        // add endif at end of scope if the class is conditionally defined
+        HYP_DEFER({
+            if (cls.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+            }
+        });
 
         if (namespaceParts.Any())
         {
@@ -260,6 +286,19 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         {
             return HYP_MAKE_ERROR(Error, "Class '{}' is not in the '{}' namespace", cls.name, BaseNamespace);
         }
+        
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
+        }
+
+        // add endif at end of scope if the class is conditionally defined
+        HYP_DEFER({
+            if (cls.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+            }
+        });
 
         Array<String> namespaceParts = cls.namespaceParts;
         namespaceParts.PopFront(); // remove 'Hyperion'
@@ -377,6 +416,19 @@ Result CXXModuleGenerator::GenerateClassDeclImplementation(const Analyzer& analy
         {
             qualifiedName = cls.name;
         }
+        
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n", cls.condition));
+        }
+
+        // add endif at end of scope if the class is conditionally defined
+        HYP_DEFER({
+            if (cls.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+            }
+        });
 
         writer.WriteString(HYP_FORMAT("    static TClassStaticInit<{}> s_classInit{};\n", qualifiedName, cls.name));
     }
@@ -435,6 +487,20 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
         writer.WriteString("\n");
 
         // forward declare g_clsXXX
+
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n\n", cls.condition));
+        }
+
+        // add endif at end of scope if the class is conditionally defined
+        HYP_DEFER({
+            if (cls.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+            }
+        });
+
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
         writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));
@@ -788,6 +854,19 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         writer.WriteString("\n");
 
         // forward declare g_clsXXX
+        if (cls.condition.Any())
+        {
+            writer.WriteString(HYP_FORMAT("#if {}\n\n", cls.condition));
+        }
+
+        // add endif at end of scope if the class is conditionally defined
+        HYP_DEFER({
+            if (cls.condition.Any())
+            {
+                writer.WriteString(HYP_FORMAT("#endif // {}\n", cls.condition));
+            }
+        });
+
         writer.WriteString(HYP_FORMAT("namespace {}", BuildNamespaceString(cls.namespaceParts)) + " {\n");
         writer.WriteString(HYP_FORMAT("extern const Class* g_cls{};\n", cls.name));
         writer.WriteString("} " + HYP_FORMAT("// namespace {}\n\n", BuildNamespaceString(cls.namespaceParts)));

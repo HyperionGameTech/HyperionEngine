@@ -86,6 +86,10 @@ public:
         uint8 dstMipIndex = UINT8_MAX,
         uint16 dstArrayLayer = UINT16_MAX) const override;
 
+    void CopyToBuffer(
+        CommandBuffer* commandBuffer,
+        GpuBuffer* dstBuffer) const override;
+
     DX12GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
 #ifdef HYP_DEBUG_MODE

@@ -46,7 +46,7 @@ public:
         uint32 numIndices,
         const Handle<Material>& material);
 
-    virtual ~VulkanAccelerationGeometry() override;
+    ~VulkanAccelerationGeometry() override;
 
     HYP_FORCE_INLINE const VulkanGpuBufferRef& GetPackedVerticesBuffer() const
     {
@@ -220,18 +220,18 @@ public:
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform);
-    virtual ~VulkanGpuBlas() override;
+    ~VulkanGpuBlas() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void SetTransform(const Mat4f& transform) override
+    void SetTransform(const Mat4f& transform) override
     {
         VulkanAccelerationStructureBase::SetTransform(transform);
     }
 
-    virtual void SetMaterialBinding(uint32 materialBinding) override
+    void SetMaterialBinding(uint32 materialBinding) override
     {
         if (m_materialBinding == materialBinding)
         {
@@ -272,18 +272,18 @@ class VulkanGpuTlas final : public GpuTlasBase, public VulkanAccelerationStructu
 
 public:
     VulkanGpuTlas();
-    virtual ~VulkanGpuTlas() override;
+    ~VulkanGpuTlas() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual void AddGpuBlas(const VulkanGpuBlasRef& blas) override;
-    virtual void RemoveGpuBlas(const VulkanGpuBlasRef& blas) override;
-    virtual bool HasGpuBlas(const VulkanGpuBlasRef& blas) override;
+    void AddGpuBlas(const VulkanGpuBlasRef& blas) override;
+    void RemoveGpuBlas(const VulkanGpuBlasRef& blas) override;
+    bool HasGpuBlas(const VulkanGpuBlasRef& blas) override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    virtual RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) override;
+    RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override

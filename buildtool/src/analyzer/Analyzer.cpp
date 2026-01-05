@@ -495,6 +495,68 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
         classDefinition.attributes = parseMacroResult.GetValue().second;
         classDefinition.staticIndex = -1;
 
+        { // Set up condition for the class
+            // built in conditions:
+
+            const String pathSanitized = mod.GetPath().ToLower().ReplaceAll("\\", "/");
+
+            // for each path below, if it matches the module path, add the corresponding define(s) to the class condition
+            static const HashMap<String, String> s_builtinConditionalDefines = {
+                // platforms
+                { "platform/win32", "HYP_WINDOWS" },
+                { "platform/linux", "HYP_LINUX" },
+                { "platform/mac", "HYP_MAC" },
+                { "platform/ios", "HYP_IOS" },
+                { "platform/android", "HYP_ANDROID" },
+                // rendering backends
+                { "rendering/vulkan", "HYP_VULKAN" },
+                { "rendering/dx12", "HYP_DX12" },
+            };
+
+            for (const auto& [pathMatch, define] : s_builtinConditionalDefines)
+            {
+                if (pathSanitized.Contains(pathMatch))
+                {
+                    if (classDefinition.condition.Any())
+                    {
+                        classDefinition.condition = HYP_FORMAT("{} && {}", classDefinition.condition, define);
+                    }
+                    else
+                    {
+                        classDefinition.condition = define;
+                    }
+                }
+            }
+            
+            // check for `condition` attribute - if present, set condition and remove from attributes
+            auto conditionIt = classDefinition.attributes.FindIf([](const Pair<String, ClassAttributeValue>& pair)
+                {
+                    return pair.first.ToLower() == "condition";
+                });
+
+            if (conditionIt != classDefinition.attributes.End())
+            {
+                if (classDefinition.condition.Any())
+                {
+                    if (conditionIt->second.GetString().Contains("&&") || conditionIt->second.GetString().Contains("||"))
+                    {
+                        classDefinition.condition = HYP_FORMAT("{} && ({})", classDefinition.condition, conditionIt->second.GetString());
+                    }
+                    else
+                    {
+                        classDefinition.condition = HYP_FORMAT("{} && {}", classDefinition.condition, conditionIt->second.GetString());
+                    }
+                }
+                else
+                {
+                    classDefinition.condition = conditionIt->second.GetString();
+                }
+
+                classDefinition.attributes.Erase(conditionIt);
+            }
+
+        }
+
         const String contentToEnd = String::Join(lines.Slice(i, lines.Size()), '\n');
 
         const SizeType braceIndex = contentToEnd.FindFirstIndex("{");

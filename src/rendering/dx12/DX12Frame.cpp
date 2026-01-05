@@ -2,6 +2,7 @@
 
 #include <DX12Pch.hpp>
 
+#include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
 #include <rendering/dx12/DX12RenderBackend.hpp>
 

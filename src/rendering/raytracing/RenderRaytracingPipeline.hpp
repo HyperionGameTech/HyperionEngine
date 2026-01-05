@@ -80,6 +80,8 @@ protected:
 
 #if HYP_VULKAN
 #include <rendering/vulkan/rt/VulkanRaytracingPipeline.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12RaytracingPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE
