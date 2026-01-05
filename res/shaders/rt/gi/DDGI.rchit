@@ -32,9 +32,9 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIUniforms) uniform DDGIUniformBuffer
+HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIConstants) uniform CBuffer
 {
-    DDGIUniforms ddgiUniforms;
+    DDGIConstants ddgiConstants;
 };
 
 /* Shadows */

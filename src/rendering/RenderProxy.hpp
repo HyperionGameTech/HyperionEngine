@@ -397,4 +397,29 @@ public:
     Frustum viewFrustum;
 };
 
+struct ProbeRayData
+{
+    Vec4f directionDepth;
+    Vec4f origin;
+    Vec4f normal;
+    Vec4f color;
+};
+
+struct alignas(16) DDGIConstants
+{
+    Vec4f aabbMax;
+    Vec4f aabbMin;
+    Vec4u probeBorder;
+    Vec4u probeCounts;
+    Vec4u gridDimensions;
+    Vec4u imageDimensions;
+
+    float probeDistance;
+    uint32 numRaysPerProbe;
+    uint32 numBoundLights;
+    uint32 flags;
+
+    Vec4u lightIndices[4];
+};
+
 } // namespace Hyperion

@@ -17,7 +17,7 @@ vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
     
     for (int i = 0; i < 8; i++) {
         ivec3 offset = ivec3(i, i >> 1, i >> 2) & ivec3(1);
-        ivec3 probe_grid_coord = clamp(base_grid_coord + offset, ivec3(0), ivec3(ddgiUniforms.probe_counts.xyz) - ivec3(1));
+        ivec3 probe_grid_coord = clamp(base_grid_coord + offset, ivec3(0), ivec3(ddgiConstants.probe_counts.xyz) - ivec3(1));
         
         int probe_index = GridPositionToProbeIndex(probe_grid_coord);
         vec3 probe_position = GridPositionToWorldPosition(probe_grid_coord);
@@ -33,7 +33,7 @@ vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
         weight *= HYP_FMATH_SQR(max(0.0001, (dot(true_direction_to_probe, N) + 1.0) * 0.5)) + 0.2;
         
         /* Visibility test */
-        vec2 depth_texcoord = TextureCoordFromDirection(-dir, probe_index, ddgiUniforms.probe_counts.xyz, ddgiUniforms.image_dimensions.zw, PROBE_SIDE_LENGTH_DEPTH);
+        vec2 depth_texcoord = TextureCoordFromDirection(-dir, probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.zw, PROBE_SIDE_LENGTH_DEPTH);
         float distance_to_probe = length(probe_to_point);
 
         vec2 depth_sample = Texture2DLod(gbuffer_sampler, probe_depth, depth_texcoord, 0.0).rg;
@@ -47,7 +47,7 @@ vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
         weight = max(0.0001, weight);
 
         vec3 irradiance_dir = N;
-        vec2 irradiance_texcoord = TextureCoordFromDirection(normalize(irradiance_dir), probe_index, ddgiUniforms.probe_counts.xyz, ddgiUniforms.image_dimensions.xy, PROBE_SIDE_LENGTH_IRRADIANCE);
+        vec2 irradiance_texcoord = TextureCoordFromDirection(normalize(irradiance_dir), probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.xy, PROBE_SIDE_LENGTH_IRRADIANCE);
         vec3 irradiance = Texture2DLod(gbuffer_sampler, probe_irradiance, irradiance_texcoord, 0.0).rgb;
     
         const float crush_threshold = 0.2;

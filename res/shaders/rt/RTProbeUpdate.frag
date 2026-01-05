@@ -6,26 +6,27 @@
 #define CACHE_SIZE 64
 #define EPS 0.00001
 #define ENERGY_CONSERVATION 0.95
-#define MAX_DISTANCE (ddgiUniforms.probe_distance * 1.5)
+#define MAX_DISTANCE (ddgiConstants.probe_distance * 1.5)
 
 #if DEPTH
     #define PROBE_SIDE_LENGTH PROBE_SIDE_LENGTH_DEPTH
     #define OUTPUT_IMAGE output_depth
-    #define OUTPUT_IMAGE_DIMENSIONS (ddgiUniforms.image_dimensions.zw)
+    #define OUTPUT_IMAGE_DIMENSIONS (ddgiConstants.image_dimensions.zw)
 #else
     #define PROBE_SIDE_LENGTH PROBE_SIDE_LENGTH_IRRADIANCE
     #define OUTPUT_IMAGE output_irradiance
-    #define OUTPUT_IMAGE_DIMENSIONS (ddgiUniforms.image_dimensions.xy)
+    #define OUTPUT_IMAGE_DIMENSIONS (ddgiConstants.image_dimensions.xy)
 #endif
 
 #define GROUP_SIZE PROBE_SIDE_LENGTH
 
-#define PROBE_SIDE_LENGTH_BORDER (PROBE_SIDE_LENGTH + ddgiUniforms.probe_border.x)
+#define PROBE_SIDE_LENGTH_BORDER (PROBE_SIDE_LENGTH + ddgiConstants.probe_border.x)
 
 shared ProbeRayData ray_cache[CACHE_SIZE];
 
-layout(std140, set = 0, binding = 9) uniform ProbeSystem {
-    DDGIUniforms ddgiUniforms;
+layout(std140, set = 0, binding = 9) uniform DDGIConstantsBuffer
+{
+    DDGIConstants ddgiConstants;
 };
 
 layout(std140, set = 0, binding = 10) buffer ProbeRayDataBuffer {
@@ -114,7 +115,7 @@ void main()
     vec3 result = vec3(0.0);
     float total_weight = 0.0;
 
-    uint remaining_rays = ddgiUniforms.num_rays_per_probe;
+    uint remaining_rays = ddgiConstants.num_rays_per_probe;
     uint offset = 0;
 
     while (remaining_rays != 0) {
