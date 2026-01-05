@@ -60,22 +60,22 @@ public:
 
     void SetRenderPass(const VulkanRenderPassRef& renderPass);
 
-    virtual bool IsCreated() const override
+    bool IsCreated() const override
     {
         return VulkanPipelineBase::IsCreated();
     }
 
-    virtual void Bind(VulkanCommandBuffer* cmd) override;
-    virtual void Bind(VulkanCommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
+    void Bind(VulkanCommandBuffer* cmd) override;
+    void Bind(VulkanCommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-    virtual void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, SizeType size) override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
 
 private:
-    virtual RendererResult Rebuild() override;
+    RendererResult Rebuild() override;
 
     void BuildVertexAttributes(
         const VertexAttributeSet& attributeSet,

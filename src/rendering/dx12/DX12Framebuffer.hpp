@@ -21,29 +21,29 @@ class DX12Framebuffer final : public FramebufferBase
 
 public:
     DX12Framebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1);
-    virtual ~DX12Framebuffer() override;
+    ~DX12Framebuffer() override;
 
-    virtual bool IsCreated() const override;
-    virtual RendererResult Create() override;
-    virtual RendererResult Resize(Vec2u newSize) override;
+    bool IsCreated() const override;
+    RendererResult Create() override;
+    RendererResult Resize(Vec2u newSize) override;
 
-    virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) override;
-    virtual AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
-    virtual AttachmentRef AddAttachment(
+    AttachmentRef AddAttachment(const AttachmentRef& attachment) override;
+    AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+    AttachmentRef AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,
         LoadOperation loadOp,
         StoreOperation storeOp) override;
 
-    virtual bool RemoveAttachment(uint32 binding) override;
-    virtual AttachmentBase* GetAttachment(uint32 binding) const override;
-    virtual int NumAttachments() const override;
+    bool RemoveAttachment(uint32 binding) override;
+    AttachmentBase* GetAttachment(uint32 binding) const override;
+    int NumAttachments() const override;
 
-    virtual void BeginCapture(CommandBuffer* commandBuffer) override;
-    virtual void EndCapture(CommandBuffer* commandBuffer) override;
+    void BeginCapture(CommandBuffer* commandBuffer) override;
+    void EndCapture(CommandBuffer* commandBuffer) override;
 
-    virtual void Clear(CommandBuffer* commandBuffer) override;
+    void Clear(CommandBuffer* commandBuffer) override;
 };
 
 } // namespace Hyperion

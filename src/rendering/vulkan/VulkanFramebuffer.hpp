@@ -141,7 +141,7 @@ public:
         RenderTargetType renderTargetType = RTT_SHADER_RESOURCE,
         uint32 numMultiviewLayers = 0);
 
-    virtual ~VulkanFramebuffer() override;
+    ~VulkanFramebuffer() override;
 
     HYP_FORCE_INLINE const VkFramebuffer& GetVulkanHandle() const
     {
@@ -153,21 +153,21 @@ public:
         return m_renderPass;
     }
 
-    virtual VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment) override;
-    virtual VulkanAttachmentRef AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+    VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment) override;
+    VulkanAttachmentRef AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
 
-    virtual VulkanAttachmentRef AddAttachment(
+    VulkanAttachmentRef AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,
         LoadOperation loadOp,
         StoreOperation storeOp) override;
 
-    virtual bool RemoveAttachment(uint32 binding) override;
+    bool RemoveAttachment(uint32 binding) override;
 
-    virtual VulkanAttachment* GetAttachment(uint32 binding) const override;
+    VulkanAttachment* GetAttachment(uint32 binding) const override;
 
-    virtual int NumAttachments() const override
+    int NumAttachments() const override
     {
         return int(m_attachmentMap.Size());
     }
@@ -177,16 +177,16 @@ public:
         return m_attachmentMap;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual RendererResult Resize(Vec2u newSize) override;
+    RendererResult Resize(Vec2u newSize) override;
 
-    virtual void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
-    virtual void EndCapture(VulkanCommandBuffer* commandBuffer) override;
+    void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
+    void EndCapture(VulkanCommandBuffer* commandBuffer) override;
 
-    virtual void Clear(VulkanCommandBuffer* commandBuffer) override;
+    void Clear(VulkanCommandBuffer* commandBuffer) override;
 
 private:
     VkFramebuffer m_handle;

@@ -22,23 +22,23 @@ class DX12GraphicsPipeline final : public GraphicsPipelineBase
 public:
     DX12GraphicsPipeline();
     explicit DX12GraphicsPipeline(const DX12ShaderRef& shader);
-    virtual ~DX12GraphicsPipeline() override;
+    ~DX12GraphicsPipeline() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void Bind(CommandBuffer* cmd) override;
-    virtual void Bind(CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
+    void Bind(CommandBuffer* cmd) override;
+    void Bind(CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-    virtual void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, SizeType size) override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
 
 private:
-    virtual RendererResult Rebuild() override;
+    RendererResult Rebuild() override;
 };
 
 } // namespace Hyperion

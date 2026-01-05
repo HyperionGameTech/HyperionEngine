@@ -854,6 +854,8 @@ void Init()
     g_renderBackend = new VulkanRenderBackend();
 #elif HYP_DX12
     g_renderBackend = new DX12RenderBackend();
+#else
+    HYP_FAIL("Not compiled with any rendering backend - cannot initialize renderer!");
 #endif
 
     for (ResourceBinderBase* resourceBinder : s_resourceBinders)

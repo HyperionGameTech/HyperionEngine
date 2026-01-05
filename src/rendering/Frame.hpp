@@ -48,7 +48,7 @@ public:
     RenderQueue postRenderQueue;
 
 protected:
-    FrameBase(uint32 frameIndex)
+    explicit FrameBase(uint32 frameIndex)
         : m_frameIndex(frameIndex)
     {
     }

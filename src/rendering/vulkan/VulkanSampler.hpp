@@ -25,16 +25,16 @@ public:
         TextureFilterMode magFilterMode = TFM_NEAREST,
         TextureWrapMode wrapMode = TWM_CLAMP_TO_EDGE);
 
-    virtual ~VulkanSampler() override;
+    ~VulkanSampler() override;
 
     HYP_FORCE_INLINE VkSampler GetVulkanHandle() const
     {
         return m_handle;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

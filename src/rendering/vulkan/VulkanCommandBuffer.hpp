@@ -63,7 +63,7 @@ public:
     friend class VulkanDescriptorSet;
 
     explicit VulkanCommandBuffer(VkCommandBufferLevel type);
-    virtual ~VulkanCommandBuffer() override;
+    ~VulkanCommandBuffer() override;
 
     HYP_FORCE_INLINE VkCommandBuffer GetVulkanHandle() const
     {
@@ -85,9 +85,9 @@ public:
         return m_isInRenderPass;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
     RendererResult Create(VkCommandPool commandPool);
 
     RendererResult Begin(const VulkanRenderPass* renderPass = nullptr);
@@ -101,15 +101,15 @@ public:
 
     RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 
-    virtual void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
-    virtual void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
+    void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
+    void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
 
-    virtual void DrawIndexed(
+    void DrawIndexed(
         uint32 numIndices,
         uint32 numInstances = 1,
         uint32 instanceIndex = 0) const override;
 
-    virtual void DrawIndexedIndirect(
+    void DrawIndexedIndirect(
         const VulkanGpuBuffer* buffer,
         uint32 bufferOffset) const override;
 

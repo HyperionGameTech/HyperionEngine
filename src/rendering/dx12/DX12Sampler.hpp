@@ -23,11 +23,11 @@ public:
         TextureFilterMode magFilterMode = TFM_NEAREST,
         TextureWrapMode wrapMode = TWM_CLAMP_TO_EDGE);
 
-    virtual ~DX12Sampler() override;
+    ~DX12Sampler() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

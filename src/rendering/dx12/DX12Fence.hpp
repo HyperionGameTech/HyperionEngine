@@ -13,7 +13,7 @@ class DX12Fence final : public ObjectBase
 
 public:
     DX12Fence();
-    virtual ~DX12Fence() override;
+    ~DX12Fence() override;
 
     RendererResult Create();
     RendererResult Wait(bool timeoutLoop = false);

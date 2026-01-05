@@ -25,11 +25,11 @@ public:
         LoadOperation loadOperation = LoadOperation::CLEAR,
         StoreOperation storeOperation = StoreOperation::STORE,
         BlendFunction blendFunction = BlendFunction::None());
-    virtual ~DX12Attachment() override;
+    ~DX12Attachment() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
 private:
     RenderTargetType m_renderTargetType;

@@ -64,7 +64,7 @@ public:
     VulkanDevice(VulkanDevice&&) noexcept = delete;
     VulkanDevice& operator=(VulkanDevice&&) noexcept = delete;
 
-    virtual ~VulkanDevice() override;
+    ~VulkanDevice() override;
 
     void SetRenderSurface(const VkSurfaceKHR& surface);
     void SetWantedExtensions(const ExtensionMap& extensions);

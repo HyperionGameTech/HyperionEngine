@@ -57,7 +57,7 @@ class VulkanRenderPass final : public ObjectBase
 public:
     VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode);
     VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, uint32 numMultiviewLayers);
-    virtual ~VulkanRenderPass() override;
+    ~VulkanRenderPass() override;
 
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
     {

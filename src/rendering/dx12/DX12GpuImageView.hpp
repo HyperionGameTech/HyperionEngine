@@ -28,10 +28,10 @@ public:
         uint32 layerIndex,
         uint32 numLayers);
 
-    virtual ~DX12GpuImageView() override;
+    ~DX12GpuImageView() override;
 
-    virtual bool IsCreated() const override;
-    virtual RendererResult Create() override;
+    bool IsCreated() const override;
+    RendererResult Create() override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

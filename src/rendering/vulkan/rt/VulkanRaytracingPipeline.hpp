@@ -30,22 +30,22 @@ class VulkanRaytracingPipeline final : public RaytracingPipelineBase, public Vul
 public:
     VulkanRaytracingPipeline();
     VulkanRaytracingPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
-    virtual ~VulkanRaytracingPipeline() override;
+    ~VulkanRaytracingPipeline() override;
 
-    virtual bool IsCreated() const override
+    bool IsCreated() const override
     {
         return VulkanPipelineBase::IsCreated();
     }
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void Bind(VulkanCommandBuffer* commandBuffer) override;
-    virtual void TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer) override;
+    void TraceRays(VulkanCommandBuffer* commandBuffer, const Vec3u& extent) const override;
 
-    virtual void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, SizeType size) override;
 
 #ifdef HYP_DEBUG_MODE
-    virtual void SetDebugName(Name name) override
+    void SetDebugName(Name name) override
     {
         VulkanPipelineBase::SetDebugName(name);
         m_debugName = name;

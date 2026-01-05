@@ -34,7 +34,7 @@ public:
         LoadOperation loadOperation = LoadOperation::CLEAR,
         StoreOperation storeOperation = StoreOperation::STORE,
         BlendFunction blendFunction = BlendFunction::None());
-    virtual ~VulkanAttachment() override;
+    ~VulkanAttachment() override;
 
     HYP_FORCE_INLINE const VkAttachmentReference& GetVulkanHandle() const
     {
@@ -51,9 +51,9 @@ public:
         return m_renderTargetType;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
 private:
     RenderTargetType m_renderTargetType;

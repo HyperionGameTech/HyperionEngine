@@ -84,14 +84,14 @@ class IDummyVulkanSurfaceContext
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    virtual ~IDummyVulkanSurfaceContext() = default;
+    ~IDummyVulkanSurfaceContext() = default;
 };
 
 class VulkanRenderBackend final : public IRenderBackend
 {
 public:
     VulkanRenderBackend();
-    virtual ~VulkanRenderBackend() override;
+    ~VulkanRenderBackend() override;
 
     HYP_FORCE_INLINE VulkanInstance* GetInstance() const
     {
@@ -100,81 +100,81 @@ public:
 
     const VulkanDeviceRef& GetDevice() const;
 
-    virtual RendererResult Initialize() override;
-    virtual RendererResult Destroy() override;
+    RendererResult Initialize() override;
+    RendererResult Destroy() override;
 
-    virtual const IRenderConfig& GetRenderConfig() const override;
+    const IRenderConfig& GetRenderConfig() const override;
 
-    virtual AsyncComputeBase* GetAsyncCompute() const override;
+    AsyncComputeBase* GetAsyncCompute() const override;
 
-    virtual VulkanFrame* GetCurrentFrame() const override;
+    VulkanFrame* GetCurrentFrame() const override;
 
-    virtual VulkanFrame* PrepareNextFrame() override;
+    VulkanFrame* PrepareNextFrame() override;
 
-    virtual void PrepareSwapchain(VulkanSwapchain* swapchain) override;
-    virtual void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;
-    virtual void PresentToSwapchain(VulkanSwapchain* swapchain) override;
+    void PrepareSwapchain(VulkanSwapchain* swapchain) override;
+    void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;
+    void PresentToSwapchain(VulkanSwapchain* swapchain) override;
 
-    virtual VulkanCommandBuffer* GetCurrentCommandBuffer() const override;
+    VulkanCommandBuffer* GetCurrentCommandBuffer() const override;
 
-    virtual VulkanDescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
+    VulkanDescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
-    virtual VulkanDescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
+    VulkanDescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
 
-    virtual VulkanGraphicsPipelineRef MakeGraphicsPipeline(
+    VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderRef& shader,
         Span<const VulkanFramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes) override;
 
-    virtual VulkanComputePipelineRef MakeComputePipeline(
+    VulkanComputePipelineRef MakeComputePipeline(
         const VulkanShaderRef& shader,
         const VulkanDescriptorTableRef& descriptorTable) override;
 
-    virtual VulkanRaytracingPipelineRef MakeRaytracingPipeline(
+    VulkanRaytracingPipelineRef MakeRaytracingPipeline(
         const VulkanShaderRef& shader,
         const VulkanDescriptorTableRef& descriptorTable) override;
 
-    virtual VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
+    VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
 
-    virtual VulkanGpuImageRef MakeImage(const TextureDesc& textureDesc) override;
+    VulkanGpuImageRef MakeImage(const TextureDesc& textureDesc) override;
 
-    virtual VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image) override;
-    virtual VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) override;
+    VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image) override;
+    VulkanGpuImageViewRef MakeImageView(const VulkanGpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) override;
 
-    virtual VulkanSamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
+    VulkanSamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
 
-    virtual VulkanFramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) override;
-    virtual VulkanFramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) override;
+    VulkanFramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) override;
+    VulkanFramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) override;
 
-    virtual VulkanFrameRef MakeFrame(uint32 frameIndex) override;
+    VulkanFrameRef MakeFrame(uint32 frameIndex) override;
 
-    virtual VulkanShaderRef MakeShader(const RC<CompiledShader>& compiledShader) override;
+    VulkanShaderRef MakeShader(const RC<CompiledShader>& compiledShader) override;
 
-    virtual VulkanGpuBlasRef MakeGpuBlas(
+    VulkanGpuBlasRef MakeGpuBlas(
         const VulkanGpuBufferRef& packedVerticesBuffer,
         const VulkanGpuBufferRef& packedIndicesBuffer,
         uint32 numVertices,
         uint32 numIndices,
         const Handle<Material>& material,
         const Mat4f& transform) override;
-    virtual VulkanGpuTlasRef MakeTLAS() override;
+    VulkanGpuTlasRef MakeTLAS() override;
 
-    virtual const VulkanGpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) override;
+    const VulkanGpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) override;
 
-    virtual void PopulateIndirectDrawCommandsBuffer(const VulkanGpuBufferRef& vertexBuffer, const VulkanGpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
+    void PopulateIndirectDrawCommandsBuffer(const VulkanGpuBufferRef& vertexBuffer, const VulkanGpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
 
-    virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
+    TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
 
-    virtual bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
-    virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
+    bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
+    TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
 
-    virtual QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc& textureDesc) const override;
+    QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc& textureDesc) const override;
 
-    virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
+    UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 
-    virtual void ReleaseTransientMemory() override;
+    void ReleaseTransientMemory() override;
 
-    virtual void NextFrame() override
+    void NextFrame() override
     {
         m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
     }

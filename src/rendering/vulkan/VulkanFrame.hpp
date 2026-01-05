@@ -27,17 +27,17 @@ class VulkanFrame final : public FrameBase
     HYP_OBJECT_BODY(VulkanFrame);
 
 public:
-    explicit VulkanFrame();
+    VulkanFrame();
     explicit VulkanFrame(uint32 frameIndex);
-    virtual ~VulkanFrame() override;
+    ~VulkanFrame() override;
 
-    virtual bool IsCreated() const override
+    bool IsCreated() const override
     {
         return m_queueSubmitFence.IsValid();
     }
 
-    virtual RendererResult Create() override;
-    virtual RendererResult ResetFrameState() override;
+    RendererResult Create() override;
+    RendererResult ResetFrameState() override;
 
     HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
     {

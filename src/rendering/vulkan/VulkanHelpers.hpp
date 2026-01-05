@@ -32,9 +32,9 @@ class VulkanSingleTimeCommands final : public SingleTimeCommands
 public:
     VulkanSingleTimeCommands() = default;
 
-    virtual ~VulkanSingleTimeCommands() override = default;
+    ~VulkanSingleTimeCommands() override = default;
 
-    virtual RendererResult Execute() override;
+    RendererResult Execute() override;
 };
 
 template <class T>

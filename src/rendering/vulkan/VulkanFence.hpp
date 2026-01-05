@@ -15,7 +15,7 @@ class VulkanFence final : public ObjectBase
 
 public:
     VulkanFence();
-    virtual ~VulkanFence() override;
+    ~VulkanFence() override;
 
     HYP_FORCE_INLINE VkFence GetVulkanHandle() const
     {

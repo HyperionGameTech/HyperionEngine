@@ -21,9 +21,9 @@ class VulkanAsyncCompute final : public AsyncComputeBase
 {
 public:
     VulkanAsyncCompute();
-    virtual ~VulkanAsyncCompute() override;
+    ~VulkanAsyncCompute() override;
 
-    virtual bool IsSupported() const override
+    bool IsSupported() const override
     {
         return m_isSupported;
     }

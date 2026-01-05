@@ -21,12 +21,12 @@ class DX12Frame final : public FrameBase
 
 public:
     DX12Frame();
-    DX12Frame(uint32 frameIndex);
-    virtual ~DX12Frame() override;
+    explicit DX12Frame(uint32 frameIndex);
+    ~DX12Frame() override;
 
-    virtual bool IsCreated() const override;
-    virtual RendererResult Create() override;
-    virtual RendererResult ResetFrameState() override;
+    bool IsCreated() const override;
+    RendererResult Create() override;
+    RendererResult ResetFrameState() override;
 };
 
 } // namespace Hyperion

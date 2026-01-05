@@ -19,13 +19,13 @@ class DX12Swapchain final : public SwapchainBase
 
 public:
     DX12Swapchain(const Vec2u& extent);
-    virtual ~DX12Swapchain() override;
+    ~DX12Swapchain() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
-    virtual void SetExtent(Vec2u newExtent) override;
-    virtual void Recreate() override;
+    RendererResult Create() override;
+    void SetExtent(Vec2u newExtent) override;
+    void Recreate() override;
 };
 
 } // namespace Hyperion

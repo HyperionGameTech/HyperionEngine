@@ -20,24 +20,24 @@ class DX12ComputePipeline final : public ComputePipelineBase
 public:
     DX12ComputePipeline();
     DX12ComputePipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable);
-    virtual ~DX12ComputePipeline() override;
+    ~DX12ComputePipeline() override;
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void Bind(CommandBuffer* commandBuffer) override;
+    void Bind(CommandBuffer* commandBuffer) override;
 
-    virtual void Dispatch(CommandBuffer* commandBuffer, const Vec3u& groupSize) const override;
-    virtual void DispatchIndirect(
+    void Dispatch(CommandBuffer* commandBuffer, const Vec3u& groupSize) const override;
+    void DispatchIndirect(
         CommandBuffer* commandBuffer,
         const DX12GpuBufferRef& indirectBuffer,
         SizeType offset = 0) const override;
 
-    virtual void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, SizeType size) override;
 
 #ifdef HYP_DEBUG_MODE
-    virtual void SetDebugName(Name name) override;
+    void SetDebugName(Name name) override;
 #endif
 };
 
