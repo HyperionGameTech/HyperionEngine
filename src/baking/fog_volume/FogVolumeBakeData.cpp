@@ -21,9 +21,9 @@ static void GenerateNoiseBitmap(typename BakeData<FogVolume>::NoiseBitmap& noise
         FogVolumeNoiseCombinator()
         {
             Use<SimplexNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, 0.2f, 0.0f, Vec3f(20.0f));
-            Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.3f, 0.0f, Vec3f(60.0f));
-            Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(150.0f));
-            Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.3f, 0.0f, Vec3f(300.0f));
+            Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::ADDITIVE, 0.3f, 0.0f, Vec3f(40.0f));
+            Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, 0.4f, 0.0f, Vec3f(80.0f));
+            Use<WorleyNoiseGenerator>(3, NoiseCombinator::Mode::SUBTRACTIVE, 0.1f, 0.0f, Vec3f(80.0f));
         }
     };
 

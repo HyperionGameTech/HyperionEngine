@@ -237,7 +237,7 @@ protected:
         Texture* volumeTexture = nullptr;
         Texture* noiseTexture = nullptr;
         DescriptorTableRef descriptorTable;
-        GpuBufferRef uniformBuffer;
+        GpuBufferRef cBuffer;
         GraphicsPipelineCacheHandle graphicsPipeline;
     };
 
