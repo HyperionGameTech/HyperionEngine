@@ -111,6 +111,8 @@ public:
 
     VulkanFrame* PrepareNextFrame() override;
 
+    VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window);
+    
     void PrepareSwapchain(VulkanSwapchain* swapchain) override;
     void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;
     void PresentToSwapchain(VulkanSwapchain* swapchain) override;
@@ -183,8 +185,6 @@ public:
     HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool);
 
     HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VkDescriptorSetLayout& out);
-
-    VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window, VulkanInstance* instance, VkSurfaceKHR surface);
 
     /*! \brief Create a VkSurfaceKHR for the given window - Window can be null to create a headless surface */
     VkSurfaceKHR CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext = nullptr);

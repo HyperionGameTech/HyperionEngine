@@ -168,10 +168,11 @@ void ApplicationWindow::CreateSwapchain()
 
     m_vkSurface = g_renderBackend->CreateSurface(this, nullptr);
     Assert(m_vkSurface != VK_NULL_HANDLE);
+#endif
 
     if (IsOnThread(g_renderThread)) // if -RenderOnMainThread is set this will be the case
     {
-        VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+        SwapchainRef swapchain = g_renderBackend->CreateSwapchain(this);
         Assert(swapchain.IsValid());
 
         m_swapchain = swapchain;
@@ -187,16 +188,13 @@ void ApplicationWindow::CreateSwapchain()
                     return;
                 }
 
-                VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+                SwapchainRef swapchain = g_renderBackend->CreateSwapchain(this);
                 Assert(swapchain.IsValid());
 
                 m_swapchain = swapchain;
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
-#else
-    HYP_NOT_IMPLEMENTED();
-#endif
 }
 
 #pragma endregion ApplicationWindow

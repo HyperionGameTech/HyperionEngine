@@ -1,6 +1,6 @@
 /* Copyright (c) 2026 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12RenderBackend.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
@@ -11,6 +11,8 @@
 #include <rendering/RenderConfig.hpp>
 
 #include <core/logging/Logger.hpp>
+
+#include <dxgi1_6.h>
 
 namespace Hyperion {
 
@@ -70,7 +72,79 @@ RendererResult DX12RenderBackend::Initialize()
 {
     HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend...");
 
-    // @TODO: Initialize DX12 device, command queues, etc.
+    uint32 createFactoryFlags = 0;
+
+#ifdef HYP_DEBUG_MODE
+    createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+    HRESULT res = CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory));
+    if (!SUCCEEDED(res))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create DXGI Factory", res);
+    }
+
+    ComPtr<IDXGIFactory6> factory6;
+
+    if (SUCCEEDED(m_dxgiFactory.As(&factory6)))
+    {
+        for (UINT i = 0;
+             SUCCEEDED(factory6->EnumAdapterByGpuPreference(
+                 i,
+                 DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                 IID_PPV_ARGS(&m_hardwareAdapter)));
+             ++i) 
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            m_hardwareAdapter->GetDesc1(&desc);
+        
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+                continue;
+
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr))) 
+            {
+                break;
+            }
+        }
+    } 
+    else
+    {
+        for (UINT i = 0; SUCCEEDED(m_dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i) 
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            m_hardwareAdapter->GetDesc1(&desc);
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+                continue;
+        
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr))) 
+            {
+                break;
+            }
+        }
+    }
+
+    // create device
+    res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
+    if (!SUCCEEDED(res))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
+    }
+
+    // create queues
+    D3D12_COMMAND_QUEUE_DESC directDesc = {};
+    directDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    directDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+    m_device->CreateCommandQueue(&directDesc, IID_PPV_ARGS(&m_directQueue));
+
+    D3D12_COMMAND_QUEUE_DESC computeDesc = {};
+    computeDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+    computeDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+    m_device->CreateCommandQueue(&computeDesc, IID_PPV_ARGS(&m_computeQueue));
+
+    D3D12_COMMAND_QUEUE_DESC copyDesc = {};
+    copyDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+    m_device->CreateCommandQueue(&copyDesc, IID_PPV_ARGS(&m_copyQueue));
 
     HYPERION_RETURN_OK;
 }
@@ -79,7 +153,12 @@ RendererResult DX12RenderBackend::Destroy()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
 
-    // @TODO: Cleanup DX12 resources
+    m_directQueue.Reset();
+    m_computeQueue.Reset();
+    m_copyQueue.Reset();
+    m_device.Reset();
+    m_dxgiFactory.Reset();
+    m_hardwareAdapter.Reset();
 
     HYPERION_RETURN_OK;
 }
@@ -104,6 +183,14 @@ DX12Frame* DX12RenderBackend::PrepareNextFrame()
 {
     // @TODO: Implement frame preparation for DX12
     return GetCurrentFrame();
+}
+
+DX12SwapchainRef DX12RenderBackend::CreateSwapchain(ApplicationWindow* window)
+{
+    Assert(window != nullptr);
+    
+    // @TODO
+    return DX12SwapchainRef();
 }
 
 void DX12RenderBackend::PrepareSwapchain(DX12Swapchain* swapchain)

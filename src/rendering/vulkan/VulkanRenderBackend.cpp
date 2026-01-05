@@ -879,6 +879,24 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
     return frame;
 }
 
+VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* window)
+{
+    AssertOnThread(g_renderThread);
+
+    VkSurface surface = window->GetVkSurface();
+    Assert(surface != VK_NULL_HANDLE);
+
+    VulkanSwapchainRef swapchain = CreateObject<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
+    RendererResult result = swapchain->Create();
+
+    if (!result)
+    {
+        HYP_FAIL("Failed to create Vulkan swapchain: {}", result.GetError().GetMessage());
+    }
+
+    return swapchain;
+}
+
 void VulkanRenderBackend::PrepareSwapchain(VulkanSwapchain* swapchain)
 {
     swapchain->PrepareForFrame(GetCurrentFrame());
@@ -1283,23 +1301,6 @@ VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDumm
     HYP_NOT_IMPLEMENTED();
     return VK_NULL_HANDLE;
 #endif
-}
-
-VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* window, VulkanInstance* instance, VkSurfaceKHR surface)
-{
-    AssertOnThread(g_renderThread);
-
-    Assert(surface != VK_NULL_HANDLE);
-
-    VulkanSwapchainRef swapchain = CreateObject<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
-    RendererResult result = swapchain->Create();
-
-    if (!result)
-    {
-        HYP_FAIL("Failed to create Vulkan swapchain: {}", result.GetError().GetMessage());
-    }
-
-    return swapchain;
 }
 
 RendererResult VulkanRenderBackend::GetVkExtensions(Array<const char*>& outExtensions)

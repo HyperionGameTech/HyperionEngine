@@ -87,8 +87,8 @@ public:
         uint16 dstArrayLayer = UINT16_MAX) const override;
 
     void CopyToBuffer(
-        CommandBuffer* commandBuffer,
-        GpuBuffer* dstBuffer) const override;
+        DX12CommandBuffer* commandBuffer,
+        DX12GpuBuffer* dstBuffer) const override;
 
     DX12GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
