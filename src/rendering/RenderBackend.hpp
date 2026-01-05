@@ -140,6 +140,6 @@ public:
 
 } // namespace Hyperion
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanRenderBackend.inl>
 #endif

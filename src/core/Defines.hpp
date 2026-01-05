@@ -501,7 +501,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #pragma region GPU features
 
 #ifdef HYP_DEBUG_MODE
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 // #define HYP_VULKAN_DEBUG
 #endif
 #endif

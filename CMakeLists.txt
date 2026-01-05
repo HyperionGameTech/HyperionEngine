@@ -285,14 +285,10 @@ elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
     set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
 endif()
 
-# Find rendering backend so rendering module can use it
-# We set it up here instead of in the rendering module so that we can use the
-# Vulkan includes (which will be needed from the main module) as well as  setting up definitions.
-
-if(NOT IOS)
-    set(RENDERING_BACKEND "Vulkan")
-
-    find_package(Vulkan)
+if (WIN32)
+    set(RENDERING_BACKEND "DX12")
+elseif(NOT IOS)
+    find_package(Vulkan REQUIRED)
 endif()
 
 if (NOT DEFINED RENDERING_BACKEND)
@@ -310,6 +306,11 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
     message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
 
     include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+elseif(RENDERING_BACKEND STREQUAL "DX12")
+    add_definitions(-DHYP_DX12=1)
+    set(HYP_DX12 1)
+
+    message(STATUS "Using DirectX 12 as rendering backend")
 else()
     message(FATAL_ERROR "No rendering backend found!")
 endif()
@@ -480,6 +481,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
     if(EXISTS "${dir}/CMakeLists.txt")
         set(subdir_basename "")
         set(sub_library_name "")
+        set(should_skip_module FALSE)
 
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
 
@@ -491,9 +493,22 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
             set(sub_library_name "hyperion-dotnet-interop")
         elseif(dir MATCHES "dotnet/scripting")
             set(sub_library_name "hyperion-dotnet-scripting")
+        elseif(dir MATCHES "rendering/vulkan" AND NOT RENDERING_BACKEND STREQUAL "Vulkan")
+            # Skip it
+            message(STATUS "Skipping Vulkan rendering module since Vulkan is not the selected rendering backend")
+            set(should_skip_module TRUE)
+        elseif(dir MATCHES "rendering/dx12" AND NOT RENDERING_BACKEND STREQUAL "DX12")
+            # Skip it
+            message(STATUS "Skipping DirectX 12 rendering module since DX12 is not the selected rendering backend")
+            set(should_skip_module TRUE)
         else()
             # the subfolder must contain a library with the name hyperion-<subfolder>
             set(sub_library_name "hyperion-${subdir_basename}")
+        endif()
+
+        # if should_skip_module was set, return early
+        if(should_skip_module)
+            return()
         endif()
 
         list(APPEND local_modules ${sub_library_name})

@@ -21,7 +21,7 @@
 
 #include <rendering/RenderBackend.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 

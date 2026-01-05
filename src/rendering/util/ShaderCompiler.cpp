@@ -43,7 +43,7 @@
 #endif
 #endif
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #endif
 

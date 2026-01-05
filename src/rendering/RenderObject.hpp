@@ -22,7 +22,7 @@ namespace Hyperion {
     using T##BaseRef = Handle<T##Base>; \
     using T##BaseWeakRef = WeakHandle<T##Base>;
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #define DECLARE_GFX_TYPE(T)                                                           \
     DECLARE_GFX_TYPE_BASE(T);                                                         \
                                                                                       \
@@ -66,8 +66,13 @@ namespace Hyperion {
     using Vulkan##T##Ref = Handle<Vulkan##T>; \
     using Vulkan##T##WeakRef = WeakHandle<Vulkan##T>;
 #else
-#define DECLARE_GFX_TYPE(T) \
-    DECLARE_GFX_TYPE_BASE(T)
+#define DECLARE_GFX_TYPE(T)             \
+    DECLARE_GFX_TYPE_BASE(T);           \
+                                        \
+    using T = T##Base;                  \
+    using T##Ref = T##BaseRef;          \
+    using T##WeakRef = T##BaseWeakRef;  \
+
 #endif
 
 #define VULKAN_CAST(a) VulkanCastImpl(a)

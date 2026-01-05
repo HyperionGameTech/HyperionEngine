@@ -13,10 +13,10 @@
 #include <core/config/Config.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/Device.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/Device.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 
 #include <vulkan/vulkan.h>
 
@@ -29,9 +29,9 @@
 #endif
 
 #include <rendering/vulkan/VulkanInstance.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
-#include <rendering/vulkan/VulkanSwapchain.hpp>
 #endif
+
+#include <rendering/Swapchain.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -40,7 +40,7 @@
 
 #include <input/InputManager.hpp>
 
-#ifdef HYP_SDL
+#if HYP_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #endif
@@ -101,7 +101,7 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
 
 ApplicationWindow::~ApplicationWindow()
 {
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     if (m_vkSurface)
     {
         VulkanInstance* vkInstance = g_renderBackend->GetInstance();
@@ -158,7 +158,7 @@ void ApplicationWindow::CreateSwapchain()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     AssertDebug(GetDimensions() != Vec2i::Zero());
 
     if (m_vkSurface)

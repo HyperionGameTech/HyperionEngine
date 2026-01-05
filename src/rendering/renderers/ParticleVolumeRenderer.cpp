@@ -33,7 +33,7 @@
 
 #include <core/math/MathUtil.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
 #endif
 

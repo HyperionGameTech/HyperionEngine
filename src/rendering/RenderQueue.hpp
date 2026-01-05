@@ -115,7 +115,7 @@ public:
           m_bufferOffset(bufferOffset)
     {
         HYP_GFX_ASSERT(buffer != nullptr && buffer->IsCreated());
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
         HYP_GFX_ASSERT(bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= buffer->Size());
 #endif
     }

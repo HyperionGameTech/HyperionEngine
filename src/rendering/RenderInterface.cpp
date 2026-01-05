@@ -850,7 +850,7 @@ void Init()
 
     s_resources = PoolNew<ResourceContainer>(*g_renderPool);
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     g_renderBackend = new VulkanRenderBackend();
 #else
 #error Unsupported rendering backend
