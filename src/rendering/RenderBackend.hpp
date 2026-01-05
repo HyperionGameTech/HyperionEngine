@@ -30,6 +30,7 @@ class AsyncComputeBase;
 struct TextureDesc;
 class SingleTimeCommands;
 class Texture;
+class ApplicationWindow;
 
 class DescriptorSetLayout;
 struct DescriptorTableDeclaration;
@@ -71,6 +72,8 @@ public:
     virtual Frame* GetCurrentFrame() const = 0;
 
     virtual Frame* PrepareNextFrame() = 0;
+
+    virtual SwapchainRef CreateSwapchain(ApplicationWindow* window) = 0;
 
     virtual void PrepareSwapchain(Swapchain* swapchain) = 0;
     virtual void SubmitCommandBuffers(Swapchain* swapchain) = 0;
