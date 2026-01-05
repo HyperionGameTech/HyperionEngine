@@ -61,6 +61,8 @@ protected:
 
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanSampler.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12Sampler.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

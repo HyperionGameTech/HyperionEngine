@@ -23,60 +23,60 @@ public:
     friend class VulkanSwapchain;
 
     explicit VulkanGpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE);
-    virtual ~VulkanGpuImage() override;
+    ~VulkanGpuImage() override;
 
     HYP_FORCE_INLINE VkImage GetVulkanHandle() const
     {
         return m_handle;
     }
 
-    virtual bool IsCreated() const override;
-    virtual bool IsOwned() const override;
+    bool IsCreated() const override;
+    bool IsOwned() const override;
 
-    virtual RendererResult Create() override;
-    virtual RendererResult Create(ResourceState initialState) override;
+    RendererResult Create() override;
+    RendererResult Create(ResourceState initialState) override;
 
-    virtual RendererResult Resize(const Vec3u& extent) override;
+    RendererResult Resize(const Vec3u& extent) override;
 
-    virtual HANDLE GetNativeHandle() const override;
+    HANDLE GetNativeHandle() const override;
 
-    virtual void SetResourceState(ResourceState newState) override;
+    void SetResourceState(ResourceState newState) override;
 
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
 
-    virtual void InsertBarrier(
+    void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         ResourceState newState,
         ShaderModuleType shaderModuleType) override;
 
-    virtual void InsertBarrier(
+    void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         const ImageSubResource& subResource,
         ResourceState newState,
         ShaderModuleType shaderModuleType) override;
 
-    virtual RendererResult Blit(
+    RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,
-        const VulkanGpuImage* src) override;
+        const VulkanGpuImage* srcImage) override;
 
-    virtual RendererResult Blit(
+    RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,
-        const VulkanGpuImage* src,
+        const VulkanGpuImage* srcImage,
         uint32 srcMip,
         uint32 dstMip,
         uint32 srcFace,
         uint32 dstFace) override;
 
-    virtual RendererResult Blit(
+    RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,
-        const VulkanGpuImage* src,
+        const VulkanGpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) override;
 
-    virtual RendererResult Blit(
+    RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,
-        const VulkanGpuImage* src,
+        const VulkanGpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
         uint32 srcMip,
@@ -84,22 +84,22 @@ public:
         uint32 srcFace,
         uint32 dstFace) override;
 
-    virtual RendererResult GenerateMipmaps(VulkanCommandBuffer* commandBuffer) override;
+    RendererResult GenerateMipmaps(VulkanCommandBuffer* commandBuffer) override;
 
-    virtual void CopyFromBuffer(
+    void CopyFromBuffer(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuBuffer* srcBuffer,
         uint32 srcBufferOffset = 0,
         uint8 dstMipIndex = UINT8_MAX,
         uint16 dstArrayLayer = UINT16_MAX) const override;
 
-    virtual void CopyToBuffer(
+    void CopyToBuffer(
         VulkanCommandBuffer* commandBuffer,
         VulkanGpuBuffer* dstBuffer) const override;
 
     /*! \brief Creates a view of the image for the specified array layer
      */
-    virtual VulkanGpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
+    VulkanGpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

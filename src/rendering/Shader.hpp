@@ -117,6 +117,8 @@ protected:
 
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanShader.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12Shader.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

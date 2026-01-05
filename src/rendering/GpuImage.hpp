@@ -161,11 +161,11 @@ public:
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src) = 0;
+        const GpuImage* srcImage) = 0;
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src,
+        const GpuImage* srcImage,
         uint32 srcMip,
         uint32 dstMip,
         uint32 srcFace,
@@ -173,13 +173,13 @@ public:
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src,
+        const GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) = 0;
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src,
+        const GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
         uint32 srcMip,
@@ -230,6 +230,8 @@ protected:
 
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanGpuImage.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12GpuImage.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

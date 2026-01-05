@@ -765,48 +765,4 @@ void VulkanDescriptorSet::SetDebugName(Name name)
 
 #pragma endregion VulkanDescriptorSet
 
-#pragma region VulkanDescriptorTable
-
-VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* decl)
-    : DescriptorTableBase(decl)
-{
-    AssertDebug(decl != nullptr);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        m_sets[frameIndex].Reserve(m_decl->elements.Size());
-    }
-
-    for (const DescriptorSetDeclaration& descriptorSetDeclaration : m_decl->elements)
-    {
-        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
-        {
-            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
-            HYP_GFX_ASSERT(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: %s", descriptorSetDeclaration.name.LookupString());
-
-            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-            {
-                VulkanDescriptorSetRef descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
-                HYP_GFX_ASSERT(descriptorSet.IsValid(), "Invalid global descriptor set reference: %s", referencedDescriptorSetDeclaration->name.LookupString());
-
-                m_sets[frameIndex].PushBack(std::move(descriptorSet));
-            }
-
-            continue;
-        }
-
-        DescriptorSetLayout layout { &descriptorSetDeclaration };
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            VulkanDescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(layout);
-            descriptorSet->SetDebugName(layout.GetName());
-
-            m_sets[frameIndex].PushBack(std::move(descriptorSet));
-        }
-    }
-}
-
-#pragma endregion VulkanDescriptorTable
-
 } // namespace Hyperion

@@ -721,6 +721,8 @@ class DescriptorTableBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorTableBase);
 
 public:
+    explicit DescriptorTableBase(const DescriptorTableDeclaration* decl);
+
     virtual ~DescriptorTableBase() override
     {
         for (auto& it : m_sets)
@@ -859,11 +861,6 @@ public:
     }
 
 protected:
-    DescriptorTableBase(const DescriptorTableDeclaration* decl)
-        : m_decl(decl)
-    {
-    }
-
     const DescriptorTableDeclaration* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
@@ -877,6 +874,8 @@ protected:
 
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12DescriptorSet.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

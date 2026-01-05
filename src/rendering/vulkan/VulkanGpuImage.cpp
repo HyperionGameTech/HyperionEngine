@@ -637,11 +637,11 @@ void VulkanGpuImage::InsertBarrier(
 
 RendererResult VulkanGpuImage::Blit(
     VulkanCommandBuffer* commandBuffer,
-    const VulkanGpuImage* src)
+    const VulkanGpuImage* srcImage)
 {
     return Blit(
         commandBuffer,
-        src,
+        srcImage,
         Rect<uint32> { 0, 0, src->GetExtent().x, src->GetExtent().y },
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y });
 }

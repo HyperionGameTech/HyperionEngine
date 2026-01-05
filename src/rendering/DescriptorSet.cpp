@@ -3,6 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/GpuBuffer.hpp>
@@ -375,6 +376,46 @@ void DescriptorSetBase::SetElement(StringHash name, const GpuTlasRef& ref)
 #pragma endregion DescriptorSetBase
 
 #pragma region DescriptorTableBase
+
+DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
+    : m_decl(decl)
+{
+    AssertDebug(decl != nullptr);
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        m_sets[frameIndex].Reserve(m_decl->elements.Size());
+    }
+
+    for (const DescriptorSetDeclaration& descriptorSetDeclaration : m_decl->elements)
+    {
+        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
+        {
+            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
+            HYP_GFX_ASSERT(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: %s", descriptorSetDeclaration.name.LookupString());
+
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                DescriptorSetRef descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
+                HYP_GFX_ASSERT(descriptorSet.IsValid(), "Invalid global descriptor set reference: %s", referencedDescriptorSetDeclaration->name.LookupString());
+
+                m_sets[frameIndex].PushBack(std::move(descriptorSet));
+            }
+
+            continue;
+        }
+
+        DescriptorSetLayout layout { &descriptorSetDeclaration };
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
+            descriptorSet->SetDebugName(layout.GetName());
+
+            m_sets[frameIndex].PushBack(std::move(descriptorSet));
+        }
+    }
+}
 
 RendererResult DescriptorTableBase::Create()
 {

@@ -62,21 +62,21 @@ public:
         return m_vkDescriptorSetLayout;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void UpdateDirtyState(bool* outIsDirty = nullptr) override;
-    virtual void Update(bool force = false) override;
+    void UpdateDirtyState(bool* outIsDirty = nullptr) override;
+    void Update(bool force = false) override;
 
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
-    virtual VulkanDescriptorSetRef Clone() const override;
+    VulkanDescriptorSetRef Clone() const override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
@@ -96,8 +96,12 @@ class VulkanDescriptorTable final : public DescriptorTableBase
     HYP_OBJECT_BODY(VulkanDescriptorTable);
 
 public:
-    VulkanDescriptorTable(const DescriptorTableDeclaration* decl);
-    virtual ~VulkanDescriptorTable() override = default;
+    explicit VulkanDescriptorTable(const DescriptorTableDeclaration* decl)
+        : DescriptorTableBase(decl)
+    {
+    }
+    
+    ~VulkanDescriptorTable() override = default;
 };
 
 } // namespace Hyperion

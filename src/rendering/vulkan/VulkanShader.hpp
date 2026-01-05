@@ -67,8 +67,8 @@ class VulkanShader final : public ShaderBase
 
 public:
     VulkanShader();
-    VulkanShader(const RC<CompiledShader>& compiledShader);
-    virtual ~VulkanShader() override;
+    explicit VulkanShader(const RC<CompiledShader>& compiledShader);
+    ~VulkanShader() override;
 
     HYP_FORCE_INLINE const String& GetEntryPointName() const
     {
@@ -90,9 +90,9 @@ public:
         return m_vkShaderStages;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

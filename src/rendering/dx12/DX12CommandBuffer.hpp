@@ -18,22 +18,20 @@ class DX12CommandBuffer final : public CommandBufferBase
     HYP_OBJECT_BODY(DX12CommandBuffer);
 
 public:
-    DX12CommandBuffer() = default;
-    virtual ~DX12CommandBuffer() override = default;
+    DX12CommandBuffer();
+    ~DX12CommandBuffer();
 
-    virtual RendererResult Create() override;
-    virtual RendererResult Begin() override;
-    virtual RendererResult End() override;
+    RendererResult Create() override;
 
-    virtual void BindVertexBuffer(const DX12GpuBuffer* buffer) override;
-    virtual void BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
+    void BindVertexBuffer(const DX12GpuBuffer* buffer) override;
+    void BindIndexBuffer(const DX12GpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
 
-    virtual void DrawIndexed(
+    void DrawIndexed(
         uint32 numIndices,
         uint32 numInstances = 1,
         uint32 instanceIndex = 0) const override;
 
-    virtual void DrawIndexedIndirect(
+    void DrawIndexedIndirect(
         const DX12GpuBuffer* buffer,
         uint32 bufferOffset) const override;
 
