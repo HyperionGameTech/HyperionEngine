@@ -15,7 +15,6 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/thirdparty
     ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
@@ -42,3 +41,4 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
 endif()
 
 target_link_libraries(${BUILD_NAME} PRIVATE hyperion-core)
+

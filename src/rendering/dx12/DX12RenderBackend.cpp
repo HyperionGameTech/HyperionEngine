@@ -62,7 +62,8 @@ public:
 
 DX12RenderBackend::DX12RenderBackend()
     : m_renderConfig(MakePimpl<DX12RenderConfig>()),
-      m_currentFrameIndex(0)
+      m_currentFrameIndex(0),
+      m_allocator(nullptr)
 {
 }
 
