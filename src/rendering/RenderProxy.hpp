@@ -60,7 +60,7 @@ private:
     NullProxy() = default;
 };
 
-struct WorldShaderData
+struct alignas(16) WorldShaderData
 {
     Vec4f fogParams;
 
@@ -70,7 +70,7 @@ struct WorldShaderData
     uint32 _pad1;
 };
 
-struct EntityShaderData
+struct alignas(16) EntityShaderData
 {
     Mat4f modelMatrix;
     Mat4f previousModelMatrix;
@@ -153,7 +153,7 @@ public:
     }
 };
 
-struct EnvProbeShaderData
+struct alignas(16) EnvProbeShaderData
 {
     Mat4f faceViewMatrices[6];
 
@@ -181,7 +181,7 @@ public:
     EnvProbeShaderData bufferData {};
 };
 
-struct EnvGridShaderData
+struct alignas(16) EnvGridShaderData
 {
     uint32 probeIndices[MaxBoundAmbientProbes];
 
@@ -207,7 +207,7 @@ public:
     EnvProbe* envProbes[MaxBoundAmbientProbes];
 };
 
-struct LightShaderData
+struct alignas(16) LightShaderData
 {
     uint32 lightType;
     uint32 materialIndex;
@@ -248,7 +248,7 @@ public:
     LightShaderData bufferData {};
 };
 
-struct LightmapVolumeShaderData
+struct alignas(16) LightmapVolumeShaderData
 {
     Vec4f aabbMax;
     Vec4f aabbMin;
@@ -269,7 +269,7 @@ public:
     LightmapVolumeShaderData bufferData {};
 };
 
-struct ParticleVolumeShaderData
+struct alignas(16) ParticleVolumeShaderData
 {
     Vec4f originStartSize; // xyz = origin, w = start size
 
@@ -293,13 +293,13 @@ public:
     ParticleVolumeShaderData bufferData {};
 };
 
-struct FogVolumeShaderData
+struct alignas(16) FogVolumeShaderData
 {
     Mat4f transformMatrix;
     Vec4f aabbMin;
     Vec4f aabbMax;
     uint32 numBoundLights;
-    alignas(16) uint32 lightIndices[16];
+    Vec4u lightIndices[4];
 };
 
 class RenderProxyFogVolume final : public IRenderProxy
@@ -346,7 +346,7 @@ public:
     Array<Handle<Texture>> boundTextures;
 };
 
-struct SkeletonShaderData
+struct alignas(16) SkeletonShaderData
 {
     static constexpr SizeType maxBones = 256;
 
@@ -368,7 +368,7 @@ public:
     SkeletonShaderData bufferData {};
 };
 
-struct CameraShaderData
+struct alignas(16) CameraShaderData
 {
     Mat4f viewMat;
     Mat4f projMat;

@@ -79,11 +79,6 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuff
     Entity entity;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
-{
-    Light lights[];
-};
-
 #ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
 HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
@@ -114,6 +109,7 @@ HYP_DESCRIPTOR_SRV(FogVolume, NoiseMap) uniform texture3D NoiseMap;
 HYP_DESCRIPTOR_CBUFF(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
 {
     FogVolume fogVolume;
+    Light lights[MAX_LIGHTS];
 };
 
 vec2 RayBoxIntersect(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax)
@@ -178,7 +174,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
     const float phaseG = 0.8; // Isotropic scattering
 
     // ambient colour of the fog
-    const vec3 AmbientLight = vec3(0.05);
+    const vec3 AmbientLight = vec3(0.12);
 
     vec3 materialColor = vec3(1.0);
 
@@ -221,7 +217,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
 
         for (uint lightIndex = 0u; lightIndex < fogVolume.numBoundLights; lightIndex++)
         {
-            Light light = HYP_GET_LIGHT(lightIndex);
+            Light light = lights[lightIndex];
             
             vec3 lightDir;
             float phase;
@@ -314,7 +310,7 @@ void main()
         discard;
     }
     
-    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, 0.25);
+    vec4 fogColor = RayMarch(camera.position.xyz, rayDir, tNear, tFar, /*stepSize*/ 0.25);
 
     // Debug: render the noise texture
     //vec3 uvw = WorldToTexCoord(positionWS.xyz, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
