@@ -32,9 +32,9 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(DDGIDescriptorSet, TLAS) uniform accelerationStructureEXT tlas;
 
-HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIUniforms) uniform DDGIUniformBuffer
+HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIConstants) uniform DDGIUniformBuffer
 {
-    DDGIUniforms ddgiUniforms;
+    DDGIConstants ddgiConstants;
 };
 
 HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, ProbeRayData) buffer ProbeRayDataBuffer
@@ -91,13 +91,13 @@ void main()
     const uint probe_index = coord.x;
     const uint ray_index = coord.y;
     
-    vec3 direction = normalize(mat3(push_constants.rotation) * SphericalFibonacci(ray_index, ddgiUniforms.num_rays_per_probe));
+    vec3 direction = normalize(mat3(push_constants.rotation) * SphericalFibonacci(ray_index, ddgiConstants.num_rays_per_probe));
     vec3 origin = ProbeIndexToWorldPosition(probe_index) + direction * RAY_OFFSET;
     
     uint flags = gl_RayFlagsOpaqueEXT;
     uint mask = 0xff;
     float tmin = RAY_OFFSET;
-    float tmax = ddgiUniforms.probe_distance;
+    float tmax = ddgiConstants.probe_distance;
     
     payload.throughput = vec4(1.0);
     payload.color = vec4(0.0);
@@ -136,7 +136,7 @@ void main()
                 bounces[bounce_index].emissive += EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], direction, 0.0);
             }
             
-            for (uint light_index = 0; light_index < ddgiUniforms.num_bound_lights; light_index++)
+            for (uint light_index = 0; light_index < ddgiConstants.num_bound_lights; light_index++)
             {
                 const Light light = lights[light_index];
 

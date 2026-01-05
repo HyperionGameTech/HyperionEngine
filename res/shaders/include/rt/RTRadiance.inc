@@ -10,7 +10,4 @@ struct RayTracingConstants
     uvec4 light_indices[4];
 };
 
-#define HYP_GET_LIGHT(index) \
-    lights[rayTracingConstants.light_indices[(index / 4)][index % 4]]
-
 #endif

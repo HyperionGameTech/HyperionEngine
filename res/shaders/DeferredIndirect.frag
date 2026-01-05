@@ -64,13 +64,13 @@ vec2 texcoord = v_texcoord0;
 
 #include "include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_CBUFF(Global, DDGIUniforms, size = 256) uniform DDGIUniformBuffer
+HYP_DESCRIPTOR_CBUFF(View, DDGIConstants) uniform DDGI
 {
-    DDGIUniforms ddgiUniforms;
+    DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_SRV(Global, DDGIIrradianceTexture) uniform texture2D probe_irradiance;
-HYP_DESCRIPTOR_SRV(Global, DDGIDepthTexture) uniform texture2D probe_depth;
+HYP_DESCRIPTOR_SRV(View, DDGIIrradianceTexture) uniform texture2D probe_irradiance;
+HYP_DESCRIPTOR_SRV(View, DDGIDepthTexture) uniform texture2D probe_depth;
 #include "include/DDGI.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

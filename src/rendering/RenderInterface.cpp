@@ -1796,13 +1796,6 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     }
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("DDGIUniforms"_sh, placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms), true /* exact size */));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("DDGIIrradianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("DDGIDepthTexture"_sh, placeholderData->GetImageView2D1x1R8());
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("RTRadianceResultTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)

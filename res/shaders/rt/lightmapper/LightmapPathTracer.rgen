@@ -323,27 +323,25 @@ void main()
 
     for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
     {
-        const Light light = HYP_GET_LIGHT(light_index);
-
-        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
+        if (lights[light_index].type == HYP_LIGHT_TYPE_DIRECTIONAL)
         {
-            vec3 light_direction = normalize(light.position_intensity.xyz);
+            vec3 light_direction = normalize(lights[light_index].position_intensity.xyz);
             vec3 L = light_direction;
 
             // shadow check
             float shadow = 1.0 - CheckInShadow(ray.origin, N, L);
 
             float NdotL = max(dot(N, L), 0.0);
-            radiance += light.color.rgb * light.position_intensity.w * NdotL * shadow;
+            radiance += lights[light_index].color.rgb * lights[light_index].position_intensity.w * NdotL * shadow;
         }
-        else if (light.type == HYP_LIGHT_TYPE_POINT)
+        else if (lights[light_index].type == HYP_LIGHT_TYPE_POINT)
         {
-            vec3 L = normalize(light.position_intensity.xyz - ray.origin);
-            float d = length(light.position_intensity.xyz - ray.origin);
+            vec3 L = normalize(lights[light_index].position_intensity.xyz - ray.origin);
+            float d = length(lights[light_index].position_intensity.xyz - ray.origin);
             float attenuation = 1.0 / (d * d);
 
             float NdotL = max(dot(N, L), 0.0);
-            radiance += light.color.rgb * light.position_intensity.w * NdotL * attenuation;
+            radiance += lights[light_index].color.rgb * lights[light_index].position_intensity.w * NdotL * attenuation;
         }
         else
         {
@@ -411,7 +409,7 @@ void main()
             {
                 for (uint light_index = 0; light_index < rayTracingConstants.num_bound_lights; light_index++)
                 {
-                    const Light light = HYP_GET_LIGHT(light_index);
+                    const Light light = lights[light_index];
 
                     if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL)
                     {

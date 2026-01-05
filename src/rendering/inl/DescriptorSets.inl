@@ -46,6 +46,9 @@ HYP_DESCRIPTOR_SRV(View, EnvGridRadianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DeferredIndirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DepthPyramidResult, 1);
+HYP_DESCRIPTOR_CBUFF(View, DDGIConstants, 1, sizeof(DDGIConstants), false);
+HYP_DESCRIPTOR_SRV(View, DDGIIrradianceTexture, 1);
+HYP_DESCRIPTOR_SRV(View, DDGIDepthTexture, 1);
 
 // bindless: shared global array of textures
 HYP_DESCRIPTOR_SRV_COND(Material, Textures, MaxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);

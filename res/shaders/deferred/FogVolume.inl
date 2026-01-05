@@ -6,6 +6,3 @@ struct FogVolume
     uint numBoundLights;
     uvec4 lightIndices[4];
 };
-
-#define HYP_GET_LIGHT(index) \
-    lights[fogVolume.lightIndices[(index / 4)][index % 4]]

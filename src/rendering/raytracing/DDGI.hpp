@@ -22,33 +22,6 @@ enum ProbeSystemFlags : uint32
     PROBE_SYSTEM_FLAGS_FIRST_RUN = 0x1
 };
 
-struct ProbeRayData
-{
-    Vec4f directionDepth;
-    Vec4f origin;
-    Vec4f normal;
-    Vec4f color;
-};
-
-static_assert(sizeof(ProbeRayData) == 64);
-
-struct DDGIUniforms
-{
-    Vec4f aabbMax;
-    Vec4f aabbMin;
-    Vec4u probeBorder;
-    Vec4u probeCounts;
-    Vec4u gridDimensions;
-    Vec4u imageDimensions;
-
-    float probeDistance;
-    uint32 numRaysPerProbe;
-    uint32 numBoundLights;
-    uint32 flags;
-
-    Vec4u lightIndices[4];
-};
-
 struct DDGIInfo
 {
     static constexpr uint32 irradianceOctahedronSize = 8;
@@ -99,7 +72,7 @@ struct RotationMatrixGenerator
     }
 };
 
-struct Probe
+struct DDGIProbeData
 {
     Vec3f position;
 };
@@ -111,11 +84,6 @@ public:
     DDGI(const DDGI& other) = delete;
     DDGI& operator=(const DDGI& other) = delete;
     ~DDGI();
-
-    const Array<Probe>& GetProbes() const
-    {
-        return m_probes;
-    }
 
     const GpuBufferRef& GetRadianceBuffer() const
     {
@@ -132,11 +100,28 @@ public:
         return m_irradianceImageView;
     }
 
+    const GpuImageRef& GetDepthImage() const
+    {
+        return m_depthImage;
+    }
+
+    const GpuImageViewRef& GetDepthImageView() const
+    {
+        return m_depthImageView;
+    }
+
+    const GpuBufferRef& GetConstantBuffer(uint32 frameIndex) const
+    {
+        return m_cBuffers[frameIndex];
+    }
+
     void Create();
 
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
+    void FillProbeGrid();
+
     void CreateConstantBuffers();
     void CreateStorageBuffers();
 
@@ -144,7 +129,7 @@ private:
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
 
     DDGIInfo m_gridInfo;
-    Array<Probe> m_probes;
+    Array<DDGIProbeData, DynamicAllocator> m_probeData;
 
     FixedArray<uint32, NumFramesInFlight> m_updates;
 
@@ -164,10 +149,8 @@ private:
     GpuImageRef m_depthImage;
     GpuImageViewRef m_depthImageView;
 
-    DDGIUniforms m_uniforms;
-
     RotationMatrixGenerator m_randomGenerator;
-    uint32 m_time;
+    uint32 m_counter;
 };
 
 } // namespace Hyperion

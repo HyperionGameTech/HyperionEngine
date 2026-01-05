@@ -1751,10 +1751,10 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
         passData.temporalAa->Create();
-
+        
+        CreateViewRaytracingPasses(view, passData);
         CreateViewDescriptorSets(view, passData);
         CreateViewFinalPassDescriptorSet(view, passData);
-        CreateViewRaytracingPasses(view, passData);
 
         return pd;
     }
@@ -1896,6 +1896,20 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         descriptorSet->SetElement("EnvGridRadianceResultTexture"_sh, passData.envGridRadiancePass->GetFinalImageView());
         descriptorSet->SetElement("EnvGridIrradianceResultTexture"_sh, passData.envGridIrradiancePass->GetFinalImageView());
+
+        if (passData.ddgi)
+        {
+            descriptorSet->SetElement("DDGIConstants"_sh, passData.ddgi->GetConstantBuffer(frameIndex));
+            descriptorSet->SetElement("DDGIIrradianceTexture"_sh, passData.ddgi->GetIrradianceImageView());
+            descriptorSet->SetElement("DDGIDepthTexture"_sh, passData.ddgi->GetDepthImageView());
+        }
+        else
+        {
+            descriptorSet->SetElement("DDGIConstants"_sh, g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants)));
+            descriptorSet->SetElement("DDGIIrradianceTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("DDGIDepthTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        }
+        
 
         HYP_GFX_ASSERT(descriptorSet->Create());
 
@@ -2062,13 +2076,13 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
     passData.depthPyramidRenderer->Create();
 
+    CreateViewRaytracingPasses(view, passData);
+
     SafeDelete(std::move(passData.descriptorSets));
     CreateViewDescriptorSets(view, passData);
 
     SafeDelete(std::move(passData.finalPassDescriptorSet));
     CreateViewFinalPassDescriptorSet(view, passData);
-
-    CreateViewRaytracingPasses(view, passData);
 
     passData.view = MakeWeakRef(view);
 }

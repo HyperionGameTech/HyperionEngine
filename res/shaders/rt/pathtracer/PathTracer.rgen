@@ -86,9 +86,9 @@ HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
-#define RAY_OFFSET 0.001
-#define NUM_SAMPLES 1
-#define NUM_BOUNCES 8
+#define RAY_OFFSET 0.01
+#define NUM_SAMPLES 2
+#define NUM_BOUNCES 4
 
 float CheckInShadow(vec3 position, vec3 normal, vec3 lightDir)
 {
@@ -127,7 +127,7 @@ void main()
 {
     const ivec2 resolution = rayTracingConstants.output_image_resolution;
     
-    const int pixel_index = int(gl_LaunchIDEXT.x * 2) + int(world_shader_data.frame_counter & 1);
+    const int pixel_index = int(gl_LaunchIDEXT.x);
     const ivec2 storage_coord = ivec2(
         pixel_index % resolution.x,
         pixel_index / resolution.x
@@ -162,16 +162,13 @@ void main()
 
     const uint flags = gl_RayFlagsOpaqueEXT;
     const uint mask = 0xff;
-    const float tmin = 0.001;
-    const float tmax = 1000.0;
+    const float tmin = 0.01;
+    const float tmax = 10000.0;
 
     vec4 color = vec4(0.0);
 
     const vec3 albedo = Texture2DLod(sampler_nearest, gbuffer_albedo_texture, uv, 0.0).rgb;
     const vec3 N0 = normalize(normal);
-
-    vec3 tangent;
-    vec3 bitangent;
 
     vec4 accumRadiance = vec4(0.0);
 
@@ -180,7 +177,7 @@ void main()
         uint ray_seed = InitRandomSeed(InitRandomSeed(
             (gl_LaunchIDEXT.x * 2 * NUM_SAMPLES) + sample_index * 2,
             (gl_LaunchIDEXT.x * 2 * NUM_SAMPLES) + (sample_index * 2) + 1),
-            world_shader_data.frame_counter % 256);
+            world_shader_data.frame_counter);
 
         vec3 origin = worldPosition.xyz + N0 * RAY_OFFSET;
         vec3 direction;
@@ -192,10 +189,13 @@ void main()
 
         bool chooseSpecular = (RandomFloat(ray_seed) < specProb);
         
-        if (chooseSpecular) {
+        if (chooseSpecular)
+        {
             vec3 H = SampleGGX(rnd, roughness, N0);
             direction = reflect(-V, H);
-        } else {
+        }
+        else
+        {
             direction = normalize(SampleCosineDir(rnd, N0));
         }
 
@@ -207,7 +207,8 @@ void main()
             float NdotL = max(dot(N0, L), 0.0);
             float NdotV = max(dot(N0, V), 0.0);
             
-            if (NdotL > 0.0 && NdotV > 0.0) {
+            if (NdotL > 0.0 && NdotV > 0.0)
+            {
                 vec3 H = normalize(V + L);
                 float NdotH = max(dot(N0, H), 0.0);
                 float LdotH = max(dot(L, H), 0.0);
@@ -221,17 +222,21 @@ void main()
                 
                 vec3 brdf = diffuseBrdf + specularBrdf;
                 
-                if (chooseSpecular) {
+                if (chooseSpecular)
+                {
                     float pdf = (D * NdotH) / (4.0 * LdotH);
                     beta = brdf * NdotL / max(pdf * specProb, 1e-6);
-                } else {
+                }
+                else
+                {
                     float pdf = NdotL * HYP_FMATH_ONE_OVER_PI;
                     beta = brdf * NdotL / max(pdf * (1.0 - specProb), 1e-6);
                 }
             }
         }
         
-        for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex) {
+        for (int bounceIndex = 0; bounceIndex < NUM_BOUNCES; ++bounceIndex)
+        {
             // perform scene trace using global payload
             payload.distance = -1.0;
             payload.throughput = vec4(1.0);
@@ -240,9 +245,11 @@ void main()
 
             traceRayEXT(tlas, flags, mask, 0, 0, 0, origin, tmin, direction, tmax, 0);
 
-            if (payload.distance < 0.0) {
+            if (payload.distance < 0.0)
+            {
                 // miss -> sample environment probe if present
-                if (current_env_probe.texture_index != ~0u) {
+                if (current_env_probe.texture_index != ~0u)
+                {
                     uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
                     vec3 env = EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], direction, 0.0).rgb;
                     radiance += beta * env;
@@ -254,7 +261,8 @@ void main()
             vec3 N = normalize(payload.normal);
 
             // emissive
-            if (length(payload.emissive.rgb) > 0.0) {
+            if (length(payload.emissive.rgb) > 0.0)
+            {
                 radiance += beta * payload.emissive.rgb;
             }
 
@@ -338,15 +346,14 @@ void main()
             }
 
             // Russian Roulette
-            if (bounceIndex >= 3) {
+            if (bounceIndex >= 3)
+            {
                 float p = clamp(max(max(beta.r, beta.g), beta.b), 0.05, 0.99);
                 if (RandomFloat(ray_seed) > p) {
                     break;
                 }
                 beta /= vec3(p);
             }
-
-            rnd = vec2(RandomFloat(ray_seed), RandomFloat(ray_seed));
 
             // Sample next direction (Diffuse - cosine weighted)
             direction = normalize(SampleCosineDir(rnd, N));
