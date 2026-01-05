@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include <dxgi1_4.h>
+#include <d3d12.h>
+#include <wrl.h>
+
 #include <rendering/RenderBackend.hpp>
 
 #include <core/memory/Pimpl.hpp>
@@ -26,6 +30,8 @@ public:
     DX12Frame* GetCurrentFrame() const override;
 
     DX12Frame* PrepareNextFrame() override;
+    
+    DX12SwapchainRef CreateSwapchain(ApplicationWindow* window) override;
 
     void PrepareSwapchain(DX12Swapchain* swapchain) override;
     void SubmitCommandBuffers(DX12Swapchain* swapchain) override;
@@ -99,6 +105,15 @@ private:
     uint32 m_currentFrameIndex;
 
     FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
+    
+    Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgiFactory;
+    Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
+
+    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_directQueue;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_computeQueue;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_copyQueue;
 };
 
 } // namespace Hyperion

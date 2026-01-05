@@ -12,8 +12,6 @@
 
 #include <rendering/dx12/DX12Structs.hpp>
 
-#include <d3d12.h>
-
 namespace Hyperion {
 
 } // namespace Hyperion
