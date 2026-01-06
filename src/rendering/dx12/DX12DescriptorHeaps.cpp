@@ -4,14 +4,99 @@
 
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 #include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12Frame.hpp>
 
 namespace Hyperion {
 
 extern DX12RenderBackend* g_renderBackend;
 
+#pragma region DX12DescriptorAllocator
+
+DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, uint32 descriptorSize)
+    : type(type),
+      incrementSize(0),
+      cpuStart {},
+      gpuStart {}
+{
+    for (uint32 i = 0; i < NumFramesInFlight; i++)
+    {
+        m_indexAllocators.EmplaceBack(descriptorSize);
+    }
+
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
+    heapDesc.NumDescriptors = descriptorSize;
+    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+    switch (type)
+    {
+    case DX12DescriptorHeapType::CBV_SRV_UAV:
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        heapDesc.Flags |= D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        break;
+    case DX12DescriptorHeapType::SAMPLER:
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        heapDesc.Flags |= D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        break;
+    case DX12DescriptorHeapType::RTV:
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        break;
+    case DX12DescriptorHeapType::DSV:
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        break;
+    default:
+        HYP_UNREACHABLE();
+    }
+
+    HRESULT res = g_renderBackend->GetDevice()->CreateDescriptorHeap(&heapDesc, __uuidof(ID3D12DescriptorHeap), &heap);
+    Assert(SUCCEEDED(res), "Failed to create descriptor heap! Error code: {}", res);
+    
+    incrementSize = g_renderBackend->GetDevice()->GetDescriptorHandleIncrementSize(heapDesc.Type);
+
+    cpuStart = heap->GetCPUDescriptorHandleForHeapStart();
+
+    if (heapDesc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+    {
+        gpuStart = heap->GetGPUDescriptorHandleForHeapStart();
+    }
+}
+
+DX12DescriptorHandle DX12DescriptorAllocator::Allocate(uint8 frameIndex, uint32 count)
+{
+    uint32 allocationOffset = m_indexAllocators[frameIndex].Allocate(count);
+
+    if (allocationOffset == DX12DescriptorIndexAllocator::InvalidIndex)
+        return DX12DescriptorHandle();
+
+    DX12DescriptorHandle descriptorHandle;
+    descriptorHandle.count = count;
+    descriptorHandle.cpuHandle = { cpuStart.ptr + (incrementSize * allocationOffset) };
+
+    if (gpuStart.ptr != 0)
+        descriptorHandle.gpuHandle = { gpuStart.ptr + (incrementSize * allocationOffset) };
+    else
+        descriptorHandle.gpuHandle = { 0 };
+
+    return descriptorHandle;
+}
+
+void DX12DescriptorAllocator::Free(DX12DescriptorHandle&& handle)
+{
+    if (!handle.IsValid())
+        return;
+
+    ptrdiff_t startIndex = (handle.cpuHandle.ptr - cpuStart.ptr) / incrementSize;
+    Assert(startIndex >= 0 && startIndex + handle.count <= m_indexAllocators[handle.frameIndex].maxSize);
+
+    m_indexAllocators[handle.frameIndex].Free(uint32(startIndex), handle.count);
+
+    handle = {};
+}
+
+#pragma endregion DX12DescriptorAllocator
+
+#pragma region DX12DescriptorHeapManager
+
 DX12DescriptorHeapManager::DX12DescriptorHeapManager()
-    : m_descriptorSizes {},
-      m_descriptorHeaps {}
 {
 }
 
@@ -19,76 +104,46 @@ void DX12DescriptorHeapManager::Initialize()
 {
     ID3D12Device* device = g_renderBackend->GetDevice();
 
-    // CBV_SRV_UAV
+    static constexpr uint32 MaxDescriptorsByHeapType[MaxDescriptorHeapType] = {
+        1000,   // CBV_SRV_UAV
+        16,     // SAMPLER
+        100,    // RTV
+        100     // DSV
+    };
+
+    for (uint32 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)
     {
-        D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
-        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        heapDesc.NumDescriptors = 1000; // @TODO
-        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-        HRESULT hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_descriptorHeaps[uint32(DX12DescriptorHeapType::CBV_SRV_UAV)]));
-        Assert(hr, "Failed to create CBV_SRV_UAV descriptor heap");
-
-        m_descriptorSizes[uint32(DX12DescriptorHeapType::CBV_SRV_UAV)] = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    }
-
-    // SAMPLER
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
-        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-        heapDesc.NumDescriptors = 1000; // @TODO
-        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-        HRESULT hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_descriptorHeaps[uint32(DX12DescriptorHeapType::SAMPLER)]));
-        Assert(hr, "Failed to create SAMPLER descriptor heap");
-
-        m_descriptorSizes[uint32(DX12DescriptorHeapType::SAMPLER)] = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-    }
-
-    // RTV
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
-        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        heapDesc.NumDescriptors = 100; // @TODO
-        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
-        HRESULT hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_descriptorHeaps[uint32(DX12DescriptorHeapType::RTV)]));
-        Assert(hr, "Failed to create RTV descriptor heap");
-
-        m_descriptorSizes[uint32(DX12DescriptorHeapType::RTV)] = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    }
-
-    // DSV
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
-        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-        heapDesc.NumDescriptors = 100; // @TODO
-        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-
-        HRESULT hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_descriptorHeaps[uint32(DX12DescriptorHeapType::DSV)]));
-        Assert(hr, "Failed to create DSV descriptor heap");
-
-        m_descriptorSizes[uint32(DX12DescriptorHeapType::DSV)] = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+        m_descriptorAllocators[heapIndex] = PoolNew<DX12DescriptorAllocator>(*g_renderPool, DX12DescriptorHeapType(heapIndex), MaxDescriptorsByHeapType[heapIndex]);
     }
 }
 
 void DX12DescriptorHeapManager::Shutdown()
 {
-    for (uint32 i = 0; i < uint32(DX12DescriptorHeapType::MAX); ++i)
+    for (uint32 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)
     {
-        m_descriptorHeaps[i].Reset();
-        m_descriptorSizes[i] = 0;
+        PoolDelete<DX12DescriptorAllocator>(*g_renderPool, m_descriptorAllocators[heapIndex]);
+        m_descriptorAllocators[heapIndex] = nullptr;
     }
 }
 
-uint32 DX12DescriptorHeapManager::GetDescriptorSize(DX12DescriptorHeapType heapType) const
+DX12DescriptorHandle DX12DescriptorHeapManager::Allocate(DX12DescriptorHeapType heapType, uint32 count)
 {
-    return m_descriptorSizes[uint32(heapType)];
+    const DX12Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+    const uint8 currentFrameIndex = currentFrame ? (uint8)currentFrame->GetFrameIndex() : 0;
+
+    return m_descriptorAllocators[uint32(heapType)]->Allocate(currentFrameIndex, count);
+}
+
+void DX12DescriptorHeapManager::Free(DX12DescriptorHeapType heapType, DX12DescriptorHandle&& handle)
+{
+    m_descriptorAllocators[uint32(heapType)]->Free(std::move(handle));
 }
 
 ID3D12DescriptorHeap* DX12DescriptorHeapManager::GetDescriptorHeap(DX12DescriptorHeapType heapType) const
 {
-    return m_descriptorHeaps[uint32(heapType)].Get();
+    return m_descriptorAllocators[uint32(heapType)]->heap.Get();
 }
+
+#pragma endregion DX12DescriptorHeapManager
 
 } // namespace Hyperion
