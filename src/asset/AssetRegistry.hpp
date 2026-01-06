@@ -65,48 +65,6 @@ enum AssetPackageFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
 
-class AssetPackageValidationError final : public Error
-{
-public:
-    enum ErrorCode : int
-    {
-        UNKNOWN = -1,
-        ERR_CYCLIC_DEPENDENCY
-    };
-
-    AssetPackageValidationError()
-        : Error(),
-          m_errorCode(UNKNOWN)
-    {
-    }
-
-    template <auto MessageString>
-    AssetPackageValidationError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, ErrorCode errorCode)
-        : Error(currentFunction, ValueWrapper<MessageString>()),
-          m_errorCode(errorCode)
-    {
-    }
-
-    template <auto MessageString, class... Args>
-    AssetPackageValidationError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, Args&&... args)
-        : Error(currentFunction, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
-          m_errorCode(UNKNOWN)
-    {
-    }
-
-    ~AssetPackageValidationError() = default;
-
-    HYP_FORCE_INLINE ErrorCode GetErrorCode() const
-    {
-        return m_errorCode;
-    }
-
-private:
-    ErrorCode m_errorCode;
-};
-
-using AssetPackageValidationResult = TResult<void, AssetPackageValidationError>;
-
 HYP_CLASS()
 class HYP_API AssetPackage final : public ObjectBase
 {
