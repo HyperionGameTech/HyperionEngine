@@ -94,7 +94,7 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
 {
     HYP_SCOPE;
 
-    static const AssetLoadError defaultError = HYP_MAKE_ERROR(AssetLoadError, "File could not be found", AssetLoadError::ERR_NOT_FOUND);
+    static const AssetLoadError s_defaultError = HYP_MAKE_ERROR(AssetLoadError, "File could not be found", AssetLoadError::ERR_NOT_FOUND);
 
     const FilePath originalFilepath(path);
 
@@ -149,7 +149,7 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
         }
     }
 
-    return defaultError;
+    return s_defaultError;
 }
 
 #pragma endregion AssetLoaderBase

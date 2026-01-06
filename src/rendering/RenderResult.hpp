@@ -19,16 +19,16 @@ public:
     {
     }
 
-    template <auto MessageString>
-    RendererError(const StaticMessage& currentFunction, ValueWrapper<MessageString>)
-        : Error(currentFunction, ValueWrapper<MessageString>()),
+    template <auto CurrentFunctionString, auto MessageString>
+    RendererError(ValueWrapper<CurrentFunctionString>, ValueWrapper<MessageString>)
+        : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<MessageString>()),
           m_errorCode(0)
     {
     }
 
-    template <auto MessageString, class... Args>
-    RendererError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, int errorCode, Args&&... args)
-        : Error(currentFunction, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
+    template <auto CurrentFunctionString, auto MessageString, class... Args>
+    RendererError(ValueWrapper<CurrentFunctionString>, ValueWrapper<MessageString>, int errorCode, Args&&... args)
+        : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<HYP_STATIC_STRING("[Code:{}] ").template Concat<MessageString>()>(), errorCode, std::forward<Args>(args)...),
           m_errorCode(errorCode)
     {
     }

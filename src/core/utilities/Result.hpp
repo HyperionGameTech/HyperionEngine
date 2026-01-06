@@ -37,9 +37,9 @@ public:
     {
     }
 
-    template <auto FormatString, class... Args>
-    Error(const StaticMessage& currentFunction, ValueWrapper<FormatString>, Args&&... args)
-        : m_currentFunction(currentFunction.value)
+    template <auto CurrentFunctionString, auto FormatString, class... Args>
+    Error(ValueWrapper<CurrentFunctionString>, ValueWrapper<FormatString>, Args&&... args)
+        : m_currentFunction(CurrentFunctionString.Data())
     {
         ANSIString message = Format<FormatString>(std::forward<Args>(args)...).ToAnsi();
         m_message = new char[message.Size() + 1];
@@ -137,7 +137,7 @@ protected:
     const char* m_currentFunction; // not owned
 };
 
-#define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(HYP_STATIC_MESSAGE(HYP_FUNCTION_NAME_LIT), ValueWrapper<HYP_STATIC_STRING(message)>(), ##__VA_ARGS__)
+#define HYP_MAKE_ERROR(ErrorType, message, ...) ErrorType(ValueWrapper<HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>(), ValueWrapper<HYP_STATIC_STRING(message)>(), ##__VA_ARGS__)
 
 /*! \brief A class that represents a result that can either be a value or an error.
  *  The value and error types are specified by the template parameters.
