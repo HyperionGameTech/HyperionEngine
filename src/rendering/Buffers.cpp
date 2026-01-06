@@ -97,7 +97,7 @@ struct StagingBufferPoolImpl
                 cachedBuffer.size = bufferSize;
                 cachedBuffer.lastUsedFrame = currFrame;
 
-                HYP_GFX_ASSERT(cachedBuffer.buffer != nullptr
+                Assert(cachedBuffer.buffer != nullptr
                     && cachedBuffer.buffer->IsCreated()
                     && cachedBuffer.buffer->Size() >= bufferSize);
 
@@ -182,7 +182,7 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
     m_gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, gpuBufferSize);
     m_gpuBuffer->SetRequireCpuAccessible(m_cpuAccessible);
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
-    Assert(m_gpuBuffer->Create());
+    CheckResult(m_gpuBuffer->Create());
 }
 
 void GpuBufferHolderBase::CopyStagingToGpu(

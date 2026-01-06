@@ -31,6 +31,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
@@ -451,8 +452,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 directPassDescriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frame->GetFrameIndex()));
                 directPassDescriptorSet->SetElement("LTCSampler"_sh, m_ltcSampler);
-                directPassDescriptorSet->SetElement("LTCMatrixTexture"_sh, g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
-                directPassDescriptorSet->SetElement("LTCBRDFTexture"_sh, g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
+                directPassDescriptorSet->SetElement("LTCMatrixTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcMatrixTexture));
+                directPassDescriptorSet->SetElement("LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
 
                 Assert(directPassDescriptorSet->Create());
             }
@@ -694,8 +695,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         Assert(uniformBuffer->Create());
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        descriptorSet->SetElement("IrradianceTexture"_sh, g_renderBackend->GetTextureImageView(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("RadianceTexture"_sh, g_renderBackend->GetTextureImageView(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
         descriptorSet->SetElement("Sampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         descriptorSet->SetElement("GBufferSampler"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         descriptorSet->SetElement("LightmapVolumeUniforms"_sh, uniformBuffer);
@@ -874,8 +875,8 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("DataMap"_sh, proxy->volumeTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->volumeTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
-        descriptorSet->SetElement("NoiseMap"_sh, proxy->noiseTexture != nullptr ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->noiseTexture)) : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->volumeTexture != nullptr ? MakeStrongRef(proxy->volumeTexture) : g_renderInterface->placeholderData->defaultTexture3d));
+        descriptorSet->SetElement("NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->noiseTexture != nullptr ? MakeStrongRef(proxy->noiseTexture) : g_renderInterface->placeholderData->defaultTexture3d));
         descriptorSet->SetElement("FogVolumeUniforms"_sh, data.cBuffer);
     }
 
@@ -1487,7 +1488,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
                     const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet"_sh, frameIndex);
                     Assert(descriptorSet != nullptr);
 
-                    descriptorSet->SetElement("InTexture"_sh, g_renderBackend->GetTextureImageView(ssrTexture));
+                    descriptorSet->SetElement("InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
                 }
 
                 DeferCreate(descriptorTable);
@@ -1736,7 +1737,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         CreateViewCombinePass(view, passData);
 
-        passData.reflectionsPass = CreateObject<ReflectionsPass>(passData.viewport.extent, gbuffer, g_renderBackend->GetTextureImageView(passData.mipChain), passData.combinePass->GetFinalImageView());
+        passData.reflectionsPass = CreateObject<ReflectionsPass>(passData.viewport.extent, gbuffer, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain), passData.combinePass->GetFinalImageView());
         passData.reflectionsPass->Create();
 
         passData.tonemapPass = CreateObject<TonemapPass>(passData.viewport.extent, gbuffer);
@@ -1784,7 +1785,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRend
     Assert(renderTextureToScreenShader.IsValid());
 
     const GpuImageViewRef& inputImageView = m_rendererConfig.taaEnabled
-        ? g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture())
+        ? g_renderInterface->textureViewCache->GetOrCreate(passData.temporalAa->GetResultTexture())
         : passData.tonemapPass->GetFinalImageView();
 
     Assert(inputImageView.IsValid());
@@ -1850,10 +1851,10 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
 
         descriptorSet->SetElement("GBufferDepthTexture"_sh, depthAttachment->GetImageView());
-        descriptorSet->SetElement("GBufferMipChain"_sh, g_renderBackend->GetTextureImageView(passData.mipChain));
+        descriptorSet->SetElement("GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
         descriptorSet->SetElement("PostProcessingUniforms"_sh, passData.postProcessing->GetUniformBuffer());
         descriptorSet->SetElement("DepthPyramidResult"_sh, passData.depthPyramidRenderer->GetResultImageView());
-        descriptorSet->SetElement("TAAResultTexture"_sh, g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture()));
+        descriptorSet->SetElement("TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.temporalAa->GetResultTexture()));
 
         // Set SSR texture - use placeholder if not available yet
         Texture* ssrTexture = passData.reflectionsPass->ShouldRenderSSR()
@@ -1862,7 +1863,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         if (ssrTexture)
         {
-            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderBackend->GetTextureImageView(MakeStrongRef(ssrTexture)));
+            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(ssrTexture)));
             passData.cachedSsrTexture = ssrTexture;
         }
         else
@@ -1873,7 +1874,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         if (passData.ssgi)
         {
-            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderBackend->GetTextureImageView(passData.ssgi->GetFinalResultTexture()));
+            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.ssgi->GetFinalResultTexture()));
         }
         else
         {
@@ -1911,7 +1912,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
         }
         
 
-        HYP_GFX_ASSERT(descriptorSet->Create());
+        CheckResult(descriptorSet->Create());
 
         descriptorSets[frameIndex] = std::move(descriptorSet);
     }
@@ -1995,7 +1996,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
     InitObject(defaultMesh);
 
     GpuBlasRef blas = MeshBlasBuilder::Build(defaultMesh);
-    HYP_GFX_ASSERT(blas->Create());
+    CheckResult(blas->Create());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -2004,7 +2005,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
         tlas = g_renderBackend->MakeTLAS();
         tlas->AddGpuBlas(blas);
 
-        HYP_GFX_ASSERT(tlas->Create());
+        CheckResult(tlas->Create());
     }
 }
 
@@ -2057,7 +2058,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.reflectionsPass = CreateObject<ReflectionsPass>(
         newSize,
         gbuffer,
-        g_renderBackend->GetTextureImageView(passData.mipChain),
+        g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain),
         passData.combinePass->GetFinalImageView());
     passData.reflectionsPass->Create();
 
@@ -2503,7 +2504,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                     continue;
                 }
 
-                passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderBackend->GetTextureImageView(MakeStrongRef(currentSsrTexture)));
+                passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(currentSsrTexture)));
             }
 
             passData.cachedSsrTexture = currentSsrTexture;
@@ -2581,7 +2582,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             if (tlas && tlas->IsCreated())
             {
-                HYP_GFX_ASSERT(tlas->GetMeshDescriptionsBuffer() != nullptr);
+                Assert(tlas->GetMeshDescriptionsBuffer() != nullptr);
 
                 raytracingPassData->parentPass = &passData;
 
@@ -2857,7 +2858,7 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
             const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
             blas->SetMaterialBinding(materialBinding);
 
-            HYP_GFX_ASSERT(blas->Create());
+            CheckResult(blas->Create());
         }
         else
         {
@@ -2884,7 +2885,7 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
         {
             for (GpuTlasRef& tlas : pd->raytracingTlases)
             {
-                HYP_GFX_ASSERT(tlas->Create());
+                CheckResult(tlas->Create());
             }
         }
 

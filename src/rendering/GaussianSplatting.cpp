@@ -92,11 +92,11 @@ struct CreateGaussianSplattingInstanceBuffers : RenderCommand
 
         const SizeType numPoints = model->points.Size();
 
-        HYP_GFX_CHECK(splatBuffer->Create());
+        CheckResultOrReturn(splatBuffer->Create());
 
         splatBuffer->Copy(splatBuffer->Size(), model->points.Data());
 
-        HYP_GFX_CHECK(splatIndicesBuffer->Create());
+        CheckResultOrReturn(splatIndicesBuffer->Create());
 
         // Set default indices
         GaussianSplatIndex* indicesBufferData = new GaussianSplatIndex[splatIndicesBuffer->Size() / sizeof(GaussianSplatIndex)];
@@ -131,10 +131,10 @@ struct CreateGaussianSplattingInstanceBuffers : RenderCommand
             model->transform.GetMatrix()
         };
 
-        HYP_GFX_CHECK(sceneBuffer->Create());
+        CheckResultOrReturn(sceneBuffer->Create());
         sceneBuffer->Copy(sizeof(GaussianSplattingSceneShaderData), &gaussianSplattingSceneShaderData);
 
-        HYP_GFX_CHECK(indirectBuffer->Create());
+        CheckResultOrReturn(indirectBuffer->Create());
 
         HYPERION_RETURN_OK;
     }
@@ -162,10 +162,10 @@ struct CreateGaussianSplattingIndirectBuffers : RenderCommand
 
         if (!stagingBuffer->IsCreated())
         {
-            HYP_GFX_CHECK(stagingBuffer->Create());
+            CheckResultOrReturn(stagingBuffer->Create());
         }
 
-        HYP_GFX_CHECK(stagingBuffer->EnsureCapacity(byteBuffer.Size()));
+        CheckResultOrReturn(stagingBuffer->EnsureCapacity(byteBuffer.Size()));
 
         stagingBuffer->Copy(byteBuffer.Size(), byteBuffer.Data());
 

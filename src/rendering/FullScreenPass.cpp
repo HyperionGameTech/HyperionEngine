@@ -19,6 +19,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -169,7 +170,7 @@ GpuImageViewRef FullScreenPass::GetFinalImageView() const
     {
         Assert(m_temporalBlending != nullptr);
 
-        return g_renderBackend->GetTextureImageView(m_temporalBlending->GetResultTexture());
+        return g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
     }
 
     if (ShouldRenderHalfRes())
@@ -204,7 +205,7 @@ GpuImageViewRef FullScreenPass::GetPreviousFrameColorImageView() const
 
     if (m_previousTexture.IsValid())
     {
-        return g_renderBackend->GetTextureImageView(m_previousTexture);
+        return g_renderInterface->textureViewCache->GetOrCreate(m_previousTexture);
     }
 
     return GpuImageViewRef::Null();
@@ -556,7 +557,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         uniforms.dimensions = m_extent;
 
         mergeHalfResTexturesUniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-        HYP_GFX_ASSERT(mergeHalfResTexturesUniformBuffer->Create());
+        CheckResult(mergeHalfResTexturesUniformBuffer->Create());
         mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
     }
 

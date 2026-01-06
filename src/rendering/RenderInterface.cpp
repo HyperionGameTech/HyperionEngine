@@ -23,6 +23,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -1506,6 +1507,8 @@ void EndFrameRender()
     g_renderBackend->ReleaseTransientMemory();
     g_renderBackend->NextFrame();
 
+    g_renderInterface->textureViewCache->CleanupUnusedTextures();
+
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
     AtomicIncrement(&s_frameCounter);
@@ -1525,6 +1528,7 @@ RenderInterface::RenderInterface()
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       finalPass(nullptr),
+      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
       shaderPropertyCache(PoolNew<ShaderPropertyCache>(*g_renderPool))
 {
     AssertOnThread(g_renderThread);
@@ -1618,6 +1622,9 @@ RenderInterface::~RenderInterface()
 
     globalDescriptorTable.Reset();
 
+    PoolDelete(*g_renderPool, textureViewCache);
+    textureViewCache = nullptr;
+
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;
 
@@ -1709,7 +1716,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
     GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
     blueNoiseBuffer->SetRequireCpuAccessible(true);
-    HYP_GFX_ASSERT(blueNoiseBuffer->Create());
+    CheckResult(blueNoiseBuffer->Create());
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
     blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
     blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
@@ -1727,7 +1734,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 
     GpuBufferRef sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
     sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
-    HYP_GFX_ASSERT(sphereSamplesBuffer->Create());
+    CheckResult(sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];
 
@@ -1794,7 +1801,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     for (uint32 i = 0; i < MaxBoundReflectionProbes; i++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement(NAME("EnvProbeTextures"), i, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+            ->SetElement(NAME("EnvProbeTextures"), i, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
     }
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
@@ -1834,7 +1841,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
         for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
             globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-                ->SetElement("Textures"_sh, textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+                ->SetElement("Textures"_sh, textureIndex, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
         }
     }
     else
@@ -1842,7 +1849,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
         for (Name textureName : Material::s_textureNames)
         {
             globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-                ->SetElement(textureName, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+                ->SetElement(textureName, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
         }
     }
 }

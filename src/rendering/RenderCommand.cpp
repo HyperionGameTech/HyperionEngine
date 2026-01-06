@@ -73,8 +73,7 @@ void RenderCommands::Flush()
         HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, bufferIndex);
 #endif
 
-        const RendererResult commandResult = front->Call();
-        HYP_GFX_ASSERT(commandResult, "Render command error! [%d]: %s\n", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage());
+        CheckResult(front->Call());
         front->~RenderCommand();
     }
 
@@ -110,8 +109,7 @@ void RenderCommands::Flush()
         HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, bufferIndex);
 #endif
 
-        const RendererResult commandResult = front->Call();
-        HYP_GFX_ASSERT(commandResult, "Render command error! [%d]: %s\n", commandResult.GetError().GetErrorCode(), commandResult.GetError().GetMessage());
+        CheckResult(front->Call());
 
         front->~RenderCommand();
     }

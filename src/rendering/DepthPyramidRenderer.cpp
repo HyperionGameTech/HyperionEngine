@@ -77,7 +77,7 @@ void DepthPyramidRenderer::Create()
         AssertOnThread(g_renderThread);
 
         m_depthPyramidSampler = g_renderBackend->MakeSampler(TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE);
-        HYP_GFX_ASSERT(m_depthPyramidSampler->Create());
+        CheckResult(m_depthPyramidSampler->Create());
 
         const GpuImageRef& depthImage = m_depthImageView->GetImage();
         Assert(depthImage.IsValid());
@@ -130,12 +130,12 @@ void DepthPyramidRenderer::Create()
 
             GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DepthPyramidUniforms)));
             mipUniformBuffer->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_UniformBuffer", mipLevel));
-            HYP_GFX_ASSERT(mipUniformBuffer->Create());
+            CheckResult(mipUniformBuffer->Create());
             mipUniformBuffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 
             GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(g_renderBackend->MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
             mipImageView->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_ImageView", mipLevel));
-            HYP_GFX_ASSERT(mipImageView->Create());
+            CheckResult(mipImageView->Create());
         }
 
         ShaderRef shader = g_shaderManager->GetOrCreate(NAME("GenerateDepthPyramid"), {});
@@ -161,7 +161,7 @@ void DepthPyramidRenderer::Create()
         {
             DescriptorTableRef& descriptorTable = m_mipDescriptorTables[mipLevel];
 
-            const auto setDescriptorSetElements = [&]()
+            const auto SetDescriptors = [&]()
             {
                 for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
                 {
@@ -190,13 +190,13 @@ void DepthPyramidRenderer::Create()
             {
                 descriptorTable = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
 
-                setDescriptorSetElements();
+                SetDescriptors();
 
-                HYP_GFX_ASSERT(descriptorTable->Create());
+                CheckResult(descriptorTable->Create());
             }
             else
             {
-                setDescriptorSetElements();
+                SetDescriptors();
 
                 for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
                 {

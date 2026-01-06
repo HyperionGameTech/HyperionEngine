@@ -11,6 +11,7 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -56,7 +57,7 @@ void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
         // set dummy placeholder textures for each material
         for (Name textureName : Material::s_textureNames)
         {
-            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
         }
 
         DeferCreate(m_fallbackMaterialDescriptorSets[frameIndex]);
@@ -123,7 +124,7 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
         // set dummy placeholder textures for each material
         for (Name textureName : Material::s_textureNames)
         {
-            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(textureName, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
         }
 
         descriptorSets[frameIndex] = std::move(descriptorSet);
@@ -196,14 +197,14 @@ FixedArray<DescriptorSetRef, NumFramesInFlight> MaterialDescriptorSetManager::Al
 
                 if (texture != nullptr)
                 {
-                    descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(texture));
+                    descriptorSet->SetElement(textureName, g_renderInterface->textureViewCache->GetOrCreate(texture));
 
                     continue;
                 }
             }
 
             // set placeholder texture
-            descriptorSet->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement(textureName, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
         }
 
         descriptorSets[frameIndex] = std::move(descriptorSet);

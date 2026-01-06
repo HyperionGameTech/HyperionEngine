@@ -41,7 +41,7 @@ public:
     BindVertexBuffer(GpuBuffer* buffer)
         : m_buffer(buffer)
     {
-        HYP_GFX_ASSERT(buffer && buffer->IsCreated());
+        Assert(buffer && buffer->IsCreated());
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -64,7 +64,7 @@ public:
     BindIndexBuffer(GpuBuffer* buffer)
         : m_buffer(buffer)
     {
-        HYP_GFX_ASSERT(buffer && buffer->IsCreated());
+        Assert(buffer && buffer->IsCreated());
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -114,9 +114,9 @@ public:
         : m_buffer(buffer),
           m_bufferOffset(bufferOffset)
     {
-        HYP_GFX_ASSERT(buffer != nullptr && buffer->IsCreated());
+        Assert(buffer != nullptr && buffer->IsCreated());
 #if HYP_VULKAN
-        HYP_GFX_ASSERT(bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= buffer->Size());
+        Assert(bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= buffer->Size());
 #endif
     }
 

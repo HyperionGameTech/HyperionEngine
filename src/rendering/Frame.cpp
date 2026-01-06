@@ -12,7 +12,7 @@
 namespace Hyperion {
 void FrameBase::MarkDescriptorSetUsed(DescriptorSet* descriptorSet)
 {
-    HYP_GFX_ASSERT(descriptorSet != nullptr);
+    Assert(descriptorSet != nullptr);
 
     m_usedDescriptorSets.Insert(descriptorSet);
 
@@ -25,7 +25,7 @@ void FrameBase::UpdateUsedDescriptorSets()
 {
     for (DescriptorSet* descriptorSet : m_usedDescriptorSets)
     {
-        HYP_GFX_ASSERT(descriptorSet->IsCreated(),
+        Assert(descriptorSet->IsCreated(),
             "Descriptor set '%s' is not yet created when updating the frame's used descriptor sets!",
             descriptorSet->GetLayout().GetName().LookupString());
 

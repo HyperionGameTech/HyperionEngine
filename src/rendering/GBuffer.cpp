@@ -106,7 +106,7 @@ void GBuffer::Create()
 
     for (const FramebufferRef& framebuffer : m_framebuffers)
     {
-        HYP_GFX_ASSERT(framebuffer->Create());
+        CheckResult(framebuffer->Create());
     }
 
     m_isCreated = true;
@@ -139,7 +139,7 @@ void GBuffer::Resize(Vec2u extent)
     {
         for (const FramebufferRef& framebuffer : m_framebuffers)
         {
-            HYP_GFX_ASSERT(framebuffer->Create());
+            CheckResult(framebuffer->Create());
         }
 
         OnGBufferResolutionChanged(m_extent);

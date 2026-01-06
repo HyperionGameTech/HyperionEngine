@@ -34,8 +34,6 @@ class VulkanDescriptorSetLayoutWrapper;
 
 class VulkanDescriptorSetManager;
 
-class VulkanTextureCache;
-
 struct VulkanDynamicFunctions
 {
     static void Load(VulkanDevice* device);
@@ -161,8 +159,6 @@ public:
         const Mat4f& transform) override;
     VulkanGpuTlasRef MakeTLAS() override;
 
-    const VulkanGpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) override;
-
     void PopulateIndirectDrawCommandsBuffer(const VulkanGpuBufferRef& vertexBuffer, const VulkanGpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
 
     TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
@@ -204,8 +200,6 @@ private:
     VulkanAsyncCompute* m_asyncCompute;
 
     HashMap<DefaultImageFormat, TextureFormat> m_defaultFormats;
-
-    Pimpl<VulkanTextureCache> m_textureCache;
 
     FixedArray<VulkanFrameRef, NumFramesInFlight> m_frames;
     uint32 m_currentFrameIndex;

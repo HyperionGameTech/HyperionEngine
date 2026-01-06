@@ -14,6 +14,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -95,7 +96,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
 
         descriptorSet->SetElement("TLAS"_sh, tlas);
         descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, tlas->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement("OutputImage"_sh, g_renderBackend->GetTextureImageView(m_texture));
+        descriptorSet->SetElement("OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
         descriptorSet->SetElement("RayTracingConstants"_sh, pd->constants);
         descriptorSet->SetElement("Lights"_sh, pd->lightsBuffer);
         descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
@@ -117,7 +118,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("RTRadianceResultTexture"_sh, g_renderBackend->GetTextureImageView(m_temporalBlending->GetResultTexture()));
+                ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture()));
         }
     }
     
@@ -356,7 +357,7 @@ void RaytracingReflections::CreateTemporalBlending()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
             : TemporalBlendTechnique::TECHNIQUE_1,
         DefaultTemporalBlendingFeedback,
-        g_renderBackend->GetTextureImageView(m_texture),
+        g_renderInterface->textureViewCache->GetOrCreate(m_texture),
         m_gbuffer);
 
     m_temporalBlending->Create();
