@@ -41,7 +41,7 @@ public:
     Error(const StaticMessage& currentFunction, ValueWrapper<FormatString>, Args&&... args)
         : m_currentFunction(currentFunction.value)
     {
-        String message = Format<FormatString>(std::forward<Args>(args)...);
+        ANSIString message = Format<FormatString>(std::forward<Args>(args)...).ToAnsi();
         m_message = new char[message.Size() + 1];
         Memory::StrCpy(m_message, message.Data(), message.Size() + 1);
         m_message[message.Size()] = '\0';
@@ -53,8 +53,9 @@ public:
     {
         if (other.m_message != nullptr)
         {
-            m_message = new char[Memory::StrLen(other.m_message) + 1];
-            Memory::StrCpy(m_message, other.m_message, Memory::StrLen(other.m_message) + 1);
+            const SizeType length = Memory::StrLen(other.m_message);
+            m_message = new char[length + 1];
+            Memory::StrCpy(m_message, other.m_message, length + 1);
         }
     }
 
@@ -75,8 +76,9 @@ public:
 
         if (other.m_message != nullptr)
         {
-            m_message = new char[Memory::StrLen(other.m_message) + 1];
-            Memory::StrCpy(m_message, other.m_message, Memory::StrLen(other.m_message) + 1);
+            const SizeType length = Memory::StrLen(other.m_message);
+            m_message = new char[length + 1];
+            Memory::StrCpy(m_message, other.m_message, length + 1);
         }
 
         return *this;
@@ -116,15 +118,16 @@ public:
         if (m_message != nullptr)
         {
             delete[] m_message;
+            m_message = nullptr;
         }
     }
 
-    const char* GetMessage() const
+    HYP_FORCE_INLINE const char* GetMessage() const
     {
         return m_message ? m_message : "";
     }
 
-    const char* GetFunctionName() const
+    HYP_FORCE_INLINE const char* GetFunctionName() const
     {
         return m_currentFunction;
     }
@@ -142,11 +145,14 @@ protected:
 template <class T = void, class ErrorType = Error>
 class TResult;
 
-template <class T, class ErrorType>
+template <class T, class TError>
 class TResult
 {
 public:
-    static_assert(std::is_base_of_v<Error, ErrorType>, "ErrorType must be a subclass of Error");
+    static_assert(std::is_base_of_v<Error, TError>, "ErrorType must be a subclass of Error");
+
+    using ValueType = T;
+    using ErrorType = TError;
 
     // friend decl
     template <class OtherT, class OtherErrorType>
@@ -426,11 +432,14 @@ private:
     Variant<T, Pimpl<ErrorType>> m_value;
 };
 
-template <class ErrorType>
-class TResult<void, ErrorType>
+template <class TError>
+class TResult<void, TError>
 {
 public:
-    static_assert(std::is_base_of_v<Error, ErrorType>, "ErrorType must be a subclass of Error");
+    static_assert(std::is_base_of_v<Error, TError>, "ErrorType must be a subclass of Error");
+
+    using ValueType = void;
+    using ErrorType = TError;
 
     TResult() = default;
 
@@ -589,11 +598,41 @@ public:
     }
 };
 
+template <class T>
+concept ResultType = std::is_same_v<T, Result> || (std::is_class_v<T> && std::is_base_of_v<TResult<typename T::ValueType, typename T::ErrorType>, T>);
+
+template <ResultType TResultType>
+static inline bool CheckResult(const TResultType& result)
+{
+    static constexpr const char* NoMessageText = "<no message>";
+
+#ifdef HYP_DEBUG_MODE
+    Assert(result, "Result check failed: {}", result.HasError() ? result.GetError().GetMessage() : NoMessageText);
+#else
+    if (HYP_UNLIKELY(!result))
+        HYP_FAIL("Result check failed: {}", result.HasError() ? result.GetError().GetMessage() : NoMessageText);
+#endif
+
+    return bool(result);
+}
+
+/// On error, exits the current functon returning the result
+#define CheckResultOrReturn(result)                                  \
+    do                                                               \
+    {                                                                \
+        const auto _result = (result);                               \
+        if (!CheckResult(_result))                                   \
+            return _result.GetError();                               \
+    }                                                                \
+    while (0)
+
 } // namespace utilities
 
 using utilities::Error;
 using utilities::GetNullError;
 using utilities::Result;
 using utilities::TResult;
+using utilities::CheckResult;
+using utilities::ResultType;
 
 } // namespace Hyperion

@@ -6,16 +6,4 @@
 
 namespace Hyperion {
 
-bool CheckResult(const RendererResult& result)
-{
-    Assert(result, "Renderer error [{}]: {}", result.GetError().GetErrorCode(), *result.GetError().GetMessage());
-
-    if (!result)
-    {
-        return false;
-    }
-
-    return true;
-}
-
 } // namespace Hyperion
