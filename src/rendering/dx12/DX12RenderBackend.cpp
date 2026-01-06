@@ -83,9 +83,7 @@ RendererResult DX12RenderBackend::Initialize()
 
     HRESULT res = CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory));
     if (!SUCCEEDED(res))
-    {
         return HYP_MAKE_ERROR(RendererError, "Failed to create DXGI Factory", res);
-    }
 
     ComPtr<IDXGIFactory6> factory6;
 
@@ -96,7 +94,7 @@ RendererResult DX12RenderBackend::Initialize()
                  i,
                  DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
                  IID_PPV_ARGS(&m_hardwareAdapter)));
-             ++i) 
+             ++i)
         {
             DXGI_ADAPTER_DESC1 desc;
             m_hardwareAdapter->GetDesc1(&desc);
@@ -104,10 +102,8 @@ RendererResult DX12RenderBackend::Initialize()
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr))) 
-            {
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
                 break;
-            }
         }
     } 
     else
@@ -119,35 +115,39 @@ RendererResult DX12RenderBackend::Initialize()
 
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
-        
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr))) 
-            {
+
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
                 break;
-            }
         }
     }
 
     // create device
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
     if (!SUCCEEDED(res))
-    {
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
-    }
 
     // create queues
-    D3D12_COMMAND_QUEUE_DESC directDesc = {};
+    D3D12_COMMAND_QUEUE_DESC directDesc {};
     directDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     directDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
     m_device->CreateCommandQueue(&directDesc, IID_PPV_ARGS(&m_directQueue));
 
-    D3D12_COMMAND_QUEUE_DESC computeDesc = {};
+    D3D12_COMMAND_QUEUE_DESC computeDesc {};
     computeDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
     computeDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
     m_device->CreateCommandQueue(&computeDesc, IID_PPV_ARGS(&m_computeQueue));
 
-    D3D12_COMMAND_QUEUE_DESC copyDesc = {};
+    D3D12_COMMAND_QUEUE_DESC copyDesc {};
     copyDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
     m_device->CreateCommandQueue(&copyDesc, IID_PPV_ARGS(&m_copyQueue));
+
+    D3D12MA::ALLOCATOR_DESC allocatorDesc {};
+    allocatorDesc.pDevice = m_device.Get();
+    allocatorDesc.pAdapter = m_hardwareAdapter.Get();
+
+    res = D3D12MA::CreateAllocator(&allocatorDesc, &m_allocator);
+    if (!SUCCEEDED(res))
+        return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MemoryAllocator instance!", res);
 
     HYPERION_RETURN_OK;
 }
@@ -159,9 +159,14 @@ RendererResult DX12RenderBackend::Destroy()
     m_directQueue.Reset();
     m_computeQueue.Reset();
     m_copyQueue.Reset();
+
+    m_allocator->Release();
+    m_allocator = nullptr;
+
     m_device.Reset();
-    m_dxgiFactory.Reset();
     m_hardwareAdapter.Reset();
+    
+    m_dxgiFactory.Reset();
 
     HYPERION_RETURN_OK;
 }

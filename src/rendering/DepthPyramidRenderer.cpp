@@ -15,6 +15,7 @@
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/RenderBackend.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 

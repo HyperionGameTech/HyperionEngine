@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "Game.hpp"
 #include <HyperionPch.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -8,6 +7,7 @@
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
 #include <engine/DebugDrawer.hpp>
+#include <engine/Game.hpp>
 
 #include <engine/threads/SimThread.hpp>
 #include <engine/threads/MainThread.hpp>

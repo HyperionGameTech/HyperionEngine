@@ -7,7 +7,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
-
 #include <rendering/Texture.hpp>
 
 namespace Hyperion {
