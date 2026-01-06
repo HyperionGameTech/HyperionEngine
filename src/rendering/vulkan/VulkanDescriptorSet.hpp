@@ -27,7 +27,7 @@ namespace Hyperion {
 
 class VulkanDescriptorSetLayoutWrapper;
 
-struct VulkanDescriptorElementInfo
+struct VulkanCachedDescriptor
 {
     uint32 binding;
     uint32 index;
@@ -40,12 +40,12 @@ struct VulkanDescriptorElementInfo
         VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo;
     };
 
-    HYP_FORCE_INLINE bool operator==(const VulkanDescriptorElementInfo& other) const
+    HYP_FORCE_INLINE bool operator==(const VulkanCachedDescriptor& other) const
     {
-        return Memory::MemCmp(this, &other, sizeof(VulkanDescriptorElementInfo)) == 0;
+        return Memory::MemCmp(this, &other, sizeof(VulkanCachedDescriptor)) == 0;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const VulkanDescriptorElementInfo& other) const
+    HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptor& other) const
     {
         return !(*this == other);
     }
@@ -56,7 +56,7 @@ class VulkanDescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(VulkanDescriptorSet);
 
-    using ElementCache = HashMap<Name, Array<VulkanDescriptorElementInfo>>;
+    using ElementCache = HashMap<Name, Array<VulkanCachedDescriptor>>;
 
 public:
     VulkanDescriptorSet(const DescriptorSetLayout& layout);
@@ -98,7 +98,7 @@ protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;
-    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos; // @TODO Change to VkWriteDescriptorSet
+    Array<VulkanCachedDescriptor> m_pendingDescriptors;
     ElementCache m_cachedElements;
 };
 
