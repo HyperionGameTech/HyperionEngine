@@ -38,7 +38,7 @@ bool DX12GpuBlas::IsCreated() const
 RendererResult DX12GpuBlas::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12GpuBlas::SetTransform(const Mat4f& transform)
@@ -89,13 +89,13 @@ bool DX12GpuTlas::HasGpuBlas(const GpuBlasRef& blas)
 RendererResult DX12GpuTlas::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

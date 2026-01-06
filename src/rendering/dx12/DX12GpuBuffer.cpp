@@ -167,7 +167,7 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::EnsureCapacity() not implemented");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuBuffer::EnsureCapacity(
@@ -178,7 +178,7 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::EnsureCapacity() not implemented");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12GpuBuffer::Memset(SizeType count, ubyte value)

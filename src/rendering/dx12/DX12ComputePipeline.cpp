@@ -35,7 +35,7 @@ bool DX12ComputePipeline::IsCreated() const
 RendererResult DX12ComputePipeline::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12ComputePipeline::Bind(CommandBuffer* commandBuffer)

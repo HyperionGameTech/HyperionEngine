@@ -36,13 +36,13 @@ bool DX12Frame::IsCreated() const
 RendererResult DX12Frame::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12Frame::ResetFrameState()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #pragma endregion DX12Frame

@@ -65,7 +65,7 @@ struct AddUIRendererForView : RenderCommand
         {
             HYP_LOG(UI, Warning, "AddUIRendererForView: view is expired");
 
-            HYPERION_RETURN_OK;
+            return {};
         }
 
         UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
@@ -79,7 +79,7 @@ struct AddUIRendererForView : RenderCommand
 
         g_renderInterface->AddRenderer(GRT_UI, uiRenderer);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -96,7 +96,7 @@ struct RemoveUIRenderer : RenderCommand
     {
         g_renderInterface->RemoveRenderer(GRT_UI, uiRenderer);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -120,7 +120,7 @@ struct SetFinalPassImageView : RenderCommand
 
         g_renderInterface->finalPass->SetUILayerImageView(imageView);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 

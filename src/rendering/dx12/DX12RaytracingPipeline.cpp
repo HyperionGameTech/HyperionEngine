@@ -35,7 +35,7 @@ bool DX12RaytracingPipeline::IsCreated() const
 RendererResult DX12RaytracingPipeline::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12RaytracingPipeline::Bind(CommandBuffer* commandBuffer)

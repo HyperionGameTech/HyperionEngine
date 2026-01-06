@@ -24,19 +24,19 @@ DX12Fence::~DX12Fence()
 RendererResult DX12Fence::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12Fence::Wait(bool timeoutLoop)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12Fence::Reset()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #pragma endregion DX12Fence
