@@ -356,7 +356,7 @@ private:
     HYP_FIELD(Transient)
     Array<AssetPath> m_dependencies;
 
-    HYP_FIELD(Transient)
+    HYP_FIELD(NoScriptBindings, Transient)
     bool m_isLoading;
 
     WeakHandle<AssetRegistry> m_registry;

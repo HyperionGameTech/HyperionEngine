@@ -409,7 +409,7 @@ protected:
     HYP_FIELD(NoScriptBindings, Transient)
     ResourceGuard m_persistentResource;
 
-    HYP_FIELD(Transient)
+    HYP_FIELD(NoScriptBindings, Transient)
     bool m_isDirty;
 };
 
