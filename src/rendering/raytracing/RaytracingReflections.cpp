@@ -36,8 +36,6 @@ namespace Hyperion {
 
 static const Name s_shaderNames[] = { NAME("RTRadiance"), NAME("PathTracer") };
 
-HYP_DISABLE_OPTIMIZATION;
-
 #pragma region Render commands
 
 struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
