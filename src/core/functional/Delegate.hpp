@@ -53,14 +53,14 @@ class DelegateHandler;
 
 // In methods where multiple threads could attempt to acquire write access,
 // such as adding new entries, we use a mutex to ensure exclusive access.
-static constexpr uint64 g_writeFlag = 0x1;
+static constexpr uint64 ExclusiveAccessFlag = 0x1;
 
 // A mask that is written when marking an entry for removal.
 // An entry is marked for removal rather than being removed directly to limit the amount of exclusive locking required.
 
 // When calling Broadcast(), delegate will also set this mask on a handler while executing the function that is assigned to the handler,
 // preventing an entry from being deleted while it is executing (but still allowing other threads to MARK an entry for removal at a later time)
-static constexpr uint64 g_readMask = uint64(-1) & ~g_writeFlag;
+static constexpr uint64 SharedAccessMask = uint64(-1) & ~ExclusiveAccessFlag;
 
 struct DelegateHandlerEntryBase
 {
@@ -70,7 +70,7 @@ struct DelegateHandlerEntryBase
 
     ~DelegateHandlerEntryBase()
     {
-        while (HYP_UNLIKELY(mask.Get(MemoryOrder::ACQUIRE) & g_readMask))
+        while (HYP_UNLIKELY(mask.Get(MemoryOrder::ACQUIRE) & SharedAccessMask))
         {
             HYP_NAMED_SCOPE("~DelegateHandlerEntryBase() - Waiting for read scopes to finish");
             ThreadSleep(0);
@@ -278,7 +278,7 @@ public:
 
         for (DelegateHandlerEntry<ProcType>* entry : m_lists[0])
         {
-            while (HYP_UNLIKELY(entry->mask.Get(MemoryOrder::ACQUIRE) & g_readMask))
+            while (HYP_UNLIKELY(entry->mask.Get(MemoryOrder::ACQUIRE) & SharedAccessMask))
             {
                 HYP_NAMED_SCOPE("~DelegateImpl() - Waiting for read scopes to finish");
                 ThreadSleep(0);
@@ -373,8 +373,8 @@ public:
             DelegateHandlerEntry<ProcType>* current = *it;
 
             // set write mask, loop until we have exclusive access.
-            uint64 state = current->mask.BitOr(g_writeFlag, MemoryOrder::ACQUIRE);
-            while (state & g_readMask)
+            uint64 state = current->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE);
+            while (state & SharedAccessMask)
             {
                 state = current->mask.Get(MemoryOrder::ACQUIRE);
                 HYP_WAIT_IDLE();
@@ -390,6 +390,9 @@ public:
 
                 continue;
             }
+            
+            // release write flag
+            current->mask.BitAnd(~ExclusiveAccessFlag, MemoryOrder::RELEASE);
 
             ++it;
         }
@@ -457,35 +460,55 @@ public:
         {
             DelegateHandlerEntry<ProcType>* current = *it;
 
-            constexpr uint16 maxSpins = 16;
+            constexpr uint16 MaxSpins = 16;
             uint16 numSpins = 0;
 
             // set write mask, loop until we have exclusive access.
-            uint64 state = current->mask.BitOr(g_writeFlag, MemoryOrder::ACQUIRE);
-            bool hasWriteAccess = true;
+            uint64 localState = current->mask.BitOr(ExclusiveAccessFlag, MemoryOrder::ACQUIRE) | ExclusiveAccessFlag;
 
-            while ((state & g_readMask))
+            bool hasExclusiveAccess = true;
+            bool hasSharedAccess = false;
+
+            while ((localState & SharedAccessMask))
             {
                 HYP_WAIT_IDLE();
-                state = current->mask.Get(MemoryOrder::ACQUIRE);
+                localState = current->mask.Get(MemoryOrder::ACQUIRE);
 
-                if (!(state & g_readMask))
+                if (!(localState & SharedAccessMask))
                 {
-                    // acquired
+                    // acquired exclusively
                     break;
                 }
 
-                if (++numSpins == maxSpins)
+                if (++numSpins == MaxSpins)
                 {
-                    // release write flag
-                    current->mask.BitAnd(~g_writeFlag, MemoryOrder::RELEASE);
-                    state &= ~g_writeFlag;
-                    hasWriteAccess = false;
+                    // release exclusive flag, attempt to acquire shared
+                    current->mask.BitAnd(~ExclusiveAccessFlag, MemoryOrder::RELEASE);
+                    localState &= ~ExclusiveAccessFlag;
+                    localState = current->mask.Increment(2, MemoryOrder::ACQUIRE_RELEASE);
+
+                    hasExclusiveAccess = false;
+
+                    if (!(localState & ExclusiveAccessFlag))
+                    {
+                        localState += 2;
+                        hasSharedAccess = true;
+                    }
+                    else
+                    {
+                        // shared access acquire failed
+                        current->mask.Decrement(2, MemoryOrder::RELEASE);
+                        hasSharedAccess = false;
+                    }
+
                     break;
                 }
             }
 
-            if (hasWriteAccess)
+            // Exclsuive access implies shared access
+            hasSharedAccess |= hasExclusiveAccess;
+
+            if (hasExclusiveAccess)
             {
                 if (current->IsMarkedForRemoval())
                 {
@@ -498,27 +521,27 @@ public:
                     continue;
                 }
 
-                // While we still have write access, mark the mask for reading, so we can prevent writes while calling
+                // While we still have exclusive access, mark the mask for reading, so we can prevent writes while calling
                 current->mask.Increment(2, MemoryOrder::RELEASE);
 
-                // Release write access
-                current->mask.BitAnd(~g_writeFlag, MemoryOrder::RELEASE);
+                // Release exclusive access
+                current->mask.BitAnd(~ExclusiveAccessFlag, MemoryOrder::RELEASE);
+            }
+            else if (hasSharedAccess)
+            {
+                if (current->IsMarkedForRemoval())
+                {
+                    // release read access if marked for removal
+                    current->mask.Decrement(2, MemoryOrder::RELEASE);
+                        
+                    // skip broadcast
+                    continue;
+                }
             }
             else
             {
-                // While we still have write access, mark the mask for reading, so we can prevent writes while calling
-                current->mask.Increment(2, MemoryOrder::RELEASE);
-
-                const bool markedForRemoval = current->IsMarkedForRemoval();
-
-                current->mask.Decrement(2, MemoryOrder::RELEASE);
-
-                if (markedForRemoval)
-                {
-                    // skip broadcast
-
-                    continue;
-                }
+                // no access - skip broadcast (read access already released due to failing to acquire read access)
+                continue;
             }
 
             if constexpr (!std::is_void_v<ReturnType>)
@@ -629,7 +652,7 @@ protected:
         }
 
         uint64 state;
-        while (((state = entry->mask.Increment(2, MemoryOrder::ACQUIRE)) & g_writeFlag))
+        while (((state = entry->mask.Increment(2, MemoryOrder::ACQUIRE)) & ExclusiveAccessFlag))
         {
             entry->mask.Decrement(2, MemoryOrder::RELAXED);
             // wait for write flag to be released
@@ -763,7 +786,7 @@ public:
     {
         TSharedLock guard(m_mtx);
 
-        if (m_impl == nullptr)
+        if (!m_impl)
         {
             return false;
         }
@@ -781,14 +804,16 @@ public:
     {
         TSharedLock guard(m_mtx);
 
-        if (m_impl == nullptr)
+        if (!m_impl)
         {
             guard.Reset();
 
             {
                 TUniqueLock guard2(m_mtx);
 
-                m_impl = new DelegateImpl<ReturnType, Args...>();
+                // check still nullptr after acquiring unique lock
+                if (!m_impl)
+                    m_impl = new DelegateImpl<ReturnType, Args...>();
             }
 
             guard.Reset(m_mtx);
@@ -808,14 +833,16 @@ public:
     {
         TSharedLock guard(m_mtx);
 
-        if (m_impl == nullptr)
+        if (!m_impl)
         {
             guard.Reset();
 
             {
                 TUniqueLock guard2(m_mtx);
-
-                m_impl = new DelegateImpl<ReturnType, Args...>();
+                
+                // check still nullptr after acquiring unique lock
+                if (!m_impl)
+                    m_impl = new DelegateImpl<ReturnType, Args...>();
             }
 
             guard.Reset(m_mtx);
@@ -831,7 +858,7 @@ public:
     {
         TSharedLock guard(m_mtx);
 
-        if (m_impl == nullptr)
+        if (!m_impl)
         {
             return 0;
         }
@@ -843,7 +870,7 @@ public:
     {
         TSharedLock guard(m_mtx);
 
-        if (m_impl == nullptr)
+        if (!m_impl)
         {
             return false;
         }
@@ -860,7 +887,7 @@ public:
     {
         TSharedLock guard(m_mtx);
 
-        if (m_impl == nullptr)
+        if (!m_impl)
         {
             if constexpr (!std::is_void_v<ReturnType>)
             {

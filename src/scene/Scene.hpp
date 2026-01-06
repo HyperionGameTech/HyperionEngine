@@ -59,31 +59,6 @@ enum class SceneFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);
 
-class SceneValidationError final : public Error
-{
-public:
-    SceneValidationError()
-        : Error()
-    {
-    }
-
-    template <auto MessageString, class... Args>
-    SceneValidationError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, Args&&... args)
-        : Error(currentFunction, ValueWrapper<MessageString>(), std::forward<Args>(args)...)
-    {
-    }
-
-    ~SceneValidationError() = default;
-};
-
-using SceneValidationResult = TResult<void, SceneValidationError>;
-
-class HYP_API SceneValidation
-{
-public:
-    static SceneValidationResult ValidateScene(const Scene* scene);
-};
-
 extern void Scene_OnPostLoad(Scene& scene);
 
 HYP_CLASS(PostLoad = "Scene_OnPostLoad")
