@@ -15,6 +15,13 @@
 namespace Hyperion {
 
 class DX12RenderConfig;
+class DX12DescriptorHeapManager;
+
+struct DX12QueueData
+{
+    ComPtr<ID3D12CommandQueue> commandQueue;
+    FixedArray<ComPtr<ID3D12CommandAllocator>, NumFramesInFlight> commandAllocators;
+};
 
 class DX12RenderBackend final : public IRenderBackend
 {
@@ -27,19 +34,12 @@ public:
         return m_device.Get();
     }
 
-    HYP_FORCE_INLINE ID3D12CommandQueue* GetDirectQueue() const
+    HYP_FORCE_INLINE const DX12QueueData* GetQueueData(D3D12_COMMAND_LIST_TYPE commandListType) const
     {
-        return m_directQueue.Get();
-    }
-    
-    HYP_FORCE_INLINE ID3D12CommandQueue* GetComputeQueue() const
-    {
-        return m_computeQueue.Get();
-    }
-
-    HYP_FORCE_INLINE ID3D12CommandQueue* GetCopyQueue() const
-    {
-        return m_copyQueue.Get();
+        auto it = m_queueData.Find(commandListType);
+        if (it != m_queueData.End())
+            return &it->second;
+        return nullptr;
     }
 
     HYP_FORCE_INLINE D3D12MA::Allocator* GetAllocator() const
@@ -123,22 +123,22 @@ public:
 
     void NextFrame() override;
 
+    DX12DescriptorHeapManager* descriptorHeapManager;
+
 private:
     Pimpl<DX12RenderConfig> m_renderConfig;
 
     FixedArray<DX12FrameRef, NumFramesInFlight> m_frames;
     uint32 m_currentFrameIndex;
 
-    FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
+    DX12CommandBufferRef m_commandBuffer;
     
     ComPtr<IDXGIFactory4> m_dxgiFactory;
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 
     ComPtr<ID3D12Device> m_device;
 
-    ComPtr<ID3D12CommandQueue> m_directQueue;
-    ComPtr<ID3D12CommandQueue> m_computeQueue;
-    ComPtr<ID3D12CommandQueue> m_copyQueue;
+    FlatMap<D3D12_COMMAND_LIST_TYPE, DX12QueueData> m_queueData;
 
     D3D12MA::Allocator* m_allocator;
 };

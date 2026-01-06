@@ -202,7 +202,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
     const TextureType type = GetType();
 
     const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
-    const bool isRwTexture = m_textureDesc.imageUsage[IU_STORAGE];
+    const bool isRWTexture = m_textureDesc.imageUsage[IU_STORAGE];
     const bool isExternalMemory = m_textureDesc.imageUsage[IU_EXTERNAL];
 
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
@@ -233,7 +233,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /* for mip chain */
     }
 
-    if (isRwTexture)
+    if (isRWTexture)
     {
         m_usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT
             | VK_IMAGE_USAGE_TRANSFER_DST_BIT

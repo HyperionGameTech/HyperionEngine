@@ -25,6 +25,16 @@ class DX12GpuBuffer final : public GpuBufferBase
 public:
     DX12GpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
     ~DX12GpuBuffer() override;
+
+    HYP_FORCE_INLINE ID3D12Resource* GetResource() const
+    {
+        return m_resource.Get();
+    }
+
+    HYP_FORCE_INLINE D3D12MA::Allocation* GetAllocation() const
+    {
+        return m_allocation.Get();
+    }
     
     RendererResult Create() override;
 

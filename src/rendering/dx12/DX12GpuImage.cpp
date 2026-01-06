@@ -7,6 +7,7 @@
 #include <rendering/dx12/DX12RenderBackend.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -25,12 +26,11 @@ DX12GpuImage::DX12GpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFla
 
 DX12GpuImage::~DX12GpuImage()
 {
-    // @TODO
 }
 
 bool DX12GpuImage::IsCreated() const
 {
-    return false;
+    return m_resource != nullptr;
 }
 
 bool DX12GpuImage::IsOwned() const
@@ -45,7 +45,115 @@ RendererResult DX12GpuImage::Create()
 
 RendererResult DX12GpuImage::Create(ResourceState initialState)
 {
-    // @TODO
+    D3D12_RESOURCE_STATES resourceStates = ToDX12ResourceStates(initialState);
+
+    const Vec3u extent = GetExtent();
+
+    const TextureFormat format = GetTextureFormat();
+    const TextureType type = GetType();
+
+    const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
+    const bool isRWTexture = m_textureDesc.imageUsage[IU_STORAGE];
+    const bool isExternalMemory = m_textureDesc.imageUsage[IU_EXTERNAL];
+
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+    const bool isBlended = m_textureDesc.IsBlended();
+    const bool isSrgb = m_textureDesc.IsSrgb();
+
+    const bool hasMipmaps = m_textureDesc.HasMipMaps();
+    const uint32 numMipmaps = m_textureDesc.NumMips();
+    const uint32 numLayers = m_textureDesc.NumArrayLayers();
+    
+    if (extent.Volume() == 0)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Invalid image extent - width*height*depth cannot equal zero");
+    }
+
+    D3D12_RESOURCE_DESC resourceDesc {};
+    resourceDesc.Alignment = 0;
+    resourceDesc.Width = extent.x;
+    resourceDesc.Height = extent.y;
+    resourceDesc.DepthOrArraySize = extent.z;
+    resourceDesc.MipLevels = 0;
+    resourceDesc.Format = ToDXGIFormat(m_textureDesc.format);
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.SampleDesc.Quality = 0;
+    resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    switch (m_textureDesc.type)
+    {
+    case TextureType::TT_TEX3D:
+        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+        break;
+    case TextureType::TT_TEX2D: // fallthrough
+    case TextureType::TT_CUBEMAP:
+    case TextureType::TT_TEX2D_ARRAY:
+    case TextureType::TT_CUBEMAP_ARRAY:
+        resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        break;
+    default:
+        HYP_UNREACHABLE();
+    }
+
+    if (isAttachmentTexture)
+    {
+        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    }
+
+    if (isDepthStencil)
+    {
+        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    }
+
+    if (isRWTexture)
+    {
+        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
+
+    if (m_textureDesc.IsTexture2DArray()
+        || m_textureDesc.IsTextureCube()
+        || m_textureDesc.IsTextureCubeArray())
+    {
+        resourceDesc.DepthOrArraySize = m_textureDesc.NumArrayLayers();
+    }
+
+    D3D12_CLEAR_VALUE clearValue {};
+    D3D12_CLEAR_VALUE* pClearValue = nullptr;
+
+    if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+    {
+        clearValue.Format = resourceDesc.Format;
+        clearValue.Color[0] = 0.0f;
+        clearValue.Color[1] = 0.0f;
+        clearValue.Color[2] = 0.0f;
+        clearValue.Color[3] = 1.0f;
+        pClearValue = &clearValue;
+    }
+    else if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+    {
+        clearValue.Format = resourceDesc.Format;
+        clearValue.DepthStencil.Depth = 1.0f;
+        clearValue.DepthStencil.Stencil = 0;
+        pClearValue = &clearValue;
+    }
+
+    D3D12MA::ALLOCATION_DESC allocDesc {};
+    allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+    HRESULT hr = g_renderBackend->GetAllocator()->CreateResource(
+        &allocDesc,
+        &resourceDesc,
+        resourceStates,
+        pClearValue,
+        &m_allocation,
+        __uuidof(ID3D12Resource),
+        &m_resource
+    );
+
+    if (!SUCCEEDED(hr))
+        return HYP_MAKE_ERROR(RendererError, "Failed to create image resource!", hr);
+
     return {};
 }
 

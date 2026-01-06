@@ -3,6 +3,8 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12Helpers.hpp>
+#include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 
 #include <rendering/Shared.hpp>
 
@@ -145,6 +147,75 @@ D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state)
     default:
         return D3D12_RESOURCE_STATE_COMMON;
     }
+}
+
+D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
+{
+    AssertDebug(buffer != nullptr);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::CBUFF);
+    AssertDebug(ByteUtil::AlignAs(buffer->Size(), 256) == buffer->Size(), "Constant buffers must be aligned by 256 bytes!");
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC desc {};
+    desc.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
+    desc.SizeInBytes = buffer->Size();
+
+    return desc;
+}
+
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer)
+{
+    AssertDebug(buffer != nullptr);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC desc {};
+    desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    desc.Buffer.FirstElement = 0;
+    desc.Buffer.NumElements = UINT(buffer->Size() / 4); // 4 byte per elem
+    desc.Buffer.StructureByteStride = 0;
+    desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+    return desc;
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer)
+{
+    AssertDebug(buffer != nullptr);
+    AssertDebug(buffer->GetBufferType() != GpuBufferType::CBUFF);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC desc {};
+    desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.Buffer.FirstElement = 0;
+    desc.Buffer.NumElements = UINT(buffer->Size());
+    desc.Buffer.StructureByteStride = 0;
+    desc.Buffer.CounterOffsetInBytes = 0;
+    desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+    return desc;
+}
+
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image)
+{
+    AssertDebug(image != nullptr);
+    D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Format = resDesc.Format; 
+    srvDesc.ViewDimension = ToDX12ViewDimension(image->GetTextureDesc().type);
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.MipLevels = -1;
+    srvDesc.Texture2D.PlaneSlice = 0;
+    srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+    return desc;
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image)
+{
+    AssertDebug(image != nullptr);
+    AssertDebug(image->GetTextureDesc().imageUsage & ImageUsage::IU_STORAGE);
 }
 
 } // namespace Hyperion

@@ -30,6 +30,11 @@ public:
 
     ~DX12GpuImageView() override;
 
+    HYP_FORCE_INLINE const D3D12_CPU_DESCRIPTOR_HANDLE& GetCpuDescriptorHandle() const
+    {
+        return m_handle;
+    }
+
     bool IsCreated() const override;
     RendererResult Create() override;
 
@@ -38,7 +43,7 @@ public:
 #endif
 
 private:
-    // @TODO: DX12 specific handles
+    D3D12_CPU_DESCRIPTOR_HANDLE m_handle;
 };
 
 } // namespace Hyperion
