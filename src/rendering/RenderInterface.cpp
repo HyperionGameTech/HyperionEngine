@@ -1555,7 +1555,7 @@ RenderInterface::RenderInterface()
     gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CBUFF>(0, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::SSBO>(0, /* cpuAccessible */ true);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     for (int i = 0; i < HYP_ARRAY_SIZE(gpuBuffers.buffers); i++)
     {
         if (!gpuBuffers.buffers[i])

@@ -3,6 +3,8 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
 
 #include <DX12GpuBuffer.generated.inl>
 
@@ -11,6 +13,21 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderBackend* g_renderBackend;
+
+static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool requireCpuAccessible)
+{
+    if (bufferType == GpuBufferType::STAGING_BUFFER)
+    {
+        return D3D12_HEAP_TYPE_UPLOAD;
+    }
+
+    if (requireCpuAccessible)
+    {
+        return D3D12_HEAP_TYPE_UPLOAD;
+    }
+
+    return D3D12_HEAP_TYPE_DEFAULT;
+}
 
 DX12GpuBuffer::DX12GpuBuffer(GpuBufferType type, SizeType size, SizeType alignment)
     : GpuBufferBase(type, size, alignment)
@@ -26,7 +43,82 @@ RendererResult DX12GpuBuffer::Create()
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Create() not implemented");
 
-    HYPERION_RETURN_OK;
+    auto* allocator = g_renderBackend->GetAllocator();
+
+    // 1. Resolve Heap Type (Same helper as before)
+    D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_requireCpuAccessible);
+
+    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+
+    switch (m_type)
+    {
+        case GpuBufferType::SSBO:                           // fallthrough
+        case GpuBufferType::ATOMIC_COUNTER:                 // fallthrough
+        case GpuBufferType::SCRATCH_BUFFER:                 // fallthrough
+        case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:  // fallthrough
+            flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            break;
+        case GpuBufferType::CBUFF: // fallthrough
+        default:
+            break;
+    }
+
+    UINT64 finalSize = m_size;
+    if (m_type == GpuBufferType::CBUFF)
+    {
+        finalSize = ByteUtil::AlignAs(finalSize, 256);
+    }
+
+    D3D12_RESOURCE_STATES finalState = ToDX12ResourceStates(m_resourceState);
+
+    if (heapType == D3D12_HEAP_TYPE_UPLOAD)
+    {
+        finalState = D3D12_RESOURCE_STATE_GENERIC_READ;
+    }
+    else if (m_type == GpuBufferType::ACCELERATION_STRUCTURE_BUFFER)
+    {
+        finalState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+    }
+
+    // 5. Fill Resource Description (Same as before)
+    D3D12_RESOURCE_DESC bufferDesc = {};
+    bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufferDesc.Alignment = 0;
+    bufferDesc.Width = finalSize;
+    bufferDesc.Height = 1;
+    bufferDesc.DepthOrArraySize = 1;
+    bufferDesc.MipLevels = 1;
+    bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufferDesc.SampleDesc.Count = 1;
+    bufferDesc.SampleDesc.Quality = 0;
+    bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufferDesc.Flags = flags;
+
+    D3D12MA::ALLOCATION_DESC allocDesc {};
+    allocDesc.HeapType = heapType;
+    
+    HRESULT hr = allocator->CreateResource(
+        &allocDesc,
+        &bufferDesc,
+        finalState,
+        nullptr,
+        &m_allocation,
+        __uuidof(ID3D12Resource), 
+        (void**)&m_resource
+    );
+
+    if (FAILED(hr))
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MA buffer", hr);
+    }
+
+    if (m_debugName && m_resource)
+    {
+        m_resource->SetName(*WideString(*m_debugName));
+        m_allocation->SetName(*WideString(*m_debugName));
+    }
+
+    return {};
 }
 
 bool DX12GpuBuffer::IsCreated() const
