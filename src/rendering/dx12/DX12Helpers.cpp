@@ -149,6 +149,41 @@ D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state)
     }
 }
 
+
+D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType)
+{
+    switch (textureType)
+    {
+    case TextureType::TT_TEX2D:
+        return D3D12_SRV_DIMENSION_TEXTURE2D;
+    case TextureType::TT_TEX3D:
+        return D3D12_SRV_DIMENSION_TEXTURE3D;
+    case TextureType::TT_TEX2D_ARRAY:
+        return D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    case TextureType::TT_CUBEMAP:
+        return D3D12_SRV_DIMENSION_TEXTURECUBE;
+    case TextureType::TT_CUBEMAP_ARRAY:
+        return D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+    default:
+        return D3D12_SRV_DIMENSION_UNKNOWN;
+    }
+}
+
+D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType)
+{
+    switch (textureType)
+    {
+    case TextureType::TT_TEX2D:
+        return D3D12_UAV_DIMENSION_TEXTURE2D;
+    case TextureType::TT_TEX3D:
+        return D3D12_UAV_DIMENSION_TEXTURE3D;
+    case TextureType::TT_TEX2D_ARRAY:
+        return D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+    default:
+        return D3D12_UAV_DIMENSION_UNKNOWN;
+    }
+}
+
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
 {
     AssertDebug(buffer != nullptr);
@@ -198,24 +233,35 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer)
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image)
 {
     AssertDebug(image != nullptr);
+
     D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = resDesc.Format; 
-    srvDesc.ViewDimension = ToDX12ViewDimension(image->GetTextureDesc().type);
+    srvDesc.ViewDimension = ToDX12SRVDimension(image->GetTextureDesc().type);
     srvDesc.Texture2D.MostDetailedMip = 0;
     srvDesc.Texture2D.MipLevels = -1;
     srvDesc.Texture2D.PlaneSlice = 0;
     srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-    return desc;
+    return srvDesc;
 }
 
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image)
 {
     AssertDebug(image != nullptr);
     AssertDebug(image->GetTextureDesc().imageUsage & ImageUsage::IU_STORAGE);
+    
+    D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc {};
+    uavDesc.Format = resDesc.Format;
+    uavDesc.ViewDimension = ToDX12UAVDimension(image->GetTextureDesc().type);
+    uavDesc.Texture2D.MipSlice = 0;
+    uavDesc.Texture2D.PlaneSlice = 0;
+
+    return uavDesc;
 }
 
 } // namespace Hyperion

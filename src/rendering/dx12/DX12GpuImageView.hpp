@@ -10,6 +10,8 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/dx12/DX12DescriptorHeaps.hpp>
+
 namespace Hyperion {
 
 class DX12GpuImage;
@@ -30,9 +32,9 @@ public:
 
     ~DX12GpuImageView() override;
 
-    HYP_FORCE_INLINE const D3D12_CPU_DESCRIPTOR_HANDLE& GetCpuDescriptorHandle() const
+    HYP_FORCE_INLINE const DX12DescriptorHandle& GetDescriptorHandle() const
     {
-        return m_handle;
+        return m_descriptorHandle;
     }
 
     bool IsCreated() const override;
@@ -43,7 +45,7 @@ public:
 #endif
 
 private:
-    D3D12_CPU_DESCRIPTOR_HANDLE m_handle;
+    DX12DescriptorHandle m_descriptorHandle;
 };
 
 } // namespace Hyperion
