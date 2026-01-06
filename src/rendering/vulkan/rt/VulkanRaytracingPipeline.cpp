@@ -102,9 +102,7 @@ RendererResult VulkanRaytracingPipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Raytracing is not supported on this device");
     }
 
-    HYP_GFX_ASSERT(m_shader != nullptr);
-
-    RendererResult result;
+    Assert(m_shader != nullptr);
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -170,14 +168,14 @@ RendererResult VulkanRaytracingPipeline::Create()
     }
 #endif
 
-    HYPERION_PASS_ERRORS(CreateShaderBindingTables(m_shader), result);
+    CheckResultOrReturn(CreateShaderBindingTables(m_shader));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanRaytracingPipeline::Bind(VulkanCommandBuffer* commandBuffer)
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     commandBuffer->ResetBoundDescriptorSets();
 
@@ -230,8 +228,6 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTables(VulkanShader*
         uint32(shaderHandleStorage.Size()),
         shaderHandleStorage.Data()));
 
-    RendererResult result;
-
     uint32 offset = 0;
 
     ShaderBindingTableMap buffers;
@@ -251,9 +247,9 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTables(VulkanShader*
 
 #undef SHADER_PRESENT_IN_GROUP
 
-        HYP_GFX_ASSERT(shaderCount != 0);
+        Assert(shaderCount != 0);
 
-        HYPERION_PASS_ERRORS(CreateShaderBindingTableEntry(shaderCount, entry), result);
+        CheckResultOrReturn(CreateShaderBindingTableEntry(shaderCount, entry));
 
         if (result)
         {
@@ -293,7 +289,7 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTables(VulkanShader*
 
 #undef GET_STRIDED_DEVICE_ADDRESS_REGION
 
-    return result;
+    return {};
 }
 
 RendererResult VulkanRaytracingPipeline::CreateShaderBindingTableEntry(
@@ -302,19 +298,17 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTableEntry(
 {
     const auto& properties = g_renderBackend->GetDevice()->GetFeatures().GetRaytracingPipelineProperties();
 
-    HYP_GFX_ASSERT(properties.shaderGroupHandleSize != 0);
+    Assert(properties.shaderGroupHandleSize != 0);
 
     if (numShaders == 0)
     {
         return HYP_MAKE_ERROR(RendererError, "Creating shader binding table entry with zero shader count");
     }
 
-    RendererResult result;
-
     out.buffer = CreateObject<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * numShaders);
     out.buffer->SetDebugName(NAME("SBTBuffer"));
 
-    HYPERION_PASS_ERRORS(out.buffer->Create(), result);
+    CheckResultOrReturn(out.buffer->Create());
 
     if (result)
     {
@@ -332,7 +326,7 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTableEntry(
         out.buffer.Reset();
     }
 
-    return result;
+    return {};
 }
 
 void VulkanRaytracingPipeline::SetPushConstants(const void* data, SizeType size)

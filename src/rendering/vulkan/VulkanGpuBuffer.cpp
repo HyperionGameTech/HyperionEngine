@@ -260,7 +260,7 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible =
     case GpuBufferType::STAGING_BUFFER:
         return VMA_MEMORY_USAGE_CPU_ONLY;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
-        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
+        Assert(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -269,10 +269,10 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible =
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
-        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
+        Assert(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
-        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
+        Assert(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -298,7 +298,7 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
     case GpuBufferType::STAGING_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::INDIRECT_ARGS_BUFFER:
-        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
+        Assert(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -307,10 +307,10 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
     case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GpuBufferType::RT_MESH_VERTEX_BUFFER:
-        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
+        Assert(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::RT_MESH_INDEX_BUFFER:
-        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
+        Assert(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
         return 0;
     case GpuBufferType::SCRATCH_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
@@ -408,7 +408,7 @@ void VulkanGpuBuffer::Map() const
         return;
     }
 
-    HYP_GFX_ASSERT(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
+    Assert(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
     vmaMapMemory(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, &m_mapping);
 }
@@ -463,11 +463,11 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
 
 uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
 {
-    HYP_GFX_ASSERT(
+    Assert(
         g_renderBackend->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
         "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!");
 
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
     info.buffer = m_handle;
@@ -592,7 +592,7 @@ void VulkanGpuBuffer::CopyFrom(
         return;
     }
 
-    HYP_GFX_ASSERT((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
+    Assert((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
 
     VkBufferCopy region {};
     region.size = count;
@@ -621,7 +621,7 @@ RendererResult VulkanGpuBuffer::Create()
 
     if (m_size == 0)
     {
-        HYP_GFX_ASSERT("Creating empty gpu buffer will result in errors!");
+        Assert("Creating empty gpu buffer will result in errors!");
 
         return HYP_MAKE_ERROR(RendererError, "Creating empty gpu buffer will result in errors!");
     }
@@ -629,7 +629,7 @@ RendererResult VulkanGpuBuffer::Create()
     const auto createInfo = GetBufferCreateInfo();
     const auto allocInfo = GetAllocationCreateInfo();
 
-    HYP_GFX_CHECK(CheckCanAllocate(createInfo, allocInfo, m_size));
+    CheckResult(CheckCanAllocate(createInfo, allocInfo, m_size));
 
     if (m_alignment != 0)
     {
@@ -742,7 +742,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
     if (shouldCreate)
     {
-        HYP_GFX_CHECK(Create());
+        CheckResult(Create());
     }
 
     return {};
@@ -800,7 +800,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
     /* check that we have enough space in the memory type */
     const auto& memoryProperties = features.GetPhysicalDeviceMemoryProperties();
 
-    HYP_GFX_ASSERT(memoryTypeIndex < memoryProperties.memoryTypeCount);
+    Assert(memoryTypeIndex < memoryProperties.memoryTypeCount);
 
     const auto heapIndex = memoryProperties.memoryTypes[memoryTypeIndex].heapIndex;
     const auto& heap = memoryProperties.memoryHeaps[heapIndex];

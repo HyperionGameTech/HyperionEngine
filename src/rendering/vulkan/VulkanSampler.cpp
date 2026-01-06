@@ -40,7 +40,7 @@ bool VulkanSampler::IsCreated() const
 
 RendererResult VulkanSampler::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
+    Assert(m_handle == VK_NULL_HANDLE);
 
     VkSamplerCreateInfo samplerInfo { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
     samplerInfo.magFilter = ToVkFilter(m_magFilterMode);

@@ -35,7 +35,7 @@ VulkanFence::~VulkanFence()
 
 RendererResult VulkanFence::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
+    Assert(m_handle == VK_NULL_HANDLE);
 
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fenceCreateInfo { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -48,7 +48,7 @@ RendererResult VulkanFence::Create()
 
 RendererResult VulkanFence::Wait(bool timeoutLoop)
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VkResult vkResult;
 

@@ -44,7 +44,7 @@ bool VulkanPipelineBase::IsCreated() const
 
 void VulkanPipelineBase::SetPushConstants(const void* data, SizeType size)
 {
-    HYP_GFX_ASSERT(size <= 128, "Push constant data size exceeds 128 bytes");
+    Assert(size <= 128, "Push constant data size exceeds 128 bytes");
 
     m_pushConstants = PushConstantData(data, size);
 }

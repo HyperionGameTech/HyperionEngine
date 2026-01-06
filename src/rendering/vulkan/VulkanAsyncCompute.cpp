@@ -38,7 +38,7 @@ RendererResult VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    HYP_GFX_ASSERT(g_renderBackend->GetDevice()->GetQueueFamilyIndices().IsComplete());
+    Assert(g_renderBackend->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
     VulkanDeviceQueue* queue = g_renderBackend->GetDevice()->GetComputeQueue();
 
@@ -53,14 +53,14 @@ RendererResult VulkanAsyncCompute::Create()
 
     for (const VulkanCommandBufferRef& commandBuffer : m_commandBuffers)
     {
-        HYP_GFX_ASSERT(commandBuffer.IsValid());
+        Assert(commandBuffer.IsValid());
 
-        HYP_GFX_CHECK(commandBuffer->Create(queue->commandPools[0]));
+        CheckResult(commandBuffer->Create(queue->commandPools[0]));
     }
 
     for (const VulkanFenceRef& fence : m_fences)
     {
-        HYP_GFX_CHECK(fence->Create());
+        CheckResult(fence->Create());
     }
 
     return {};
@@ -74,9 +74,9 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
 
     /// \todo : Call RenderQueue::Prepare to set descriptor sets to be used for the frame.
 
-    HYP_GFX_CHECK(m_commandBuffers[frameIndex]->Begin());
+    CheckResult(m_commandBuffers[frameIndex]->Begin());
     renderQueue.Execute(m_commandBuffers[frameIndex]);
-    HYP_GFX_CHECK(m_commandBuffers[frameIndex]->End());
+    CheckResult(m_commandBuffers[frameIndex]->End());
 
     VulkanDeviceQueue* computeQueue = g_renderBackend->GetDevice()->GetComputeQueue();
 
@@ -89,7 +89,7 @@ RendererResult VulkanAsyncCompute::PrepareForFrame(VulkanFrame* frame)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    HYP_GFX_CHECK(WaitForFence(frame));
+    CheckResult(WaitForFence(frame));
 
     return {};
 }
@@ -100,16 +100,10 @@ RendererResult VulkanAsyncCompute::WaitForFence(VulkanFrame* frame)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RendererResult result = m_fences[frameIndex]->Wait();
+    CheckResultOrReturn(m_fences[frameIndex]->Wait());
+    CheckResultOrReturn(m_fences[frameIndex]->Reset());
 
-    if (!result)
-    {
-        return result;
-    }
-
-    HYPERION_PASS_ERRORS(m_fences[frameIndex]->Reset(), result);
-
-    return result;
+    return {};
 }
 
 } // namespace Hyperion

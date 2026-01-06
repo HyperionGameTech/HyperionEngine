@@ -29,7 +29,7 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
     for (const VulkanAttachmentDef* attachmentDef : attachmentDefs)
     {
         const VulkanGpuImageRef& image = attachmentDef->image;
-        HYP_GFX_ASSERT(image.IsValid());
+        Assert(image.IsValid());
 
         switch (framebuffer->GetRenderPass()->GetRenderTargetType())
         {
@@ -65,7 +65,7 @@ RendererResult VulkanAttachmentMap::Create()
     {
         VulkanAttachmentDef& def = it.second;
 
-        HYP_GFX_ASSERT(def.image.IsValid());
+        Assert(def.image.IsValid());
 
         if (!def.image->IsCreated())
         {
@@ -74,16 +74,16 @@ RendererResult VulkanAttachmentMap::Create()
                 def.image->SetDebugName(NAME_FMT("{}_RT_{}", framebuffer->Id(), it.first));
             }
 
-            HYP_GFX_CHECK(def.image->Create());
+            CheckResult(def.image->Create());
         }
 
         attachmentDefs.PushBack(&def);
 
-        HYP_GFX_ASSERT(def.attachment.IsValid());
+        Assert(def.attachment.IsValid());
 
         if (!def.attachment->IsCreated())
         {
-            HYP_GFX_CHECK(def.attachment->Create());
+            CheckResult(def.attachment->Create());
         }
     }
 
@@ -124,7 +124,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
     {
         VulkanAttachmentDef& def = it.second;
 
-        HYP_GFX_ASSERT(def.image.IsValid());
+        Assert(def.image.IsValid());
 
         VulkanGpuImageRef newImage = def.image;
 
@@ -135,7 +135,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
             newImage = CreateObject<VulkanGpuImage>(textureDesc);
             newImage->SetDebugName(def.image->GetDebugName());
-            HYP_GFX_ASSERT(newImage->Create());
+            Assert(newImage->Create());
 
             if (def.image.IsValid())
             {
@@ -160,7 +160,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
         newAttachment->SetBinding(def.attachment->GetBinding());
 
-        HYP_GFX_ASSERT(newAttachment->Create());
+        Assert(newAttachment->Create());
 
         if (def.attachment.IsValid())
         {
@@ -241,17 +241,17 @@ RendererResult VulkanFramebuffer::Create()
         HYPERION_RETURN_OK;
     }
 
-    HYP_GFX_CHECK(m_attachmentMap.Create());
+    CheckResult(m_attachmentMap.Create());
 
     for (const auto& it : m_attachmentMap.attachments)
     {
         const VulkanAttachmentDef& def = it.second;
 
-        HYP_GFX_ASSERT(def.attachment.IsValid());
+        Assert(def.attachment.IsValid());
         m_renderPass->AddAttachment(def.attachment);
     }
 
-    HYP_GFX_CHECK(m_renderPass->Create());
+    CheckResult(m_renderPass->Create());
 
     Array<VkImageView> attachmentImageViews;
     attachmentImageViews.Reserve(m_attachmentMap.attachments.Size());
@@ -262,15 +262,15 @@ RendererResult VulkanFramebuffer::Create()
     for (const auto& it : m_attachmentMap.attachments)
     {
         VulkanAttachment* attachment = it.second.attachment.Get();
-        HYP_GFX_ASSERT(attachment != nullptr);
+        Assert(attachment != nullptr);
 
         if (attachment->GetLoadOperation() == LoadOperation::LOAD)
         {
             shouldClearFramebuffer = false;
         }
 
-        HYP_GFX_ASSERT(attachment->GetImageView() != nullptr);
-        HYP_GFX_ASSERT(attachment->GetImageView()->IsCreated());
+        Assert(attachment->GetImageView() != nullptr);
+        Assert(attachment->GetImageView()->IsCreated());
 
         attachmentImageViews.PushBack(attachment->GetImageView()->GetVulkanHandle());
     }
@@ -335,7 +335,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
         HYPERION_RETURN_OK;
     }
 
-    HYP_GFX_CHECK(m_attachmentMap.Resize(newSize));
+    CheckResult(m_attachmentMap.Resize(newSize));
 
     if (m_handle != VK_NULL_HANDLE)
     {
@@ -350,9 +350,9 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
 
     for (const auto& it : m_attachmentMap.attachments)
     {
-        HYP_GFX_ASSERT(it.second.attachment != nullptr);
-        HYP_GFX_ASSERT(it.second.attachment->GetImageView() != nullptr);
-        HYP_GFX_ASSERT(it.second.attachment->GetImageView()->IsCreated());
+        Assert(it.second.attachment != nullptr);
+        Assert(it.second.attachment->GetImageView() != nullptr);
+        Assert(it.second.attachment->GetImageView()->IsCreated());
 
         attachmentImageViews.PushBack(it.second.attachment->GetImageView()->GetVulkanHandle());
     }
@@ -379,7 +379,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
 
 VulkanAttachmentRef VulkanFramebuffer::AddAttachment(const VulkanAttachmentRef& attachment)
 {
-    HYP_GFX_ASSERT(attachment->GetFramebuffer().GetUnsafe() == this,
+    Assert(attachment->GetFramebuffer().GetUnsafe() == this,
         "Attachment framebuffer does not match framebuffer");
 
     return m_attachmentMap.AddAttachment(attachment);
@@ -443,7 +443,7 @@ VulkanAttachment* VulkanFramebuffer::GetAttachment(uint32 binding) const
 
 void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 {
-    HYP_GFX_ASSERT(!commandBuffer->IsInRenderPass());
+    Assert(!commandBuffer->IsInRenderPass());
 
     commandBuffer->m_isInRenderPass = true;
     commandBuffer->ResetBoundDescriptorSets();
@@ -453,7 +453,7 @@ void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 
 void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 {
-    HYP_GFX_ASSERT(commandBuffer->IsInRenderPass());
+    Assert(commandBuffer->IsInRenderPass());
 
     m_renderPass->End(commandBuffer);
 
@@ -479,9 +479,9 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
     for (const auto& it : m_attachmentMap.attachments)
     {
         const VulkanAttachmentRef& attachment = it.second.attachment;
-        HYP_GFX_ASSERT(attachment.IsValid() && attachment->IsCreated());
+        Assert(attachment.IsValid() && attachment->IsCreated());
 
-        HYP_GFX_ASSERT(attachment->GetImage().IsValid());
+        Assert(attachment->GetImage().IsValid());
 
         VkClearAttachment clearAttachment = {};
 

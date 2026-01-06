@@ -55,15 +55,6 @@ bool CheckResult(const RendererResult&);
     }                                         \
     while (0)
 
-#define HYPERION_PASS_ERRORS(result, outResult)        \
-    do                                                 \
-    {                                                  \
-        ::Hyperion::RendererResult _result = (result); \
-        if ((outResult) && !_result)                   \
-            (outResult) = _result;                     \
-    }                                                  \
-    while (0)
-
 /// On error, exits the current functon returning the result
 #define CheckResultOrReturn(result)                                  \
     do                                                               \
@@ -72,19 +63,6 @@ bool CheckResult(const RendererResult&);
         if (!CheckResult(_result))                                   \
             return _result.GetError();                               \
     }                                                                \
-    while (0)
-
-#define HYP_GFX_ASSERT(cond, ...)                                                                  \
-    do                                                                                             \
-    {                                                                                              \
-        if (HYP_UNLIKELY(!(cond)))                                                                 \
-        {                                                                                          \
-            std::printf(                                                                           \
-                "Assertion failed in renderer!\n\tCondition: " #cond "\n\tMessage: " __VA_ARGS__); \
-            HYP_PRINT_STACK_TRACE();                                                               \
-            debug::TerminateProgram();                                                             \
-        }                                                                                          \
-    }                                                                                              \
     while (0)
 
 #define HYPERION_IGNORE_ERRORS(result)                 \

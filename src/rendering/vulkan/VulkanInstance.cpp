@@ -107,7 +107,7 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-    HYP_GFX_ASSERT(deviceCount != 0, "No devices with Vulkan support found! "
+    Assert(deviceCount != 0, "No devices with Vulkan support found! "
                                      "Please update your graphics drivers or install a Vulkan compatible device.\n");
 
     Array<VkPhysicalDevice> devices;
@@ -349,11 +349,11 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     /* Set up our debug and validation layers */
     if (enableDebugLayers)
     {
-        HYP_GFX_CHECK(SetupDebug());
+        CheckResult(SetupDebug());
     }
 #endif
 
-    HYP_GFX_ASSERT(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
+    Assert(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
 
     VkApplicationInfo appInfo { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.pApplicationName = g_appContext->GetAppName().Data();
@@ -450,7 +450,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));
 
     /* Find and set up an adequate GPU for rendering and presentation */
-    HYP_GFX_CHECK(CreateDevice(physicalDevice, surface));
+    CheckResult(CreateDevice(physicalDevice, surface));
 
     delete dummySurfaceContext;
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
@@ -474,7 +474,7 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice, VkS
     m_device = CreateObject<VulkanDevice>(physicalDevice);
     m_device->SetWantedExtensions(GetExtensionMap());
 
-    HYP_GFX_CHECK(m_device->Create(surface));
+    CheckResult(m_device->Create(surface));
 
     return {};
 }

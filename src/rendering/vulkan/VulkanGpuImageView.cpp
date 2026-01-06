@@ -72,7 +72,7 @@ RendererResult VulkanGpuImageView::Create()
         return HYP_MAKE_ERROR(RendererError, "Mip index out of bounds");
     }
 
-    HYP_GFX_ASSERT(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
+    Assert(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
 
     VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
     viewInfo.image = static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle();

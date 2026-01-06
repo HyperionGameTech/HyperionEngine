@@ -235,33 +235,33 @@ RendererResult VulkanSingleTimeCommands::Execute()
     m_functions.Clear();
 
     tempFrame = g_renderBackend->MakeFrame(0);
-    HYP_GFX_CHECK(tempFrame->Create());
+    CheckResult(tempFrame->Create());
 
     renderQueue.Prepare(tempFrame);
 
     tempFrame->UpdateUsedDescriptorSets();
 
     commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    HYP_GFX_CHECK(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
+    CheckResult(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
-    HYP_GFX_CHECK(commandBuffer->Begin());
+    CheckResult(commandBuffer->Begin());
 
     // Execute the command list
     renderQueue.Execute(commandBuffer);
 
-    HYP_GFX_CHECK(commandBuffer->End());
+    CheckResult(commandBuffer->End());
 
     /// \todo Refactor to use frame's fence instead, just need to make Frame able to not be presentable
     fence = CreateObject<VulkanFence>();
-    HYP_GFX_CHECK(fence->Create());
-    HYP_GFX_CHECK(fence->Reset());
+    CheckResult(fence->Create());
+    CheckResult(fence->Reset());
 
     // Submit to the queue
     VulkanDeviceQueue* queueGraphics = g_renderBackend->GetDevice()->GetGraphicsQueue();
 
-    HYP_GFX_CHECK(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
+    CheckResult(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
 
-    HYP_GFX_CHECK(fence->Wait());
+    CheckResult(fence->Wait());
 
     fence.Reset();
     commandBuffer.Reset();

@@ -71,7 +71,7 @@ VulkanComputePipeline::~VulkanComputePipeline()
 
 void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     commandBuffer->ResetBoundDescriptorSets();
 

@@ -50,16 +50,14 @@ RendererResult VulkanFrame::Create()
     }
 
     m_queueSubmitFence = CreateObject<VulkanFence>();
-    HYP_GFX_CHECK(m_queueSubmitFence->Create());
+    CheckResult(m_queueSubmitFence->Create());
 
     return {};
 }
 
 RendererResult VulkanFrame::ResetFrameState()
 {
-    RendererResult result;
-
-    HYPERION_PASS_ERRORS(m_queueSubmitFence->Reset(), result);
+    CheckResultOrReturn(m_queueSubmitFence->Reset());
 
 #ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
     for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
@@ -82,7 +80,7 @@ RendererResult VulkanFrame::ResetFrameState()
         OnFrameEnd.RemoveAllDetached();
     }
 
-    return result;
+    return {};
 }
 
 RendererResult VulkanFrame::Submit(

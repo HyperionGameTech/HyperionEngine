@@ -432,13 +432,13 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     const ExtensionMap unsupportedExtensions = GetUnsupportedExtensions();
     const auto supportedExtensions = GetSupportedExtensions();
 
-    HYP_GFX_CHECK(CheckDeviceSuitable(unsupportedExtensions));
+    CheckResult(CheckDeviceSuitable(unsupportedExtensions));
 
     // no _required_ extensions were missing (otherwise would have caused an error)
     // so for each unsupported extension, remove it from out list of extensions
     for (auto& it : unsupportedExtensions)
     {
-        HYP_GFX_ASSERT(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
+        Assert(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
 
         m_wantedExtensions.Erase(it.first);
     }
@@ -526,7 +526,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
 
 VkQueue VulkanDevice::GetQueue(uint32 queueFamilyIndex, uint32 queueIndex)
 {
-    HYP_GFX_ASSERT(m_device != VK_NULL_HANDLE);
+    Assert(m_device != VK_NULL_HANDLE);
 
     VkQueue queue;
     vkGetDeviceQueue(m_device, queueFamilyIndex, queueIndex, &queue);

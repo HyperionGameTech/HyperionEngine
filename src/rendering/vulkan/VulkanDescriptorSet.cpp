@@ -215,13 +215,13 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         DescriptorSetElement& element = it.second;
 
         const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
-        HYP_GFX_ASSERT(layoutElement != nullptr, "Invalid element: No item with name %s found", name.LookupString());
+        Assert(layoutElement != nullptr, "Invalid element: No item with name %s found", name.LookupString());
 
         auto cachedIt = m_cachedElements.Find(name);
-        HYP_GFX_ASSERT(cachedIt != m_cachedElements.End());
+        Assert(cachedIt != m_cachedElements.End());
 
         Array<VulkanDescriptorElementInfo>& cachedValues = cachedIt->second;
-        HYP_GFX_ASSERT(cachedValues.Size() == element.values.Size());
+        Assert(cachedValues.Size() == element.values.Size());
 
         Array<VulkanDescriptorElementInfo, VulkanAllocator> localDescriptorElementInfos;
         localDescriptorElementInfos.Reserve(element.values.Size());
@@ -239,7 +239,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
             //            if (isDynamic)
             //            {
-            //                HYP_GFX_ASSERT(layoutElement->size != 0, "Buffer size not set for dynamic buffer element: %s.%s", m_layout.GetName().LookupString(), name.LookupString());
+            //                Assert(layoutElement->size != 0, "Buffer size not set for dynamic buffer element: %s.%s", m_layout.GetName().LookupString(), name.LookupString());
             //            }
 
             for (auto& valuesIt : element.values)
@@ -247,8 +247,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 const uint32 index = valuesIt.first;
 
                 const VulkanGpuBufferRef& ref = ObjCast<VulkanGpuBuffer>(valuesIt.second);
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -274,8 +274,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 const uint32 index = valuesIt.first;
 
                 const VulkanGpuImageViewRef& ref = ObjCast<VulkanGpuImageView>(valuesIt.second);
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -298,8 +298,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 const uint32 index = valuesIt.first;
 
                 const VulkanSamplerRef& ref = ObjCast<VulkanSampler>(valuesIt.second);
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref.IsValid(), "Invalid sampler reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -322,8 +322,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 const uint32 index = valuesIt.first;
 
                 const VulkanGpuTlasRef& ref = ObjCast<VulkanGpuTlas>(valuesIt.second);
-                HYP_GFX_ASSERT(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
-                HYP_GFX_ASSERT(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref.IsValid(), "Invalid TLAS reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                Assert(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
                 descriptorElementInfo.binding = layoutElement->binding;
@@ -344,7 +344,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             HYP_UNREACHABLE();
         }
 
-        HYP_GFX_ASSERT(localDescriptorElementInfos.Size() <= cachedValues.Size(), "Index out of range for cached values");
+        Assert(localDescriptorElementInfos.Size() <= cachedValues.Size(), "Index out of range for cached values");
 
         Range<uint32> localDirtyRange = Range<uint32>::Invalid();
 
@@ -358,10 +358,10 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         if (localDirtyRange.Distance() > 0)
         {
-            HYP_GFX_ASSERT(localDirtyRange.GetStart() < cachedValues.Size());
-            HYP_GFX_ASSERT(localDirtyRange.GetEnd() <= cachedValues.Size());
-            HYP_GFX_ASSERT(localDirtyRange.GetStart() < localDescriptorElementInfos.Size());
-            HYP_GFX_ASSERT(localDirtyRange.GetEnd() <= localDescriptorElementInfos.Size());
+            Assert(localDirtyRange.GetStart() < cachedValues.Size());
+            Assert(localDirtyRange.GetEnd() <= cachedValues.Size());
+            Assert(localDirtyRange.GetStart() < localDescriptorElementInfos.Size());
+            Assert(localDirtyRange.GetEnd() <= localDescriptorElementInfos.Size());
 
             Memory::MemCpy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptorElementInfos.Data() + localDirtyRange.GetStart(), sizeof(VulkanDescriptorElementInfo) * SizeType(localDirtyRange.Distance()));
 
@@ -384,7 +384,7 @@ void VulkanDescriptorSet::Update(bool force)
 {
     static_assert(std::is_trivial_v<VulkanDescriptorElementInfo>, "VulkanDescriptorElementInfo should be a trivial type for fast copy and move operations");
 
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     if (force)
     {
@@ -441,30 +441,23 @@ void VulkanDescriptorSet::Update(bool force)
 
 RendererResult VulkanDescriptorSet::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE && m_vkDescriptorPool == VK_NULL_HANDLE);
+    Assert(m_handle == VK_NULL_HANDLE && m_vkDescriptorPool == VK_NULL_HANDLE);
 
     if (!m_layout.IsValid())
     {
         return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName().LookupString());
     }
 
-    HYP_GFX_CHECK(g_renderBackend->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
+    CheckResult(g_renderBackend->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
 
     if (m_layout.IsTemplate())
     {
         return RendererResult {};
     }
 
-    RendererResult result;
+    CheckResultOrReturn(g_renderBackend->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool));
 
-    HYPERION_PASS_ERRORS(g_renderBackend->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool), result);
-
-    if (!result)
-    {
-        return result;
-    }
-
-    HYP_GFX_ASSERT(m_vkDescriptorPool != VK_NULL_HANDLE);
+    Assert(m_vkDescriptorPool != VK_NULL_HANDLE);
 
 #ifdef HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
@@ -484,7 +477,7 @@ RendererResult VulkanDescriptorSet::Create()
     UpdateDirtyState();
     Update();
 
-    return result;
+    return {};
 }
 
 bool VulkanDescriptorSet::IsCreated() const
@@ -494,7 +487,7 @@ bool VulkanDescriptorSet::IsCreated() const
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
@@ -538,7 +531,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
@@ -574,7 +567,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
@@ -618,7 +611,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
@@ -654,7 +647,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
@@ -698,7 +691,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;

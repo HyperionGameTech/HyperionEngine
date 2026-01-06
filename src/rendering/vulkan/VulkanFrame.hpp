@@ -41,7 +41,7 @@ public:
 
     HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
     {
-        HYP_GFX_ASSERT(renderPass != nullptr);
+        Assert(renderPass != nullptr);
         m_renderPasses.Add(renderPass);
     }
 
