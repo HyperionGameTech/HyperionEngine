@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "Game.hpp"
 #include <HyperionPch.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -18,6 +17,7 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderMaterial.hpp>

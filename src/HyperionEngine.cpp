@@ -40,6 +40,7 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/ShaderManager.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

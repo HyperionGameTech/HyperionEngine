@@ -9,6 +9,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/GraphicsPipeline.hpp>

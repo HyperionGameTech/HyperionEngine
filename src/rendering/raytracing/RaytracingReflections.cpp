@@ -35,6 +35,7 @@
 namespace Hyperion {
 
 static const Name s_shaderNames[] = { NAME("RTRadiance"), NAME("PathTracer") };
+static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);
 
 #pragma region Render commands
 
@@ -102,12 +103,10 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
 
     if (!m_raytracingPipeline)
     {
-        const uint32 maxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);
-
         ShaderRef shader = g_shaderManager->GetOrCreate(
             s_shaderNames[IsPathTracer()],
             ShaderProperties({
-                { NAME("MAX_LIGHTS"), int(maxLights) }
+                { NAME("MAX_LIGHTS"), int(MaxLights) }
             }));
 
         Assert(shader != nullptr);
@@ -159,8 +158,6 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
     
-    static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32); // lights are stored in Vec4u
-
     GpuBufferRef& constants = pd->constants;
     if (!constants)
     {

@@ -2,6 +2,7 @@
 
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>

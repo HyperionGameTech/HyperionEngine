@@ -10,6 +10,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/RenderBackend.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/TextureMipmapRenderer.hpp>

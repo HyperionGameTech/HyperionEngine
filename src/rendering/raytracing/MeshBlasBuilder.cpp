@@ -15,6 +15,7 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/asset/MeshAsset.hpp>
+
 #include <asset/AssetRegistry.hpp>
 
 #include <core/reflection/Handle.hpp>
@@ -80,7 +81,7 @@ struct BuildMeshBlas : public RenderCommand
         verticesStagingBuffer->Copy(packedVertices.Size() * sizeof(PackedVertex), packedVertices.Data());
 
         indicesStagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_I_GpuBlas_{}", blas->GetDebugName()));
+        indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_I_GpuBlas_{}", blas->GetDebugName()));
         HYP_GFX_CHECK(indicesStagingBuffer->Create());
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
         indicesStagingBuffer->Copy(packedIndices.Size() * sizeof(uint32), packedIndices.Data());

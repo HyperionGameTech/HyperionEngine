@@ -12,6 +12,9 @@
 
 #include <rendering/dx12/DX12Shared.hpp>
 
+// Fwd declaration
+namespace D3D12MA { class Allocation; }
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -69,7 +72,8 @@ public:
 #endif
 
 private:
-    ComPtr<ID3D12Resource> m_buffer;
+    ComPtr<ID3D12Resource> m_resource;
+    ComPtr<D3D12MA::Allocation> m_allocation;
 };
 
 } // namespace Hyperion
