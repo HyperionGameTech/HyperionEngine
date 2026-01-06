@@ -7,6 +7,7 @@
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
+#include <rendering/dx12/DX12DescriptorHeaps.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -63,7 +64,8 @@ public:
 #pragma region DX12RenderBackend
 
 DX12RenderBackend::DX12RenderBackend()
-    : m_renderConfig(MakePimpl<DX12RenderConfig>()),
+    : descriptorHeapManager(PoolNew<DX12DescriptorHeapManager>(*g_renderPool)),
+      m_renderConfig(MakePimpl<DX12RenderConfig>()),
       m_currentFrameIndex(0),
       m_allocator(nullptr)
 {
@@ -71,6 +73,7 @@ DX12RenderBackend::DX12RenderBackend()
 
 DX12RenderBackend::~DX12RenderBackend()
 {
+    PoolDelete(*g_renderPool, descriptorHeapManager);
 }
 
 RendererResult DX12RenderBackend::Initialize()
@@ -127,21 +130,39 @@ RendererResult DX12RenderBackend::Initialize()
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
+    
+    DX12QueueData& directQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+    DX12QueueData& computeQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COMPUTE];
+    DX12QueueData& copyQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COPY];
 
-    // create queues
+    // create queues and command allocators
     D3D12_COMMAND_QUEUE_DESC directDesc {};
     directDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     directDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-    m_device->CreateCommandQueue(&directDesc, IID_PPV_ARGS(&m_directQueue));
+    m_device->CreateCommandQueue(&directDesc, _uuidof(ID3D12CommandQueue), &directQueueData.commandQueue);
 
     D3D12_COMMAND_QUEUE_DESC computeDesc {};
     computeDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
     computeDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-    m_device->CreateCommandQueue(&computeDesc, IID_PPV_ARGS(&m_computeQueue));
+    m_device->CreateCommandQueue(&computeDesc, _uuidof(ID3D12CommandQueue), &computeQueueData.commandQueue);
 
     D3D12_COMMAND_QUEUE_DESC copyDesc {};
     copyDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-    m_device->CreateCommandQueue(&copyDesc, IID_PPV_ARGS(&m_copyQueue));
+    m_device->CreateCommandQueue(&copyDesc, _uuidof(ID3D12CommandQueue), &copyQueueData.commandQueue);
+    
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        for (auto& pair : m_queueData)
+        {
+            D3D12_COMMAND_LIST_TYPE commandListType = pair.first;
+            DX12QueueData& queueData = pair.second;
+
+            res = m_device->CreateCommandAllocator(commandListType, IID_PPV_ARGS(&queueData.commandAllocators[frameIndex]));
+
+            if (!SUCCEEDED(res))
+                return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator for queue {}!", res, commandListType);
+        }
+    }
 
     D3D12MA::ALLOCATOR_DESC allocatorDesc {};
     allocatorDesc.pDevice = m_device.Get();
@@ -151,6 +172,21 @@ RendererResult DX12RenderBackend::Initialize()
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MemoryAllocator instance!", res);
 
+    // create frames
+    for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
+    {
+        DX12FrameRef& frame = m_frames[frameIndex];
+
+        frame = CreateObject<DX12Frame>(frameIndex);
+        CheckResultOrReturn(frame->Create());
+    }
+
+    // create main commandlist
+    m_commandBuffer = CreateObject<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    CheckResultOrReturn(m_commandBuffer->Create());
+
+    descriptorHeapManager->Initialize();
+
     return {};
 }
 
@@ -158,9 +194,16 @@ RendererResult DX12RenderBackend::Destroy()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
 
-    m_directQueue.Reset();
-    m_computeQueue.Reset();
-    m_copyQueue.Reset();
+    descriptorHeapManager->Shutdown();
+
+    m_commandBuffer.Reset();
+
+    for (DX12FrameRef& frame : m_frames)
+    {
+        frame.Reset();
+    }
+
+    m_queueData = {};
 
     m_allocator->Release();
     m_allocator = nullptr;
@@ -191,8 +234,16 @@ DX12Frame* DX12RenderBackend::GetCurrentFrame() const
 
 DX12Frame* DX12RenderBackend::PrepareNextFrame()
 {
-    // @TODO: Implement frame preparation for DX12
-    return GetCurrentFrame();
+    DX12Frame* frame = GetCurrentFrame();
+
+    const uint32 frameIndex = frame->GetFrameIndex();
+
+    ID3D12CommandAllocator* commandAllocator = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT].commandAllocators[frameIndex].Get();
+    Assert(SUCCEEDED(commandAllocator->Reset()));
+
+    Assert(SUCCEEDED(m_commandBuffer->GetCommandList()->Reset(commandAllocator, nullptr)));
+
+    return frame;
 }
 
 DX12SwapchainRef DX12RenderBackend::CreateSwapchain(ApplicationWindow* window)
@@ -210,7 +261,19 @@ void DX12RenderBackend::PrepareSwapchain(DX12Swapchain* swapchain)
 
 void DX12RenderBackend::SubmitCommandBuffers(DX12Swapchain* swapchain)
 {
-    // @TODO: Implement command buffer submission for DX12
+    DX12Frame* currentFrame = GetCurrentFrame();
+    const uint32 frameIndex = currentFrame->GetFrameIndex();
+
+    DX12QueueData& queueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+
+    ID3D12CommandAllocator* allocator = queueData.commandAllocators[frameIndex].Get();
+    AssertDebug(allocator != nullptr);
+
+    Assert(SUCCEEDED(m_commandBuffer->GetCommandList()->Close()));
+
+    ID3D12CommandList* commandLists[] = { m_commandBuffer->GetCommandList() };
+
+    queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 }
 
 void DX12RenderBackend::PresentToSwapchain(DX12Swapchain* swapchain)
@@ -220,19 +283,17 @@ void DX12RenderBackend::PresentToSwapchain(DX12Swapchain* swapchain)
 
 DX12CommandBuffer* DX12RenderBackend::GetCurrentCommandBuffer() const
 {
-    return m_commandBuffers[m_currentFrameIndex].Get();
+    return m_commandBuffer.Get();
 }
 
 DX12DescriptorSetRef DX12RenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)
 {
-    // @TODO: Implement descriptor set creation for DX12
-    return DescriptorSetRef();
+    return CreateObject<DX12DescriptorSet>(layout);
 }
 
 DX12DescriptorTableRef DX12RenderBackend::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
 {
-    // @TODO: Implement descriptor table creation for DX12
-    return DescriptorTableRef();
+    return CreateObject<DX12DescriptorTable>(decl);
 }
 
 DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(

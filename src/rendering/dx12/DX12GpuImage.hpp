@@ -23,6 +23,16 @@ public:
     explicit DX12GpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE);
     ~DX12GpuImage() override;
 
+    HYP_FORCE_INLINE ID3D12Resource* GetResource() const
+    {
+        return m_resource.Get();
+    }
+
+    HYP_FORCE_INLINE D3D12MA::Allocation* GetAllocation() const
+    {
+        return m_allocation.Get();
+    }
+
     bool IsCreated() const override;
     bool IsOwned() const override;
 
@@ -97,7 +107,8 @@ public:
 #endif
 
 private:
-    // @TODO
+    ComPtr<ID3D12Resource> m_resource;
+    ComPtr<D3D12MA::Allocation> m_allocation;
 };
 
 } // namespace Hyperion

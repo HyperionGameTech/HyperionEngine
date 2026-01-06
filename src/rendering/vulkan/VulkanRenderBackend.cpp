@@ -607,6 +607,7 @@ RendererResult VulkanRenderBackend::Initialize()
 
     AssertDebug(deviceQueue != nullptr);
 
+    // Create frames
     for (uint32 frameIndex = 0; frameIndex < uint32(m_frames.Size()); frameIndex++)
     {
         VulkanFrameRef& frame = m_frames[frameIndex];
@@ -618,8 +619,8 @@ RendererResult VulkanRenderBackend::Initialize()
         commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         frame = CreateObject<VulkanFrame>(frameIndex);
 
-        Assert(commandBuffer->Create(pool));
-        Assert(frame->Create());
+        CheckResultOrReturn(commandBuffer->Create(pool));
+        CheckResultOrReturn(frame->Create());
     }
 
     VulkanDynamicFunctions::Load(m_instance->GetDevice());
