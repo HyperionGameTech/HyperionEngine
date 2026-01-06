@@ -3,6 +3,7 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12CommandBuffer.hpp>
+#include <rendering/dx12/DX12RenderBackend.hpp>
 
 #include <DX12CommandBuffer.generated.inl>
 
@@ -12,7 +13,8 @@ HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
 extern DX12RenderBackend* g_renderBackend;
 
-DX12CommandBuffer::DX12CommandBuffer()
+DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
+    : m_type(type)
 {
 }
 
@@ -20,10 +22,26 @@ DX12CommandBuffer::~DX12CommandBuffer()
 {
 }
 
+bool DX12CommandBuffer::IsCreated() const
+{
+    return false; // @TODO
+}
+
 RendererResult DX12CommandBuffer::Create()
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::Create() not implemented");
+    ID3D12Device* device = g_renderBackend->GetDevice();
+
+    const DX12QueueData* queueData = g_renderBackend->GetQueueData(m_type);
+    Assert(queueData != nullptr);
+
+    ID3D12CommandAllocator* allocator = queueData->commandAllocators[0].Get();
+    Assert(allocator != nullptr);
+
+    HRESULT res = device->CreateCommandList(0, m_type, allocator, nullptr, IID_PPV_ARGS(&m_commandList));
+    if (!SUCCEEDED(res))
+        return HYP_MAKE_ERROR(RendererError, "Failed to create command list!", res);
+
+    m_commandList->Close();
 
     return {};
 }
