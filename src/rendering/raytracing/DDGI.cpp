@@ -224,10 +224,10 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         SetDescriptorElements(descriptorSet, pd->raytracingTlases[frameIndex], frameIndex);
     }
 
-    HYP_GFX_ASSERT(descriptorTable->Create());
+    CheckResult(descriptorTable->Create());
 
     m_pipeline = g_renderBackend->MakeRaytracingPipeline(raytracingShader, descriptorTable);
-    HYP_GFX_ASSERT(m_pipeline->Create());
+    CheckResult(m_pipeline->Create());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {

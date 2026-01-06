@@ -193,7 +193,7 @@ struct CreateTextureGpuImage : RenderCommand
 
             GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
             stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", textureAsset->GetName().IsValid() ? textureAsset->GetName() : NAME("Invalid")));
-            HYP_GFX_CHECK(stagingBuffer->Create());
+            CheckResultOrReturn(stagingBuffer->Create());
             stagingBuffer->Copy(imageData->Size(), imageData->Data());
 
             HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
@@ -601,7 +601,7 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
 
     GpuBufferRef gpuBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
     gpuBuffer->SetDebugName(NAME_FMT("Texture_Readback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
-    HYP_GFX_ASSERT(gpuBuffer->Create());
+    CheckResult(gpuBuffer->Create());
     gpuBuffer->Map();
 
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
@@ -665,7 +665,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
     stagingBuffer->SetDebugName(NAME_FMT("Texture_EnqueueReadback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
-    HYP_GFX_ASSERT(stagingBuffer->Create());
+    CheckResult(stagingBuffer->Create());
     stagingBuffer->Map();
 
     renderQueue << InsertBarrier(m_gpuImage, RS_COPY_SRC);

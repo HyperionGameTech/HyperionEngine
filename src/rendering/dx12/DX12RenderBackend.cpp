@@ -6,9 +6,11 @@
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
+#include <rendering/dx12/DX12AccelerationStructure.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/Texture.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -260,50 +262,42 @@ DX12RaytracingPipelineRef DX12RenderBackend::MakeRaytracingPipeline(
 
 DX12GpuBufferRef DX12RenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
 {
-    // @TODO: Implement GPU buffer creation for DX12
-    return GpuBufferRef();
+    return CreateObject<DX12GpuBuffer>(bufferType, size, alignment);
 }
 
 DX12GpuImageRef DX12RenderBackend::MakeImage(const TextureDesc& textureDesc)
 {
-    // @TODO: Implement image creation for DX12
-    return GpuImageRef();
+    return CreateObject<DX12GpuImage>(textureDesc);
 }
 
 DX12GpuImageViewRef DX12RenderBackend::MakeImageView(const DX12GpuImageRef& image)
 {
-    // @TODO: Implement image view creation for DX12
-    return GpuImageViewRef();
+    return CreateObject<DX12GpuImageView>(image);
 }
 
 DX12GpuImageViewRef DX12RenderBackend::MakeImageView(const DX12GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
-    // @TODO: Implement image view creation for DX12
-    return GpuImageViewRef();
+    return CreateObject<DX12GpuImageView>(image, mipIndex, numMips, layerIndex, numLayers);
 }
 
 DX12SamplerRef DX12RenderBackend::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
 {
-    // @TODO: Implement sampler creation for DX12
-    return SamplerRef();
+    return CreateObject<DX12Sampler>(filterModeMin, filterModeMag, wrapMode);
 }
 
 DX12FramebufferRef DX12RenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
-    // @TODO: Implement framebuffer creation for DX12
-    return FramebufferRef();
+    return CreateObject<DX12Framebuffer>(renderTargetDesc);
 }
 
 DX12FrameRef DX12RenderBackend::MakeFrame(uint32 frameIndex)
 {
-    // @TODO: Implement frame creation for DX12
-    return FrameRef();
+    return CreateObject<DX12Frame>(frameIndex);
 }
 
 DX12ShaderRef DX12RenderBackend::MakeShader(const RC<CompiledShader>& compiledShader)
 {
-    // @TODO: Implement shader creation for DX12
-    return ShaderRef();
+    return CreateObject<DX12Shader>(compiledShader);
 }
 
 DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
@@ -314,21 +308,18 @@ DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
     const Handle<Material>& material,
     const Mat4f& transform)
 {
-    // @TODO: Implement BLAS creation for DX12
-    return GpuBlasRef();
+    return CreateObject<DX12GpuBlas>(
+        packedVerticesBuffer,
+        packedIndicesBuffer,
+        numVertices,
+        numIndices,
+        material,
+        transform);
 }
 
 DX12GpuTlasRef DX12RenderBackend::MakeTLAS()
 {
-    // @TODO: Implement TLAS creation for DX12
-    return GpuTlasRef();
-}
-
-const DX12GpuImageViewRef& DX12RenderBackend::GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
-{
-    // @TODO: Implement texture image view retrieval for DX12
-    static GpuImageViewRef nullImageView;
-    return nullImageView;
+    return CreateObject<DX12GpuTlas>();
 }
 
 void DX12RenderBackend::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)

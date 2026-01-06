@@ -15,6 +15,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderProxy.hpp>
 
@@ -69,11 +70,11 @@ struct CreateSSRUniformBuffer : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYP_GFX_CHECK(uniformBuffer->Create());
+        CheckResultOrReturn(uniformBuffer->Create());
 
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -202,7 +203,7 @@ void SSRRenderer::CreatePasses()
             const DescriptorSetRef& descriptorSet = sampleGbufferShaderDescriptorTable->GetDescriptorSet("SSRDescriptorSet"_sh, frameIndex);
             Assert(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("UVImage"_sh, g_renderBackend->GetTextureImageView(m_uvsTexture));
+            descriptorSet->SetElement("UVImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_uvsTexture));
             descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
 
             descriptorSet->SetElement("GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
@@ -330,7 +331,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
                 TF_RGBA8,
                 TemporalBlendTechnique::TECHNIQUE_1,
                 0.95,
-                g_renderBackend->GetTextureImageView(m_sampledResultTexture),
+                g_renderInterface->textureViewCache->GetOrCreate(m_sampledResultTexture),
                 m_gbuffer);
 
             m_temporalBlending->Create();

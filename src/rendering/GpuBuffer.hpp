@@ -59,7 +59,7 @@ public:
 
     HYP_FORCE_INLINE void SetRequireCpuAccessible(bool requireCpuAccessible)
     {
-        HYP_GFX_ASSERT(!IsCreated(), "Cannot set RequireCpuAccessible after the buffer has been created!");
+        Assert(!IsCreated(), "Cannot set RequireCpuAccessible after the buffer has been created!");
 
         m_requireCpuAccessible = requireCpuAccessible;
     }

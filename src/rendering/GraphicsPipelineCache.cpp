@@ -377,7 +377,7 @@ void GraphicsPipelineCache::GetOrCreate(
 
         virtual RendererResult operator()() override
         {
-            HYP_GFX_CHECK(graphicsPipeline->Create());
+            CheckResultOrReturn(graphicsPipeline->Create());
 
             if (callback.IsValid())
             {

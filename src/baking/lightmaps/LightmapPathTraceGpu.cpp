@@ -85,7 +85,7 @@ struct CreateLightmapGPUPathTracerUniformBuffer : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYP_GFX_CHECK(uniformBuffer->Create());
+        CheckResultOrReturn(uniformBuffer->Create());
         uniformBuffer->Memset(sizeof(RayTracingConstants), 0x0);
 
         return {};
@@ -234,7 +234,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
 
         if (!blas->IsCreated())
         {
-            HYP_GFX_ASSERT(blas->Create());
+            CheckResult(blas->Create());
         }
 
         if (!m_tlas->HasGpuBlas(blas))
@@ -250,7 +250,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
         return;
     }
 
-    HYP_GFX_ASSERT(m_tlas->Create());
+    CheckResult(m_tlas->Create());
 }
 
 void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobBase* job)

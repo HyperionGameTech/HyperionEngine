@@ -258,7 +258,7 @@ void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 #if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
 void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
 {
-    HYP_GFX_ASSERT(!commandBuffer->IsInRenderPass());
+    Assert(!commandBuffer->IsInRenderPass());
 }
 #endif
 

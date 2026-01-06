@@ -40,12 +40,8 @@ DX12GpuBuffer::~DX12GpuBuffer()
 
 RendererResult DX12GpuBuffer::Create()
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Create() not implemented");
-
     auto* allocator = g_renderBackend->GetAllocator();
 
-    // 1. Resolve Heap Type (Same helper as before)
     D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_requireCpuAccessible);
 
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
@@ -80,7 +76,6 @@ RendererResult DX12GpuBuffer::Create()
         finalState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     }
 
-    // 5. Fill Resource Description (Same as before)
     D3D12_RESOURCE_DESC bufferDesc = {};
     bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     bufferDesc.Alignment = 0;
@@ -123,18 +118,15 @@ RendererResult DX12GpuBuffer::Create()
 
 bool DX12GpuBuffer::IsCreated() const
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::IsCreated() not implemented");
-
-    return false;
+    return m_resource != nullptr;
 }
 
 bool DX12GpuBuffer::IsCpuAccessible() const
 {
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::IsCpuAccessible() not implemented");
+    D3D12_HEAP_PROPERTIES heapProperties;
+    m_resource->GetHeapProperties(&heapProperties, nullptr);
 
-    return false;
+    return heapProperties.Type == D3D12_HEAP_TYPE_UPLOAD || heapProperties.Type == D3D12_HEAP_TYPE_READBACK;
 }
 
 void DX12GpuBuffer::InsertBarrier(DX12CommandBuffer* commandBuffer, ResourceState newState) const
@@ -243,9 +235,6 @@ void DX12GpuBuffer::Flush(SizeType offset, SizeType count)
 void DX12GpuBuffer::SetDebugName(Name name)
 {
     GpuBufferBase::SetDebugName(name);
-
-    // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::SetDebugName() not implemented");
 }
 #endif
 

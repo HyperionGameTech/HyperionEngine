@@ -413,11 +413,11 @@ void Mesh::UploadGpuData()
             const SizeType packedIndicesSize = indices.ByteSize();
 
             GpuBufferRef stagingBufferVertices = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedBufferSize);
-            HYP_GFX_ASSERT(stagingBufferVertices->Create());
+            CheckResult(stagingBufferVertices->Create());
             stagingBufferVertices->Copy(packedBufferSize, vertices.Data());
 
             GpuBufferRef stagingBufferIndices = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-            HYP_GFX_ASSERT(stagingBufferIndices->Create());
+            CheckResult(stagingBufferIndices->Create());
             stagingBufferIndices->Copy(packedIndicesSize, indices.Data());
 
             Frame* frame = g_renderBackend->GetCurrentFrame();

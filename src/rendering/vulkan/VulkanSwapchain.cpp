@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "VulkanSemaphore.hpp"
 #include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanSwapchain.hpp>
@@ -9,6 +8,7 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
+#include <rendering/vulkan/VulkanSemaphore.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -121,7 +121,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 #ifdef HYP_DEBUG_MODE
     for (VulkanGpuImage* image : m_images)
     {
-        HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
+        Assert(image->GetResourceState() == RS_PRESENT);
     }
 #endif
 
@@ -164,7 +164,7 @@ RendererResult VulkanSwapchain::Create()
 
     m_supportDetails = g_renderBackend->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
 
-    HYP_GFX_CHECK(ChooseSurfaceFormat());
+    CheckResultOrReturn(ChooseSurfaceFormat());
 
     m_presentMode = VulkanSwapchainUseFIFO ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
     m_extent = {
@@ -233,7 +233,7 @@ RendererResult VulkanSwapchain::Create()
 
     AssertDebug(m_images.Empty());
 
-    HYP_GFX_CHECK(RetrieveImageHandles());
+    CheckResultOrReturn(RetrieveImageHandles());
 
     AssertDebug(m_images.Any());
     AssertDebug(m_framebuffers.Empty());
@@ -251,9 +251,7 @@ RendererResult VulkanSwapchain::Create()
 
         VulkanFramebufferRef framebuffer = CreateObject<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
-        HYP_GFX_CHECK(framebuffer->Create());
-
-        m_framebuffers.PushBack(framebuffer);
+        CheckResultOrReturn(framebuffer->Create());
     }
 
     // Create present semaphores
@@ -261,7 +259,7 @@ RendererResult VulkanSwapchain::Create()
     for (uint32 i = 0; i < m_presentSemaphores.Size(); i++)
     {
         m_presentSemaphores[i] = CreateObject<VulkanSemaphore>();
-        HYP_GFX_CHECK(m_presentSemaphores[i]->Create());
+        CheckResultOrReturn(m_presentSemaphores[i]->Create());
     }
 
     return {};
@@ -436,7 +434,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
         image->m_handle = vkImages[i];
         image->m_isHandleOwned = false;
 
-        HYP_GFX_CHECK(image->Create());
+        CheckResultOrReturn(image->Create());
 
         m_images[i] = std::move(image);
     }
@@ -448,19 +446,19 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
         {
             for (const VulkanGpuImageRef& image : m_images)
             {
-                HYP_GFX_ASSERT(image.IsValid());
+                Assert(image.IsValid());
 
                 renderQueue << InsertBarrier(image, RS_PRESENT);
             }
         });
 
-    HYP_GFX_CHECK(singleTimeCommands->Execute());
+    CheckResultOrReturn(singleTimeCommands->Execute());
 
 #ifdef HYP_DEBUG_MODE
     // Ensure all images are in the PRESENT state
     for (VulkanGpuImage* image : m_images)
     {
-        HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
+        Assert(image->GetResourceState() == RS_PRESENT);
     }
 #endif
 

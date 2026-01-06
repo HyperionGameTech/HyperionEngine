@@ -14,6 +14,7 @@
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -246,7 +247,7 @@ void TemporalBlending::CreatePipeline()
                 GpuBufferType::CBUFF,
                 sizeof(TemporalBlendingUniforms));
 
-            HYP_GFX_ASSERT(m_uniformBuffers[frameIndex]->Create());
+            CheckResult(m_uniformBuffers[frameIndex]->Create());
         }
 
         const GpuImageViewRef& inputImageView = m_inputFramebuffer.IsValid()
@@ -260,7 +261,7 @@ void TemporalBlending::CreatePipeline()
             ->SetElement("InImage"_sh, inputImageView);
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet"_sh, frameIndex)
-            ->SetElement("PrevImage"_sh, g_renderBackend->GetTextureImageView((*textures[(frameIndex + 1) % 2])));
+            ->SetElement("PrevImage"_sh, g_renderInterface->textureViewCache->GetOrCreate((*textures[(frameIndex + 1) % 2])));
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet"_sh, frameIndex)
             ->SetElement("VelocityImage"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
@@ -272,16 +273,16 @@ void TemporalBlending::CreatePipeline()
             ->SetElement("SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet"_sh, frameIndex)
-            ->SetElement("OutImage"_sh, g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
+            ->SetElement("OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate((*textures[frameIndex % 2])));
 
         descriptorTable->GetDescriptorSet("TemporalBlendingDescriptorSet"_sh, frameIndex)
             ->SetElement("TemporalBlendingUniforms"_sh, m_uniformBuffers[frameIndex]);
     }
 
-    HYP_GFX_ASSERT(descriptorTable->Create());
+    CheckResult(descriptorTable->Create());
 
     m_csPerformBlending = g_renderBackend->MakeComputePipeline(shader, descriptorTable);
-    HYP_GFX_ASSERT(m_csPerformBlending->Create());
+    CheckResult(m_csPerformBlending->Create());
 }
 
 void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)

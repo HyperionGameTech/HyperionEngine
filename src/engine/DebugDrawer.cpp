@@ -678,7 +678,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (m_headers[idx].Size() * sizeof(ImmediateDrawShaderData) > instanceBuffer->Size())
     {
-        HYP_GFX_ASSERT(instanceBuffer->EnsureCapacity(
+        CheckResult(instanceBuffer->EnsureCapacity(
             m_headers[idx].Size() * sizeof(ImmediateDrawShaderData),
             &wasInstanceBufferRebuilt));
     }

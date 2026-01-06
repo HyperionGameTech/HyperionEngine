@@ -30,6 +30,7 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/UIRenderer.hpp>
@@ -114,7 +115,7 @@ struct SetFinalPassImageView : RenderCommand
     {
         if (!imageView)
         {
-            imageView = g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d);
+            imageView = g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d);
         }
 
         g_renderInterface->finalPass->SetUILayerImageView(imageView);

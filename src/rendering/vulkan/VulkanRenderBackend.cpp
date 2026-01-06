@@ -547,163 +547,12 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
 #pragma endregion VulkanDescriptorSetManager
 
-#pragma region VulkanTextureCache
-
-class VulkanTextureCache
-{
-public:
-    SharedMutex mutex;
-    // map texture ID -> image views
-    SparsePagedArray<HashMap<ImageSubResource, VulkanGpuImageViewRef>, 1024> imageViews;
-    // to keep texture IDs as valid
-    SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
-
-    typename decltype(weakTextureHandles)::Iterator cleanupIterator;
-
-    VulkanTextureCache()
-    {
-        cleanupIterator = weakTextureHandles.End();
-    }
-
-    const VulkanGpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
-    {
-        AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-        Assert(texture.IsValid());
-
-        const SizeType idx = texture.Id().ToIndex();
-
-        TSharedLock sharedLock(mutex);
-
-        if (!imageViews.HasIndex(idx))
-        {
-            imageViews.Emplace(idx);
-            weakTextureHandles.Emplace(idx, texture.ToWeak());
-        }
-
-        auto& textureImageViews = imageViews.Get(idx);
-
-        ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
-        bool isLockUnique = false;
-        HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
-
-        auto it = textureImageViews.Find(subResource);
-
-        if (it == textureImageViews.End())
-        {
-            VulkanGpuImageViewRef imageView = CreateObject<VulkanGpuImageView>(
-                VulkanGpuImageRef(texture->GetGpuImage()),
-                subResource.baseMipLevel,
-                subResource.numLevels,
-                subResource.baseArrayLayer,
-                subResource.numLayers);
-
-            Assert(imageView->Create());
-
-            sharedLock.Reset();
-
-            uniqueLockStorage.Construct(mutex);
-
-            isLockUnique = true;
-
-            it = textureImageViews.Set(subResource, imageView).first;
-        }
-
-        Assert(it->second.IsValid());
-
-        return it->second;
-    }
-
-    void RemoveTexture(const Handle<Texture>& texture)
-    {
-        AssertOnThread(g_renderThread);
-
-        if (!texture.IsValid())
-        {
-            return;
-        }
-
-        const SizeType idx = texture.Id().ToIndex();
-
-        TUniqueLock lock(mutex);
-
-        if (imageViews.HasIndex(idx))
-        {
-            for (auto& it : imageViews.Get(idx))
-            {
-                SafeDelete(std::move(it.second));
-            }
-
-            imageViews.EraseAt(idx);
-            weakTextureHandles.EraseAt(idx);
-        }
-    }
-
-    void CleanupUnusedTextures()
-    {
-        AssertOnThread(g_renderThread);
-
-        TUniqueLock lock(mutex);
-
-        constexpr uint32 MaxCycles = 32;
-
-        cleanupIterator = typename decltype(weakTextureHandles)::Iterator {
-            &weakTextureHandles,
-            cleanupIterator.page,
-            cleanupIterator.elem
-        };
-
-        if (cleanupIterator == weakTextureHandles.End())
-        {
-            cleanupIterator = weakTextureHandles.Begin();
-        }
-
-        uint32 numRemoved = 0;
-
-        for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < MaxCycles; i++)
-        {
-            auto& entry = *cleanupIterator;
-
-            if (!entry.Lock())
-            {
-                const SizeType idx = weakTextureHandles.IndexOf(cleanupIterator);
-
-                HYP_GFX_ASSERT(imageViews.HasIndex(idx));
-                HYP_GFX_ASSERT(weakTextureHandles.HasIndex(idx));
-
-                for (auto& it : imageViews.Get(idx))
-                {
-                    SafeDelete(std::move(it.second));
-                }
-
-                imageViews.EraseAt(idx);
-
-                cleanupIterator = weakTextureHandles.Erase(cleanupIterator);
-
-                ++numRemoved;
-
-                continue;
-            }
-
-            ++cleanupIterator;
-        }
-
-        if (numRemoved != 0)
-        {
-            HYP_LOG(RenderingBackend, Debug, "VulkanTextureCache: Cleaned up {} unused textures", numRemoved);
-        }
-    }
-};
-
-#pragma endregion VulkanTextureCache
-
 #pragma region VulkanRenderBackend
 
 VulkanRenderBackend::VulkanRenderBackend()
     : m_instance(nullptr),
       m_renderConfig(MakePimpl<VulkanRenderConfig>()),
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
-      m_textureCache(MakePimpl<VulkanTextureCache>()),
       m_asyncCompute(new VulkanAsyncCompute()),
       m_currentFrameIndex(0)
 {
@@ -1080,28 +929,6 @@ VulkanGpuTlasRef VulkanRenderBackend::MakeTLAS()
     return CreateObject<VulkanGpuTlas>();
 }
 
-const VulkanGpuImageViewRef& VulkanRenderBackend::GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
-{
-    if (!texture.IsValid())
-    {
-        return VulkanGpuImageViewRef::empty;
-    }
-
-    const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
-    const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
-
-    ImageSubResource subResource {};
-    subResource.numLevels = MathUtil::Min(numMips, maxMipLevel + 1);
-    subResource.baseMipLevel = MathUtil::Min(mipIndex, maxMipLevel);
-    subResource.numLayers = MathUtil::Min(numLayers, maxArrayLayer + 1);
-    subResource.baseArrayLayer = MathUtil::Min(layerIndex, maxArrayLayer);
-
-    const VulkanGpuImageViewRef& imageView = m_textureCache->GetOrCreate(texture, subResource);
-    HYP_GFX_ASSERT(imageView.IsValid());
-
-    return imageView;
-}
-
 void VulkanRenderBackend::PopulateIndirectDrawCommandsBuffer(
     const VulkanGpuBufferRef& vertexBuffer,
     const VulkanGpuBufferRef& indexBuffer,
@@ -1261,8 +1088,6 @@ void VulkanRenderBackend::ReleaseTransientMemory()
     GetCurrentFrame()->ResetTransientStates();
 
     g_vulkanArena->Reset();
-
-    m_textureCache->CleanupUnusedTextures();
 }
 
 VkSurfaceKHR VulkanRenderBackend::CreateSurface(ApplicationWindow* window, IDummyVulkanSurfaceContext** ppOutDummySurfaceContext)

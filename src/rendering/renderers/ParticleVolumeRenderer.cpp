@@ -19,6 +19,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -172,7 +173,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
         descriptorSet->SetElement("ParticlesBuffer"_sh, state.particleBuffer);
         descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
-        descriptorSet->SetElement("NoiseMap"_sh, g_renderBackend->GetTextureImageView(state.noiseMap));
+        descriptorSet->SetElement("NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(state.noiseMap));
     }
 
     DeferCreate(state.computeDescriptorTable);
@@ -254,7 +255,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
             const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet"_sh, frameIndex);
             AssertDebug(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("ParticleTexture"_sh, g_renderBackend->GetTextureImageView(MakeStrongRef(proxy->particleTexture)));
+            descriptorSet->SetElement("ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(proxy->particleTexture)));
         }
     }
 

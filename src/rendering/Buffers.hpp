@@ -242,7 +242,7 @@ public:
     void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
     {
         bool wasResized = false;
-        HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
+        CheckResult(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
 
         if (wasResized)
         {

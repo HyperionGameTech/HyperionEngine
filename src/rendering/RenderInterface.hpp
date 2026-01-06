@@ -242,6 +242,8 @@ public:
 
     ShaderPropertyCache* shaderPropertyCache;
 
+    TextureViewCache* textureViewCache;
+
     Array<World*> renderWorlds[RingBufferDepth];
 
     State state;

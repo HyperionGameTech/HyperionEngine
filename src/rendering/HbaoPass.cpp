@@ -69,10 +69,10 @@ struct CreateHBAOUniformBuffer : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        HYP_GFX_CHECK(uniformBuffer->Create());
+        CheckResultOrReturn(uniformBuffer->Create());
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 

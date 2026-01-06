@@ -1520,6 +1520,8 @@ void EndFrameRender()
     g_renderInterface->constantsAllocator->OnFrameEnd();
     g_renderInterface->descriptorSetCache->OnFrameEnd();
 
+    g_renderInterface->textureViewCache->CleanupUnusedTextures();
+
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
     AtomicIncrement(&s_frameCounter);
@@ -1541,6 +1543,7 @@ RenderInterface::RenderInterface()
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       finalPass(nullptr),
+      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
       shaderPropertyCache(PoolNew<ShaderPropertyCache>(*g_renderPool))
 {
     AssertOnThread(g_renderThread);
@@ -1633,6 +1636,9 @@ RenderInterface::~RenderInterface()
     placeholderData->Destroy();
 
     globalDescriptorTable.Reset();
+
+    PoolDelete(*g_renderPool, textureViewCache);
+    textureViewCache = nullptr;
 
     PoolDelete(*g_renderPool, finalPass);
     finalPass = nullptr;
@@ -2083,7 +2089,8 @@ void RenderInterface::CreateBlueNoiseBuffer()
     m_blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     m_blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
     m_blueNoiseBuffer->SetRequireCpuAccessible(true);
-    HYP_GFX_ASSERT(m_blueNoiseBuffer->Create());
+    CheckResult(m_blueNoiseBuffer->Create());
+
     m_blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
     m_blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
     m_blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
@@ -2101,7 +2108,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 
     m_sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
     m_sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
-    HYP_GFX_ASSERT(m_sphereSamplesBuffer->Create());
+    CheckResult(m_sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];
 
@@ -2168,7 +2175,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     for (uint32 i = 0; i < MaxBoundReflectionProbes; i++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement(NAME("EnvProbeTextures"), i, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+            ->SetElement(NAME("EnvProbeTextures"), i, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
     }
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)

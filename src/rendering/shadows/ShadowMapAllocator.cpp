@@ -84,11 +84,11 @@ void ShadowMapAllocator::Initialize()
         IU_SAMPLED | IU_STORAGE });
 
     m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));
-    HYP_GFX_ASSERT(m_atlasImage->Create());
+    CheckResult(m_atlasImage->Create());
 
     m_atlasImageView = g_renderBackend->MakeImageView(m_atlasImage);
     m_atlasImageView->SetDebugName(NAME("ShadowMapAtlasImageView"));
-    HYP_GFX_ASSERT(m_atlasImageView->Create());
+    CheckResult(m_atlasImageView->Create());
 
     m_pointLightShadowMapImage = g_renderBackend->MakeImage(TextureDesc {
         TT_CUBEMAP_ARRAY,
@@ -101,11 +101,11 @@ void ShadowMapAllocator::Initialize()
         IU_SAMPLED | IU_STORAGE });
 
     m_pointLightShadowMapImage->SetDebugName(NAME("PointLightShadowMapImage"));
-    HYP_GFX_ASSERT(m_pointLightShadowMapImage->Create());
+    CheckResult(m_pointLightShadowMapImage->Create());
 
     m_pointLightShadowMapImageView = g_renderBackend->MakeImageView(m_pointLightShadowMapImage);
     m_pointLightShadowMapImageView->SetDebugName(NAME("PointLightShadowMapImageView"));
-    HYP_GFX_ASSERT(m_pointLightShadowMapImageView->Create());
+    CheckResult(m_pointLightShadowMapImageView->Create());
 }
 
 void ShadowMapAllocator::Destroy()
