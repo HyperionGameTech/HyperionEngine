@@ -12,12 +12,16 @@
 
 #include <rendering/RenderObject.hpp>
 
+#include <rendering/dx12/DX12DescriptorHeaps.hpp>
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class DX12DescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(DX12DescriptorSet);
+    
+    using ElementCache = HashMap<Name, Array<DX12DescriptorHandle>>;
 
 public:
     explicit DX12DescriptorSet(const DescriptorSetLayout& layout);
@@ -40,9 +44,26 @@ public:
 
     DescriptorSetRef Clone() const override;
 
+    D3D12_CPU_DESCRIPTOR_HANDLE GetViewCpuHandle(uint32 binding) const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetSamplerCpuHandle(uint32 binding) const;
+
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
+
+private:
+    ElementCache m_elementCache;
+
+    // Binding index -> heap offset (packed) for views (CBV/SRV/UAV)
+    HashMap<uint32, uint32> m_viewBindingToHeapOffset;
+    // Binding index -> heap offset (packed) for samplers
+    HashMap<uint32, uint32> m_samplerBindingToHeapOffset;
+
+    // Allocated descriptor handles
+    DX12DescriptorHandle m_viewDescriptorHandle;
+    DX12DescriptorHandle m_samplerDescriptorHandle;
+
+    bool m_isCreated = false;
 };
 
 HYP_CLASS(NoScriptBindings)

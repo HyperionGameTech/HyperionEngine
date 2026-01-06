@@ -23,8 +23,8 @@ static constexpr uint32 MaxDescriptorHeapType = uint32(DX12DescriptorHeapType::M
 
 struct DX12DescriptorHandle
 {
-    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
-    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
+    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle { 0 };
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle { 0 };
     uint32 count = 0;
     uint8 frameIndex = 0; // frame this was allocated on (0..NumFramesInFlight)
     

@@ -47,13 +47,13 @@ static inline void ValidateDynamicOffset(
     if (layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC)
     {
         AssertDebug(offset % limits.minUniformBufferOffsetAlignment == 0,
-            "Dynamic uniform buffer offset {} for element %s is not aligned to minUniformBufferOffsetAlignment ({})",
+            "Dynamic uniform buffer offset {} for element {} is not aligned to minUniformBufferOffsetAlignment ({})",
             offset, Name(dynamicElementName), limits.minUniformBufferOffsetAlignment);
     }
     else if (layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
     {
         AssertDebug(offset % limits.minStorageBufferOffsetAlignment == 0,
-            "Dynamic storage buffer offset {} for element %s is not aligned to minStorageBufferOffsetAlignment ({})",
+            "Dynamic storage buffer offset {} for element {} is not aligned to minStorageBufferOffsetAlignment ({})",
             offset, Name(dynamicElementName), limits.minStorageBufferOffsetAlignment);
     }
 
@@ -245,7 +245,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
 
 void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 {
-    m_vkDescriptorElementInfos.Clear();
+    m_pendingDescriptors.Clear();
 
     // Ensure all cached value containers are prepared
     for (auto& it : m_elements)
@@ -260,7 +260,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             cachedIt = m_cachedElements.Emplace(name).first;
         }
 
-        Array<VulkanDescriptorElementInfo>& cachedElementValues = cachedIt->second;
+        Array<VulkanCachedDescriptor>& cachedElementValues = cachedIt->second;
 
         if (cachedElementValues.Size() != element.values.Size())
         {
@@ -268,7 +268,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
     
-    Array<VulkanDescriptorElementInfo, VulkanAllocator> localDescriptorElementInfos;
+    Array<VulkanCachedDescriptor, VulkanAllocator> localDescriptors;
 
     // detect changes from cachedValues
     for (auto& it : m_elements)
@@ -282,11 +282,9 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         auto cachedIt = m_cachedElements.Find(name);
         AssertDebug(cachedIt != m_cachedElements.End());
 
-        Array<VulkanDescriptorElementInfo>& cachedValues = cachedIt->second;
-        AssertDebug(cachedValues.Size() == element.values.Size());
-
-        localDescriptorElementInfos.Clear();
-        localDescriptorElementInfos.Reserve(element.values.Size());
+        Array<VulkanCachedDescriptor>& cachedValues = cachedIt->second;
+        localDescriptors.Clear();
+        localDescriptors.Reserve(element.values.Size());
 
         switch (layoutElement->type)
         {
@@ -298,7 +296,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             const bool layoutHasSize = layoutElement->size != 0 && layoutElement->size != ~0u;
             const bool isDynamic = layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
                 || layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
-
+            for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
             for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
             {
                 ObjectBase* ptr = element.values[index];
@@ -308,15 +306,15 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(ptr);
                 AssertDebug(ref != nullptr);
                 
-                VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
-                Memory::MemSet(&descriptorElementInfo, 0, sizeof(VulkanDescriptorElementInfo));
-                descriptorElementInfo.binding = layoutElement->binding;
-                descriptorElementInfo.index = index;
-                descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
+                VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                descriptor.binding = layoutElement->binding;
+                descriptor.index = index;
+                descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
                 AssertDebug(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                descriptorElementInfo.bufferInfo = VkDescriptorBufferInfo {
+                descriptor.bufferInfo = VkDescriptorBufferInfo {
                     .buffer = ref->GetVulkanHandle(),
                     .offset = 0,
                     .range = layoutHasSize ? layoutElement->size : ref->Size()
@@ -339,15 +337,15 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 VulkanGpuImageView* ref = static_cast<VulkanGpuImageView*>(ptr);
                 AssertDebug(ref != nullptr);
 
-                VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
-                Memory::MemSet(&descriptorElementInfo, 0, sizeof(VulkanDescriptorElementInfo));
-                descriptorElementInfo.binding = layoutElement->binding;
-                descriptorElementInfo.index = index;
-                descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
+                VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                descriptor.binding = layoutElement->binding;
+                descriptor.index = index;
+                descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
                 
                 AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                descriptorElementInfo.imageInfo = VkDescriptorImageInfo {
+                descriptor.imageInfo = VkDescriptorImageInfo {
                     .sampler = VK_NULL_HANDLE,
                     .imageView = ref->GetVulkanHandle(),
                     .imageLayout = isStorageImage ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -367,15 +365,15 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 VulkanSampler* ref = static_cast<VulkanSampler*>(ptr);
                 AssertDebug(ref != nullptr);
 
-                VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
-                Memory::MemSet(&descriptorElementInfo, 0, sizeof(VulkanDescriptorElementInfo));
-                descriptorElementInfo.binding = layoutElement->binding;
-                descriptorElementInfo.index = index;
-                descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
+                VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                descriptor.binding = layoutElement->binding;
+                descriptor.index = index;
+                descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
                 AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                descriptorElementInfo.imageInfo = VkDescriptorImageInfo {
+                descriptor.imageInfo = VkDescriptorImageInfo {
                     .sampler = ref->GetVulkanHandle(),
                     .imageView = VK_NULL_HANDLE,
                     .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED
@@ -394,13 +392,13 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 AssertDebug(ref != nullptr, "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
                 AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
-                VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
-                Memory::MemSet(&descriptorElementInfo, 0, sizeof(VulkanDescriptorElementInfo));
-                descriptorElementInfo.binding = layoutElement->binding;
-                descriptorElementInfo.index = index;
-                descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
+                VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
+                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                descriptor.binding = layoutElement->binding;
+                descriptor.index = index;
+                descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
-                descriptorElementInfo.accelerationStructureInfo = VkWriteDescriptorSetAccelerationStructureKHR {
+                descriptor.accelerationStructureInfo = VkWriteDescriptorSetAccelerationStructureKHR {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
                     .pNext = nullptr,
                     .accelerationStructureCount = 1,
@@ -414,13 +412,13 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             HYP_UNREACHABLE();
         }
 
-        AssertDebug(localDescriptorElementInfos.Size() <= cachedValues.Size(), "Index out of range for cached values");
+        Assert(localDescriptors.Size() <= cachedValues.Size(), "Index out of range for cached values");
 
         Range<uint32> localDirtyRange = Range<uint32>::Invalid();
 
-        for (SizeType i = 0; i < localDescriptorElementInfos.Size(); i++)
+        for (SizeType i = 0; i < localDescriptors.Size(); i++)
         {
-            if (Memory::MemCmp(localDescriptorElementInfos.Data() + i, cachedValues.Data() + i, sizeof(VulkanDescriptorElementInfo)) != 0)
+            if (Memory::MemCmp(localDescriptors.Data() + i, cachedValues.Data() + i, sizeof(VulkanCachedDescriptor)) != 0)
             {
                 localDirtyRange |= { uint32(i), uint32(i + 1) };
             }
@@ -428,27 +426,29 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         if (localDirtyRange.Distance() > 0)
         {
-            AssertDebug(localDirtyRange.GetStart() + localDirtyRange.Distance() <= cachedValues.Size());
-            AssertDebug(localDirtyRange.GetStart() + localDirtyRange.GetEnd() <= localDescriptorElementInfos.Size());
+            AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
+            AssertDebug(localDirtyRange.GetEnd() <= localDescriptors.Size());
 
-            Memory::MemCpy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptorElementInfos.Data() + localDirtyRange.GetStart(), sizeof(VulkanDescriptorElementInfo) * SizeType(localDirtyRange.Distance()));
+            Memory::MemCpy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * SizeType(localDirtyRange.Distance()));
 
             // mark the element as dirty
             element.dirtyRange |= localDirtyRange;
 
-            m_vkDescriptorElementInfos.Concat(localDescriptorElementInfos);
+            m_pendingDescriptors.Concat(localDescriptors);
         }
+
+        localDescriptors.Clear();
     }
 
     if (outIsDirty)
     {
-        *outIsDirty = m_vkDescriptorElementInfos.Any();
+        *outIsDirty = m_pendingDescriptors.Any();
     }
 }
 
 void VulkanDescriptorSet::Update(bool force)
 {
-    static_assert(std::is_trivial_v<VulkanDescriptorElementInfo>, "VulkanDescriptorElementInfo should be a trivial type for fast copy and move operations");
+    static_assert(std::is_trivial_v<VulkanCachedDescriptor>, "VulkanCachedDescriptor should be a trivial type for fast copy and move operations");
 
     Assert(m_handle != VK_NULL_HANDLE);
 
@@ -458,34 +458,34 @@ void VulkanDescriptorSet::Update(bool force)
         UpdateDirtyState();
     }
 
-    if (m_vkDescriptorElementInfos.Empty())
+    if (m_pendingDescriptors.Empty())
     {
         return;
     }
 
     Array<VkWriteDescriptorSet> vkWriteDescriptorSets;
-    vkWriteDescriptorSets.Resize(m_vkDescriptorElementInfos.Size());
+    vkWriteDescriptorSets.Resize(m_pendingDescriptors.Size());
 
     for (SizeType i = 0; i < vkWriteDescriptorSets.Size(); i++)
     {
-        const VulkanDescriptorElementInfo& descriptorElementInfo = m_vkDescriptorElementInfos[i];
+        const VulkanCachedDescriptor& descriptor = m_pendingDescriptors[i];
 
         VkWriteDescriptorSet& write = vkWriteDescriptorSets[i];
 
         write = VkWriteDescriptorSet { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
         write.dstSet = m_handle;
-        write.dstBinding = descriptorElementInfo.binding;
-        write.dstArrayElement = descriptorElementInfo.index;
+        write.dstBinding = descriptor.binding;
+        write.dstArrayElement = descriptor.index;
         write.descriptorCount = 1;
-        write.descriptorType = descriptorElementInfo.descriptorType;
+        write.descriptorType = descriptor.descriptorType;
 
-        if (descriptorElementInfo.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        if (descriptor.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
         {
-            write.pNext = &descriptorElementInfo.accelerationStructureInfo;
+            write.pNext = &descriptor.accelerationStructureInfo;
         }
 
-        write.pImageInfo = &descriptorElementInfo.imageInfo;
-        write.pBufferInfo = &descriptorElementInfo.bufferInfo;
+        write.pImageInfo = &descriptor.imageInfo;
+        write.pBufferInfo = &descriptor.bufferInfo;
     }
 
     vkUpdateDescriptorSets(
@@ -502,7 +502,7 @@ void VulkanDescriptorSet::Update(bool force)
         element.dirtyRange = Range<uint32>::Invalid();
     }
 
-    m_vkDescriptorElementInfos.Clear();
+    m_pendingDescriptors.Clear();
 }
 
 RendererResult VulkanDescriptorSet::Create()
@@ -537,7 +537,7 @@ RendererResult VulkanDescriptorSet::Create()
         const Name name = it.first;
         const DescriptorSetElement& element = it.second;
 
-        m_cachedElements.Emplace(name, Array<VulkanDescriptorElementInfo>(element.values.Size()));
+        m_cachedElements.Emplace(name, Array<VulkanCachedDescriptor>(element.values.Size()));
     }
 
     UpdateDirtyState();
@@ -813,7 +813,7 @@ void VulkanDescriptorSet::SetDebugName(Name name)
         return;
     }
 
-    const char* strName = name.LookupString();
+    const char* strName = *name;
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
     objectNameInfo.objectType = VK_OBJECT_TYPE_DESCRIPTOR_SET;
