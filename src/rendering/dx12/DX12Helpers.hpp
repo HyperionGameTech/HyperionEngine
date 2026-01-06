@@ -12,8 +12,10 @@ enum TextureFormat : uint32;
 class DX12GpuBuffer;
 class DX12GpuImage;
 
-DXGI_FORMAT ToDXGIFormat(TextureFormat);
+DXGI_FORMAT ToDXGIFormat(TextureFormat format);
 D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state);
+D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType);
+D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType);
 
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer);
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer);
