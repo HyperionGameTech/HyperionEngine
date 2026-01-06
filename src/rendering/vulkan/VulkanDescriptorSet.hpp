@@ -27,7 +27,7 @@ namespace Hyperion {
 
 class VulkanDescriptorSetLayoutWrapper;
 
-struct VulkanDescriptorElementInfo
+struct VulkanCachedDescriptor
 {
     uint32 binding;
     uint32 index;
@@ -46,7 +46,7 @@ class VulkanDescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(VulkanDescriptorSet);
 
-    using ElementCache = HashMap<Name, Array<VulkanDescriptorElementInfo>>;
+    using ElementCache = HashMap<Name, Array<VulkanCachedDescriptor>>;
 
 public:
     VulkanDescriptorSet(const DescriptorSetLayout& layout);
@@ -86,7 +86,7 @@ protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;
-    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;
+    Array<VulkanCachedDescriptor> m_pendingDescriptors;
     ElementCache m_cachedElements;
 };
 
