@@ -16,6 +16,7 @@ DECLARE_GFX_TYPE(DescriptorSet);
 DECLARE_GFX_TYPE(DescriptorTable);
 DECLARE_GFX_TYPE(GpuBlas);
 DECLARE_GFX_TYPE(GpuTlas);
+DECLARE_GFX_TYPE(TextureViewCache);
 
 #if HYP_VULKAN
 DECLARE_VULKAN_GFX_TYPE(Semaphore);

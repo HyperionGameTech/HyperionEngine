@@ -20,6 +20,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -334,7 +335,13 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            const GpuImageViewRef& imageView = g_renderBackend->GetTextureImageView(prefilteredEnvMap, mipIndex, 1);
+            ImageSubResource subResource {};
+            subResource.baseMipLevel = mipIndex;
+            subResource.numLevels = 1;
+            subResource.baseArrayLayer = 0;
+            subResource.numLayers = 1;
+
+            const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(prefilteredEnvMap, subResource);
             Assert(imageView != nullptr);
 
             const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet"_sh, frameIndex);

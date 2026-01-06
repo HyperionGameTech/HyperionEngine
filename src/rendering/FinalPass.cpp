@@ -14,6 +14,7 @@
 #include <rendering/Swapchain.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -80,7 +81,7 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
                 }
                 else
                 {
-                    descriptorSet->SetElement("InTexture"_sh, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+                    descriptorSet->SetElement("InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
                 }
             }
 

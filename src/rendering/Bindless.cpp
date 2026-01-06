@@ -8,6 +8,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 namespace Hyperion {
 
@@ -28,7 +29,7 @@ void BindlessStorage::UnsetAllResources()
         // Unset all active textures
         for (const auto& it : m_resources)
         {
-            descriptorSet->SetElement("Textures"_sh, it.first.ToIndex(), g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+            descriptorSet->SetElement("Textures"_sh, it.first.ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
         }
     }
 
@@ -85,7 +86,7 @@ void BindlessStorage::RemoveResource(ObjId<Texture> id)
         const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        descriptorSet->SetElement("Textures"_sh, id.ToIndex(), g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("Textures"_sh, id.ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
     }
 }
 

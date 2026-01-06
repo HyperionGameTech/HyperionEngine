@@ -10,9 +10,11 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 
@@ -120,7 +122,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
 {
     Assert(texture.IsValid());
 
-    GpuImageViewRef textureImageView = g_renderBackend->GetTextureImageView(texture);
+    GpuImageViewRef textureImageView = g_renderInterface->textureViewCache->GetOrCreate(texture);
     Assert(textureImageView.IsValid());
 
     const uint32 numMipLevels = texture->GetTextureDesc().NumMips();

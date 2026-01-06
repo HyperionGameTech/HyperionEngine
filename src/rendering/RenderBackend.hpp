@@ -122,8 +122,6 @@ public:
         const Mat4f& transform) = 0;
     virtual GpuTlasRef MakeTLAS() = 0;
 
-    virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) = 0;
-
     virtual void PopulateIndirectDrawCommandsBuffer(const GpuBufferRef& vertexBuffer, const GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) = 0;
 
     virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const = 0;

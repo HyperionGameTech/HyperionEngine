@@ -40,11 +40,11 @@ static inline bool ResizeBuffer(
 
     bool sizeChanged = false;
 
-    HYP_GFX_ASSERT(buffer->EnsureCapacity(newBufferSize, &sizeChanged));
+    CheckResult(buffer->EnsureCapacity(newBufferSize, &sizeChanged));
 
     if (!buffer->IsCreated())
     {
-        HYP_GFX_ASSERT(buffer->Create());
+        CheckResult(buffer->Create());
 
         sizeChanged = true;
     }
@@ -65,12 +65,12 @@ static bool ResizeIndirectDrawCommandsBuffer(
         return false;
     }
 
-    HYP_GFX_ASSERT(stagingBuffer->EnsureCapacity(indirectBuffer->Size()));
+    CheckResult(stagingBuffer->EnsureCapacity(indirectBuffer->Size()));
 
     // upload zeros to the buffer using a staging buffer.
     if (!stagingBuffer->IsCreated())
     {
-        HYP_GFX_ASSERT(stagingBuffer->Create());
+        CheckResult(stagingBuffer->Create());
     }
 
     // set all to zero

@@ -7,6 +7,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/DescriptorSet.hpp>
@@ -92,7 +93,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("EnvProbeTextures"_sh, prev, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
+                ->SetElement("EnvProbeTextures"_sh, prev, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
         }
     }
 
@@ -114,8 +115,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
                 ->SetElement("EnvProbeTextures"_sh, next,
                     proxyCasted->texture != nullptr
-                        ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxyCasted->texture))
-                        : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
+                        ? g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(proxyCasted->texture))
+                        : g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
         }
     }
 }
@@ -171,10 +172,10 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("LightFieldColorTexture"_sh, g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldIrradianceTexture()));
+                ->SetElement("LightFieldColorTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(legacyEnvGrid->GetLightFieldIrradianceTexture()));
 
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("LightFieldDepthTexture"_sh, g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldDepthTexture()));
+                ->SetElement("LightFieldDepthTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(legacyEnvGrid->GetLightFieldDepthTexture()));
         }
 
         break;
@@ -191,7 +192,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("VoxelGridTexture"_sh, g_renderBackend->GetTextureImageView(legacyEnvGrid->GetVoxelGridTexture()));
+                ->SetElement("VoxelGridTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(legacyEnvGrid->GetVoxelGridTexture()));
         }
     }
 }
@@ -336,7 +337,7 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     {
         if (next != ~0u)
         {
-            g_renderInterface->bindlessStorage->AddResource(texture->Id(), g_renderBackend->GetTextureImageView(MakeStrongRef(texture)));
+            g_renderInterface->bindlessStorage->AddResource(texture->Id(), g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(texture)));
         }
         else
         {

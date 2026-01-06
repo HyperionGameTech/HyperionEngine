@@ -392,7 +392,7 @@ GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType
 {
     GpuBufferRef gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, size);
     gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
-    HYP_GFX_ASSERT(gpuBuffer->Create());
+    CheckResult(gpuBuffer->Create());
 
     return gpuBuffer;
 }

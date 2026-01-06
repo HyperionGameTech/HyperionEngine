@@ -15,6 +15,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -78,12 +79,12 @@ struct CreateSSGIUniformBuffers : RenderCommand
         {
             Assert(uniformBuffers[frameIndex] != nullptr);
 
-            HYP_GFX_CHECK(uniformBuffers[frameIndex]->Create());
+            CheckResultOrReturn(uniformBuffers[frameIndex]->Create());
 
             uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
         }
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -134,7 +135,7 @@ void SSGI::Create()
             SsgiFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
             0.96,
-            g_renderBackend->GetTextureImageView(m_resultTexture),
+            g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture),
             m_gbuffer);
 
         m_temporalBlending->Create();
@@ -201,7 +202,7 @@ void SSGI::CreateComputePipelines()
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("SSGIDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement("OutImage"_sh, g_renderBackend->GetTextureImageView(m_resultTexture));
+        descriptorSet->SetElement("OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture));
         descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffers[frameIndex]);
     }
 

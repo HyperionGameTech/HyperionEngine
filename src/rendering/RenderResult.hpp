@@ -46,6 +46,8 @@ private:
 
 using RendererResult = TResult<void, RendererError>;
 
+bool CheckResult(const RendererResult&);
+
 #define HYPERION_RETURN_OK                    \
     do                                        \
     {                                         \
@@ -63,13 +65,13 @@ using RendererResult = TResult<void, RendererError>;
     while (0)
 
 /// On error, exits the current functon returning the result
-#define HYP_GFX_CHECK(result)                          \
-    do                                                 \
-    {                                                  \
-        ::Hyperion::RendererResult _result = (result); \
-        if (!_result)                                  \
-            return _result;                            \
-    }                                                  \
+#define CheckResultOrReturn(result)                                  \
+    do                                                               \
+    {                                                                \
+        ::Hyperion::RendererResult _result = (result);               \
+        if (!CheckResult(_result))                                   \
+            return _result.GetError();                               \
+    }                                                                \
     while (0)
 
 #define HYP_GFX_ASSERT(cond, ...)                                                                  \

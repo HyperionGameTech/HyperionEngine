@@ -17,6 +17,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -314,7 +315,7 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendere
         descriptorSet->SetElement("EnvGridBuffer"_sh, 0, sizeof(EnvGridShaderData), g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex));
         descriptorSet->SetElement("EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
-        descriptorSet->SetElement("OutVoxelGridImage"_sh, g_renderBackend->GetTextureImageView(envGrid->GetVoxelGridTexture()));
+        descriptorSet->SetElement("OutVoxelGridImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(envGrid->GetVoxelGridTexture()));
     }
 
     DeferCreate(descriptorTable);
@@ -363,7 +364,7 @@ void EnvGridRenderer::CreateVoxelGridData(LegacyEnvGrid* envGrid, EnvGridRendere
                 if (mipLevel == 0)
                 {
                     // first mip level -- input is the actual image
-                    mipDescriptorSet->SetElement("InputTexture"_sh, g_renderBackend->GetTextureImageView(envGrid->GetVoxelGridTexture()));
+                    mipDescriptorSet->SetElement("InputTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(envGrid->GetVoxelGridTexture()));
                 }
                 else
                 {
@@ -425,9 +426,9 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(LegacyEnvGrid* envGrid, EnvGr
             const DescriptorSetRef& computeShDescriptorSet = pd.computeShDescriptorTables[i]->GetDescriptorSet("ComputeSHDescriptorSet"_sh, frameIndex);
             Assert(computeShDescriptorSet != nullptr);
 
-            computeShDescriptorSet->SetElement("InColorCubemap"_sh, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
-            computeShDescriptorSet->SetElement("InNormalsCubemap"_sh, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
-            computeShDescriptorSet->SetElement("InDepthCubemap"_sh, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
+            computeShDescriptorSet->SetElement("InColorCubemap"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
+            computeShDescriptorSet->SetElement("InNormalsCubemap"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
+            computeShDescriptorSet->SetElement("InDepthCubemap"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
             computeShDescriptorSet->SetElement("InputSHTilesBuffer"_sh, pd.shTilesBuffers[i]);
 
             if (i != ShNumLevels - 1)
@@ -510,8 +511,8 @@ void EnvGridRenderer::CreateLightFieldData(LegacyEnvGrid* envGrid, EnvGridRender
             descriptorSet->SetElement("InDepthImage"_sh, framebuffer->GetAttachment(2)->GetImageView());
             descriptorSet->SetElement("SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
             descriptorSet->SetElement("SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-            descriptorSet->SetElement("OutColorImage"_sh, g_renderBackend->GetTextureImageView(envGrid->GetLightFieldIrradianceTexture()));
-            descriptorSet->SetElement("OutDepthImage"_sh, g_renderBackend->GetTextureImageView(envGrid->GetLightFieldDepthTexture()));
+            descriptorSet->SetElement("OutColorImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(envGrid->GetLightFieldIrradianceTexture()));
+            descriptorSet->SetElement("OutDepthImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(envGrid->GetLightFieldDepthTexture()));
         }
 
         DeferCreate(descriptorTable);

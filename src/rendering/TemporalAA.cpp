@@ -14,6 +14,7 @@
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -105,7 +106,7 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
     const auto setDescriptorElements = [this, &textures](DescriptorSetBase* descriptorSet, uint32 frameIndex)
     {
         descriptorSet->SetElement("InColorTexture"_sh, m_inputImageView);
-        descriptorSet->SetElement("InPrevColorTexture"_sh, g_renderBackend->GetTextureImageView((*textures[(frameIndex + 1) % 2])));
+        descriptorSet->SetElement("InPrevColorTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate((*textures[(frameIndex + 1) % 2])));
 
         descriptorSet->SetElement("InVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
 
@@ -114,7 +115,7 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
         descriptorSet->SetElement("SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         descriptorSet->SetElement("SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-        descriptorSet->SetElement("OutColorImage"_sh, g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
+        descriptorSet->SetElement("OutColorImage"_sh, g_renderInterface->textureViewCache->GetOrCreate((*textures[frameIndex % 2])));
 
         descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
     };
@@ -128,7 +129,7 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
 
         m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));
         m_uniformBuffer->SetDebugName(NAME("TAA_UniformBuffer"));
-        HYP_GFX_ASSERT(m_uniformBuffer->Create());
+        CheckResult(m_uniformBuffer->Create());
 
         TaaUniforms uniforms {};
         uniforms.dimensions = m_extent;
@@ -161,10 +162,10 @@ void TemporalAA::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetu
             setDescriptorElements(descriptorSet, frameIndex);
         }
 
-        HYP_GFX_ASSERT(descriptorTable->Create());
+        CheckResult(descriptorTable->Create());
 
         m_computePipeline = g_renderBackend->MakeComputePipeline(shader, descriptorTable);
-        HYP_GFX_ASSERT(m_computePipeline->Create());
+        CheckResult(m_computePipeline->Create());
 
         return;
     }

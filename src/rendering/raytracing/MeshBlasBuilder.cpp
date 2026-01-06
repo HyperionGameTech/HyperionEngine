@@ -71,18 +71,18 @@ struct BuildMeshBlas : public RenderCommand
         const SizeType packedVerticesSize = ByteUtil::AlignAs(packedVertices.Size() * sizeof(PackedVertex), 16);
         const SizeType packedIndicesSize = ByteUtil::AlignAs(packedIndices.Size() * sizeof(uint32), 16);
 
-        HYP_GFX_CHECK(packedVerticesBuffer->Create());
-        HYP_GFX_CHECK(packedIndicesBuffer->Create());
+        CheckResultOrReturn(packedVerticesBuffer->Create());
+        CheckResultOrReturn(packedIndicesBuffer->Create());
 
         verticesStagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedVerticesSize);
         verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_V_GpuBlas_{}", blas->GetDebugName()));
-        HYP_GFX_CHECK(verticesStagingBuffer->Create());
+        CheckResultOrReturn(verticesStagingBuffer->Create());
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
         verticesStagingBuffer->Copy(packedVertices.Size() * sizeof(PackedVertex), packedVertices.Data());
 
         indicesStagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
         indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_I_GpuBlas_{}", blas->GetDebugName()));
-        HYP_GFX_CHECK(indicesStagingBuffer->Create());
+        CheckResultOrReturn(indicesStagingBuffer->Create());
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
         indicesStagingBuffer->Copy(packedIndices.Size() * sizeof(uint32), packedIndices.Data());
 
@@ -94,7 +94,7 @@ struct BuildMeshBlas : public RenderCommand
                 renderQueue << CopyBuffer(indicesStagingBuffer, packedIndicesBuffer, packedIndicesSize);
             });
 
-        HYP_GFX_CHECK(singleTimeCommands->Execute());
+        CheckResultOrReturn(singleTimeCommands->Execute());
 
         /*Frame* frame = g_renderBackend->GetCurrentFrame();
         RenderQueue& renderQueue = frame->renderQueue;
