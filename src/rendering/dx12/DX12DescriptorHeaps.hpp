@@ -49,6 +49,9 @@ public:
     DX12DescriptorIndexAllocator(const DX12DescriptorIndexAllocator&) = delete;
     DX12DescriptorIndexAllocator& operator=(const DX12DescriptorIndexAllocator&) = delete;
 
+    DX12DescriptorIndexAllocator(DX12DescriptorIndexAllocator&&) = delete;
+    DX12DescriptorIndexAllocator& operator=(DX12DescriptorIndexAllocator&&) = delete;
+
     ~DX12DescriptorIndexAllocator() = default;
 
     uint32 Allocate(uint32 count)
@@ -161,6 +164,14 @@ class DX12DescriptorAllocator final
 public:
     explicit DX12DescriptorAllocator(DX12DescriptorHeapType type, uint32 maxDescriptors);
 
+    DX12DescriptorAllocator(const DX12DescriptorAllocator&) = delete;
+    DX12DescriptorAllocator& operator=(const DX12DescriptorAllocator&) = delete;
+
+    DX12DescriptorAllocator(DX12DescriptorAllocator&&) = delete;
+    DX12DescriptorAllocator& operator=(DX12DescriptorAllocator&&) = delete;
+
+    ~DX12DescriptorAllocator();
+
     DX12DescriptorHandle Allocate(uint8 frameIndex, uint32 count);
     void Free(DX12DescriptorHandle&& handle);
 
@@ -171,7 +182,7 @@ public:
     D3D12_GPU_DESCRIPTOR_HANDLE gpuStart;
 
 private:
-    Array<DX12DescriptorIndexAllocator, FixedAllocator<NumFramesInFlight>> m_indexAllocators;
+    FixedArray<DX12DescriptorIndexAllocator*, NumFramesInFlight> m_indexAllocators;
 };
 
 class DX12DescriptorHeapManager final

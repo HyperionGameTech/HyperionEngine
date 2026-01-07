@@ -128,7 +128,7 @@ PlaceholderData::PlaceholderData()
       m_imageView3d1x1x1R8Storage(g_renderBackend->MakeImageView(m_image3d1x1x1R8Storage)),
       m_imageCube1x1R8(g_renderBackend->MakeImage(TextureDesc {
           TT_CUBEMAP,
-          TF_R8,
+          TF_RGBA8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -148,7 +148,7 @@ PlaceholderData::PlaceholderData()
       m_imageView2d1x1R8Array(g_renderBackend->MakeImageView(m_image2d1x1R8Array)),
       m_imageCube1x1R8Array(g_renderBackend->MakeImage(TextureDesc {
           TT_CUBEMAP_ARRAY,
-          TF_R8,
+          TF_RGBA8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -178,49 +178,51 @@ PlaceholderData::~PlaceholderData()
 
 void PlaceholderData::Create()
 {
+    AssertOnThread(g_renderThread);
+
 #pragma region Image and ImageView
     // These will soon be deprecated (except the samplers) - we will instead use Texture instead of individual image/image view
     m_image2d1x1R8->SetDebugName(NAME("Placeholder_2D_1x1_R8"));
-    DeferCreate(m_image2d1x1R8);
+    CheckResult(m_image2d1x1R8->Create());
 
     m_imageView2d1x1R8->SetDebugName(NAME("Placeholder_2D_1x1_R8_View"));
-    DeferCreate(m_imageView2d1x1R8);
+    CheckResult(m_imageView2d1x1R8->Create());
 
     m_image2d1x1R8Storage->SetDebugName(NAME("Placeholder_2D_1x1_R8_Storage"));
-    DeferCreate(m_image2d1x1R8Storage);
+    CheckResult(m_image2d1x1R8Storage->Create());
 
     m_imageView2d1x1R8Storage->SetDebugName(NAME("Placeholder_2D_1x1_R8_Storage_View"));
-    DeferCreate(m_imageView2d1x1R8Storage);
+    CheckResult(m_imageView2d1x1R8Storage->Create());
 
     m_image3d1x1x1R8->SetDebugName(NAME("Placeholder_3D_1x1x1_R8"));
-    DeferCreate(m_image3d1x1x1R8);
+    CheckResult(m_image3d1x1x1R8->Create());
 
     m_imageView3d1x1x1R8->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_View"));
-    DeferCreate(m_imageView3d1x1x1R8);
+    CheckResult(m_imageView3d1x1x1R8->Create());
 
     m_image3d1x1x1R8Storage->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_Storage"));
-    DeferCreate(m_image3d1x1x1R8Storage);
+    CheckResult(m_image3d1x1x1R8Storage->Create());
 
     m_imageView3d1x1x1R8Storage->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_Storage_View"));
-    DeferCreate(m_imageView3d1x1x1R8Storage);
+    CheckResult(m_imageView3d1x1x1R8Storage->Create());
 
     m_imageCube1x1R8->SetDebugName(NAME("Placeholder_Cube_1x1_R8"));
-    DeferCreate(m_imageCube1x1R8);
+    CheckResult(m_imageCube1x1R8->Create());
 
     m_imageViewCube1x1R8->SetDebugName(NAME("Placeholder_Cube_1x1_R8_View"));
-    DeferCreate(m_imageViewCube1x1R8);
+    CheckResult(m_imageViewCube1x1R8->Create());
 
     m_image2d1x1R8Array->SetDebugName(NAME("Placeholder_2D_1x1_R8_Array"));
-    DeferCreate(m_image2d1x1R8Array);
+    CheckResult(m_image2d1x1R8Array->Create());
 
     m_imageView2d1x1R8Array->SetDebugName(NAME("Placeholder_2D_1x1_R8_Array_View"));
-    DeferCreate(m_imageView2d1x1R8Array);
+    CheckResult(m_imageView2d1x1R8Array->Create());
 
     m_imageCube1x1R8Array->SetDebugName(NAME("Placeholder_Cube_1x1_R8_Array"));
-    DeferCreate(m_imageCube1x1R8Array);
+    CheckResult(m_imageCube1x1R8Array->Create());
 
     m_imageViewCube1x1R8Array->SetDebugName(NAME("Placeholder_Cube_1x1_R8_Array_View"));
-    DeferCreate(m_imageViewCube1x1R8Array);
+    CheckResult(m_imageViewCube1x1R8Array->Create());
 
 #pragma endregion Image and ImageView
 
@@ -346,13 +348,13 @@ void PlaceholderData::Create()
 #pragma region Samplers
 
     m_samplerLinear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
-    DeferCreate(m_samplerLinear);
+    CheckResult(m_samplerLinear->Create());
 
     m_samplerLinearMipmap->SetDebugName(NAME("Placeholder_Sampler_Linear_Mipmap"));
-    DeferCreate(m_samplerLinearMipmap);
+    CheckResult(m_samplerLinearMipmap->Create());
 
     m_samplerNearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
-    DeferCreate(m_samplerNearest);
+    CheckResult(m_samplerNearest->Create());
 
 #pragma endregion Samplers
 }

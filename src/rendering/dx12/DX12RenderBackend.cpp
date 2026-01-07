@@ -7,7 +7,7 @@
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
-#include <rendering/dx12/DX12DescriptorHeaps.hpp>
+#include <rendering/dx12/DX12DescriptorSet.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -107,7 +107,7 @@ RendererResult DX12RenderBackend::Initialize()
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(),  D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
                 break;
         }
     } 
@@ -121,34 +121,53 @@ RendererResult DX12RenderBackend::Initialize()
             if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
                 continue;
 
-            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, _uuidof(ID3D12Device), nullptr)))
+            if (SUCCEEDED(D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
                 break;
         }
     }
+
+    if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings), &m_dredSettings)))
+    {
+        m_dredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+        m_dredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+    }
+
+#ifdef HYP_DEBUG_MODE
+    ComPtr<ID3D12Debug> debugController;
+    if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), &debugController)))
+        debugController->EnableDebugLayer();
+#endif
 
     // create device
     res = D3D12CreateDevice(m_hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D device!", res);
     
+    m_queueData.Reserve(10);
+
     DX12QueueData& directQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_DIRECT];
+    directQueueData = {};
+
     DX12QueueData& computeQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COMPUTE];
+    computeQueueData = {};
+
     DX12QueueData& copyQueueData = m_queueData[D3D12_COMMAND_LIST_TYPE_COPY];
+    copyQueueData = {};
 
     // create queues and command allocators
     D3D12_COMMAND_QUEUE_DESC directDesc {};
     directDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     directDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-    m_device->CreateCommandQueue(&directDesc, _uuidof(ID3D12CommandQueue), &directQueueData.commandQueue);
+    m_device->CreateCommandQueue(&directDesc, __uuidof(ID3D12CommandQueue), &directQueueData.commandQueue);
 
     D3D12_COMMAND_QUEUE_DESC computeDesc {};
     computeDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
     computeDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-    m_device->CreateCommandQueue(&computeDesc, _uuidof(ID3D12CommandQueue), &computeQueueData.commandQueue);
+    m_device->CreateCommandQueue(&computeDesc, __uuidof(ID3D12CommandQueue), &computeQueueData.commandQueue);
 
     D3D12_COMMAND_QUEUE_DESC copyDesc {};
     copyDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-    m_device->CreateCommandQueue(&copyDesc, _uuidof(ID3D12CommandQueue), &copyQueueData.commandQueue);
+    m_device->CreateCommandQueue(&copyDesc, __uuidof(ID3D12CommandQueue), &copyQueueData.commandQueue);
     
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
@@ -157,7 +176,7 @@ RendererResult DX12RenderBackend::Initialize()
             D3D12_COMMAND_LIST_TYPE commandListType = pair.first;
             DX12QueueData& queueData = pair.second;
 
-            res = m_device->CreateCommandAllocator(commandListType, IID_PPV_ARGS(&queueData.commandAllocators[frameIndex]));
+            res = m_device->CreateCommandAllocator(commandListType, __uuidof(ID3D12CommandAllocator), &queueData.commandAllocators[frameIndex]);
 
             if (!SUCCEEDED(res))
                 return HYP_MAKE_ERROR(RendererError, "Failed to create command allocator for queue {}!", res, commandListType);
@@ -390,7 +409,6 @@ void DX12RenderBackend::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRe
 
 TextureFormat DX12RenderBackend::GetDefaultFormat(DefaultImageFormat type) const
 {
-    // @TODO: Return proper default formats for DX12
     switch (type)
     {
     case DefaultImageFormat::DIF_COLOR:

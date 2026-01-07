@@ -46,8 +46,6 @@ VulkanGpuImageView::~VulkanGpuImageView()
 
         m_handle = VK_NULL_HANDLE;
     }
-
-    SafeDelete(std::move(m_image));
 }
 
 bool VulkanGpuImageView::IsCreated() const

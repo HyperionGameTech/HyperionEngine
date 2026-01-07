@@ -43,6 +43,7 @@ RendererResult DX12GpuImage::Create()
     return Create(RS_UNDEFINED);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult DX12GpuImage::Create(ResourceState initialState)
 {
     D3D12_RESOURCE_STATES resourceStates = ToDX12ResourceStates(initialState);
@@ -74,7 +75,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     resourceDesc.Width = extent.x;
     resourceDesc.Height = extent.y;
     resourceDesc.DepthOrArraySize = extent.z;
-    resourceDesc.MipLevels = 0;
+    resourceDesc.MipLevels = m_textureDesc.HasMipMaps() ? m_textureDesc.NumMips() : 1;
     resourceDesc.Format = ToDXGIFormat(m_textureDesc.format);
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.SampleDesc.Quality = 0;

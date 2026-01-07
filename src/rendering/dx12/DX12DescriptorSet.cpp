@@ -7,6 +7,7 @@
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12GpuImageView.hpp>
+#include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12Sampler.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
@@ -116,7 +117,7 @@ RendererResult DX12DescriptorSet::Create()
         
         if (!m_viewDescriptorHandle.IsValid())
         {
-            return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} view descriptors for descriptor set: {}", viewCount, m_layout.GetName());
+            return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} view descriptors for descriptor set: {}", 0, viewCount, m_layout.GetName());
         }
     }
 
@@ -132,7 +133,7 @@ RendererResult DX12DescriptorSet::Create()
                 g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
             }
 
-            return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", samplerCount, m_layout.GetName());
+            return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", 0, samplerCount, m_layout.GetName());
         }
     }
 
@@ -408,31 +409,79 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetSamplerCpuHandle(uint32 bindin
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, uint32 bindIndex) const
 {
+    Assert(m_isCreated);
+
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    
+    if (m_viewDescriptorHandle.IsValid())
+    {
+        commandList->SetGraphicsRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
+    }
+    
+    if (m_samplerDescriptorHandle.IsValid())
+    {
+        commandList->SetGraphicsRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);
+    }
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
+    // @TODO: Support dynamic offsets
+    Bind(commandBuffer, pipeline, bindIndex);
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, uint32 bindIndex) const
 {
+    Assert(m_isCreated);
+
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    
+    if (m_viewDescriptorHandle.IsValid())
+    {
+        commandList->SetComputeRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
+    }
+    
+    if (m_samplerDescriptorHandle.IsValid())
+    {
+        commandList->SetComputeRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);
+    }
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
+    // @TODO: Support dynamic offsets
+    Bind(commandBuffer, pipeline, bindIndex);
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RaytracingPipeline* pipeline, uint32 bindIndex) const
 {
+    Assert(m_isCreated);
+
+    ID3D12GraphicsCommandList* commandList = commandBuffer->GetCommandList();
+    
+    if (m_viewDescriptorHandle.IsValid())
+    {
+        commandList->SetComputeRootDescriptorTable(bindIndex * 2, m_viewDescriptorHandle.gpuHandle);
+    }
+    
+    if (m_samplerDescriptorHandle.IsValid())
+    {
+        commandList->SetComputeRootDescriptorTable(bindIndex * 2 + 1, m_samplerDescriptorHandle.gpuHandle);
+    }
 }
 
 void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
+    // @TODO: Support dynamic offsets
+    Bind(commandBuffer, pipeline, bindIndex);
 }
 
 DescriptorSetRef DX12DescriptorSet::Clone() const
 {
-    return DescriptorSetRef();
+    DescriptorSetRef descriptorSet = CreateObject<DX12DescriptorSet>(GetLayout());
+    descriptorSet->SetDebugName(GetDebugName());
+
+    return descriptorSet;
 }
 
 #ifdef HYP_DEBUG_MODE
