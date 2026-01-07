@@ -10,7 +10,7 @@
 
 namespace Hyperion {
 
-DXGI_FORMAT ToDXGIFormat(TextureFormat format)
+DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType)
 {
     switch (format)
     {
@@ -76,11 +76,23 @@ DXGI_FORMAT ToDXGIFormat(TextureFormat format)
     case TF_BGRA8_SRGB:
         return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
     case TF_DEPTH_16:
-        return DXGI_FORMAT_D16_UNORM;
+        if (getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D16_UNORM;
+
+        return DXGI_FORMAT_R16_TYPELESS;
     case TF_DEPTH_24:
-        return DXGI_FORMAT_D24_UNORM_S8_UINT;
+        if (getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+        return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     case TF_DEPTH_32F:
-        return DXGI_FORMAT_D32_FLOAT;
+        if (getForViewType == DX12ViewType::SRV_UAV)
+            return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+
+        if (getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+
+        return DXGI_FORMAT_R32G8X24_TYPELESS;
     default:
         break;
     }
@@ -265,11 +277,9 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
     layerIndex = MathUtil::Min(layerIndex, descNumLayers - 1);
     numLayers = MathUtil::Min(numLayers, descNumLayers);
 
-    D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
-
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Format = resDesc.Format; 
+    srvDesc.Format = ToDXGIFormat(textureDesc.format, DX12ViewType::SRV_UAV);
     srvDesc.ViewDimension = ToDX12SRVDimension(textureDesc.type);
 
     switch (srvDesc.ViewDimension)
@@ -329,11 +339,9 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
     mipIndex = MathUtil::Min(mipIndex, descNumMips - 1);
     layerIndex = MathUtil::Min(layerIndex, descNumLayers - 1);
     numLayers = MathUtil::Min(numLayers, descNumLayers);
-    
-    D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc {};
-    uavDesc.Format = resDesc.Format;
+    uavDesc.Format = ToDXGIFormat(textureDesc.format, DX12ViewType::SRV_UAV);
     uavDesc.ViewDimension = ToDX12UAVDimension(textureDesc.type);
 
     switch (uavDesc.ViewDimension)

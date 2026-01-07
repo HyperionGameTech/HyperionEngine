@@ -131,9 +131,24 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     }
     else if (resourceDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
     {
-        clearValue.Format = resourceDesc.Format;
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
+
+        switch (m_textureDesc.format)
+        {
+        case TextureFormat::TF_DEPTH_16:
+            clearValue.Format = DXGI_FORMAT_D16_UNORM;
+            break;
+        case TextureFormat::TF_DEPTH_24:
+            clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            break;
+        case TextureFormat::TF_DEPTH_32F:
+            clearValue.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+
         pClearValue = &clearValue;
     }
 
@@ -267,8 +282,22 @@ void DX12GpuImage::CopyToBuffer(
 
 DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const
 {
-    // @TODO
-    return DX12GpuImageViewRef();
+    if (!IsCreated())
+    {
+        HYP_LOG(
+            RenderingBackend,
+            Warning,
+            "Attempt to create image view on uninitialized image");
+
+        return DX12GpuImageViewRef::Null();
+    }
+
+    return g_renderBackend->MakeImageView(
+        MakeStrongRef(this),
+        0,
+        m_textureDesc.NumMips(),
+        layerIndex,
+        1);
 }
 
 #ifdef HYP_DEBUG_MODE

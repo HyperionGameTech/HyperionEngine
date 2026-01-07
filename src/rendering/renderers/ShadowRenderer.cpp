@@ -210,9 +210,12 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         /// TODO: Better check for using combined pass
         if (lightProxy->shadowViews.Size() == 2)
         {
+            GpuImage* image = shadowMap->GetImageView()->GetImage();
+            AssertDebug(image != nullptr);
+
             cacheIt->second.combineShadowMapsPass = CreateCombineShadowMapsPass(
                 shadowMap->GetFilterMode(),
-                shadowMap->GetImageView()->GetImage()->GetTextureFormat(), /// \todo get format from Light's settings
+                image->GetTextureFormat(), /// \todo get format from Light's settings
                 shadowMap->GetAtlasElement()->dimensions,
                 lightProxy->shadowViews);
 

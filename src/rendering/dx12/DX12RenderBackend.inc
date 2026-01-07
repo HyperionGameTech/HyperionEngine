@@ -122,6 +122,8 @@ public:
     void ReleaseTransientMemory() override;
 
     void NextFrame() override;
+    
+    ComPtr<IDXGIFactory4> dxgiFactory;
 
     DX12DescriptorHeapManager* descriptorHeapManager;
 
@@ -133,7 +135,6 @@ private:
 
     DX12CommandBufferRef m_commandBuffer;
     
-    ComPtr<IDXGIFactory4> m_dxgiFactory;
     ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 
     ComPtr<ID3D12Device> m_device;

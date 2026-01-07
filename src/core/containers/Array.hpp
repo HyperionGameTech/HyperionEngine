@@ -291,13 +291,13 @@ public:
     /*! \brief Returns a pointer to the first element in the array. */
     HYP_FORCE_INLINE ValueType* Data()
     {
-        return &GetBuffer()[m_startOffset];
+        return GetBuffer() + m_startOffset;
     }
 
     /*! \brief Returns a pointer to the first element in the array. */
     HYP_FORCE_INLINE const ValueType* Data() const
     {
-        return &GetBuffer()[m_startOffset];
+        return GetBuffer() + m_startOffset;
     }
 
     /*! \brief Returns a reference to the first element in the array. */
@@ -433,7 +433,7 @@ public:
 
         // set item at index
         T* buffer = GetBuffer();
-        T* element = &buffer[m_size++];
+        T* element = std::addressof(buffer[m_size++]);
 
         Memory::Construct<T>(element, std::forward<Args>(args)...);
 
@@ -468,7 +468,7 @@ public:
 
                     const auto moveIndex = index + pushFrontPadding;
 
-                    Memory::Construct<T>(&buffer[moveIndex], std::forward<Args>(args)...);
+                    Memory::Construct<T>(buffer + moveIndex, std::forward<Args>(args)...);
 
                     // manual destructor call
                     Memory::Destruct(buffer[index]);
@@ -482,7 +482,7 @@ public:
         --m_startOffset;
 
         T* buffer = GetBuffer();
-        T* element = &buffer[m_startOffset];
+        T* element = buffer + m_startOffset;
 
         Memory::Construct<T>(element, std::forward<Args>(args)...);
 
@@ -536,7 +536,7 @@ public:
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivially_copy_constructible_v<T>)
         {
-            Memory::MemCpy(&buffer[m_size], span.Data(), spanSize * sizeof(T));
+            Memory::MemCpy(buffer + m_size, span.Data(), spanSize * sizeof(T));
 
             m_size += spanSize;
         }
@@ -545,7 +545,7 @@ public:
             for (SizeType i = 0; i < spanSize; ++i)
             {
                 // copy construct item at index
-                Memory::Construct<T>(&buffer[m_size++], span.Data()[i]);
+                Memory::Construct<T>(std::addressof(buffer[m_size++]), span.Data()[i]);
             }
         }
     }
@@ -887,11 +887,11 @@ void Array<T, AllocatorType>::ResetOffsets()
 
         if constexpr (std::is_move_constructible_v<T>)
         {
-            Memory::Construct<T>(&buffer[moveIndex], std::move(buffer[index]));
+            Memory::Construct<T>(buffer + moveIndex, std::move(buffer[index]));
         }
         else
         {
-            Memory::Construct<T>(&buffer[moveIndex], buffer[index]);
+            Memory::Construct<T>(buffer + moveIndex, buffer[index]);
         }
 
         // manual destructor call
@@ -973,7 +973,7 @@ void Array<T, AllocatorType>::Resize(SizeType newSize)
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>)
         {
-            Memory::MemSet(&buffer[m_size], 0, sizeof(T) * diff);
+            Memory::MemSet(buffer + m_size, 0, sizeof(T) * diff);
 
             m_size += diff;
         }
@@ -982,7 +982,7 @@ void Array<T, AllocatorType>::Resize(SizeType newSize)
             while (Size() < newSize)
             {
                 // construct item at index
-                Memory::Construct<T>(&buffer[m_size++]);
+                Memory::Construct<T>(std::addressof(buffer[m_size++]));
             }
         }
     }
@@ -1093,7 +1093,7 @@ auto Array<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 
     // set item at index
     T* buffer = GetBuffer();
-    T* element = &buffer[m_size++];
+    T* element = std::addressof(buffer[m_size++]);
 
     Memory::Construct<T>(element, value);
 
@@ -1117,7 +1117,7 @@ auto Array<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 
     // set item at index
     T* buffer = GetBuffer();
-    T* element = &buffer[m_size++];
+    T* element = std::addressof(buffer[m_size++]);
 
     Memory::Construct<T>(element, std::move(value));
 
@@ -1150,11 +1150,11 @@ auto Array<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 
                 if constexpr (std::is_move_constructible_v<T>)
                 {
-                    Memory::Construct<T>(&buffer[moveIndex], std::move(buffer[index]));
+                    Memory::Construct<T>(buffer + moveIndex, std::move(buffer[index]));
                 }
                 else
                 {
-                    Memory::Construct<T>(&buffer[moveIndex], buffer[index]);
+                    Memory::Construct<T>(buffer + moveIndex, buffer[index]);
                 }
 
                 // manual destructor call
@@ -1169,7 +1169,7 @@ auto Array<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
     // in-place
     --m_startOffset;
 
-    Memory::Construct<T>(&GetBuffer()[m_startOffset], value);
+    Memory::Construct<T>(GetBuffer() + m_startOffset, value);
 
     return Front();
 }
@@ -1200,11 +1200,11 @@ auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 
                 if constexpr (std::is_move_constructible_v<T>)
                 {
-                    Memory::Construct<T>(&buffer[moveIndex], std::move(buffer[index]));
+                    Memory::Construct<T>(buffer + moveIndex, std::move(buffer[index]));
                 }
                 else
                 {
-                    Memory::Construct<T>(&buffer[moveIndex], buffer[index]);
+                    Memory::Construct<T>(buffer + moveIndex, buffer[index]);
                 }
 
                 // manual destructor call
@@ -1220,7 +1220,7 @@ auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
     --m_startOffset;
 
     T* buffer = GetBuffer();
-    T* element = &buffer[m_startOffset];
+    T* element = buffer + m_startOffset;
 
     Memory::Construct<T>(element, std::move(value));
 
@@ -1248,7 +1248,7 @@ void Array<T, AllocatorType>::Shift(SizeType count)
         else if constexpr (std::is_move_constructible_v<T>)
         {
             Memory::Destruct(buffer[index]);
-            Memory::Construct<T>(&buffer[index], std::move(buffer[index + count]));
+            Memory::Construct<T>(buffer + index, std::move(buffer[index + count]));
         }
         else
         {
@@ -1357,12 +1357,12 @@ auto Array<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
         if constexpr (std::is_move_constructible_v<T>)
         {
             Memory::Destruct(buffer[m_startOffset + index]);
-            Memory::Construct<T>(&buffer[m_startOffset + index], std::move(buffer[m_startOffset + index + 1]));
+            Memory::Construct<T>(buffer + m_startOffset + index, std::move(buffer[m_startOffset + index + 1]));
         }
         else
         {
             Memory::Destruct(buffer[m_startOffset + index]);
-            Memory::Construct<T>(&buffer[m_startOffset + index], buffer[m_startOffset + index + 1]);
+            Memory::Construct<T>(buffer + m_startOffset + index, buffer[m_startOffset + index + 1]);
         }
     }
 
@@ -1400,7 +1400,7 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value
     {
         PushBack(std::move(value));
 
-        return &GetBuffer()[m_size - 1];
+        return GetBuffer() + m_size - 1;
     }
     else if (where == Begin() && dist <= m_startOffset)
     {
@@ -1437,17 +1437,17 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value
     {
         if constexpr (std::is_move_constructible_v<T>)
         {
-            Memory::Construct<T>(&buffer[index + m_startOffset], std::move(buffer[index + m_startOffset - 1]));
+            Memory::Construct<T>(buffer + index + m_startOffset, std::move(buffer[index + m_startOffset - 1]));
         }
         else
         {
-            Memory::Construct<T>(&buffer[index + m_startOffset], buffer[index + m_startOffset - 1]);
+            Memory::Construct<T>(buffer + index + m_startOffset, buffer[index + m_startOffset - 1]);
         }
 
         Memory::Destruct(buffer[index + m_startOffset - 1]);
     }
 
-    Memory::Construct<T>(&buffer[index + m_startOffset], value);
+    Memory::Construct<T>(buffer + index + m_startOffset, value);
 
     ++m_size;
 
@@ -1463,7 +1463,7 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> 
     {
         PushBack(std::move(value));
 
-        return &GetBuffer()[m_size - 1];
+        return GetBuffer() + m_size - 1;
     }
     else if (where == Begin() && dist <= m_startOffset)
     {
@@ -1496,17 +1496,17 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> 
     {
         if constexpr (std::is_move_constructible_v<T>)
         {
-            Memory::Construct<T>(&buffer[index + m_startOffset], std::move(buffer[index + m_startOffset - 1]));
+            Memory::Construct<T>(buffer + index + m_startOffset, std::move(buffer[index + m_startOffset - 1]));
         }
         else
         {
-            Memory::Construct<T>(&buffer[index + m_startOffset], buffer[index + m_startOffset - 1]);
+            Memory::Construct<T>(buffer + index + m_startOffset, buffer[index + m_startOffset - 1]);
         }
 
         Memory::Destruct(buffer[index + m_startOffset - 1]);
     }
 
-    Memory::Construct<T>(&buffer[index + m_startOffset], std::move(value));
+    Memory::Construct<T>(buffer + index + m_startOffset, std::move(value));
 
     ++m_size;
 

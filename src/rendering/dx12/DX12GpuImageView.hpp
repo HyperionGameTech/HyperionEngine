@@ -22,7 +22,7 @@ class DX12GpuImageView final : public GpuImageViewBase
     HYP_OBJECT_BODY(DX12GpuImageView);
 
 public:
-    DX12GpuImageView(const DX12GpuImageRef& image);
+    explicit DX12GpuImageView(const DX12GpuImageRef& image);
     DX12GpuImageView(
         const DX12GpuImageRef& image,
         uint32 mipIndex,

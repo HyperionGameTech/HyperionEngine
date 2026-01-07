@@ -899,13 +899,13 @@ VulkanGpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) cons
             Warning,
             "Attempt to create image view on uninitialized image");
 
-        return VulkanGpuImageViewRef();
+        return VulkanGpuImageViewRef::Null();
     }
 
     return g_renderBackend->MakeImageView(
-        HandleFromThis(),
+        MakeStrongRef(this),
         0,
-        NumMips(),
+        m_textureDesc.NumMips(),
         layerIndex,
         1);
 }
