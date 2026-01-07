@@ -7,6 +7,7 @@
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12GpuImageView.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12Sampler.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
@@ -227,36 +228,15 @@ void DX12DescriptorSet::Update(bool force)
 
         switch (layoutElement->type)
         {
-        case DescriptorSetElementType::UNIFORM_BUFFER:
-        case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
-        {
-            for (auto& valuesIt : element.values)
-            {
-                const uint32 index = valuesIt.first;
-
-                // Skip if not in dirty range (unless forced)
-                if (!force && !element.dirtyRange.Includes(index))
-                {
-                    continue;
-                }
-
-                const DX12GpuBufferRef& ref = ObjCast<DX12GpuBuffer>(valuesIt.second);
-                if (!ref.IsValid() || !ref->IsCreated())
-                {
-                    continue;
-                }
-
-                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->binding);
-                destHandle.ptr += incrementSize * index;
-
-                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = GetCBVDesc(ref.Get());
-                device->CreateConstantBufferView(&cbvDesc, destHandle);
-            }
-            break;
-        }
-        case DescriptorSetElementType::SSBO:
+        case DescriptorSetElementType::UNIFORM_BUFFER:          // fallthrough
+        case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:  // fallthrough
+        case DescriptorSetElementType::SSBO:                    // fallthrough
         case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
         {
+            const bool layoutHasSize = layoutElement->size != 0 && layoutElement->size != ~0u;
+            const bool isDynamic = layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
+                || layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
+
             for (auto& valuesIt : element.values)
             {
                 const uint32 index = valuesIt.first;
@@ -275,9 +255,31 @@ void DX12DescriptorSet::Update(bool force)
                 D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->binding);
                 destHandle.ptr += incrementSize * index;
 
-                // Use UAV for storage buffers
-                D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(ref.Get());
-                device->CreateUnorderedAccessView(ref->GetResource(), nullptr, &uavDesc, destHandle);
+                switch (layoutElement->type)
+                { // CBuffers
+                case DescriptorSetElementType::UNIFORM_BUFFER:
+                case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
+                {
+                    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = GetCBVDesc(ref.Get());
+                    device->CreateConstantBufferView(&cbvDesc, destHandle);
+
+                    break;
+                }
+                case DescriptorSetElementType::SSBO:
+                case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
+                {
+                    // Use UAV for storage buffers
+                    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
+                        ref.Get(),
+                        /* structureStride */ layoutHasSize ? layoutElement->size : ref->Size());
+
+                    device->CreateUnorderedAccessView(ref->GetResource(), nullptr, &uavDesc, destHandle);
+
+                    break;
+                }
+                default:
+                    HYP_UNREACHABLE();
+                }
             }
             break;
         }
@@ -304,13 +306,26 @@ void DX12DescriptorSet::Update(bool force)
                 D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->binding);
                 destHandle.ptr += incrementSize * index;
 
-                // Copy the existing descriptor from the image view
-                device->CopyDescriptorsSimple(
-                    1,
-                    destHandle,
-                    ref->GetDescriptorHandle().cpuHandle,
-                    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+                if (layoutElement->type == DescriptorSetElementType::IMAGE_STORAGE)
+                { // UAV
+                    const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
+                        ref->GetImage(),
+                        ref->GetMipIndex(), ref->NumMips(),
+                        ref->GetLayerIndex(), ref->NumArrayLayers());
+
+                    device->CreateUnorderedAccessView(ref->GetImage()->GetResource(), nullptr, &uavDesc, destHandle);
+                }
+                else
+                { // SRV
+                    const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
+                        ref->GetImage(),
+                        ref->GetMipIndex(), ref->NumMips(),
+                        ref->GetLayerIndex(), ref->NumArrayLayers());
+
+                    device->CreateShaderResourceView(ref->GetImage()->GetResource(), &srvDesc, destHandle);
+                }
             }
+
             break;
         }
         case DescriptorSetElementType::SAMPLER:

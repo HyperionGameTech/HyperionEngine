@@ -177,7 +177,9 @@ D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType)
         return D3D12_UAV_DIMENSION_TEXTURE2D;
     case TextureType::TT_TEX3D:
         return D3D12_UAV_DIMENSION_TEXTURE3D;
-    case TextureType::TT_TEX2D_ARRAY:
+    case TextureType::TT_TEX2D_ARRAY:   // fallthrough
+    case TextureType::TT_CUBEMAP:
+    case TextureType::TT_CUBEMAP_ARRAY:
         return D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
     default:
         return D3D12_UAV_DIMENSION_UNKNOWN;
@@ -188,44 +190,60 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
 {
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() == GpuBufferType::CBUFF);
-    AssertDebug(ByteUtil::AlignAs(buffer->Size(), 256) == buffer->Size(), "Constant buffers must be aligned by 256 bytes!");
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC desc {};
     desc.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
-    desc.SizeInBytes = buffer->Size();
+
+    // DX12 requires cbuffers sizes to be 256-byte aligned
+    // In DX12GpuBuffer, we ensure CBUFF sizes are 256-byte aligned internally so this will be valid
+    desc.SizeInBytes = ByteUtil::AlignAs(buffer->Size(), 256);
 
     return desc;
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer)
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement, uint32 numElements)
 {
     AssertDebug(buffer != nullptr);
+
+    const bool useByteAddressBuffer = (structureStride == 0);
+
+    if (!useByteAddressBuffer)
+    {
+        numElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
+    }
 
     D3D12_SHADER_RESOURCE_VIEW_DESC desc {};
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    desc.Format = DXGI_FORMAT_R32_TYPELESS;
-    desc.Buffer.FirstElement = 0;
-    desc.Buffer.NumElements = UINT(buffer->Size() / 4); // 4 byte per elem
-    desc.Buffer.StructureByteStride = 0;
-    desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+    desc.Format = (useByteAddressBuffer) ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_UNKNOWN;
+    desc.Buffer.FirstElement = firstElement;
+    desc.Buffer.NumElements = numElements;
+    desc.Buffer.StructureByteStride = structureStride;
+    desc.Buffer.Flags = (useByteAddressBuffer) ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
 
     return desc;
 }
 
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer)
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement, uint32 numElements)
 {
     AssertDebug(buffer != nullptr);
     AssertDebug(buffer->GetBufferType() != GpuBufferType::CBUFF);
 
+    const bool useByteAddressBuffer = (structureStride == 0);
+
+    if (!useByteAddressBuffer)
+    {
+        numElements = (numElements == UINT32_MAX) ? uint32(buffer->Size() / structureStride) : numElements;
+    }
+
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc {};
     desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    desc.Format = DXGI_FORMAT_UNKNOWN;
-    desc.Buffer.FirstElement = 0;
-    desc.Buffer.NumElements = UINT(buffer->Size());
-    desc.Buffer.StructureByteStride = 0;
+    desc.Format = (useByteAddressBuffer) ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_UNKNOWN;
+    desc.Buffer.FirstElement = firstElement;
+    desc.Buffer.NumElements = numElements;
+    desc.Buffer.StructureByteStride = structureStride;
     desc.Buffer.CounterOffsetInBytes = 0;
-    desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+    desc.Buffer.Flags = (useByteAddressBuffer) ? D3D12_BUFFER_UAV_FLAG_RAW : D3D12_BUFFER_UAV_FLAG_NONE;
 
     return desc;
 }
