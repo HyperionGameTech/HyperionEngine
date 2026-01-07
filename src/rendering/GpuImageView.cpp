@@ -40,14 +40,13 @@ GpuImageViewBase::GpuImageViewBase(
     {
         const TextureDesc& textureDesc = image->GetTextureDesc();
 
-        const uint32 maxMipLevel = textureDesc.NumMips() - 1;
-        const uint32 maxArrayLayer = textureDesc.NumArrayLayers() - 1;
-
-        m_numMips = MathUtil::Min(numMips, maxMipLevel + 1);
-        m_numLayers = MathUtil::Min(numLayers, maxArrayLayer + 1);
+        const int descNumMips = int(textureDesc.NumMips());
+        const int descNumLayers = int(textureDesc.NumArrayLayers());
         
-        m_mipIndex = MathUtil::Min(mipIndex, maxMipLevel);
-        m_layerIndex = MathUtil::Min(layerIndex, maxArrayLayer);
+        m_mipIndex = MathUtil::Max(0, MathUtil::Min(int(mipIndex), descNumMips - 1));
+        m_layerIndex = MathUtil::Max(0, MathUtil::Min(int(layerIndex), descNumLayers - 1));
+        m_numMips = MathUtil::Max(1, MathUtil::Min(int(numMips), descNumMips - int(m_mipIndex)));
+        m_numLayers = MathUtil::Max(1, MathUtil::Min(int(numLayers), descNumLayers - int(m_layerIndex)));
     }
 }
 

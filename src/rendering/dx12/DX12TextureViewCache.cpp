@@ -32,9 +32,9 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(const Handle<Textur
 
     ImageSubResource subResource {};
     subResource.numLevels = maxMipLevel + 1;
-    subResource.baseMipLevel = maxMipLevel;
+    subResource.baseMipLevel = 0;
     subResource.numLayers = maxArrayLayer + 1;
-    subResource.baseArrayLayer = maxArrayLayer;
+    subResource.baseArrayLayer = 0;
 
     return GetOrCreate(texture, subResource);
 }

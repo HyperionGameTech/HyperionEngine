@@ -34,13 +34,19 @@ DX12Attachment::~DX12Attachment()
 
 bool DX12Attachment::IsCreated() const
 {
-    return false;
+    return m_imageView != nullptr && m_imageView->IsCreated();
 }
 
 RendererResult DX12Attachment::Create()
 {
-    // @TODO
-    return {};
+    Assert(m_image != nullptr && m_imageView != nullptr);
+
+    if (!m_image->IsCreated())
+    {
+        return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
+    }
+
+    return m_imageView->Create();
 }
 
 #pragma endregion DX12Attachment

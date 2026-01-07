@@ -50,7 +50,7 @@ bool VulkanAttachment::IsCreated() const
 
 RendererResult VulkanAttachment::Create()
 {
-    Assert(m_image != nullptr);
+    Assert(m_image != nullptr && m_imageView != nullptr);
 
     m_vkAttachmentDescription = VkAttachmentDescription {
         .format = ToVkFormat(m_image->GetTextureFormat()),

@@ -173,7 +173,7 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
 
-#if defined(HYP_VULKAN) && HYP_VULKAN
+#if HYP_VULKAN
     constexpr int VulkanVersion = HYP_VULKAN_API_VERSION;
     properties.Set(ShaderProperty(NAME("HYP_VULKAN"), VulkanVersion));
 #endif
@@ -397,7 +397,7 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclarat
 
 #pragma region SPRIV Compilation
 
-#if defined(HYP_VULKAN) && defined(HYP_GLSLANG)
+#if HYP_GLSLANG
 
 static TBuiltInResource DefaultResources()
 {
@@ -594,14 +594,29 @@ static bool PreprocessShaderSource(ShaderModuleType type,
         HYP_THROW("Invalid shader type");
         break;
     }
-
-    uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    
     uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
     uint32 spirvVersion = 450;
+
+    // fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
+#if !HYP_VULKAN
+#ifndef VK_API_VERSION_1_1
+    static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
+#endif
+#ifndef VK_API_VERSION_1_1
+    static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
+#endif
+    
+    static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
+#endif
+
+    
+    uint32 vulkanApiVersion = HYP_VULKAN_API_VERSION;
 
     if (IsRaytracingShaderModule(type))
     {
         vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
+
         spirvApiVersion = MathUtil::Max(spirvApiVersion, GLSLANG_TARGET_SPV_1_4);
         spirvVersion = MathUtil::Max(spirvVersion, 460);
     }
@@ -629,19 +644,16 @@ static bool PreprocessShaderSource(ShaderModuleType type,
                                                      : GLSLANG_SOURCE_GLSL,
         .stage = stage,
         .client = GLSLANG_CLIENT_VULKAN,
-        .client_version =
-            static_cast<glslang_target_client_version_t>(vulkanApiVersion),
+        .client_version = static_cast<glslang_target_client_version_t>(vulkanApiVersion),
         .target_language = GLSLANG_TARGET_SPV,
-        .target_language_version =
-            static_cast<glslang_target_language_version_t>(spirvApiVersion),
+        .target_language_version = static_cast<glslang_target_language_version_t>(spirvApiVersion),
         .code = source.Data(),
         .default_version = int(spirvVersion),
         .default_profile = GLSLANG_CORE_PROFILE,
         .force_default_version_and_profile = false,
         .forward_compatible = false,
         .messages = GLSLANG_MSG_DEFAULT_BIT,
-        .resource =
-            reinterpret_cast<const glslang_resource_t*>(&defaultResources),
+        .resource = reinterpret_cast<const glslang_resource_t*>(&defaultResources),
         .callbacks_ctx = &callbacksContext
     };
 
@@ -814,13 +826,27 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
         break;
     }
 
-    uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    // fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
+#if !HYP_VULKAN
+#ifndef VK_API_VERSION_1_1
+    static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
+#endif
+#ifndef VK_API_VERSION_1_1
+    static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
+#endif
+    
+    static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
+#endif
+
+    uint32 vulkanApiVersion = HYP_VULKAN_API_VERSION;
+
     uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
     uint32 spirvVersion = 450;
 
     if (IsRaytracingShaderModule(type))
     {
         vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
+
         spirvApiVersion = MathUtil::Max(spirvApiVersion, GLSLANG_TARGET_SPV_1_4);
         spirvVersion = MathUtil::Max(spirvVersion, 460);
     }

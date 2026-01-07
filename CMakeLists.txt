@@ -329,6 +329,8 @@ endif()
 if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
     # if glslang folder exists, link with it.
     if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
+        set(HYP_GLSLANG 1)
+        
         add_definitions(-DHYP_GLSLANG=1)
         add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
