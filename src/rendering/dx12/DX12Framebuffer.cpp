@@ -115,7 +115,7 @@ RendererResult DX12Framebuffer::Create()
         if (attachment->IsDepthAttachment())
         {
             D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
-            dsvDesc.Format = ToDXGIFormat(image->GetTextureFormat());
+            dsvDesc.Format = ToDXGIFormat(image->GetTextureFormat(), DX12ViewType::RTV_DSV);
             dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
             dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
             dsvDesc.Texture2D.MipSlice = 0;
@@ -125,7 +125,7 @@ RendererResult DX12Framebuffer::Create()
         else
         {
             D3D12_RENDER_TARGET_VIEW_DESC rtvDesc {};
-            rtvDesc.Format = ToDXGIFormat(image->GetTextureFormat());
+            rtvDesc.Format = ToDXGIFormat(image->GetTextureFormat(), DX12ViewType::RTV_DSV);
             rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
             rtvDesc.Texture2D.MipSlice = 0;
             rtvDesc.Texture2D.PlaneSlice = 0;

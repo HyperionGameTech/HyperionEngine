@@ -13,7 +13,14 @@ enum TextureType : uint32;
 class DX12GpuBuffer;
 class DX12GpuImage;
 
-DXGI_FORMAT ToDXGIFormat(TextureFormat format);
+enum class DX12ViewType
+{
+    None,
+    SRV_UAV,
+    RTV_DSV
+};
+
+DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType = DX12ViewType::None);
 D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state);
 D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType);
 D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType);
