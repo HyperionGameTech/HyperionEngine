@@ -114,11 +114,12 @@ void DX12DescriptorHeapManager::Initialize()
 {
     ID3D12Device* device = g_renderBackend->GetDevice();
 
+    // placeholder
     static constexpr uint32 MaxDescriptorsByHeapType[MaxDescriptorHeapType] = {
         1000,   // CBV_SRV_UAV
-        16,     // SAMPLER
-        100,    // RTV
-        100     // DSV
+        1000,     // SAMPLER
+        1000,    // RTV
+        1000     // DSV
     };
 
     for (uint32 heapIndex = 0; heapIndex < MaxDescriptorHeapType; heapIndex++)

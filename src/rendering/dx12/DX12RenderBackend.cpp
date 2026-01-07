@@ -6,12 +6,15 @@
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
+#include <rendering/dx12/DX12Swapchain.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Texture.hpp>
+
+#include <system/AppContext.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -86,13 +89,13 @@ RendererResult DX12RenderBackend::Initialize()
     createFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-    HRESULT res = CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory));
+    HRESULT res = CreateDXGIFactory2(createFactoryFlags, __uuidof(IDXGIFactory4), &dxgiFactory);
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create DXGI Factory", res);
 
     ComPtr<IDXGIFactory6> factory6;
 
-    if (SUCCEEDED(m_dxgiFactory.As(&factory6)))
+    if (SUCCEEDED(dxgiFactory.As(&factory6)))
     {
         for (UINT i = 0;
              SUCCEEDED(factory6->EnumAdapterByGpuPreference(
@@ -113,7 +116,7 @@ RendererResult DX12RenderBackend::Initialize()
     } 
     else
     {
-        for (UINT i = 0; SUCCEEDED(m_dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i) 
+        for (UINT i = 0; SUCCEEDED(dxgiFactory->EnumAdapters1(i, &m_hardwareAdapter)); ++i) 
         {
             DXGI_ADAPTER_DESC1 desc;
             m_hardwareAdapter->GetDesc1(&desc);
@@ -230,7 +233,7 @@ RendererResult DX12RenderBackend::Destroy()
     m_device.Reset();
     m_hardwareAdapter.Reset();
     
-    m_dxgiFactory.Reset();
+    dxgiFactory.Reset();
 
     return {};
 }
@@ -269,13 +272,12 @@ DX12SwapchainRef DX12RenderBackend::CreateSwapchain(ApplicationWindow* window)
 {
     Assert(window != nullptr);
     
-    // @TODO
-    return DX12SwapchainRef();
+    return CreateObject<DX12Swapchain>(window->GetHWND(), Vec2u(window->GetSize()));
 }
 
 void DX12RenderBackend::PrepareSwapchain(DX12Swapchain* swapchain)
 {
-    // @TODO: Implement swapchain preparation for DX12
+    swapchain->PrepareForFrame(GetCurrentFrame());
 }
 
 void DX12RenderBackend::SubmitCommandBuffers(DX12Swapchain* swapchain)
@@ -297,7 +299,7 @@ void DX12RenderBackend::SubmitCommandBuffers(DX12Swapchain* swapchain)
 
 void DX12RenderBackend::PresentToSwapchain(DX12Swapchain* swapchain)
 {
-    // @TODO: Implement present for DX12
+    swapchain->PresentFrame(GetCurrentFrame());
 }
 
 DX12CommandBuffer* DX12RenderBackend::GetCurrentCommandBuffer() const
