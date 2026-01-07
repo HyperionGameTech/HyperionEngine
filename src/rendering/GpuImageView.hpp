@@ -14,7 +14,7 @@ class GpuImageViewBase : public ObjectBase
     HYP_OBJECT_BODY(GpuImageViewBase);
 
 public:
-    virtual ~GpuImageViewBase() override = default;
+    virtual ~GpuImageViewBase() override;
 
     Name GetDebugName() const
     {
@@ -36,28 +36,14 @@ public:
     virtual RendererResult Create() = 0;
 
 protected:
-    explicit GpuImageViewBase(const GpuImageRef& image)
-        : m_image(image),
-          m_mipIndex(0),
-          m_numMips(0),
-          m_layerIndex(0),
-          m_numLayers(0)
-    {
-    }
+    explicit GpuImageViewBase(const GpuImageRef& image);
 
     GpuImageViewBase(
         const GpuImageRef& image,
         uint32 mipIndex,
         uint32 numMips,
         uint32 layerIndex,
-        uint32 numLayers)
-        : m_image(image),
-          m_mipIndex(mipIndex),
-          m_numMips(numMips),
-          m_layerIndex(layerIndex),
-          m_numLayers(numLayers)
-    {
-    }
+        uint32 numLayers);
 
     GpuImageRef m_image;
     uint32 m_mipIndex;

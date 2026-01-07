@@ -18,9 +18,9 @@ DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, ui
       cpuStart {},
       gpuStart {}
 {
-    for (uint32 i = 0; i < NumFramesInFlight; i++)
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_indexAllocators.EmplaceBack(descriptorSize);
+        m_indexAllocators[frameIndex] = PoolNew<DX12DescriptorIndexAllocator>(*g_renderPool, descriptorSize);
     }
 
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc {};
@@ -60,9 +60,18 @@ DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, ui
     }
 }
 
+DX12DescriptorAllocator::~DX12DescriptorAllocator()
+{
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        PoolDelete(*g_renderPool, m_indexAllocators[frameIndex]);
+        m_indexAllocators[frameIndex] = nullptr;
+    }
+}
+
 DX12DescriptorHandle DX12DescriptorAllocator::Allocate(uint8 frameIndex, uint32 count)
 {
-    uint32 allocationOffset = m_indexAllocators[frameIndex].Allocate(count);
+    uint32 allocationOffset = m_indexAllocators[frameIndex]->Allocate(count);
 
     if (allocationOffset == DX12DescriptorIndexAllocator::InvalidIndex)
         return DX12DescriptorHandle();
@@ -85,9 +94,9 @@ void DX12DescriptorAllocator::Free(DX12DescriptorHandle&& handle)
         return;
 
     ptrdiff_t startIndex = (handle.cpuHandle.ptr - cpuStart.ptr) / incrementSize;
-    Assert(startIndex >= 0 && startIndex + handle.count <= m_indexAllocators[handle.frameIndex].maxSize);
+    Assert(startIndex >= 0 && startIndex + handle.count <= m_indexAllocators[handle.frameIndex]->maxSize);
 
-    m_indexAllocators[handle.frameIndex].Free(uint32(startIndex), handle.count);
+    m_indexAllocators[handle.frameIndex]->Free(uint32(startIndex), handle.count);
 
     handle = {};
 }
@@ -97,6 +106,7 @@ void DX12DescriptorAllocator::Free(DX12DescriptorHandle&& handle)
 #pragma region DX12DescriptorHeapManager
 
 DX12DescriptorHeapManager::DX12DescriptorHeapManager()
+    : m_descriptorAllocators {}
 {
 }
 

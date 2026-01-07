@@ -140,6 +140,8 @@ private:
 
     FlatMap<D3D12_COMMAND_LIST_TYPE, DX12QueueData> m_queueData;
 
+    ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;
+
     D3D12MA::Allocator* m_allocator;
 };
 

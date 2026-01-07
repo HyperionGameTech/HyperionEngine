@@ -8,6 +8,7 @@ namespace Hyperion {
 
 enum ResourceState : uint32;
 enum TextureFormat : uint32;
+enum TextureType : uint32;
 
 class DX12GpuBuffer;
 class DX12GpuImage;
@@ -21,7 +22,7 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer);
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer);
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer);
 
-D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image);
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image);
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
 
 } // namespace Hyperion

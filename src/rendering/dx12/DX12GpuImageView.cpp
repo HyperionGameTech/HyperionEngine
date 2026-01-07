@@ -37,9 +37,6 @@ DX12GpuImageView::~DX12GpuImageView()
 {
     if (m_descriptorHandle.IsValid())
         g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_descriptorHandle));
-
-    if (m_image.IsValid())
-        SafeDelete(std::move(m_image));
 }
 
 bool DX12GpuImageView::IsCreated() const
@@ -47,6 +44,7 @@ bool DX12GpuImageView::IsCreated() const
     return m_descriptorHandle.IsValid();
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult DX12GpuImageView::Create()
 {
     if (!m_image)
@@ -64,13 +62,19 @@ RendererResult DX12GpuImageView::Create()
 
     if (m_image->GetTextureDesc().imageUsage[IU_STORAGE])
     { // UAV
-        const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(m_image);
+        const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
+            m_image,
+            m_mipIndex, m_numMips,
+            m_layerIndex, m_numLayers);
 
         device->CreateUnorderedAccessView(m_image->GetResource(), nullptr, &uavDesc, m_descriptorHandle.cpuHandle);
     }
     else
     { // SRV
-        const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(m_image);
+        const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
+            m_image,
+            m_mipIndex, m_numMips,
+            m_layerIndex, m_numLayers);
 
         device->CreateShaderResourceView(m_image->GetResource(), &srvDesc, m_descriptorHandle.cpuHandle);
     }
