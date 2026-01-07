@@ -11,6 +11,10 @@
 #undef INCLUDE_FROM_RHI_BASE
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/dx12/DX12Attachment.hpp>
+#include <rendering/dx12/DX12DescriptorHeaps.hpp>
+
+#include <core/containers/FlatMap.hpp>
 
 namespace Hyperion {
 
@@ -27,9 +31,9 @@ public:
     RendererResult Create() override;
     RendererResult Resize(Vec2u newSize) override;
 
-    AttachmentRef AddAttachment(const AttachmentRef& attachment) override;
-    AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
-    AttachmentRef AddAttachment(
+    DX12AttachmentRef AddAttachment(const DX12AttachmentRef& attachment) override;
+    DX12AttachmentRef AddAttachment(uint32 binding, const DX12GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+    DX12AttachmentRef AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,
@@ -37,13 +41,21 @@ public:
         StoreOperation storeOp) override;
 
     bool RemoveAttachment(uint32 binding) override;
-    AttachmentBase* GetAttachment(uint32 binding) const override;
+    DX12Attachment* GetAttachment(uint32 binding) const override;
     int NumAttachments() const override;
 
-    void BeginCapture(CommandBuffer* commandBuffer) override;
-    void EndCapture(CommandBuffer* commandBuffer) override;
+    void BeginCapture(DX12CommandBuffer* commandBuffer) override;
+    void EndCapture(DX12CommandBuffer* commandBuffer) override;
 
-    void Clear(CommandBuffer* commandBuffer) override;
+    void Clear(DX12CommandBuffer* commandBuffer) override;
+
+private:
+    bool m_isCreated;
+
+    FlatMap<uint32, DX12AttachmentRef> m_attachments;
+
+    DX12DescriptorHandle m_rtvDescriptorHandle;
+    DX12DescriptorHandle m_dsvDescriptorHandle;
 };
 
 } // namespace Hyperion
