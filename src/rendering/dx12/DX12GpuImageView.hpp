@@ -32,20 +32,12 @@ public:
 
     ~DX12GpuImageView() override;
 
-    HYP_FORCE_INLINE const DX12DescriptorHandle& GetDescriptorHandle() const
-    {
-        return m_descriptorHandle;
-    }
-
     bool IsCreated() const override;
     RendererResult Create() override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
-
-private:
-    DX12DescriptorHandle m_descriptorHandle;
 };
 
 } // namespace Hyperion

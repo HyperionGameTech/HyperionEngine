@@ -31,6 +31,26 @@ public:
         return m_image;
     }
 
+    HYP_FORCE_INLINE uint32 GetMipIndex() const
+    {
+        return m_mipIndex;
+    }
+
+    HYP_FORCE_INLINE uint32 NumMips() const
+    {
+        return m_numMips;
+    }
+
+    HYP_FORCE_INLINE uint32 GetLayerIndex() const
+    {
+        return m_layerIndex;
+    }
+
+    HYP_FORCE_INLINE uint32 NumArrayLayers() const
+    {
+        return m_numLayers;
+    }
+
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create() = 0;
