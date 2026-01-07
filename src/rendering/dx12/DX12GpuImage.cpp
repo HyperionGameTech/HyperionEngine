@@ -97,17 +97,15 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
         HYP_UNREACHABLE();
     }
 
-    if (isAttachmentTexture)
-    {
-        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    }
-
     if (isDepthStencil)
     {
         resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     }
-
-    if (isRWTexture)
+    else if (isAttachmentTexture)
+    {
+        resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    }
+    else if (isRWTexture)
     {
         resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }

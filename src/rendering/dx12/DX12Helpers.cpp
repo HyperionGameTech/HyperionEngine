@@ -254,10 +254,16 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex,
 
     const TextureDesc& textureDesc = image->GetTextureDesc();
 
-    mipIndex = MathUtil::Min(mipIndex, textureDesc.NumMips() - 1);
-    numMips = MathUtil::Min(numMips, textureDesc.NumMips());
-    layerIndex = MathUtil::Min(layerIndex, textureDesc.NumArrayLayers() - 1);
-    numLayers = MathUtil::Min(numLayers, textureDesc.NumArrayLayers());
+    const uint32 descNumMips = textureDesc.NumMips();
+    const uint32 descNumLayers = textureDesc.NumArrayLayers();
+
+    AssertDebug(mipIndex < descNumMips && mipIndex + numMips <= descNumMips);
+    AssertDebug(layerIndex < descNumLayers && layerIndex + numLayers <= descNumLayers);
+
+    mipIndex = MathUtil::Min(mipIndex, descNumMips - 1);
+    numMips = MathUtil::Min(numMips, descNumMips);
+    layerIndex = MathUtil::Min(layerIndex, descNumLayers - 1);
+    numLayers = MathUtil::Min(numLayers, descNumLayers);
 
     D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
 
@@ -314,9 +320,15 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex
 
     const TextureDesc& textureDesc = image->GetTextureDesc();
 
-    mipIndex = MathUtil::Min(mipIndex, textureDesc.NumMips() - 1);
-    layerIndex = MathUtil::Min(layerIndex, textureDesc.NumArrayLayers() - 1);
-    numLayers = MathUtil::Min(numLayers, textureDesc.NumArrayLayers());
+    const uint32 descNumMips = textureDesc.NumMips();
+    const uint32 descNumLayers = textureDesc.NumArrayLayers();
+
+    AssertDebug(mipIndex < descNumMips);
+    AssertDebug(layerIndex < descNumLayers && layerIndex + numLayers <= descNumLayers);
+
+    mipIndex = MathUtil::Min(mipIndex, descNumMips - 1);
+    layerIndex = MathUtil::Min(layerIndex, descNumLayers - 1);
+    numLayers = MathUtil::Min(numLayers, descNumLayers);
     
     D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
 
