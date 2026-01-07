@@ -1715,7 +1715,6 @@ void RenderInterface::CreateBlueNoiseBuffer()
 
     GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
-    blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(blueNoiseBuffer->Create());
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
     blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
@@ -1801,7 +1800,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     for (uint32 i = 0; i < MaxBoundReflectionProbes; i++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement(NAME("EnvProbeTextures"), i, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
+            ->SetElement(NAME("EnvProbeTextures"), i, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
     }
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
@@ -1841,7 +1840,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
         for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
             globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-                ->SetElement("Textures"_sh, textureIndex, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
+                ->SetElement("Textures"_sh, textureIndex, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
         }
     }
     else
@@ -1849,7 +1848,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
         for (Name textureName : Material::s_textureNames)
         {
             globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-                ->SetElement(textureName, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
+                ->SetElement(textureName, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
         }
     }
 }

@@ -40,7 +40,8 @@ DX12GpuBuffer::~DX12GpuBuffer()
 
 RendererResult DX12GpuBuffer::Create()
 {
-    auto* allocator = g_renderBackend->GetAllocator();
+    D3D12MA::Allocator* allocator = g_renderBackend->GetAllocator();
+    AssertDebug(allocator != nullptr);
 
     D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_requireCpuAccessible);
 
@@ -62,7 +63,7 @@ RendererResult DX12GpuBuffer::Create()
     UINT64 finalSize = m_size;
     if (m_type == GpuBufferType::CBUFF)
     {
-        finalSize = ByteUtil::AlignAs(finalSize, 256);
+        finalSize = ByteUtil::AlignAs(m_size, 256);
     }
 
     D3D12_RESOURCE_STATES finalState = ToDX12ResourceStates(m_resourceState);
@@ -76,7 +77,7 @@ RendererResult DX12GpuBuffer::Create()
         finalState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     }
 
-    D3D12_RESOURCE_DESC bufferDesc = {};
+    D3D12_RESOURCE_DESC bufferDesc {};
     bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     bufferDesc.Alignment = 0;
     bufferDesc.Width = finalSize;
@@ -164,8 +165,12 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     SizeType minimumSize,
     bool* outSizeChanged)
 {
+    if (m_type == GpuBufferType::CBUFF)
+    {
+        minimumSize = ByteUtil::AlignAs(minimumSize, 256);
+    }
+
     // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::EnsureCapacity() not implemented");
 
     return {};
 }
@@ -175,8 +180,12 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     SizeType alignment,
     bool* outSizeChanged)
 {
+    if (m_type == GpuBufferType::CBUFF)
+    {
+        minimumSize = ByteUtil::AlignAs(minimumSize, 256);
+    }
+
     // @TODO
-    HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::EnsureCapacity() not implemented");
 
     return {};
 }

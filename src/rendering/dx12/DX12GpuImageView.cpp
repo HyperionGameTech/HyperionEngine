@@ -33,18 +33,13 @@ DX12GpuImageView::DX12GpuImageView(
 {
 }
 
-DX12GpuImageView::~DX12GpuImageView()
-{
-    if (m_descriptorHandle.IsValid())
-        g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_descriptorHandle));
-}
+DX12GpuImageView::~DX12GpuImageView() = default;
 
 bool DX12GpuImageView::IsCreated() const
 {
-    return m_descriptorHandle.IsValid();
+    return m_image != nullptr;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 RendererResult DX12GpuImageView::Create()
 {
     if (!m_image)
@@ -52,32 +47,6 @@ RendererResult DX12GpuImageView::Create()
 
     if (!m_image->IsCreated())
         return HYP_MAKE_ERROR(RendererError, "Image is not created, cannot create view!");
-
-    ID3D12Device* device = g_renderBackend->GetDevice();
-    
-    // Create handle
-    m_descriptorHandle = g_renderBackend->descriptorHeapManager->Allocate(DX12DescriptorHeapType::CBV_SRV_UAV, 1);
-    if (!m_descriptorHandle.IsValid())
-        return HYP_MAKE_ERROR(RendererError, "Failed to allocate image descriptor handle!");
-
-    if (m_image->GetTextureDesc().imageUsage[IU_STORAGE])
-    { // UAV
-        const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
-            m_image,
-            m_mipIndex, m_numMips,
-            m_layerIndex, m_numLayers);
-
-        device->CreateUnorderedAccessView(m_image->GetResource(), nullptr, &uavDesc, m_descriptorHandle.cpuHandle);
-    }
-    else
-    { // SRV
-        const D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = GetSRVDesc(
-            m_image,
-            m_mipIndex, m_numMips,
-            m_layerIndex, m_numLayers);
-
-        device->CreateShaderResourceView(m_image->GetResource(), &srvDesc, m_descriptorHandle.cpuHandle);
-    }
 
     return {};
 }

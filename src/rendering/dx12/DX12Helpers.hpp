@@ -19,8 +19,8 @@ D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType);
 D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType);
 
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer);
-D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer);
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer);
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement = 0, uint32 numElements = UINT32_MAX);
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement = 0, uint32 numElements = UINT32_MAX);
 
 D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers);
