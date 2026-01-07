@@ -230,36 +230,103 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer)
     return desc;
 }
 
-D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image)
+D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
     AssertDebug(image != nullptr);
+
+    const TextureDesc& textureDesc = image->GetTextureDesc();
+
+    mipIndex = MathUtil::Min(mipIndex, textureDesc.NumMips() - 1);
+    numMips = MathUtil::Min(numMips, textureDesc.NumMips());
+    layerIndex = MathUtil::Min(layerIndex, textureDesc.NumArrayLayers() - 1);
+    numLayers = MathUtil::Min(numLayers, textureDesc.NumArrayLayers());
 
     D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = resDesc.Format; 
-    srvDesc.ViewDimension = ToDX12SRVDimension(image->GetTextureDesc().type);
-    srvDesc.Texture2D.MostDetailedMip = 0;
-    srvDesc.Texture2D.MipLevels = -1;
-    srvDesc.Texture2D.PlaneSlice = 0;
-    srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+    srvDesc.ViewDimension = ToDX12SRVDimension(textureDesc.type);
+
+    switch (srvDesc.ViewDimension)
+    {
+    case D3D12_SRV_DIMENSION_TEXTURE2D:
+        srvDesc.Texture2D.MostDetailedMip = mipIndex;
+        srvDesc.Texture2D.MipLevels = numMips;
+        srvDesc.Texture2D.PlaneSlice = 0;
+        srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+        break;
+    case D3D12_SRV_DIMENSION_TEXTURE3D:
+        srvDesc.Texture3D.MostDetailedMip = mipIndex;
+        srvDesc.Texture3D.MipLevels = numMips;
+        srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
+        break;
+    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+        srvDesc.Texture2DArray.MostDetailedMip = mipIndex;
+        srvDesc.Texture2DArray.MipLevels = numMips;
+        srvDesc.Texture2DArray.FirstArraySlice = layerIndex;
+        srvDesc.Texture2DArray.ArraySize = numLayers;
+        srvDesc.Texture2DArray.PlaneSlice = 0;
+        srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+        break;
+    case D3D12_SRV_DIMENSION_TEXTURECUBE:
+        srvDesc.TextureCube.MostDetailedMip = mipIndex;
+        srvDesc.TextureCube.MipLevels = numMips;
+        srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+        break;
+    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+        srvDesc.TextureCubeArray.MostDetailedMip = mipIndex;
+        srvDesc.TextureCubeArray.MipLevels = numMips;
+        srvDesc.TextureCubeArray.First2DArrayFace = layerIndex;
+        srvDesc.TextureCubeArray.NumCubes = textureDesc.NumArrayLayers() / 6;
+        srvDesc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
+        break;
+    case D3D12_SRV_DIMENSION_UNKNOWN:
+        HYP_UNREACHABLE();
+        break;
+    }
 
     return srvDesc;
 }
 
-D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image)
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuImage* image, uint32 mipIndex, uint32 /*numMips*/, uint32 layerIndex, uint32 numLayers)
 {
     AssertDebug(image != nullptr);
     AssertDebug(image->GetTextureDesc().imageUsage & ImageUsage::IU_STORAGE);
+
+    const TextureDesc& textureDesc = image->GetTextureDesc();
+
+    mipIndex = MathUtil::Min(mipIndex, textureDesc.NumMips() - 1);
+    layerIndex = MathUtil::Min(layerIndex, textureDesc.NumArrayLayers() - 1);
+    numLayers = MathUtil::Min(numLayers, textureDesc.NumArrayLayers());
     
     D3D12_RESOURCE_DESC resDesc = image->GetResource()->GetDesc();
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc {};
     uavDesc.Format = resDesc.Format;
-    uavDesc.ViewDimension = ToDX12UAVDimension(image->GetTextureDesc().type);
-    uavDesc.Texture2D.MipSlice = 0;
-    uavDesc.Texture2D.PlaneSlice = 0;
+    uavDesc.ViewDimension = ToDX12UAVDimension(textureDesc.type);
+
+    switch (uavDesc.ViewDimension)
+    {
+    case D3D12_UAV_DIMENSION_TEXTURE2D:
+        uavDesc.Texture2D.MipSlice = mipIndex;
+        uavDesc.Texture2D.PlaneSlice = 0;
+        break;
+    case D3D12_UAV_DIMENSION_TEXTURE3D:
+        uavDesc.Texture3D.MipSlice = mipIndex;
+        uavDesc.Texture3D.FirstWSlice = 0;
+        uavDesc.Texture3D.WSize = UINT(-1);
+        break;
+    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+        uavDesc.Texture2DArray.MipSlice = mipIndex;
+        uavDesc.Texture2DArray.FirstArraySlice = layerIndex;
+        uavDesc.Texture2DArray.ArraySize = numLayers;
+        uavDesc.Texture2DArray.PlaneSlice = 0;
+        break;
+    case D3D12_UAV_DIMENSION_UNKNOWN:
+        HYP_UNREACHABLE();
+        break;
+    }
 
     return uavDesc;
 }
