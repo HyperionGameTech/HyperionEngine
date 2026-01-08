@@ -189,8 +189,8 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, const void* use
 {
     float t, u, v;
 
-    Vec3f v0v1 = triangle.GetPoint(1).GetPosition() - triangle.GetPoint(0).GetPosition();
-    Vec3f v0v2 = triangle.GetPoint(2).GetPosition() - triangle.GetPoint(0).GetPosition();
+    Vec3f v0v1 = triangle.GetPoint(1) - triangle.GetPoint(0);
+    Vec3f v0v2 = triangle.GetPoint(2) - triangle.GetPoint(0);
     Vec3f pvec = direction.Cross(v0v2);
 
     float det = v0v1.Dot(pvec);
@@ -203,7 +203,7 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, const void* use
 
     float invDet = 1.0 / det;
 
-    Vec3f tvec = position - triangle.GetPoint(0).GetPosition();
+    Vec3f tvec = position - triangle.GetPoint(0);
     u = tvec.Dot(pvec) * invDet;
 
     if (u < 0 || u > 1)
@@ -223,187 +223,14 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, const void* use
 
     const Vec3f barycentricCoords = Vec3f(1.0f - u - v, u, v);
 
-    const Vec3f normal = triangle.GetPoint(0).GetNormal() * barycentricCoords.x
-        + triangle.GetPoint(1).GetNormal() * barycentricCoords.y
-        + triangle.GetPoint(2).GetNormal() * barycentricCoords.z;
-
     if (t > 0.0f)
     {
         outResults.AddHit({ .hitpoint = position + (direction * t),
-            .normal = normal,
+            .normal = triangle.GetNormal(),
             .barycentricCoords = barycentricCoords,
             .distance = t,
             .id = hitId,
             .userData = userData });
-
-        return true;
-    }
-
-    return false;
-}
-
-Optional<RayHit> Ray::TestTriangleList(
-    const Array<Vertex>& vertices,
-    const Array<uint32>& indices,
-    const Transform& transform) const
-{
-    RayTestResults outResults;
-
-    if (!TestTriangleList(vertices, indices, transform, ~0, outResults))
-    {
-        return {};
-    }
-
-    return outResults.Front();
-}
-
-Optional<RayHit> Ray::TestTriangleList(
-    const Span<Triangle>& triangles,
-    const Transform& transform) const
-{
-    RayTestResults outResults;
-
-    if (!TestTriangleList(triangles, transform, ~0, outResults))
-    {
-        return {};
-    }
-
-    return outResults.Front();
-}
-
-bool Ray::TestTriangleList(
-    const Array<Vertex>& vertices,
-    const Array<uint32>& indices,
-    const Transform& transform,
-    RayTestResults& outResults) const
-{
-    return TestTriangleList(vertices, indices, transform, ~0, outResults);
-}
-
-bool Ray::TestTriangleList(
-    const Span<Triangle>& triangles,
-    const Transform& transform,
-    RayTestResults& outResults) const
-{
-    return TestTriangleList(triangles, transform, ~0, outResults);
-}
-
-bool Ray::TestTriangleList(
-    const Array<Vertex>& vertices,
-    const Array<uint32>& indices,
-    const Transform& transform,
-    RayHitID hitId,
-    RayTestResults& outResults) const
-{
-    return TestTriangleList(vertices, indices, transform, hitId, nullptr, outResults);
-}
-
-bool Ray::TestTriangleList(
-    const Span<Triangle>& triangles,
-    const Transform& transform,
-    RayHitID hitId,
-    RayTestResults& outResults) const
-{
-    return TestTriangleList(triangles, transform, hitId, nullptr, outResults);
-}
-
-bool Ray::TestTriangleList(
-    const Array<Vertex>& vertices,
-    const Array<uint32>& indices,
-    const Transform& transform,
-    RayHitID hitId,
-    const void* userData,
-    RayTestResults& outResults) const
-{
-    bool intersected = false;
-
-    if (indices.Size() % 3 != 0)
-    {
-        HYP_LOG(Math, Warning, "Cannot perform raytest on triangle list because number of indices ({}) was not divisible by 3", indices.Size());
-
-        return false;
-    }
-
-    const Mat4f transformMatrix = transform.GetMatrix();
-
-    RayTestResults tmpResults;
-
-    for (SizeType i = 0; i < indices.Size(); i += 3)
-    {
-        HYP_CORE_ASSERT(indices[i + 0] < vertices.Size());
-        HYP_CORE_ASSERT(indices[i + 1] < vertices.Size());
-        HYP_CORE_ASSERT(indices[i + 2] < vertices.Size());
-
-        const Triangle triangle {
-            vertices[indices[i + 0]].GetPosition() * transformMatrix,
-            vertices[indices[i + 1]].GetPosition() * transformMatrix,
-            vertices[indices[i + 2]].GetPosition() * transformMatrix
-        };
-
-        if (TestTriangle(triangle, static_cast<RayHitID>(i / 3 /* triangle index */), tmpResults))
-        {
-            intersected = true;
-        }
-    }
-
-    if (intersected)
-    {
-        HYP_CORE_ASSERT(!tmpResults.Empty());
-
-        auto& firstResult = tmpResults.Front();
-
-        // If hitId is set, overwrite the id (which would be set to the mesh index)
-        if (hitId != ~0u)
-        {
-            firstResult.id = hitId;
-        }
-
-        firstResult.userData = userData;
-
-        outResults.AddHit(firstResult);
-
-        return true;
-    }
-
-    return false;
-}
-
-bool Ray::TestTriangleList(
-    const Span<Triangle>& triangles,
-    const Transform& transform,
-    RayHitID hitId,
-    const void* userData,
-    RayTestResults& outResults) const
-{
-    bool intersected = false;
-
-    RayTestResults tmpResults;
-
-    for (SizeType i = 0; i < triangles.Size(); i++)
-    {
-        const Triangle& triangle = triangles[i];
-
-        if (TestTriangle(triangle, static_cast<RayHitID>(i), tmpResults))
-        {
-            intersected = true;
-        }
-    }
-
-    if (intersected)
-    {
-        HYP_CORE_ASSERT(!tmpResults.Empty());
-
-        auto& firstResult = tmpResults.Front();
-
-        // If hitId is set, overwrite the id (which would be set to the mesh index)
-        if (hitId != ~0u)
-        {
-            firstResult.id = hitId;
-        }
-
-        firstResult.userData = userData;
-
-        outResults.AddHit(firstResult);
 
         return true;
     }

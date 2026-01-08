@@ -10,12 +10,20 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/dx12/DX12Shared.hpp>
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
 class DX12Shader final : public ShaderBase
 {
     HYP_OBJECT_BODY(DX12Shader);
+    
+    struct ShaderBlob
+    {
+        ShaderModuleType type;
+        D3D12_SHADER_BYTECODE bytecode;
+    };
 
 public:
     DX12Shader();
@@ -31,7 +39,18 @@ public:
 #endif
 
 private:
-    // @TODO
+    ShaderBlob* GetShaderBlob(ShaderModuleType type)
+    {
+        for (ShaderBlob& sb : m_shaderBlobs)
+        {
+            if (sb.type == type)
+                return &sb;
+        }
+
+        return nullptr;
+    }
+
+    Array<ShaderBlob> m_shaderBlobs;
 };
 
 } // namespace Hyperion

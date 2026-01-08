@@ -260,7 +260,7 @@ bool BoundingBox::ContainsTriangle(const Triangle& triangle) const
 {
     for (int i = 0; i < 3; ++i)
     {
-        Vec3f p = triangle[i].GetPosition();
+        Vec3f p = triangle[i];
 
         if (p.x < min.x || p.x > max.x || p.y < min.y || p.y > max.y || p.z < min.z || p.z > max.z)
         {
@@ -273,24 +273,24 @@ bool BoundingBox::ContainsTriangle(const Triangle& triangle) const
 
 bool BoundingBox::OverlapsTriangle(const Triangle& triangle) const
 {
+    static constexpr Vec3f Axes[3] = { Vec3f { 1, 0, 0 }, Vec3f { 0, 1, 0 }, Vec3f { 0, 0, 1 } };
+
     // bring triangle into box‐centered coordinates
     Vec3f center = GetCenter();
     Vec3f half = GetExtent() * 0.5f;
 
-    Vec3f v0 = triangle[0].position - center;
-    Vec3f v1 = triangle[1].position - center;
-    Vec3f v2 = triangle[2].position - center;
+    Vec3f v0 = triangle[0] - center;
+    Vec3f v1 = triangle[1] - center;
+    Vec3f v2 = triangle[2] - center;
 
     // triangle edges
     Vec3f e0 = v1 - v0;
     Vec3f e1 = v2 - v1;
     Vec3f e2 = v0 - v2;
 
-    static const Vec3f axes[3] = { Vec3f { 1, 0, 0 }, Vec3f { 0, 1, 0 }, Vec3f { 0, 0, 1 } };
-
     for (const Vec3f& e : { e0, e1, e2 })
     {
-        for (const Vec3f& a : axes)
+        for (const Vec3f& a : Axes)
         {
             Vec3f axis = e.Cross(a);
 

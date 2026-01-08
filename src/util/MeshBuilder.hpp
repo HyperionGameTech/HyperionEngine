@@ -10,7 +10,7 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 
 #include <core/Types.hpp>
 

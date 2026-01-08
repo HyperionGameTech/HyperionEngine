@@ -318,7 +318,6 @@ DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     Span<const DX12FramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
-    // @TODO: Implement graphics pipeline creation for DX12
     return GraphicsPipelineRef();
 }
 

@@ -6,7 +6,7 @@
 
 #include <core/reflection/ObjectFwd.hpp>
 
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 #include <core/math/BoundingBox.hpp>
 
 #include <core/containers/Array.hpp>

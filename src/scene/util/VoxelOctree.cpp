@@ -230,9 +230,9 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
             for (SizeType i = 0; i < meshIndices.Size(); i += 3)
             {
                 Triangle triangle {
-                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 0]].position),
-                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 1]].position),
-                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 2]].position)
+                    transformMatrix * meshData.vertexData[meshIndices[i + 0]].position,
+                    transformMatrix * meshData.vertexData[meshIndices[i + 1]].position,
+                    transformMatrix * meshData.vertexData[meshIndices[i + 2]].position
                 };
 
                 BoundingBox triangleAabb = triangle.GetBoundingBox().Expand(0.002f);
