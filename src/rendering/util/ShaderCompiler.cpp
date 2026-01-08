@@ -30,17 +30,23 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/DescriptorSet.hpp>
 
-#define HYP_SHADER_REFLECTION
+#define HYP_SHADER_REFLECTION 1
 
-#ifdef HYP_GLSLANG
+#if HYP_GLSLANG
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Include/Types.h>
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/ShaderLang.h>
 
-#ifdef HYP_SHADER_REFLECTION
+#if HYP_SHADER_REFLECTION
 #include <glslang/MachineIndependent/reflection.h>
 #endif
+#endif
+
+#if HYP_DXC
+#include <dxcapi.h>
+#include <d3d12shader.h>
+#include <wrl/client.h>
 #endif
 
 #if HYP_VULKAN
@@ -50,6 +56,12 @@
 #include <HyperionEngine.hpp>
 
 #include <ShaderCompiler.generated.inl>
+
+#if HYP_DXC
+// {5A58797D-A72C-478D-8BA2-EFC6B0EFE88E}
+//interface DECLSPEC_UUID("5A58797D-A72C-478D-8BA2-EFC6B0EFE88E") ID3D12ShaderReflection;
+DEFINE_GUID(IID_ID3D12ShaderReflection, 0x5a58797d, 0xa72c, 0x478d, 0x8b, 0xa2, 0xef, 0xc6, 0xb0, 0xef, 0xe8, 0x8e);
+#endif
 
 namespace Hyperion {
 
@@ -64,7 +76,58 @@ extern const GlobalConfig& GetGlobalConfig();
 
 // #define HYP_SHADER_COMPILER_LOGGING
 
+#if HYP_DXC
+using Microsoft::WRL::ComPtr;
+
+static ComPtr<IDxcUtils> s_dxcUtils;
+static ComPtr<IDxcCompiler3> s_dxcCompiler;
+#endif
+
 #pragma region Helpers
+
+#if HYP_DXC
+static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
+{
+    switch (type)
+    {
+    case SMT_VERTEX:
+        return L"vs_6_0";
+    case SMT_FRAGMENT:
+        return L"ps_6_0";
+    case SMT_GEOMETRY:
+        return L"gs_6_0";
+    case SMT_COMPUTE:
+        return L"cs_6_0";
+    case SMT_RAY_GEN:
+    case SMT_RAY_MISS:
+    case SMT_RAY_CLOSEST_HIT:
+    case SMT_RAY_ANY_HIT:
+    case SMT_RAY_INTERSECT:
+        return L"lib_6_3";
+    default:
+        return L"vs_6_0";
+    }
+}
+#endif
+
+String GetShaderVersionFromSource(const String& source, String& outSourceWithoutVersion)
+{
+    outSourceWithoutVersion = source;
+
+    String sourceTrimmed = source.TrimmedLeft();
+
+    if (sourceTrimmed.StartsWith("#version"))
+    {
+        SizeType firstNewline = sourceTrimmed.FindFirstIndex('\n');
+        String versionLine = sourceTrimmed.Substr(0, firstNewline + 1);
+
+        outSourceWithoutVersion = sourceTrimmed.Substr(firstNewline + 1);
+
+        return versionLine;
+    }
+
+    return "#version 450\n";
+}
 
 static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& descriptorTableDeclaration)
 {
@@ -748,8 +811,9 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     return true;
 }
 
-HYP_DISABLE_OPTIMIZATION;
-static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
+static ByteBuffer CompileToSPIRV(
+    ShaderModuleType type,
+    ShaderLanguage language,
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
     const ShaderProperties& properties,
@@ -916,7 +980,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
         return ByteBuffer();
     }
 
-#ifdef HYP_SHADER_REFLECTION
+#if HYP_SHADER_REFLECTION
     glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
     if (!cppProgram->buildReflection(EShReflectionDefault))
     {
@@ -1052,6 +1116,192 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
 
     return shaderModule;
 }
+
+#elif HYP_DXC
+
+#if HYP_SHADER_REFLECTION
+
+static void ReflectResources(ID3D12ShaderReflection* pReflection, DescriptorUsageSet& outUsages)
+{
+    D3D12_SHADER_DESC shaderDesc;
+    pReflection->GetDesc(&shaderDesc);
+
+    for (UINT i = 0; i < shaderDesc.BoundResources; i++)
+    {
+        D3D12_SHADER_INPUT_BIND_DESC resDesc;
+        pReflection->GetResourceBindingDesc(i, &resDesc);
+
+        DescriptorUsage* descriptorUsage = outUsages.Find(CreateStringHashFromDynamicString(resDesc.Name));
+
+        if (descriptorUsage != nullptr)
+        {
+            if (resDesc.Type == D3D_SIT_CBUFFER)
+            {
+                ID3D12ShaderReflectionConstantBuffer* pCB = pReflection->GetConstantBufferByName(resDesc.Name);
+                D3D12_SHADER_BUFFER_DESC bufferDesc;
+                pCB->GetDesc(&bufferDesc);
+                
+                descriptorUsage->type.size = (SizeType)bufferDesc.Size;
+                
+                for (UINT j = 0; j < bufferDesc.Variables; j++)
+                {
+                    ID3D12ShaderReflectionVariable* pVar = pCB->GetVariableByIndex(j);
+                    D3D12_SHADER_VARIABLE_DESC varDesc;
+                    pVar->GetDesc(&varDesc);
+                    
+                    // TODO!!!
+                }
+            }
+        }
+    }
+}
+#endif
+
+static bool PreprocessShaderSource(
+    ShaderModuleType type,
+    ShaderLanguage language, String preamble,
+    String source, String filename,
+    String& outPreprocessedSource,
+    Array<String>& outErrorMessages)
+{
+    Assert(s_dxcCompiler && s_dxcUtils);
+
+    outPreprocessedSource = source;
+
+    Array<LPCWSTR> args;
+    args.PushBack(L"-P");
+
+    String fullSource = preamble + "\n" + source;
+
+    HRESULT hr;
+
+    ComPtr<IDxcBlobEncoding> pSource;
+    hr = s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+
+    if (FAILED(hr))
+    {
+        outErrorMessages.PushBack(HYP_FORMAT("Failed to create blob! HRESULT: {}", hr));
+
+        return false;
+    }
+
+    DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
+
+    ComPtr<IDxcResult> pResult;
+
+    hr = s_dxcCompiler->Compile(
+        &sourceBuffer,
+        args.Data(),
+        (uint32)args.Size(),
+        nullptr,
+        IID_PPV_ARGS(&pResult)
+    );
+
+    ComPtr<IDxcBlobUtf8> pErrors;
+    pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+
+    if (pErrors && pErrors->GetStringLength() > 0)
+        outErrorMessages.PushBack(String(pErrors->GetStringPointer()));
+
+    HRESULT status;
+    pResult->GetStatus(&status);
+
+    if (FAILED(status))
+        return false;
+
+    ComPtr<IDxcBlobUtf8> pOutput;
+    pResult->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&pOutput), nullptr);
+
+    if (pOutput)
+        outPreprocessedSource = String(pOutput->GetStringPointer());
+
+    return true;
+}
+
+static ByteBuffer CompileToDXIL(
+    ShaderModuleType type,
+    ShaderLanguage language,
+    DescriptorUsageSet& descriptorUsages,
+    String source, String filename,
+    const ShaderProperties& properties,
+    Array<String>& errorMessages)
+{
+    Assert(s_dxcCompiler && s_dxcUtils);
+
+    DescriptorTableDeclaration table;
+    descriptorUsages.BuildDescriptorTableDeclaration(table);
+
+    String preamble = BuildDescriptorTableDefines(table) + "\n" + BuildPreamble(properties);
+    String fullSource = preamble + "\n" + source;
+
+    ComPtr<IDxcBlobEncoding> pSource;
+    s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
+
+    Array<LPCWSTR> args;
+    args.PushBack(L"-E");
+    args.PushBack(L"main");
+
+    args.PushBack(L"-T");
+    args.PushBack(GetDXCTargetProfile(type));
+    
+    args.PushBack(L"-Qstrip_debug");
+    args.PushBack(L"-Qstrip_reflect");
+
+#ifdef HYP_DEBUG_MODE
+    args.PushBack(L"-Zi"); // Debug info
+    args.PushBack(L"-Od"); // Disable optimization
+#endif
+
+    DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
+    ComPtr<IDxcResult> pResult;
+    
+    HRESULT res = s_dxcCompiler->Compile(
+        &sourceBuffer, 
+        args.Data(), 
+        (uint32)args.Size(), 
+        nullptr,
+        IID_PPV_ARGS(&pResult)
+    );
+
+    ComPtr<IDxcBlobUtf8> pErrors;
+    pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+
+    if (pErrors && pErrors->GetStringLength() > 0)
+    {
+        errorMessages.PushBack(String(pErrors->GetStringPointer()));
+    }
+
+    pResult->GetStatus(&res);
+
+    if (FAILED(res))
+    {
+        return ByteBuffer();
+    }
+
+#if HYP_SHADER_REFLECTION
+    ComPtr<IDxcBlob> pReflectionData;
+    res = pResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
+    
+    if (SUCCEEDED(res) && pReflectionData)
+    {
+        DxcBuffer reflBuffer = { pReflectionData->GetBufferPointer(), pReflectionData->GetBufferSize(), 0 };
+        ComPtr<ID3D12ShaderReflection> pReflection;
+        s_dxcUtils->CreateReflection(&reflBuffer, IID_PPV_ARGS(&pReflection));
+
+        // Use the reflection object to populate your DescriptorUsageSet
+        ReflectResources(pReflection.Get(), descriptorUsages);
+    }
+#endif
+
+    ComPtr<IDxcBlob> pBlob;
+    pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
+
+    ByteBuffer dxil(pBlob->GetBufferSize());
+    Memory::MemCpy(dxil.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+
+    return dxil;
+}
+
 #else
 
 static bool PreprocessShaderSource(ShaderModuleType type,
@@ -1063,15 +1313,6 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     outPreprocessedSource = source;
 
     return true;
-}
-
-static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
-    DescriptorUsageSet& descriptorUsages,
-    String source, String filename,
-    const ShaderProperties& properties,
-    Array<String>& errorMessages)
-{
-    return ByteBuffer();
 }
 
 #endif
@@ -1500,12 +1741,25 @@ ShaderCompiler::ShaderCompiler()
 #if HYP_GLSLANG
     ShInitialize();
 #endif
+
+#if HYP_DXC
+    if (!s_dxcUtils)
+        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), &s_dxcUtils);
+
+    if (!s_dxcCompiler)
+        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), &s_dxcCompiler);
+#endif
 }
 
 ShaderCompiler::~ShaderCompiler()
 {
 #if HYP_GLSLANG
     ShFinalize();
+#endif
+
+#if HYP_DXC
+    s_dxcUtils.Reset();
+    s_dxcCompiler.Reset();
 #endif
 
     if (m_definitions)
@@ -1937,7 +2191,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
 bool ShaderCompiler::CanCompileShaders() const
 {
-#ifdef HYP_GLSLANG
+#if HYP_GLSLANG || HYP_DXC
     return true;
 #else
     return false;
@@ -2693,11 +2947,14 @@ bool ShaderCompiler::CompileBundle(
 
                     if (processResult.errors.Any())
                     {
-                        HYP_LOG(ShaderCompiler, Error, "{} shader processing errors:",
-                            processResult.errors.Size());
+                        HYP_LOG(ShaderCompiler, Error, "{} shader processing errors:", processResult.errors.Size());
+
+                        for (const ProcessError& processError : processResult.errors)
+                        {
+                            HYP_LOG(ShaderCompiler, Error, "\t{}", processError.errorMessage);
+                        }
 
                         Mutex::Guard guard(errorMessagesMutex);
-
                         out.errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
 
                         anyFilesErrored.Set(true, MemoryOrder::RELAXED);
@@ -2777,7 +3034,10 @@ bool ShaderCompiler::CompileBundle(
                     // );
                 }
 
-                ByteBuffer byteBuffer = CompileToSPIRV(
+                ByteBuffer byteBuffer;
+
+#if HYP_GLSLANG
+                byteBuffer = CompileToSPIRV(
                     item.type,
                     item.language,
                     descriptorUsageSetsMerged,
@@ -2785,6 +3045,16 @@ bool ShaderCompiler::CompileBundle(
                     item.file,
                     properties,
                     errorMessages);
+#elif HYP_DXC
+                byteBuffer = CompileToDXIL(
+                    item.type,
+                    item.language,
+                    descriptorUsageSetsMerged,
+                    processedSources[index],
+                    item.file,
+                    properties,
+                    errorMessages);
+#endif
 
                 if (byteBuffer.Empty())
                 {
