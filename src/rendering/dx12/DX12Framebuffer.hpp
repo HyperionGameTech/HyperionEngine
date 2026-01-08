@@ -44,6 +44,11 @@ public:
     DX12Attachment* GetAttachment(uint32 binding) const override;
     int NumAttachments() const override;
 
+    HYP_FORCE_INLINE const FlatMap<uint32, DX12AttachmentRef>& GetAttachments() const
+    {
+        return m_attachments;
+    }
+
     void BeginCapture(DX12CommandBuffer* commandBuffer) override;
     void EndCapture(DX12CommandBuffer* commandBuffer) override;
 
