@@ -322,7 +322,6 @@ DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
-    // @TODO: Implement graphics pipeline creation for DX12
     return GraphicsPipelineRef();
 }
 

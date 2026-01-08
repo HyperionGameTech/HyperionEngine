@@ -12,6 +12,8 @@
 
 #include <rendering/RenderPipeline.hpp>
 
+#include <rendering/dx12/DX12Shared.hpp>
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -39,6 +41,10 @@ public:
 
 private:
     RendererResult Rebuild() override;
+
+    RendererResult BuildRootSignature();
+
+    ComPtr<ID3D12RootSignature> m_rootSignature;
 };
 
 } // namespace Hyperion
