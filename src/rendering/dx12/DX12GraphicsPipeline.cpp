@@ -6,6 +6,9 @@
 #include <rendering/dx12/DX12Shader.hpp>
 #include <rendering/dx12/DX12RenderBackend.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
+#include <rendering/dx12/DX12Framebuffer.hpp>
+#include <rendering/dx12/DX12Attachment.hpp>
+#include <rendering/dx12/DX12Helpers.hpp>
 
 #include <rendering/Vertex.hpp>
 
@@ -16,6 +19,146 @@
 namespace Hyperion {
 
 extern DX12RenderBackend* g_renderBackend;
+
+static D3D12_RASTERIZER_DESC GetDefaultRasterizerDesc()
+{
+    D3D12_RASTERIZER_DESC desc {};
+    desc.FillMode = D3D12_FILL_MODE_SOLID;
+    desc.CullMode = D3D12_CULL_MODE_BACK;
+    desc.FrontCounterClockwise = FALSE;
+    desc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+    desc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+    desc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+    desc.DepthClipEnable = TRUE;
+    desc.MultisampleEnable = FALSE;
+    desc.AntialiasedLineEnable = FALSE;
+    desc.ForcedSampleCount = 0;
+    desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+    return desc;
+}
+
+static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc()
+{
+    D3D12_DEPTH_STENCIL_DESC desc {};
+    desc.DepthEnable = TRUE;
+    desc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+    desc.StencilEnable = FALSE;
+    desc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+    desc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+
+    desc.FrontFace = {
+        D3D12_STENCIL_OP_KEEP,
+        D3D12_STENCIL_OP_KEEP,
+        D3D12_STENCIL_OP_KEEP,
+        D3D12_COMPARISON_FUNC_ALWAYS
+    };
+    desc.BackFace = desc.FrontFace;
+
+    return desc;
+}
+
+static bool GetSemanticNameAndIndex(VertexAttribute::Type type, const char*& outNameStr, int& outIndex)
+{
+    outNameStr = nullptr;
+    outIndex = 0;
+
+    DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+
+    switch (type)
+    {
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION: 
+        outNameStr = "POSITION";
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL:   
+        outNameStr = "NORMAL";
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0: 
+        outNameStr = "TEXCOORD";
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1: 
+        outNameStr = "TEXCOORD";
+        outIndex = 1;
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT:  
+        outNameStr = "TANGENT";
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT: 
+        outNameStr = "BINORMAL";
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES: 
+        outNameStr = "BLENDINDICES";
+        return true;
+    case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS: 
+        outNameStr = "BLENDWEIGHT";
+        return true;
+    default: 
+        return false;
+    }
+}
+
+static DXGI_FORMAT VertexAttributeTypeToDXGIFormat(VertexAttribute::Type type)
+{
+    if ((type == VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES))
+    {
+        return DXGI_FORMAT_R32G32B32A32_UINT;
+    }
+
+    const VertexAttribute& attr = VertexAttribute::mapping[type];
+
+    switch (attr.size)
+    {
+    case 16:
+        return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case 12:
+        return DXGI_FORMAT_R32G32B32_FLOAT;
+    case 8:
+        return DXGI_FORMAT_R32G32_FLOAT;
+    case 4:
+        return DXGI_FORMAT_R32_FLOAT;
+    default:
+        HYP_UNREACHABLE();
+    }
+}
+
+static RendererResult BuildInputElementDesc(const VertexAttributeSet& vertexAttributes, Array<D3D12_INPUT_ELEMENT_DESC>& outInputElementDescs)
+{
+    outInputElementDescs.Clear();
+
+    if (vertexAttributes == 0)
+        return HYP_MAKE_ERROR(RendererError, "VertexAttributes empty! Cannot create input element descs");
+
+    const Array<VertexAttribute::Type> types = vertexAttributes.BuildAttributes();
+
+    FlatMap<uint32, uint32> bindingOffsets;
+
+    for (VertexAttribute::Type type : types)
+    {
+        const char* semanticName = nullptr;
+        int semanticIndex = -1;
+
+        if (!GetSemanticNameAndIndex(type, semanticName, semanticIndex))
+            return HYP_MAKE_ERROR(RendererError, "Failed to get semantic name/index for attribute type {}", 0, type);
+
+        AssertDebug(semanticName != nullptr && semanticIndex >= 0);
+
+        const VertexAttribute& attr = VertexAttribute::mapping[type];
+
+        D3D12_INPUT_ELEMENT_DESC& desc = outInputElementDescs.EmplaceBack();
+        desc.SemanticName = semanticName;
+        desc.SemanticIndex = UINT(semanticIndex);
+        desc.Format = VertexAttributeTypeToDXGIFormat(type);
+        desc.InputSlot = attr.binding;
+        desc.AlignedByteOffset = bindingOffsets[attr.binding];
+        desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+        desc.InstanceDataStepRate = 0;
+
+        bindingOffsets[attr.binding] += attr.size;
+    }
+
+    return {};
+}
 
 #pragma region DX12GraphicsPipeline
 
@@ -61,7 +204,111 @@ void DX12GraphicsPipeline::SetPushConstants(const void* data, SizeType size)
 
 RendererResult DX12GraphicsPipeline::Rebuild()
 {
-    // @TODO
+    CheckResultOrReturn(BuildRootSignature());
+
+    Assert(m_rootSignature != nullptr);
+    Assert(m_shader != nullptr);
+
+    Array<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
+    CheckResultOrReturn(BuildInputElementDesc(m_vertexAttributes, inputElementDescs));
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc {};
+    psoDesc.pRootSignature = m_rootSignature.Get();
+    psoDesc.PrimitiveTopologyType = ToDX12TopologyType(m_topology);
+
+    psoDesc.SampleDesc.Count = 1;
+    psoDesc.SampleDesc.Quality = 0;
+
+    DX12Shader* dxShader = static_cast<DX12Shader*>(m_shader.Get());
+    psoDesc.VS = dxShader->GetShaderBytecode(SMT_VERTEX);
+    psoDesc.PS = dxShader->GetShaderBytecode(SMT_FRAGMENT);
+    psoDesc.GS = dxShader->GetShaderBytecode(SMT_GEOMETRY);
+
+    psoDesc.InputLayout = { inputElementDescs.Data(), (UINT)inputElementDescs.Size() };
+
+    psoDesc.RasterizerState = GetDefaultRasterizerDesc(); 
+    psoDesc.RasterizerState.CullMode = ToDX12CullMode(m_faceCullMode);
+    psoDesc.RasterizerState.FillMode = (m_fillMode == FM_LINE) ? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+    psoDesc.RasterizerState.FrontCounterClockwise = TRUE; 
+
+    psoDesc.DepthStencilState = GetDefaultDepthStencilDesc();
+    psoDesc.DepthStencilState.DepthEnable = m_depthTest;
+    psoDesc.DepthStencilState.DepthWriteMask = m_depthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+    
+    if (m_stencilFunction.HasValue())
+    {
+        psoDesc.DepthStencilState.StencilEnable = TRUE;
+        psoDesc.DepthStencilState.StencilReadMask = 0xFF;
+        psoDesc.DepthStencilState.StencilWriteMask = 0xFF;
+
+        D3D12_DEPTH_STENCILOP_DESC stencilOp {};
+        stencilOp.StencilFailOp = ToDX12StencilOp(m_stencilFunction->failOp);
+        stencilOp.StencilPassOp = ToDX12StencilOp(m_stencilFunction->passOp);
+        stencilOp.StencilDepthFailOp = ToDX12StencilOp(m_stencilFunction->depthFailOp);
+        stencilOp.StencilFunc = ToDX12ComparisonFunction(m_stencilFunction->compareOp);
+
+        psoDesc.DepthStencilState.FrontFace = stencilOp;
+        psoDesc.DepthStencilState.BackFace = stencilOp;
+    }
+
+    psoDesc.NumRenderTargets = 0;
+    psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+    psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+    psoDesc.BlendState.IndependentBlendEnable = FALSE;
+
+    if (m_framebuffers.Any())
+    {
+        bool hasDSV = false;
+
+        for (const auto& pair : m_framebuffers[0]->GetAttachments())
+        {
+            uint32 binding = pair.first;
+            const DX12AttachmentRef& attachment = pair.second;
+
+            if (attachment->IsDepthAttachment())
+            {
+                if (hasDSV)
+                    return HYP_MAKE_ERROR(RendererError, "Pipeline cannot have multiple depth stencil targets!");
+
+                psoDesc.DSVFormat = ToDXGIFormat(attachment->GetFormat(), DX12ViewType::RTV_DSV);
+                hasDSV = true;
+
+                continue;
+            }
+
+            if (psoDesc.NumRenderTargets >= 8)
+                return HYP_MAKE_ERROR(RendererError, "To many render targets for pipeline {}!", 0, GetDebugName());
+
+            const bool blendEnabled = (m_blendFunction != BlendFunction::None());
+
+            const uint32 rtIndex = psoDesc.NumRenderTargets++;
+
+            D3D12_RENDER_TARGET_BLEND_DESC& rtBlend = psoDesc.BlendState.RenderTarget[rtIndex];
+            rtBlend = {};
+            rtBlend.BlendEnable = blendEnabled;
+            rtBlend.SrcBlend = ToDX12Blend(m_blendFunction.GetSrcColor());
+            rtBlend.DestBlend = ToDX12Blend(m_blendFunction.GetDstColor());
+            rtBlend.BlendOp = D3D12_BLEND_OP_ADD;
+            rtBlend.SrcBlendAlpha = ToDX12Blend(m_blendFunction.GetSrcAlpha());
+            rtBlend.DestBlendAlpha = ToDX12Blend(m_blendFunction.GetDstAlpha());
+            rtBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+            rtBlend.LogicOpEnable = FALSE;
+            rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+            psoDesc.RTVFormats[rtIndex] = ToDXGIFormat(attachment->GetFormat(), DX12ViewType::RTV_DSV);
+        }
+    }
+
+    HRESULT res = g_renderBackend->GetDevice()->CreateGraphicsPipelineState(
+        &psoDesc, 
+        __uuidof(ID3D12PipelineState),
+        &m_pipelineState
+    );
+
+    if (FAILED(res))
+        return HYP_MAKE_ERROR(RendererError, "Failed to create DX12 Pipeline State for {}", res, GetDebugName());
+
     return {};
 }
 
