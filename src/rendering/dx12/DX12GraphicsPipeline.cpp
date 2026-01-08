@@ -76,7 +76,8 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
     Array<D3D12_ROOT_PARAMETER> rootParams;
 
-    Array<Array<D3D12_DESCRIPTOR_RANGE>> rangeAllocations;
+    // use LL so we never invalid ptrs
+    LinkedList<Array<D3D12_DESCRIPTOR_RANGE>> rangeAllocations;
 
     auto AllocateRangeStorage = [&](const Array<D3D12_DESCRIPTOR_RANGE>& newRanges) -> const D3D12_DESCRIPTOR_RANGE*
     {
