@@ -9,10 +9,12 @@
 #include <rendering/dx12/DX12Swapchain.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
+#include <rendering/dx12/DX12GraphicsPipeline.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/RenderableAttributes.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -322,7 +324,37 @@ DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
-    return GraphicsPipelineRef();
+    DX12GraphicsPipelineRef graphicsPipeline = CreateObject<DX12GraphicsPipeline>();
+
+    if (shader.IsValid())
+    {
+        graphicsPipeline->SetShader(shader);
+
+#ifdef HYP_DEBUG_MODE
+        graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shader->GetDebugName().IsValid() ? *shader->GetDebugName() : "<unnamed shader>"));
+#endif
+    }
+
+    graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
+    graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
+
+    graphicsPipeline->SetCullMode(attributes.GetMaterialAttributes().cullFaces);
+    graphicsPipeline->SetFillMode(attributes.GetMaterialAttributes().fillMode);
+    graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
+    graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+    graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+
+    // group materials that set a stencil value into pipelines that have stencil testing enabled
+    // and the same stencil function
+    if ((attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST) // for specifying stencil testing on pipelines
+        || attributes.GetMaterialAttributes().stencilReference != 0)  // for materials that write a stencil reference value
+    {
+        graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
+    }
+
+    graphicsPipeline->SetFramebuffers(framebuffers);
+
+    return graphicsPipeline;
 }
 
 DX12ComputePipelineRef DX12RenderBackend::MakeComputePipeline(

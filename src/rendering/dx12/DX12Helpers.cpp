@@ -222,9 +222,29 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDX12TopologyType(Topology topology)
     }
 }
 
+D3D12_STENCIL_OP ToDX12StencilOp(StencilOp op)
+{
+    switch (op)
+    {
+    case StencilOp::SO_KEEP:
+        return D3D12_STENCIL_OP_KEEP;
+    case StencilOp::SO_ZERO:
+        return D3D12_STENCIL_OP_ZERO;
+    case StencilOp::SO_REPLACE:
+        return D3D12_STENCIL_OP_REPLACE;
+    case StencilOp::SO_INCREMENT:
+        return D3D12_STENCIL_OP_INCR;
+    case StencilOp::SO_DECREMENT:
+        return D3D12_STENCIL_OP_DECR;
+    default:
+        HYP_NOT_IMPLEMENTED();
+    }
+}
+
 D3D12_COMPARISON_FUNC ToDX12ComparisonFunction(StencilCompareOp compareOp)
 {
-    switch (compareOp) {
+    switch (compareOp)
+    {
     case SCO_ALWAYS:
         return D3D12_COMPARISON_FUNC_ALWAYS;
     case SCO_NEVER:
@@ -234,7 +254,7 @@ D3D12_COMPARISON_FUNC ToDX12ComparisonFunction(StencilCompareOp compareOp)
     case SCO_NOT_EQUAL:
         return D3D12_COMPARISON_FUNC_NOT_EQUAL;
     default:
-        return D3D12_COMPARISON_FUNC_ALWAYS;
+        HYP_NOT_IMPLEMENTED();
     }
 }
 

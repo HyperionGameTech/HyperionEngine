@@ -26,6 +26,16 @@ public:
     explicit DX12GraphicsPipeline(const DX12ShaderRef& shader);
     ~DX12GraphicsPipeline() override;
 
+    HYP_FORCE_INLINE ID3D12RootSignature* GetRootSignature() const
+    {
+        return m_rootSignature.Get();
+    }
+
+    HYP_FORCE_INLINE ID3D12PipelineState* GetPipelineState() const
+    {
+        return m_pipelineState.Get();
+    }
+
     bool IsCreated() const override;
 
     RendererResult Create() override;
@@ -45,6 +55,7 @@ private:
     RendererResult BuildRootSignature();
 
     ComPtr<ID3D12RootSignature> m_rootSignature;
+    ComPtr<ID3D12PipelineState> m_pipelineState;
 };
 
 } // namespace Hyperion

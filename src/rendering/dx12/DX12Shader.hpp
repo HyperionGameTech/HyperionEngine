@@ -30,15 +30,6 @@ public:
     explicit DX12Shader(const RC<CompiledShader>& compiledShader);
     ~DX12Shader() override;
 
-    bool IsCreated() const override;
-
-    RendererResult Create() override;
-
-#ifdef HYP_DEBUG_MODE
-    void SetDebugName(Name name) override;
-#endif
-
-private:
     ShaderBlob* GetShaderBlob(ShaderModuleType type)
     {
         for (ShaderBlob& sb : m_shaderBlobs)
@@ -50,6 +41,24 @@ private:
         return nullptr;
     }
 
+    D3D12_SHADER_BYTECODE GetShaderBytecode(ShaderModuleType type)
+    {
+        ShaderBlob* blob = GetShaderBlob(type);
+        if (!blob)
+            return {};
+
+        return blob->bytecode;
+    }
+
+    bool IsCreated() const override;
+
+    RendererResult Create() override;
+
+#ifdef HYP_DEBUG_MODE
+    void SetDebugName(Name name) override;
+#endif
+
+private:
     Array<ShaderBlob> m_shaderBlobs;
 };
 
