@@ -326,146 +326,182 @@ else()
     message(FATAL_ERROR "No rendering backend found!")
 endif()
 
-if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
-    # if glslang folder exists, link with it.
-    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
-        set(HYP_GLSLANG 1)
-        
-        add_definitions(-DHYP_GLSLANG=1)
-        add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
+# link glslang if vulkan rendering backend:
+if (RENDERING_BACKEND STREQUAL "Vulkan")
+    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
+        # if glslang folder exists, link with it.
+        if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
+            set(HYP_GLSLANG 1)
+            
+            add_definitions(-DHYP_GLSLANG=1)
+            add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
-        # Build glslang during CMake configuration time (not as part of the main build)
-        # This keeps glslang completely separate from the VS solution / main project
-        set(GLSLANG_BUILD_DIR "${CMAKE_BINARY_DIR}/glslang_build")
-        set(GLSLANG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/submodules/glslang")
+            # Build glslang during CMake configuration time (not as part of the main build)
+            # This keeps glslang completely separate from the VS solution / main project
+            set(GLSLANG_BUILD_DIR "${CMAKE_BINARY_DIR}/glslang_build")
+            set(GLSLANG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/submodules/glslang")
 
-        # Check if glslang needs to be built (check for a marker file or key library)
-        if(WIN32)
-            set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib")
-        else()
-            set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/libglslang.a")
-        endif()
-
-        if(NOT EXISTS "${GLSLANG_MARKER_LIB}")
-            message(STATUS "Building glslang...")
-
-            # Create the build directory if it doesn't exist
-            file(MAKE_DIRECTORY ${GLSLANG_BUILD_DIR})
-
-            # Configure glslang
-            execute_process(
-                COMMAND ${CMAKE_COMMAND}
-                    -S ${GLSLANG_SOURCE_DIR}
-                    -B ${GLSLANG_BUILD_DIR}
-                    -DCMAKE_BUILD_TYPE=Release
-                    -DGLSLANG_ENABLE_INSTALL=OFF
-                    -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
-                    -DGLSLANG_TESTS=OFF
-                    -DENABLE_GLSLANG_BINARIES=OFF
-                    -DENABLE_SPVREMAPPER=OFF
-                    -DENABLE_SPIRV=ON
-                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-                    "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                RESULT_VARIABLE GLSLANG_CONFIGURE_RESULT
-            )
-
-            if(NOT GLSLANG_CONFIGURE_RESULT EQUAL 0)
-                message(FATAL_ERROR "Failed to configure glslang (exit code: ${GLSLANG_CONFIGURE_RESULT})")
+            # Check if glslang needs to be built (check for a marker file or key library)
+            if(WIN32)
+                set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib")
+            else()
+                set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/libglslang.a")
             endif()
 
-            # Build glslang
-            execute_process(
-                COMMAND ${CMAKE_COMMAND} --build ${GLSLANG_BUILD_DIR} --config Release --parallel
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                RESULT_VARIABLE GLSLANG_BUILD_RESULT
-            )
+            if(NOT EXISTS "${GLSLANG_MARKER_LIB}")
+                message(STATUS "Building glslang...")
 
-            if(NOT GLSLANG_BUILD_RESULT EQUAL 0)
-                message(FATAL_ERROR "Failed to build glslang (exit code: ${GLSLANG_BUILD_RESULT})")
+                # Create the build directory if it doesn't exist
+                file(MAKE_DIRECTORY ${GLSLANG_BUILD_DIR})
+
+                # Configure glslang
+                execute_process(
+                    COMMAND ${CMAKE_COMMAND}
+                        -S ${GLSLANG_SOURCE_DIR}
+                        -B ${GLSLANG_BUILD_DIR}
+                        -DCMAKE_BUILD_TYPE=Release
+                        -DGLSLANG_ENABLE_INSTALL=OFF
+                        -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
+                        -DGLSLANG_TESTS=OFF
+                        -DENABLE_GLSLANG_BINARIES=OFF
+                        -DENABLE_SPVREMAPPER=OFF
+                        -DENABLE_SPIRV=ON
+                        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                        "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    RESULT_VARIABLE GLSLANG_CONFIGURE_RESULT
+                )
+
+                if(NOT GLSLANG_CONFIGURE_RESULT EQUAL 0)
+                    message(FATAL_ERROR "Failed to configure glslang (exit code: ${GLSLANG_CONFIGURE_RESULT})")
+                endif()
+
+                # Build glslang
+                execute_process(
+                    COMMAND ${CMAKE_COMMAND} --build ${GLSLANG_BUILD_DIR} --config Release --parallel
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    RESULT_VARIABLE GLSLANG_BUILD_RESULT
+                )
+
+                if(NOT GLSLANG_BUILD_RESULT EQUAL 0)
+                    message(FATAL_ERROR "Failed to build glslang (exit code: ${GLSLANG_BUILD_RESULT})")
+                endif()
+
+                message(STATUS "glslang build completed successfully")
+            else()
+                message(STATUS "glslang already built, skipping rebuild")
             endif()
 
-            message(STATUS "glslang build completed successfully")
-        else()
-            message(STATUS "glslang already built, skipping rebuild")
+            # Create imported targets for all the libraries we need
+            add_library(glslang STATIC IMPORTED)
+            add_library(SPIRV STATIC IMPORTED)
+            add_library(glslang-default-resource-limits STATIC IMPORTED)
+            add_library(SPIRV-Tools STATIC IMPORTED)
+            add_library(SPIRV-Tools-opt STATIC IMPORTED)
+            add_library(MachineIndependent STATIC IMPORTED)
+            add_library(GenericCodeGen STATIC IMPORTED)
+            add_library(OSDependent STATIC IMPORTED)
+
+            # Set the imported library locations
+            if(WIN32)
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/Release/SPIRV.lib
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang-default-resource-limits.lib
+                )
+                set_target_properties(SPIRV-Tools PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
+                )
+                set_target_properties(SPIRV-Tools-opt PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
+                )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/MachineIndependent.lib
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/GenericCodeGen.lib
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Windows/Release/OSDependent.lib
+                )
+            else()
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang.a
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/libSPIRV.a
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang-default-resource-limits.a
+                )
+                set_target_properties(SPIRV-Tools PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
+                )
+                set_target_properties(SPIRV-Tools-opt PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
+                )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libMachineIndependent.a
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libGenericCodeGen.a
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Unix/libOSDependent.a
+                )
+            endif()
+
+            include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+
+            set(RENDERER_LIBRARIES
+                ${RENDERER_LIBRARIES}
+                glslang
+                SPIRV
+                glslang-default-resource-limits
+                SPIRV-Tools
+                SPIRV-Tools-opt
+                MachineIndependent
+                GenericCodeGen
+                OSDependent
+            )
         endif()
+    endif()
+elseif(RENDERING_BACKEND STREQUAL "DX12")
+    # add DirectX-Headers include dir if DX12 rendering backend
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/DirectX-Headers)
 
-        # Create imported targets for all the libraries we need
-        add_library(glslang STATIC IMPORTED)
-        add_library(SPIRV STATIC IMPORTED)
-        add_library(glslang-default-resource-limits STATIC IMPORTED)
-        add_library(SPIRV-Tools STATIC IMPORTED)
-        add_library(SPIRV-Tools-opt STATIC IMPORTED)
-        add_library(MachineIndependent STATIC IMPORTED)
-        add_library(GenericCodeGen STATIC IMPORTED)
-        add_library(OSDependent STATIC IMPORTED)
+    # setup DXC if found instead
 
-        # Set the imported library locations
-        if(WIN32)
-            set_target_properties(glslang PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib
+    if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dxc/dxcapi.h")
+        message(STATUS "DXC headers found, setting up DXC")
+
+        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/dxc)
+
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
+        set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
+
+        if(EXISTS "${DXC_LIB_PATH}")
+            message(STATUS "DXC library found at ${DXC_LIB_PATH}, linking to it")
+
+            set(RENDERER_LIBRARIES
+                ${RENDERER_LIBRARIES}
+                "${DXC_LIB_PATH}"
             )
-            set_target_properties(SPIRV PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/Release/SPIRV.lib
-            )
-            set_target_properties(glslang-default-resource-limits PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang-default-resource-limits.lib
-            )
-            set_target_properties(SPIRV-Tools PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
-            )
-            set_target_properties(SPIRV-Tools-opt PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
-            )
-            set_target_properties(MachineIndependent PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/MachineIndependent.lib
-            )
-            set_target_properties(GenericCodeGen PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/GenericCodeGen.lib
-            )
-            set_target_properties(OSDependent PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Windows/Release/OSDependent.lib
-            )
+
+            set(HYP_DXC 1)
+            add_definitions(-DHYP_DXC=1)
+
+            # copy the dll to the build directory
+            file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
         else()
-            set_target_properties(glslang PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang.a
-            )
-            set_target_properties(SPIRV PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/libSPIRV.a
-            )
-            set_target_properties(glslang-default-resource-limits PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang-default-resource-limits.a
-            )
-            set_target_properties(SPIRV-Tools PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
-            )
-            set_target_properties(SPIRV-Tools-opt PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
-            )
-            set_target_properties(MachineIndependent PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libMachineIndependent.a
-            )
-            set_target_properties(GenericCodeGen PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libGenericCodeGen.a
-            )
-            set_target_properties(OSDependent PROPERTIES
-                IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Unix/libOSDependent.a
-            )
+            message(WARNING "DXC library not found at ${DXC_LIB_PATH}, skipping DXC setup")
         endif()
-
-        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
-
-        set(RENDERER_LIBRARIES
-            ${RENDERER_LIBRARIES}
-            glslang
-            SPIRV
-            glslang-default-resource-limits
-            SPIRV-Tools
-            SPIRV-Tools-opt
-            MachineIndependent
-            GenericCodeGen
-            OSDependent
-        )
+    else()
+        message(STATUS "DXC headers not found, skipping DXC setup")
     endif()
 endif()
 
