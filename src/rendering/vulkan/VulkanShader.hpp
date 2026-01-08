@@ -70,11 +70,6 @@ public:
     explicit VulkanShader(const RC<CompiledShader>& compiledShader);
     ~VulkanShader() override;
 
-    HYP_FORCE_INLINE const String& GetEntryPointName() const
-    {
-        return m_entryPointName;
-    }
-
     HYP_FORCE_INLINE const Array<VulkanShaderModule>& GetShaderModules() const
     {
         return m_shaderModules;
@@ -118,8 +113,6 @@ private:
     RendererResult CreateShaderGroups();
 
     VkPipelineShaderStageCreateInfo CreateShaderStage(const VulkanShaderModule&);
-
-    String m_entryPointName;
 
     Array<VulkanShaderModule> m_shaderModules;
     Array<VulkanShaderGroup> m_shaderGroups;

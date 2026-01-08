@@ -161,6 +161,82 @@ D3D12_RESOURCE_STATES ToDX12ResourceStates(ResourceState state)
     }
 }
 
+D3D12_BLEND ToDX12Blend(BlendModeFactor factor)
+{
+    switch (factor)
+    {
+    case BMF_ONE:
+        return D3D12_BLEND_ONE;
+    case BMF_ZERO:
+        return D3D12_BLEND_ZERO;
+    case BMF_SRC_COLOR:
+        return D3D12_BLEND_SRC_COLOR;
+    case BMF_SRC_ALPHA:
+        return D3D12_BLEND_SRC_ALPHA;
+    case BMF_DST_COLOR:
+        return D3D12_BLEND_DEST_COLOR;
+    case BMF_DST_ALPHA:
+        return D3D12_BLEND_DEST_ALPHA;
+    case BMF_ONE_MINUS_SRC_COLOR:
+        return D3D12_BLEND_INV_SRC_COLOR;
+    case BMF_ONE_MINUS_SRC_ALPHA:
+        return D3D12_BLEND_INV_SRC_ALPHA;
+    case BMF_ONE_MINUS_DST_COLOR:
+        return D3D12_BLEND_INV_DEST_COLOR;
+    case BMF_ONE_MINUS_DST_ALPHA:
+        return D3D12_BLEND_INV_DEST_ALPHA;
+    default:
+        return D3D12_BLEND_ONE;
+    }
+}
+
+D3D12_CULL_MODE ToDX12CullMode(FaceCullMode mode)
+{
+    switch (mode)
+    {
+    case FCM_BACK:
+        return D3D12_CULL_MODE_BACK;
+    case FCM_FRONT:
+        return D3D12_CULL_MODE_FRONT;
+    case FCM_NONE:
+        return D3D12_CULL_MODE_NONE;
+    default:
+        return D3D12_CULL_MODE_BACK;
+    }
+}
+
+D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDX12TopologyType(Topology topology)
+{
+    switch (topology)
+    {
+    case TOP_TRIANGLES: 
+    case TOP_TRIANGLE_STRIP: 
+    case TOP_TRIANGLE_FAN: 
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    case TOP_LINES: 
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+    case TOP_POINTS: 
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+    default:
+        return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+    }
+}
+
+D3D12_COMPARISON_FUNC ToDX12ComparisonFunction(StencilCompareOp compareOp)
+{
+    switch (compareOp) {
+    case SCO_ALWAYS:
+        return D3D12_COMPARISON_FUNC_ALWAYS;
+    case SCO_NEVER:
+        return D3D12_COMPARISON_FUNC_NEVER;
+    case SCO_EQUAL:
+        return D3D12_COMPARISON_FUNC_EQUAL;
+    case SCO_NOT_EQUAL:
+        return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+    default:
+        return D3D12_COMPARISON_FUNC_ALWAYS;
+    }
+}
 
 D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType)
 {

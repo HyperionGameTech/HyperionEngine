@@ -27,14 +27,12 @@ extern VulkanRenderBackend* g_renderBackend;
 #pragma region CreateShaderStage
 
 VulkanShader::VulkanShader()
-    : ShaderBase(),
-      m_entryPointName("main")
+    : ShaderBase()
 {
 }
 
 VulkanShader::VulkanShader(const RC<CompiledShader>& compiledShader)
-    : ShaderBase(compiledShader),
-      m_entryPointName("main")
+    : ShaderBase(compiledShader)
 {
 #ifdef HYP_DEBUG_MODE
     if (compiledShader != nullptr)
@@ -66,6 +64,8 @@ bool VulkanShader::IsCreated() const
 
 RendererResult VulkanShader::AttachSubShader(ShaderModuleType type, const ShaderObject& shaderObject)
 {
+    Assert(m_compiledShader != nullptr);
+
     const ByteBuffer& spirv = shaderObject.bytes;
 
     VkShaderModuleCreateInfo createInfo { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
@@ -76,7 +76,7 @@ RendererResult VulkanShader::AttachSubShader(ShaderModuleType type, const Shader
 
     VULKAN_CHECK(vkCreateShaderModule(g_renderBackend->GetDevice()->GetDevice(), &createInfo, nullptr, &shaderModule));
 
-    m_shaderModules.EmplaceBack(type, shaderObject.srcName, m_entryPointName, spirv, shaderModule);
+    m_shaderModules.EmplaceBack(type, shaderObject.srcName, m_compiledShader->entryPointName, spirv, shaderModule);
 
     std::sort(m_shaderModules.Begin(), m_shaderModules.End());
 
