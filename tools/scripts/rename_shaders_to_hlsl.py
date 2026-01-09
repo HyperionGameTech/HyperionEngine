@@ -22,6 +22,15 @@ def rename_shaders(shaders_dir: Path, dry_run: bool = False) -> None:
     extension_map = {
         '.glsl': '.hlsl',
         '.inc': '.hlsl',
+        '.frag': '.frag.hlsl',
+        '.vert': '.vert.hlsl',
+        '.geom': '.geom.hlsl',
+        '.comp': '.hlsl',
+        '.rgen': '.rgen.hlsl',
+        '.rmiss': '.rmiss.hlsl',
+        '.rchit': '.rchit.hlsl',
+        '.rahit': '.rahit.hlsl',
+        '.rint': '.rint.hlsl',
     }
 
     renamed_count = 0
@@ -34,7 +43,12 @@ def rename_shaders(shaders_dir: Path, dry_run: bool = False) -> None:
                 print(f"[DRY RUN] Would rename: {file_path.relative_to(shaders_dir)} -> {new_path.name}")
             else:
                 print(f"Renaming: {file_path.relative_to(shaders_dir)} -> {new_path.name}")
-                file_path.rename(new_path)
+
+                # if new file already exists, just remove the old one
+                if new_path.exists():
+                    file_path.unlink()
+                else:
+                    file_path.rename(new_path)
             
             renamed_count += 1
 
