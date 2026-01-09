@@ -2543,14 +2543,23 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     result.requiredAttributes.PushBack(attributeDefinition);
                 }
 
-                bool skipAddingOriginalLine = false;
-
                 // declare input for glsl
                 if (language == ShaderLanguage::GLSL)
                 {
                     result.processedSource += "layout(location=" + String::ToString(attributeDefinition.location) + ") in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
+                }
+                else
+                {
+                    const SizeType lastClosingParenIndex = line.FindLastIndex(')');
 
-                    skipAddingOriginalLine = true;
+                    if (lastClosingParenIndex == String::NotFound)
+                    {
+                        result.errors.PushBack(ProcessError { "HYP_ATTRIBUTE line is invalid; could not find closing parenthesis" });
+                    }
+                    else
+                    {
+                        result.processedSource += String(line.Substr(lastClosingParenIndex + 1)) + '\n';
+                    }
                 }
 
                 if (optional)
@@ -2558,10 +2567,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     result.processedSource += "#endif\n";
                 }
 
-                if (skipAddingOriginalLine)
-                {
-                    continue;
-                }
+                continue;
             }
 
             break;
