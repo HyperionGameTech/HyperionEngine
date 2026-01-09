@@ -100,11 +100,11 @@ RendererResult DX12DescriptorSet::Create()
         case DescriptorSetElementType::IMAGE:
         case DescriptorSetElementType::IMAGE_STORAGE:
         case DescriptorSetElementType::TLAS:
-            m_viewBindingToHeapOffset.Set(element.binding, viewCount);
+            m_viewBindingToHeapOffset.Set(element.descriptorIndex, viewCount);
             viewCount += element.count;
             break;
         case DescriptorSetElementType::SAMPLER:
-            m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
+            m_samplerBindingToHeapOffset.Set(element.descriptorIndex, samplerCount);
             samplerCount += element.count;
             break;
         default:
@@ -252,7 +252,7 @@ void DX12DescriptorSet::Update(bool force)
                     continue;
                 }
 
-                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->binding);
+                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->descriptorIndex);
                 destHandle.ptr += incrementSize * index;
 
                 switch (layoutElement->type)
@@ -303,7 +303,7 @@ void DX12DescriptorSet::Update(bool force)
                     continue;
                 }
 
-                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->binding);
+                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->descriptorIndex);
                 destHandle.ptr += incrementSize * index;
 
                 if (layoutElement->type == DescriptorSetElementType::IMAGE_STORAGE)
@@ -345,7 +345,7 @@ void DX12DescriptorSet::Update(bool force)
                     continue;
                 }
 
-                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetSamplerCpuHandle(layoutElement->binding);
+                D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetSamplerCpuHandle(layoutElement->descriptorIndex);
                 destHandle.ptr += samplerIncrementSize * index;
 
                 // Create sampler descriptor

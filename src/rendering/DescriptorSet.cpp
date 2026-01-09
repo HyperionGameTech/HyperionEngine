@@ -12,6 +12,7 @@
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
+#include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <DescriptorSet.generated.inl>
@@ -35,33 +36,36 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Strin
     return nullptr;
 }
 
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
+bool DescriptorSetDeclaration::CalculateDescriptorIndex(DescriptorSlot slot, StringHash name, uint32& outIndex) const
 {
     Assert(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
-    uint32 flatIndex = 0;
+    uint32 index = 0;
 
     for (uint32 slotIndex = 0; slotIndex < uint32(slot); slotIndex++)
     {
         if (slotIndex == uint32(slot) - 1)
         {
-            uint32 declIndex = 0;
+            uint32 localIndex = 0;
 
             for (const DescriptorDeclaration& decl : slots[slotIndex])
             {
                 if (decl.name == name)
                 {
-                    return flatIndex + declIndex;
+                    outIndex = index + localIndex;
+                    return true;
                 }
 
-                declIndex++;
+                ++localIndex;
             }
         }
 
-        flatIndex += slots[slotIndex].Size();
+        index += slots[slotIndex].Size();
     }
 
-    return ~0u;
+    outIndex = ~0u;
+
+    return false;
 }
 
 DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(StringHash name) const
@@ -122,8 +126,15 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     {
         for (const DescriptorDeclaration& descriptor : slot)
         {
-            const uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
-            Assert(descriptorIndex != ~0u);
+            uint32 descriptorIndex;
+            if (!m_decl->CalculateDescriptorIndex(descriptor.slot, descriptor.name, descriptorIndex))
+            {
+                HYP_LOG(RenderingBackend, Error, "Failed to calculate descriptor index for {} in set {}", descriptor.name, m_decl->name);
+
+                continue;
+            }
+
+            AssertDebug(descriptorIndex != ~0u);
 
             if (descriptor.cond != nullptr && !descriptor.cond())
             {
@@ -179,8 +190,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
         }
     }
 
-    // build a list of dynamic elements, paired by their element index so we can sort it after.
-    Array<Pair<Name, uint32>> dynamicElementsWithIndex;
+    Array<Pair<Name, const DescriptorSetLayoutElement*>> dynamicElements;
 
     // Add to list of dynamic buffer names
     for (const auto& it : m_elements)
@@ -188,20 +198,20 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
         if (it.second.type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
             || it.second.type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
         {
-            dynamicElementsWithIndex.PushBack({ it.first, it.second.binding });
+            dynamicElements.EmplaceBack(it.first, &it.second);
         }
     }
 
-    std::sort(dynamicElementsWithIndex.Begin(), dynamicElementsWithIndex.End(), [](const Pair<Name, uint32>& a, const Pair<Name, uint32>& b)
+    std::sort(dynamicElements.Begin(), dynamicElements.End(), [](auto& a, auto& b)
         {
-            return a.second < b.second;
+            return a.second->descriptorIndex < b.second->descriptorIndex;
         });
 
-    m_dynamicElements.Resize(dynamicElementsWithIndex.Size());
+    m_dynamicElements.Resize(dynamicElements.Size());
 
-    for (SizeType i = 0; i < dynamicElementsWithIndex.Size(); i++)
+    for (SizeType i = 0; i < dynamicElements.Size(); i++)
     {
-        m_dynamicElements[i] = dynamicElementsWithIndex[i].first;
+        m_dynamicElements[i] = dynamicElements[i].first;
     }
 }
 

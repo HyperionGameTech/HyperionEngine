@@ -34,6 +34,7 @@ namespace Hyperion {
 class RenderResourceBase;
 
 enum class GpuBufferType : uint8;
+enum class ShaderLanguage : uint32;
 
 HYP_ENUM()
 enum class DescriptorSetDeclarationFlags : uint8
@@ -145,7 +146,7 @@ struct DescriptorSetLayoutElement
     DescriptorSetElementType type = DescriptorSetElementType::UNSET;
 
     HYP_FIELD()
-    uint32 binding = ~0u; // has to be set
+    uint32 descriptorIndex = ~0u;
 
     HYP_FIELD()
     uint32 count = 1; // Set to -1 for bindless
@@ -163,7 +164,7 @@ struct DescriptorSetLayoutElement
         HashCode hc;
 
         hc.Add(type);
-        hc.Add(binding);
+        hc.Add(descriptorIndex);
         hc.Add(count);
         hc.Add(size);
 
@@ -267,9 +268,9 @@ struct DescriptorSetDeclaration
         slots[uint32(decl.slot) - 1].PushBack(std::move(decl));
     }
 
-    /*! \brief Calculate a flat index for a Descriptor that is part of this set.
-        Returns -1 if not found */
-    uint32 CalculateFlatIndex(DescriptorSlot slot, StringHash name) const;
+    /*! \brief Calculate the index for a Descriptor that is part of this set.
+        Returns false if not found */
+    bool CalculateDescriptorIndex(DescriptorSlot slot, StringHash name, uint32& outIndex) const;
 
     DescriptorDeclaration* FindDescriptorDeclaration(StringHash name) const;
 
@@ -499,9 +500,9 @@ public:
         return m_elements;
     }
 
-    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint32 binding, uint32 count, uint32 size = ~0u)
+    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint32 descriptorIndex, uint32 count, uint32 size = ~0u)
     {
-        m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size });
+        m_elements.Insert(name, DescriptorSetLayoutElement { type, descriptorIndex, count, size });
     }
 
     HYP_FORCE_INLINE const DescriptorSetLayoutElement* GetElement(StringHash name) const
