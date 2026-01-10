@@ -284,7 +284,7 @@ VkAccessFlags GetVkAccessMask(ResourceState state)
     }
 }
 
-VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType = SMT_UNSET)
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType)
 {
     switch (state)
     {

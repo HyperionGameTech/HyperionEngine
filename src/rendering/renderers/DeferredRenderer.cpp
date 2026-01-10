@@ -647,7 +647,7 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         const GraphicsPipelineRef& graphicsPipeline = *data.graphicsPipeline;
         AssertDebug(graphicsPipeline != nullptr);
 
-        if (graphicsPipeline->GetFramebuffers().Contains(framebuffer)
+        if (graphicsPipeline->GetRenderTargetDesc() == framebuffer->GetRenderTargetDesc()
             && proxy->atlasIrradianceTextures.CompareBitwise(data.atlasIrradianceTextures)
             && proxy->atlasRadianceTextures.CompareBitwise(data.atlasRadianceTextures))
         {

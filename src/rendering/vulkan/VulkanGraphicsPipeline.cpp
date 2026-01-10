@@ -241,16 +241,10 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    VulkanRenderPassRef renderPass = CreateObject<VulkanRenderPass>();
-    
-    for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
-    {
-        const VulkanAttachmentDef& def = it.second;
-
-        HYP_GFX_ASSERT(def.attachment.IsValid());
-        renderPass->AddAttachment(def.attachment);
-    }
-
+    VulkanRenderPassRef renderPass = CreateObject<VulkanRenderPass>(
+        RenderTargetType::RTT_SHADER_RESOURCE,
+        RenderPassMode::RENDER_PASS_INLINE,
+        m_renderTargetDesc);
     HYP_GFX_CHECK(renderPass->Create());
 
     m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
@@ -319,29 +313,40 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     multisampling.alphaToOneEnable = VK_FALSE;      // Optional
 
     Array<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    colorBlendAttachments.Reserve(m_attachmentDescs.Size());
+    colorBlendAttachments.Reserve(m_renderTargetDesc.attachments.Size());
 
-    for (const AttachmentDesc& attachmentDesc : m_attachmentDescs)
+    const BlendFunction* pBlendFunction = &m_blendFunction;
+
+    for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
     {
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
             continue;
         }
 
-        const bool blendEnabled = attachmentDesc.blendFunction != BlendFunction::None() && TextureUtils::FormatSupportsBlending(attachmentDesc.format);
+        const BlendFunction* pAttachmentBlendFunction = pBlendFunction;
+
+        if (attachmentDesc.blendFunction != BlendFunction::None())
+        {
+            pAttachmentBlendFunction = &attachmentDesc.blendFunction;
+        }
+
+        const bool blendEnabled = *pAttachmentBlendFunction != BlendFunction::None()
+            && TextureUtils::FormatSupportsBlending(attachmentDesc.format);
 
         static constexpr VkBlendOp ColorBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static constexpr VkBlendOp AlphaBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         colorBlendAttachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable = blendEnabled,
-            .srcColorBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetSrcColor()),
-            .dstColorBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetDstColor()),
+            .srcColorBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetSrcColor()),
+            .dstColorBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetDstColor()),
             .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetSrcAlpha()),
-            .dstAlphaBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetDstAlpha()),
+            .srcAlphaBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetSrcAlpha()),
+            .dstAlphaBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetDstAlpha()),
             .alphaBlendOp = VK_BLEND_OP_ADD,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT });
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+        });
     }
 
     VkPipelineColorBlendStateCreateInfo colorBlending { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
