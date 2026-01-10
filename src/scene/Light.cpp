@@ -197,14 +197,14 @@ void Light::CreateShadowViews()
         outputTargetDesc.numViews = 6;
 
         // depth, depth^2 texture (for variance shadow map)
-        ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
+        AttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         attachmentDesc.format = PointLightShadowFormat;
         attachmentDesc.imageType = TT_CUBEMAP;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
         attachmentDesc.clearColor = Vec4f(10000.0f);
 
-        ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
+        AttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.imageType = TT_CUBEMAP;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
@@ -224,14 +224,14 @@ void Light::CreateShadowViews()
         };
 
         // depth, depth^2 texture (for variance shadow map)
-        ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
+        AttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         attachmentDesc.format = DirectionalLightShadowFormats[shadowMapFilter];
         attachmentDesc.imageType = TT_TEX2D;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
         attachmentDesc.clearColor = Vec4f(1000.0f);
 
-        ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
+        AttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.imageType = TT_TEX2D;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;

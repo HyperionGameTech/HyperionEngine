@@ -167,6 +167,10 @@ public:
     struct State
     {
         Shader* shader = nullptr;
+        Array<Framebuffer*> framebuffers;
+        RenderableAttributeSet attributes;
+
+        GraphicsPipeline* prevGraphicsPipeline = nullptr;
 
         uint8 stencilReference = 0;
         uint8 stencilCompareMask = 0xFF;
@@ -184,6 +188,9 @@ public:
             ResetStencil();
 
             shader = nullptr;
+            framebuffers.Clear();
+            attributes = {};
+            prevGraphicsPipeline = nullptr;
         }
     };
 

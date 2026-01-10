@@ -155,8 +155,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
             newImage,
             framebufferWeak,
             framebuffer->GetRenderTargetType(),
-            def.attachment->GetLoadOperation(),
-            def.attachment->GetStoreOperation());
+            def.attachment->GetAttachmentDesc());
 
         newAttachment->SetBinding(def.attachment->GetBinding());
 
@@ -227,6 +226,21 @@ VulkanFramebuffer::~VulkanFramebuffer()
     SafeDelete(std::move(m_renderPass));
 
     m_attachmentMap.Reset();
+}
+
+Array<AttachmentDesc> VulkanFramebuffer::GetAttachmentDescs() const
+{
+    Array<AttachmentDesc> attachmentDescs;
+    attachmentDescs.Reserve(m_attachmentMap.attachments.Size());
+
+    for (const auto& it : m_attachmentMap.attachments)
+    {
+        Assert(it.second.attachment != nullptr);
+        
+        attachmentDescs.PushBack(it.second.attachment->GetAttachmentDesc());
+    }
+
+    return attachmentDescs;
 }
 
 bool VulkanFramebuffer::IsCreated() const
@@ -395,8 +409,14 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
         image,
         WeakHandleFromThis(),
         m_renderTargetType,
-        loadOp,
-        storeOp);
+        AttachmentDesc {
+            .imageType = image->GetTextureDesc().type,
+            .format = image->GetTextureDesc().format,
+            .loadOp = loadOp,
+            .storeOp = storeOp,
+            .clearColor = Vec4f::Zero(),
+            .blendFunction = BlendFunction::None()
+        });
 
     attachment->SetBinding(binding);
 

@@ -220,7 +220,7 @@ void View::Init()
 
         for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.outputTargetDesc.attachments.Size(); ++attachmentIndex)
         {
-            const ViewOutputTargetAttachmentDesc& attachmentDesc = m_viewDesc.outputTargetDesc.attachments[attachmentIndex];
+            const AttachmentDesc& attachmentDesc = m_viewDesc.outputTargetDesc.attachments[attachmentIndex];
             AssertDebug(attachmentDesc.format != TF_NONE);
 
             AttachmentRef attachment = framebuffer->AddAttachment(

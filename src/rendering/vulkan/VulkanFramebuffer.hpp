@@ -113,8 +113,14 @@ struct VulkanAttachmentMap
             image,
             framebufferWeak,
             renderTargetType,
-            loadOp,
-            storeOp);
+            AttachmentDesc {
+                .imageType = type,
+                .format = format,
+                .loadOp = loadOp,
+                .storeOp = storeOp,
+                .clearColor = Vec4f::Zero(),
+                .blendFunction = BlendFunction::None()
+            });
 
         attachment->SetBinding(binding);
 
@@ -176,6 +182,8 @@ public:
     {
         return m_attachmentMap;
     }
+
+    virtual Array<AttachmentDesc> GetAttachmentDescs() const override;
 
     bool IsCreated() const override;
 

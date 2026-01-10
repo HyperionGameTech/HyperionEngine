@@ -1248,4 +1248,27 @@ struct DescriptorTableOffsetMap
     }
 };
 
+struct AttachmentDesc
+{
+    TextureType imageType = TT_TEX2D;
+    TextureFormat format = TF_RGBA8;
+    LoadOperation loadOp = LoadOperation::CLEAR;
+    StoreOperation storeOp = StoreOperation::STORE;
+    Vec4f clearColor = Vec4f::Zero();
+    BlendFunction blendFunction = BlendFunction::None();
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(uint32(imageType));
+        hc.Add(uint32(format));
+        hc.Add(uint8(loadOp));
+        hc.Add(uint8(storeOp));
+        hc.Add(clearColor);
+        hc.Add(blendFunction.GetHashCode());
+
+        return hc;
+    }
+};
+
 } // namespace Hyperion

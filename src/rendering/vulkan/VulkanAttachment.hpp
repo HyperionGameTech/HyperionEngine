@@ -31,9 +31,7 @@ public:
         const VulkanGpuImageRef& image,
         const VulkanFramebufferWeakRef& framebuffer,
         RenderTargetType renderTargetType,
-        LoadOperation loadOperation = LoadOperation::CLEAR,
-        StoreOperation storeOperation = StoreOperation::STORE,
-        BlendFunction blendFunction = BlendFunction::None());
+        const AttachmentDesc& attachmentDesc);
     ~VulkanAttachment() override;
 
     HYP_FORCE_INLINE const VkAttachmentReference& GetVulkanHandle() const

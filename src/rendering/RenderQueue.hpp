@@ -718,6 +718,14 @@ private:
     Shader* m_shader;
 };
 
+class CommitDrawState final : public CmdBase
+{
+public:
+    CommitDrawState() = default;
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+};
+
 class RenderQueueBase
 {
 protected:

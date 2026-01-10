@@ -214,25 +214,25 @@ void LegacyEnvGrid::Init()
     ViewOutputTargetDesc outputTargetDesc {
         .extent = Vec2u(FramebufferDimensions),
         .attachments = {
-            ViewOutputTargetAttachmentDesc {
+            AttachmentDesc {
+                TT_CUBEMAP,
                 TF_RGBA8, // color
-                TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
-            ViewOutputTargetAttachmentDesc {
+            AttachmentDesc {
+                TT_CUBEMAP,
                 TF_RG16F, // normal
-                TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
-            ViewOutputTargetAttachmentDesc {
-                TF_RG16F,
+            AttachmentDesc {
                 TT_CUBEMAP,
+                TF_RG16F,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE,
                 Vec4f(1000.0f) },
-            ViewOutputTargetAttachmentDesc {
-                TF_DEPTH_32F,
+            AttachmentDesc {
                 TT_CUBEMAP,
+                TF_DEPTH_32F,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE } },
         .numViews = 6

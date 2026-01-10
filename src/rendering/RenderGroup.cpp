@@ -241,7 +241,7 @@ static void RenderAll(
     }
 
     ValidatePipelineState(renderSetup, pipeline);
-
+    
     frame->renderQueue << SetCurrentShader(pipeline->GetShader());
 
     const uint32 frameIndex = frame->GetFrameIndex();

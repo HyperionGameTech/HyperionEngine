@@ -251,29 +251,29 @@ void EnvProbe::CreateView()
 
     if (IsReflectionProbe() || IsSkyProbe())
     {
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+        outputTargetDesc.attachments.PushBack(AttachmentDesc {
+            .imageType = TT_CUBEMAP,
             .format = TF_R10G10B10A2,
-            .imageType = TT_CUBEMAP,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE });
 
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = TF_RG16F,
+        outputTargetDesc.attachments.PushBack(AttachmentDesc {
             .imageType = TT_CUBEMAP,
+            .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE });
 
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = TF_RG16F,
+        outputTargetDesc.attachments.PushBack(AttachmentDesc {
             .imageType = TT_CUBEMAP,
+            .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
             .clearColor = Vec4f(FLT16_MAX) });
     }
 
-    outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-        .format = TF_DEPTH_32F,
+    outputTargetDesc.attachments.PushBack(AttachmentDesc {
         .imageType = TT_CUBEMAP,
+        .format = TF_DEPTH_32F,
         .loadOp = LoadOperation::CLEAR,
         .storeOp = StoreOperation::STORE });
 
