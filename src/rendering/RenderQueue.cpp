@@ -447,7 +447,7 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma region SetStencilState
 
-void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
 

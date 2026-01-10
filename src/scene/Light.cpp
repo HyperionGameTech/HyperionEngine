@@ -198,15 +198,15 @@ void Light::CreateShadowViews()
 
         // depth, depth^2 texture (for variance shadow map)
         AttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = PointLightShadowFormat;
         attachmentDesc.imageType = TT_CUBEMAP;
+        attachmentDesc.format = PointLightShadowFormat;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
         attachmentDesc.clearColor = Vec4f(10000.0f);
 
         AttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.imageType = TT_CUBEMAP;
+        depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
         depthAttachmentDesc.storeOp = StoreOperation::STORE;
 
