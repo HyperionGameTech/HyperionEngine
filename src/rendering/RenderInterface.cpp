@@ -23,6 +23,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/GpuAllocator.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -1177,6 +1178,8 @@ void BeginFrameRender()
     const uint32 slot = s_frameIndex[CONSUMER];
     FrameData& fd = s_frameData[slot];
 
+    g_renderInterface->constantsAllocator->OnFrameStart();
+
     g_engineStats->Prepare();
 
     RenderCommands::Flush();
@@ -1506,6 +1509,8 @@ void EndFrameRender()
     g_renderBackend->ReleaseTransientMemory();
     g_renderBackend->NextFrame();
 
+    g_renderInterface->constantsAllocator->OnFrameEnd();
+
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
     AtomicIncrement(&s_frameCounter);
@@ -1520,6 +1525,7 @@ void EndFrameRender()
 RenderInterface::RenderInterface()
     : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
       gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
+      constantsAllocator(PoolNew<GpuAllocator>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
@@ -1623,6 +1629,9 @@ RenderInterface::~RenderInterface()
 
     PoolDelete(*g_renderPool, shadowMapAllocator);
     shadowMapAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, constantsAllocator);
+    constantsAllocator = nullptr;
 
     PoolDelete(*g_renderPool, gpuBufferHolders);
     gpuBufferHolders = nullptr;

@@ -68,7 +68,7 @@ public:
     void Read(SizeType count, void* outPtr) const override;
     void Read(SizeType offset, SizeType count, void* outPtr) const override;
 
-    void Map() const override;
+    void* Map() const override;
     void Unmap() const override;
 
     void Flush(SizeType offset, SizeType count) override;

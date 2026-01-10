@@ -99,7 +99,7 @@ public:
     virtual void Read(SizeType count, void* outPtr) const = 0;
     virtual void Read(SizeType offset, SizeType count, void* outPtr) const = 0;
 
-    virtual void Map() const = 0;
+    virtual void* Map() const = 0;
     virtual void Unmap() const = 0;
 
 protected:
