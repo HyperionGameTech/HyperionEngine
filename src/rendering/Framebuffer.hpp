@@ -82,7 +82,7 @@ public:
     virtual AttachmentBase* GetAttachment(uint32 binding) const = 0;
     virtual int NumAttachments() const = 0;
 
-    virtual Array<AttachmentDesc> GetAttachmentDescs() const = 0;
+    virtual RenderTargetDesc GetRenderTargetDesc() const = 0;
 
     virtual void BeginCapture(CommandBuffer* commandBuffer) = 0;
     virtual void EndCapture(CommandBuffer* commandBuffer) = 0;

@@ -137,7 +137,6 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderRef& shader)
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
-    SafeDelete(std::move(m_renderPass));
 }
 
 void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
@@ -145,10 +144,7 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
     Vec2i viewportOffset = Vec2i::Zero();
     Vec2u viewportExtent = Vec2u::One();
 
-    if (m_framebuffers.Any())
-    {
-        viewportExtent = m_framebuffers[0]->GetExtent();
-    }
+    viewportExtent = m_renderTargetDesc.extent;
 
     Bind(cmd, viewportOffset, viewportExtent);
 }
@@ -245,7 +241,19 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    m_viewport = { m_framebuffers[0]->GetExtent(), Vec2i::Zero() };
+    VulkanRenderPassRef renderPass = CreateObject<VulkanRenderPass>();
+    
+    for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
+    {
+        const VulkanAttachmentDef& def = it.second;
+
+        HYP_GFX_ASSERT(def.attachment.IsValid());
+        renderPass->AddAttachment(def.attachment);
+    }
+
+    HYP_GFX_CHECK(renderPass->Create());
+
+    m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
 
     VkViewport vkViewport {};
     vkViewport.x = float(m_viewport.position.x);
@@ -443,7 +451,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_layout;
-    pipelineInfo.renderPass = m_renderPass->GetVulkanHandle();
+    pipelineInfo.renderPass = renderPass->GetVulkanHandle();
     pipelineInfo.subpass = 0; /* Index of the subpass */
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
@@ -471,13 +479,6 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 #endif
 
     return {};
-}
-
-void VulkanGraphicsPipeline::SetRenderPass(const VulkanRenderPassRef& renderPass)
-{
-    SafeDelete(std::move(m_renderPass));
-
-    m_renderPass = renderPass;
 }
 
 void VulkanGraphicsPipeline::SetPushConstants(const void* data, SizeType size)

@@ -858,23 +858,9 @@ VulkanDescriptorTableRef VulkanRenderBackend::MakeDescriptorTable(const Descript
 
 VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     const VulkanShaderRef& shader,
-    Span<const AttachmentDesc> attachmentDescs,
+    const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
-    VulkanRenderPassRef renderPass;
-
-    for (const AttachmentDesc& attachmentDesc : attachmentDescs)
-    {
-        Assert(framebuffer.IsValid());
-
-        if (framebuffer->GetRenderPass() != nullptr)
-        {
-            renderPass = framebuffer->GetRenderPass();
-
-            break;
-        }
-    }
-
     VulkanGraphicsPipelineRef graphicsPipeline = CreateObject<VulkanGraphicsPipeline>();
 
     if (shader.IsValid())
@@ -885,6 +871,8 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
         graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shader->GetDebugName().IsValid() ? *shader->GetDebugName() : "<unnamed shader>"));
 #endif
     }
+
+    graphicsPipeline->SetRenderTargetDesc(renderTargetDesc);
 
     graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
@@ -902,9 +890,6 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }
-
-    graphicsPipeline->SetRenderPass(renderPass);
-    graphicsPipeline->SetAttachmentDescs(framebuffers);
 
     return graphicsPipeline;
 }

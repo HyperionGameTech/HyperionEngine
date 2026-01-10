@@ -205,8 +205,12 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 VulkanFramebuffer::VulkanFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numMultiviewLayers)
     : FramebufferBase(extent, renderTargetType),
       m_handle(VK_NULL_HANDLE),
-      m_renderPass(CreateObject<VulkanRenderPass>(renderTargetType, RenderPassMode::RENDER_PASS_INLINE, numMultiviewLayers))
+      m_renderPass(CreateObject<VulkanRenderPass>(renderTargetType, RenderPassMode::RENDER_PASS_INLINE))
 {
+    RenderTargetDesc& renderTargetDesc = m_renderPass->GetRenderTargetDesc();
+    renderTargetDesc.extent = m_extent;
+    renderTargetDesc.numViews = numMultiviewLayers;
+
     m_attachmentMap.framebufferWeak = WeakHandleFromThis();
 }
 
@@ -228,19 +232,22 @@ VulkanFramebuffer::~VulkanFramebuffer()
     m_attachmentMap.Reset();
 }
 
-Array<AttachmentDesc> VulkanFramebuffer::GetAttachmentDescs() const
+RenderTargetDesc VulkanFramebuffer::GetRenderTargetDesc() const
 {
-    Array<AttachmentDesc> attachmentDescs;
-    attachmentDescs.Reserve(m_attachmentMap.attachments.Size());
+    RenderTargetDesc renderTargetDesc {};
+    renderTargetDesc.extent = m_extent;
+    renderTargetDesc.numViews = m_renderPass->NumMultiviewLayers();
+
+    renderTargetDesc.attachments.Reserve(m_attachmentMap.attachments.Size());
 
     for (const auto& it : m_attachmentMap.attachments)
     {
         Assert(it.second.attachment != nullptr);
         
-        attachmentDescs.PushBack(it.second.attachment->GetAttachmentDesc());
+        renderTargetDesc.attachments.PushBack(it.second.attachment->GetAttachmentDesc());
     }
 
-    return attachmentDescs;
+    return renderTargetDesc;
 }
 
 bool VulkanFramebuffer::IsCreated() const
@@ -257,12 +264,14 @@ RendererResult VulkanFramebuffer::Create()
 
     HYP_GFX_CHECK(m_attachmentMap.Create());
 
+    m_renderPass->GetRenderTargetDesc().attachments.Clear();
+
     for (const auto& it : m_attachmentMap.attachments)
     {
         const VulkanAttachmentDef& def = it.second;
 
         HYP_GFX_ASSERT(def.attachment.IsValid());
-        m_renderPass->AddAttachment(def.attachment);
+        m_renderPass->GetRenderTargetDesc().attachments.PushBack(def.attachment->GetAttachmentDesc());
     }
 
     HYP_GFX_CHECK(m_renderPass->Create());

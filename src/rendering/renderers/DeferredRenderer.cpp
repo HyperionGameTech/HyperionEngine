@@ -313,6 +313,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
     };
 
     const RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
+    
+    RenderTargetDesc rtDesc = m_framebuffer->GetRenderTargetDesc();
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
@@ -321,7 +323,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
         return g_renderInterface->graphicsPipelineCache->GetOrCreate(
             m_shader,
-            { &m_framebuffer, 1 },
+            &rtDesc,
             renderableAttributes);
     }
 
@@ -330,7 +332,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
     return g_renderInterface->graphicsPipelineCache->GetOrCreate(
         shader,
-        { &m_framebuffer, 1 },
+        &rtDesc,
         renderableAttributes);
 }
 
@@ -704,11 +706,11 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         Assert(descriptorSet->Create());
     }
 
-    FramebufferRef framebufferStrong = MakeStrongRef(framebuffer);
+    RenderTargetDesc rtDesc = framebuffer->GetRenderTargetDesc();
 
     data.graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        { &framebufferStrong, 1 },
+        &rtDesc,
         RenderableAttributeSet(meshAttributes, materialAttributes));
 
     data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
@@ -892,12 +894,12 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
     }
 
     data.descriptorTable = descriptorTable;
-
-    FramebufferRef framebufferStrong = MakeStrongRef(framebuffer);
+    
+    RenderTargetDesc rtDesc = framebuffer->GetRenderTargetDesc();
 
     data.graphicsPipeline = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        { &framebufferStrong, 1 },
+        &rtDesc,
         renderableAttributes);
 
     return *data.graphicsPipeline;
@@ -1102,10 +1104,12 @@ void EnvGridPass::CreatePipeline()
             shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         Assert(descriptorTable->Create());
+        
+        RenderTargetDesc rtDesc = m_framebuffer->GetRenderTargetDesc();
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
-            { &m_framebuffer, 1 },
+            &rtDesc,
             renderableAttributes);
 
         m_graphicsPipelines[passMode] = std::move(cacheHandle);
@@ -1314,10 +1318,12 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
         Assert(descriptorTable->Create());
         m_cubemapDescriptorTables[it.first] = std::move(descriptorTable);
+        
+        RenderTargetDesc rtDesc = m_framebuffer->GetRenderTargetDesc();
 
         GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
-            { &m_framebuffer, 1 },
+            &rtDesc,
             renderableAttributes);
 
         m_cubemapGraphicsPipelines[it.first] = std::move(cacheHandle);

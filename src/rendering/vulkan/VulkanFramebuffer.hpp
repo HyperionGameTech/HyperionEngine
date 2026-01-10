@@ -13,7 +13,6 @@
 #include <rendering/vulkan/VulkanAttachment.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
-#include <rendering/vulkan/VulkanRenderPass.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -182,8 +181,8 @@ public:
     {
         return m_attachmentMap;
     }
-
-    virtual Array<AttachmentDesc> GetAttachmentDescs() const override;
+    
+    RenderTargetDesc GetRenderTargetDesc() const override;
 
     bool IsCreated() const override;
 

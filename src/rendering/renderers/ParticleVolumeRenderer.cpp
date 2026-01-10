@@ -328,14 +328,15 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
     // this is rendered from translucent pass in DeferredRenderer
     const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    RenderTargetDesc rtDesc = framebuffer->GetRenderTargetDesc();
 
     if (!state.graphicsPipelineHandle.IsAlive()
         /// \todo Just add an OnResize or something and remove this extra framebuffer check
-        || !(*state.graphicsPipelineHandle)->GetFramebuffers().Contains(framebuffer))
+        || (*state.graphicsPipelineHandle)->GetRenderTargetDesc() != rtDesc)
     {
         state.graphicsPipelineHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
-            Span<const FramebufferRef>(&framebuffer, 1),
+            &rtDesc,
             state.renderableAttributes);
     }
 

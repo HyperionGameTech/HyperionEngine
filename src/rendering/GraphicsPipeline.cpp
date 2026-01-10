@@ -27,7 +27,7 @@ RendererResult GraphicsPipelineBase::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
 
-    if (m_attachmentDescs.Empty())
+    if (m_renderTargetDesc.attachments.Empty())
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no attachment descriptors!");
     }
@@ -59,14 +59,14 @@ void GraphicsPipelineBase::SetShader(const ShaderRef& shader)
     m_shader = shader;
 }
 
-void GraphicsPipelineBase::SetAttachmentDescs(const Array<AttachmentDesc>& attachmentDescs)
+void GraphicsPipelineBase::SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc)
 {
-    m_attachmentDescs = attachmentDescs;
+    m_renderTargetDesc = renderTargetDesc;
 }
 
 bool GraphicsPipelineBase::MatchesSignature(
     const Shader* shader,
-    Span<const AttachmentDesc> attachmentDescs,
+    const RenderTargetDesc* renderTargetDesc,
     const RenderableAttributeSet& attributes) const
 {
     // check shader:
@@ -76,9 +76,8 @@ bool GraphicsPipelineBase::MatchesSignature(
         return false;
     }
 
-    // if any attachment descs are provided, check that the sizes match
-    // (if no attachment descs are provided, we skip this check, assuming the caller doesn't care about the attachments matching)
-    if (attachmentDescs.Size() != 0 && m_attachmentDescs.Size() != attachmentDescs.Size())
+    // if no render target desc provided we assume the caller doesn't care and don't bother checking
+    if (renderTargetDesc && *renderTargetDesc != m_renderTargetDesc)
     {
         return false;
     }
@@ -88,17 +87,6 @@ bool GraphicsPipelineBase::MatchesSignature(
         if (shader->GetCompiledShader()->GetHashCode() != m_shader->GetCompiledShader()->GetHashCode())
         {
             return false;
-        }
-    }
-
-    if (attachmentDescs.Size() != 0)
-    {
-        for (SizeType i = 0; i < attachmentDescs.Size(); i++)
-        {
-            if (m_attachmentDescs[i] != attachmentDescs[i])
-            {
-                return false;
-            }
         }
     }
 

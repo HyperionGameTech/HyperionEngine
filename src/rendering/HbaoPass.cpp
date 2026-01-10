@@ -123,9 +123,11 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 
     Assert(m_descriptorSet->Create());
 
+    RenderTargetDesc rtDesc = m_framebuffer->GetRenderTargetDesc();
+
     m_graphicsPipelineCacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        { &m_framebuffer, 1 },
+        &rtDesc,
         renderableAttributes);
 }
 

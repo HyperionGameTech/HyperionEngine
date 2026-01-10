@@ -123,7 +123,7 @@ public:
 
     VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderRef& shader,
-        Span<const AttachmentDesc> attachmentDescs,
+        const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) override;
 
     VulkanComputePipelineRef MakeComputePipeline(
