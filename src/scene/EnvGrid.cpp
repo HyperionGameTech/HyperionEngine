@@ -231,6 +231,7 @@ void LegacyEnvGrid::Init()
                 TF_RG16F,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE,
+                BlendFunction::None(),
                 Vec4f(1000.0f)
             },
             AttachmentDesc {

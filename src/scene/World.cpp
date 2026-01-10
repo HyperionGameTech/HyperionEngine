@@ -196,10 +196,10 @@ void World::Init()
     if (CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool(false))
     {
         // dummy output target
-        RenderTargetDesc renderTargetDesc {
-            .extent = Vec2u::One(),
-            .attachments = { { TT_TEX2D, TF_R8 } }
-        };
+        RenderTargetDesc renderTargetDesc;
+        renderTargetDesc.extent = Vec2u::One();
+        renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
+        renderTargetDesc.numAttachments = 1;
 
         Handle<Camera> camera = CreateObject<Camera>();
         camera->SetName(NAME("RayTracingViewDummyCamera"));
