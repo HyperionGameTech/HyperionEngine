@@ -10,8 +10,9 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/RenderInterface.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp> // For CompiledShader
 
 #include <core/debug/Debug.hpp>
@@ -190,17 +191,17 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
         vkCmdSetStencilReference(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilReference);
+            g_renderInterface->state.stencilReference);
 
         vkCmdSetStencilCompareMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilCompareMask);
+            g_renderInterface->state.stencilCompareMask);
 
         vkCmdSetStencilWriteMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilWriteMask);
+            g_renderInterface->state.stencilWriteMask);
     }
 }
 

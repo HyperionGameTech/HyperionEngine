@@ -164,6 +164,29 @@ class RenderInterface
     friend class ResourceBinderBase;
 
 public:
+    struct State
+    {
+        Shader* shader = nullptr;
+
+        uint8 stencilReference = 0;
+        uint8 stencilCompareMask = 0xFF;
+        uint8 stencilWriteMask = 0xFF;
+        
+        void ResetStencil()
+        {
+            stencilReference = 0;
+            stencilCompareMask = 0xFF;
+            stencilWriteMask = 0xFF;
+        }
+        
+        void Reset()
+        {
+            ResetStencil();
+
+            shader = nullptr;
+        }
+    };
+
     RenderInterface();
     RenderInterface(const RenderInterface& other) = delete;
     RenderInterface& operator=(const RenderInterface& other) = delete;
@@ -197,6 +220,8 @@ public:
     ShaderPropertyCache* shaderPropertyCache;
 
     Array<World*> renderWorlds[RingBufferDepth];
+
+    State state;
 
 private:
     void CreateBlueNoiseBuffer();

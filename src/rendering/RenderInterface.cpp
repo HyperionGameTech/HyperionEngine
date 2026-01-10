@@ -1509,6 +1509,8 @@ void EndFrameRender()
     g_renderBackend->ReleaseTransientMemory();
     g_renderBackend->NextFrame();
 
+    g_renderInterface->state.Reset();
+
     g_renderInterface->constantsAllocator->OnFrameEnd();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;

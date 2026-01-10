@@ -242,6 +242,8 @@ static void RenderAll(
 
     ValidatePipelineState(renderSetup, pipeline);
 
+    frame->renderQueue << SetCurrentShader(pipeline->GetShader());
+
     const uint32 frameIndex = frame->GetFrameIndex();
 
     const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Global"_sh);
@@ -443,6 +445,9 @@ static void RenderAll(
         g_statInstancedDrawCalls++;
         g_statTriangles += instancedDrawCalls.numIndices[i] / 3;
     }
+
+    // set stencil back to default
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 }
 
 template <bool UseIndirectRendering>

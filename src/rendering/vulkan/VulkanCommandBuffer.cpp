@@ -78,7 +78,6 @@ RendererResult VulkanCommandBuffer::Create()
 RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
 {
     m_boundDescriptorSets.Clear();
-    ResetStencilState();
 
     VkCommandBufferInheritanceInfo inheritanceInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
     inheritanceInfo.subpass = 0;
@@ -114,7 +113,6 @@ RendererResult VulkanCommandBuffer::Begin(const VulkanRenderPass* renderPass)
 RendererResult VulkanCommandBuffer::End()
 {
     m_boundDescriptorSets.Clear();
-    ResetStencilState();
 
     VULKAN_CHECK_MSG(
         vkEndCommandBuffer(m_handle),
@@ -126,7 +124,6 @@ RendererResult VulkanCommandBuffer::End()
 RendererResult VulkanCommandBuffer::Reset()
 {
     m_boundDescriptorSets.Clear();
-    ResetStencilState();
 
     VULKAN_CHECK_MSG(
         vkResetCommandBuffer(m_handle, 0),
@@ -144,7 +141,6 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     AssertOnThread(g_renderThread);
 
     m_boundDescriptorSets.Clear();
-    ResetStencilState();
 
     VkSemaphore* signalSemaphoresVk = signalSemaphores.Size() > 0 ? (VkSemaphore*)StackAlloc(sizeof(VkSemaphore) * signalSemaphores.Size()) : nullptr;
 
@@ -199,7 +195,6 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
 RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary)
 {
     m_boundDescriptorSets.Clear();
-    ResetStencilState();
 
     vkCmdExecuteCommands(
         primary->GetVulkanHandle(),

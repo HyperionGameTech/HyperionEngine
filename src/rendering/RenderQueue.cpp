@@ -444,4 +444,34 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma endregion DrawQuad
 
+#pragma region SetStencilState
+
+void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
+
+    g_renderInterface->state.stencilReference = cmdCasted->m_referenceValue;
+    g_renderInterface->state.stencilCompareMask = cmdCasted->m_compareMask;
+    g_renderInterface->state.stencilWriteMask = cmdCasted->m_writeMask;
+
+    static_assert(std::is_trivially_destructible_v<SetStencilState>);
+    // cmdCasted->~SetStencilState();
+}
+
+#pragma endregion SetStencilState
+
+#pragma region SetCurrentShader
+
+void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    SetCurrentShader* cmdCasted = static_cast<SetCurrentShader*>(cmd);
+
+    g_renderInterface->state.shader = cmdCasted->m_shader;
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentShader>);
+    // cmdCasted->~SetCurrentShader();
+}
+
+#pragma endregion SetCurrentShader
+
 } // namespace Hyperion
