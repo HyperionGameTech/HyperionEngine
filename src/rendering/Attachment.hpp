@@ -44,34 +44,39 @@ public:
         return m_image && GetImageBase()->GetTextureDesc().IsDepthStencil();
     }
 
+    HYP_FORCE_INLINE const AttachmentDesc& GetAttachmentDesc() const
+    {
+        return m_attachmentDesc;
+    }
+
     HYP_FORCE_INLINE LoadOperation GetLoadOperation() const
     {
-        return m_loadOperation;
+        return m_attachmentDesc.loadOp;
     }
 
     HYP_FORCE_INLINE StoreOperation GetStoreOperation() const
     {
-        return m_storeOperation;
+        return m_attachmentDesc.storeOp;
     }
 
     HYP_FORCE_INLINE const BlendFunction& GetBlendFunction() const
     {
-        return m_blendFunction;
+        return m_attachmentDesc.blendFunction;
     }
 
     HYP_FORCE_INLINE void SetBlendFunction(const BlendFunction& blendFunction)
     {
-        m_blendFunction = blendFunction;
+        m_attachmentDesc.blendFunction = blendFunction;
     }
 
     HYP_FORCE_INLINE Vec4f GetClearColor() const
     {
-        return m_clearColor;
+        return m_attachmentDesc.clearColor;
     }
 
     HYP_FORCE_INLINE void SetClearColor(const Vec4f& clearColor)
     {
-        m_clearColor = clearColor;
+        m_attachmentDesc.clearColor = clearColor;
     }
 
     HYP_FORCE_INLINE uint32 GetBinding() const
@@ -102,15 +107,10 @@ protected:
     AttachmentBase(
         const GpuImageRef& image,
         const FramebufferWeakRef& framebuffer,
-        LoadOperation loadOperation,
-        StoreOperation storeOperation,
-        BlendFunction blendFunction)
+        const AttachmentDesc& attachmentDesc)
         : m_image(image),
           m_framebuffer(framebuffer),
-          m_loadOperation(loadOperation),
-          m_storeOperation(storeOperation),
-          m_blendFunction(blendFunction),
-          m_clearColor(Vec4f::Zero())
+          m_attachmentDesc(attachmentDesc)
     {
     }
 
@@ -124,12 +124,7 @@ protected:
 
     FramebufferWeakRef m_framebuffer;
 
-    LoadOperation m_loadOperation;
-    StoreOperation m_storeOperation;
-
-    BlendFunction m_blendFunction;
-
-    Vec4f m_clearColor;
+    AttachmentDesc m_attachmentDesc;
 
     uint32 m_binding = MathUtil::MaxSafeValue<uint32>();
 };

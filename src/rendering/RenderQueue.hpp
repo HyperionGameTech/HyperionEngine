@@ -696,22 +696,34 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
-
-        commandBuffer->stencilReference = cmdCasted->m_referenceValue;
-        commandBuffer->stencilCompareMask = cmdCasted->m_compareMask;
-        commandBuffer->stencilWriteMask = cmdCasted->m_writeMask;
-
-        static_assert(std::is_trivially_destructible_v<SetStencilState>);
-        // cmdCasted->~SetStencilState();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     uint8 m_referenceValue;
     uint8 m_compareMask;
     uint8 m_writeMask;
+};
+
+class SetCurrentShader final : public CmdBase
+{
+public:
+    explicit SetCurrentShader(Shader* shader)
+        : m_shader(shader)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    Shader* m_shader;
+};
+
+class CommitDrawState final : public CmdBase
+{
+public:
+    CommitDrawState() = default;
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 };
 
 class RenderQueueBase

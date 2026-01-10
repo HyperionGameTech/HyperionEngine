@@ -241,6 +241,8 @@ static void RenderAll(
     }
 
     ValidatePipelineState(renderSetup, pipeline);
+    
+    frame->renderQueue << SetCurrentShader(pipeline->GetShader());
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -310,7 +312,7 @@ static void RenderAll(
         {
             AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-            DescriptorSetOffsetMap offsets = {
+            DescriptorSetOffsetMap offsets {
                 { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
                 { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
             };
@@ -443,6 +445,9 @@ static void RenderAll(
         g_statInstancedDrawCalls++;
         g_statTriangles += instancedDrawCalls.numIndices[i] / 3;
     }
+
+    // set stencil back to default
+    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
 }
 
 template <bool UseIndirectRendering>
@@ -559,7 +564,7 @@ static void RenderAll_Parallel(
                     {
                         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-                        DescriptorSetOffsetMap offsets = {
+                        DescriptorSetOffsetMap offsets {
                             { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
                             { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
                         };

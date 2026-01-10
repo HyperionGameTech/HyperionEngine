@@ -114,12 +114,12 @@ public:
 
     void SetShader(const ShaderRef& shader);
 
-    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
+    HYP_FORCE_INLINE const Array<AttachmentDesc>& GetAttachmentDescs() const
     {
-        return m_framebuffers;
+        return m_attachmentDescs;
     }
 
-    void SetFramebuffers(const Array<FramebufferRef>& framebuffers);
+    void SetAttachmentDescs(const Array<AttachmentDesc>& attachmentDescs);
 
     Name GetDebugName() const
     {
@@ -142,7 +142,7 @@ public:
 
     virtual bool MatchesSignature(
         const Shader* shader,
-        const Array<const Framebuffer*>& framebuffers,
+        Span<const AttachmentDesc> attachmentDescs,
         const RenderableAttributeSet& attributes) const;
 
     // Deprecated - will be removed to decouple from vulkan
@@ -175,7 +175,7 @@ protected:
     bool m_depthWrite = true;
 
     ShaderRef m_shader;
-    Array<FramebufferRef> m_framebuffers;
+    Array<AttachmentDesc> m_attachmentDescs;
 
 #ifdef HYP_DEBUG_MODE
     Name m_debugName;

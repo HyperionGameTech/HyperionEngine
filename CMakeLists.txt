@@ -285,11 +285,11 @@ elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
     set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
 endif()
 
-if (WIN32)
-    set(RENDERING_BACKEND "DX12")
-elseif(NOT IOS)
+# if (WIN32)
+#     set(RENDERING_BACKEND "DX12")
+# elseif(NOT IOS)
     find_package(Vulkan REQUIRED)
-endif()
+# endif()
 
 if (NOT DEFINED RENDERING_BACKEND)
     if (Vulkan_FOUND)
@@ -474,7 +474,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
     list(APPEND local_sources ${current_sources})
     file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
-        "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl")
+        "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl" "${dir}/*.inc")
     list(APPEND local_headers ${current_headers})
 
     # If this directory has a CMakeLists.txt, consider it a module
@@ -570,7 +570,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
                     file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
                         "${child}/*.cpp" "${child}/*.cxx" "${child}/*.cc" "${child}/*.c" "${child}/*.mm" "${child}/*.m")
                     file(GLOB_RECURSE child_all_headers RELATIVE ${CMAKE_SOURCE_DIR}
-                        "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl")
+                        "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl" "${child}/*.inc")
                     list(REMOVE_ITEM local_sources ${child_all_sources})
                     list(REMOVE_ITEM local_headers ${child_all_headers})
                 else()

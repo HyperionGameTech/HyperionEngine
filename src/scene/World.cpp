@@ -196,9 +196,9 @@ void World::Init()
     if (CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool(false))
     {
         // dummy output target
-        ViewOutputTargetDesc outputTargetDesc {
+        RenderTargetDesc renderTargetDesc {
             .extent = Vec2u::One(),
-            .attachments = { { TF_R8 } }
+            .attachments = { { TT_TEX2D, TF_R8 } }
         };
 
         Handle<Camera> camera = CreateObject<Camera>();
@@ -209,7 +209,7 @@ void World::Init()
                 | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
-            .outputTargetDesc = outputTargetDesc,
+            .renderTargetDesc = renderTargetDesc,
             .camera = camera
         };
 

@@ -80,27 +80,11 @@ enum class ViewFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
 
-struct ViewOutputTargetAttachmentDesc
-{
-    TextureFormat format = TF_RGBA8;
-    TextureType imageType = TT_TEX2D;
-    LoadOperation loadOp = LoadOperation::CLEAR;
-    StoreOperation storeOp = StoreOperation::STORE;
-    Vec4f clearColor = Vec4f::Zero();
-};
-
-struct ViewOutputTargetDesc
-{
-    Vec2u extent = Vec2u::One();
-    Array<ViewOutputTargetAttachmentDesc> attachments;
-    uint32 numViews = 1;
-};
-
 struct ViewDesc
 {
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
     Viewport viewport;
-    ViewOutputTargetDesc outputTargetDesc;
+    RenderTargetDesc renderTargetDesc;
     Array<Scene*> scenes;
     Camera* camera = nullptr;
     int priority = 0;

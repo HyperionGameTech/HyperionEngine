@@ -359,6 +359,10 @@ public:
      *  \returns An iterator to the next element after the erased element. */
     Iterator Erase(Iterator iter);
 
+    /*! \brief Erase an element by const iterator.
+     *  \returns An iterator to the next element after the erased element. */
+    Iterator Erase(ConstIterator iter);
+
 #if 0
     //! \brief Erase an element by value. A Find() is performed, and if the result is not equal to End(),
     //  the element is removed.
@@ -651,6 +655,47 @@ auto LinkedList<T, AllocatorType>::PopFront() -> ValueType
 
 template <class T, class AllocatorType>
 auto LinkedList<T, AllocatorType>::Erase(Iterator iter) -> Iterator
+{
+    if (iter == End())
+    {
+        return End();
+    }
+
+    Node* node = iter.node;
+    Node* prev = node->previous;
+
+    if (prev)
+    {
+        prev->next = node->next;
+    }
+
+    Node* next = node->next;
+
+    if (next)
+    {
+        next->previous = prev;
+    }
+
+    if (node == m_head)
+    {
+        m_head = next;
+    }
+
+    if (node == m_tail)
+    {
+        m_tail = prev;
+    }
+
+    node->value.Destruct();
+    m_pAllocator->Free(node);
+
+    --m_size;
+
+    return Iterator { next };
+}
+
+template <class T, class AllocatorType>
+auto LinkedList<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 {
     if (iter == End())
     {

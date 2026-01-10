@@ -211,28 +211,28 @@ void LegacyEnvGrid::Init()
         InitObject(m_voxelGridTexture);
     }
 
-    ViewOutputTargetDesc outputTargetDesc {
+    RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(FramebufferDimensions),
         .attachments = {
-            ViewOutputTargetAttachmentDesc {
+            AttachmentDesc {
+                TT_CUBEMAP,
                 TF_RGBA8, // color
-                TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
-            ViewOutputTargetAttachmentDesc {
+            AttachmentDesc {
+                TT_CUBEMAP,
                 TF_RG16F, // normal
-                TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE },
-            ViewOutputTargetAttachmentDesc {
-                TF_RG16F,
+            AttachmentDesc {
                 TT_CUBEMAP,
+                TF_RG16F,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE,
                 Vec4f(1000.0f) },
-            ViewOutputTargetAttachmentDesc {
-                TF_DEPTH_32F,
+            AttachmentDesc {
                 TT_CUBEMAP,
+                TF_DEPTH_32F,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE } },
         .numViews = 6
@@ -244,7 +244,7 @@ void LegacyEnvGrid::Init()
             | ViewFlags::SKIP_ENV_GRIDS
             | ViewFlags::NOT_MULTI_BUFFERED,
         .viewport = Viewport { .extent = FramebufferDimensions, .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
+        .renderTargetDesc = renderTargetDesc,
         .scenes = { m_scene },
         .camera = m_camera,
         .overrideAttributes = RenderableAttributeSet(

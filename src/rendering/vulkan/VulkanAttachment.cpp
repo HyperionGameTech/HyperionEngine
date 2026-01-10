@@ -81,10 +81,8 @@ VulkanAttachment::VulkanAttachment(
     const VulkanGpuImageRef& image,
     const VulkanFramebufferWeakRef& framebuffer,
     RenderTargetType renderTargetType,
-    LoadOperation loadOperation,
-    StoreOperation storeOperation,
-    BlendFunction blendFunction)
-    : AttachmentBase(image, framebuffer, loadOperation, storeOperation, blendFunction),
+    const AttachmentDesc& attachmentDesc)
+    : AttachmentBase(image, framebuffer, attachmentDesc),
       m_renderTargetType(renderTargetType),
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
@@ -110,11 +108,11 @@ RendererResult VulkanAttachment::Create()
     m_vkAttachmentDescription = VkAttachmentDescription {
         .format = ToVkFormat(m_image->GetTextureFormat()),
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = ToVkLoadOp(m_loadOperation),
-        .storeOp = ToVkStoreOp(m_storeOperation),
-        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_loadOperation) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = IsDepthAttachment() ? ToVkStoreOp(m_storeOperation) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = GetInitialLayout(m_loadOperation, IsDepthAttachment()),
+        .loadOp = ToVkLoadOp(m_attachmentDesc.loadOp),
+        .storeOp = ToVkStoreOp(m_attachmentDesc.storeOp),
+        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = IsDepthAttachment() ? ToVkStoreOp(m_attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = GetInitialLayout(m_attachmentDesc.loadOp, IsDepthAttachment()),
         .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
     };
 

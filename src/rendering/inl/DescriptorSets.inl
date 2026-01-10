@@ -17,6 +17,7 @@ HYP_DESCRIPTOR_SSBO(Global, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true
 HYP_DESCRIPTOR_CBUFF(Global, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), false);
+HYP_DESCRIPTOR_CBUFF(Global, GlobalConstants, 1, 65535, true);
 
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeRadianceTexture, 1);

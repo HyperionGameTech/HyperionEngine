@@ -5,6 +5,7 @@
 #include <rendering/RenderQueue.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
@@ -443,5 +444,54 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 }
 
 #pragma endregion DrawQuad
+
+#pragma region SetStencilState
+
+void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
+
+    g_renderInterface->state.stencilReference = cmdCasted->m_referenceValue;
+    g_renderInterface->state.stencilCompareMask = cmdCasted->m_compareMask;
+    g_renderInterface->state.stencilWriteMask = cmdCasted->m_writeMask;
+
+    static_assert(std::is_trivially_destructible_v<SetStencilState>);
+    // cmdCasted->~SetStencilState();
+}
+
+#pragma endregion SetStencilState
+
+#pragma region SetCurrentShader
+
+void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentShader* cmdCasted = static_cast<SetCurrentShader*>(cmd);
+
+    g_renderInterface->state.shader = cmdCasted->m_shader;
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentShader>);
+    // cmdCasted->~SetCurrentShader();
+}
+
+#pragma endregion SetCurrentShader
+
+#pragma region CommitDrawState
+
+void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer*)
+{
+    if (g_renderInterface->state.prevGraphicsPipeline == nullptr
+        || g_renderInterface->state.prevGraphicsPipeline->GetShader() != g_renderInterface->state.shader)
+    {
+        /*auto cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
+            MakeStrongRef(g_renderInterface->state.shader),
+            g_renderInterface->state.attachmentDescs,
+            g_renderInterface->state.);*/
+    }
+
+    static_assert(std::is_trivially_destructible_v<CommitDrawState>);
+    // cmdCasted->~SetCurrentShader();
+}
+
+#pragma endregion CommitDrawState
 
 } // namespace Hyperion

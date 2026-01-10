@@ -858,12 +858,12 @@ VulkanDescriptorTableRef VulkanRenderBackend::MakeDescriptorTable(const Descript
 
 VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     const VulkanShaderRef& shader,
-    Span<const VulkanFramebufferRef> framebuffers,
+    Span<const AttachmentDesc> attachmentDescs,
     const RenderableAttributeSet& attributes)
 {
     VulkanRenderPassRef renderPass;
 
-    for (const VulkanFramebufferRef& framebuffer : framebuffers)
+    for (const AttachmentDesc& attachmentDesc : attachmentDescs)
     {
         Assert(framebuffer.IsValid());
 
@@ -904,7 +904,7 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     }
 
     graphicsPipeline->SetRenderPass(renderPass);
-    graphicsPipeline->SetFramebuffers(framebuffers);
+    graphicsPipeline->SetAttachmentDescs(framebuffers);
 
     return graphicsPipeline;
 }

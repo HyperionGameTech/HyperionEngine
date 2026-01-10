@@ -149,7 +149,7 @@ void HyperionEditor::OnLaunch_Impl()
             | ViewFlags::GBUFFER
             | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = Vec2u(camera->GetDimensions()), .position = Vec2i::Zero() },
-        .outputTargetDesc = { .extent = Vec2u(camera->GetDimensions()) },
+        .renderTargetDesc = { .extent = Vec2u(camera->GetDimensions()) },
         .camera = camera
     };
 

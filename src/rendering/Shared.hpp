@@ -1248,4 +1248,54 @@ struct DescriptorTableOffsetMap
     }
 };
 
+struct AttachmentDesc
+{
+    TextureType imageType = TT_TEX2D;
+    TextureFormat format = TF_RGBA8;
+    LoadOperation loadOp = LoadOperation::CLEAR;
+    StoreOperation storeOp = StoreOperation::STORE;
+    Vec4f clearColor = Vec4f::Zero();
+    BlendFunction blendFunction = BlendFunction::None();
+
+    HYP_FORCE_INLINE bool operator==(const AttachmentDesc& other) const
+    {
+        return imageType == other.imageType
+            && format == other.format
+            && loadOp == other.loadOp
+            && storeOp == other.storeOp
+            && clearColor == other.clearColor
+            && blendFunction == other.blendFunction;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
+    {
+        return imageType != other.imageType
+            || format != other.format
+            || loadOp != other.loadOp
+            || storeOp != other.storeOp
+            || clearColor != other.clearColor
+            || blendFunction != other.blendFunction;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(uint32(imageType));
+        hc.Add(uint32(format));
+        hc.Add(uint8(loadOp));
+        hc.Add(uint8(storeOp));
+        hc.Add(clearColor);
+        hc.Add(blendFunction.GetHashCode());
+
+        return hc;
+    }
+};
+
+struct RenderTargetDesc
+{
+    Vec2u extent = Vec2u::One();
+    Array<AttachmentDesc> attachments;
+    uint32 numViews = 1;
+};
+
 } // namespace Hyperion

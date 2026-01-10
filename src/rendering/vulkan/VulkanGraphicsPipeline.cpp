@@ -10,8 +10,9 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/RenderInterface.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp> // For CompiledShader
 
 #include <core/debug/Debug.hpp>
@@ -190,17 +191,17 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
         vkCmdSetStencilReference(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilReference);
+            g_renderInterface->state.stencilReference);
 
         vkCmdSetStencilCompareMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilCompareMask);
+            g_renderInterface->state.stencilCompareMask);
 
         vkCmdSetStencilWriteMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilWriteMask);
+            g_renderInterface->state.stencilWriteMask);
     }
 }
 
@@ -310,27 +311,27 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     multisampling.alphaToOneEnable = VK_FALSE;      // Optional
 
     Array<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    colorBlendAttachments.Reserve(m_renderPass->GetAttachments().Size());
+    colorBlendAttachments.Reserve(m_attachmentDescs.Size());
 
-    for (const VulkanAttachmentRef& attachment : m_renderPass->GetAttachments())
+    for (const AttachmentDesc& attachmentDesc : m_attachmentDescs)
     {
-        if (attachment->IsDepthAttachment())
+        if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
             continue;
         }
 
-        const bool blendEnabled = m_blendFunction != BlendFunction::None() && TextureUtils::FormatSupportsBlending(attachment->GetFormat());
+        const bool blendEnabled = attachmentDesc.blendFunction != BlendFunction::None() && TextureUtils::FormatSupportsBlending(attachmentDesc.format);
 
         static constexpr VkBlendOp ColorBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static constexpr VkBlendOp AlphaBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         colorBlendAttachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable = blendEnabled,
-            .srcColorBlendFactor = ToVkBlendFactor(m_blendFunction.GetSrcColor()),
-            .dstColorBlendFactor = ToVkBlendFactor(m_blendFunction.GetDstColor()),
+            .srcColorBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetSrcColor()),
+            .dstColorBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetDstColor()),
             .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = ToVkBlendFactor(m_blendFunction.GetSrcAlpha()),
-            .dstAlphaBlendFactor = ToVkBlendFactor(m_blendFunction.GetDstAlpha()),
+            .srcAlphaBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetSrcAlpha()),
+            .dstAlphaBlendFactor = ToVkBlendFactor(attachmentDesc.blendFunction.GetDstAlpha()),
             .alphaBlendOp = VK_BLEND_OP_ADD,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT });
     }

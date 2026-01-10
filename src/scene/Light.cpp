@@ -184,8 +184,8 @@ void Light::CreateShadowViews()
     shaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
     shaderProperties.Set(s_shadowMapFilterProperties[shadowMapFilter]);
 
-    ViewOutputTargetDesc outputTargetDesc {};
-    outputTargetDesc.extent = m_shadowMapDimensions;
+    RenderTargetDesc renderTargetDesc {};
+    renderTargetDesc.extent = m_shadowMapDimensions;
 
     switch (m_type)
     {
@@ -194,19 +194,19 @@ void Light::CreateShadowViews()
         // Frustum culling for cubemap views not currently supported.
         shadowViewFlags[0] |= ViewFlags::NO_FRUSTUM_CULLING;
 
-        outputTargetDesc.numViews = 6;
+        renderTargetDesc.numViews = 6;
 
         // depth, depth^2 texture (for variance shadow map)
-        ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = PointLightShadowFormat;
+        AttachmentDesc& attachmentDesc = renderTargetDesc.attachments.EmplaceBack();
         attachmentDesc.imageType = TT_CUBEMAP;
+        attachmentDesc.format = PointLightShadowFormat;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
         attachmentDesc.clearColor = Vec4f(10000.0f);
 
-        ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = TF_DEPTH_32F;
+        AttachmentDesc& depthAttachmentDesc = renderTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.imageType = TT_CUBEMAP;
+        depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
         depthAttachmentDesc.storeOp = StoreOperation::STORE;
 
@@ -224,14 +224,14 @@ void Light::CreateShadowViews()
         };
 
         // depth, depth^2 texture (for variance shadow map)
-        ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
+        AttachmentDesc& attachmentDesc = renderTargetDesc.attachments.EmplaceBack();
         attachmentDesc.format = DirectionalLightShadowFormats[shadowMapFilter];
         attachmentDesc.imageType = TT_TEX2D;
         attachmentDesc.loadOp = LoadOperation::CLEAR;
         attachmentDesc.storeOp = StoreOperation::STORE;
         attachmentDesc.clearColor = Vec4f(1000.0f);
 
-        ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
+        AttachmentDesc& depthAttachmentDesc = renderTargetDesc.attachments.EmplaceBack();
         depthAttachmentDesc.format = TF_DEPTH_32F;
         depthAttachmentDesc.imageType = TT_TEX2D;
         depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
@@ -304,7 +304,7 @@ void Light::CreateShadowViews()
         ViewDesc viewDesc {
             .flags = shadowViewFlags[i] | DefaultShadowViewFlags,
             .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
-            .outputTargetDesc = outputTargetDesc,
+            .renderTargetDesc = renderTargetDesc,
             .scenes = {},
             .camera = shadowMapCamera,
             .overrideAttributes = overrideAttributes

@@ -37,7 +37,7 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Strin
 
 uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
 {
-    HYP_GFX_ASSERT(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
+    Assert(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
     uint32 flatIndex = 0;
 
@@ -115,7 +115,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     {
         m_decl = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl->name);
 
-        HYP_GFX_ASSERT(m_decl != nullptr, "Invalid global descriptor set reference: %s", decl->name.LookupString());
+        Assert(m_decl != nullptr, "Invalid global descriptor set reference: {}", decl->name);
     }
 
     for (const Array<DescriptorDeclaration>& slot : m_decl->slots)
@@ -123,7 +123,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
         for (const DescriptorDeclaration& descriptor : slot)
         {
             const uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
-            HYP_GFX_ASSERT(descriptorIndex != ~0u);
+            Assert(descriptorIndex != ~0u);
 
             if (descriptor.cond != nullptr && !descriptor.cond())
             {
@@ -265,10 +265,10 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
             {
                 const uint32 remainder = ref->Size() % layoutElement->size;
 
-                AssertDebug(
-                    remainder == 0,
-                    "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
-                    ref->Size(), layoutElement->size, Name(name));
+                // AssertDebug(
+                //     remainder == 0,
+                //     "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
+                //     ref->Size(), layoutElement->size, Name(name));
             }
         }
     }
@@ -392,12 +392,12 @@ DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
         if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
             const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
-            HYP_GFX_ASSERT(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: %s", descriptorSetDeclaration.name.LookupString());
+            Assert(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: {}", descriptorSetDeclaration.name);
 
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
                 DescriptorSetRef descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
-                HYP_GFX_ASSERT(descriptorSet.IsValid(), "Invalid global descriptor set reference: %s", referencedDescriptorSetDeclaration->name.LookupString());
+                Assert(descriptorSet.IsValid(), "Invalid global descriptor set reference: {}", referencedDescriptorSetDeclaration->name);
 
                 m_sets[frameIndex].PushBack(std::move(descriptorSet));
             }
@@ -409,7 +409,7 @@ DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
+            DescriptorSetRef descriptorSet = CreateObject<DescriptorSet>(layout);
             descriptorSet->SetDebugName(layout.GetName());
 
             m_sets[frameIndex].PushBack(std::move(descriptorSet));

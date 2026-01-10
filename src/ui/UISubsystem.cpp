@@ -209,15 +209,18 @@ void UISubsystem::Init()
 
     const Vec2u windowSize2 = windowSize * 2;
 
-    ViewOutputTargetDesc outputTargetDesc {
+    RenderTargetDesc renderTargetDesc {
         .extent = windowSize2,
-        .attachments = { { TF_RGBA16F }, { TF_DEPTH_32F } }
+        .attachments = {
+            { TT_TEX2D, TF_RGBA16F },
+            { TT_TEX2D, TF_DEPTH_32F }
+        }
     };
 
     ViewDesc viewDesc {
         .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),
         .viewport = Viewport { .extent = windowSize2, .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
+        .renderTargetDesc = renderTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
         .entityBatchClass = UIEntityInstanceBatch::StaticClass()

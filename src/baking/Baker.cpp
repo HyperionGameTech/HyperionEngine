@@ -174,9 +174,9 @@ void BakerBase::Initialize()
         InitObject(camera);
 
         // dummy output target
-        ViewOutputTargetDesc outputTargetDesc {
+        RenderTargetDesc renderTargetDesc {
             .extent = Vec2u::One(),
-            .attachments = { { TF_R8 } }
+            .attachments = { { TT_TEX2D, TF_R8 } }
         };
 
         ViewDesc viewDesc {
@@ -188,7 +188,7 @@ void BakerBase::Initialize()
                 | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::NOT_MULTI_BUFFERED,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
-            .outputTargetDesc = outputTargetDesc,
+            .renderTargetDesc = renderTargetDesc,
             .scenes = { m_scene },
             .camera = camera
         };

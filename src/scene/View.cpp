@@ -205,22 +205,22 @@ void View::Init()
         viewportBuffered = m_viewport;
     }
 
-    const Vec2u extent = MathUtil::Max(m_viewDesc.outputTargetDesc.extent, Vec2u::One());
+    const Vec2u extent = MathUtil::Max(m_viewDesc.renderTargetDesc.extent, Vec2u::One());
 
     if (m_viewDesc.flags & ViewFlags::GBUFFER)
     {
-        AssertDebug(m_viewDesc.outputTargetDesc.attachments.Empty(),
+        AssertDebug(m_viewDesc.renderTargetDesc.attachments.Empty(),
             "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
         m_outputTarget = ViewOutputTarget(CreateObject<GBuffer>(extent));
     }
-    else if (m_viewDesc.outputTargetDesc.attachments.Any())
+    else if (m_viewDesc.renderTargetDesc.attachments.Any())
     {
-        FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(extent, m_viewDesc.outputTargetDesc.numViews);
+        FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(extent, m_viewDesc.renderTargetDesc.numViews);
 
-        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.outputTargetDesc.attachments.Size(); ++attachmentIndex)
+        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.attachments.Size(); ++attachmentIndex)
         {
-            const ViewOutputTargetAttachmentDesc& attachmentDesc = m_viewDesc.outputTargetDesc.attachments[attachmentIndex];
+            const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
             AssertDebug(attachmentDesc.format != TF_NONE);
 
             AttachmentRef attachment = framebuffer->AddAttachment(

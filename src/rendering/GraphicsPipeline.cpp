@@ -18,7 +18,6 @@ namespace Hyperion {
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
     SafeDelete(std::move(m_shader));
-    SafeDelete(std::move(m_framebuffers));
 }
 
 RendererResult GraphicsPipelineBase::Create()
@@ -28,9 +27,9 @@ RendererResult GraphicsPipelineBase::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
 
-    if (m_framebuffers.Empty())
+    if (m_attachmentDescs.Empty())
     {
-        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no framebuffers");
+        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no attachment descriptors!");
     }
 
     RendererResult rebuildResult = Rebuild();
@@ -60,15 +59,14 @@ void GraphicsPipelineBase::SetShader(const ShaderRef& shader)
     m_shader = shader;
 }
 
-void GraphicsPipelineBase::SetFramebuffers(const Array<FramebufferRef>& framebuffers)
+void GraphicsPipelineBase::SetAttachmentDescs(const Array<AttachmentDesc>& attachmentDescs)
 {
-    SafeDelete(std::move(m_framebuffers));
-    m_framebuffers = framebuffers;
+    m_attachmentDescs = attachmentDescs;
 }
 
 bool GraphicsPipelineBase::MatchesSignature(
     const Shader* shader,
-    const Array<const Framebuffer*>& framebuffers,
+    Span<const AttachmentDesc> attachmentDescs,
     const RenderableAttributeSet& attributes) const
 {
     // check shader:
@@ -78,9 +76,9 @@ bool GraphicsPipelineBase::MatchesSignature(
         return false;
     }
 
-    // if ANY framebuffer is provided, check that the sizes match
-    // (if no framebuffers are provided, we skip this check, assuming the caller doesn't care about framebuffer matching)
-    if (framebuffers.Size() != 0 && m_framebuffers.Size() != framebuffers.Size())
+    // if any attachment descs are provided, check that the sizes match
+    // (if no attachment descs are provided, we skip this check, assuming the caller doesn't care about the attachments matching)
+    if (attachmentDescs.Size() != 0 && m_attachmentDescs.Size() != attachmentDescs.Size())
     {
         return false;
     }
@@ -93,11 +91,11 @@ bool GraphicsPipelineBase::MatchesSignature(
         }
     }
 
-    if (framebuffers.Size() != 0)
+    if (attachmentDescs.Size() != 0)
     {
-        for (SizeType i = 0; i < m_framebuffers.Size(); i++)
+        for (SizeType i = 0; i < attachmentDescs.Size(); i++)
         {
-            if (m_framebuffers[i].Get() != framebuffers[i])
+            if (m_attachmentDescs[i] != attachmentDescs[i])
             {
                 return false;
             }

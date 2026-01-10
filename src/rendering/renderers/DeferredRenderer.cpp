@@ -31,6 +31,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
@@ -387,7 +388,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
 
         // reset stencil state
-        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+        frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
 
         return;
     }
@@ -526,7 +527,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     // reset stencil state
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
 }
 
 #pragma endregion DeferredPass
@@ -784,7 +785,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     // reset stencil state back to default
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
 
     m_isFirstFrame = false;
 }
@@ -2087,6 +2088,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.view = MakeWeakRef(view);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;

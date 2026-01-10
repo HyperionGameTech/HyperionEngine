@@ -84,7 +84,7 @@ class IDummyVulkanSurfaceContext
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    ~IDummyVulkanSurfaceContext() = default;
+    virtual ~IDummyVulkanSurfaceContext() = default;
 };
 
 class VulkanRenderBackend final : public IRenderBackend
@@ -123,7 +123,7 @@ public:
 
     VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderRef& shader,
-        Span<const VulkanFramebufferRef> framebuffers,
+        Span<const AttachmentDesc> attachmentDescs,
         const RenderableAttributeSet& attributes) override;
 
     VulkanComputePipelineRef MakeComputePipeline(

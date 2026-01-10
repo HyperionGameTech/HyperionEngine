@@ -401,16 +401,18 @@ void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
     Memory::MemCpy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
 }
 
-void VulkanGpuBuffer::Map() const
+void* VulkanGpuBuffer::Map() const
 {
     if (m_mapping != nullptr)
     {
-        return;
+        return m_mapping;
     }
 
     HYP_GFX_ASSERT(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
     vmaMapMemory(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, &m_mapping);
+
+    return m_mapping;
 }
 
 void VulkanGpuBuffer::Unmap() const
