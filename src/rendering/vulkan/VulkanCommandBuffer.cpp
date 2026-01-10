@@ -51,7 +51,7 @@ RendererResult VulkanCommandBuffer::Create(VkCommandPool commandPool)
     {
         Assert(m_commandPool == commandPool, "Command buffer already created with a different command pool");
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     m_commandPool = commandPool;
@@ -206,7 +206,7 @@ RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary
         1,
         &m_handle);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)

@@ -43,7 +43,7 @@ RendererResult VulkanFence::Create()
 
     VULKAN_CHECK(vkCreateFence(g_renderBackend->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanFence::Wait(bool timeoutLoop)
@@ -62,14 +62,14 @@ RendererResult VulkanFence::Wait(bool timeoutLoop)
 
     m_lastFrameResult = vkResult;
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanFence::Reset()
 {
     VULKAN_CHECK(vkResetFences(g_renderBackend->GetDevice()->GetDevice(), 1, &m_handle));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 } // namespace Hyperion

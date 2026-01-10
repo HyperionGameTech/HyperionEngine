@@ -243,7 +243,7 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
 #endif
 
 #if HYP_GLSLANG
-    properties.Set(ShaderProperty(NAME("HYP_GLSLANG", 1)));
+    properties.Set(ShaderProperty(NAME("HYP_GLSLANG"), 1));
 #elif HYP_DXC
     properties.Set(ShaderProperty(NAME("HYP_DXC"), 1));
 #endif

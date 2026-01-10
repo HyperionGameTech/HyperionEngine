@@ -194,7 +194,7 @@ RendererResult VulkanComputePipeline::Create()
     }
 #endif
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanComputePipeline::SetPushConstants(const void* data, SizeType size)

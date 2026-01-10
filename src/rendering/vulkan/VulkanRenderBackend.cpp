@@ -109,7 +109,7 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
         binding.descriptorType = ToVkDescriptorType(element.type);
         binding.pImmutableSamplers = nullptr;
         binding.stageFlags = VK_SHADER_STAGE_ALL;
-        binding.binding = element.binding;
+        binding.binding = element.descriptorIndex;
 
         bindings.PushBack(binding);
 
@@ -660,7 +660,7 @@ VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* windo
 {
     AssertOnThread(g_renderThread);
 
-    VkSurface surface = window->GetVkSurface();
+    VkSurfaceKHR surface = window->GetVkSurface();
     Assert(surface != VK_NULL_HANDLE);
 
     VulkanSwapchainRef swapchain = CreateObject<VulkanSwapchain>(surface, Vec2u(window->GetSize()));

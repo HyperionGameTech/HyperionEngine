@@ -339,7 +339,7 @@ public:
             return HYP_MAKE_ERROR(RendererError, "Failed to get image format properties", vkResult);
         }
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     template <class StructType>

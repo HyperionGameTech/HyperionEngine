@@ -314,7 +314,7 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
         return HYP_MAKE_ERROR(RendererError, "Device not supported -- indices setup was not complete.");
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
@@ -333,7 +333,7 @@ RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
 
     vmaCreateAllocator(&createInfo, &m_allocator);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanDevice::DebugLogAllocatorStats() const
@@ -359,7 +359,7 @@ RendererResult VulkanDevice::DestroyAllocator()
         m_allocator = VK_NULL_HANDLE;
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanDevice::WaitIdle() const
@@ -521,7 +521,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     HYP_LOG(RenderingBackend, Debug, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 VkQueue VulkanDevice::GetQueue(uint32 queueFamilyIndex, uint32 queueIndex)

@@ -251,21 +251,9 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTables(VulkanShader*
 
         CheckResultOrReturn(CreateShaderBindingTableEntry(shaderCount, entry));
 
-        if (result)
-        {
-            entry.buffer->Copy(handleSize, &shaderHandleStorage[offset]);
+        entry.buffer->Copy(handleSize, &shaderHandleStorage[offset]);
 
-            offset += handleSize;
-        }
-        else
-        {
-            for (auto& it : buffers)
-            {
-                it.second.buffer.Reset();
-            }
-
-            return result;
-        }
+        offset += handleSize;
 
         buffers[group.type] = std::move(entry);
     }
@@ -310,21 +298,14 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTableEntry(
 
     CheckResultOrReturn(out.buffer->Create());
 
-    if (result)
-    {
-        /* Get strided device address region */
-        const uint32 handleSize = g_renderBackend->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+    /* Get strided device address region */
+    const uint32 handleSize = g_renderBackend->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
-        out.stridedDeviceAddressRegion = VkStridedDeviceAddressRegionKHR {
-            .deviceAddress = out.buffer->GetBufferDeviceAddress(),
-            .stride = handleSize,
-            .size = numShaders * handleSize
-        };
-    }
-    else
-    {
-        out.buffer.Reset();
-    }
+    out.stridedDeviceAddressRegion = VkStridedDeviceAddressRegionKHR {
+        .deviceAddress = out.buffer->GetBufferDeviceAddress(),
+        .stride = handleSize,
+        .size = numShaders * handleSize
+    };
 
     return {};
 }

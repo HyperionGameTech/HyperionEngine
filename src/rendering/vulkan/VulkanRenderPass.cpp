@@ -286,7 +286,7 @@ RendererResult VulkanRenderPass::Create()
 
     VULKAN_CHECK(vkCreateRenderPass(g_renderBackend->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer)

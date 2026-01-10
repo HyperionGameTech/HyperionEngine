@@ -100,7 +100,7 @@ RendererResult VulkanSampler::Create()
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

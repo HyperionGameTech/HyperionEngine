@@ -238,7 +238,7 @@ RendererResult VulkanFramebuffer::Create()
 {
     if (IsCreated())
     {
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     CheckResult(m_attachmentMap.Create());
@@ -325,14 +325,14 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
 {
     if (m_extent == newSize)
     {
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     m_extent = newSize;
 
     if (!IsCreated())
     {
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     CheckResult(m_attachmentMap.Resize(newSize));
@@ -374,7 +374,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
     RenderQueue& renderQueue = g_renderBackend->GetCurrentFrame()->preRenderQueue;
     renderQueue << ClearFramebuffer(this);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 VulkanAttachmentRef VulkanFramebuffer::AddAttachment(const VulkanAttachmentRef& attachment)

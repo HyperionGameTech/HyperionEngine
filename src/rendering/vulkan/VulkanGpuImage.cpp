@@ -642,7 +642,7 @@ RendererResult VulkanGpuImage::Blit(
     return Blit(
         commandBuffer,
         srcImage,
-        Rect<uint32> { 0, 0, src->GetExtent().x, src->GetExtent().y },
+        Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y });
 }
 

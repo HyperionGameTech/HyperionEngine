@@ -25,16 +25,13 @@ VulkanTextureViewCache::~VulkanTextureViewCache()
     }
 }
 
-const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
+const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Texture>& texture)
 {
-    const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
-    const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
-
     ImageSubResource subResource {};
-    subResource.numLevels = MathUtil::Min(numMips, maxMipLevel + 1);
-    subResource.baseMipLevel = MathUtil::Min(mipIndex, maxMipLevel);
-    subResource.numLayers = MathUtil::Min(numLayers, maxArrayLayer + 1);
-    subResource.baseArrayLayer = MathUtil::Min(layerIndex, maxArrayLayer);
+    subResource.numLevels = texture->GetTextureDesc().NumMips();
+    subResource.baseMipLevel = 0;
+    subResource.numLayers = texture->GetTextureDesc().NumArrayLayers();
+    subResource.baseArrayLayer = 0;
 
     return GetOrCreate(texture, subResource);
 }
