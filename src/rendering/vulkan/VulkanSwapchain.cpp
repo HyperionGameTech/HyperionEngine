@@ -24,7 +24,7 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static constexpr bool VulkanSwapchainUseFIFO = true;
+static constexpr bool VulkanSwapchainUseFIFO = false;
 static constexpr bool UseSrgbFormat = true;
 static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -246,7 +246,10 @@ RendererResult VulkanSwapchain::Create()
         AssertDebug(image && image->IsCreated());
         AssertDebug(image->GetResourceState() == RS_PRESENT);
 
-        VulkanFramebufferRef& framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT));
+        RenderTargetDesc renderTargetDesc {};
+        renderTargetDesc.extent = m_extent;
+
+        VulkanFramebufferRef& framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(renderTargetDesc, RTT_PRESENT));
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
     }

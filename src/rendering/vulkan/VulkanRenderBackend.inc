@@ -143,8 +143,7 @@ public:
 
     VulkanSamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
 
-    VulkanFramebufferRef MakeFramebuffer(Vec2u extent, uint32 numViews = 1) override;
-    VulkanFramebufferRef MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1) override;
+    VulkanFramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType = RTT_SHADER_RESOURCE) override;
 
     VulkanFrameRef MakeFrame(uint32 frameIndex) override;
 

@@ -21,22 +21,27 @@ public:
 
     HYP_FORCE_INLINE uint32 GetWidth() const
     {
-        return m_extent.x;
+        return m_renderTargetDesc.extent.x;
     }
 
     HYP_FORCE_INLINE uint32 GetHeight() const
     {
-        return m_extent.y;
+        return m_renderTargetDesc.extent.y;
     }
 
     HYP_FORCE_INLINE const Vec2u& GetExtent() const
     {
-        return m_extent;
+        return m_renderTargetDesc.extent;
     }
 
     HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
     {
         return m_renderTargetType;
+    }
+
+    HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
+    {
+        return m_renderTargetDesc;
     }
 
     virtual bool IsCreated() const = 0;
@@ -82,24 +87,22 @@ public:
     virtual AttachmentBase* GetAttachment(uint32 binding) const = 0;
     virtual int NumAttachments() const = 0;
 
-    virtual RenderTargetDesc GetRenderTargetDesc() const = 0;
-
     virtual void BeginCapture(CommandBuffer* commandBuffer) = 0;
     virtual void EndCapture(CommandBuffer* commandBuffer) = 0;
 
     virtual void Clear(CommandBuffer* commandBuffer) = 0;
 
 protected:
-    FramebufferBase(Vec2u extent, RenderTargetType renderTargetType)
-        : m_extent(extent),
-          m_isRecordingCount(0),
-          m_renderTargetType(renderTargetType)
+    FramebufferBase(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType)
+        : m_renderTargetType(renderTargetType),
+          m_renderTargetDesc(renderTargetDesc),
+          m_isRecordingCount(0)
     {
     }
 
-    Vec2u m_extent;
-    int m_isRecordingCount;
     RenderTargetType m_renderTargetType;
+    RenderTargetDesc m_renderTargetDesc;
+    int m_isRecordingCount;
 };
 
 } // namespace Hyperion

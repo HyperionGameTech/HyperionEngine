@@ -545,6 +545,71 @@ VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
+VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode)
+{
+    switch (blendMode)
+    {
+    case BMF_ONE:
+        return VK_BLEND_FACTOR_ONE;
+    case BMF_ZERO:
+        return VK_BLEND_FACTOR_ZERO;
+    case BMF_SRC_COLOR:
+        return VK_BLEND_FACTOR_SRC_COLOR;
+    case BMF_SRC_ALPHA:
+        return VK_BLEND_FACTOR_SRC_ALPHA;
+    case BMF_DST_COLOR:
+        return VK_BLEND_FACTOR_DST_COLOR;
+    case BMF_DST_ALPHA:
+        return VK_BLEND_FACTOR_DST_ALPHA;
+    case BMF_ONE_MINUS_SRC_COLOR:
+        return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    case BMF_ONE_MINUS_SRC_ALPHA:
+        return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    case BMF_ONE_MINUS_DST_COLOR:
+        return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+    case BMF_ONE_MINUS_DST_ALPHA:
+        return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+    default:
+        return VK_BLEND_FACTOR_ONE;
+    }
+}
+
+VkStencilOp ToVkStencilOp(StencilOp stencilOp)
+{
+    switch (stencilOp)
+    {
+    case SO_KEEP:
+        return VK_STENCIL_OP_KEEP;
+    case SO_ZERO:
+        return VK_STENCIL_OP_ZERO;
+    case SO_REPLACE:
+        return VK_STENCIL_OP_REPLACE;
+    case SO_INCREMENT:
+        return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+    case SO_DECREMENT:
+        return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+    default:
+        return VK_STENCIL_OP_KEEP;
+    }
+}
+
+VkCompareOp ToVkCompareOp(StencilCompareOp compareOp)
+{
+    switch (compareOp)
+    {
+    case SCO_ALWAYS:
+        return VK_COMPARE_OP_ALWAYS;
+    case SCO_NEVER:
+        return VK_COMPARE_OP_NEVER;
+    case SCO_EQUAL:
+        return VK_COMPARE_OP_EQUAL;
+    case SCO_NOT_EQUAL:
+        return VK_COMPARE_OP_NOT_EQUAL;
+    default:
+        return VK_COMPARE_OP_ALWAYS;
+    }
+}
+
 #pragma region VulkanSingleTimeCommands
 
 RendererResult VulkanSingleTimeCommands::Execute()

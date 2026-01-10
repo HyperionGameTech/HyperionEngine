@@ -24,8 +24,10 @@ class VulkanRenderPass final : public ObjectBase
     HYP_OBJECT_BODY(VulkanRenderPass);
 
 public:
-    VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode);
-    VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, const RenderTargetDesc& renderTargetDesc);
+    VulkanRenderPass(
+        const RenderTargetDesc& renderTargetDesc,
+        RenderTargetType renderTargetType,
+        RenderPassMode mode);
     ~VulkanRenderPass() override;
 
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
@@ -75,12 +77,11 @@ private:
     {
         m_dependencies.PushBack(dependency);
     }
-
+    
+    RenderTargetDesc m_renderTargetDesc;
     RenderTargetType m_renderTargetType;
     RenderPassMode m_mode;
     
-    RenderTargetDesc m_renderTargetDesc;
-
     Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
     Array<VkClearValue, InlineAllocator<2>> m_vkClearValues;
 
