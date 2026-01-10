@@ -1293,20 +1293,23 @@ struct AttachmentDesc
 
 struct RenderTargetDesc
 {
+    RenderTargetType type = RTT_SHADER_RESOURCE;
     Vec2u extent = Vec2u::One();
     Array<AttachmentDesc> attachments;
     uint32 numViews = 1;
 
     HYP_FORCE_INLINE bool operator==(const RenderTargetDesc& other) const
     {
-        return extent == other.extent
+        return type == other.type
+            && extent == other.extent
             && attachments == other.attachments
             && numViews == other.numViews;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RenderTargetDesc& other) const
     {
-        return extent != other.extent
+        return type != other.type
+            || extent != other.extent
             || attachments != other.attachments
             || numViews != other.numViews;
     }

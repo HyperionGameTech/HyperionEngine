@@ -104,7 +104,7 @@ public:
 
     virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) = 0;
 
-    virtual FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType = RTT_SHADER_RESOURCE) = 0;
+    virtual FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) = 0;
 
     virtual FrameRef MakeFrame(uint32 frameIndex) = 0;
 

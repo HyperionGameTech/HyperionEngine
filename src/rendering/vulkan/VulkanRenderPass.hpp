@@ -26,7 +26,6 @@ class VulkanRenderPass final : public ObjectBase
 public:
     VulkanRenderPass(
         const RenderTargetDesc& renderTargetDesc,
-        RenderTargetType renderTargetType,
         RenderPassMode mode);
     ~VulkanRenderPass() override;
 
@@ -37,7 +36,7 @@ public:
 
     HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
     {
-        return m_renderTargetType;
+        return m_renderTargetDesc.type;
     }
 
     HYP_FORCE_INLINE RenderTargetDesc& GetRenderTargetDesc()
@@ -79,7 +78,6 @@ private:
     }
     
     RenderTargetDesc m_renderTargetDesc;
-    RenderTargetType m_renderTargetType;
     RenderPassMode m_mode;
     
     Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
