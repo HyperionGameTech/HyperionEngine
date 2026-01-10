@@ -39,7 +39,7 @@
 namespace Hyperion {
 
 #ifdef HYP_DEBUG_MODE
-constexpr bool EnableVulkanSynchronizationValidation = true;
+constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = true;
 #endif
 
@@ -229,6 +229,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
         HYP_LOG(RenderingBackend, Error, "Vulkan: [{}, {}]: {}",
             callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
+
+        HYP_BREAKPOINT;
+
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
         HYP_LOG(RenderingBackend, Info, "Vulkan: [{}, {}]: {}",

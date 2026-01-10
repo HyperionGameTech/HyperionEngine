@@ -799,7 +799,7 @@ void VulkanGpuImage::CopyFromBuffer(
 
     const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
 
-    const uint32 bufferOffsetStep = m_textureDesc.GetMipByteSize(mipIdx) / numArrayLayers;
+    const uint32 bufferOffsetStep = m_textureDesc.GetMipByteSize(mipIdx);
     const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
 
     if (dstArrayLayer == UINT16_MAX)

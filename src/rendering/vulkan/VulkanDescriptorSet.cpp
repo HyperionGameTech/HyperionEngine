@@ -251,7 +251,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 Assert(ref->IsCreated(), "Buffer not initialized for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                descriptor.binding = layoutElement->descriptorIndex;
+                descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
@@ -278,7 +278,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 Assert(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                descriptor.binding = layoutElement->descriptorIndex;
+                descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
@@ -302,7 +302,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 Assert(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid sampler for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                descriptor.binding = layoutElement->descriptorIndex;
+                descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
@@ -326,7 +326,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 Assert(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                descriptor.binding = layoutElement->descriptorIndex;
+                descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 

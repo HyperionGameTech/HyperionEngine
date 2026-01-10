@@ -36,7 +36,7 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Strin
     return nullptr;
 }
 
-bool DescriptorSetDeclaration::CalculateDescriptorIndex(DescriptorSlot slot, StringHash name, uint32& outIndex) const
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
 {
     Assert(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
@@ -52,8 +52,7 @@ bool DescriptorSetDeclaration::CalculateDescriptorIndex(DescriptorSlot slot, Str
             {
                 if (decl.name == name)
                 {
-                    outIndex = index + localIndex;
-                    return true;
+                    return index + localIndex;
                 }
 
                 ++localIndex;
@@ -63,9 +62,7 @@ bool DescriptorSetDeclaration::CalculateDescriptorIndex(DescriptorSlot slot, Str
         index += slots[slotIndex].Size();
     }
 
-    outIndex = ~0u;
-
-    return false;
+    return ~0u;
 }
 
 DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(StringHash name) const
@@ -127,14 +124,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     {
         for (const DescriptorDeclaration& descriptor : slot)
         {
-            uint32 descriptorIndex;
-            if (!m_decl->CalculateDescriptorIndex(descriptor.slot, descriptor.name, descriptorIndex))
-            {
-                HYP_LOG(RenderingBackend, Error, "Failed to calculate descriptor index for {} in set {}", descriptor.name, m_decl->name);
-
-                continue;
-            }
-
+            uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
             AssertDebug(descriptorIndex != ~0u);
 
             if (descriptor.cond != nullptr && !descriptor.cond())
@@ -205,7 +195,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
 
     std::sort(dynamicElements.Begin(), dynamicElements.End(), [](auto& a, auto& b)
         {
-            return a.second->descriptorIndex < b.second->descriptorIndex;
+            return a.second->binding < b.second->binding;
         });
 
     m_dynamicElements.Resize(dynamicElements.Size());
