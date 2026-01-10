@@ -117,8 +117,8 @@ struct VulkanAttachmentMap
                 .format = format,
                 .loadOp = loadOp,
                 .storeOp = storeOp,
-                .clearColor = Vec4f::Zero(),
-                .blendFunction = BlendFunction::None()
+                .blendFunction = BlendFunction::None(),
+                .clearColor = Vec4f::Zero()
             });
 
         attachment->SetBinding(binding);

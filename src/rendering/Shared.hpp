@@ -9,7 +9,7 @@
 namespace Hyperion {
 
 HYP_ENUM()
-enum ImageUsage : uint32
+enum ImageUsage : uint8
 {
     IU_NONE = 0x0,
     IU_SAMPLED = 0x1,
@@ -40,9 +40,9 @@ enum DefaultImageFormat : uint8
 };
 
 HYP_ENUM()
-enum TextureType : uint32
+enum TextureType : uint8
 {
-    TT_INVALID = ~0u,
+    TT_INVALID = uint8(-1),
 
     TT_TEX2D = 0,
     TT_TEX3D = 1,
@@ -54,7 +54,7 @@ enum TextureType : uint32
 };
 
 HYP_ENUM()
-enum TextureBaseFormat : uint32
+enum TextureBaseFormat : uint8
 {
     TFB_NONE,
     TFB_R,
@@ -67,7 +67,7 @@ enum TextureBaseFormat : uint32
 };
 
 HYP_ENUM()
-enum TextureFormat : uint32
+enum TextureFormat : uint8
 {
     TF_NONE,
 
@@ -126,7 +126,7 @@ enum TextureFormat : uint32
 };
 
 HYP_ENUM()
-enum TextureFilterMode : uint32
+enum TextureFilterMode : uint8
 {
     TFM_NEAREST,
     TFM_LINEAR,
@@ -137,7 +137,7 @@ enum TextureFilterMode : uint32
 };
 
 HYP_ENUM()
-enum TextureWrapMode : uint32
+enum TextureWrapMode : uint8
 {
     TWM_CLAMP_TO_EDGE,
     TWM_CLAMP_TO_BORDER,
@@ -145,7 +145,7 @@ enum TextureWrapMode : uint32
 };
 
 HYP_ENUM()
-enum ResourceState : uint32
+enum ResourceState : uint8
 {
     RS_UNDEFINED,
     RS_PRE_INITIALIZED,
@@ -1254,8 +1254,8 @@ struct AttachmentDesc
     TextureFormat format = TF_RGBA8;
     LoadOperation loadOp = LoadOperation::CLEAR;
     StoreOperation storeOp = StoreOperation::STORE;
-    Vec4f clearColor = Vec4f::Zero();
     BlendFunction blendFunction = BlendFunction::None();
+    Vec4f clearColor = Vec4f::Zero();
 
     HYP_FORCE_INLINE bool operator==(const AttachmentDesc& other) const
     {
@@ -1263,8 +1263,8 @@ struct AttachmentDesc
             && format == other.format
             && loadOp == other.loadOp
             && storeOp == other.storeOp
-            && clearColor == other.clearColor
-            && blendFunction == other.blendFunction;
+            && blendFunction == other.blendFunction
+            && clearColor == other.clearColor;
     }
 
     HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
@@ -1273,8 +1273,8 @@ struct AttachmentDesc
             || format != other.format
             || loadOp != other.loadOp
             || storeOp != other.storeOp
-            || clearColor != other.clearColor
-            || blendFunction != other.blendFunction;
+            || blendFunction != other.blendFunction
+            || clearColor != other.clearColor;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -1284,8 +1284,8 @@ struct AttachmentDesc
         hc.Add(uint32(format));
         hc.Add(uint8(loadOp));
         hc.Add(uint8(storeOp));
+        hc.Add(blendFunction);
         hc.Add(clearColor);
-        hc.Add(blendFunction.GetHashCode());
 
         return hc;
     }
