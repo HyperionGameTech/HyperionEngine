@@ -617,7 +617,7 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
     res = frame->GetFence()->Wait(true);
     if (!res)
     {
-        HYP_FAIL("Failed to wait on frame fence! VkResult: {}", frame->GetFence()->GetLastFrameResult());
+        HYP_FAIL("Failed to wait on frame fence! Result: {}, VkResult: {}", res.GetError().GetMessage(), frame->GetFence()->GetLastFrameResult());
     }
 
     frame->ResetFrameState();

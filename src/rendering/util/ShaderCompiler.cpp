@@ -157,14 +157,13 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
         {
             for (const DescriptorDeclaration& descriptorDeclaration : descriptorDeclarations)
             {
-                if (descriptorDeclaration.cond && !descriptorDeclaration.cond())
+                uint32 descriptorIndex;
+                if (!descriptorSetDeclarationPtr->CalculateDescriptorIndex(descriptorDeclaration.slot, descriptorDeclaration.name, descriptorIndex))
                 {
                     continue;
                 }
 
-                Assert(descriptorDeclaration.index != ~0u);
-
-                descriptorTableDefines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptorSetDeclarationPtr->name.LookupString()) + "_" + descriptorDeclaration.name.LookupString() + " " + String::ToString(descriptorDeclaration.index) + "\n";
+                descriptorTableDefines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptorSetDeclarationPtr->name.LookupString()) + "_" + descriptorDeclaration.name.LookupString() + " " + String::ToString(descriptorIndex) + "\n";
             }
         }
     }
