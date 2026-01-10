@@ -933,20 +933,9 @@ VulkanSamplerRef VulkanRenderBackend::MakeSampler(TextureFilterMode filterModeMi
     return CreateObject<VulkanSampler>(filterModeMin, filterModeMag, wrapMode);
 }
 
-VulkanFramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, uint32 numViews)
+VulkanFramebufferRef VulkanRenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType)
 {
-    return CreateObject<VulkanFramebuffer>(
-        extent,
-        RTT_SHADER_RESOURCE,
-        numViews);
-}
-
-VulkanFramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews)
-{
-    return CreateObject<VulkanFramebuffer>(
-        extent,
-        renderTargetType,
-        numViews);
+    return CreateObject<VulkanFramebuffer>(renderTargetDesc, renderTargetType);
 }
 
 VulkanFrameRef VulkanRenderBackend::MakeFrame(uint32 frameIndex)

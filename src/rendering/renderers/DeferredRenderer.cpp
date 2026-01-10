@@ -1608,7 +1608,10 @@ RaytracingPassData::~RaytracingPassData()
 
 static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 {
-    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(gbuffer->GetExtent());
+    RenderTargetDesc renderTargetDesc {};
+    renderTargetDesc.extent = gbuffer->GetExtent();
+
+    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;

@@ -390,7 +390,11 @@ void FullScreenPass::CreateFramebuffer()
         framebufferExtent = Vec2u { uint32(reshapedExtent.x * 2), uint32(reshapedExtent.y) };
     }
 
-    m_framebuffer = g_renderBackend->MakeFramebuffer(framebufferExtent, m_renderTargetType);
+    RenderTargetDesc renderTargetDesc {};
+    renderTargetDesc.extent = framebufferExtent;
+    renderTargetDesc.numViews = 1;
+
+    m_framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc, m_renderTargetType);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;

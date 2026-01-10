@@ -45,19 +45,11 @@ static VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
     };
 }
 
-VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode)
-    : m_renderTargetType(renderTargetType),
+VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType, RenderPassMode mode)
+    : m_renderTargetDesc(renderTargetDesc),
+      m_renderTargetType(renderTargetType),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_recordingFramebuffer(nullptr)
-{
-}
-
-VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, const RenderTargetDesc& renderTargetDesc)
-    : m_renderTargetType(renderTargetType),
-      m_mode(mode),
-      m_handle(VK_NULL_HANDLE),
-      m_renderTargetDesc(renderTargetDesc),
       m_recordingFramebuffer(nullptr)
 {
 }

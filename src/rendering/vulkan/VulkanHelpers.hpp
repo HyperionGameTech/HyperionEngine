@@ -69,6 +69,9 @@ VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAtta
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);
 VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation);
 VkImageLayout GetIntermediateLayout(bool isDepthAttachment);
+VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode);
+VkStencilOp ToVkStencilOp(StencilOp stencilOp);
+VkCompareOp ToVkCompareOp(StencilCompareOp compareOp);
 
 class VulkanSingleTimeCommands final : public SingleTimeCommands
 {

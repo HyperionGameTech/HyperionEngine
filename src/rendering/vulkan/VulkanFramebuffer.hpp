@@ -141,11 +141,7 @@ class VulkanFramebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(VulkanFramebuffer);
 
 public:
-    VulkanFramebuffer(
-        Vec2u extent,
-        RenderTargetType renderTargetType = RTT_SHADER_RESOURCE,
-        uint32 numMultiviewLayers = 0);
-
+    explicit VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType = RTT_SHADER_RESOURCE);
     ~VulkanFramebuffer() override;
 
     HYP_FORCE_INLINE const VkFramebuffer& GetVulkanHandle() const
@@ -181,8 +177,6 @@ public:
     {
         return m_attachmentMap;
     }
-    
-    RenderTargetDesc GetRenderTargetDesc() const override;
 
     bool IsCreated() const override;
 

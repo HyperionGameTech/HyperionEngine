@@ -140,7 +140,10 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
 
     Assert(m_shader.IsValid());
 
-    RenderTargetDesc rtDesc = view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket)->GetRenderTargetDesc();
+    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket);
+    Assert(framebuffer != nullptr);
+
+    RenderTargetDesc rtDesc = framebuffer->GetRenderTargetDesc();
 
     GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
