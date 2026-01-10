@@ -176,7 +176,7 @@ void BakerBase::Initialize()
         // dummy output target
         ViewOutputTargetDesc outputTargetDesc {
             .extent = Vec2u::One(),
-            .attachments = { { TF_R8 } }
+            .attachments = { { TT_TEX2D, TF_R8 } }
         };
 
         ViewDesc viewDesc {

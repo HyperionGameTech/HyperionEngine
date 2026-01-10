@@ -211,7 +211,10 @@ void UISubsystem::Init()
 
     ViewOutputTargetDesc outputTargetDesc {
         .extent = windowSize2,
-        .attachments = { { TF_RGBA16F }, { TF_DEPTH_32F } }
+        .attachments = {
+            { TT_TEX2D, TF_RGBA16F },
+            { TT_TEX2D, TF_DEPTH_32F }
+        }
     };
 
     ViewDesc viewDesc {

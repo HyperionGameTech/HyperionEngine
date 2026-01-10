@@ -198,7 +198,7 @@ void World::Init()
         // dummy output target
         ViewOutputTargetDesc outputTargetDesc {
             .extent = Vec2u::One(),
-            .attachments = { { TF_R8 } }
+            .attachments = { { TT_TEX2D, TF_R8 } }
         };
 
         Handle<Camera> camera = CreateObject<Camera>();

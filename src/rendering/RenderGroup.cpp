@@ -447,7 +447,7 @@ static void RenderAll(
     }
 
     // set stencil back to default
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
 }
 
 template <bool UseIndirectRendering>

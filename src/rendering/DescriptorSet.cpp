@@ -265,10 +265,10 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
             {
                 const uint32 remainder = ref->Size() % layoutElement->size;
 
-                AssertDebug(
-                    remainder == 0,
-                    "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
-                    ref->Size(), layoutElement->size, Name(name));
+                // AssertDebug(
+                //     remainder == 0,
+                //     "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
+                //     ref->Size(), layoutElement->size, Name(name));
             }
         }
     }

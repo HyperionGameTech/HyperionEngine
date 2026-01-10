@@ -167,8 +167,8 @@ public:
     struct State
     {
         Shader* shader = nullptr;
-        Array<Framebuffer*> framebuffers;
-        RenderableAttributeSet attributes;
+        Array<AttachmentDesc, RenderAllocator> attachmentDescs;
+        HashCode attributesHashCode;
 
         GraphicsPipeline* prevGraphicsPipeline = nullptr;
 
@@ -188,8 +188,8 @@ public:
             ResetStencil();
 
             shader = nullptr;
-            framebuffers.Clear();
-            attributes = {};
+            attachmentDescs.Clear();
+            attributesHashCode = {};
             prevGraphicsPipeline = nullptr;
         }
     };
