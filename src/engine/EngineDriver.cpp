@@ -541,12 +541,12 @@ void EngineDriver::UpdateSim(float delta)
         Bucket_Max
     };
 
-    Array<Entity*, SceneTempAllocator> updatedEntities[Bucket_Max];
+    Array<Entity*, SceneAllocator> updatedEntities[Bucket_Max];
 
     {
         // update mark render proxies as needing update for all entities that could be visible,
         // if they have the UpdateRenderProxy tag
-        Array<Scene*, SceneTempAllocator> visitedScenes;
+        Array<Scene*, SceneAllocator> visitedScenes;
 
         for (View* view : views)
         {
@@ -565,7 +565,7 @@ void EngineDriver::UpdateSim(float delta)
     }
 
 #if HYP_PROCESS_SUBSYSTEMS_ASYNC
-    Array<Task<void>, SceneTempAllocator> updateSubsystemTasks;
+    Array<Task<void>, SceneAllocator> updateSubsystemTasks;
 
     for (Subsystem* subsystem : subsystems)
     {

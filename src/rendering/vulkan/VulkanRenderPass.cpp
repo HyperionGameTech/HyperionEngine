@@ -45,9 +45,8 @@ static VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
     };
 }
 
-VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType, RenderPassMode mode)
+VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, RenderPassMode mode)
     : m_renderTargetDesc(renderTargetDesc),
-      m_renderTargetType(renderTargetType),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
       m_recordingFramebuffer(nullptr)
@@ -67,7 +66,7 @@ void VulkanRenderPass::CreateDependencies()
     Optional<VkSubpassDependency> loadDependency;
     Optional<VkSubpassDependency> storeDependency;
 
-    switch (m_renderTargetType)
+    switch (GetRenderTargetType())
     {
     case RTT_PRESENT:
         loadDependency = VkSubpassDependency {
@@ -166,7 +165,7 @@ void VulkanRenderPass::CreateDependencies()
         break;
     }
     default:
-        HYP_FAIL("Unsupported RenderTargetType value {}", int(m_renderTargetType));
+        HYP_FAIL("Unsupported RenderTargetType value {}", GetRenderTargetType());
     }
 
     if (loadDependency.HasValue())
@@ -197,7 +196,7 @@ RendererResult VulkanRenderPass::Create()
     for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
     {
         uint32 attachmentIndex = uint32(attachmentDescriptions.Size());
-        attachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, m_renderTargetType));
+        attachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, GetRenderTargetType()));
 
         if (attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             && attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
@@ -346,8 +345,8 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
         attachment->GetImage()->SetResourceState(
             attachment->IsDepthAttachment()
-                ? PostRenderResourceStatesDepth[m_renderTargetType]
-                : PostRenderResourceStates[m_renderTargetType]);
+                ? PostRenderResourceStatesDepth[GetRenderTargetType()]
+                : PostRenderResourceStates[GetRenderTargetType()]);
     }
 
     m_recordingFramebuffer = nullptr;

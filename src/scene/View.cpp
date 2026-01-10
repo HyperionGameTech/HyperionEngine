@@ -216,7 +216,7 @@ void View::Init()
     }
     else if (m_viewDesc.renderTargetDesc.attachments.Any())
     {
-        FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(m_viewDesc.renderTargetDesc, RTT_SHADER_RESOURCE);
+        FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(m_viewDesc.renderTargetDesc);
 
         for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.attachments.Size(); ++attachmentIndex)
         {

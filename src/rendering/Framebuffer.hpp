@@ -36,7 +36,7 @@ public:
 
     HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
     {
-        return m_renderTargetType;
+        return m_renderTargetDesc.type;
     }
 
     HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
@@ -93,14 +93,12 @@ public:
     virtual void Clear(CommandBuffer* commandBuffer) = 0;
 
 protected:
-    FramebufferBase(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType)
-        : m_renderTargetType(renderTargetType),
-          m_renderTargetDesc(renderTargetDesc),
+    FramebufferBase(const RenderTargetDesc& renderTargetDesc)
+        : m_renderTargetDesc(renderTargetDesc),
           m_isRecordingCount(0)
     {
     }
 
-    RenderTargetType m_renderTargetType;
     RenderTargetDesc m_renderTargetDesc;
     int m_isRecordingCount;
 };

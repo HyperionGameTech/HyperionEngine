@@ -203,8 +203,8 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
 #pragma region VulkanFramebuffer
 
-VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, RenderTargetType renderTargetType)
-    : FramebufferBase(renderTargetDesc, renderTargetType),
+VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc)
+    : FramebufferBase(renderTargetDesc),
       m_handle(VK_NULL_HANDLE)
 {
     m_attachmentMap.framebufferWeak = WeakHandleFromThis();
@@ -252,7 +252,7 @@ RendererResult VulkanFramebuffer::Create()
         m_renderTargetDesc.attachments.PushBack(def.attachment->GetAttachmentDesc());
     }
     
-    m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, m_renderTargetType, RenderPassMode::RENDER_PASS_INLINE);
+    m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, RenderPassMode::RENDER_PASS_INLINE);
     HYP_GFX_CHECK(m_renderPass->Create());
 
     Array<VkImageView> attachmentImageViews;
@@ -396,7 +396,7 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
     VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
         image,
         WeakHandleFromThis(),
-        m_renderTargetType,
+        GetRenderTargetType(),
         AttachmentDesc {
             .imageType = image->GetTextureDesc().type,
             .format = image->GetTextureDesc().format,
@@ -423,7 +423,7 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
         m_renderTargetDesc.extent,
         format,
         type,
-        m_renderTargetType,
+        GetRenderTargetType(),
         loadOp,
         storeOp);
 }

@@ -182,11 +182,12 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     Assert(resolution.Volume() != 0);
 
-    RenderTargetDesc renderTargetDesc {};
+    RenderTargetDesc renderTargetDesc;
+    renderTargetDesc.type = RTT_SHADER_RESOURCE;
     renderTargetDesc.extent = resolution;
     renderTargetDesc.numViews = 1;
 
-    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc, RTT_SHADER_RESOURCE);
+    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
 
     auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> AttachmentRef
     {

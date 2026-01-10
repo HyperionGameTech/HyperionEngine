@@ -53,8 +53,14 @@ void EditorViewport::Init()
         .flags = ViewFlags::DEFAULT
             | ViewFlags::GBUFFER
             | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-        .viewport = Viewport { .extent = Vec2u(m_camera->GetDimensions()), .position = Vec2i::Zero() },
-        .renderTargetDesc = { .extent = Vec2u(m_camera->GetDimensions()) },
+        .viewport = Viewport {
+            .extent = Vec2u(m_camera->GetDimensions()),
+            .position = Vec2i::Zero()
+        },
+        .renderTargetDesc = {
+            .type = RTT_SHADER_RESOURCE,
+            .extent = Vec2u(m_camera->GetDimensions())
+        },
         .camera = m_camera
     };
 
