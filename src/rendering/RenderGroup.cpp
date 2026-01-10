@@ -140,9 +140,11 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
 
     Assert(m_shader.IsValid());
 
+    RenderTargetDesc rtDesc = view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket)->GetRenderTargetDesc();
+
     GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        { &view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket), 1 },
+        &rtDesc,
         m_renderableAttributes);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG

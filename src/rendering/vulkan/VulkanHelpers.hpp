@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "vulkan/vulkan_core.h"
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 
@@ -17,6 +16,39 @@
 namespace Hyperion {
 
 enum class DescriptorSetElementType : uint32;
+enum ShaderModuleType : uint32;
+
+constexpr ResourceState PreRenderResourceStates[2] = {
+    // CLEAR=0, LOAD=1
+    RS_UNDEFINED,    // CLEAR
+    RS_RENDER_TARGET // LOAD
+};
+
+constexpr ResourceState PreRenderResourceStatesDepth[2] = {
+    // CLEAR=0, LOAD=1
+    RS_UNDEFINED,    // CLEAR
+    RS_DEPTH_STENCIL // LOAD
+};
+
+constexpr ResourceState PostRenderResourceStates[RTT_MAX] = {
+    RS_UNDEFINED,       // RTT_NONE
+    RS_PRESENT,         // RTT_PRESENT
+    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
+    RS_RENDER_TARGET    // RTT_RENDER_TARGET
+};
+
+constexpr ResourceState PostRenderResourceStatesDepth[RTT_MAX] = {
+    RS_UNDEFINED,       // RTT_NONE
+    RS_DEPTH_STENCIL,   // RTT_PRESENT
+    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
+    RS_DEPTH_STENCIL    // RTT_RENDER_TARGET
+};
+
+enum RenderPassMode : uint8
+{
+    RENDER_PASS_INLINE = 0,
+    RENDER_PASS_SECONDARY_COMMAND_BUFFER = 1
+};
 
 VkIndexType ToVkIndexType(GpuElemType);
 VkFormat ToVkFormat(TextureFormat);
@@ -26,6 +58,17 @@ VkImageAspectFlags ToVkImageAspect(TextureFormat);
 VkImageType ToVkImageType(TextureType);
 VkImageViewType ToVkImageViewType(TextureType);
 VkDescriptorType ToVkDescriptorType(DescriptorSetElementType);
+VkImageLayout GetVkImageLayout(ResourceState state);
+VkAccessFlags GetVkAccessMask(ResourceState state);
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType = (ShaderModuleType)0);
+VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type);
+VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false);
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false);
+VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment);
+VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment);
+VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);
+VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation);
+VkImageLayout GetIntermediateLayout(bool isDepthAttachment);
 
 class VulkanSingleTimeCommands final : public SingleTimeCommands
 {

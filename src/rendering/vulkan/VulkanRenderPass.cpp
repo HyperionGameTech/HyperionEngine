@@ -21,21 +21,44 @@ extern VulkanRenderBackend* g_renderBackend;
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
+static VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, RenderTargetType renderTargetType)
+{
+    const bool isDepth = TextureUtils::IsDepthFormat(attachmentDesc.format);
+
+    return VkAttachmentDescription {
+        .format = ToVkFormat(attachmentDesc.format),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = ToVkLoadOp(attachmentDesc.loadOp),
+        .storeOp = ToVkStoreOp(attachmentDesc.storeOp),
+        .stencilLoadOp = isDepth ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = isDepth ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = GetInitialLayout(attachmentDesc.loadOp, isDepth),
+        .finalLayout = GetFinalLayout(renderTargetType, isDepth)
+    };
+}
+
+static VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
+{
+    return VkAttachmentReference {
+        .attachment = index,
+        .layout = GetIntermediateLayout(isDepth)
+    };
+}
+
 VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode)
     : m_renderTargetType(renderTargetType),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_numMultiviewLayers(0),
-      m_isRecording(false)
+      m_recordingFramebuffer(nullptr)
 {
 }
 
-VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, uint32 numMultiviewLayers)
+VulkanRenderPass::VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, const RenderTargetDesc& renderTargetDesc)
     : m_renderTargetType(renderTargetType),
       m_mode(mode),
       m_handle(VK_NULL_HANDLE),
-      m_numMultiviewLayers(numMultiviewLayers),
-      m_isRecording(false)
+      m_renderTargetDesc(renderTargetDesc),
+      m_recordingFramebuffer(nullptr)
 {
 }
 
@@ -43,8 +66,6 @@ VulkanRenderPass::~VulkanRenderPass()
 {
     vkDestroyRenderPass(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
-
-    SafeDelete(std::move(m_renderPassAttachments));
 }
 
 void VulkanRenderPass::CreateDependencies()
@@ -71,9 +92,9 @@ void VulkanRenderPass::CreateDependencies()
     case RTT_SHADER_RESOURCE: // fallthrough
     case RTT_RENDER_TARGET:
     {
-        for (const VulkanAttachmentRef& attachment : m_renderPassAttachments)
+        for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
         {
-            switch (attachment->GetLoadOperation())
+            switch (attachmentDesc.loadOp)
             {
             case LoadOperation::CLEAR: // fallthrough
             case LoadOperation::LOAD:
@@ -86,7 +107,7 @@ void VulkanRenderPass::CreateDependencies()
                     };
                 }
 
-                if (attachment->IsDepthAttachment())
+                if (TextureUtils::IsDepthFormat(attachmentDesc.format))
                 {
                     loadDependency->dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                     loadDependency->dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -94,7 +115,7 @@ void VulkanRenderPass::CreateDependencies()
                     loadDependency->srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
                     loadDependency->srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 
-                    if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+                    if (attachmentDesc.loadOp == LoadOperation::LOAD)
                     {
                         loadDependency->dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
                     }
@@ -107,7 +128,7 @@ void VulkanRenderPass::CreateDependencies()
                     loadDependency->srcStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                     loadDependency->srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 
-                    if (attachment->GetLoadOperation() == LoadOperation::LOAD)
+                    if (attachmentDesc.loadOp == LoadOperation::LOAD)
                     {
                         loadDependency->dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
                     }
@@ -117,7 +138,7 @@ void VulkanRenderPass::CreateDependencies()
                 break;
             }
 
-            switch (attachment->GetStoreOperation())
+            switch (attachmentDesc.storeOp)
             {
             case StoreOperation::STORE:
                 if (!storeDependency.HasValue())
@@ -129,7 +150,7 @@ void VulkanRenderPass::CreateDependencies()
                     };
                 }
 
-                if (attachment->IsDepthAttachment())
+                if (TextureUtils::IsDepthFormat(attachmentDesc.format))
                 {
                     storeDependency->srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
                     storeDependency->srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -167,33 +188,12 @@ void VulkanRenderPass::CreateDependencies()
     }
 }
 
-void VulkanRenderPass::AddAttachment(VulkanAttachmentRef attachment)
-{
-    m_renderPassAttachments.PushBack(std::move(attachment));
-}
-
-bool VulkanRenderPass::RemoveAttachment(const VulkanAttachment* attachment)
-{
-    const auto it = m_renderPassAttachments.FindAs(attachment);
-
-    if (it == m_renderPassAttachments.End())
-    {
-        return false;
-    }
-
-    SafeDelete(std::move(*it));
-
-    m_renderPassAttachments.Erase(it);
-
-    return true;
-}
-
 RendererResult VulkanRenderPass::Create()
 {
     CreateDependencies();
 
     Array<VkAttachmentDescription, VulkanAllocator> attachmentDescriptions;
-    attachmentDescriptions.Reserve(m_renderPassAttachments.Size());
+    attachmentDescriptions.Reserve(m_renderTargetDesc.attachments.Size());
 
     VkAttachmentReference depthAttachmentReference {};
     Array<VkAttachmentReference, VulkanAllocator> colorAttachmentReferences;
@@ -202,26 +202,10 @@ RendererResult VulkanRenderPass::Create()
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.pDepthStencilAttachment = nullptr;
 
-    uint32 nextBinding = 0;
-    HashSet<uint32, &KeyBy_Identity<uint32>, NodeAllocator<VulkanAllocator>> usedBindings;
-
-    for (const VulkanAttachmentRef& attachment : m_renderPassAttachments)
+    for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
     {
-        if (!attachment->HasBinding())
-        { // no binding has manually been set so we make one
-            attachment->SetBinding(nextBinding);
-        }
-
-        if (usedBindings.Contains(attachment->GetBinding()))
-        {
-            return HYP_MAKE_ERROR(RendererError, "Render pass attachment binding cannot be reused");
-        }
-
-        usedBindings.Insert(attachment->GetBinding());
-
-        nextBinding = attachment->GetBinding() + 1;
-
-        attachmentDescriptions.PushBack(attachment->GetVulkanAttachmentDescription());
+        uint32 attachmentIndex = uint32(attachmentDescriptions.Size());
+        attachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, m_renderTargetType));
 
         if (attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             && attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
@@ -229,9 +213,9 @@ RendererResult VulkanRenderPass::Create()
             HYP_BREAKPOINT;
         }
 
-        if (attachment->IsDepthAttachment())
+        if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
-            depthAttachmentReference = attachment->GetVulkanHandle();
+            depthAttachmentReference = ToVkAttachmentReference(attachmentIndex, true);
             subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 
             VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
@@ -239,15 +223,16 @@ RendererResult VulkanRenderPass::Create()
         }
         else
         {
-            colorAttachmentReferences.PushBack(attachment->GetVulkanHandle());
+            colorAttachmentReferences.PushBack(ToVkAttachmentReference(attachmentIndex, false));
 
             VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
             clearValue.color = {
                 .float32 = {
-                    attachment->GetClearColor().x,
-                    attachment->GetClearColor().y,
-                    attachment->GetClearColor().z,
-                    attachment->GetClearColor().w }
+                    attachmentDesc.clearColor.x,
+                    attachmentDesc.clearColor.y,
+                    attachmentDesc.clearColor.z,
+                    attachmentDesc.clearColor.w
+                }
             };
         }
     }
@@ -275,7 +260,7 @@ RendererResult VulkanRenderPass::Create()
 
     if (IsMultiview())
     {
-        for (uint32 i = 0; i < m_numMultiviewLayers; i++)
+        for (uint32 i = 0; i < m_renderTargetDesc.numViews; i++)
         {
             multiviewViewMask |= 1 << i;
             multiviewCorrelationMask |= 1 << i;
@@ -291,7 +276,7 @@ RendererResult VulkanRenderPass::Create()
 
 void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer)
 {
-    if (m_isRecording)
+    if (m_recordingFramebuffer)
     {
         return;
     }
@@ -326,8 +311,11 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
 
 #ifdef HYP_DEBUG_MODE
     // checks for valid layouts
-    for (const VulkanAttachment* attachment : m_renderPassAttachments)
+    for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
     {
+        VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
+        AssertDebug(attachment != nullptr);
+        
         const ResourceState expectedState = attachment->IsDepthAttachment()
             ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
             : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
@@ -347,27 +335,30 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
 
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, contents);
 
-    m_isRecording = true;
+    m_recordingFramebuffer = framebuffer;
 }
 
 void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 {
-    if (!m_isRecording)
+    if (!m_recordingFramebuffer)
     {
         return;
     }
 
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
 
-    for (VulkanAttachmentRef& attachment : m_renderPassAttachments)
+    for (uint32 attachmentIndex = 0; attachmentIndex < m_recordingFramebuffer->NumAttachments(); attachmentIndex++)
     {
+        VulkanAttachment* attachment = m_recordingFramebuffer->GetAttachment(attachmentIndex);
+        AssertDebug(attachment != nullptr);
+
         attachment->GetImage()->SetResourceState(
             attachment->IsDepthAttachment()
                 ? PostRenderResourceStatesDepth[m_renderTargetType]
                 : PostRenderResourceStates[m_renderTargetType]);
     }
 
-    m_isRecording = false;
+    m_recordingFramebuffer = nullptr;
 }
 
 } // namespace Hyperion

@@ -53,13 +53,6 @@ public:
     explicit VulkanGraphicsPipeline(const VulkanShaderRef& shader);
     ~VulkanGraphicsPipeline();
 
-    HYP_FORCE_INLINE const VulkanRenderPassRef& GetRenderPass() const
-    {
-        return m_renderPass;
-    }
-
-    void SetRenderPass(const VulkanRenderPassRef& renderPass);
-
     bool IsCreated() const override
     {
         return VulkanPipelineBase::IsCreated();
@@ -84,7 +77,6 @@ private:
 
     void UpdateViewport(VulkanCommandBuffer* commandBuffer, const Viewport& viewport);
 
-    VulkanRenderPassRef m_renderPass;
     Viewport m_viewport;
 };
 

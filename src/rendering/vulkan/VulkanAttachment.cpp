@@ -20,59 +20,6 @@ namespace Hyperion {
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
-static VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
-{
-    const int loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
-
-    return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
-}
-
-static VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment)
-{
-    return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[renderTargetType] : PostRenderResourceStates[renderTargetType]);
-}
-
-static VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
-{
-    switch (loadOperation)
-    {
-    case LoadOperation::UNDEFINED:
-        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    case LoadOperation::NONE:
-        return VK_ATTACHMENT_LOAD_OP_NONE_EXT;
-    case LoadOperation::CLEAR:
-        return VK_ATTACHMENT_LOAD_OP_CLEAR;
-    case LoadOperation::LOAD:
-        return VK_ATTACHMENT_LOAD_OP_LOAD;
-    default:
-        HYP_UNREACHABLE();
-        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    }
-}
-
-static VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
-{
-    switch (storeOperation)
-    {
-    case StoreOperation::UNDEFINED:
-        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    case StoreOperation::NONE:
-        return VK_ATTACHMENT_STORE_OP_NONE_EXT;
-    case StoreOperation::STORE:
-        return VK_ATTACHMENT_STORE_OP_STORE;
-    default:
-        HYP_UNREACHABLE();
-        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    }
-}
-
-static VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
-{
-    return isDepthAttachment
-        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-}
-
 #pragma endregion Helpers
 
 #pragma region VulkanAttachment

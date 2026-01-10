@@ -8,6 +8,7 @@
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanFeatures.hpp>
 
 #include <rendering/RenderQueue.hpp>
 
@@ -213,6 +214,335 @@ VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type)
     default:
         HYP_UNREACHABLE();
     }
+}
+
+VkImageLayout GetVkImageLayout(ResourceState state)
+{
+    switch (state)
+    {
+    case RS_UNDEFINED:
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    case RS_PRE_INITIALIZED:
+        return VK_IMAGE_LAYOUT_PREINITIALIZED;
+    case RS_COMMON:
+    case RS_UNORDERED_ACCESS:
+        return VK_IMAGE_LAYOUT_GENERAL;
+    case RS_RENDER_TARGET:
+    case RS_RESOLVE_DST:
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    case RS_DEPTH_STENCIL:
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    case RS_SHADER_RESOURCE:
+    case RS_RESOLVE_SRC:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    case RS_COPY_DST:
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    case RS_COPY_SRC:
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    case RS_PRESENT:
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    default:
+        HYP_FAIL("Unknown ResourceState {}!", state);
+    }
+}
+
+VkAccessFlags GetVkAccessMask(ResourceState state)
+{
+    switch (state)
+    {
+    case RS_UNDEFINED:
+    case RS_PRESENT:
+    case RS_COMMON:
+    case RS_PRE_INITIALIZED:
+        return VkAccessFlagBits(0);
+    case RS_VERTEX_BUFFER:
+        return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    case RS_CONSTANT_BUFFER:
+        return VK_ACCESS_UNIFORM_READ_BIT;
+    case RS_INDEX_BUFFER:
+        return VK_ACCESS_INDEX_READ_BIT;
+    case RS_RENDER_TARGET:
+        return VkAccessFlagBits(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+    case RS_UNORDERED_ACCESS:
+        return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+    case RS_DEPTH_STENCIL:
+        return VkAccessFlagBits(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+    case RS_SHADER_RESOURCE:
+        return VK_ACCESS_SHADER_READ_BIT;
+    case RS_INDIRECT_ARG:
+        return VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+    case RS_COPY_DST:
+        return VK_ACCESS_TRANSFER_WRITE_BIT;
+    case RS_COPY_SRC:
+        return VK_ACCESS_TRANSFER_READ_BIT;
+    case RS_RESOLVE_DST:
+        return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    case RS_RESOLVE_SRC:
+        return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+    default:
+        HYP_UNREACHABLE();
+    }
+}
+
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType = SMT_UNSET)
+{
+    switch (state)
+    {
+    case RS_UNDEFINED:
+    case RS_PRE_INITIALIZED:
+    case RS_COMMON:
+        if (!src)
+        {
+            HYP_LOG(RenderingBackend, Warning, "Attempt to get shader stage mask for resource state but `src` was set to false. Falling back to all commands.");
+
+            return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        }
+
+        return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    case RS_VERTEX_BUFFER:
+    case RS_INDEX_BUFFER:
+        return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+    case RS_UNORDERED_ACCESS:
+    case RS_CONSTANT_BUFFER:
+    case RS_SHADER_RESOURCE:
+        switch (shaderType)
+        {
+        case SMT_VERTEX:
+            return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+        case SMT_FRAGMENT:
+            return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        case SMT_COMPUTE:
+            return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        case SMT_RAY_ANY_HIT:
+        case SMT_RAY_CLOSEST_HIT:
+        case SMT_RAY_GEN:
+        case SMT_RAY_INTERSECT:
+        case SMT_RAY_MISS:
+            if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+            {
+                return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            }
+            else
+            {
+                HYP_FAIL("ERROR: Attempted to get raytracing shader stage mask on a device that does not support raytracing!");
+            }
+            break;
+        case SMT_GEOMETRY:
+            return VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+        case SMT_TESS_CONTROL:
+            return VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+        case SMT_TESS_EVAL:
+            return VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+        case SMT_MESH:
+            return VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
+        case SMT_TASK:
+            return VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
+        case SMT_UNSET:
+        {
+            VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+            if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+            {
+                bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+            }
+
+            return bits;
+        }
+        default:
+            HYP_UNREACHABLE();
+        }
+    case RS_RENDER_TARGET:
+        return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    case RS_DEPTH_STENCIL:
+        return src ? VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    case RS_INDIRECT_ARG:
+        return VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    case RS_COPY_DST:
+    case RS_COPY_SRC:
+    case RS_RESOLVE_DST:
+    case RS_RESOLVE_SRC:
+        return VK_PIPELINE_STAGE_TRANSFER_BIT;
+    case RS_PRESENT:
+        return src ? (VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT) : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    default:
+        HYP_UNREACHABLE();
+    }
+}
+
+VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
+{
+    switch (type)
+    {
+    case GpuBufferType::MESH_VERTEX_BUFFER:
+        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    case GpuBufferType::MESH_INDEX_BUFFER:
+        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    case GpuBufferType::CBUFF:
+        return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    case GpuBufferType::SSBO:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    case GpuBufferType::ATOMIC_COUNTER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    case GpuBufferType::STAGING_BUFFER:
+        return VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    case GpuBufferType::INDIRECT_ARGS_BUFFER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+            | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+            | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    case GpuBufferType::SHADER_BINDING_TABLE:
+        return VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
+        return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+        return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    case GpuBufferType::RT_MESH_VERTEX_BUFFER:
+        return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
+            | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    case GpuBufferType::RT_MESH_INDEX_BUFFER:
+        return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
+            | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
+            | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    case GpuBufferType::SCRATCH_BUFFER:
+        return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    default:
+        return 0;
+    }
+}
+
+VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible)
+{
+    switch (type)
+    {
+    case GpuBufferType::MESH_VERTEX_BUFFER:
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+    case GpuBufferType::MESH_INDEX_BUFFER:
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+    case GpuBufferType::CBUFF:
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
+    case GpuBufferType::SSBO:
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+    case GpuBufferType::ATOMIC_COUNTER:
+        return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
+    case GpuBufferType::STAGING_BUFFER:
+        return VMA_MEMORY_USAGE_CPU_ONLY;
+    case GpuBufferType::INDIRECT_ARGS_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GpuBufferType::SHADER_BINDING_TABLE:
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
+    case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
+    case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
+    case GpuBufferType::RT_MESH_VERTEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GpuBufferType::RT_MESH_INDEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
+        return VMA_MEMORY_USAGE_GPU_ONLY;
+    case GpuBufferType::SCRATCH_BUFFER:
+        return VMA_MEMORY_USAGE_CPU_TO_GPU;
+    default:
+        return VMA_MEMORY_USAGE_UNKNOWN;
+    }
+}
+
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible)
+{
+    switch (type)
+    {
+    case GpuBufferType::MESH_VERTEX_BUFFER:
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+    case GpuBufferType::MESH_INDEX_BUFFER:
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+    case GpuBufferType::CBUFF:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GpuBufferType::SSBO:
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+    case GpuBufferType::ATOMIC_COUNTER:
+        return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
+    case GpuBufferType::STAGING_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GpuBufferType::INDIRECT_ARGS_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "Indirect args buffer cannot be CPU accessible!");
+        return 0;
+    case GpuBufferType::SHADER_BINDING_TABLE:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    case GpuBufferType::RT_MESH_VERTEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh vertex buffer cannot be CPU accessible!");
+        return 0;
+    case GpuBufferType::RT_MESH_INDEX_BUFFER:
+        HYP_GFX_ASSERT(!requireCpuAccessible, "RT mesh index buffer cannot be CPU accessible!");
+        return 0;
+    case GpuBufferType::SCRATCH_BUFFER:
+        return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    default:
+        HYP_FAIL("Invalid gpu buffer type for allocation create flags");
+    }
+}
+
+VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
+{
+    const int loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
+
+    return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
+}
+
+VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment)
+{
+    return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[renderTargetType] : PostRenderResourceStates[renderTargetType]);
+}
+
+VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
+{
+    switch (loadOperation)
+    {
+    case LoadOperation::UNDEFINED:
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    case LoadOperation::NONE:
+        return VK_ATTACHMENT_LOAD_OP_NONE_EXT;
+    case LoadOperation::CLEAR:
+        return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case LoadOperation::LOAD:
+        return VK_ATTACHMENT_LOAD_OP_LOAD;
+    default:
+        HYP_UNREACHABLE();
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    }
+}
+
+VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
+{
+    switch (storeOperation)
+    {
+    case StoreOperation::UNDEFINED:
+        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    case StoreOperation::NONE:
+        return VK_ATTACHMENT_STORE_OP_NONE_EXT;
+    case StoreOperation::STORE:
+        return VK_ATTACHMENT_STORE_OP_STORE;
+    default:
+        HYP_UNREACHABLE();
+        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    }
+}
+
+VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
+{
+    return isDepthAttachment
+        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
 #pragma region VulkanSingleTimeCommands
