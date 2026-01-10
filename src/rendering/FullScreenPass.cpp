@@ -447,11 +447,9 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttr
     Assert(m_shader != nullptr);
     Assert(m_framebuffer != nullptr);
 
-    RenderTargetDesc rtDesc = m_framebuffer->GetRenderTargetDesc();
-
     m_graphicsPipelineCacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &rtDesc,
+        &m_framebuffer->GetRenderTargetDesc(),
         renderableAttributes);
 
     Assert(m_graphicsPipelineCacheHandle.IsAlive());

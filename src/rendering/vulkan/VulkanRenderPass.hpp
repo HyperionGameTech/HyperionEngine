@@ -59,7 +59,7 @@ public:
         return m_renderTargetDesc.numViews;
     }
 
-    const Array<AttachmentDesc>& GetAttachmentDescs() const
+    Span<const AttachmentDesc> GetAttachmentDescs() const
     {
         return m_renderTargetDesc.attachments;
     }

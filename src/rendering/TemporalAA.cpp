@@ -73,7 +73,9 @@ void TemporalAA::CreateTextures()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
+
     m_resultTexture->SetName(NAME("TAA_ResultTexture"));
     InitObject(m_resultTexture);
 
@@ -85,7 +87,8 @@ void TemporalAA::CreateTextures()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
 
     m_historyTexture->SetName(NAME("TAA_HistoryTexture"));
     InitObject(m_historyTexture);

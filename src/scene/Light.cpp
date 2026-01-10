@@ -194,21 +194,22 @@ void Light::CreateShadowViews()
         // Frustum culling for cubemap views not currently supported.
         shadowViewFlags[0] |= ViewFlags::NO_FRUSTUM_CULLING;
 
+        renderTargetDesc.numAttachments = 0;
         renderTargetDesc.numViews = 6;
 
         // depth, depth^2 texture (for variance shadow map)
-        AttachmentDesc& attachmentDesc = renderTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.imageType = TT_CUBEMAP;
-        attachmentDesc.format = PointLightShadowFormat;
-        attachmentDesc.loadOp = LoadOperation::CLEAR;
-        attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = Vec4f(10000.0f);
+        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        moments.imageType = TT_CUBEMAP;
+        moments.format = PointLightShadowFormat;
+        moments.loadOp = LoadOperation::CLEAR;
+        moments.storeOp = StoreOperation::STORE;
+        moments.clearColor = Vec4f(10000.0f);
 
-        AttachmentDesc& depthAttachmentDesc = renderTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.imageType = TT_CUBEMAP;
-        depthAttachmentDesc.format = TF_DEPTH_32F;
-        depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
-        depthAttachmentDesc.storeOp = StoreOperation::STORE;
+        AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        depth.imageType = TT_CUBEMAP;
+        depth.format = TF_DEPTH_32F;
+        depth.loadOp = LoadOperation::CLEAR;
+        depth.storeOp = StoreOperation::STORE;
 
         shaderProperties.Set(NAME("MODE_SHADOWS"));
         shaderDefinition = ShaderDefinition(NAME("RenderToCubemap"), shaderProperties);
@@ -223,19 +224,21 @@ void Light::CreateShadowViews()
             DefaultShadowViewFlags | ViewFlags::COLLECT_DYNAMIC_ENTITIES
         };
 
-        // depth, depth^2 texture (for variance shadow map)
-        AttachmentDesc& attachmentDesc = renderTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = DirectionalLightShadowFormats[shadowMapFilter];
-        attachmentDesc.imageType = TT_TEX2D;
-        attachmentDesc.loadOp = LoadOperation::CLEAR;
-        attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = Vec4f(1000.0f);
+        renderTargetDesc.numAttachments = 0;
 
-        AttachmentDesc& depthAttachmentDesc = renderTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = TF_DEPTH_32F;
-        depthAttachmentDesc.imageType = TT_TEX2D;
-        depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
-        depthAttachmentDesc.storeOp = StoreOperation::STORE;
+        // depth, depth^2 texture (for variance shadow map)
+        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        moments.format = DirectionalLightShadowFormats[shadowMapFilter];
+        moments.imageType = TT_TEX2D;
+        moments.loadOp = LoadOperation::CLEAR;
+        moments.storeOp = StoreOperation::STORE;
+        moments.clearColor = Vec4f(1000.0f);
+
+        AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        depth.format = TF_DEPTH_32F;
+        depth.imageType = TT_TEX2D;
+        depth.loadOp = LoadOperation::CLEAR;
+        depth.storeOp = StoreOperation::STORE;
 
         shaderDefinition = ShaderDefinition(NAME("Shadows"), shaderProperties);
 

@@ -246,36 +246,41 @@ void EnvProbe::CreateView()
     RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(m_dimensions),
         .attachments = {},
+        .numAttachments = 0,
         .numViews = 6
     };
 
     if (IsReflectionProbe() || IsSkyProbe())
     {
-        renderTargetDesc.attachments.PushBack(AttachmentDesc {
+        renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TT_CUBEMAP,
             .format = TF_R10G10B10A2,
             .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE });
+            .storeOp = StoreOperation::STORE
+        });
 
-        renderTargetDesc.attachments.PushBack(AttachmentDesc {
+        renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TT_CUBEMAP,
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE });
+            .storeOp = StoreOperation::STORE
+        });
 
-        renderTargetDesc.attachments.PushBack(AttachmentDesc {
+        renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TT_CUBEMAP,
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
-            .clearColor = Vec4f(FLT16_MAX) });
+            .clearColor = Vec4f(FLT16_MAX)
+        });
     }
 
-    renderTargetDesc.attachments.PushBack(AttachmentDesc {
+    renderTargetDesc.AddAttachment(AttachmentDesc {
         .imageType = TT_CUBEMAP,
         .format = TF_DEPTH_32F,
         .loadOp = LoadOperation::CLEAR,
-        .storeOp = StoreOperation::STORE });
+        .storeOp = StoreOperation::STORE
+    });
 
     ShaderDefinition shaderDefinition;
 

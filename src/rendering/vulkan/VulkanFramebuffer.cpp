@@ -242,14 +242,14 @@ RendererResult VulkanFramebuffer::Create()
 
     HYP_GFX_CHECK(m_attachmentMap.Create());
 
-    m_renderTargetDesc.attachments.Clear();
+    m_renderTargetDesc.numAttachments = 0;
 
     for (const auto& it : m_attachmentMap.attachments)
     {
         const VulkanAttachmentDef& def = it.second;
 
         HYP_GFX_ASSERT(def.attachment.IsValid());
-        m_renderTargetDesc.attachments.PushBack(def.attachment->GetAttachmentDesc());
+        m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
     }
     
     m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, RenderPassMode::RENDER_PASS_INLINE);

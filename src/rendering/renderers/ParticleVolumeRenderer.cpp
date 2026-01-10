@@ -329,13 +329,13 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     // this is rendered from translucent pass in DeferredRenderer
     const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
-    RenderTargetDesc rtDesc = framebuffer->GetRenderTargetDesc();
+    const RenderTargetDesc& renderTargetDesc = framebuffer->GetRenderTargetDesc();
 
-    if (!state.graphicsPipelineHandle.IsAlive() || (*state.graphicsPipelineHandle)->GetRenderTargetDesc() != rtDesc)
+    if (!state.graphicsPipelineHandle.IsAlive() || (*state.graphicsPipelineHandle)->GetRenderTargetDesc() != renderTargetDesc)
     {
         state.graphicsPipelineHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
-            &rtDesc,
+            &renderTargetDesc,
             state.renderableAttributes);
     }
 

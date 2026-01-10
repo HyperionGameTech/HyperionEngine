@@ -244,12 +244,14 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     multisampling.alphaToOneEnable = VK_FALSE;      // Optional
 
     Array<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    colorBlendAttachments.Reserve(m_renderTargetDesc.attachments.Size());
+    colorBlendAttachments.Reserve(m_renderTargetDesc.numAttachments);
 
     const BlendFunction* pBlendFunction = &m_blendFunction;
 
-    for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
+    for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
     {
+        const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
+
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
             continue;
