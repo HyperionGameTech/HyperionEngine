@@ -1257,6 +1257,26 @@ struct AttachmentDesc
     Vec4f clearColor = Vec4f::Zero();
     BlendFunction blendFunction = BlendFunction::None();
 
+    HYP_FORCE_INLINE bool operator==(const AttachmentDesc& other) const
+    {
+        return imageType == other.imageType
+            && format == other.format
+            && loadOp == other.loadOp
+            && storeOp == other.storeOp
+            && clearColor == other.clearColor
+            && blendFunction == other.blendFunction;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
+    {
+        return imageType != other.imageType
+            || format != other.format
+            || loadOp != other.loadOp
+            || storeOp != other.storeOp
+            || clearColor != other.clearColor
+            || blendFunction != other.blendFunction;
+    }
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
