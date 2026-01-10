@@ -31,7 +31,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/GpuAllocator.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
@@ -2109,25 +2109,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             rpl->EndRead();
         }
     });
-
-    {
-        g_renderInterface->constantsAllocator->BeginTransaction();
-
-        Mat4f* tempDebugAlloc = g_renderInterface->constantsAllocator->Allocate<Mat4f>();
-        new (tempDebugAlloc) Mat4f;
-        HYP_LOG_TEMP("Alloc'd constant mat4f", tempDebugAlloc);
-
-        GpuBuffer* buf;
-        SizeType bufferOffset;
-        g_renderInterface->constantsAllocator->EndTransaction(buf, bufferOffset);
-    }
-    
-    g_renderInterface->constantsAllocator->BeginTransaction();
-    Vec4f* tempDebugAlloc2 = (Vec4f*)g_renderInterface->constantsAllocator->Allocate(sizeof(Vec4f) * 8);
-    
-    GpuBuffer* buf2;
-    SizeType bufferOffset2;
-    g_renderInterface->constantsAllocator->EndTransaction(buf2, bufferOffset2);
 
     // Collect view-independent renderable types from all views, binned
     //// \todo : We could use the existing binning by subclass that ResourceTracker now provides.

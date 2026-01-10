@@ -23,7 +23,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/GpuAllocator.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -1525,7 +1525,7 @@ void EndFrameRender()
 RenderInterface::RenderInterface()
     : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
       gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
-      constantsAllocator(PoolNew<GpuAllocator>(*g_renderPool)),
+      constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
@@ -1767,6 +1767,8 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     AssertOnThread(g_renderThread);
 
     // Global
+    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+        ->SetElement("GlobalConstants"_sh, placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, 256, true));  // Temp
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("WorldsBuffer"_sh, gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)

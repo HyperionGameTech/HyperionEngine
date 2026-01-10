@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-class GpuAllocator
+class ConstantsAllocator
 {
     struct Block
     {
@@ -25,15 +25,15 @@ class GpuAllocator
     };
 
 public:
-    GpuAllocator();
+    ConstantsAllocator();
 
-    GpuAllocator(const GpuAllocator& other) = delete;
-    GpuAllocator& operator=(const GpuAllocator& other) = delete;
+    ConstantsAllocator(const ConstantsAllocator& other) = delete;
+    ConstantsAllocator& operator=(const ConstantsAllocator& other) = delete;
 
-    GpuAllocator(GpuAllocator&& other) noexcept = delete;
-    GpuAllocator& operator=(GpuAllocator&& other) noexcept = delete;
+    ConstantsAllocator(ConstantsAllocator&& other) noexcept = delete;
+    ConstantsAllocator& operator=(ConstantsAllocator&& other) noexcept = delete;
 
-    ~GpuAllocator();
+    ~ConstantsAllocator();
 
     void OnFrameStart();
     void OnFrameEnd();

@@ -310,7 +310,7 @@ static void RenderAll(
         {
             AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-            DescriptorSetOffsetMap offsets = {
+            DescriptorSetOffsetMap offsets {
                 { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
                 { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
             };
@@ -559,7 +559,7 @@ static void RenderAll_Parallel(
                     {
                         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-                        DescriptorSetOffsetMap offsets = {
+                        DescriptorSetOffsetMap offsets {
                             { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
                             { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
                         };

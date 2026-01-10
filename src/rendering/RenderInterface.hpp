@@ -42,7 +42,7 @@ class FinalPass;
 class ResourceBinderBase;
 class ShaderPropertyCache;
 class World;
-class GpuAllocator;
+class ConstantsAllocator;
 
 namespace RenderApi {
 
@@ -180,7 +180,7 @@ public:
     PlaceholderData* placeholderData;
 
     GpuBufferHolderMap* gpuBufferHolders;
-    GpuAllocator* constantsAllocator;
+    ConstantsAllocator* constantsAllocator;
 
     DescriptorTableRef globalDescriptorTable;
 

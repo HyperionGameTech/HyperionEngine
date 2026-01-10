@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/GpuAllocator.hpp>
+#include <rendering/ConstantsAllocator.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
 
@@ -12,12 +12,12 @@ namespace Hyperion {
 
 static constexpr SizeType BlockSize = 65535;
 
-GpuAllocator::GpuAllocator()
+ConstantsAllocator::ConstantsAllocator()
     : m_transactionOffset(0)
 {
 }
 
-GpuAllocator::~GpuAllocator()
+ConstantsAllocator::~ConstantsAllocator()
 {
     for (Block* block : m_blocks)
     {
@@ -36,14 +36,14 @@ GpuAllocator::~GpuAllocator()
     m_currentFrameBlocks.Clear();
 }
 
-void GpuAllocator::OnFrameStart()
+void ConstantsAllocator::OnFrameStart()
 {
     m_transactionOffset = 0;
 
     RecycleBlocks(RenderApi::GetFrameCounter());
 }
 
-void GpuAllocator::OnFrameEnd()
+void ConstantsAllocator::OnFrameEnd()
 {
     for (Block* block : m_currentFrameBlocks)
     {
@@ -55,7 +55,7 @@ void GpuAllocator::OnFrameEnd()
     m_currentFrameBlocks.Clear();
 }
 
-void GpuAllocator::Write(const void* src, SizeType size)
+void ConstantsAllocator::Write(const void* src, SizeType size)
 {
     if (size == 0)
         return;
@@ -66,7 +66,7 @@ void GpuAllocator::Write(const void* src, SizeType size)
     Memory::MemCpy(dst, src, size);
 }
 
-void* GpuAllocator::Allocate(SizeType size)
+void* ConstantsAllocator::Allocate(SizeType size)
 {
     for (Block* block : m_currentFrameBlocks)
     {
@@ -93,7 +93,7 @@ void* GpuAllocator::Allocate(SizeType size)
     return ptr;
 }
 
-GpuAllocator::Block* GpuAllocator::NewBlock()
+ConstantsAllocator::Block* ConstantsAllocator::NewBlock()
 {
     Block* newBlock = new Block;
 
@@ -114,7 +114,7 @@ GpuAllocator::Block* GpuAllocator::NewBlock()
     return newBlock;
 }
 
-void GpuAllocator::RecycleBlocks(uint32 currentFrameCounter)
+void ConstantsAllocator::RecycleBlocks(uint32 currentFrameCounter)
 {
     constexpr uint32 MinDiff = NumFramesInFlight;
 
