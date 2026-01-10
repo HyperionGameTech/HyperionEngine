@@ -919,11 +919,9 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
     Assert(framebuffer != nullptr);
 
-    const RenderTargetDesc& rtDesc = framebuffer->GetRenderTargetDesc();
-
     GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &rtDesc,
+        &framebuffer->GetRenderTargetDesc(),
         attributes);
 
     const GraphicsPipelineRef& graphicsPipeline = *cacheHandle;

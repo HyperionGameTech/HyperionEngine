@@ -209,13 +209,10 @@ void UISubsystem::Init()
 
     const Vec2u windowSize2 = windowSize * 2;
 
-    RenderTargetDesc renderTargetDesc {
-        .extent = windowSize2,
-        .attachments = {
-            { TT_TEX2D, TF_RGBA16F },
-            { TT_TEX2D, TF_DEPTH_32F }
-        }
-    };
+    RenderTargetDesc renderTargetDesc;
+    renderTargetDesc.extent = windowSize2;
+    renderTargetDesc.AddAttachment({ TT_TEX2D, TF_RGBA16F });
+    renderTargetDesc.AddAttachment({ TT_TEX2D, TF_DEPTH_32F });
 
     ViewDesc viewDesc {
         .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),

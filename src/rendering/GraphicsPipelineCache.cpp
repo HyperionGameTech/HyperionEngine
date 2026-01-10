@@ -336,7 +336,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
             m_cachedPipelines->Add(attributes, slot);
         });
 
-    Assert(renderTargetDesc && renderTargetDesc->attachments.Size() > 0,
+    Assert(renderTargetDesc && renderTargetDesc->numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
     GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(

@@ -83,8 +83,10 @@ void VulkanRenderPass::CreateDependencies()
     case RTT_SHADER_RESOURCE: // fallthrough
     case RTT_RENDER_TARGET:
     {
-        for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
+        for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
         {
+            const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
+
             switch (attachmentDesc.loadOp)
             {
             case LoadOperation::CLEAR: // fallthrough
@@ -183,8 +185,8 @@ RendererResult VulkanRenderPass::Create()
 {
     CreateDependencies();
 
-    Array<VkAttachmentDescription, VulkanAllocator> attachmentDescriptions;
-    attachmentDescriptions.Reserve(m_renderTargetDesc.attachments.Size());
+    Array<VkAttachmentDescription, VulkanAllocator> vkAttachmentDescriptions;
+    vkAttachmentDescriptions.Reserve(m_renderTargetDesc.numAttachments);
 
     VkAttachmentReference depthAttachmentReference {};
     Array<VkAttachmentReference, VulkanAllocator> colorAttachmentReferences;
@@ -192,17 +194,13 @@ RendererResult VulkanRenderPass::Create()
     VkSubpassDescription subpassDescription {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.pDepthStencilAttachment = nullptr;
-
-    for (const AttachmentDesc& attachmentDesc : m_renderTargetDesc.attachments)
+    
+    for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
     {
-        uint32 attachmentIndex = uint32(attachmentDescriptions.Size());
-        attachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, GetRenderTargetType()));
+        const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
 
-        if (attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            && attachmentDescriptions.Back().finalLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-        {
-            HYP_BREAKPOINT;
-        }
+        uint32 attachmentIndex = uint32(vkAttachmentDescriptions.Size());
+        vkAttachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, GetRenderTargetType()));
 
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
@@ -233,8 +231,8 @@ RendererResult VulkanRenderPass::Create()
 
     // Create the actual renderpass
     VkRenderPassCreateInfo renderPassInfo { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    renderPassInfo.attachmentCount = uint32(attachmentDescriptions.Size());
-    renderPassInfo.pAttachments = attachmentDescriptions.Data();
+    renderPassInfo.attachmentCount = uint32(vkAttachmentDescriptions.Size());
+    renderPassInfo.pAttachments = vkAttachmentDescriptions.Data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpassDescription;
     renderPassInfo.dependencyCount = uint32(m_dependencies.Size());

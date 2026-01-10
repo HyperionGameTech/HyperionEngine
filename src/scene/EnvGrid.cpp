@@ -218,23 +218,29 @@ void LegacyEnvGrid::Init()
                 TT_CUBEMAP,
                 TF_RGBA8, // color
                 LoadOperation::CLEAR,
-                StoreOperation::STORE },
+                StoreOperation::STORE
+            },
             AttachmentDesc {
                 TT_CUBEMAP,
                 TF_RG16F, // normal
                 LoadOperation::CLEAR,
-                StoreOperation::STORE },
+                StoreOperation::STORE
+            },
             AttachmentDesc {
                 TT_CUBEMAP,
                 TF_RG16F,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE,
-                Vec4f(1000.0f) },
+                Vec4f(1000.0f)
+            },
             AttachmentDesc {
                 TT_CUBEMAP,
                 TF_DEPTH_32F,
                 LoadOperation::CLEAR,
-                StoreOperation::STORE } },
+                StoreOperation::STORE
+            }
+        },
+        .numAttachments = 4,
         .numViews = 6
     };
 

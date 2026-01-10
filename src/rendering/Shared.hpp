@@ -1293,16 +1293,23 @@ struct AttachmentDesc
 
 struct RenderTargetDesc
 {
+    static constexpr uint32 MaxAttachments = 8;
+
     RenderTargetType type = RTT_SHADER_RESOURCE;
+
     Vec2u extent = Vec2u::One();
-    Array<AttachmentDesc> attachments;
+
+    AttachmentDesc attachments[MaxAttachments];
+
+    uint32 numAttachments = 0;
     uint32 numViews = 1;
 
     HYP_FORCE_INLINE bool operator==(const RenderTargetDesc& other) const
     {
         return type == other.type
             && extent == other.extent
-            && attachments == other.attachments
+            && numAttachments == other.numAttachments
+            && Memory::MemCmp(attachments, other.attachments, sizeof(AttachmentDesc) * numAttachments) == 0
             && numViews == other.numViews;
     }
 
@@ -1310,8 +1317,17 @@ struct RenderTargetDesc
     {
         return type != other.type
             || extent != other.extent
-            || attachments != other.attachments
+            || numAttachments != other.numAttachments
+            || Memory::MemCmp(attachments, other.attachments, sizeof(AttachmentDesc) * numAttachments) != 0
             || numViews != other.numViews;
+    }
+
+    void AddAttachment(const AttachmentDesc& attachmentDesc)
+    {
+        if (numAttachments >= MaxAttachments)
+            return;
+
+        attachments[numAttachments++] = attachmentDesc;
     }
 };
 

@@ -174,11 +174,11 @@ void BakerBase::Initialize()
         InitObject(camera);
 
         // dummy output target
-        RenderTargetDesc renderTargetDesc {
-            .type = RTT_SHADER_RESOURCE,
-            .extent = Vec2u::One(),
-            .attachments = { { TT_TEX2D, TF_R8 } }
-        };
+        RenderTargetDesc renderTargetDesc;
+        renderTargetDesc.type = RTT_SHADER_RESOURCE;
+        renderTargetDesc.extent = Vec2u::One();
+        renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
+        renderTargetDesc.numAttachments = 1;
 
         ViewDesc viewDesc {
             .flags = ViewFlags::COLLECT_STATIC_ENTITIES

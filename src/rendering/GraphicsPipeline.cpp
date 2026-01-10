@@ -27,7 +27,7 @@ RendererResult GraphicsPipelineBase::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
 
-    if (m_renderTargetDesc.attachments.Empty())
+    if (m_renderTargetDesc.numAttachments == 0)
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no attachment descriptors!");
     }

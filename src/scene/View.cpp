@@ -209,16 +209,16 @@ void View::Init()
 
     if (m_viewDesc.flags & ViewFlags::GBUFFER)
     {
-        AssertDebug(m_viewDesc.renderTargetDesc.attachments.Empty(),
+        AssertDebug(m_viewDesc.renderTargetDesc.numAttachments == 0,
             "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
         m_outputTarget = ViewOutputTarget(CreateObject<GBuffer>(extent));
     }
-    else if (m_viewDesc.renderTargetDesc.attachments.Any())
+    else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
     {
         FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(m_viewDesc.renderTargetDesc);
 
-        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.attachments.Size(); ++attachmentIndex)
+        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
         {
             const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
             AssertDebug(attachmentDesc.format != TF_NONE);
