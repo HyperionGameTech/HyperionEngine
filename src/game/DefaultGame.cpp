@@ -90,7 +90,7 @@ void DefaultGame::OnLaunch_Impl()
     ViewDesc viewDesc {
         .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
-        .outputTargetDesc = { .extent = viewportSize },
+        .renderTargetDesc = { .extent = viewportSize },
         .camera = m_camera,
         .readbackTextureFormat = TF_R10G10B10A2
     };

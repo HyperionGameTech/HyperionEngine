@@ -243,7 +243,7 @@ void EnvProbe::CreateView()
     AssertDebug(m_view == nullptr);
     AssertDebug(m_camera != nullptr);
 
-    ViewOutputTargetDesc outputTargetDesc {
+    RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(m_dimensions),
         .attachments = {},
         .numViews = 6
@@ -251,19 +251,19 @@ void EnvProbe::CreateView()
 
     if (IsReflectionProbe() || IsSkyProbe())
     {
-        outputTargetDesc.attachments.PushBack(AttachmentDesc {
+        renderTargetDesc.attachments.PushBack(AttachmentDesc {
             .imageType = TT_CUBEMAP,
             .format = TF_R10G10B10A2,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE });
 
-        outputTargetDesc.attachments.PushBack(AttachmentDesc {
+        renderTargetDesc.attachments.PushBack(AttachmentDesc {
             .imageType = TT_CUBEMAP,
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE });
 
-        outputTargetDesc.attachments.PushBack(AttachmentDesc {
+        renderTargetDesc.attachments.PushBack(AttachmentDesc {
             .imageType = TT_CUBEMAP,
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
@@ -271,7 +271,7 @@ void EnvProbe::CreateView()
             .clearColor = Vec4f(FLT16_MAX) });
     }
 
-    outputTargetDesc.attachments.PushBack(AttachmentDesc {
+    renderTargetDesc.attachments.PushBack(AttachmentDesc {
         .imageType = TT_CUBEMAP,
         .format = TF_DEPTH_32F,
         .loadOp = LoadOperation::CLEAR,
@@ -295,7 +295,7 @@ void EnvProbe::CreateView()
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = m_dimensions, .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
+        .renderTargetDesc = renderTargetDesc,
         .scenes = {},
         .camera = m_camera,
         .overrideAttributes = RenderableAttributeSet(

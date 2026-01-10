@@ -54,7 +54,7 @@ void EditorViewport::Init()
             | ViewFlags::GBUFFER
             | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = Vec2u(m_camera->GetDimensions()), .position = Vec2i::Zero() },
-        .outputTargetDesc = { .extent = Vec2u(m_camera->GetDimensions()) },
+        .renderTargetDesc = { .extent = Vec2u(m_camera->GetDimensions()) },
         .camera = m_camera
     };
 

@@ -211,7 +211,7 @@ void LegacyEnvGrid::Init()
         InitObject(m_voxelGridTexture);
     }
 
-    ViewOutputTargetDesc outputTargetDesc {
+    RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(FramebufferDimensions),
         .attachments = {
             AttachmentDesc {
@@ -244,7 +244,7 @@ void LegacyEnvGrid::Init()
             | ViewFlags::SKIP_ENV_GRIDS
             | ViewFlags::NOT_MULTI_BUFFERED,
         .viewport = Viewport { .extent = FramebufferDimensions, .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
+        .renderTargetDesc = renderTargetDesc,
         .scenes = { m_scene },
         .camera = m_camera,
         .overrideAttributes = RenderableAttributeSet(

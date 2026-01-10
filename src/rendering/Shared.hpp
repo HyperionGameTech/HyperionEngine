@@ -1291,4 +1291,11 @@ struct AttachmentDesc
     }
 };
 
+struct RenderTargetDesc
+{
+    Vec2u extent = Vec2u::One();
+    Array<AttachmentDesc> attachments;
+    uint32 numViews = 1;
+};
+
 } // namespace Hyperion
