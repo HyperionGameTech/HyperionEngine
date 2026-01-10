@@ -1715,6 +1715,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
 
     GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
+    blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(blueNoiseBuffer->Create());
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
     blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);

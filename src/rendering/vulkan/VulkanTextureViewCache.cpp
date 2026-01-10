@@ -20,7 +20,7 @@ VulkanTextureViewCache::~VulkanTextureViewCache()
     {
         for (auto& jt : it)
         {
-            SafeDelete(std::move(jt));
+            SafeDelete(std::move(jt.second));
         }
     }
 }
