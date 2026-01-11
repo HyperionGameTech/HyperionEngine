@@ -167,10 +167,16 @@ class RenderInterface
 public:
     struct State
     {
+        static constexpr uint32 MaxShaderUniforms = 32;
+
         Shader* shader = nullptr;
         RenderGroup* renderGroup = nullptr;
         Viewport viewport;
         RenderTargetDesc renderTargetDesc;
+
+        ShaderUniform shaderUniforms[MaxShaderUniforms] {};
+        uint32 validUniforms = 0;
+        uint32 dirtyUniforms = 0;
 
         GraphicsPipeline* prevGraphicsPipeline = nullptr;
 
@@ -178,21 +184,17 @@ public:
         uint8 stencilCompareMask = 0xFF;
         uint8 stencilWriteMask = 0xFF;
         
-        void ResetStencil()
+        void Reset()
         {
+            shader = nullptr;
+            renderGroup = nullptr;
+            validUniforms = 0;
+            dirtyUniforms = 0;
+            renderTargetDesc = {};
+            prevGraphicsPipeline = nullptr;
             stencilReference = 0;
             stencilCompareMask = 0xFF;
             stencilWriteMask = 0xFF;
-        }
-        
-        void Reset()
-        {
-            ResetStencil();
-
-            shader = nullptr;
-            renderGroup = nullptr;
-            renderTargetDesc = {};
-            prevGraphicsPipeline = nullptr;
         }
     };
 

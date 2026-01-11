@@ -492,16 +492,44 @@ void SetCurrentRenderGroup::InvokeStatic(CmdBase* cmd, CommandBuffer*)
     // cmdCasted->~SetCurrentRenderGroup();
 }
 
-#pragma endregion SetRenderableAttributes
+#pragma endregion SetCurrentRenderGroup
+
+#pragma region SetShaderUniform
+
+void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetShaderUniform* cmdCasted = static_cast<SetShaderUniform*>(cmd);
+    
+    RenderInterface& ri = *g_renderInterface;
+    RenderInterface::State& state = ri.state;
+
+    ShaderUniform& uniform = state.shaderUniforms[cmdCasted->uniformIndex];
+
+    if (uniform != cmdCasted->uniform
+        || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))
+    {
+        uniform = cmdCasted->uniform;
+
+        state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
+    }
+
+    static_assert(std::is_trivially_destructible_v<SetShaderUniform>);
+    // cmdCasted->~SetShaderUniform();
+}
+
+#pragma endregion SetShaderUniform
 
 #pragma region CommitDrawState
 
 static const RenderableAttributeSet s_defaultAttributes;
 
+HYP_DISABLE_OPTIMIZATION;
 void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 {
     RenderInterface& ri = *g_renderInterface;
     RenderInterface::State& state = ri.state;
+
+    GraphicsPipeline* pipeline = nullptr;
 
     if (!state.prevGraphicsPipeline
         || !state.prevGraphicsPipeline->MatchesSignature(
@@ -522,18 +550,73 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 : s_defaultAttributes,
             cacheHandle);
 
-        GraphicsPipeline* pipeline = *cacheHandle;
+        pipeline = *cacheHandle;
 
         BindGraphicsPipeline bindCmd(pipeline, state.viewport);
         BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
 
         state.prevGraphicsPipeline = pipeline;
+        
+        state.dirtyUniforms |= state.validUniforms;
+        state.validUniforms = 0;
+    }
+    else
+    {
+        pipeline = state.prevGraphicsPipeline;
     }
 
-    // @TODO Set descriptors
+    // Set descriptors
+    if (state.dirtyUniforms != 0)
+    {
+        Shader* shader = pipeline->GetShader();
+        CompiledShader* compiledShader = shader->GetCompiledShader();
+
+        AssertDebug(compiledShader != nullptr);
+
+        const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
+        AssertDebug(tableDecl != nullptr);
+        
+        // @TODO DescriptorSetCache to fetch descriptor set dynamically here
+
+        FOR_EACH_BIT(state.dirtyUniforms, uniformIndex)
+        {
+            const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
+
+            // @TODO: Optimize the hell out of this so no more linear search and then checking REFERENCE flag and fetching from global ..
+            const DescriptorDeclaration* decl = nullptr;
+
+            for (const DescriptorSetDeclaration& setDecl : tableDecl->elements)
+            {
+                const DescriptorSetDeclaration* pSetDecl = &setDecl;
+
+                if (setDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
+                {
+                    pSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
+                    AssertDebug(pSetDecl != nullptr);
+                }
+
+                decl = pSetDecl->FindDescriptorDeclaration(uniform.name);
+
+                if (decl)
+                {
+                    break;
+                }
+            }
+
+            if (decl)
+            {
+                state.validUniforms |= (1u << uniformIndex);
+                state.dirtyUniforms &= (1u << uniformIndex);
+
+                // AssertDebug(decl != nullptr, "Invalid shader uniform; not found in compiled shader! Uniform name: {}", *Name(uniform.name));
+
+                // We'll set it in the descriptor set here
+            }
+        }
+    }
 
     static_assert(std::is_trivially_destructible_v<CommitDrawState>);
-    // cmdCasted->~SetCurrentShader();
+    // cmdCasted->~CommitDrawState();
 }
 
 #pragma endregion CommitDrawState

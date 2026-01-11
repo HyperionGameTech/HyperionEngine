@@ -138,7 +138,7 @@ public:
     virtual void Bind(CommandBuffer* commandBuffer) = 0;
     virtual void Bind(CommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent) = 0;
 
-    virtual bool MatchesSignature(
+    bool MatchesSignature(
         const Shader* shader,
         const RenderTargetDesc* renderTargetDesc,
         const RenderableAttributeSet& attributes) const;

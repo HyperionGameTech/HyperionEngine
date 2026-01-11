@@ -196,7 +196,7 @@ static void DivideDrawCalls(SizeType numDrawCalls, uint32 numBatches, OutArray& 
     }
 }
 
-static void ValidatePipelineState(const RenderSetup& renderSetup, const GraphicsPipelineRef& pipeline)
+static void ValidatePipelineState(const RenderSetup& renderSetup, GraphicsPipeline* pipeline)
 {
 #if 0
     HYP_SCOPE;
@@ -227,7 +227,7 @@ template <bool UseIndirectRendering>
 static void RenderAll(
     Frame* frame,
     const RenderSetup& renderSetup,
-    const GraphicsPipelineRef& pipeline,
+    GraphicsPipeline* pipeline, // TEMP
     IndirectRenderer* indirectRenderer,
     const DrawCallCollection& drawCallCollection)
 {
@@ -266,15 +266,6 @@ static void RenderAll(
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
-    
-    frame->renderQueue << SetCurrentShader(pipeline->GetShader());
-    frame->renderQueue << SetCurrentView(renderSetup.view);
-    frame->renderQueue << SetCurrentRenderGroup(renderGroup);
-
-    if (materialAttributes.stencilReference != 0)
-    {
-        frame->renderQueue << SetStencilState(materialAttributes.stencilReference, 0xFF, 0xFF);
-    }
 
     // temp
     frame->renderQueue << CommitDrawState();
@@ -460,16 +451,13 @@ static void RenderAll(
         g_statInstancedDrawCalls++;
         g_statTriangles += instancedDrawCalls.numIndices[i] / 3;
     }
-
-    // set stencil back to default
-    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
 }
 
 template <bool UseIndirectRendering>
 static void RenderAll_Parallel(
     Frame* frame,
     const RenderSetup& renderSetup,
-    const GraphicsPipelineRef& pipeline,
+    GraphicsPipeline* pipeline, // TEMP
     IndirectRenderer* indirectRenderer,
     const DrawCallCollection& drawCallCollection,
     ParallelRenderingState* parallelRenderingState)
@@ -508,17 +496,21 @@ static void RenderAll_Parallel(
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
-    
-    rootQueue << SetCurrentShader(pipeline->GetShader());
-    rootQueue << SetCurrentView(renderSetup.view);
-    rootQueue << SetCurrentRenderGroup(renderGroup);
 
-    if (materialAttributes.stencilReference != 0)
-    {
-        rootQueue << SetStencilState(materialAttributes.stencilReference, 0xFF, 0xFF);
-    }
+    // EXPERIMENT - generic SetShaderUniform() . not fully used yet but WIP
+    rootQueue << SetShaderUniform(0, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+
+    if (renderSetup.envGrid != nullptr)
+        rootQueue << SetShaderUniform(1, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envGrid) * sizeof(EnvGridShaderData));
+
+    if (renderSetup.light != nullptr)
+        rootQueue << SetShaderUniform(2, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
     
-    // temp
+    if (renderSetup.envProbe != nullptr)
+        rootQueue << SetShaderUniform(3, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+    // END
+
+    // temp here. Will need to be between draw calls where we set new uniforms.
     rootQueue << CommitDrawState();
 
     //rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
@@ -564,7 +556,7 @@ static void RenderAll_Parallel(
     {
         DivideDrawCalls(drawCallCollection.drawCalls.Size(), parallelRenderingState->numBatches, parallelRenderingState->drawCalls);
 
-        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->drawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, &pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32 batchIndex)
+        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->drawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32 batchIndex)
             {
                 if (range.count == 0)
                 {
@@ -652,7 +644,7 @@ static void RenderAll_Parallel(
     {
         DivideDrawCalls(drawCallCollection.instancedDrawCalls.Size(), parallelRenderingState->numBatches, parallelRenderingState->instancedDrawCalls);
 
-        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->instancedDrawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, &pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32 batchIndex)
+        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->instancedDrawCallProcs.EmplaceBack([frameIndex, parallelRenderingState, &drawCallCollection, pipeline, indirectRenderer, materialDescriptorSetIndex](DrawCallRange range, uint32 index, uint32 batchIndex)
             {
                 if (range.count == 0)
                 {
@@ -771,6 +763,9 @@ void RenderGroup::PerformRendering(
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
 
+    Framebuffer* framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
+    AssertDebug(framebuffer != nullptr);
+
     static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = isIndirectRenderingEnabled
@@ -781,29 +776,6 @@ void RenderGroup::PerformRendering(
     {
         // No draw calls to render; skip pipeline / cache fetch
         return;
-    }
-
-    auto* cacheEntry = renderSetup.passData->renderGroupCache.TryGet(Id().ToIndex());
-    bool isNewlyCreated = false;
-
-    if (!cacheEntry)
-    {
-        cacheEntry = &*renderSetup.passData->renderGroupCache.Emplace(Id().ToIndex());
-
-        *cacheEntry = PassData::RenderGroupCacheEntry {
-            WeakHandleFromThis(),
-            CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator)
-        };
-
-        isNewlyCreated = true;
-    }
-
-    if (!cacheEntry->cacheHandle.IsAlive())
-    {
-        // fetch a new graphics pipeline if it is dead
-        cacheEntry->cacheHandle = CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator);
-
-        isNewlyCreated = true;
     }
 
     // Setup instancing descriptor set if "Instancing" descriptor set exists in the shader.
@@ -822,6 +794,47 @@ void RenderGroup::PerformRendering(
         descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(instancingDescriptorSetDecl));
         descriptorSet->SetElement("EntityInstanceBatchesBuffer"_sh, gpuBuffer);
         Assert(descriptorSet->Create());
+    }
+
+    const uint8 stencilReference = m_renderableAttributes.GetMaterialAttributes().stencilReference;
+
+    RenderQueue* pRenderQueue = &frame->renderQueue;
+
+    if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
+    {
+        AssertDebug(parallelRenderingState != nullptr);
+
+        pRenderQueue = &parallelRenderingState->rootQueue;
+    }
+
+    RenderQueue& rq = *pRenderQueue;
+    
+    rq << SetCurrentShader(m_shader);
+    rq << SetCurrentView(renderSetup.view);
+    rq << SetCurrentRenderGroup(this);
+
+    if (stencilReference != 0)
+    {
+        // apply stencil state before render
+        rq << SetStencilState(stencilReference, 0xFF, 0xFF);
+    }
+    
+    auto* cacheEntry = renderSetup.passData->renderGroupCache.TryGet(Id().ToIndex());
+
+    if (!cacheEntry)
+    {
+        cacheEntry = &*renderSetup.passData->renderGroupCache.Emplace(Id().ToIndex());
+
+        *cacheEntry = PassData::RenderGroupCacheEntry {
+            WeakHandleFromThis(),
+            CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator)
+        };
+    }
+
+    if (!cacheEntry->cacheHandle.IsAlive())
+    {
+        // fetch a new graphics pipeline if it is stale
+        cacheEntry->cacheHandle = CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator);
     }
 
     if (useIndirectRendering)
@@ -850,8 +863,6 @@ void RenderGroup::PerformRendering(
     {
         if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
-            AssertDebug(parallelRenderingState != nullptr);
-
             RenderAll_Parallel<false>(
                 frame,
                 renderSetup,
@@ -869,6 +880,12 @@ void RenderGroup::PerformRendering(
                 indirectRenderer,
                 drawCallCollection);
         }
+    }
+
+    if (stencilReference != 0)
+    {
+        // reset back to default
+        rq << SetStencilState(0, 0xFF, 0xFF);
     }
 
     g_statRenderGroups++;

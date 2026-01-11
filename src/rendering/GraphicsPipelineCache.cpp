@@ -323,6 +323,8 @@ void GraphicsPipelineCache::GetOrCreate(
 
     if (cacheHandle.IsAlive())
     {
+        (*cacheHandle)->lastFrame = RenderApi::GetFrameCounter();
+
         outCacheHandle = std::move(cacheHandle);
         return;
     }
