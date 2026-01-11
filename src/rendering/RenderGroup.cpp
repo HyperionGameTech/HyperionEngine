@@ -515,7 +515,7 @@ static void RenderAll_Parallel(
 
     //rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
-    if (globalDescriptorSetIndex != ~0u)
+    /*if (globalDescriptorSetIndex != ~0u)
     {
         rootQueue << BindDescriptorSet(
             globalDescriptorSet,
@@ -525,7 +525,7 @@ static void RenderAll_Parallel(
                 { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
                 { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
             globalDescriptorSetIndex);
-    }
+    }*/
 
     if (viewDescriptorSetIndex != ~0u)
     {

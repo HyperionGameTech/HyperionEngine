@@ -44,6 +44,7 @@ class ShaderPropertyCache;
 class World;
 class ConstantsAllocator;
 class RenderGroup;
+class DescriptorSetCache;
 
 namespace RenderApi {
 
@@ -233,6 +234,8 @@ public:
     Array<World*> renderWorlds[RingBufferDepth];
 
     State state;
+    
+    DescriptorSetCache* descriptorSetCache;
 
 private:
     void CreateBlueNoiseBuffer();
