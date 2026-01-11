@@ -740,6 +740,40 @@ private:
     RenderGroup* m_renderGroup;
 };
 
+class SetShaderUniform final : public CmdBase
+{
+public:
+    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuBuffer* buffer, uint32 bufferOffset = 0)
+        : uniformIndex(uniformIndex),
+          uniform { name, { .buffer = buffer }, ShaderUniform::UT_Buffer, bufferOffset }
+    {
+    }
+    
+    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
+        : uniformIndex(uniformIndex),
+          uniform { name, { .imageView = imageView }, ShaderUniform::UT_ImageView }
+    {
+    }
+    
+    SetShaderUniform(uint32 uniformIndex, StringHash name, Sampler* sampler)
+        : uniformIndex(uniformIndex),
+          uniform { name, { .sampler = sampler }, ShaderUniform::UT_Sampler }
+    {
+    }
+    
+    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuTlas* tlas)
+        : uniformIndex(uniformIndex),
+          uniform { name, { .tlas = tlas }, ShaderUniform::UT_Tlas }
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    uint32 uniformIndex;
+    ShaderUniform uniform;
+};
+
 class CommitDrawState final : public CmdBase
 {
 public:

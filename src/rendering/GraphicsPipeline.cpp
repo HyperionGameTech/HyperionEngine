@@ -6,6 +6,7 @@
 #include <rendering/Framebuffer.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/RenderableAttributes.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -69,13 +70,6 @@ bool GraphicsPipelineBase::MatchesSignature(
     const RenderTargetDesc* renderTargetDesc,
     const RenderableAttributeSet& attributes) const
 {
-    // check shader:
-    // if shader presence differs, no match
-    if (!shader != !m_shader)
-    {
-        return false;
-    }
-
     // if no render target desc provided we assume the caller doesn't care and don't bother checking
     if (renderTargetDesc && *renderTargetDesc != m_renderTargetDesc)
     {
@@ -88,6 +82,28 @@ bool GraphicsPipelineBase::MatchesSignature(
         {
             return false;
         }
+    }
+
+    const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
+
+    if (meshAttributes.topology != m_topology
+        || meshAttributes.vertexAttributes != m_vertexAttributes)
+    {
+        return false;
+    }
+
+    const MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+
+    if (materialAttributes.blendFunction != m_blendFunction
+        || materialAttributes.cullFaces != m_faceCullMode
+        || materialAttributes.fillMode != m_fillMode
+        || bool(materialAttributes.flags & MAF_DEPTH_TEST) != m_depthTest
+        || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite
+        || ((materialAttributes.flags & MAF_STENCIL_TEST)
+            ? (!m_stencilFunction.HasValue() || materialAttributes.stencilFunction != *m_stencilFunction)
+            : m_stencilFunction.HasValue()))
+    {
+        return false;
     }
 
     return true;

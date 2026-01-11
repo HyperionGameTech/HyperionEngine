@@ -106,4 +106,44 @@ static inline void DeferCreate(RefType ref, Args&&... args)
 
 #include <rendering/inl/RenderObjectDefinitions.inl>
 
+struct ShaderUniform
+{
+    StringHash name;
+
+    union
+    {
+        GpuBuffer* buffer;
+        GpuImageView* imageView;
+        Sampler* sampler;
+        GpuTlas* tlas;
+    };
+
+    enum
+    {
+        UT_Buffer,
+        UT_ImageView,
+        UT_Sampler,
+        UT_Tlas
+    } type;
+
+    uint32 bufferOffset;
+
+    HYP_FORCE_INLINE bool operator==(const ShaderUniform& other) const
+    {
+        return Memory::MemCmp(this, &other, sizeof(ShaderUniform)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ShaderUniform& other) const
+    {
+        return !(*this == other);
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(
+            reinterpret_cast<const ubyte*>(this),
+            reinterpret_cast<const ubyte*>(this) + sizeof(ShaderUniform));
+    }
+};
+
 } // namespace Hyperion
