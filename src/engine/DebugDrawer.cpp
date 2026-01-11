@@ -924,10 +924,13 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
     Assert(framebuffer != nullptr);
 
-    GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
+    GraphicsPipelineCacheHandle cacheHandle;
+    
+    g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         &framebuffer->GetRenderTargetDesc(),
-        attributes);
+        attributes,
+        cacheHandle);
 
     const GraphicsPipelineRef& graphicsPipeline = *cacheHandle;
     m_graphicsPipelines[attributes] = std::move(cacheHandle);

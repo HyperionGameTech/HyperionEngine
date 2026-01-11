@@ -20,19 +20,21 @@
 namespace Hyperion {
 
 class CmdBase;
+class View;
+class RenderGroup;
 
 class CmdBase
 {
 public:
-    static inline void PrepareStatic(CmdBase* cmd, Frame* frame)
-    {
-    }
-
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
     RawStackTrace trace;
 #else
     CmdBase() = default;
 #endif
+    
+    static void PrepareStatic(CmdBase*, Frame*)
+    {
+    }
 };
 
 class BindVertexBuffer final : public CmdBase
@@ -144,8 +146,8 @@ public:
 class BeginFramebuffer final : public CmdBase
 {
 public:
-    HYP_API BeginFramebuffer(Framebuffer* framebuffer);
-    HYP_API static void PrepareStatic(CmdBase* cmd, Frame* frame);
+    BeginFramebuffer(Framebuffer* framebuffer);
+    static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
@@ -164,8 +166,8 @@ private:
 class EndFramebuffer final : public CmdBase
 {
 public:
-    HYP_API EndFramebuffer(Framebuffer* framebuffer);
-    HYP_API static void PrepareStatic(CmdBase* cmd, Frame* frame);
+    EndFramebuffer(Framebuffer* framebuffer);
+    static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     {
@@ -206,31 +208,23 @@ private:
 class BindGraphicsPipeline final : public CmdBase
 {
 public:
-#ifdef HYP_DEBUG_MODE
-    HYP_API BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport);
-    HYP_API BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
-    HYP_API BindGraphicsPipeline(GraphicsPipeline* pipeline);
-#else
     BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport)
         : m_pipeline(pipeline),
           m_viewport(viewport)
     {
     }
 
-    BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
+    BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
         : m_pipeline(pipeline),
           m_viewport(Viewport { viewportExtent, viewportOffset })
-        {
-        }
+    {
+    }
 
-        BindGraphicsPipeline(GraphicsPipeline* pipeline)
-            : m_pipeline(pipeline),
-              m_viewport()
-        {
-        }
-#endif
-
-    HYP_API static void PrepareStatic(CmdBase* cmd, Frame*);
+    BindGraphicsPipeline(GraphicsPipeline* pipeline)
+        : m_pipeline(pipeline),
+            m_viewport()
+    {
+    }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
@@ -716,6 +710,34 @@ public:
 
 private:
     Shader* m_shader;
+};
+
+class SetCurrentView final : public CmdBase
+{
+public:
+    explicit SetCurrentView(View* view)
+        : m_view(view)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    View* m_view;
+};
+
+class SetCurrentRenderGroup final : public CmdBase
+{
+public:
+    explicit SetCurrentRenderGroup(RenderGroup* renderGroup)
+        : m_renderGroup(renderGroup)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    RenderGroup* m_renderGroup;
 };
 
 class CommitDrawState final : public CmdBase

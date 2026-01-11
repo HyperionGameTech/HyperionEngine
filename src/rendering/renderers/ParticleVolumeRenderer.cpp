@@ -331,10 +331,11 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
 
     if (!state.graphicsPipelineHandle.IsAlive() || (*state.graphicsPipelineHandle)->GetRenderTargetDesc() != renderTargetDesc)
     {
-        state.graphicsPipelineHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
+        g_renderInterface->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
             &renderTargetDesc,
-            state.renderableAttributes);
+            state.renderableAttributes,
+            state.graphicsPipelineHandle);
     }
 
     { // draw particles pass

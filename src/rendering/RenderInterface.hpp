@@ -43,6 +43,7 @@ class ResourceBinderBase;
 class ShaderPropertyCache;
 class World;
 class ConstantsAllocator;
+class RenderGroup;
 
 namespace RenderApi {
 
@@ -167,8 +168,9 @@ public:
     struct State
     {
         Shader* shader = nullptr;
+        RenderGroup* renderGroup = nullptr;
+        Viewport viewport;
         RenderTargetDesc renderTargetDesc;
-        RenderableAttributeSet attribs;
 
         GraphicsPipeline* prevGraphicsPipeline = nullptr;
 
@@ -188,8 +190,8 @@ public:
             ResetStencil();
 
             shader = nullptr;
+            renderGroup = nullptr;
             renderTargetDesc = {};
-            attribs = {};
             prevGraphicsPipeline = nullptr;
         }
     };
