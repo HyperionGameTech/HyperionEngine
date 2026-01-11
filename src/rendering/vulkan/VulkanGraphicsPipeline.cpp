@@ -464,12 +464,14 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
 
     FlatMap<uint32, uint32> bindingSizes {};
 
-    const Array<VertexAttribute::Type> attributeTypes = attributeSet.BuildAttributes();
+    const Array<const VertexAttribute*> attributeTypes = attributeSet.BuildAttributes();
     outVkVertexAttributes.Resize(attributeTypes.Size());
 
     for (SizeType i = 0; i < attributeTypes.Size(); i++)
     {
-        const VertexAttribute& attribute = VertexAttribute::mapping[attributeTypes[i]];
+        AssertDebug(attributeTypes[i] != nullptr);
+
+        const VertexAttribute& attribute = *attributeTypes[i];
 
         outVkVertexAttributes[i] = VkVertexInputAttributeDescription {
             .location = attribute.location,

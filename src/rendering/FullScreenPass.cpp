@@ -426,9 +426,7 @@ void FullScreenPass::CreatePipeline()
     HYP_SCOPE;
 
     const MeshAttributes meshAttributes {
-        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
     };
 
     const MaterialAttributes materialAttributes {
@@ -488,7 +486,9 @@ void FullScreenPass::CreatePreviousTexture()
         Vec3u { m_extent.x, m_extent.y, 1 },
         TFM_LINEAR,
         TFM_LINEAR,
-        TWM_CLAMP_TO_EDGE });
+        TWM_CLAMP_TO_EDGE
+    });
+
     m_previousTexture->SetName(NAME_FMT("{}_PreviousFrameTexture", InstanceClass()->GetName()));
 
     InitObject(m_previousTexture);

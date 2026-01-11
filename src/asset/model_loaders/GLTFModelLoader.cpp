@@ -758,7 +758,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.meshAttributes.topology = topology;
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
     meshDesc.numVertices = uint32(vertices.Size());
@@ -766,7 +766,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     if (hasSkinning)
     {
-        meshDesc.meshAttributes.vertexAttributes |= skeletonVertexAttributes;
+        meshDesc.meshAttributes.vertexAttributes |= VertexAttributeSet::SkeletalMeshVertexAttributes;
     }
 
     MeshData meshData;

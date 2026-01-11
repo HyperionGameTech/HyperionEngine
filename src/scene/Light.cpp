@@ -181,7 +181,7 @@ void Light::CreateShadowViews()
     ShaderDefinition shaderDefinition;
 
     ShaderProperties shaderProperties;
-    shaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
+    shaderProperties.SetRequiredVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
     shaderProperties.Set(s_shadowMapFilterProperties[shadowMapFilter]);
 
     RenderTargetDesc renderTargetDesc {};

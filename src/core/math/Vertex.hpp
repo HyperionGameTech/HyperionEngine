@@ -2,249 +2,23 @@
 
 #pragma once
 
-#define MAX_BONE_WEIGHTS 4
-#define MAX_BONE_INDICES 4
+#include <core/Defines.hpp>
+#include <core/HashCode.hpp>
+#include <core/Types.hpp>
 
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
-
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/ByteUtil.hpp>
-
-#include <util/EnumOptions.hpp>
 
 #include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Transform.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
-
-#include <core/Defines.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
-
-#include <type_traits>
-
 namespace Hyperion {
 
-/*! \brief Represents a vertex attribute used in mesh input.
- *  \details This struct defines the properties of a vertex attribute, including its name, location, binding, and size.
- *  It is used to describe the layout of vertex data in a mesh and is essential for rendering operations. */
-struct VertexAttribute
-{
-    enum Type : uint64
-    {
-        MESH_INPUT_ATTRIBUTE_UNDEFINED = 0x0,
-        MESH_INPUT_ATTRIBUTE_POSITION = 0x1,
-        MESH_INPUT_ATTRIBUTE_NORMAL = 0x2,
-        MESH_INPUT_ATTRIBUTE_TEXCOORD0 = 0x4,
-        MESH_INPUT_ATTRIBUTE_TEXCOORD1 = 0x8,
-        MESH_INPUT_ATTRIBUTE_TANGENT = 0x10,
-        MESH_INPUT_ATTRIBUTE_BITANGENT = 0x20,
-        MESH_INPUT_ATTRIBUTE_BONE_INDICES = 0x40,
-        MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS = 0x80
-    };
+static constexpr uint32 MAX_BONE_INDICES = 4;
+static constexpr uint32 MAX_BONE_WEIGHTS = 4;
 
-    static const EnumOptions<Type, VertexAttribute, 16> mapping;
-
-    const char* name;
-    uint32 location;
-    uint32 binding;
-    uint32 size; // total size == num elements * 4
-
-    HYP_FORCE_INLINE bool operator<(const VertexAttribute& other) const
-    {
-        return location < other.location;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name);
-        hc.Add(location);
-        hc.Add(binding);
-        hc.Add(size);
-
-        return hc;
-    }
-};
-
-/*! \brief Represents a set of vertex attributes used in mesh input.
- *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
- *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
-HYP_STRUCT(Serialize = "bitwise")
-struct VertexAttributeSet
-{
-    HYP_STRUCT_BODY(VertexAttributeSet);
-
-    HYP_FIELD()
-    uint64 flagMask;
-
-    constexpr VertexAttributeSet()
-        : flagMask(0)
-    {
-    }
-
-    constexpr VertexAttributeSet(uint64 flagMask)
-        : flagMask(flagMask)
-    {
-    }
-
-    constexpr VertexAttributeSet(VertexAttribute::Type flags)
-        : flagMask(uint64(flags))
-    {
-    }
-
-    constexpr VertexAttributeSet(const VertexAttributeSet& other) = default;
-    VertexAttributeSet& operator=(const VertexAttributeSet& other) = default;
-    ~VertexAttributeSet() = default;
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return flagMask != 0;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const VertexAttributeSet& other) const
-    {
-        return flagMask == other.flagMask;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const VertexAttributeSet& other) const
-    {
-        return flagMask != other.flagMask;
-    }
-
-    HYP_FORCE_INLINE bool operator==(uint64 flags) const
-    {
-        return flagMask == flags;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(uint64 flags) const
-    {
-        return flagMask != flags;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator~() const
-    {
-        return ~flagMask;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator&(const VertexAttributeSet& other) const
-    {
-        return { flagMask & other.flagMask };
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet& operator&=(const VertexAttributeSet& other)
-    {
-        flagMask &= other.flagMask;
-        return *this;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator&(uint64 flags) const
-    {
-        return { flagMask & flags };
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet& operator&=(uint64 flags)
-    {
-        flagMask &= flags;
-        return *this;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator|(const VertexAttributeSet& other) const
-    {
-        return { flagMask | other.flagMask };
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet& operator|=(const VertexAttributeSet& other)
-    {
-        flagMask |= other.flagMask;
-        return *this;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet operator|(uint64 flags) const
-    {
-        return { flagMask | flags };
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet& operator|=(uint64 flags)
-    {
-        flagMask |= flags;
-        return *this;
-    }
-
-    HYP_FORCE_INLINE bool operator<(const VertexAttributeSet& other) const
-    {
-        return flagMask < other.flagMask;
-    }
-
-    HYP_FORCE_INLINE bool Has(VertexAttribute::Type type) const
-    {
-        return bool(operator&(uint64(type)));
-    }
-
-    HYP_FORCE_INLINE void Set(uint64 flags, bool enable = true)
-    {
-        if (enable)
-        {
-            flagMask |= flags;
-        }
-        else
-        {
-            flagMask &= ~flags;
-        }
-    }
-
-    HYP_FORCE_INLINE void Set(VertexAttribute::Type type, bool enable = true)
-    {
-        Set(uint64(type), enable);
-    }
-
-    HYP_FORCE_INLINE void Merge(const VertexAttributeSet& other)
-    {
-        flagMask |= other.flagMask;
-    }
-
-    HYP_FORCE_INLINE uint64 GetFlagMask() const
-    {
-        return flagMask;
-    }
-
-    HYP_FORCE_INLINE void SetFlagMask(uint64 flags)
-    {
-        flagMask = flags;
-    }
-
-    HYP_FORCE_INLINE uint32 Size() const
-    {
-        return uint32(ByteUtil::BitCount(flagMask));
-    }
-
-    HYP_API Array<VertexAttribute::Type> BuildAttributes() const;
-    HYP_API SizeType CalculateVertexSize() const;
-
-    HYP_API String ToString() const;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(flagMask);
-
-        return hc;
-    }
-};
-
-constexpr VertexAttributeSet staticMeshVertexAttributes(
-    VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT);
-
-constexpr VertexAttributeSet skeletonVertexAttributes(
-    VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS
-    | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES);
+struct VertexAttribute;
 
 /*! \brief Represents a vertex in a mesh.
  *  \details This struct defines the properties of a vertex, including its position, normal, texture coordinates, tangent, bitangent,
@@ -455,46 +229,6 @@ struct alignas(16) Vertex
                 boneIndices[i] = indices[i];
                 numIndices = i + 1;
             }
-        }
-    }
-
-    /*! \brief Read the attribute from the vertex into \p ptr. The value at \p ptr must be able to hold sizeof(float) * 4.
-     *  If an invalid attribute is passed, the function does nothing.
-     *
-     *  \param attr The attribute to read.
-     *  \param ptr The pointer to write the attribute to.
-     */
-    void ReadAttribute(VertexAttribute::Type attr, void* ptr) const
-    {
-        switch (attr)
-        {
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION:
-            Memory::MemCpy(ptr, &position, sizeof(float) * 3);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL:
-            Memory::MemCpy(ptr, &normal, sizeof(float) * 3);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT:
-            Memory::MemCpy(ptr, &tangent, sizeof(float) * 3);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT:
-            Memory::MemCpy(ptr, &bitangent, sizeof(float) * 3);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0:
-            Memory::MemCpy(ptr, &texcoord0, sizeof(float) * 2);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1:
-            Memory::MemCpy(ptr, &texcoord1, sizeof(float) * 2);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES:
-            Memory::MemCpy(ptr, boneIndices.Data(), sizeof(uint32) * MAX_BONE_INDICES);
-            break;
-        case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS:
-            Memory::MemCpy(ptr, boneWeights.Data(), sizeof(float) * MAX_BONE_WEIGHTS);
-            break;
-        default:
-            // Do nothing
-            break;
         }
     }
 

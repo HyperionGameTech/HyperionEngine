@@ -299,7 +299,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
         MeshDesc meshDesc;
-        meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+        meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
         meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
         meshDesc.meshAttributes.topology = TOP_TRIANGLES;
         meshDesc.numVertices = uint32(model.vertices.Size());
@@ -307,7 +307,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         if (skeleton.IsValid())
         {
-            meshDesc.meshAttributes.vertexAttributes |= skeletonVertexAttributes;
+            meshDesc.meshAttributes.vertexAttributes |= VertexAttributeSet::SkeletalMeshVertexAttributes;
         }
 
         MeshData meshData;

@@ -453,7 +453,7 @@ void GaussianSplattingInstance::CreateGraphicsPipeline()
         { &m_framebuffer, 1 },
         RenderableAttributeSet(
             MeshAttributes {
-                .vertexAttributes = staticMeshVertexAttributes // VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
+                .vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes // VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
             },
             MaterialAttributes {
                 .bucket = RB_TRANSLUCENT,
@@ -585,7 +585,7 @@ void GaussianSplatting::Init()
     };
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
     meshDesc.meshAttributes.topology = TOP_TRIANGLES;
     meshDesc.numIndices = uint32(indices.Size());

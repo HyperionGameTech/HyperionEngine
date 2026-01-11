@@ -13,6 +13,8 @@
 
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
+#include <rendering/util/ShaderCompiler.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 namespace Hyperion {
@@ -482,10 +484,10 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer*)
     if (g_renderInterface->state.prevGraphicsPipeline == nullptr
         || g_renderInterface->state.prevGraphicsPipeline->GetShader() != g_renderInterface->state.shader)
     {
-        /*auto cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
+        auto cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
             MakeStrongRef(g_renderInterface->state.shader),
-            g_renderInterface->state.attachmentDescs,
-            g_renderInterface->state.);*/
+            &g_renderInterface->state.renderTargetDesc,
+            g_renderInterface->state.attribs);
     }
 
     static_assert(std::is_trivially_destructible_v<CommitDrawState>);

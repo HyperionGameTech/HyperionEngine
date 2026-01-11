@@ -2,17 +2,16 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+#include <core/Types.hpp>
+#include <core/HashCode.hpp>
+
 #include <rendering/Shared.hpp>
 #include <rendering/RenderBucket.hpp>
-#include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/reflection/ObjectFwd.hpp>
-
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
 
 namespace Hyperion {
 
@@ -110,7 +109,7 @@ struct MeshAttributes
     HYP_STRUCT_BODY(MeshAttributes);
 
     HYP_FIELD(Property = "VertexAttributes")
-    VertexAttributeSet vertexAttributes = staticMeshVertexAttributes;
+    VertexAttributeSet vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
 
     HYP_FIELD(Property = "Topology")
     Topology topology = TOP_TRIANGLES;

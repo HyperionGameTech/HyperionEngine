@@ -7,7 +7,7 @@
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/Buffers.hpp>
-
+#include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/GpuBuffer.hpp>
@@ -167,8 +167,8 @@ public:
     struct State
     {
         Shader* shader = nullptr;
-        Array<AttachmentDesc, RenderAllocator> attachmentDescs;
-        HashCode attributesHashCode;
+        RenderTargetDesc renderTargetDesc;
+        RenderableAttributeSet attribs;
 
         GraphicsPipeline* prevGraphicsPipeline = nullptr;
 
@@ -188,8 +188,8 @@ public:
             ResetStencil();
 
             shader = nullptr;
-            attachmentDescs.Clear();
-            attributesHashCode = {};
+            renderTargetDesc = {};
+            attribs = {};
             prevGraphicsPipeline = nullptr;
         }
     };

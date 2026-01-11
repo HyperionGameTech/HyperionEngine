@@ -76,9 +76,9 @@ const Array<Vertex> MeshBuilder::cubeVertices = {
 
 Handle<Mesh> MeshBuilder::Quad()
 {
-    const VertexAttributeSet vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+    const VertexAttributeSet vertexAttributes = VertexAttribute::Position
+        | VertexAttribute::Normal
+        | VertexAttribute::TexCoord0;
 
     MeshDesc meshDesc;
     meshDesc.meshAttributes.vertexAttributes = vertexAttributes;
@@ -102,7 +102,7 @@ Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
     static const auto s_cubeVerticesAndIndices = Mesh::CalculateIndices(cubeVertices);
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
     meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
@@ -224,7 +224,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
@@ -446,7 +446,7 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.numIndices = (uint32)indices.Size();
     meshDesc.numVertices = (uint32)vertices.Size();
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
