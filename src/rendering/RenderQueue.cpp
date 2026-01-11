@@ -6,6 +6,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/DescriptorSetCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
@@ -13,6 +14,7 @@
 #include <rendering/RenderGroup.hpp>
 
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 
@@ -575,6 +577,15 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
         const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
         AssertDebug(tableDecl != nullptr);
+
+        constexpr uint32 MaxDynamicOffsetsPerSet = 8;
+        constexpr uint32 MaxDescriptorSetsBound = 8;
+
+        DescriptorSet* descriptorSetsToBind[MaxDescriptorSetsBound] {};
+        const ShaderUniform* dynamicOffsetUniforms[MaxDynamicOffsetsPerSet][MaxDescriptorSetsBound] {};
+        uint32 numDynamicOffsets[MaxDescriptorSetsBound] {};
+
+        uint32 setIndicesBitmask = 0;
         
         // @TODO DescriptorSetCache to fetch descriptor set dynamically here
 
@@ -583,7 +594,11 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
             const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
             // @TODO: Optimize the hell out of this so no more linear search and then checking REFERENCE flag and fetching from global ..
+
             const DescriptorDeclaration* decl = nullptr;
+
+            const DescriptorSetDeclaration* foundSetDecl = nullptr;             // original
+            const DescriptorSetDeclaration* foundSetReferenceDecl = nullptr;    // referenced set (if reference)
 
             for (const DescriptorSetDeclaration& setDecl : tableDecl->elements)
             {
@@ -599,18 +614,97 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                 if (decl)
                 {
+                    foundSetReferenceDecl = pSetDecl;
+                    foundSetDecl = &setDecl;
+
                     break;
                 }
             }
 
             if (decl)
             {
+                const uint32 setIndex = foundSetDecl->setIndex;
+                AssertDebug(setIndex < MaxDescriptorSetsBound);
+
+                if (!(descriptorSetsToBind[setIndex]))
+                {
+                    // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
+                    if (foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE)
+                    {
+                        descriptorSetsToBind[setIndex] = g_renderInterface->globalDescriptorTable->GetDescriptorSet(foundSetDecl->name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
+                    }
+                    else
+                    {
+                        DescriptorSetLayout layout { foundSetReferenceDecl };
+
+                        descriptorSetsToBind[setIndex] = g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+                    }
+                    
+                    AssertDebug(descriptorSetsToBind[setIndex] != nullptr);
+                    setIndicesBitmask |= (1u << setIndex);
+                }
+                
+                // DON'T set elems in any global descriptor sets -- will eventually be removed
+                const bool shouldSetElements = !(foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE);
+                
+                switch (uniform.type)
+                {
+                case ShaderUniform::UT_Buffer:
+                    if (shouldSetElements)
+                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+
+                    if (decl->isDynamic)
+                    {
+                        const uint32 dynamicOffsetIndex = numDynamicOffsets[setIndex]++;
+                        AssertDebug(dynamicOffsetIndex <= MaxDynamicOffsetsPerSet);
+
+                        dynamicOffsetUniforms[setIndex][dynamicOffsetIndex] = &uniform;
+                    }
+
+                    break;
+                case ShaderUniform::UT_ImageView:
+                    if (shouldSetElements)
+                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+                    break;
+                case ShaderUniform::UT_Sampler:
+                    if (shouldSetElements)
+                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
+                    break;
+                case ShaderUniform::UT_Tlas:
+                    if (shouldSetElements)
+                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
+                    break;
+                default:
+                    HYP_UNREACHABLE();
+                }
+
                 state.validUniforms |= (1u << uniformIndex);
                 state.dirtyUniforms &= (1u << uniformIndex);
 
                 // AssertDebug(decl != nullptr, "Invalid shader uniform; not found in compiled shader! Uniform name: {}", *Name(uniform.name));
 
                 // We'll set it in the descriptor set here
+            }
+        }
+
+        // bind descriptor sets
+        if (setIndicesBitmask != 0)
+        {
+            FOR_EACH_BIT(setIndicesBitmask, setIndex)
+            {
+                AssertDebug(descriptorSetsToBind[setIndex] != nullptr);
+
+                DescriptorSetOffsetMap offsets {};
+                for (uint32 i = 0; i < numDynamicOffsets[setIndex]; i++)
+                {
+                    const ShaderUniform* uniform = dynamicOffsetUniforms[setIndex][i];
+                    AssertDebug(uniform != nullptr && uniform->type == ShaderUniform::UT_Buffer);
+
+                    offsets.Add(uniform->name, uniform->bufferOffset);
+                }
+
+                BindDescriptorSet bindCmd(descriptorSetsToBind[setIndex], pipeline, offsets);
+                BindDescriptorSet::InvokeStatic(&bindCmd, commandBuffer);
             }
         }
     }

@@ -24,6 +24,7 @@
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/ConstantsAllocator.hpp>
+#include <rendering/DescriptorSetCache.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -1179,6 +1180,7 @@ void BeginFrameRender()
     FrameData& fd = s_frameData[slot];
 
     g_renderInterface->constantsAllocator->OnFrameStart();
+    g_renderInterface->descriptorSetCache->OnFrameStart();
 
     g_engineStats->Prepare();
 
@@ -1512,6 +1514,7 @@ void EndFrameRender()
     g_renderInterface->state.Reset();
 
     g_renderInterface->constantsAllocator->OnFrameEnd();
+    g_renderInterface->descriptorSetCache->OnFrameEnd();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
@@ -1528,6 +1531,7 @@ RenderInterface::RenderInterface()
     : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
       gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
       constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
+      descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
