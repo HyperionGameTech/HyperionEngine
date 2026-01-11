@@ -10,13 +10,13 @@
 
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
+#include <core/reflection/TypeInfo.hpp>
 
 #include <core/threading/Scheduler.hpp>
 
 #include <core/reflection/HypDataJSONHelpers.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Property.hpp>
-#include <core/reflection/TypeInfo.hpp>
 
 #include <core/io/ByteWriter.hpp>
 #include <core/io/BufferedByteReader.hpp>

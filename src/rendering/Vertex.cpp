@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 
 #ifndef HYP_BUILDTOOL
 #include <Vertex.generated.inl>

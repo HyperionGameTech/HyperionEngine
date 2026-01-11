@@ -11,7 +11,7 @@
 
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Triangle.hpp>
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 #include <core/math/Ray.hpp>
 
 #include <core/Defines.hpp>

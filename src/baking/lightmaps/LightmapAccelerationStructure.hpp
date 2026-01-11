@@ -7,7 +7,6 @@
 #include <core/Types.hpp>
 
 #include <core/math/Ray.hpp>
-#include <core/math/Vertex.hpp>
 #include <core/math/Mat4f.hpp>
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Transform.hpp>
@@ -17,6 +16,8 @@
 
 #include <core/containers/FlatSet.hpp>
 #include <core/containers/Array.hpp>
+
+#include <rendering/Vertex.hpp>
 
 #include <scene/BVH.hpp>
 

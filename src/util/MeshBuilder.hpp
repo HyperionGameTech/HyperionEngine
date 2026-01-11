@@ -2,17 +2,18 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+#include <core/Types.hpp>
+
 #include <core/containers/Array.hpp>
 
 #include <core/reflection/Handle.hpp>
-#include <core/Defines.hpp>
 
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Vertex.hpp>
 
-#include <core/Types.hpp>
+#include <rendering/Vertex.hpp>
 
 namespace Hyperion {
 

@@ -13,8 +13,9 @@
 #include <core/math/Transform.hpp>
 #include <core/math/Mat4f.hpp>
 #include <core/math/BoundingBox.hpp>
-#include <core/math/Vertex.hpp>
 #include <core/math/Ray.hpp>
+
+#include <rendering/Vertex.hpp>
 
 #include <util/img/Bitmap.hpp>
 

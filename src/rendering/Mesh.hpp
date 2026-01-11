@@ -11,7 +11,7 @@
 #include <core/threading/Semaphore.hpp>
 
 #include <core/math/BoundingBox.hpp>
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 
 #include <scene/BVH.hpp>
 

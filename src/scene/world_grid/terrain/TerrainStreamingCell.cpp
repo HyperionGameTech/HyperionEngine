@@ -18,8 +18,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 
 #include <core/io/ByteWriter.hpp>
 

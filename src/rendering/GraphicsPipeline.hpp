@@ -12,8 +12,6 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/math/Vertex.hpp>
-
 namespace Hyperion {
 
 class RenderableAttributeSet;

@@ -213,9 +213,9 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     InitOctants();
 
-    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const MeshData&)> insertIntoOctree;
+    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const MeshData&)> InsertIntoOctree;
 
-    insertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const MeshData& meshData) -> bool
+    InsertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const MeshData& meshData) -> bool
     {
         if (meshDesc.numIndices > 0)
         {
@@ -229,10 +229,10 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
             for (SizeType i = 0; i < meshIndices.Size(); i += 3)
             {
-                Triangle triangle {
-                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 0]].position),
-                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 1]].position),
-                    Vertex(transformMatrix * meshData.vertexData[meshIndices[i + 2]].position)
+                const Triangle triangle {
+                    transformMatrix * meshData.vertexData[meshIndices[i + 0]].position,
+                    transformMatrix * meshData.vertexData[meshIndices[i + 1]].position,
+                    transformMatrix * meshData.vertexData[meshIndices[i + 2]].position
                 };
 
                 BoundingBox triangleAabb = triangle.GetBoundingBox().Expand(0.002f);
@@ -252,7 +252,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
         Assert(meshData != nullptr);
 
-        insertIntoOctree(element, meshDesc, *meshData);
+        InsertIntoOctree(element, meshDesc, *meshData);
     }
 
     return {};
