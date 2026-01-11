@@ -82,9 +82,9 @@ bool GraphicsPipelineBase::MatchesSignature(
         return false;
     }
 
-    if (shader != nullptr)
+    if (shader != nullptr && shader != m_shader)
     {
-        if (shader->GetCompiledShader()->GetHashCode() != m_shader->GetCompiledShader()->GetHashCode())
+        if (shader->GetCompiledShader()->GetDefinition() != m_shader->GetCompiledShader()->GetDefinition())
         {
             return false;
         }

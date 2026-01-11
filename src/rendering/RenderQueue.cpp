@@ -10,14 +10,19 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderGroup.hpp>
 
 #include <rendering/raytracing/RenderRaytracingPipeline.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 
+#include <scene/View.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 namespace Hyperion {
+
+HYP_DISABLE_OPTIMIZATION;
 
 #pragma region RenderQueue
 
@@ -31,7 +36,10 @@ void RenderQueue::Prepare(Frame* frame)
         CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
         AssertDebug(cmdHeader.offset < m_buffer.Size());
 
-        cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+        if (cmdHeader.prepareFnPtr != nullptr)
+        {
+            cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+        }
     }
 }
 
@@ -308,44 +316,11 @@ void EndFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
 
 #pragma region BindGraphicsPipeline
 
-#ifdef HYP_DEBUG_MODE
-
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport)
-    : m_pipeline(pipeline),
-      m_viewport(viewport)
-{
-    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
-}
-
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
-    : m_pipeline(pipeline),
-      m_viewport(Viewport { viewportExtent, viewportOffset })
-{
-    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
-}
-
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline)
-    : m_pipeline(pipeline),
-      m_viewport()
-{
-    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
-}
-
-#endif
-
-void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, Frame*)
-{
-    BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
-
-    if (cmdCasted->m_pipeline)
-    {
-        cmdCasted->m_pipeline->lastFrame = RenderApi::GetFrameCounter();
-    }
-}
-
 void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
+    
+    cmdCasted->m_pipeline->lastFrame = RenderApi::GetFrameCounter();
 
     if (cmdCasted->m_viewport.position != Vec2i(0, 0) || cmdCasted->m_viewport.extent != Vec2u(0, 0))
     {
@@ -477,18 +452,85 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetCurrentShader
 
+#pragma region SetCurrentView
+
+void SetCurrentView::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentView* cmdCasted = static_cast<SetCurrentView*>(cmd);
+
+    Framebuffer* framebuffer = nullptr;
+
+    if (!cmdCasted->m_view || !(framebuffer = cmdCasted->m_view->GetOutputTarget().GetFramebuffer()))
+    {
+        g_renderInterface->state.renderTargetDesc = {};
+    }
+    else
+    {
+        g_renderInterface->state.renderTargetDesc = framebuffer->GetRenderTargetDesc();
+    }
+
+    if (cmdCasted->m_view)
+    {
+        g_renderInterface->state.viewport = cmdCasted->m_view->GetViewport();
+    }
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentView>);
+    // cmdCasted->~SetCurrentView();
+}
+
+#pragma endregion SetCurrentView
+
+#pragma region SetCurrentRenderGroup
+
+void SetCurrentRenderGroup::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentRenderGroup* cmdCasted = static_cast<SetCurrentRenderGroup*>(cmd);
+
+    g_renderInterface->state.renderGroup = cmdCasted->m_renderGroup;
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentRenderGroup>);
+    // cmdCasted->~SetCurrentRenderGroup();
+}
+
+#pragma endregion SetRenderableAttributes
+
 #pragma region CommitDrawState
 
-void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer*)
+static const RenderableAttributeSet s_defaultAttributes;
+
+void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 {
-    if (g_renderInterface->state.prevGraphicsPipeline == nullptr
-        || g_renderInterface->state.prevGraphicsPipeline->GetShader() != g_renderInterface->state.shader)
+    RenderInterface& ri = *g_renderInterface;
+    RenderInterface::State& state = ri.state;
+
+    if (!state.prevGraphicsPipeline
+        || !state.prevGraphicsPipeline->MatchesSignature(
+                state.shader,
+                &state.renderTargetDesc,
+                state.renderGroup
+                    ? state.renderGroup->GetRenderableAttributes()
+                    : s_defaultAttributes
+            ))
     {
-        auto cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            MakeStrongRef(g_renderInterface->state.shader),
-            &g_renderInterface->state.renderTargetDesc,
-            g_renderInterface->state.attribs);
+        GraphicsPipelineCacheHandle cacheHandle;
+        
+        ri.graphicsPipelineCache->GetOrCreate(
+            state.shader,
+            &state.renderTargetDesc,
+            state.renderGroup
+                ? state.renderGroup->GetRenderableAttributes()
+                : s_defaultAttributes,
+            cacheHandle);
+
+        GraphicsPipeline* pipeline = *cacheHandle;
+
+        BindGraphicsPipeline bindCmd(pipeline, state.viewport);
+        BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
+
+        state.prevGraphicsPipeline = pipeline;
     }
+
+    // @TODO Set descriptors
 
     static_assert(std::is_trivially_destructible_v<CommitDrawState>);
     // cmdCasted->~SetCurrentShader();

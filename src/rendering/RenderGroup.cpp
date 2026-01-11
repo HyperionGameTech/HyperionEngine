@@ -143,10 +143,13 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket);
     Assert(framebuffer != nullptr);
 
-    GraphicsPipelineCacheHandle cacheHandle = g_renderInterface->graphicsPipelineCache->GetOrCreate(
+    GraphicsPipelineCacheHandle cacheHandle;
+    
+    g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
         &framebuffer->GetRenderTargetDesc(),
-        m_renderableAttributes);
+        m_renderableAttributes,
+        cacheHandle);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
     clock.Stop();
@@ -244,8 +247,6 @@ static void RenderAll(
     }
 
     ValidatePipelineState(renderSetup, pipeline);
-    
-    frame->renderQueue << SetCurrentShader(pipeline->GetShader());
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -265,13 +266,20 @@ static void RenderAll(
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+    
+    frame->renderQueue << SetCurrentShader(pipeline->GetShader());
+    frame->renderQueue << SetCurrentView(renderSetup.view);
+    frame->renderQueue << SetCurrentRenderGroup(renderGroup);
 
     if (materialAttributes.stencilReference != 0)
     {
         frame->renderQueue << SetStencilState(materialAttributes.stencilReference, 0xFF, 0xFF);
     }
 
-    frame->renderQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
+    // temp
+    frame->renderQueue << CommitDrawState();
+
+    //frame->renderQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
     if (globalDescriptorSetIndex != ~0u)
     {
@@ -335,6 +343,8 @@ static void RenderAll(
 
             frame->renderQueue << BindDescriptorSet(materialDescriptorSet, pipeline, {}, materialDescriptorSetIndex);
         }
+        
+        //frame->renderQueue << CommitDrawState();
 
         if (!prevMesh || prevMesh != drawCalls.meshes[i])
         {
@@ -416,6 +426,8 @@ static void RenderAll(
             pipeline,
             { { "EntityInstanceBatchesBuffer"_sh, uint32(offset) } },
             instancingDescriptorSetIndex);
+        
+        //frame->renderQueue << CommitDrawState();
 
         if (!prevMesh || prevMesh != instancedDrawCalls.meshes[i])
         {
@@ -496,13 +508,20 @@ static void RenderAll_Parallel(
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
     const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+    
+    rootQueue << SetCurrentShader(pipeline->GetShader());
+    rootQueue << SetCurrentView(renderSetup.view);
+    rootQueue << SetCurrentRenderGroup(renderGroup);
 
     if (materialAttributes.stencilReference != 0)
     {
         rootQueue << SetStencilState(materialAttributes.stencilReference, 0xFF, 0xFF);
     }
+    
+    // temp
+    rootQueue << CommitDrawState();
 
-    rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
+    //rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
     if (globalDescriptorSetIndex != ~0u)
     {
@@ -587,6 +606,8 @@ static void RenderAll_Parallel(
 
                         renderQueue << BindDescriptorSet(materialDescriptorSet, pipeline, {}, materialDescriptorSetIndex);
                     }
+        
+                    //renderQueue << CommitDrawState();
 
                     if (!prevMesh || prevMesh != drawCalls.meshes[i])
                     {
@@ -692,6 +713,8 @@ static void RenderAll_Parallel(
                         pipeline,
                         { { "EntityInstanceBatchesBuffer"_sh, uint32(offset) } },
                         instancingDescriptorSetIndex);
+        
+                    //renderQueue << CommitDrawState();
 
                     if (!prevMesh || prevMesh != instancedDrawCalls.meshes[i])
                     {

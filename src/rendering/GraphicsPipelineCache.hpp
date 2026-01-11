@@ -91,21 +91,22 @@ public:
      *  Returns a pointer to the reference, do not store a strong reference to it as it will be discarded after a certain number of frames if not used.
      *  Instead, use the returned pointer to access the graphics pipeline. It's guaranteed to be valid for at least 10 frames after this method returns.
      */
-    GraphicsPipelineCacheHandle GetOrCreate(
-        const ShaderRef& shader,
+    void GetOrCreate(
+        Shader* shader,
         const RenderTargetDesc* renderTargetDesc,
-        const RenderableAttributeSet& attributes);
+        const RenderableAttributeSet& attributes,
+        GraphicsPipelineCacheHandle& outCacheHandle);
 
     int RunCleanupCycle(int maxIter = 10);
 
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
-        const ShaderRef& shader,
+        Shader* shader,
         const RenderTargetDesc* renderTargetDesc,
         const RenderableAttributeSet& attributes);
 
     CachedPipelinesMap* m_cachedPipelines;
-    Mutex m_mutex;
+    SharedMutex m_mutex;
 };
 
 } // namespace Hyperion
