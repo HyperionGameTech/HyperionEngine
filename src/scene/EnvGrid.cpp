@@ -138,7 +138,10 @@ void LegacyEnvGrid::Init()
     InitObject(m_camera);
     AddChild(m_camera);
 
-    ShaderProperties shaderProperties(staticMeshVertexAttributes, { NAME("ENV_PROBE"), NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") });
+    ShaderProperties shaderProperties {
+        VertexAttributeSet::StaticMeshVertexAttributes,
+        { NAME("ENV_PROBE"), NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }
+    };
 
     ShaderDefinition shaderDefinition { NAME("RenderToCubemap"), shaderProperties };
 

@@ -286,12 +286,18 @@ void EnvProbe::CreateView()
 
     if (IsReflectionProbe())
     {
-        shaderDefinition = ShaderDefinition(NAME("RenderToCubemap"),
-            ShaderProperties(staticMeshVertexAttributes, { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }));
+        shaderDefinition = ShaderDefinition(
+            NAME("RenderToCubemap"),
+            ShaderProperties {
+                VertexAttributeSet::StaticMeshVertexAttributes,
+                { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }
+            });
     }
     else if (IsSkyProbe())
     {
-        shaderDefinition = ShaderDefinition(NAME("RenderSky"), ShaderProperties(staticMeshVertexAttributes));
+        shaderDefinition = ShaderDefinition(
+            NAME("RenderSky"),
+            ShaderProperties(VertexAttributeSet::StaticMeshVertexAttributes));
     }
 
     ViewDesc viewDesc {
@@ -308,7 +314,8 @@ void EnvProbe::CreateView()
             MaterialAttributes {
                 .shaderDefinition = shaderDefinition,
                 .blendFunction = BlendFunction::AlphaBlending(),
-                .cullFaces = FCM_NONE })
+                .cullFaces = FCM_NONE
+            })
     };
 
     Handle<View> view = CreateObject<View>(viewDesc);

@@ -1296,7 +1296,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     {
                         if (const FBXObject& uvNode = (*childObject)[name]["UV"])
                         {
-                            attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+                            attributes |= VertexAttribute::TexCoord0;
 
                             const SizeType count = uvNode.GetProperty(0).arrayElements.Size();
                         }
@@ -1307,7 +1307,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                         if (const FBXObject& normalsNode = (*childObject)[name]["Normals"])
                         {
-                            attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL;
+                            attributes |= VertexAttribute::Normal;
 
                             const FBXProperty& normalsProperty = normalsNode.GetProperty(0);
                             const uint32 numNormals = uint32(normalsProperty.arrayElements.Size()) / 3;
@@ -1363,7 +1363,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 fbxMesh.name = nodeName;
                 fbxMesh.vertices = std::move(newVertsAndIndices.first);
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
-                fbxMesh.attributes = staticMeshVertexAttributes | skeletonVertexAttributes;
+                fbxMesh.attributes = VertexAttributeSet::StaticMeshVertexAttributes
+                    | VertexAttributeSet::SkeletalMeshVertexAttributes;
 
                 mapping.data.Set(std::move(fbxMesh));
             }

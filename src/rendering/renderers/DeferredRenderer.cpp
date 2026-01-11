@@ -139,10 +139,7 @@ static void GetDeferredShaderProperties(
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
 
-    outShaderProperties.SetRequiredVertexAttributes(
-        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0);
+    outShaderProperties.SetRequiredVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
     MergeGlobalShaderProperties(outShaderProperties);
 
@@ -558,9 +555,7 @@ void TonemapPass::CreatePipeline()
     AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
-        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
     };
 
     const MaterialAttributes materialAttributes {
@@ -656,9 +651,7 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
     }
 
     const MeshAttributes meshAttributes {
-        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
     };
 
     MaterialAttributes materialAttributes;
@@ -1057,9 +1050,7 @@ void EnvGridPass::CreatePipeline()
     AssertOnThread(g_renderThread);
 
     const MeshAttributes meshAttributes {
-        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
     };
 
     const MaterialAttributes materialAttributes {
@@ -1274,9 +1265,7 @@ void ReflectionsPass::CreatePipeline()
     HYP_SCOPE;
 
     const MeshAttributes meshAttributes {
-        VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0
+        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
     };
 
     const MaterialAttributes materialAttributes {

@@ -21,7 +21,7 @@ namespace Hyperion {
 
 static const ShaderDefinition s_defaultShaderDefinition {
     NAME("GeometryPass"),
-    ShaderProperties(staticMeshVertexAttributes)
+    ShaderProperties(VertexAttributeSet::StaticMeshVertexAttributes)
 };
 
 static HashCode GetMaterialHashCode(

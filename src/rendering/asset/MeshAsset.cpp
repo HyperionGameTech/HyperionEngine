@@ -53,23 +53,22 @@ Array<float> MeshData::BuildVertexBuffer(const VertexAttributeSet& vertexAttribu
         // currentOffset = i * vertexSize;
 
         /* Position and normals */
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION)
+        if (vertexAttributes.Has(VertexAttribute::Position))
             PACKED_SET_ATTR(vertex.GetPosition().values, 3);
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL)
+        if (vertexAttributes.Has(VertexAttribute::Normal))
             PACKED_SET_ATTR(vertex.GetNormal().values, 3);
         /* Texture coordinates */
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0)
+        if (vertexAttributes.Has(VertexAttribute::TexCoord0))
             PACKED_SET_ATTR(vertex.GetTexCoord0().values, 2);
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1)
+        if (vertexAttributes.Has(VertexAttribute::TexCoord1))
             PACKED_SET_ATTR(vertex.GetTexCoord1().values, 2);
         /* Tangents and Bitangents */
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT)
+        if (vertexAttributes.Has(VertexAttribute::Tangent))
             PACKED_SET_ATTR(vertex.GetTangent().values, 3);
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT)
+        if (vertexAttributes.Has(VertexAttribute::Bitangent))
             PACKED_SET_ATTR(vertex.GetBitangent().values, 3);
 
-        /* TODO: modify GetBoneIndex/GetBoneWeight to return a Vector4. */
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS)
+        if (vertexAttributes.Has(VertexAttribute::BoneWeights))
         {
             float weights[4] = {
                 vertex.GetBoneWeight(0), vertex.GetBoneWeight(1),
@@ -78,7 +77,7 @@ Array<float> MeshData::BuildVertexBuffer(const VertexAttributeSet& vertexAttribu
             PACKED_SET_ATTR(weights, HYP_ARRAY_SIZE(weights));
         }
 
-        if (vertexAttributes & VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES)
+        if (vertexAttributes.Has(VertexAttribute::BoneIndices))
         {
             float indices[4] = {
                 (float)vertex.GetBoneIndex(0), (float)vertex.GetBoneIndex(1),

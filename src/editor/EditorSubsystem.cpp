@@ -1636,7 +1636,7 @@ void EditorSubsystem::Update(float delta)
         }
         //        g_engineDriver->GetDebugDrawer()->box(m_focusedNode->GetWorldTranslation(), m_focusedNode->GetWorldBounds().GetExtent(), Color(1.0f), RenderableAttributeSet(
         //            MeshAttributes {
-        //                .vertexAttributes = staticMeshVertexAttributes
+        //                .vertexAttributes = StaticMeshVertexAttributes
         //            },
         //            MaterialAttributes {
         //                .bucket             = RB_TRANSLUCENT,

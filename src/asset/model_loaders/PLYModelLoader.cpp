@@ -11,6 +11,8 @@
 
 #include <core/filesystem/FsUtil.hpp>
 
+#include <core/utilities/StringUtil.hpp>
+
 #include <algorithm>
 
 #include <PLYModelLoader.generated.inl>

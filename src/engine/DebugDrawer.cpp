@@ -48,13 +48,15 @@ static RenderableAttributeSet GetRenderableAttributes()
 {
     return RenderableAttributeSet(
         MeshAttributes {
-            .vertexAttributes = staticMeshVertexAttributes,
-            .topology = TOP_LINES },
+            .vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes,
+            .topology = TOP_LINES
+        },
         MaterialAttributes {
             .bucket = RB_DEBUG,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
-            .flags = MAF_DEPTH_TEST });
+            .flags = MAF_DEPTH_TEST
+        });
 }
 
 struct DebugDrawCommand
@@ -530,7 +532,10 @@ void DebugDrawer::Init()
 
     m_shader = g_shaderManager->GetOrCreate(
         NAME("DebugAABB"),
-        ShaderProperties(staticMeshVertexAttributes, { { NAME("IMMEDIATE_MODE") } }));
+        ShaderProperties(
+            VertexAttributeSet::StaticMeshVertexAttributes,
+            { { NAME("IMMEDIATE_MODE") } }
+        ));
 
     Assert(m_shader.IsValid());
 

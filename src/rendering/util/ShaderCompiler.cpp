@@ -107,9 +107,9 @@ static String BuildPreamble(const ShaderProperties& properties)
 {
     String preamble;
 
-    for (const VertexAttribute::Type attributeType : properties.GetRequiredVertexAttributes().BuildAttributes())
+    for (const VertexAttribute* attr : properties.GetRequiredVertexAttributes().BuildAttributes())
     {
-        preamble += String("#define HYP_ATTRIBUTE_") + VertexAttribute::mapping[attributeType].name + "\n";
+        preamble += String("#define HYP_ATTRIBUTE_") + attr->name + "\n";
     }
 
     // We do not do the same for Optional attributes, as they have not been
@@ -1051,16 +1051,13 @@ static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
     { "mesh", SMT_MESH }, { "task", SMT_TASK }
 };
 
-static bool FindVertexAttributeForDefinition(const String& name, VertexAttribute::Type& outType)
+static bool FindVertexAttributeForDefinition(const String& name, const VertexAttribute*& outAttribute)
 {
-    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++)
+    for (const VertexAttribute** attr = VertexAttribute::Attrs; *attr; attr++)
     {
-        const auto it = VertexAttribute::mapping.KeyValueAt(i);
-
-        if (name == it.second.name)
+        if (name == (*attr)->name)
         {
-            outType = it.first;
-
+            outAttribute = *attr;
             return true;
         }
     }
@@ -1074,17 +1071,18 @@ static VertexAttributeSet BuildVertexAttributeSet(const Array<VertexAttributeDef
 
     for (const VertexAttributeDefinition& definition : definitions)
     {
-        VertexAttribute::Type type;
+        const VertexAttribute* attr = nullptr;
 
-        if (!FindVertexAttributeForDefinition(definition.name, type))
+        if (!FindVertexAttributeForDefinition(definition.name, attr))
         {
-            HYP_LOG(ShaderCompiler, Error,
-                "Invalid vertex attribute definition, {}", definition.name);
+            HYP_LOG(ShaderCompiler, Error, "Invalid vertex attribute definition, {}", definition.name);
 
             continue;
         }
 
-        set |= type;
+        Assert(attr != nullptr);
+
+        set |= *attr;
     }
 
     return set;
@@ -1099,22 +1097,17 @@ static void ForEachPermutation(
     Array<ShaderProperty> staticProperties;
     Array<ShaderProperty> valueGroups;
 
-    for (SizeType i = 0; i < VertexAttribute::mapping.Size(); i++)
+    for (const VertexAttribute** ppAttr = VertexAttribute::Attrs; *ppAttr; ppAttr++)
     {
-        const auto& kv = VertexAttribute::mapping.KeyValueAt(i);
+        const VertexAttribute& attr = **ppAttr;
 
-        if (!kv.second.name)
+        if (versions.HasRequiredVertexAttribute(attr))
         {
-            continue;
+            staticProperties.PushBack(ShaderProperty(attr));
         }
-
-        if (versions.HasRequiredVertexAttribute(kv.first))
+        else if (versions.HasOptionalVertexAttribute(attr))
         {
-            staticProperties.PushBack(ShaderProperty(kv.first));
-        }
-        else if (versions.HasOptionalVertexAttribute(kv.first))
-        {
-            variableProperties.PushBack(ShaderProperty(kv.first));
+            variableProperties.PushBack(ShaderProperty(attr));
         }
     }
 
@@ -1334,9 +1327,9 @@ ShaderProperties& ShaderProperties::Set(const ShaderProperty& property, bool ena
 {
     if (property.IsVertexAttribute())
     {
-        VertexAttribute::Type type;
+        const VertexAttribute* attr = nullptr;
 
-        if (!FindVertexAttributeForDefinition(property.GetValueString(), type))
+        if (!FindVertexAttributeForDefinition(property.GetValueString(), attr))
         {
             HYP_LOG(ShaderCompiler, Error,
                 "Invalid vertex attribute name for shader: {}",
@@ -1345,16 +1338,18 @@ ShaderProperties& ShaderProperties::Set(const ShaderProperty& property, bool ena
             return *this;
         }
 
+        Assert(attr != nullptr);
+
         if (property.IsOptionalVertexAttribute())
         {
             if (enabled)
             {
-                m_optionalVertexAttributes |= type;
+                m_optionalVertexAttributes |= *attr;
                 m_optionalVertexAttributes &= ~m_requiredVertexAttributes;
             }
             else
             {
-                m_optionalVertexAttributes &= ~type;
+                m_optionalVertexAttributes &= ~(*attr);
             }
 
             // NOTE: Optional vertex attributes should not trigger any hash code
@@ -1365,12 +1360,12 @@ ShaderProperties& ShaderProperties::Set(const ShaderProperty& property, bool ena
 
         if (enabled)
         {
-            m_requiredVertexAttributes |= type;
-            m_optionalVertexAttributes &= ~type;
+            m_requiredVertexAttributes |= *attr;
+            m_optionalVertexAttributes &= ~(*attr);
         }
         else
         {
-            m_requiredVertexAttributes &= ~type;
+            m_requiredVertexAttributes &= ~(*attr);
         }
 
         m_needsHashCodeRecalculation = true;

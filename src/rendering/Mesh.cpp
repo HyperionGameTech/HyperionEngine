@@ -26,6 +26,74 @@ namespace Hyperion {
 
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
+const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
+    VertexAttribute::Position | VertexAttribute::Normal
+        | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1
+        | VertexAttribute::Tangent | VertexAttribute::Bitangent;
+
+const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
+    StaticMeshVertexAttributes | VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
+
+#pragma region VertexAttribute
+
+const VertexAttribute* VertexAttribute::Attrs[] = {
+    &Position,
+    &Normal,
+    &TexCoord0,
+    &TexCoord1,
+    &Tangent,
+    &Bitangent,
+    &BoneIndices,
+    &BoneWeights,
+    nullptr
+};
+
+#pragma region VertexAttributeSet
+
+Array<const VertexAttribute*> VertexAttributeSet::BuildAttributes() const
+{
+    Array<const VertexAttribute*> attributes;
+    FOR_EACH_BIT(flagMask, i)
+    {
+        attributes.PushBack(VertexAttribute::Attrs[i]);
+    }
+
+    return attributes;
+}
+
+SizeType VertexAttributeSet::CalculateVertexSize() const
+{
+    SizeType size = 0;
+
+    FOR_EACH_BIT(flagMask, i)
+    {
+        size += VertexAttribute::Attrs[i]->size;
+    }
+
+    return size;
+}
+
+String VertexAttributeSet::ToString() const
+{
+    String result = "";
+    bool first = true;
+
+    FOR_EACH_BIT(flagMask, i)
+    {
+        if (!first)
+        {
+            result += ", ";
+        }
+
+        result += VertexAttribute::Attrs[i]->name;
+        first = false;
+    }
+
+    return result;
+}
+
+#pragma endregion VertexAttributeSet
+
 #pragma region Mesh
 
 Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& vertices)
@@ -86,7 +154,10 @@ Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttrib
 }
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology)
-    : Mesh(asset, topology, staticMeshVertexAttributes | skeletonVertexAttributes)
+    : Mesh(
+          asset,
+          topology,
+          VertexAttributeSet::StaticMeshVertexAttributes | VertexAttributeSet::SkeletalMeshVertexAttributes)
 {
 }
 
@@ -95,7 +166,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
           vertexData,
           indexData,
           topology,
-          staticMeshVertexAttributes | skeletonVertexAttributes)
+          VertexAttributeSet::StaticMeshVertexAttributes | VertexAttributeSet::SkeletalMeshVertexAttributes)
 {
 }
 
