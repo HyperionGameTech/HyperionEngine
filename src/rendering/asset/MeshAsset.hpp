@@ -6,16 +6,16 @@
 
 #include <core/reflection/ObjectFwd.hpp>
 
-#include <core/math/Vertex.hpp>
 #include <core/math/BoundingBox.hpp>
 
 #include <core/containers/Array.hpp>
 
-#include <rendering/RenderableAttributes.hpp>
-#include <rendering/Shared.hpp>
-
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
+
+#include <rendering/RenderableAttributes.hpp>
+#include <rendering/Shared.hpp>
+#include <rendering/Vertex.hpp>
 
 namespace Hyperion {
 

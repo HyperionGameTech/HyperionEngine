@@ -129,7 +129,7 @@ struct LightmapRender : RenderCommand
             }
         }
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 

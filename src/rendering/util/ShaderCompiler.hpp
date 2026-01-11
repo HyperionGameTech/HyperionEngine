@@ -14,9 +14,8 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/StringUtil.hpp>
 
-#include <core/math/Vertex.hpp>
-
 #include <rendering/Shader.hpp>
+#include <rendering/Shared.hpp>
 
 #include <util/ini/INIFile.hpp>
 
