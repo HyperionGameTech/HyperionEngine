@@ -508,10 +508,13 @@ static void RenderAll_Parallel(
     
     if (renderSetup.envProbe != nullptr)
         rootQueue << SetShaderUniform(3, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+    
+    /*DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(pdCasted != nullptr);*/
+
     // END
 
     // temp here. Will need to be between draw calls where we set new uniforms.
-    rootQueue << CommitDrawState();
 
     //rootQueue << BindGraphicsPipeline(pipeline, renderSetup.view->GetViewport());
 
@@ -578,7 +581,7 @@ static void RenderAll_Parallel(
                     {
                         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-                        DescriptorSetOffsetMap offsets {
+                        /*DescriptorSetOffsetMap offsets {
                             { "SkeletonsBuffer"_sh, ShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i], 0) },
                             { "CurrentEntity"_sh, ShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()) }
                         };
@@ -588,18 +591,39 @@ static void RenderAll_Parallel(
                             offsets.Add("MaterialsBuffer"_sh, ShaderDataOffset<MaterialShaderData>(drawCalls.materials[i], 0));
                         }
 
-                        renderQueue << BindDescriptorSet(entityDescriptorSet, pipeline, offsets, entityDescriptorSetIndex);
+                        renderQueue << BindDescriptorSet(entityDescriptorSet, pipeline, offsets, entityDescriptorSetIndex);*/
+                        
+                        if (drawCalls.skeletons[i] != nullptr)
+                            rootQueue << SetShaderUniform(
+                                4,
+                                "SkeletonsBuffer"_sh,
+                                g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
+                                RenderApi::RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                        
+                        if (drawCalls.skeletons[i] != nullptr)
+                            rootQueue << SetShaderUniform(
+                                5,
+                                "CurrentEntity"_sh,
+                                g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
+                                drawCalls.entityIds[i].ToIndex() * sizeof(EntityShaderData));
                     }
+        
+                    renderQueue << CommitDrawState();
 
                     // Bind material descriptor set
+                    // FIXME: Will need to go through SetShaderUniform.
                     if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
                     {
                         const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(drawCalls.materials[i], frameIndex);
-
                         renderQueue << BindDescriptorSet(materialDescriptorSet, pipeline, {}, materialDescriptorSetIndex);
+
+                        
+                        /*rootQueue << SetShaderUniform(
+                            6,
+                            "Material"_sh,
+                            g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
+                            drawCalls.entityIds[i].ToIndex() * sizeof(EntityShaderData));*/
                     }
-        
-                    //renderQueue << CommitDrawState();
 
                     if (!prevMesh || prevMesh != drawCalls.meshes[i])
                     {

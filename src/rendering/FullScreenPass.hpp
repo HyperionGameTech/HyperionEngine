@@ -145,8 +145,8 @@ public:
 
     const GraphicsPipelineRef& GetGraphicsPipeline();
 
-    virtual GpuImageViewRef GetFinalImageView() const;
-    virtual GpuImageViewRef GetPreviousFrameColorImageView() const;
+    virtual const GpuImageViewRef& GetFinalImageView() const;
+    virtual const GpuImageViewRef& GetPreviousFrameColorImageView() const;
 
     /*! \brief Resizes the full screen pass to the new size.
      *  Callable on any thread, as it enqueues a render command. */

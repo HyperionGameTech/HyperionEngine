@@ -764,7 +764,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
         SizeType numToDraw = 0;
 
-        auto commitCurrentDraws = [&]()
+        auto CommitCurrentDraws = [&]()
         {
             if (numToDraw != 0)
             {
@@ -826,7 +826,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             if (isNewGraphicsPipeline)
             {
                 // new graphics pipeline, commit current draws then bind new pipeline to keep adding draws
-                commitCurrentDraws();
+                CommitCurrentDraws();
 
                 frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
 
@@ -846,7 +846,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             numToDraw++;
         }
 
-        commitCurrentDraws();
+        CommitCurrentDraws();
     }
 
     ClearCommands(idx);

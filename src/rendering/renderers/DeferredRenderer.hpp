@@ -432,7 +432,7 @@ public:
     UniquePtr<RaytracingReflections> raytracingReflections;
     UniquePtr<DDGI> ddgi;
 
-    Texture* cachedSsrTexture = nullptr;
+    mutable Texture* cachedSsrTexture = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)

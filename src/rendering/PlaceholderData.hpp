@@ -89,7 +89,7 @@ public:
     void Destroy();
 
     /*! \brief Get or create a buffer of at least the given size */
-    GpuBufferRef GetOrCreateBuffer(GpuBufferType bufferType, SizeType requiredSize, bool exactSize = false)
+    const GpuBufferRef& GetOrCreateBuffer(GpuBufferType bufferType, SizeType requiredSize, bool exactSize = false)
     {
         // AssertOnThread(g_renderThread);
 
@@ -138,10 +138,10 @@ public:
             buffer->Memset(requiredSize, 0); // fill with zeros
         }
 
-        const auto insertResult = bufferContainer.Insert(requiredSize, buffer);
+        const auto insertResult = bufferContainer.Insert(requiredSize, std::move(buffer));
         AssertDebug(insertResult.second); // check was inserted
 
-        return buffer;
+        return insertResult.first->second;
     }
 
 private:
