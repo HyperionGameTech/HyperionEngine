@@ -163,7 +163,7 @@ FullScreenPass::~FullScreenPass()
     // not calling SafeDelete() for graphics pipeline as it is managed by the graphics pipeline caching system
 }
 
-GpuImageViewRef FullScreenPass::GetFinalImageView() const
+const GpuImageViewRef& FullScreenPass::GetFinalImageView() const
 {
     if (UsesTemporalBlending())
     {
@@ -187,7 +187,7 @@ GpuImageViewRef FullScreenPass::GetFinalImageView() const
     return colorAttachment->GetImageView();
 }
 
-GpuImageViewRef FullScreenPass::GetPreviousFrameColorImageView() const
+const GpuImageViewRef& FullScreenPass::GetPreviousFrameColorImageView() const
 {
     // If we're rendering at half res, we use the same image we render to but at an offset.
     if (ShouldRenderHalfRes())

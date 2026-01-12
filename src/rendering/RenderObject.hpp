@@ -126,6 +126,37 @@ struct ShaderUniform
         UT_Tlas
     } type;
 
+    ShaderUniform() = default;
+    ShaderUniform(const ShaderUniform& other) = default;
+    
+    ShaderUniform(StringHash name, GpuBuffer* buffer)
+        : name(name),
+          buffer(buffer),
+          type(UT_Buffer)
+    {
+    }
+
+    ShaderUniform(StringHash name, GpuImageView* imageView)
+        : name(name),
+          imageView(imageView),
+          type(UT_ImageView)
+    {
+    }
+
+    ShaderUniform(StringHash name, Sampler* sampler)
+        : name(name),
+          sampler(sampler),
+          type(UT_Sampler)
+    {
+    }
+
+    ShaderUniform(StringHash name, GpuTlas* tlas)
+        : name(name),
+          tlas(tlas),
+          type(UT_Tlas)
+    {
+    }
+
     HYP_FORCE_INLINE bool operator==(const ShaderUniform& other) const
     {
         return Memory::MemCmp(this, &other, sizeof(ShaderUniform)) == 0;

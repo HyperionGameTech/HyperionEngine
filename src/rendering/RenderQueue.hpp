@@ -743,10 +743,17 @@ private:
 class SetShaderUniform final : public CmdBase
 {
 public:
+    SetShaderUniform(uint32 uniformIndex, const ShaderUniform& uniform)
+        : uniformIndex(uniformIndex),
+          bufferOffset(0),
+          uniform(uniform)
+    {
+    }
+
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuBuffer* buffer, uint32 bufferOffset = 0)
         : uniformIndex(uniformIndex),
-          uniform { name, { .buffer = buffer }, ShaderUniform::UT_Buffer },
-          bufferOffset(bufferOffset)
+          bufferOffset(bufferOffset),
+          uniform { name, { .buffer = buffer }, ShaderUniform::UT_Buffer }
     {
     }
     
@@ -772,8 +779,30 @@ public:
 
 private:
     uint32 uniformIndex;
-    ShaderUniform uniform;
     uint32 bufferOffset;
+    ShaderUniform uniform;
+};
+
+class SetShaderUniforms final : public CmdBase
+{
+public:
+    static constexpr uint32 MaxUniforms = 32;
+
+    SetShaderUniforms(uint32 offset, uint32 count, const ShaderUniform* inUniforms)
+        : offset(offset),
+          count(count)
+    {
+        AssertDebug(offset + count <= MaxUniforms);
+
+        Memory::MemCpy(uniforms, inUniforms, sizeof(ShaderUniform) * count);
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    uint32 offset;
+    uint32 count;
+    ShaderUniform uniforms[MaxUniforms];
 };
 
 class CommitDrawState final : public CmdBase
