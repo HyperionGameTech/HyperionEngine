@@ -79,11 +79,7 @@ HYP_DESCRIPTOR_SSBO(DeferredDirectDescriptorSet, MaterialsBuffer) readonly buffe
 };
 
 #ifdef LIGHT_TYPE_AREA_RECT // material texture bindings used for textured rectangular area light
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#else
 HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
-#endif
 #endif
 
 #include "include/LightSampling.glsl"

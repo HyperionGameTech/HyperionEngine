@@ -4,8 +4,11 @@
 
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/containers/SparsePagedArray.hpp>
 
 #include <core/utilities/Span.hpp>
+
+#include <core/threading/SharedMutex.hpp>
 
 #include <rendering/RenderObject.hpp>
 
@@ -15,6 +18,8 @@ class Material;
 class Texture;
 
 enum class MaterialTextureKey : uint64;
+
+using MaterialImageViewsMap = SparsePagedArray<Array<GpuImageViewRef, RenderAllocator>, 1024, RenderAllocator>;
 
 class HYP_API MaterialDescriptorSetManager
 {
@@ -41,6 +46,10 @@ public:
     void Remove(uint32 boundIndex);
 
     void CreateFallbackMaterialDescriptorSet();
+
+    // Maps material bound index -> array of image views for material textures
+    // Use RenderProxyMaterial::boundTextureIndices for indexing
+    MaterialImageViewsMap imageViews;
 
 private:
     FixedArray<DescriptorSetRef, NumFramesInFlight> m_fallbackMaterialDescriptorSets;

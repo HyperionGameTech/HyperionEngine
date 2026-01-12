@@ -23,7 +23,7 @@ void BindlessStorage::UnsetAllResources()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex);
+        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("RayTracing"_sh, frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         // Unset all active textures
@@ -56,7 +56,7 @@ void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imag
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex);
+        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("RayTracing"_sh, frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         descriptorSet->SetElement("Textures"_sh, id.ToIndex(), imageView);
@@ -83,7 +83,7 @@ void BindlessStorage::RemoveResource(ObjId<Texture> id)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex);
+        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("RayTracing"_sh, frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         descriptorSet->SetElement("Textures"_sh, id.ToIndex(), g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));

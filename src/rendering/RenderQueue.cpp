@@ -660,14 +660,13 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                         || (state.dirtyUniforms & (1u << uniformIndex)) != 0)
                     {
                         // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
-                        if (foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE)
+                        if ((foundSetDecl->flags & (DescriptorSetDeclarationFlags::REFERENCE | DescriptorSetDeclarationFlags::TEMPLATE)) == DescriptorSetDeclarationFlags::REFERENCE)
                         {
                             setsToBind[setIndex] = g_renderInterface->globalDescriptorTable->GetDescriptorSet(foundSetDecl->name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
                         }
                         else
                         {
                             DescriptorSetLayout layout { foundSetReferenceDecl };
-
                             setsToBind[setIndex] = g_renderInterface->descriptorSetCache->GetOrCreate(layout);
 
                             newDescriptorSetsMask |= (1u << setIndex);
@@ -699,13 +698,10 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                     setsToBindMask |= (1u << setIndex);
                 }
                 
-                const bool shouldSetElements = (newDescriptorSetsMask & (1u << setIndex)) != 0;
-                
                 switch (uniform.type)
                 {
                 case ShaderUniform::UT_Buffer:
-                    if (shouldSetElements)
-                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
 
                     if (decl->isDynamic)
                     {
@@ -720,16 +716,14 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                     break;
                 case ShaderUniform::UT_ImageView:
-                    if (shouldSetElements)
-                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+
                     break;
                 case ShaderUniform::UT_Sampler:
-                    if (shouldSetElements)
-                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
+                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
                     break;
                 case ShaderUniform::UT_Tlas:
-                    if (shouldSetElements)
-                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
+                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
                     break;
                 default:
                     HYP_UNREACHABLE();

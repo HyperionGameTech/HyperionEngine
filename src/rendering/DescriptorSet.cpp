@@ -89,7 +89,8 @@ DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
     static DescriptorTableDeclaration::DeclareSet s_globalSet { &s_decl, 0, NAME("Global") };
     static DescriptorTableDeclaration::DeclareSet s_viewSet { &s_decl, 1, NAME("View"), /* isTemplate */ true };
     static DescriptorTableDeclaration::DeclareSet s_entitySet { &s_decl, 2, NAME("Entity") };
-    static DescriptorTableDeclaration::DeclareSet s_materialSet { &s_decl, 3, NAME("Material") };
+    static DescriptorTableDeclaration::DeclareSet s_materialSet { &s_decl, 3, NAME("Material"), /* isTemplate */ true };
+    static DescriptorTableDeclaration::DeclareSet s_rayTracingSet { &s_decl, 4, NAME("RayTracing") };
 
     return s_decl;
 }
@@ -296,12 +297,16 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         static_assert(ResolutionFailureV<T>, "Unsupported type for descriptor set element");
     }
 
+    bool isNew = false;
+
     auto it = m_elements.FindAs(name);
     AssertDebug(it != m_elements.End());
 
     if (it == m_elements.End())
     {
         it = m_elements.Emplace(Name(name)).first;
+
+        isNew = true;
     }
 
     DescriptorSetElement& element = it->second;
@@ -314,6 +319,12 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     }
     else
     {
+        if (!isNew && elementIt->second.Get() == ref.Get())
+        {
+            // same object reference; skip marking dirty
+            return element;
+        }
+
         if (elementIt->second != nullptr)
         {
             SafeDelete(std::move(elementIt->second));

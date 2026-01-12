@@ -407,8 +407,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     // stencil state: only render where stencil == 0 (non-lightmapped geometry)
     frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
-    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
-
     // last LightType we rendered
     LightType prevLightType = LT_INVALID;
 
@@ -479,16 +477,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
                 frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
 
-                // Bind textures globally (bindless)
-                if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
-                {
-                    frame->renderQueue << BindDescriptorSet(
-                        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material"_sh, frame->GetFrameIndex()),
-                        pipeline,
-                        {},
-                        materialDescriptorSetIndex);
-                }
-
                 if (deferredDirectDescriptorSetIndex != ~0u)
                 {
                     frame->renderQueue << BindDescriptorSet(
@@ -516,7 +504,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 viewDescriptorSetIndex);
 
             // Bind material descriptor set (for area lights)
-            if (materialDescriptorSetIndex != ~0u && !useBindlessTextures)
+            if (materialDescriptorSetIndex != ~0u)
             {
                 const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
 

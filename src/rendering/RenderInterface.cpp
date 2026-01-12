@@ -1033,7 +1033,7 @@ Array<Pair<View*, RenderCollector*>> GetAllRenderCollectors()
 IRenderProxy* GetRenderProxy(const ObjectBase* resource)
 {
     HYP_SCOPE;
-    AssertOnThread(g_renderThread);
+    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertDebug(resource != nullptr);
 
@@ -1774,8 +1774,6 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
 
     // Global
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("GlobalConstants"_sh, placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, 256, true));  // Temp
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("WorldsBuffer"_sh, gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("LightsBuffer"_sh, gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
@@ -1846,20 +1844,25 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
         ->SetElement("LightmapVolumeRadianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
     // Material
-    if (g_renderBackend->GetRenderConfig().bindlessTextures)
+    for (Name textureName : Material::s_textureNames)
     {
+        globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
+            ->SetElement(textureName, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+    }
+
+    // Ray tracing specific
+    if (g_renderBackend->GetRenderConfig().raytracing)
+    {
+        // bindless textures support needed for RT
+        Assert(g_renderBackend->GetRenderConfig().bindlessTextures,
+            "Cannot initialize ray tracing data without bindless texture support!");
+
+        DescriptorSet* rayTracingDescriptorSet = globalDescriptorTable->GetDescriptorSet("RayTracing"_sh, frameIndex);
+        Assert(rayTracingDescriptorSet != nullptr);
+
         for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
-            globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-                ->SetElement("Textures"_sh, textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
-        }
-    }
-    else
-    {
-        for (Name textureName : Material::s_textureNames)
-        {
-            globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-                ->SetElement(textureName, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+            rayTracingDescriptorSet->SetElement("Textures"_sh, textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
         }
     }
 }

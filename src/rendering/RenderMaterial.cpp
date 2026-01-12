@@ -38,11 +38,6 @@ MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 
 void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
 {
-    if (g_renderBackend->GetRenderConfig().bindlessTextures)
-    {
-        return;
-    }
-
     const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material"_sh);
     Assert(decl != nullptr);
 

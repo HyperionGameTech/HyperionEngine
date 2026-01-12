@@ -67,11 +67,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 #endif
 
 #ifdef TEXTURED
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
-#else
 HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
-#endif
 #endif
 
 // clang-format on

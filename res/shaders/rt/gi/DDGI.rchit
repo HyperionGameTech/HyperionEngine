@@ -81,7 +81,7 @@ HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, MaterialsBuffer) readonly buffer Material
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(RayTracing, Textures) uniform texture2D textures[];
 
 void main()
 {

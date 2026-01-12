@@ -8,9 +8,6 @@
 
 #ifndef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures, count = 16) uniform texture2D textures[HYP_MAX_BOUND_TEXTURES];
-#else
 #if HAS_ALBEDO_MAP
 HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
 #endif
@@ -28,7 +25,6 @@ HYP_DESCRIPTOR_SRV(Material, RoughnessMap) uniform texture2D RoughnessMap;
 #endif
 #if HAS_AO_MAP
 HYP_DESCRIPTOR_SRV(Material, AoMap) uniform texture2D AoMap;
-#endif
 #endif
 
 #endif
@@ -68,13 +64,7 @@ struct Material
 
 #define HAS_TEXTURE(mat, name) bool(((mat).textureUsage & (1 << MATERIAL_TEXTURE_##name)))
 
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-// Bindless texture fetching - fetch from texture array by index 
-#define GET_TEXTURE(mat, name) textures[(mat).texture_indices[(MATERIAL_TEXTURE_##name) / 4][(MATERIAL_TEXTURE_##name) % 4]]
-#else
-// Non-bindless texture fetching - reference named uniform
 #define GET_TEXTURE(mat, name) name
-#endif
 
 #define SAMPLE_TEXTURE(mat, name, texcoord) \
     Texture2D(texture_sampler, GET_TEXTURE(mat, name), (texcoord))

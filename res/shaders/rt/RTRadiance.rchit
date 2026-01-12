@@ -86,7 +86,7 @@ HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
     Light lights[MAX_LIGHTS];
 };
 
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(RayTracing, Textures) uniform texture2D textures[];
 
 void main()
 {

@@ -26,11 +26,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 #include "include/material.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform textureCube textures[];
-#else
 HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform textureCube AlbedoMap;
-#endif
 
 HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
