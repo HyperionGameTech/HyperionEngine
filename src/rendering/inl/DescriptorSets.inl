@@ -17,7 +17,6 @@ HYP_DESCRIPTOR_SSBO(Global, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true
 HYP_DESCRIPTOR_CBUFF(Global, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), false);
-HYP_DESCRIPTOR_CBUFF(Global, GlobalConstants, 1, 65535, true);
 
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeRadianceTexture, 1);
@@ -51,13 +50,13 @@ HYP_DESCRIPTOR_CBUFF(View, DDGIConstants, 1, sizeof(DDGIConstants), false);
 HYP_DESCRIPTOR_SRV(View, DDGIIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DDGIDepthTexture, 1);
 
-// bindless: shared global array of textures
-HYP_DESCRIPTOR_SRV_COND(Material, Textures, MaxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);
-
 // non-bindless: individual texture descriptors
-HYP_DESCRIPTOR_SRV_COND(Material, AlbedoMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, NormalMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, ParallaxMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, MetalnessMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, RoughnessMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
-HYP_DESCRIPTOR_SRV_COND(Material, AoMap, 1, !g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV(Material, AlbedoMap, 1);
+HYP_DESCRIPTOR_SRV(Material, NormalMap, 1);
+HYP_DESCRIPTOR_SRV(Material, ParallaxMap, 1);
+HYP_DESCRIPTOR_SRV(Material, MetalnessMap, 1);
+HYP_DESCRIPTOR_SRV(Material, RoughnessMap, 1);
+HYP_DESCRIPTOR_SRV(Material, AoMap, 1);
+
+// bindless array of textures for RT
+HYP_DESCRIPTOR_SRV(RayTracing, Textures, MaxBindlessResources);

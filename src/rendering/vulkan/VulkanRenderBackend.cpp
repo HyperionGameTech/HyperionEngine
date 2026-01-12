@@ -480,6 +480,7 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 class VulkanTextureCache
 {
 public:
+    SharedMutex mutex;
     // map texture ID -> image views
     SparsePagedArray<HashMap<ImageSubResource, VulkanGpuImageViewRef>, 1024> imageViews;
     // to keep texture IDs as valid
@@ -494,11 +495,13 @@ public:
 
     const VulkanGpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
     {
-        AssertOnThread(g_renderThread);
+        AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
         HYP_GFX_ASSERT(texture.IsValid());
 
         const SizeType idx = texture.Id().ToIndex();
+
+        TSharedLock sharedLock(mutex);
 
         if (!imageViews.HasIndex(idx))
         {
@@ -508,11 +511,14 @@ public:
 
         auto& textureImageViews = imageViews.Get(idx);
 
+        ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
+        bool isLockUnique = false;
+        HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
+
         auto it = textureImageViews.Find(subResource);
 
         if (it == textureImageViews.End())
         {
-
             VulkanGpuImageViewRef imageView = CreateObject<VulkanGpuImageView>(
                 VulkanGpuImageRef(texture->GetGpuImage()),
                 subResource.baseMipLevel,
@@ -521,6 +527,12 @@ public:
                 subResource.numLayers);
 
             HYP_GFX_ASSERT(imageView->Create());
+
+            sharedLock.Reset();
+
+            uniqueLockStorage.Construct(mutex);
+
+            isLockUnique = true;
 
             it = textureImageViews.Set(subResource, imageView).first;
         }
@@ -541,6 +553,8 @@ public:
 
         const SizeType idx = texture.Id().ToIndex();
 
+        TUniqueLock lock(mutex);
+
         if (imageViews.HasIndex(idx))
         {
             for (auto& it : imageViews.Get(idx))
@@ -556,6 +570,8 @@ public:
     void CleanupUnusedTextures()
     {
         AssertOnThread(g_renderThread);
+
+        TUniqueLock lock(mutex);
 
         constexpr uint32 maxCycles = 32;
 

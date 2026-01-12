@@ -284,7 +284,7 @@ void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     static const uint32 s_globalDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("Global"_sh);
     static const uint32 s_viewDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("View"_sh);
-    static const uint32 s_materialDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("Material"_sh);
+    static const uint32 s_rayTracingDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("RayTracing"_sh);
     static const uint32 s_raytracingDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("RTRadianceDescriptorSet"_sh);
 
     frame->renderQueue << BindRaytracingPipeline(m_raytracingPipeline);
@@ -298,10 +298,10 @@ void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         s_globalDescriptorSetIndex);
 
     frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Material"_sh, frame->GetFrameIndex()),
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("RayTracing"_sh, frame->GetFrameIndex()),
         m_raytracingPipeline,
         {},
-        s_materialDescriptorSetIndex);
+        s_rayTracingDescriptorSetIndex);
 
     frame->renderQueue << BindDescriptorSet(
         parentPass->descriptorSets[frame->GetFrameIndex()],

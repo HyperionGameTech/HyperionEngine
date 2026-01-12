@@ -273,7 +273,6 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
     AssertOnThread(g_renderThread);
 
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
-    static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
     AssertDebug(material != nullptr);
 
@@ -281,30 +280,56 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
     //// \todo : Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
 
-    if (!s_isBindlessSupported)
+    if (prev != ~0u)
     {
-        if (prev != ~0u)
+        g_renderInterface->materialDescriptorSetManager->Remove(prev);
+
+        if (g_renderInterface->materialDescriptorSetManager->imageViews.HasIndex(prev))
         {
-            g_renderInterface->materialDescriptorSetManager->Remove(prev);
+            auto& imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(prev);
+
+            if (imageViews.Any())
+            {
+                SafeDelete(std::move(imageViews));
+            }
+        }
+    }
+    
+    if (next != ~0u)
+    {
+        IRenderProxy* proxy = RenderApi::GetRenderProxy(material);
+        Assert(proxy != nullptr);
+
+        RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
+
+        auto imageViewsIt = g_renderInterface->materialDescriptorSetManager->imageViews.Emplace(next);
+        auto& imageViews = *imageViewsIt;
+
+        if (imageViews.Size() < proxyCasted->boundTextures.Size())
+        {
+            imageViews.Resize(proxyCasted->boundTextures.Size());
         }
 
-        if (next != ~0u)
+        for (uint32 i = 0; i < uint32(proxyCasted->boundTextures.Size()); i++)
         {
-            IRenderProxy* proxy = RenderApi::GetRenderProxy(material);
-            AssertDebug(proxy != nullptr);
-
-            if (!proxy)
+            if (imageViews[i].IsValid())
             {
-                return;
+                if (imageViews[i]->GetImage() == proxyCasted->boundTextures[i]->GetGpuImage())
+                {
+                    continue; // skip; already valid image view set
+                }
+                
+                // defer release until a few frames from now
+                SafeDelete(std::move(imageViews[i]));
             }
 
-            RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
-
-            g_renderInterface->materialDescriptorSetManager->Allocate(
-                next,
-                proxyCasted->boundTextureIndices.ToSpan(),
-                proxyCasted->boundTextures.ToSpan());
+            imageViews[i] = g_renderBackend->GetTextureImageView(proxyCasted->boundTextures[i]);
         }
+
+        g_renderInterface->materialDescriptorSetManager->Allocate(
+            next,
+            proxyCasted->boundTextureIndices.ToSpan(),
+            proxyCasted->boundTextures.ToSpan());
     }
 }
 

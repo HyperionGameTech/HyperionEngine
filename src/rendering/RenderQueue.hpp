@@ -753,25 +753,25 @@ public:
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuBuffer* buffer, uint32 bufferOffset = 0)
         : uniformIndex(uniformIndex),
           bufferOffset(bufferOffset),
-          uniform { name, { .buffer = buffer }, ShaderUniform::UT_Buffer }
+          uniform { name, buffer }
     {
     }
     
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
         : uniformIndex(uniformIndex),
-          uniform { name, { .imageView = imageView }, ShaderUniform::UT_ImageView }
+          uniform { name, imageView }
     {
     }
     
     SetShaderUniform(uint32 uniformIndex, StringHash name, Sampler* sampler)
         : uniformIndex(uniformIndex),
-          uniform { name, { .sampler = sampler }, ShaderUniform::UT_Sampler }
+          uniform { name, sampler }
     {
     }
     
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuTlas* tlas)
         : uniformIndex(uniformIndex),
-          uniform { name, { .tlas = tlas }, ShaderUniform::UT_Tlas }
+          uniform { name, tlas }
     {
     }
 
