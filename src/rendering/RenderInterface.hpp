@@ -169,6 +169,7 @@ public:
     struct State
     {
         static constexpr uint32 MaxShaderUniforms = 32;
+        static constexpr uint32 MaxBoundDescriptorSets = 8;
 
         Shader* shader = nullptr;
         RenderGroup* renderGroup = nullptr;
@@ -178,8 +179,12 @@ public:
         ShaderUniform shaderUniforms[MaxShaderUniforms] {};
         uint32 validUniforms = 0;
         uint32 dirtyUniforms = 0;
+        
+        uint32 shaderUniformBufferOffsets[MaxShaderUniforms] {};
+        uint32 dirtyBufferOffsets = 0;
 
         GraphicsPipeline* prevGraphicsPipeline = nullptr;
+        DescriptorSet* prevBoundDescriptorSets[MaxBoundDescriptorSets] {};
 
         uint8 stencilReference = 0;
         uint8 stencilCompareMask = 0xFF;
@@ -191,8 +196,10 @@ public:
             renderGroup = nullptr;
             validUniforms = 0;
             dirtyUniforms = 0;
+            dirtyBufferOffsets = 0;
             renderTargetDesc = {};
             prevGraphicsPipeline = nullptr;
+            Memory::MemSet(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
             stencilReference = 0;
             stencilCompareMask = 0xFF;
             stencilWriteMask = 0xFF;

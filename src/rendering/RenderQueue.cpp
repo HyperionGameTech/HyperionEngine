@@ -507,12 +507,19 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     ShaderUniform& uniform = state.shaderUniforms[cmdCasted->uniformIndex];
 
-    if (uniform != cmdCasted->uniform
-        || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))
+    if (uniform != cmdCasted->uniform || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))
     {
         uniform = cmdCasted->uniform;
 
         state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
+    }
+
+    // buffer offset only updating
+    if (uniform.type == ShaderUniform::UT_Buffer
+        && cmdCasted->bufferOffset != state.shaderUniformBufferOffsets[cmdCasted->uniformIndex])
+    {
+        state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->bufferOffset;
+        state.dirtyBufferOffsets |= (1u << cmdCasted->uniformIndex);
     }
 
     static_assert(std::is_trivially_destructible_v<SetShaderUniform>);
@@ -559,8 +566,11 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
         state.prevGraphicsPipeline = pipeline;
         
+        Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+        
         state.dirtyUniforms |= state.validUniforms;
         state.validUniforms = 0;
+        state.dirtyBufferOffsets = 0;
     }
     else
     {
@@ -568,7 +578,7 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
     }
 
     // Set descriptors
-    if (state.dirtyUniforms != 0)
+    if ((state.dirtyUniforms | state.dirtyBufferOffsets) != 0)
     {
         Shader* shader = pipeline->GetShader();
         CompiledShader* compiledShader = shader->GetCompiledShader();
@@ -581,15 +591,14 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         constexpr uint32 MaxDynamicOffsetsPerSet = 8;
         constexpr uint32 MaxDescriptorSetsBound = 8;
 
-        DescriptorSet* descriptorSetsToBind[MaxDescriptorSetsBound] {};
-        const ShaderUniform* dynamicOffsetUniforms[MaxDynamicOffsetsPerSet][MaxDescriptorSetsBound] {};
-        uint32 numDynamicOffsets[MaxDescriptorSetsBound] {};
+        DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
+        uint8 bufferOffsets[MaxDynamicOffsetsPerSet][MaxDescriptorSetsBound] {}; // index of ShaderUniform
+        uint8 bufferOffsetCounts[MaxDescriptorSetsBound] {};
 
-        uint32 setIndicesBitmask = 0;
-        
-        // @TODO DescriptorSetCache to fetch descriptor set dynamically here
+        uint32 setsToBindMask = 0;
+        uint32 newDescriptorSetsMask = 0;
 
-        FOR_EACH_BIT(state.dirtyUniforms, uniformIndex)
+        FOR_EACH_BIT((state.dirtyUniforms | state.dirtyBufferOffsets), uniformIndex)
         {
             const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
@@ -626,60 +635,90 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 const uint32 setIndex = foundSetDecl->setIndex;
                 AssertDebug(setIndex < MaxDescriptorSetsBound);
 
-                if (!(descriptorSetsToBind[setIndex]))
+                if (!(newDescriptorSetsMask & (1u << setIndex)))
                 {
-                    // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
-                    if (foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE)
+                    // differentiate between buffer offset changes and actual uniform data changes
+                    if (uniform.type != ShaderUniform::UT_Buffer
+                        || (state.dirtyUniforms & (1u << uniformIndex)) != 0)
                     {
-                        descriptorSetsToBind[setIndex] = g_renderInterface->globalDescriptorTable->GetDescriptorSet(foundSetDecl->name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
+                        // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
+                        if (foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE)
+                        {
+                            setsToBind[setIndex] = g_renderInterface->globalDescriptorTable->GetDescriptorSet(foundSetDecl->name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
+                        }
+                        else
+                        {
+                            DescriptorSetLayout layout { foundSetReferenceDecl };
+
+                            setsToBind[setIndex] = g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+
+                            newDescriptorSetsMask |= (1u << setIndex);
+
+                            // check if we need to re-visit buffers that only had buffer offsets changed,
+                            // since we grabbed a fresh set.
+                            if (bufferOffsetCounts[setIndex] != 0)
+                            {
+                                for (uint32 offsetIdx = 0; offsetIdx < MaxDynamicOffsetsPerSet; offsetIdx++)
+                                {
+                                    const uint8 bufferShaderUniformIndex = bufferOffsets[setIndex][offsetIdx];
+                                    AssertDebug(bufferShaderUniformIndex < ArraySize(state.shaderUniforms));
+
+                                    const ShaderUniform& bufferUniform = state.shaderUniforms[bufferShaderUniformIndex];
+                                    AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
+
+                                    setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
+                                }
+                            }
+                        }
                     }
                     else
                     {
-                        DescriptorSetLayout layout { foundSetReferenceDecl };
-
-                        descriptorSetsToBind[setIndex] = g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+                        // only a buffer offset update; keep the previous bound set.
+                        setsToBind[setIndex] = state.prevBoundDescriptorSets[setIndex];
                     }
                     
-                    AssertDebug(descriptorSetsToBind[setIndex] != nullptr);
-                    setIndicesBitmask |= (1u << setIndex);
+                    AssertDebug(setsToBind[setIndex] != nullptr);
+                    setsToBindMask |= (1u << setIndex);
                 }
                 
-                // DON'T set elems in any global descriptor sets -- will eventually be removed
-                const bool shouldSetElements = !(foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE);
+                const bool shouldSetElements = (newDescriptorSetsMask & (1u << setIndex)) != 0;
                 
                 switch (uniform.type)
                 {
                 case ShaderUniform::UT_Buffer:
                     if (shouldSetElements)
-                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
 
                     if (decl->isDynamic)
                     {
-                        const uint32 dynamicOffsetIndex = numDynamicOffsets[setIndex]++;
-                        AssertDebug(dynamicOffsetIndex <= MaxDynamicOffsetsPerSet);
+                        const uint8 offsetIndex = bufferOffsetCounts[setIndex]++;
+                        AssertDebug(offsetIndex <= MaxDynamicOffsetsPerSet);
 
-                        dynamicOffsetUniforms[setIndex][dynamicOffsetIndex] = &uniform;
+                        bufferOffsets[setIndex][offsetIndex] = (uint8)uniformIndex;
+
+                        // disable dirty buffer offset bit
+                        state.dirtyBufferOffsets &= ~(1u << uniformIndex);
                     }
 
                     break;
                 case ShaderUniform::UT_ImageView:
                     if (shouldSetElements)
-                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
                     break;
                 case ShaderUniform::UT_Sampler:
                     if (shouldSetElements)
-                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
+                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
                     break;
                 case ShaderUniform::UT_Tlas:
                     if (shouldSetElements)
-                        descriptorSetsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
+                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
                     break;
                 default:
                     HYP_UNREACHABLE();
                 }
 
                 state.validUniforms |= (1u << uniformIndex);
-                state.dirtyUniforms &= (1u << uniformIndex);
+                state.dirtyUniforms &= ~(1u << uniformIndex);
 
                 // AssertDebug(decl != nullptr, "Invalid shader uniform; not found in compiled shader! Uniform name: {}", *Name(uniform.name));
 
@@ -688,23 +727,29 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         }
 
         // bind descriptor sets
-        if (setIndicesBitmask != 0)
+        if (setsToBindMask != 0)
         {
-            FOR_EACH_BIT(setIndicesBitmask, setIndex)
+            FOR_EACH_BIT(setsToBindMask, setIndex)
             {
-                AssertDebug(descriptorSetsToBind[setIndex] != nullptr);
+                AssertDebug(setsToBind[setIndex] != nullptr);
 
                 DescriptorSetOffsetMap offsets {};
-                for (uint32 i = 0; i < numDynamicOffsets[setIndex]; i++)
+                for (uint8 bufferOffsetIndex = 0; bufferOffsetIndex < bufferOffsetCounts[setIndex]; bufferOffsetIndex++)
                 {
-                    const ShaderUniform* uniform = dynamicOffsetUniforms[setIndex][i];
-                    AssertDebug(uniform != nullptr && uniform->type == ShaderUniform::UT_Buffer);
+                    const uint8 shaderUniformIndex = bufferOffsets[setIndex][bufferOffsetIndex];
 
-                    offsets.Add(uniform->name, uniform->bufferOffset);
+                    const ShaderUniform& uniform = state.shaderUniforms[shaderUniformIndex];
+                    AssertDebug(uniform.type == ShaderUniform::UT_Buffer);
+
+                    const uint32 bufferOffset = state.shaderUniformBufferOffsets[shaderUniformIndex];
+
+                    offsets.Add(uniform.name, bufferOffset);
                 }
 
-                BindDescriptorSet bindCmd(descriptorSetsToBind[setIndex], pipeline, offsets);
+                BindDescriptorSet bindCmd(setsToBind[setIndex], pipeline, offsets);
                 BindDescriptorSet::InvokeStatic(&bindCmd, commandBuffer);
+
+                state.prevBoundDescriptorSets[setIndex] = setsToBind[setIndex];
             }
         }
     }

@@ -126,8 +126,6 @@ struct ShaderUniform
         UT_Tlas
     } type;
 
-    uint32 bufferOffset;
-
     HYP_FORCE_INLINE bool operator==(const ShaderUniform& other) const
     {
         return Memory::MemCmp(this, &other, sizeof(ShaderUniform)) == 0;
