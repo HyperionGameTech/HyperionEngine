@@ -745,7 +745,8 @@ class SetShaderUniform final : public CmdBase
 public:
     SetShaderUniform(uint32 uniformIndex, StringHash name, GpuBuffer* buffer, uint32 bufferOffset = 0)
         : uniformIndex(uniformIndex),
-          uniform { name, { .buffer = buffer }, ShaderUniform::UT_Buffer, bufferOffset }
+          uniform { name, { .buffer = buffer }, ShaderUniform::UT_Buffer },
+          bufferOffset(bufferOffset)
     {
     }
     
@@ -772,6 +773,7 @@ public:
 private:
     uint32 uniformIndex;
     ShaderUniform uniform;
+    uint32 bufferOffset;
 };
 
 class CommitDrawState final : public CmdBase
