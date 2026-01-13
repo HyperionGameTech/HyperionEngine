@@ -91,7 +91,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
     Light light;
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(GeometryPass, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

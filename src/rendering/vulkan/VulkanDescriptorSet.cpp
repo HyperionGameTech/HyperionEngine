@@ -415,7 +415,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         for (SizeType i = 0; i < localDescriptorElementInfos.Size(); i++)
         {
-            if (Memory::MemCmp(localDescriptorElementInfos.Data() + i, cachedValues.Data() + i, sizeof(VulkanDescriptorElementInfo)) != 0)
+            if (localDescriptorElementInfos[i] != cachedValues[i])
             {
                 localDirtyRange |= { uint32(i), uint32(i + 1) };
             }

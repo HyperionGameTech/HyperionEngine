@@ -41,7 +41,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(UIObject, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

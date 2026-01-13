@@ -57,7 +57,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(GeometryPass, EntityInstanceBatchesBuffer) readonly 
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(GeometryPass, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -65,7 +65,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffe
 #endif
 
 #ifdef SKINNING
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(GeometryPass, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };

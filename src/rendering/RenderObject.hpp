@@ -108,7 +108,7 @@ static inline void DeferCreate(RefType ref, Args&&... args)
 
 struct ShaderUniform
 {
-    StringHash name;
+    Name name;
 
     union
     {
@@ -159,7 +159,7 @@ struct ShaderUniform
 
     HYP_FORCE_INLINE bool operator==(const ShaderUniform& other) const
     {
-        return Memory::MemCmp(this, &other, sizeof(ShaderUniform)) == 0;
+        return Memory::MemCmp(this, &other, 20) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const ShaderUniform& other) const
@@ -171,7 +171,7 @@ struct ShaderUniform
     {
         return HashCode::GetHashCode(
             reinterpret_cast<const ubyte*>(this),
-            reinterpret_cast<const ubyte*>(this) + sizeof(ShaderUniform));
+            reinterpret_cast<const ubyte*>(this) + 20);
     }
 };
 

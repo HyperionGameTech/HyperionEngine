@@ -33,7 +33,7 @@ HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Skybox, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
