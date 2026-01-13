@@ -39,7 +39,7 @@
 namespace Hyperion {
 
 #ifdef HYP_DEBUG_MODE
-constexpr bool EnableVulkanSynchronizationValidation = true;
+constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = true;
 #endif
 

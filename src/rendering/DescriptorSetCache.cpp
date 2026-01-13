@@ -104,8 +104,8 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
 
     // need to allocate new descriptor set
     DescriptorSetRef newDescriptorSet = g_renderBackend->MakeDescriptorSet(layout);
-    RendererResult createResult = newDescriptorSet->Create();
-    Assert(!createResult.HasError(), "Failed to create new descriptor set! Error: {}", createResult.GetError().GetMessage());
+    //RendererResult createResult = newDescriptorSet->Create();
+    //Assert(!createResult.HasError(), "Failed to create new descriptor set! Error: {}", createResult.GetError().GetMessage());
     
     auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
     inUseElem.frameCounter = RenderApi::GetFrameCounter();

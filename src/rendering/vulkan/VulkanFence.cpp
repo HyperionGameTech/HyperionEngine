@@ -58,9 +58,9 @@ RendererResult VulkanFence::Wait(bool timeoutLoop)
     }
     while (vkResult == VK_TIMEOUT && timeoutLoop);
 
-    VULKAN_CHECK(vkResult);
-
     m_lastFrameResult = vkResult;
+
+    VULKAN_CHECK(vkResult);
 
     HYPERION_RETURN_OK;
 }
