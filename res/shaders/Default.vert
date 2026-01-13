@@ -50,7 +50,7 @@ HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(GeometryPass, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     EntityInstanceBatch entity_instance_batch;
 };

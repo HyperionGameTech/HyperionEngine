@@ -229,7 +229,6 @@ template <bool UseIndirectRendering>
 static void RenderAll(
     Frame* frame,
     const RenderSetup& renderSetup,
-    GraphicsPipeline* pipeline, // TEMP
     IndirectRenderer* indirectRenderer,
     const DrawCallCollection& drawCallCollection)
 {
@@ -247,8 +246,6 @@ static void RenderAll(
         // No draw calls to render
         return;
     }
-
-    ValidatePipelineState(renderSetup, pipeline);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -281,6 +278,7 @@ static void RenderAll(
         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
         const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(drawCalls.materials[i]);
+        AssertDebug(materialBoundIndex != ~0u);
 
         uint32 numDrawCallUniforms = numShaderUniforms;
 
@@ -366,6 +364,7 @@ static void RenderAll(
             entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize());
 
         const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(instancedDrawCalls.materials[i]);
+        AssertDebug(materialBoundIndex != ~0u);
 
         rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
             g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
@@ -417,7 +416,6 @@ template <bool UseIndirectRendering>
 static void RenderAll_Parallel(
     Frame* frame,
     const RenderSetup& renderSetup,
-    GraphicsPipeline* pipeline, // TEMP
     IndirectRenderer* indirectRenderer,
     const DrawCallCollection& drawCallCollection,
     ParallelRenderingState* parallelRenderingState)
@@ -438,8 +436,6 @@ static void RenderAll_Parallel(
         // No draw calls to render
         return;
     }
-
-    ValidatePipelineState(renderSetup, pipeline);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -475,7 +471,7 @@ static void RenderAll_Parallel(
     {
         DivideDrawCalls(drawCallCollection.drawCalls.Size(), parallelRenderingState->numBatches, parallelRenderingState->drawCalls);
 
-        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->drawCallProcs.EmplaceBack([frameIndex, numShaderUniforms, parallelRenderingState, &drawCallCollection, pipeline, indirectRenderer](DrawCallRange range, uint32 index, uint32 batchIndex)
+        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->drawCallProcs.EmplaceBack([frameIndex, numShaderUniforms, parallelRenderingState, &drawCallCollection, indirectRenderer](DrawCallRange range, uint32 index, uint32 batchIndex)
             {
                 if (range.count == 0)
                 {
@@ -495,6 +491,7 @@ static void RenderAll_Parallel(
                     uint32 drawCallNumUniforms = numShaderUniforms;
 
                     const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(drawCalls.materials[i]);
+                    AssertDebug(materialBoundIndex != ~0u);
 
                     rq << SetShaderUniform(drawCallNumUniforms++, "CurrentEntity"_sh,
                         g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
@@ -576,7 +573,7 @@ static void RenderAll_Parallel(
     {
         DivideDrawCalls(drawCallCollection.instancedDrawCalls.Size(), parallelRenderingState->numBatches, parallelRenderingState->instancedDrawCalls);
 
-        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->instancedDrawCallProcs.EmplaceBack([frameIndex, numShaderUniforms, parallelRenderingState, &drawCallCollection, pipeline, indirectRenderer](DrawCallRange range, uint32 index, uint32 batchIndex)
+        ProcRef<void(DrawCallRange, uint32, uint32)> proc = parallelRenderingState->instancedDrawCallProcs.EmplaceBack([frameIndex, numShaderUniforms, parallelRenderingState, &drawCallCollection, indirectRenderer](DrawCallRange range, uint32 index, uint32 batchIndex)
             {
                 if (range.count == 0)
                 {
@@ -601,6 +598,7 @@ static void RenderAll_Parallel(
                         entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize());
 
                     const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(instancedDrawCalls.materials[i]);
+                    AssertDebug(materialBoundIndex != ~0u);
 
                     rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
                         g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
@@ -725,24 +723,6 @@ void RenderGroup::PerformRendering(
         // apply stencil state before render
         rq << SetStencilState(stencilReference, 0xFF, 0xFF);
     }
-    
-    auto* cacheEntry = renderSetup.passData->renderGroupCache.TryGet(Id().ToIndex());
-
-    if (!cacheEntry)
-    {
-        cacheEntry = &*renderSetup.passData->renderGroupCache.Emplace(Id().ToIndex());
-
-        *cacheEntry = PassData::RenderGroupCacheEntry {
-            WeakHandleFromThis(),
-            CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator)
-        };
-    }
-
-    if (!cacheEntry->cacheHandle.IsAlive())
-    {
-        // fetch a new graphics pipeline if it is stale
-        cacheEntry->cacheHandle = CreateGraphicsPipeline(renderSetup.passData, drawCallCollection.batchAllocator);
-    }
 
     if (useIndirectRendering)
     {
@@ -751,7 +731,6 @@ void RenderGroup::PerformRendering(
             RenderAll_Parallel<true>(
                 frame,
                 renderSetup,
-                *cacheEntry->cacheHandle,
                 indirectRenderer,
                 drawCallCollection,
                 parallelRenderingState);
@@ -761,7 +740,6 @@ void RenderGroup::PerformRendering(
             RenderAll<true>(
                 frame,
                 renderSetup,
-                *cacheEntry->cacheHandle,
                 indirectRenderer,
                 drawCallCollection);
         }
@@ -773,7 +751,6 @@ void RenderGroup::PerformRendering(
             RenderAll_Parallel<false>(
                 frame,
                 renderSetup,
-                *cacheEntry->cacheHandle,
                 indirectRenderer,
                 drawCallCollection,
                 parallelRenderingState);
@@ -783,7 +760,6 @@ void RenderGroup::PerformRendering(
             RenderAll<false>(
                 frame,
                 renderSetup,
-                *cacheEntry->cacheHandle,
                 indirectRenderer,
                 drawCallCollection);
         }
