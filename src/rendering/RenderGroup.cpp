@@ -298,22 +298,22 @@ static void RenderAll(
         }
 
         const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
-
-        RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
-        AssertDebug(materialProxy != nullptr);
-
-        Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
-        AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
-                    
-        for (uint32 textureIndex = 0; textureIndex < uint32(Material::s_textureNames.Size()); textureIndex++)
+        
+        if (textureMask != 0)
         {
-            const Name textureUniformName = Material::s_textureNames[textureIndex];
+            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
+            AssertDebug(materialProxy != nullptr);
 
-            if (textureMask & (1u << textureIndex))
+            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+            AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+            FOR_EACH_BIT(textureMask, bit)
             {
+                const Name textureUniformName = Material::s_textureNames[bit];
+
                 rq << SetShaderUniform(numDrawCallUniforms++,
                     textureUniformName,
-                    imageViews[materialProxy->boundTextureIndices[textureIndex]]);
+                    imageViews[materialProxy->boundTextureIndices[bit]]);
             }
         }
         
@@ -375,6 +375,26 @@ static void RenderAll(
             rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                 g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
                 RenderApi::RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+        }
+        
+        const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
+        
+        if (textureMask != 0)
+        {
+            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
+            AssertDebug(materialProxy != nullptr);
+
+            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+            AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+            FOR_EACH_BIT(textureMask, bit)
+            {
+                const Name textureUniformName = Material::s_textureNames[bit];
+
+                rq << SetShaderUniform(numDrawCallUniforms++,
+                    textureUniformName,
+                    imageViews[materialProxy->boundTextureIndices[bit]]);
+            }
         }
         
         rq << CommitDrawState();
@@ -488,43 +508,43 @@ static void RenderAll_Parallel(
                 {
                     AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-                    uint32 drawCallNumUniforms = numShaderUniforms;
+                    uint32 numDrawCallUniforms = numShaderUniforms;
 
                     const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(drawCalls.materials[i]);
                     AssertDebug(materialBoundIndex != ~0u);
 
-                    rq << SetShaderUniform(drawCallNumUniforms++, "CurrentEntity"_sh,
+                    rq << SetShaderUniform(numDrawCallUniforms++, "CurrentEntity"_sh,
                         g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
                         drawCalls.entityIds[i].ToIndex() * sizeof(EntityShaderData));
 
-                    rq << SetShaderUniform(drawCallNumUniforms++, "MaterialsBuffer"_sh,
+                    rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
                         g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
                         materialBoundIndex * sizeof(MaterialShaderData));
                         
                     if (drawCalls.skeletons[i] != nullptr)
                     {
-                        rq << SetShaderUniform(drawCallNumUniforms++, "SkeletonsBuffer"_sh,
+                        rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                             g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
                             RenderApi::RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
                     }
 
                     const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
 
-                    RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
-                    AssertDebug(materialProxy != nullptr);
-
-                    Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
-                    AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
-                    
-                    for (uint32 textureIndex = 0; textureIndex < uint32(Material::s_textureNames.Size()); textureIndex++)
+                    if (textureMask != 0)
                     {
-                        const Name textureUniformName = Material::s_textureNames[textureIndex];
+                        RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
+                        AssertDebug(materialProxy != nullptr);
 
-                        if (textureMask & (1u << textureIndex))
+                        Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                        AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+                        FOR_EACH_BIT(textureMask, bit)
                         {
-                            rq << SetShaderUniform(drawCallNumUniforms++,
+                            const Name textureUniformName = Material::s_textureNames[bit];
+
+                            rq << SetShaderUniform(numDrawCallUniforms++,
                                 textureUniformName,
-                                imageViews[materialProxy->boundTextureIndices[textureIndex]]);
+                                imageViews[materialProxy->boundTextureIndices[bit]]);
                         }
                     }
         
@@ -609,6 +629,26 @@ static void RenderAll_Parallel(
                         rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                             g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
                             RenderApi::RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                    }
+                    
+                    const uint32 textureMask = drawCallCollection.renderGroup->GetRenderableAttributes().GetMaterialAttributes().textureMask;
+        
+                    if (textureMask != 0)
+                    {
+                        RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
+                        AssertDebug(materialProxy != nullptr);
+
+                        Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                        AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+                        FOR_EACH_BIT(textureMask, bit)
+                        {
+                            const Name textureUniformName = Material::s_textureNames[bit];
+
+                            rq << SetShaderUniform(numDrawCallUniforms++,
+                                textureUniformName,
+                                imageViews[materialProxy->boundTextureIndices[bit]]);
+                        }
                     }
         
                     rq << CommitDrawState();

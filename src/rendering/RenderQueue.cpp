@@ -586,7 +586,9 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         
         Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
         
-        state.dirtyUniforms |= state.validUniforms;
+        // invalidate
+        state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
+
         state.validUniforms = 0;
         state.dirtyBufferOffsets = 0;
     }
@@ -594,51 +596,56 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
     {
         pipeline = state.prevGraphicsPipeline;
     }
+    
+    Shader* shader = pipeline->GetShader();
+    CompiledShader* compiledShader = shader->GetCompiledShader();
+
+    AssertDebug(compiledShader != nullptr);
+
+    const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
+    AssertDebug(tableDecl != nullptr);
+
+    uint32 setsToBindMask = 0;
+    uint32 ownedSetsMask = 0;
+    uint32 dirtySetsMask = 0;
+
+    static const auto FetchDescriptorSet = [](const DescriptorSetDeclaration& dsDecl, bool& outIsGlobalDS) -> DescriptorSet*
+    {
+        outIsGlobalDS = false;
+
+        // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
+        if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
+        {
+            if (dsDecl.flags & DescriptorSetDeclarationFlags::TEMPLATE)
+            {
+                const DescriptorSetDeclaration* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(dsDecl.name);
+                AssertDebug(refDsDecl != nullptr);
+                    
+                DescriptorSetLayout layout { refDsDecl };
+                return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+            }
+
+            outIsGlobalDS = true;
+
+            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
+        }
+        else
+        {
+            DescriptorSetLayout layout { &dsDecl };
+            return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
+        }
+    };
+    
+    constexpr uint32 MaxDynamicOffsetsPerSet = 8;
+    constexpr uint32 MaxDescriptorSetsBound = 8;
+
+    DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
+    uint8 bufferOffsets[MaxDynamicOffsetsPerSet][MaxDescriptorSetsBound] {}; // index of ShaderUniform
+    uint8 bufferOffsetCounts[MaxDescriptorSetsBound] {};
 
     // Set descriptors
     if ((state.dirtyUniforms | state.dirtyBufferOffsets) != 0)
     {
-        Shader* shader = pipeline->GetShader();
-        CompiledShader* compiledShader = shader->GetCompiledShader();
-
-        AssertDebug(compiledShader != nullptr);
-
-        constexpr uint32 MaxDynamicOffsetsPerSet = 8;
-        constexpr uint32 MaxDescriptorSetsBound = 8;
-
-        DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
-        uint8 bufferOffsets[MaxDynamicOffsetsPerSet][MaxDescriptorSetsBound] {}; // index of ShaderUniform
-        uint8 bufferOffsetCounts[MaxDescriptorSetsBound] {};
-
-        const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
-        AssertDebug(tableDecl != nullptr);
-
-        uint32 setsToBindMask = 0;
-        uint32 newDescriptorSetsMask = 0;
-
-        static const auto FetchDescriptorSet = [](const DescriptorSetDeclaration& dsDecl) -> DescriptorSet*
-        {
-            // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
-            if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
-            {
-                if (dsDecl.flags & DescriptorSetDeclarationFlags::TEMPLATE)
-                {
-                    const DescriptorSetDeclaration* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(dsDecl.name);
-                    AssertDebug(refDsDecl != nullptr);
-                    
-                    DescriptorSetLayout layout { refDsDecl };
-                    return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
-                }
-
-                return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
-            }
-            else
-            {
-                DescriptorSetLayout layout { &dsDecl };
-                return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
-            }
-        };
-
         FOR_EACH_BIT((state.dirtyUniforms | state.dirtyBufferOffsets), uniformIndex)
         {
             const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
@@ -671,55 +678,75 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
             if (decl)
             {
+                bool isGlobalDS = false;
+
                 const uint32 setIndex = foundSetDecl->setIndex;
                 AssertDebug(setIndex < MaxDescriptorSetsBound);
 
-                if (!(newDescriptorSetsMask & (1u << setIndex)))
+                // differentiate between buffer offset changes and actual uniform data changes
+                if (uniform.type == ShaderUniform::UT_Buffer && (state.dirtyBufferOffsets & (1u << uniformIndex)))
                 {
-                    // differentiate between buffer offset changes and actual uniform data changes
-                    if (uniform.type != ShaderUniform::UT_Buffer || !(state.dirtyBufferOffsets & (1u << uniformIndex)))
-                    {
-                        setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl);
-                        AssertDebug(setsToBind[setIndex] != nullptr);
+                    // only a buffer offset update; keep the previous bound set.
+                    setsToBind[setIndex] = state.prevBoundDescriptorSets[setIndex];
 
-                        // is 'owned' if it is not a reference to a global descriptor set
-                        const bool isOwnedSet = !(foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE);
-
-                        if (isOwnedSet)
-                        {
-                            newDescriptorSetsMask |= (1u << setIndex);
-
-                            // check if we need to re-visit buffers that only had buffer offsets changed,
-                            // since we grabbed a fresh set.
-                            if (bufferOffsetCounts[setIndex] != 0)
-                            {
-                                for (uint32 offsetIdx = 0; offsetIdx < MaxDynamicOffsetsPerSet; offsetIdx++)
-                                {
-                                    const uint8 bufferShaderUniformIndex = bufferOffsets[setIndex][offsetIdx];
-                                    AssertDebug(bufferShaderUniformIndex < ArraySize(state.shaderUniforms));
-
-                                    const ShaderUniform& bufferUniform = state.shaderUniforms[bufferShaderUniformIndex];
-                                    AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
-
-                                    setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // only a buffer offset update; keep the previous bound set.
-                        setsToBind[setIndex] = state.prevBoundDescriptorSets[setIndex];
-                    }
-                    
                     AssertDebug(setsToBind[setIndex] != nullptr);
                     setsToBindMask |= (1u << setIndex);
                 }
+                else if (!(ownedSetsMask & (1u << setIndex)))
+                {
+                    setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, isGlobalDS);
+                    AssertDebug(setsToBind[setIndex] != nullptr);
+
+                    // is 'owned' if it is not a reference to a global descriptor set
+                    const bool isOwnedSet = !(foundSetDecl->flags & DescriptorSetDeclarationFlags::REFERENCE);
+
+                    if (isOwnedSet)
+                    {
+                        ownedSetsMask |= (1u << setIndex);
+
+                        // not created yet; needs to be handled
+                        if (!setsToBind[setIndex]->IsCreated())
+                        {
+                            dirtySetsMask |= (1u << setIndex);
+                        }
+
+                        // check if we need to re-visit buffers that only had buffer offsets changed,
+                        // since we grabbed a fresh set.
+                        if (bufferOffsetCounts[setIndex] != 0)
+                        {
+                            for (uint32 offsetIdx = 0; offsetIdx < MaxDynamicOffsetsPerSet; offsetIdx++)
+                            {
+                                const uint8 bufferShaderUniformIndex = bufferOffsets[setIndex][offsetIdx];
+                                AssertDebug(bufferShaderUniformIndex < ArraySize(state.shaderUniforms));
+
+                                const ShaderUniform& bufferUniform = state.shaderUniforms[bufferShaderUniformIndex];
+                                AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
+
+                                setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
+                                
+                                dirtySetsMask |= (1u << setIndex);
+                            }
+                        }
+                    }
+
+                    AssertDebug(setsToBind[setIndex] != nullptr);
+                    setsToBindMask |= (1u << setIndex);
+                }
+
+                // For dirtySetsMask, we:
+                // Mark the set as needing Update() called if:
+                //   -- is NOT a global descriptor set (these are updated before the frame is submitted)
+                //   -- is NOT just a buffer offset update (dirtyBufferOffsets would be wiped if the uniform actually changed)
                 
                 switch (uniform.type)
                 {
                 case ShaderUniform::UT_Buffer:
-                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+                    if (!(state.dirtyBufferOffsets & (1u << uniformIndex)))
+                    {
+                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+
+                        dirtySetsMask |= (1u << setIndex);
+                    }
 
                     if (decl->isDynamic)
                     {
@@ -735,13 +762,21 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                     break;
                 case ShaderUniform::UT_ImageView:
                     setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+                    
+                    dirtySetsMask |= (1u << setIndex);
 
                     break;
                 case ShaderUniform::UT_Sampler:
                     setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
+                    
+                    dirtySetsMask |= (1u << setIndex);
+
                     break;
                 case ShaderUniform::UT_Tlas:
                     setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
+                    
+                    dirtySetsMask |= (1u << setIndex);
+
                     break;
                 default:
                     HYP_UNREACHABLE();
@@ -751,75 +786,80 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 state.dirtyUniforms &= ~(1u << uniformIndex);
             }
         }
-        
-        // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)
-        for (uint32 setIndex = 0; setIndex < uint32(tableDecl->elements.Size()); setIndex++)
-        {
-            if (setsToBindMask & (1u << setIndex))
-                continue;
+    }
+    
+    // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)
+    for (uint32 setIndex = 0; setIndex < uint32(tableDecl->elements.Size()); setIndex++)
+    {
+        if (setsToBindMask & (1u << setIndex))
+            continue;
 
-            if (!state.prevBoundDescriptorSets[setIndex])
-            {
-                // need to bind it again anyway if no prev descriptor set here.
-                setsToBind[setIndex] = FetchDescriptorSet(tableDecl->elements[setIndex]);
-                AssertDebug(setsToBind[setIndex] != nullptr);
+        if (!state.prevBoundDescriptorSets[setIndex])
+        {
+            // need to bind it again anyway if no prev descriptor set here.
+            bool isGlobalDS = false;
+
+            setsToBind[setIndex] = FetchDescriptorSet(tableDecl->elements[setIndex], isGlobalDS);
+            AssertDebug(setsToBind[setIndex] != nullptr);
+
+            if (!setsToBind[setIndex]->IsCreated())
+                dirtySetsMask |= (1u << setIndex);
                 
-                setsToBindMask |= (1u << setIndex);
-            }
+            setsToBindMask |= (1u << setIndex);
         }
+    }
+       
+    FOR_EACH_BIT(dirtySetsMask, setIndex)
+    {
+        DescriptorSet* ds = setsToBind[setIndex];
+        AssertDebug(ds != nullptr);
 
-        // bind descriptor sets
-        if (setsToBindMask != 0)
+        if (!ds->IsCreated())
         {
-            FOR_EACH_BIT(setsToBindMask, setIndex)
+            Assert(ds->Create());
+        }
+        else
+        {
+            bool isDirty = false;
+            ds->UpdateDirtyState(&isDirty);
+
+            if (isDirty)
             {
-                DescriptorSet* ds = setsToBind[setIndex];
-                AssertDebug(ds != nullptr);
-                
-                // early out for this set
-                if (ds == state.prevBoundDescriptorSets[setIndex])
-                    continue;
-
-                if (!ds->IsCreated())
-                {
-                    Assert(ds->Create());
-                }
-                else
-                {
-                    bool isDirty = false;
-                    ds->UpdateDirtyState(&isDirty);
-
-                    if (isDirty)
-                    {
-                        ds->Update();
-                    }
-                }
-
-                DescriptorSetOffsetMap offsets {};
-                for (uint8 bufferOffsetIndex = 0; bufferOffsetIndex < bufferOffsetCounts[setIndex]; bufferOffsetIndex++)
-                {
-                    const uint8 shaderUniformIndex = bufferOffsets[setIndex][bufferOffsetIndex];
-
-                    const ShaderUniform& uniform = state.shaderUniforms[shaderUniformIndex];
-                    AssertDebug(uniform.type == ShaderUniform::UT_Buffer);
-
-                    const uint32 bufferOffset = state.shaderUniformBufferOffsets[shaderUniformIndex];
-
-                    offsets.Add(uniform.name, bufferOffset);
-                }
-
-                BindDescriptorSet bindCmd(ds, pipeline, offsets, setIndex);
-                BindDescriptorSet::InvokeStatic(&bindCmd, commandBuffer);
-
-                state.prevBoundDescriptorSets[setIndex] = ds;
+                ds->Update();
             }
         }
     }
 
+    // bind descriptor sets
+    if (setsToBindMask != 0)
+    {
+        FOR_EACH_BIT(setsToBindMask, setIndex)
+        {
+            DescriptorSet* ds = setsToBind[setIndex];
+            AssertDebug(ds != nullptr);
+
+            DescriptorSetOffsetMap offsets {};
+            for (uint8 bufferOffsetIndex = 0; bufferOffsetIndex < bufferOffsetCounts[setIndex]; bufferOffsetIndex++)
+            {
+                const uint8 shaderUniformIndex = bufferOffsets[setIndex][bufferOffsetIndex];
+
+                const ShaderUniform& uniform = state.shaderUniforms[shaderUniformIndex];
+                AssertDebug(uniform.type == ShaderUniform::UT_Buffer);
+
+                const uint32 bufferOffset = state.shaderUniformBufferOffsets[shaderUniformIndex];
+
+                offsets.Add(uniform.name, bufferOffset);
+            }
+
+            BindDescriptorSet bindCmd(ds, pipeline, offsets, setIndex);
+            BindDescriptorSet::InvokeStatic(&bindCmd, commandBuffer);
+
+            state.prevBoundDescriptorSets[setIndex] = ds;
+        }
+    }
+
     // debugging
-    Shader* shader = pipeline->GetShader();
-    CompiledShader* cs = shader->GetCompiledShader();
-    auto& dsDecls = cs->descriptorTableDeclaration->elements;
+    auto& dsDecls = tableDecl->elements;
     
     for (uint32 i = 0; i < dsDecls.Size(); i++)
     {

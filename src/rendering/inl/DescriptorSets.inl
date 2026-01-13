@@ -22,8 +22,7 @@ HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeRadianceTexture, 1);
 HYP_DESCRIPTOR_SSBO(Entity, CurrentEntity, 1, sizeof(EntityShaderData), true); // For non-instanced objects
 HYP_DESCRIPTOR_SSBO(Entity, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true);
-HYP_DESCRIPTOR_SSBO_COND(Entity, MaterialsBuffer, 1, ~0u, false, !g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
-HYP_DESCRIPTOR_SSBO_COND(Entity, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial);
+HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer, 1, sizeof(MaterialShaderData), true);
 
 HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGBufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
@@ -49,14 +48,6 @@ HYP_DESCRIPTOR_SRV(View, DepthPyramidResult, 1);
 HYP_DESCRIPTOR_CBUFF(View, DDGIConstants, 1, sizeof(DDGIConstants), false);
 HYP_DESCRIPTOR_SRV(View, DDGIIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DDGIDepthTexture, 1);
-
-// non-bindless: individual texture descriptors
-HYP_DESCRIPTOR_SRV(Material, AlbedoMap, 1);
-HYP_DESCRIPTOR_SRV(Material, NormalMap, 1);
-HYP_DESCRIPTOR_SRV(Material, ParallaxMap, 1);
-HYP_DESCRIPTOR_SRV(Material, MetalnessMap, 1);
-HYP_DESCRIPTOR_SRV(Material, RoughnessMap, 1);
-HYP_DESCRIPTOR_SRV(Material, AoMap, 1);
 
 // bindless array of textures for RT
 HYP_DESCRIPTOR_SRV(RayTracing, Textures, MaxBindlessResources);

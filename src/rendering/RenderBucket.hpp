@@ -8,7 +8,7 @@
 namespace Hyperion {
 
 HYP_ENUM()
-enum RenderBucket : uint32
+enum RenderBucket : uint8
 {
     RB_NONE = 0,
     RB_OPAQUE,      /* Opaque objects, default for all objects */

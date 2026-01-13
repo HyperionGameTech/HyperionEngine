@@ -34,30 +34,38 @@ DescriptorSetCache::~DescriptorSetCache()
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void DescriptorSetCache::OnFrameStart()
 {
     AssertOnThread(g_renderThread);
 
     const uint32 frameCounter = RenderApi::GetFrameCounter();
 
-    // recycle descriptor sets no longer in use (last used >= NumFramesInFlight)
-    for (auto it = m_descriptorSetsInUse.Begin(); it != m_descriptorSetsInUse.End();)
+    SizeType chompIndexStart = SizeType(-1);
+
+    // recycle descriptor sets no longer in use
+    for (auto it = m_descriptorSetsInUse.Begin(); it != m_descriptorSetsInUse.End(); ++it)
     {
-        if (frameCounter - it->frameCounter >= NumFramesInFlight)
+        if (frameCounter - it->frameCounter < NumFramesInFlight)
         {
-            const HashCode layoutHashCode = it->descriptorSet->GetLayout().GetHashCode();
-
-            auto mapIt = m_allocsByLayout.Find(layoutHashCode);
-            AssertDebug(mapIt != m_allocsByLayout.End());
-
-            mapIt->second.PushBack(std::move(it->descriptorSet));
-
-            it = m_descriptorSetsInUse.Erase(it);
-
-            continue;
+            break;
         }
 
-        ++it;
+        const HashCode layoutHashCode = it->descriptorSet->GetLayout().GetHashCode();
+
+        auto mapIt = m_allocsByLayout.Find(layoutHashCode);
+        AssertDebug(mapIt != m_allocsByLayout.End());
+
+        mapIt->second.PushBack(std::move(it->descriptorSet));
+
+        chompIndexStart = m_descriptorSetsInUse.IndexOf(it) + 1;
+    }
+
+    if (chompIndexStart != SizeType(-1))
+    {
+        auto tmp = std::move(m_descriptorSetsInUse);
+        m_descriptorSetsInUse.Clear();
+        m_descriptorSetsInUse.Concat(tmp.ToSpan().Slice(chompIndexStart, tmp.Size() - chompIndexStart));
     }
 }
 

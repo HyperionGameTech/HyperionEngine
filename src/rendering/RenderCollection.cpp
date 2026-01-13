@@ -1100,8 +1100,6 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
     }
 
-    static const bool s_uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
-
     if (bucketBits == 0)
     {
         bucketBits = AllBucketsMask;
@@ -1163,16 +1161,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
                 continue;
             }
 
-            DrawCallID drawCallId;
-
-            if (s_uniquePerMaterial)
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
-            }
-            else
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id());
-            }
+            DrawCallID drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
 
             if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
             {

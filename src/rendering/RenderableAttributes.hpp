@@ -16,7 +16,7 @@
 namespace Hyperion {
 
 HYP_ENUM()
-enum MaterialAttributeFlags : uint32
+enum MaterialAttributeFlags : uint8
 {
     MAF_NONE = 0x0,
 
@@ -124,14 +124,11 @@ struct MeshAttributes
             && indexBufferElemType == other.indexBufferElemType;
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(vertexAttributes);
-        hc.Add(topology);
-        hc.Add(indexBufferElemType);
-
-        return hc;
+        return HashCode::GetHashCode(vertexAttributes)
+            .Combine(topology)
+            .Combine(indexBufferElemType);
     }
 };
 

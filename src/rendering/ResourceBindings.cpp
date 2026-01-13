@@ -282,8 +282,6 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
     if (prev != ~0u)
     {
-        g_renderInterface->materialDescriptorSetManager->Remove(prev);
-
         if (g_renderInterface->materialDescriptorSetManager->imageViews.HasIndex(prev))
         {
             auto& imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(prev);
@@ -325,11 +323,6 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
             imageViews[i] = g_renderBackend->GetTextureImageView(proxyCasted->boundTextures[i]);
         }
-
-        g_renderInterface->materialDescriptorSetManager->Allocate(
-            next,
-            proxyCasted->boundTextureIndices.ToSpan(),
-            proxyCasted->boundTextures.ToSpan());
     }
 }
 

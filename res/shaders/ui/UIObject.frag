@@ -1,10 +1,6 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-#if defined(HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA) || defined(HYP_FEATURES_BINDLESS_TEXTURES)
-#extension GL_EXT_nonuniform_qualifier : require
-#endif
-
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_screen_space_position;
 layout(location = 2) in vec2 v_texcoord0;
@@ -45,17 +41,6 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material materials[HYP_MAX_MATERIALS];
-};
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[entity.material_index])
-#endif
-#else
-
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
@@ -63,7 +48,6 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
 #endif
 
 #ifdef TEXTURED

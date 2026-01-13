@@ -41,8 +41,8 @@ public:
     using Base = SparsePagedArray<GraphicsPipelineRef, 1024, RenderAllocator>;
     using RefCountMap = SparsePagedArray<int, 1024, RenderAllocator>;
 
-    using AttrMap = HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
-    using ReverseAttrMap = HashMap<SizeType, RenderableAttributeSet, NodeAllocator<RenderAllocator>>;
+    using Map = HashMap<PSOCacheKey, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
+    using ReverseMap = HashMap<SizeType, PSOCacheKey, NodeAllocator<RenderAllocator>>;
 
     CachedPipelinesMap()
         : Base()
@@ -62,15 +62,15 @@ public:
         reverseAttrMap.Clear();
     }
 
-    void Add(const RenderableAttributeSet& renderableAttributes, SizeType index)
+    void Add(const PSOCacheKey& key, SizeType index)
     {
         Assert(Base::HasIndex(index));
 
         GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(index);
         Assert(graphicsPipelinePtr != nullptr);
 
-        attrMap[renderableAttributes].PushBack(graphicsPipelinePtr);
-        reverseAttrMap[index] = renderableAttributes;
+        attrMap[key].PushBack(graphicsPipelinePtr);
+        reverseAttrMap[index] = key;
     }
 
     void Remove(SizeType index)
@@ -138,9 +138,9 @@ public:
         }
     }
 
-    Span<GraphicsPipelineRef* const> Find(const RenderableAttributeSet& renderableAttributes) const
+    Span<GraphicsPipelineRef* const> Find(const PSOCacheKey& key) const
     {
-        auto attrMapIt = attrMap.Find(renderableAttributes);
+        auto attrMapIt = attrMap.Find(key);
 
         if (attrMapIt == attrMap.End())
         {
@@ -192,8 +192,8 @@ public:
 
     RefCountMap refCountMap;
 
-    AttrMap attrMap;
-    ReverseAttrMap reverseAttrMap;
+    Map attrMap;
+    ReverseMap reverseAttrMap;
 
     Iterator cleanupIterator;
 };
@@ -329,7 +329,7 @@ void GraphicsPipelineCache::GetOrCreate(
         return;
     }
 
-    Proc<void(GraphicsPipeline*, SizeType)> newCallback([this, attributes](GraphicsPipeline* graphicsPipeline, SizeType slot)
+    Proc<void(GraphicsPipeline*, SizeType)> newCallback([this, key = PSOCacheKey(attributes)](GraphicsPipeline* graphicsPipeline, SizeType slot)
         {
             TUniqueLock guard(m_mutex);
 
@@ -337,7 +337,7 @@ void GraphicsPipelineCache::GetOrCreate(
             HYP_LOG(Rendering, Debug, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
 #endif
             // cache it now that it's been created so it can be reused
-            m_cachedPipelines->Add(attributes, slot);
+            m_cachedPipelines->Add(key, slot);
         });
 
     Assert(renderTargetDesc && renderTargetDesc->numAttachments > 0,
@@ -412,8 +412,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 
     TSharedLock guard(m_mutex);
 
-    const RenderableAttributeSet key = attributes;
-
+    const PSOCacheKey key { attributes };
     Span<GraphicsPipelineRef* const> pipelines = m_cachedPipelines->Find(key);
 
     if (!pipelines)
