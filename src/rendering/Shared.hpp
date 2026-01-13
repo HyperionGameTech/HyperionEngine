@@ -1311,7 +1311,7 @@ struct RenderTargetDesc
         return type == other.type
             && extent == other.extent
             && numAttachments == other.numAttachments
-            && Memory::MemCmp(attachments, other.attachments, sizeof(AttachmentDesc) * numAttachments) == 0
+            && std::equal(attachments, attachments + numAttachments, other.attachments)
             && numViews == other.numViews;
     }
 
@@ -1320,7 +1320,7 @@ struct RenderTargetDesc
         return type != other.type
             || extent != other.extent
             || numAttachments != other.numAttachments
-            || Memory::MemCmp(attachments, other.attachments, sizeof(AttachmentDesc) * numAttachments) != 0
+            || !std::equal(attachments, attachments + numAttachments, other.attachments)
             || numViews != other.numViews;
     }
 

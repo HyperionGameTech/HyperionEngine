@@ -39,6 +39,19 @@ struct VulkanDescriptorElementInfo
         VkDescriptorImageInfo imageInfo;
         VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo;
     };
+
+    HYP_FORCE_INLINE bool operator==(const VulkanDescriptorElementInfo& other) const
+    {
+        return binding == other.binding
+            && index == other.index
+            && descriptorType == other.descriptorType
+            && Memory::MemCmp(
+                &bufferInfo,
+                &other.bufferInfo,
+                descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+                    ? sizeof(accelerationStructureInfo)
+                    : sizeof(bufferInfo)) == 0;
+    }
 };
 
 HYP_CLASS(NoScriptBindings)

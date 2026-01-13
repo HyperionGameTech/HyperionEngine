@@ -911,55 +911,105 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
     glslang_program_SPIRV_generate_with_options(program, stage, &spvOptions);
 
 #ifdef HYP_SHADER_REFLECTION
-    for (int i = 0; i < cppProgram->getNumUniformBlocks(); i++)
+    Proc<void(const glslang::TType*, DescriptorUsageType&)> HandleShaderStruct;
+
+    HandleShaderStruct = [&HandleShaderStruct](const glslang::TType* type, DescriptorUsageType& outDescriptorUsageType)
     {
-        const auto& uniformBlock = cppProgram->getUniformBlock(i);
-
-        const glslang::TType* type = uniformBlock.getType();
-        Assert(type != nullptr);
-
-        DescriptorUsage* descriptorUsage = descriptorUsages.Find(
-            CreateStringHashFromDynamicString(uniformBlock.name.data()));
-
-        if (descriptorUsage != nullptr)
+        if (type->isStruct())
         {
-            Proc<void(const glslang::TType*, DescriptorUsageType&)> HandleType;
+            HYP_LOG(ShaderCompiler, Debug, "Found GLSL struct: {}", type->getTypeName().data());
 
-            HandleType = [&HandleType](const glslang::TType* type,
-                             DescriptorUsageType& outDescriptorUsageType)
+            for (auto it = type->getStruct()->begin(); it != type->getStruct()->end(); ++it)
             {
-                if (type->isStruct())
+                String fieldTypeName;
+
+                if (it->type->isStruct())
                 {
-                    for (auto it = type->getStruct()->begin();
-                        it != type->getStruct()->end(); ++it)
-                    {
-                        String fieldTypeName;
-
-                        if (it->type->isStruct())
-                        {
-                            fieldTypeName = it->type->getTypeName().data();
-                        }
-                        else
-                        {
-                            fieldTypeName =
-                                it->type->getCompleteString(true, false, false, true).data();
-                        }
-
-                        auto& field =
-                            outDescriptorUsageType
-                                .AddField(CreateNameFromDynamicString(
-                                              it->type->getFieldName().data()),
-                                    DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName)))
-                                .second;
-
-                        HandleType(it->type, field);
-                    }
+                    fieldTypeName = it->type->getTypeName().data();
                 }
-            };
+                else
+                {
+                    fieldTypeName = it->type->getCompleteString(true, false, false, true).data();
+                }
 
-            HandleType(type, descriptorUsage->type);
-            descriptorUsage->type.size = uniformBlock.size;
+                auto& field = outDescriptorUsageType.AddField(
+                    CreateNameFromDynamicString(it->type->getFieldName().data()),
+                    DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName))).second;
+
+                HandleShaderStruct(it->type, field);
+            }
         }
+    };
+
+    // inject reflection info for shader inputs
+    for (DescriptorUsage& du : descriptorUsages.elements)
+    {
+        if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_CBUFF)
+        {
+            const glslang::TObjectReflection* refl = nullptr;
+
+            for (int i = 0; i < cppProgram->getNumUniformBlocks(); i++)
+            {
+                const auto& block = cppProgram->getUniformBlock(i);
+
+                const glslang::TType* type = block.getType();
+                Assert(type != nullptr);
+
+                if (!type->isStruct())
+                    continue;
+
+                if (StringHash(type->getTypeName().data()) == du.descriptorName)
+                {
+                    refl = &block;
+
+                    break;
+                }
+            }
+
+            if (refl != nullptr)
+            {
+                HandleShaderStruct(refl->getType(), du.type);
+                du.type.size = refl->size;
+
+                continue;
+            }
+        }
+        else if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_SSBO)
+        {
+            const glslang::TObjectReflection* refl = nullptr;
+
+            for (int i = 0; i < cppProgram->getNumBufferBlocks(); i++)
+            {
+                const auto& block = cppProgram->getBufferBlock(i);
+
+                const glslang::TType* type = block.getType();
+                Assert(type != nullptr);
+                
+                if (!type->isStruct())
+                    continue;
+
+                if (StringHash(type->getTypeName().data()) == du.descriptorName)
+                {
+                    refl = &block;
+
+                    break;
+                }
+            }
+
+            if (refl != nullptr)
+            {
+                HandleShaderStruct(refl->getType(), du.type);
+                du.type.size = refl->size;
+
+                continue;
+            }
+        }
+        else
+        {
+            continue;
+        }
+        
+        HYP_LOG(ShaderCompiler, Warning, "Missing reflection data for shader input {}!", du.descriptorName);
     }
 #endif
 

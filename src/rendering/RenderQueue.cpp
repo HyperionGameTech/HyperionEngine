@@ -513,11 +513,9 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
     }
-
-    // buffer offset only updating
-    if (uniform.type == ShaderUniform::UT_Buffer
-        && cmdCasted->bufferOffset != state.shaderUniformBufferOffsets[cmdCasted->uniformIndex])
+    else if (uniform.type == ShaderUniform::UT_Buffer && cmdCasted->bufferOffset != state.shaderUniformBufferOffsets[cmdCasted->uniformIndex])
     {
+        // buffer offset only updating
         state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->bufferOffset;
         state.dirtyBufferOffsets |= (1u << cmdCasted->uniformIndex);
     }
@@ -588,14 +586,15 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         
         // invalidate
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
-
         state.validUniforms = 0;
-        state.dirtyBufferOffsets = 0;
     }
     else
     {
         pipeline = state.prevGraphicsPipeline;
     }
+
+    // keep dirtyBufferOffsets '1' bits only if NOT a dirty uniform (indicating it needs rebinding)
+    state.dirtyBufferOffsets &= ~(state.dirtyUniforms);
     
     Shader* shader = pipeline->GetShader();
     CompiledShader* compiledShader = shader->GetCompiledShader();
@@ -754,9 +753,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                         AssertDebug(offsetIndex <= MaxDynamicOffsetsPerSet);
 
                         bufferOffsets[setIndex][offsetIndex] = (uint8)uniformIndex;
-
-                        // disable dirty buffer offset bit
-                        state.dirtyBufferOffsets &= ~(1u << uniformIndex);
                     }
 
                     break;
@@ -784,6 +780,7 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                 state.validUniforms |= (1u << uniformIndex);
                 state.dirtyUniforms &= ~(1u << uniformIndex);
+                state.dirtyBufferOffsets &= ~(1u << uniformIndex);
             }
         }
     }
@@ -825,6 +822,10 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
             if (isDirty)
             {
+                AssertDebug(ownedSetsMask & (1u << setIndex),
+                    "Updating set {} not owned by us! Could cause data access race!",
+                    ds->GetDebugName());
+
                 ds->Update();
             }
         }
