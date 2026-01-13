@@ -38,26 +38,26 @@ MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 
 void MaterialDescriptorSetManager::CreateFallbackMaterialDescriptorSet()
 {
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material"_sh);
-    Assert(decl != nullptr);
+    //const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("Material"_sh);
+    //Assert(decl != nullptr);
 
-    const DescriptorSetLayout layout { decl };
+    //const DescriptorSetLayout layout { decl };
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        m_fallbackMaterialDescriptorSets[frameIndex] = g_renderBackend->MakeDescriptorSet(layout);
-        m_fallbackMaterialDescriptorSets[frameIndex]->SetDebugName(NAME_FMT("MaterialDescriptorSet_INVALID_{}", frameIndex));
+    //for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    //{
+    //    m_fallbackMaterialDescriptorSets[frameIndex] = g_renderBackend->MakeDescriptorSet(layout);
+    //    m_fallbackMaterialDescriptorSets[frameIndex]->SetDebugName(NAME_FMT("MaterialDescriptorSet_INVALID_{}", frameIndex));
 
-        // set dummy placeholder textures for each material
-        for (Name textureName : Material::s_textureNames)
-        {
-            m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
-        }
+    //    // set dummy placeholder textures for each material
+    //    for (Name textureName : Material::s_textureNames)
+    //    {
+    //        m_fallbackMaterialDescriptorSets[frameIndex]->SetElement(textureName, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d));
+    //    }
 
-        DeferCreate(m_fallbackMaterialDescriptorSets[frameIndex]);
-    }
+    //    DeferCreate(m_fallbackMaterialDescriptorSets[frameIndex]);
+    //}
 
-    m_materialDescriptorSets.Set(~0u, m_fallbackMaterialDescriptorSets);
+    //m_materialDescriptorSets.Set(~0u, m_fallbackMaterialDescriptorSets);
 }
 
 const DescriptorSetRef& MaterialDescriptorSetManager::ForBoundMaterial(const Material* material, uint32 frameIndex)

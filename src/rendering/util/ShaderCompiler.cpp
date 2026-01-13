@@ -200,11 +200,6 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
         properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
     }
 
-    if (!g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial)
-    {
-        properties.Set(ShaderProperty(NAME("HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA")));
-    }
-
     if (s_globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
     {
         properties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));

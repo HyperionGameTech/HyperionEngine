@@ -65,7 +65,6 @@ public:
     {
         Assert(renderBackend != nullptr && renderBackend->GetDevice() != nullptr);
 
-        uniqueDrawCallPerMaterial = true;
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
         raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
         indirectRendering = CoreApi::GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);

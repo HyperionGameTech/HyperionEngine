@@ -776,9 +776,9 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 DescriptorSet* ds = setsToBind[setIndex];
                 AssertDebug(ds != nullptr);
                 
-                // early out for this set
-                if (ds == state.prevBoundDescriptorSets[setIndex])
-                    continue;
+                //// early out for this set
+                //if (ds == state.prevBoundDescriptorSets[setIndex])
+                //    continue;
 
                 if (!ds->IsCreated())
                 {

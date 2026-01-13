@@ -504,6 +504,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 viewDescriptorSetIndex);
 
             // Bind material descriptor set (for area lights)
+
+            // @TOOD FIxme use new way!!!
             if (materialDescriptorSetIndex != ~0u)
             {
                 const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());

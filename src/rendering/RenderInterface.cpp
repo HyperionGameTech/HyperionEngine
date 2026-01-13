@@ -1843,13 +1843,6 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
         ->SetElement("LightmapVolumeRadianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
-    // Material
-    for (Name textureName : Material::s_textureNames)
-    {
-        globalDescriptorTable->GetDescriptorSet("Material"_sh, frameIndex)
-            ->SetElement(textureName, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
-    }
-
     // Ray tracing specific
     if (g_renderBackend->GetRenderConfig().raytracing)
     {
