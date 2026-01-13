@@ -749,10 +749,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                 state.validUniforms |= (1u << uniformIndex);
                 state.dirtyUniforms &= ~(1u << uniformIndex);
-
-                // AssertDebug(decl != nullptr, "Invalid shader uniform; not found in compiled shader! Uniform name: {}", *Name(uniform.name));
-
-                // We'll set it in the descriptor set here
             }
         }
         
@@ -827,8 +823,9 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
     
     for (uint32 i = 0; i < dsDecls.Size(); i++)
     {
-        Assert(state.prevBoundDescriptorSets[i] != nullptr,
-            "Missing descriptor set binding for index {} (name : {})", i, dsDecls[i].name);
+        Assert(state.prevBoundDescriptorSets[i] != nullptr
+            && state.prevBoundDescriptorSets[i]->GetLayout().GetDeclaration()->name == dsDecls[i].name,
+            "Invalid descriptor set binding for index {} (name : {})", i, dsDecls[i].name);
     }
 
     static_assert(std::is_trivially_destructible_v<CommitDrawState>);
