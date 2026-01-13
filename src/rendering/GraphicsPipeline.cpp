@@ -16,6 +16,28 @@
 
 namespace Hyperion {
 
+#pragma region PSOCacheKey
+
+PSOCacheKey::PSOCacheKey(const RenderableAttributeSet& attributes)
+    : rawBytes {}
+{
+    // mesh
+    vertexAttributes = (uint16)attributes.GetMeshAttributes().vertexAttributes.flagMask;
+    topology = (uint8)attributes.GetMeshAttributes().topology;
+
+    // material
+    fillMode = (uint8)attributes.GetMaterialAttributes().fillMode;
+    faceCullMode = (uint8)attributes.GetMaterialAttributes().cullFaces;
+    materialFlags = (uint8)attributes.GetMaterialAttributes().flags;
+    blend = (uint32)attributes.GetMaterialAttributes().blendFunction.value;
+    stencil = *((uint32*)&attributes.GetMaterialAttributes().stencilFunction);
+    shader = static_cast<HashedShaderDefinition>(attributes.GetMaterialAttributes().shaderDefinition);
+}
+
+#pragma endregion PSOCacheKey
+
+#pragma region GraphicsPipelineBase
+
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
     SafeDelete(std::move(m_shader));
@@ -70,20 +92,6 @@ bool GraphicsPipelineBase::MatchesSignature(
     const RenderTargetDesc* renderTargetDesc,
     const RenderableAttributeSet& attributes) const
 {
-    // if no render target desc provided we assume the caller doesn't care and don't bother checking
-    if (renderTargetDesc && *renderTargetDesc != m_renderTargetDesc)
-    {
-        return false;
-    }
-
-    if (shader != nullptr && shader != m_shader)
-    {
-        if (shader->GetCompiledShader()->GetDefinition() != m_shader->GetCompiledShader()->GetDefinition())
-        {
-            return false;
-        }
-    }
-
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
 
     if (meshAttributes.topology != m_topology
@@ -106,7 +114,23 @@ bool GraphicsPipelineBase::MatchesSignature(
         return false;
     }
 
+    // if no render target desc provided we assume the caller doesn't care and don't bother checking
+    if (renderTargetDesc && *renderTargetDesc != m_renderTargetDesc)
+    {
+        return false;
+    }
+
+    if (shader != nullptr && shader != m_shader)
+    {
+        if (shader->GetCompiledShader()->GetDefinition() != m_shader->GetCompiledShader()->GetDefinition())
+        {
+            return false;
+        }
+    }
+
     return true;
 }
+
+#pragma endregion GraphicsPipelineBase
 
 } // namespace Hyperion

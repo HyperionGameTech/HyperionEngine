@@ -24,7 +24,7 @@ namespace Hyperion {
 
 extern VulkanRenderBackend* g_renderBackend;
 
-static constexpr bool VulkanSwapchainUseFIFO = false;
+static constexpr bool VulkanSwapchainUseFIFO = true;
 static constexpr bool UseSrgbFormat = true;
 static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;

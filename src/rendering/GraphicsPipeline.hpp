@@ -17,6 +17,45 @@ namespace Hyperion {
 class RenderableAttributeSet;
 struct DescriptorTableDeclaration;
 
+struct PSOCacheKey
+{
+    union
+    {
+        struct
+        {
+            // mesh
+            uint16 vertexAttributes : 9;
+            uint8 topology : 3;
+            // material
+            uint8 fillMode : 1;
+            uint8 faceCullMode : 2;
+            uint8 materialFlags;
+            uint32 blend;
+            uint32 stencil;
+            HashedShaderDefinition shader;
+        };
+
+        ubyte rawBytes[40];
+    };
+
+    PSOCacheKey()
+        : rawBytes{}
+    {
+    }
+
+    explicit PSOCacheKey(const RenderableAttributeSet& attributes);
+
+    bool operator==(const PSOCacheKey& other) const
+    {
+        return Memory::MemCmp(this, &other, sizeof(PSOCacheKey)) == 0;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(rawBytes, rawBytes + sizeof(rawBytes));
+    }
+};
+
 HYP_CLASS(Abstract, NoScriptBindings)
 class GraphicsPipelineBase : public ObjectBase
 {
@@ -129,6 +168,11 @@ public:
         m_debugName = name;
     }
 
+    HYP_FORCE_INLINE const PSOCacheKey& GetPSOCacheKey() const
+    {
+        return m_psoCacheKey;
+    }
+
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create();
@@ -166,7 +210,6 @@ protected:
     FaceCullMode m_faceCullMode = FCM_BACK;
     FillMode m_fillMode = FM_FILL;
     BlendFunction m_blendFunction = BlendFunction::None();
-
     Optional<StencilFunction> m_stencilFunction;
 
     bool m_depthTest = true;
@@ -174,6 +217,8 @@ protected:
 
     ShaderRef m_shader;
     RenderTargetDesc m_renderTargetDesc;
+    
+    PSOCacheKey m_psoCacheKey;
 
 #ifdef HYP_DEBUG_MODE
     Name m_debugName;

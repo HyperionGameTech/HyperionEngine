@@ -704,6 +704,12 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                     {
                         ownedSetsMask |= (1u << setIndex);
 
+                        // not created yet; needs to be handled
+                        if (!setsToBind[setIndex]->IsCreated())
+                        {
+                            dirtySetsMask |= (1u << setIndex);
+                        }
+
                         // check if we need to re-visit buffers that only had buffer offsets changed,
                         // since we grabbed a fresh set.
                         if (bufferOffsetCounts[setIndex] != 0)
@@ -717,6 +723,8 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                                 AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
 
                                 setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
+                                
+                                dirtySetsMask |= (1u << setIndex);
                             }
                         }
                     }
@@ -724,12 +732,21 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                     AssertDebug(setsToBind[setIndex] != nullptr);
                     setsToBindMask |= (1u << setIndex);
                 }
+
+                // For dirtySetsMask, we:
+                // Mark the set as needing Update() called if:
+                //   -- is NOT a global descriptor set (these are updated before the frame is submitted)
+                //   -- is NOT just a buffer offset update (dirtyBufferOffsets would be wiped if the uniform actually changed)
                 
                 switch (uniform.type)
                 {
                 case ShaderUniform::UT_Buffer:
                     if (!(state.dirtyBufferOffsets & (1u << uniformIndex)))
+                    {
                         setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+
+                        dirtySetsMask |= (1u << setIndex);
+                    }
 
                     if (decl->isDynamic)
                     {
@@ -745,25 +762,25 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                     break;
                 case ShaderUniform::UT_ImageView:
                     setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+                    
+                    dirtySetsMask |= (1u << setIndex);
 
                     break;
                 case ShaderUniform::UT_Sampler:
                     setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
+                    
+                    dirtySetsMask |= (1u << setIndex);
 
                     break;
                 case ShaderUniform::UT_Tlas:
                     setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
+                    
+                    dirtySetsMask |= (1u << setIndex);
 
                     break;
                 default:
                     HYP_UNREACHABLE();
                 }
-
-                // Mark the set as needing Update() called if:
-                //   -- is NOT a global descriptor set (these are updated before the frame is submitted)
-                //   -- is NOT just a buffer offset update (dirtyBufferOffsets would be wiped if the uniform actually changed)
-                if (!isGlobalDS && !(state.dirtyBufferOffsets & (1u << uniformIndex)))
-                    dirtySetsMask |= (1u << setIndex);
 
                 state.validUniforms |= (1u << uniformIndex);
                 state.dirtyUniforms &= ~(1u << uniformIndex);
@@ -771,7 +788,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         }
     }
     
-        
     // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)
     for (uint32 setIndex = 0; setIndex < uint32(tableDecl->elements.Size()); setIndex++)
     {
@@ -785,8 +801,32 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
             setsToBind[setIndex] = FetchDescriptorSet(tableDecl->elements[setIndex], isGlobalDS);
             AssertDebug(setsToBind[setIndex] != nullptr);
+
+            if (!setsToBind[setIndex]->IsCreated())
+                dirtySetsMask |= (1u << setIndex);
                 
             setsToBindMask |= (1u << setIndex);
+        }
+    }
+       
+    FOR_EACH_BIT(dirtySetsMask, setIndex)
+    {
+        DescriptorSet* ds = setsToBind[setIndex];
+        AssertDebug(ds != nullptr);
+
+        if (!ds->IsCreated())
+        {
+            Assert(ds->Create());
+        }
+        else
+        {
+            bool isDirty = false;
+            ds->UpdateDirtyState(&isDirty);
+
+            if (isDirty)
+            {
+                ds->Update();
+            }
         }
     }
 
@@ -797,24 +837,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         {
             DescriptorSet* ds = setsToBind[setIndex];
             AssertDebug(ds != nullptr);
-                
-            if (dirtySetsMask & (1u << setIndex))
-            {
-                if (!ds->IsCreated())
-                {
-                    Assert(ds->Create());
-                }
-                else
-                {
-                    bool isDirty = false;
-                    ds->UpdateDirtyState(&isDirty);
-
-                    if (isDirty)
-                    {
-                        ds->Update();
-                    }
-                }
-            }
 
             DescriptorSetOffsetMap offsets {};
             for (uint8 bufferOffsetIndex = 0; bufferOffsetIndex < bufferOffsetCounts[setIndex]; bufferOffsetIndex++)
