@@ -513,7 +513,8 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
         state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
     }
-    else if (uniform.type == ShaderUniform::UT_Buffer && cmdCasted->bufferOffset != state.shaderUniformBufferOffsets[cmdCasted->uniformIndex])
+    
+    if (uniform.type == ShaderUniform::UT_Buffer && cmdCasted->bufferOffset != state.shaderUniformBufferOffsets[cmdCasted->uniformIndex])
     {
         // buffer offset only updating
         state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->bufferOffset;
@@ -653,7 +654,7 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
             const DescriptorDeclaration* decl = nullptr;
 
-            const DescriptorSetDeclaration* foundSetDecl = nullptr;             // original
+            const DescriptorSetDeclaration* foundSetDecl = nullptr;
 
             for (const DescriptorSetDeclaration& setDecl : tableDecl->elements)
             {
@@ -677,6 +678,12 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
             if (decl)
             {
+                // temp debug
+                if (decl->name == "MaterialsBuffer"_sh)
+                {
+                    HYP_LOG_TEMP("Materials buffer found from descriptor set : {}  {}", foundSetDecl->name, foundSetDecl->flags.value);
+                }
+
                 bool isGlobalDS = false;
 
                 const uint32 setIndex = foundSetDecl->setIndex;
@@ -690,8 +697,11 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                     AssertDebug(setsToBind[setIndex] != nullptr);
                     setsToBindMask |= (1u << setIndex);
+                    
+                    HYP_LOG_TEMP("Set buffer offset for {}", uniform.name);
+
                 }
-                else if (!(ownedSetsMask & (1u << setIndex)))
+                else if (!(dirtySetsMask & (1u << setIndex)))
                 {
                     setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, isGlobalDS);
                     AssertDebug(setsToBind[setIndex] != nullptr);
@@ -702,29 +712,25 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                     if (isOwnedSet)
                     {
                         ownedSetsMask |= (1u << setIndex);
+                    }
 
-                        // not created yet; needs to be handled
-                        if (!setsToBind[setIndex]->IsCreated())
+                    // check if we need to re-visit buffers that only had buffer offsets changed,
+                    // since we grabbed a fresh set.
+                    if (bufferOffsetCounts[setIndex] != 0)
+                    {
+                        for (uint32 offsetIdx = 0; offsetIdx < MaxDynamicOffsetsPerSet; offsetIdx++)
                         {
-                            dirtySetsMask |= (1u << setIndex);
-                        }
+                            const uint8 bufferShaderUniformIndex = bufferOffsets[setIndex][offsetIdx];
+                            AssertDebug(bufferShaderUniformIndex < ArraySize(state.shaderUniforms));
 
-                        // check if we need to re-visit buffers that only had buffer offsets changed,
-                        // since we grabbed a fresh set.
-                        if (bufferOffsetCounts[setIndex] != 0)
-                        {
-                            for (uint32 offsetIdx = 0; offsetIdx < MaxDynamicOffsetsPerSet; offsetIdx++)
-                            {
-                                const uint8 bufferShaderUniformIndex = bufferOffsets[setIndex][offsetIdx];
-                                AssertDebug(bufferShaderUniformIndex < ArraySize(state.shaderUniforms));
+                            const ShaderUniform& bufferUniform = state.shaderUniforms[bufferShaderUniformIndex];
+                            AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
 
-                                const ShaderUniform& bufferUniform = state.shaderUniforms[bufferShaderUniformIndex];
-                                AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
-
-                                setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
+                            setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
+                    
+                            HYP_LOG_TEMP("Set uniform {}", bufferUniform.name);
                                 
-                                dirtySetsMask |= (1u << setIndex);
-                            }
+                            dirtySetsMask |= (1u << setIndex);
                         }
                     }
 
@@ -737,6 +743,9 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 //   -- is NOT a global descriptor set (these are updated before the frame is submitted)
                 //   -- is NOT just a buffer offset update (dirtyBufferOffsets would be wiped if the uniform actually changed)
                 
+                    
+                HYP_LOG_TEMP("Setting uniform {}, type: {}, value = {}, dirty buffer? {}", uniform.name, uniform.type, (void*)uniform.buffer, (state.dirtyBufferOffsets & (1u << uniformIndex)));
+
                 switch (uniform.type)
                 {
                 case ShaderUniform::UT_Buffer:

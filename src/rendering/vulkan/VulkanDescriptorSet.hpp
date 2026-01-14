@@ -42,15 +42,12 @@ struct VulkanDescriptorElementInfo
 
     HYP_FORCE_INLINE bool operator==(const VulkanDescriptorElementInfo& other) const
     {
-        return binding == other.binding
-            && index == other.index
-            && descriptorType == other.descriptorType
-            && Memory::MemCmp(
-                &bufferInfo,
-                &other.bufferInfo,
-                descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
-                    ? sizeof(accelerationStructureInfo)
-                    : sizeof(bufferInfo)) == 0;
+        return Memory::MemCmp(this, &other, sizeof(VulkanDescriptorElementInfo)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const VulkanDescriptorElementInfo& other) const
+    {
+        return !(*this == other);
     }
 };
 
@@ -99,7 +96,7 @@ protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;
-    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;
+    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos; // @TODO Change to VkWriteDescriptorSet
     ElementCache m_cachedElements;
 };
 
