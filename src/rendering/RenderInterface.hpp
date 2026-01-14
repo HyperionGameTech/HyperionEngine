@@ -249,6 +249,9 @@ private:
     void CreateSphereSamplesBuffer();
 
     void SetDefaultDescriptorSetElements(uint32 frameIndex);
+
+    GpuBufferRef m_blueNoiseBuffer;
+    GpuBufferRef m_sphereSamplesBuffer;
 };
 
 } // namespace Hyperion

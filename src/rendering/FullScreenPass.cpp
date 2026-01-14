@@ -159,6 +159,7 @@ FullScreenPass::~FullScreenPass()
     m_fullScreenQuad.Reset();
 
     SafeDelete(std::move(m_framebuffer));
+    SafeDelete(std::move(m_mergeHalfResTexturesUniformBuffer));
 
     // not calling SafeDelete() for graphics pipeline as it is managed by the graphics pipeline caching system
 }
@@ -555,16 +556,16 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         return;
     }
 
-    GpuBufferRef mergeHalfResTexturesUniformBuffer;
+    MergeHalfResTexturesUniforms uniforms;
+    uniforms.dimensions = m_extent;
 
-    { // Create uniform buffer
-        MergeHalfResTexturesUniforms uniforms;
-        uniforms.dimensions = m_extent;
-
-        mergeHalfResTexturesUniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-        HYP_GFX_ASSERT(mergeHalfResTexturesUniformBuffer->Create());
-        mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
+    if (!m_mergeHalfResTexturesUniformBuffer)
+    {
+        m_mergeHalfResTexturesUniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        HYP_GFX_ASSERT(m_mergeHalfResTexturesUniformBuffer->Create());
     }
+
+    m_mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
     ShaderRef mergeHalfResTexturesShader = g_shaderManager->GetOrCreate(NAME("MergeHalfResTextures"));
     Assert(mergeHalfResTexturesShader.IsValid());
@@ -578,7 +579,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         Assert(descriptorSet != nullptr);
 
         descriptorSet->SetElement("InTexture"_sh, GetAttachment(0)->GetImageView());
-        descriptorSet->SetElement("UniformBuffer"_sh, mergeHalfResTexturesUniformBuffer);
+        descriptorSet->SetElement("UniformBuffer"_sh, m_mergeHalfResTexturesUniformBuffer);
     }
 
     DeferCreate(descriptorTable);

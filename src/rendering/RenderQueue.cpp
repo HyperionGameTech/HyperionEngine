@@ -582,20 +582,22 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
 
         state.prevGraphicsPipeline = pipeline;
-        
-        Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
-        
-        // invalidate
-        state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
-        state.validUniforms = 0;
     }
     else
     {
         pipeline = state.prevGraphicsPipeline;
     }
 
+    // TEMP debug
+        //Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+        //
+        //// invalidate
+        //state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
+        //state.validUniforms = 0;
+
     // keep dirtyBufferOffsets '1' bits only if NOT a dirty uniform (indicating it needs rebinding)
     state.dirtyBufferOffsets &= ~(state.dirtyUniforms);
+
     
     Shader* shader = pipeline->GetShader();
     CompiledShader* compiledShader = shader->GetCompiledShader();
@@ -678,12 +680,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
             if (decl)
             {
-                // temp debug
-                if (decl->name == "MaterialsBuffer"_sh)
-                {
-                    HYP_LOG_TEMP("Materials buffer found from descriptor set : {}  {}", foundSetDecl->name, foundSetDecl->flags.value);
-                }
-
                 bool isGlobalDS = false;
 
                 const uint32 setIndex = foundSetDecl->setIndex;
@@ -697,9 +693,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                     AssertDebug(setsToBind[setIndex] != nullptr);
                     setsToBindMask |= (1u << setIndex);
-                    
-                    HYP_LOG_TEMP("Set buffer offset for {}", uniform.name);
-
                 }
                 else if (!(dirtySetsMask & (1u << setIndex)))
                 {
@@ -726,9 +719,7 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                             const ShaderUniform& bufferUniform = state.shaderUniforms[bufferShaderUniformIndex];
                             AssertDebug(bufferUniform.type == ShaderUniform::UT_Buffer);
 
-                            setsToBind[setIndex]->SetElement(bufferUniform.name, MakeStrongRef(bufferUniform.buffer));
-                    
-                            HYP_LOG_TEMP("Set uniform {}", bufferUniform.name);
+                            setsToBind[setIndex]->SetElement(bufferUniform.name, bufferUniform.buffer);
                                 
                             dirtySetsMask |= (1u << setIndex);
                         }
@@ -743,15 +734,12 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 //   -- is NOT a global descriptor set (these are updated before the frame is submitted)
                 //   -- is NOT just a buffer offset update (dirtyBufferOffsets would be wiped if the uniform actually changed)
                 
-                    
-                HYP_LOG_TEMP("Setting uniform {}, type: {}, value = {}, dirty buffer? {}", uniform.name, uniform.type, (void*)uniform.buffer, (state.dirtyBufferOffsets & (1u << uniformIndex)));
-
                 switch (uniform.type)
                 {
                 case ShaderUniform::UT_Buffer:
                     if (!(state.dirtyBufferOffsets & (1u << uniformIndex)))
                     {
-                        setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.buffer));
+                        setsToBind[setIndex]->SetElement(uniform.name, uniform.buffer);
 
                         dirtySetsMask |= (1u << setIndex);
                     }
@@ -766,19 +754,19 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
                     break;
                 case ShaderUniform::UT_ImageView:
-                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.imageView));
+                    setsToBind[setIndex]->SetElement(uniform.name, uniform.imageView);
                     
                     dirtySetsMask |= (1u << setIndex);
 
                     break;
                 case ShaderUniform::UT_Sampler:
-                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.sampler));
+                    setsToBind[setIndex]->SetElement(uniform.name, uniform.sampler);
                     
                     dirtySetsMask |= (1u << setIndex);
 
                     break;
                 case ShaderUniform::UT_Tlas:
-                    setsToBind[setIndex]->SetElement(uniform.name, MakeStrongRef(uniform.tlas));
+                    setsToBind[setIndex]->SetElement(uniform.name, uniform.tlas);
                     
                     dirtySetsMask |= (1u << setIndex);
 

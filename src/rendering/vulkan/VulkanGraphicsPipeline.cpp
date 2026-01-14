@@ -491,7 +491,8 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         outVkVertexBindingDescriptions.PushBack(VkVertexInputBindingDescription {
             .binding = it.first,
             .stride = it.second,
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX });
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+        });
     }
 }
 

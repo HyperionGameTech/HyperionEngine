@@ -66,7 +66,7 @@ static inline void ValidateDynamicOffset(
         const auto firstValueIt = element->values.Begin();
         if (firstValueIt != element->values.End())
         {
-            const VulkanGpuBufferRef& buffer = ObjCast<GpuBuffer>(firstValueIt->second);
+            VulkanGpuBuffer* buffer = ObjCast<VulkanGpuBuffer>(*firstValueIt);
 
             if (buffer != nullptr)
             {
@@ -85,7 +85,7 @@ static inline void ValidateDynamicOffset(
 template <class AllocatorType>
 static inline void PopulateDynamicOffsets(
     const DescriptorSetLayout& layout,
-    const HashMap<Name, DescriptorSetElement>& elements,
+    const FlatMap<Name, DescriptorSetElement>& elements,
     const DescriptorSetOffsetMap& offsets,
     Array<uint32, AllocatorType>& outDynamicOffsets)
 {
@@ -134,7 +134,7 @@ static inline void PopulateDynamicOffsets(
 
 static SharedMutex s_defaultsMutex;
 
-static VulkanGpuImageViewRef GetDefaultVulkanImageView()
+static const VulkanGpuImageViewRef& GetDefaultVulkanImageView()
 {
     TSharedLock lock(s_defaultsMutex);
 
@@ -164,7 +164,7 @@ static VulkanGpuImageViewRef GetDefaultVulkanImageView()
     return s_imageView;
 }
 
-static VulkanSamplerRef GetDefaultVulkanSampler()
+static const VulkanSamplerRef& GetDefaultVulkanSampler()
 {
     TSharedLock lock(s_defaultsMutex);
 
@@ -206,23 +206,23 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
         case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC: // fallthrough
         case DescriptorSetElementType::SSBO:                   // fallthrough
         case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC: // fallthrough
-            PrefillElements<VulkanGpuBufferRef>(name, element.count);
+            PrefillElements<VulkanGpuBuffer>(name, element.count);
 
             break;
         case DescriptorSetElementType::IMAGE:
-            PrefillElements<VulkanGpuImageViewRef>(name, element.count, GetDefaultVulkanImageView());
+            PrefillElements<VulkanGpuImageView>(name, element.count, GetDefaultVulkanImageView());
 
             break;
         case DescriptorSetElementType::IMAGE_STORAGE:
-            PrefillElements<VulkanGpuImageViewRef>(name, element.count, GetDefaultVulkanImageView());
+            PrefillElements<VulkanGpuImageView>(name, element.count, GetDefaultVulkanImageView());
 
             break;
         case DescriptorSetElementType::SAMPLER:
-            PrefillElements<VulkanSamplerRef>(name, element.count, GetDefaultVulkanSampler());
+            PrefillElements<VulkanSampler>(name, element.count, GetDefaultVulkanSampler());
 
             break;
         case DescriptorSetElementType::TLAS:
-            PrefillElements<VulkanGpuTlasRef>(name, element.count);
+            PrefillElements<VulkanGpuTlas>(name, element.count);
 
             break;
         default:
@@ -243,6 +243,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 {
     m_vkDescriptorElementInfos.Clear();
@@ -268,7 +269,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
     
-    Array<VulkanDescriptorElementInfo, VulkanAllocator> localDescriptorElementInfos;
+    Array<VulkanDescriptorElementInfo> localDescriptorElementInfos;
 
     // detect changes from cachedValues
     for (auto& it : m_elements)
@@ -299,13 +300,13 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             const bool isDynamic = layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
                 || layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
 
-            for (auto& valuesIt : element.values)
+            for (uint32 index : element.occupiedArrayElems)
             {
-                const uint32 index = valuesIt.first;
+                ObjectBase* ptr = element.values[index];
 
-                AssertDebug(Hyperion::IsA<VulkanGpuBuffer>(valuesIt.second.Get()));
+                AssertDebug(Hyperion::IsA<VulkanGpuBuffer>(ptr));
 
-                VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(valuesIt.second.Get());
+                VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(ptr);
                 AssertDebug(ref != nullptr);
                 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
@@ -329,14 +330,14 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         case DescriptorSetElementType::IMAGE_STORAGE:
         {
             const bool isStorageImage = layoutElement->type == DescriptorSetElementType::IMAGE_STORAGE;
-
-            for (auto& valuesIt : element.values)
+            
+            for (uint32 index : element.occupiedArrayElems)
             {
-                const uint32 index = valuesIt.first;
+                ObjectBase* ptr = element.values[index];
 
-                AssertDebug(Hyperion::IsA<VulkanGpuImageView>(valuesIt.second.Get()));
+                AssertDebug(Hyperion::IsA<VulkanGpuImageView>(ptr));
 
-                VulkanGpuImageView* ref = static_cast<VulkanGpuImageView*>(valuesIt.second.Get());
+                VulkanGpuImageView* ref = static_cast<VulkanGpuImageView*>(ptr);
                 AssertDebug(ref != nullptr);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
@@ -358,13 +359,13 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
         case DescriptorSetElementType::SAMPLER:
         {
-            for (auto& valuesIt : element.values)
+            for (uint32 index : element.occupiedArrayElems)
             {
-                const uint32 index = valuesIt.first;
+                ObjectBase* ptr = element.values[index];
 
-                AssertDebug(Hyperion::IsA<VulkanSampler>(valuesIt.second.Get()));
+                AssertDebug(Hyperion::IsA<VulkanSampler>(ptr));
 
-                VulkanSampler* ref = static_cast<VulkanSampler*>(valuesIt.second.Get());
+                VulkanSampler* ref = static_cast<VulkanSampler*>(ptr);
                 AssertDebug(ref != nullptr);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
@@ -386,12 +387,12 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
         case DescriptorSetElementType::TLAS:
         {
-            for (auto& valuesIt : element.values)
+            for (uint32 index : element.occupiedArrayElems)
             {
-                const uint32 index = valuesIt.first;
+                ObjectBase* ptr = element.values[index];
 
-                const VulkanGpuTlasRef& ref = ObjCast<VulkanGpuTlas>(valuesIt.second);
-                AssertDebug(ref.IsValid(), "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
+                VulkanGpuTlas* ref = ObjCast<VulkanGpuTlas>(ptr);
+                AssertDebug(ref != nullptr, "Invalid TLAS reference for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
                 AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 VulkanDescriptorElementInfo& descriptorElementInfo = localDescriptorElementInfos.EmplaceBack();
@@ -428,10 +429,8 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         if (localDirtyRange.Distance() > 0)
         {
-            AssertDebug(localDirtyRange.GetStart() < cachedValues.Size());
-            AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
-            AssertDebug(localDirtyRange.GetStart() < localDescriptorElementInfos.Size());
-            AssertDebug(localDirtyRange.GetEnd() <= localDescriptorElementInfos.Size());
+            AssertDebug(localDirtyRange.GetStart() + localDirtyRange.Distance() <= cachedValues.Size());
+            AssertDebug(localDirtyRange.GetStart() + localDirtyRange.GetEnd() <= localDescriptorElementInfos.Size());
 
             Memory::MemCpy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptorElementInfos.Data() + localDirtyRange.GetStart(), sizeof(VulkanDescriptorElementInfo) * SizeType(localDirtyRange.Distance()));
 
