@@ -42,15 +42,12 @@ struct VulkanDescriptorElementInfo
 
     HYP_FORCE_INLINE bool operator==(const VulkanDescriptorElementInfo& other) const
     {
-        return binding == other.binding
-            && index == other.index
-            && descriptorType == other.descriptorType
-            && Memory::MemCmp(
-                &bufferInfo,
-                &other.bufferInfo,
-                descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
-                    ? sizeof(accelerationStructureInfo)
-                    : sizeof(bufferInfo)) == 0;
+        return Memory::MemCmp(this, &other, sizeof(VulkanDescriptorElementInfo)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const VulkanDescriptorElementInfo& other) const
+    {
+        return !(*this == other);
     }
 };
 
@@ -84,10 +81,15 @@ public:
 
     void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
     void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const override;
+
     void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
     void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const override;
+
     void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const override;
     void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const override;
 
     VulkanDescriptorSetRef Clone() const override;
 
@@ -99,7 +101,7 @@ protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;
-    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;
+    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos; // @TODO Change to VkWriteDescriptorSet
     ElementCache m_cachedElements;
 };
 

@@ -27,29 +27,42 @@ class VulkanRenderPass;
 struct VulkanDeviceQueue;
 class VulkanPipelineBase;
 
+constexpr uint32 MaxVulkanDynamicOffsets = 16;
+
 struct VulkanCachedDescriptorSetBinding
 {
     VkDescriptorSet descriptorSet;
     VkPipeline pipeline;
     VkPipelineLayout pipelineLayout;
-
-    // usually we use at most 5 dynamic offsets
-    Array<uint32, InlineAllocator<5>> dynamicOffsets;
+    
+    uint32 numDynamicOffsets;
+    uint32 dynamicOffsets[MaxVulkanDynamicOffsets];
 
     HYP_FORCE_INLINE bool operator==(const VulkanCachedDescriptorSetBinding& other) const
     {
-        return GetHashCode() == other.GetHashCode();
+        return descriptorSet == other.descriptorSet
+            && pipeline == other.pipeline
+            && pipelineLayout == other.pipelineLayout
+            && numDynamicOffsets == other.numDynamicOffsets
+            && Memory::MemCmp(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptorSetBinding& other) const
     {
-        return !(*this == other);
+        return descriptorSet != other.descriptorSet
+            || pipeline != other.pipeline
+            || pipelineLayout != other.pipelineLayout
+            || numDynamicOffsets != other.numDynamicOffsets
+            || Memory::MemCmp(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) != 0;
     }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(reinterpret_cast<const ubyte*>(this), reinterpret_cast<const ubyte*>(this) + offsetof(VulkanCachedDescriptorSetBinding, dynamicOffsets))
-            .Combine(dynamicOffsets.GetHashCode());
+        return HashCode::GetHashCode((void*)descriptorSet)
+            .Combine((void*)pipeline)
+            .Combine((void*)pipelineLayout)
+            .Combine(numDynamicOffsets)
+            .Combine(HashCode::GetHashCode((const ubyte*)dynamicOffsets, (const ubyte*)(dynamicOffsets + numDynamicOffsets)));
     }
 };
 

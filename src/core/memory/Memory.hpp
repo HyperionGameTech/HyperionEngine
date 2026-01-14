@@ -5,6 +5,8 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
+#include <core/utilities/Traits.hpp>
+
 #include <type_traits>
 #include <cstring>
 #include <cstdlib>
@@ -23,6 +25,12 @@ public:
     HYP_FORCE_INLINE static int MemCmp(const void* lhs, const void* rhs, SizeType size)
     {
         return std::memcmp(lhs, rhs, size);
+    }
+   
+    template <BitwiseComparable T, BitwiseComparable U>
+    HYP_FORCE_INLINE static int MemCmpSafe(const T* a, const U* b, SizeType count)
+    {
+        return std::memcmp(a, b, count);
     }
 
     HYP_FORCE_INLINE static int StrCmp(const char* lhs, const char* rhs, SizeType length = 0)

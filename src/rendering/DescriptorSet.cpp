@@ -12,8 +12,6 @@
 
 #include <rendering/raytracing/RenderAccelerationStructure.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
-
 #include <DescriptorSet.generated.inl>
 
 namespace Hyperion {
@@ -209,23 +207,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
 
 #pragma region DescriptorSetBase
 
-DescriptorSetBase::~DescriptorSetBase()
-{
-    for (auto& elementsIt : m_elements)
-    {
-        for (auto& valuesIt : elementsIt.second.values)
-        {
-            Handle<ObjectBase>& value = valuesIt.second;
-
-            if (!value)
-            {
-                continue;
-            }
-
-            SafeDelete(std::move(value));
-        }
-    }
-}
+DescriptorSetBase::~DescriptorSetBase() = default;
 
 bool DescriptorSetBase::HasElement(StringHash name) const
 {
@@ -233,10 +215,12 @@ bool DescriptorSetBase::HasElement(StringHash name) const
 }
 
 template <class T>
-DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, const Handle<T>& ref)
+DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, T* ref)
 {
     const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
     AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
+
+    AssertDebug(ref != nullptr);
 
     // Range check
     AssertDebug(index < layoutElement->count, "Index {} out of range for element {} with count {}",
@@ -296,89 +280,91 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         static_assert(ResolutionFailureV<T>, "Unsupported type for descriptor set element");
     }
 
-    bool isNew = false;
+    DescriptorSetElement* element = nullptr;
 
-    auto it = m_elements.FindAs(name);
-    AssertDebug(it != m_elements.End());
+    auto it = m_elements.Find(Name(name));
 
     if (it == m_elements.End())
     {
         it = m_elements.Emplace(Name(name)).first;
+        
+        element = &it->second;
 
-        isNew = true;
-    }
+        element->values.Resize(index + 1);
+        element->values[index] = ref;
 
-    DescriptorSetElement& element = it->second;
-
-    auto elementIt = element.values.Find(index);
-
-    if (elementIt == element.values.End())
-    {
-        elementIt = element.values.Emplace(index, ref).first;
+        element->occupiedArrayElems.Set(index, true);
     }
     else
     {
-        if (!isNew && elementIt->second.Get() == ref.Get())
-        {
-            // same object reference; skip marking dirty
-            return element;
-        }
+        element = &it->second;
 
-        if (elementIt->second != nullptr)
+        if (!element->occupiedArrayElems.Test(index))
         {
-            SafeDelete(std::move(elementIt->second));
-        }
+            element->values.Resize(MathUtil::Max(element->values.Size(), index + 1));
+            element->values[index] = ref;
 
-        elementIt->second = ref;
+            element->occupiedArrayElems.Set(index, true);
+        }
+        else
+        {
+            if (element->values[index] == ref)
+            {
+                // same object reference; skip marking dirty
+                return *element;
+            }
+
+            element->values[index] = ref;
+        }
     }
 
     // Mark the range as dirty so that it will be updated in the next update
-    element.dirtyRange |= { index, index + 1 };
+    element->dirtyRange |= { index, index + 1 };
 
-    return element;
+    return *element;
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuBuffer* ref)
 {
     SetElementT<GpuBuffer>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref)
 {
     SetElementT<GpuBuffer>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuBuffer* ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuImageView* ref)
 {
     SetElementT<GpuImageView>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuImageView* ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, Sampler* ref)
 {
     SetElementT<Sampler>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, Sampler* ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuTlasRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuTlas* ref)
 {
     SetElementT<GpuTlas>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const GpuTlasRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuTlas* ref)
 {
     SetElement(name, 0, ref);
 }

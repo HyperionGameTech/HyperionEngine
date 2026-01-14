@@ -551,26 +551,9 @@ private:
 
 struct DescriptorSetElement
 {
-    FlatMap<uint32, Handle<ObjectBase>> values;
-    Range<uint32> dirtyRange {};
-
-    ~DescriptorSetElement()
-    {
-        if (values.Empty())
-        {
-            return;
-        }
-
-        for (auto& it : values)
-        {
-            if (!it.second)
-            {
-                continue;
-            }
-
-            SafeDelete(std::move(it.second));
-        }
-    }
+    Range<uint32> dirtyRange;
+    Array<ObjectBase*> values;
+    Bitset occupiedArrayElems;
 
     HYP_FORCE_INLINE bool IsDirty() const
     {
@@ -591,10 +574,6 @@ public:
         return m_layout;
     }
 
-    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement>& GetElements() const
-    {
-        return m_elements;
-    }
     Name GetDebugName() const
     {
         return m_debugName;
@@ -627,25 +606,30 @@ public:
 
     bool HasElement(StringHash name) const;
 
-    void SetElement(StringHash name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref);
-    void SetElement(StringHash name, uint32 index, const GpuBufferRef& ref);
-    void SetElement(StringHash name, const GpuBufferRef& ref);
+    void SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref);
+    void SetElement(StringHash name, uint32 index, GpuBuffer* ref);
+    void SetElement(StringHash name, GpuBuffer* ref);
 
-    void SetElement(StringHash name, uint32 index, const GpuImageViewRef& ref);
-    void SetElement(StringHash name, const GpuImageViewRef& ref);
+    void SetElement(StringHash name, uint32 index, GpuImageView* ref);
+    void SetElement(StringHash name, GpuImageView* ref);
 
-    void SetElement(StringHash name, uint32 index, const SamplerRef& ref);
-    void SetElement(StringHash name, const SamplerRef& ref);
+    void SetElement(StringHash name, uint32 index, Sampler* ref);
+    void SetElement(StringHash name, Sampler* ref);
 
-    void SetElement(StringHash name, uint32 index, const GpuTlasRef& ref);
-    void SetElement(StringHash name, const GpuTlasRef& ref);
+    void SetElement(StringHash name, uint32 index, GpuTlas* ref);
+    void SetElement(StringHash name, GpuTlas* ref);
 
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const = 0;
+
     virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const = 0;
+
     virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const = 0;
 
 protected:
     DescriptorSetBase(const DescriptorSetLayout& layout)
@@ -654,10 +638,10 @@ protected:
     }
 
     template <class T>
-    DescriptorSetElement& SetElementT(StringHash name, uint32 index, const Handle<T>& ref);
+    DescriptorSetElement& SetElementT(StringHash name, uint32 index, T* ref);
 
     template <class T>
-    void PrefillElements(Name name, uint32 count, const Optional<T>& placeholderValue = {})
+    void PrefillElements(Name name, uint32 count, T* placeholder = nullptr)
     {
         bool isBindless = false;
 
@@ -683,23 +667,12 @@ protected:
         }
 
         DescriptorSetElement& element = it->second;
-
-        // // Set bufferSize, only used in the case of buffer elements
-        // element.bufferSize = layoutElement->size;
-
-        element.values.Clear();
-        element.values.Reserve(count);
+        element.values.Resize(count);
 
         for (uint32 i = 0; i < count; i++)
         {
-            if (placeholderValue.HasValue())
-            {
-                element.values.Set(i, placeholderValue.Get());
-            }
-            else
-            {
-                element.values.Set(i, T {});
-            }
+            element.values[i] = placeholder;
+            element.occupiedArrayElems.Set(i, true);
         }
 
         element.dirtyRange = { 0, count };

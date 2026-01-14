@@ -24,74 +24,103 @@ layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
 #define HAS_REFRACTION 1
 
-#include "include/scene.inc"
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
 #include "include/material.inc"
+#include "include/scene.inc"
 #include "include/Entity.glsl"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"
 #include "include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(GeometryPass, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
+#if HAS_ALBEDO_MAP
+HYP_DESCRIPTOR_SRV(Default, AlbedoMap) uniform texture2D AlbedoMap;
+#endif
+#if HAS_NORMAL_MAP
+HYP_DESCRIPTOR_SRV(Default, NormalMap) uniform texture2D NormalMap;
+#endif
+#if HAS_PARALLAX_MAP
+HYP_DESCRIPTOR_SRV(Default, ParallaxMap) uniform texture2D ParallaxMap;
+#endif
+#if HAS_METALNESS_MAP
+HYP_DESCRIPTOR_SRV(Default, MetalnessMap) uniform texture2D MetalnessMap;
+#endif
+#if HAS_ROUGHNESS_MAP
+HYP_DESCRIPTOR_SRV(Default, RoughnessMap) uniform texture2D RoughnessMap;
+#endif
+#if HAS_AO_MAP
+HYP_DESCRIPTOR_SRV(Default, AoMap) uniform texture2D AoMap;
+#endif
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(Default, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
-
 #ifdef SHADING_TYPE_FORWARD
+
+#if ENV_PROBE_CUBEMAP
+HYP_DESCRIPTOR_SRV(Default, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
+#else
+HYP_DESCRIPTOR_SRV(Default, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+#endif
+HYP_DESCRIPTOR_SSBO(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+
+HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+
+HYP_DESCRIPTOR_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, EnvGridsBuffer) uniform EnvGridsBuffer
+{
+    EnvGrid env_grid;
+};
+
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.glsl"
 #include "include/shadows.inc"
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
-
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entity;
 };
 #endif
 
-/// \todo Refactor to use LightsBuffer instead
+#ifdef SHADING_TYPE_FORWARD
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+{
+    EnvProbe current_env_probe;
+};
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
+#endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(GeometryPass, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -135,28 +164,28 @@ void main()
     texcoord = parallax_texcoord;
 #endif
 
-#if HAS_ALBEDO_MAP
-    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
+// #if HAS_ALBEDO_MAP
+//     vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
-#ifdef ALPHA_DISCARD
-    if (albedo_texture.a < alpha_threshold)
-    {
-        discard;
-    }
-#endif
+// #ifdef ALPHA_DISCARD
+//     if (albedo_texture.a < alpha_threshold)
+//     {
+//         discard;
+//     }
+// #endif
 
-    gbuffer_albedo *= albedo_texture;
-#endif
+//     gbuffer_albedo *= albedo_texture;
+// #endif
 
     gbuffer_albedo.a = max(gbuffer_albedo.a, 0.005);
 
     vec4 normals_texture = vec4(0.0);
 
-#if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
+// #if HAS_NORMAL_MAP
+//     normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
 
-    N = normalize(tbn_matrix * normals_texture.xyz);
-#endif
+//     N = normalize(tbn_matrix * normals_texture.xyz);
+//#endif
 
 #if SHADING_TYPE_FORWARD
     {
@@ -279,6 +308,9 @@ void main()
         gbuffer_albedo.rgb = lighting;
     }
 #endif
+
+    // debug
+    gbuffer_albedo = vec4(1.0, 0.0, 0.0, 1.0);
 
 #if HAS_METALNESS_MAP
     float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;

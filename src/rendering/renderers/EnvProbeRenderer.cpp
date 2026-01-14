@@ -296,6 +296,9 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     Array<ComputePipelineRef> pipelines;
     pipelines.Resize(numMips);
 
+    Array<GpuBufferRef> buffers;
+    buffers.Resize(numMips);
+
     for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
     {
         const float roughness = float(mipIndex) / float(numMips - 1);
@@ -316,7 +319,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
             ? extent
             : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
 
-        GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        GpuBufferRef& uniformBuffer = buffers[mipIndex];
+        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
         Assert(uniformBuffer->Create());
 
         uniforms.outImageDimensions = mipExtent;
@@ -391,10 +395,11 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     }
 
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle, pipelines = std::move(pipelines), descriptorTables = std::move(descriptorTables)](...) mutable
+    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle, pipelines = std::move(pipelines), descriptorTables = std::move(descriptorTables), buffers = std::move(buffers)](...) mutable
         {
             SafeDelete(std::move(pipelines));
             SafeDelete(std::move(descriptorTables));
+            SafeDelete(std::move(buffers));
 
             delete delegateHandle;
         });
@@ -662,7 +667,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), delegateHandle](Frame* frame) mutable
+    *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), shTilesBuffers = std::move(shTilesBuffers), delegateHandle](Frame* frame) mutable
         {
             HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
 
@@ -698,6 +703,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
             }
 
             SafeDelete(std::move(descriptorTables));
+            SafeDelete(std::move(shTilesBuffers));
 
             delete delegateHandle;
         });

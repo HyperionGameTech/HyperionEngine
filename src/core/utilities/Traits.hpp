@@ -193,4 +193,7 @@ struct IsString : std::false_type
 {
 };
 
+template <class T>
+concept BitwiseComparable = std::has_unique_object_representations_v<T>;
+
 } // namespace Hyperion

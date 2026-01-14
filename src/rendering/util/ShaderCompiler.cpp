@@ -736,6 +736,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
@@ -813,8 +814,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
         break;
     }
 
-    uint32 vulkanApiVersion =
-        MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
+    uint32 vulkanApiVersion = MathUtil::Max(HYP_VULKAN_API_VERSION, VK_API_VERSION_1_1);
     uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
     uint32 spirvVersion = 450;
 
@@ -833,16 +833,14 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
         .client_version =
             static_cast<glslang_target_client_version_t>(vulkanApiVersion),
         .target_language = GLSLANG_TARGET_SPV,
-        .target_language_version =
-            static_cast<glslang_target_language_version_t>(spirvApiVersion),
+        .target_language_version = static_cast<glslang_target_language_version_t>(spirvApiVersion),
         .code = source.Data(),
         .default_version = int(spirvVersion),
         .default_profile = GLSLANG_CORE_PROFILE,
         .force_default_version_and_profile = false,
         .forward_compatible = false,
         .messages = GLSLANG_MSG_DEFAULT_BIT,
-        .resource =
-            reinterpret_cast<const glslang_resource_t*>(&defaultResources),
+        .resource = reinterpret_cast<const glslang_resource_t*>(&defaultResources),
         .callbacks_ctx = nullptr
     };
 
@@ -894,7 +892,7 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
 
 #ifdef HYP_SHADER_REFLECTION
     glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
-    if (!cppProgram->buildReflection())
+    if (!cppProgram->buildReflection(EShReflectionDefault))
     {
         GLSL_ERROR(Error, "Failed to build shader reflection!");
     }
@@ -917,8 +915,6 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
     {
         if (type->isStruct())
         {
-            HYP_LOG(ShaderCompiler, Debug, "Found GLSL struct: {}", type->getTypeName().data());
-
             for (auto it = type->getStruct()->begin(); it != type->getStruct()->end(); ++it)
             {
                 String fieldTypeName;
@@ -944,56 +940,57 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
     // inject reflection info for shader inputs
     for (DescriptorUsage& du : descriptorUsages.elements)
     {
-        if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_CBUFF)
+        if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_CBUFF
+            || du.slot == DescriptorSlot::DESCRIPTOR_SLOT_SSBO)
         {
-            const glslang::TObjectReflection* refl = nullptr;
+            const char* duNameString = du.descriptorName.LookupString();
+            const int reflectionIndex = cppProgram->getReflectionIndex(duNameString);
 
-            for (int i = 0; i < cppProgram->getNumUniformBlocks(); i++)
+            if (reflectionIndex == -1)
             {
-                const auto& block = cppProgram->getUniformBlock(i);
-
-                const glslang::TType* type = block.getType();
-                Assert(type != nullptr);
-
-                if (!type->isStruct())
-                    continue;
-
-                if (StringHash(type->getTypeName().data()) == du.descriptorName)
-                {
-                    refl = &block;
-
-                    break;
-                }
-            }
-
-            if (refl != nullptr)
-            {
-                HandleShaderStruct(refl->getType(), du.type);
-                du.type.size = refl->size;
+                HYP_LOG(ShaderCompiler, Warning, "Missing reflection data for shader input {}!", du.descriptorName);
 
                 continue;
             }
-        }
-        else if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_SSBO)
-        {
+            
             const glslang::TObjectReflection* refl = nullptr;
 
-            for (int i = 0; i < cppProgram->getNumBufferBlocks(); i++)
+            if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_CBUFF)
             {
-                const auto& block = cppProgram->getBufferBlock(i);
+                refl = &cppProgram->getUniformBlock(reflectionIndex);
 
-                const glslang::TType* type = block.getType();
-                Assert(type != nullptr);
-                
-                if (!type->isStruct())
-                    continue;
-
-                if (StringHash(type->getTypeName().data()) == du.descriptorName)
+                if (!refl)
                 {
-                    refl = &block;
-
-                    break;
+                    refl = &cppProgram->getBufferBlock(reflectionIndex);
                 }
+                
+                if (!refl->getType())
+                {
+                    HYP_LOG(ShaderCompiler, Error, "INVALID reflection data for shader input {}!", du.descriptorName);
+
+                    continue;
+                }
+
+                AssertDebug(refl->getType()->getTypeName() == duNameString);
+            }
+
+            if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_SSBO)
+            {
+                refl = &cppProgram->getBufferBlock(reflectionIndex);
+
+                if (!refl)
+                {
+                    refl = &cppProgram->getUniformBlock(reflectionIndex);
+                }
+
+                if (!refl->getType())
+                {
+                    HYP_LOG(ShaderCompiler, Error, "INVALID reflection data for shader input {}!", du.descriptorName);
+
+                    continue;
+                }
+                
+                AssertDebug(refl->getType()->getTypeName() == duNameString);
             }
 
             if (refl != nullptr)
@@ -1008,8 +1005,6 @@ static ByteBuffer CompileToSPIRV(ShaderModuleType type, ShaderLanguage language,
         {
             continue;
         }
-        
-        HYP_LOG(ShaderCompiler, Warning, "Missing reflection data for shader input {}!", du.descriptorName);
     }
 #endif
 

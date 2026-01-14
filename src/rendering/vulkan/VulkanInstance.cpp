@@ -40,7 +40,7 @@ namespace Hyperion {
 
 #ifdef HYP_DEBUG_MODE
 constexpr bool EnableVulkanSynchronizationValidation = false;
-constexpr bool EnableVulkanVerboseValidationLogging = true;
+constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
 
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)

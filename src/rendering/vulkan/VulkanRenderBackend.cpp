@@ -52,6 +52,8 @@ namespace Hyperion {
 static constexpr SizeType VulkanArenaSize = 4 * 1024 * 1024; // 4 MB for general transient allocations
 TArena<RenderAllocator>* g_vulkanArena;
 
+static constexpr bool UseResetDescriptorPool = false;
+
 namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
@@ -226,6 +228,8 @@ public:
     VulkanDescriptorSetManager();
     virtual ~VulkanDescriptorSetManager() override;
 
+    void OnFrameStart();
+
     RendererResult Create(VulkanDevice* device);
     RendererResult Destroy(VulkanDevice* device);
 
@@ -241,14 +245,20 @@ public:
     VkDescriptorSetLayout GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout);
 
 private:
-    VkDescriptorPool GetDescriptorPool();
+    VkDescriptorPool GetDescriptorPool(uint32 currentFrameCounter, int& outPoolIndex);
     RendererResult CreateDescriptorPool(VkDescriptorPool& outDescriptorPool);
 
-    Mutex m_mutex;
+    SharedMutex m_mutex;
     HashMap<HashCode, VkDescriptorSetLayout> m_vkDescriptorSetLayouts;
 
-    Array<VkDescriptorPool> m_vkDescriptorPools;
-    Array<uint32> m_descriptorPoolUsageCounts;
+    struct VulkanDescriptorPool
+    {
+        VkDescriptorPool pool = VK_NULL_HANDLE;
+        uint32 useCount = 0;
+        uint32 frameCounter = 0; // last used or created
+    };
+
+    Array<VulkanDescriptorPool> m_pools;
 };
 
 VulkanDescriptorSetManager::VulkanDescriptorSetManager()
@@ -257,9 +267,29 @@ VulkanDescriptorSetManager::VulkanDescriptorSetManager()
 
 VulkanDescriptorSetManager::~VulkanDescriptorSetManager() = default;
 
+void VulkanDescriptorSetManager::OnFrameStart()
+{
+    const uint32 frameCounter = RenderApi::GetFrameCounter();
+
+    if (!UseResetDescriptorPool)
+        return;
+
+    // Reset descriptor pools for this frame
+    for (SizeType i = 0; i < m_pools.Size(); i++)
+    {
+        VulkanDescriptorPool& dp = m_pools[i];
+
+        if (dp.frameCounter % RingBufferDepth == 0)
+        {
+            VkResult result = vkResetDescriptorPool(g_renderBackend->GetDevice()->GetDevice(), dp.pool, 0);
+            Assert(result == VK_SUCCESS, "Failed to reset descriptor pool! {}", result);
+        }
+    }
+}
+
 RendererResult VulkanDescriptorSetManager::Create(VulkanDevice* device)
 {
-    return RendererResult {};
+    return {};
 }
 
 RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
@@ -268,75 +298,91 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
 
     m_vkDescriptorSetLayouts.Clear();
 
-    for (SizeType i = 0; i < m_vkDescriptorPools.Size(); ++i)
+    for (SizeType i = 0; i < m_pools.Size(); i++)
     {
-        VkDescriptorPool& descriptorPool = m_vkDescriptorPools[i];
-        HYP_GFX_ASSERT(descriptorPool != VK_NULL_HANDLE);
+        VkDescriptorPool& descriptorPool = m_pools[i].pool;
+        AssertDebug(descriptorPool != VK_NULL_HANDLE);
 
-        const uint32 usageCount = m_descriptorPoolUsageCounts[i];
+        const uint32 usageCount = m_pools[i].useCount;
 
         if (usageCount > 0)
         {
             HYP_LOG(RenderingBackend, Warning, "Descriptor pool {} ({}) is still in use by {} descriptor sets", (void*)descriptorPool, i, usageCount);
         }
 
-        vkDestroyDescriptorPool(
-            device->GetDevice(),
-            descriptorPool,
-            nullptr);
+        vkDestroyDescriptorPool(device->GetDevice(), descriptorPool, nullptr);
     }
 
-    m_vkDescriptorPools.Clear();
-    m_descriptorPoolUsageCounts.Clear();
+    m_pools.Clear();
 
     return result;
 }
 
-VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool()
+VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(uint32 currentFrameCounter, int& outPoolIndex)
 {
-    if (m_vkDescriptorPools.Empty())
-    {
-        VkDescriptorPool descriptorPool;
-        if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(descriptorPool); createDescriptorPoolResult.HasError())
-        {
-            HYP_FAIL("Failed to create descriptor pool! {}", createDescriptorPoolResult.GetError().GetMessage());
-        }
-
-        return descriptorPool;
-    }
+    outPoolIndex = -1;
 
     // return last descriptor pool, it's most likely for allocations
     // to succeed with it since it would have more free memory
-    return m_vkDescriptorPools.Back();
+    for (SizeType idx = m_pools.Size(); idx != 0; --idx)
+    {
+        VulkanDescriptorPool& dp = m_pools[idx - 1];
+
+        const uint32 delta = currentFrameCounter - dp.frameCounter;
+
+        // we can use it if this many frames have passed OR it is from the same frame
+        if (dp.frameCounter == currentFrameCounter || delta >= NumFramesInFlight)
+        {
+            VkDescriptorPool pool = dp.pool;
+            dp.frameCounter = currentFrameCounter;
+            
+            outPoolIndex = idx - 1;
+
+            return pool;
+        }
+    }
+
+    // no pool (for this frame); create a new one
+    
+    VkDescriptorPool pool = VK_NULL_HANDLE;
+    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(pool); createDescriptorPoolResult.HasError())
+    {
+        HYP_FAIL("Failed to create descriptor pool! {}", createDescriptorPoolResult.GetError().GetMessage());
+    }
+
+    outPoolIndex = int(m_pools.Size() - 1);
+
+    return pool;
 }
 
 RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool& outDescriptorPool)
 {
     Array<VkDescriptorPoolSize> descriptorPoolSizes = {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 256 },
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 32000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 64000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 32000 }
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 }
     };
 
     // only add acceleration structure descriptor type if raytracing is supported,
     // otherwise we'll get an error when creating the descriptor pool
     if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
     {
-        descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 256 });
+        descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 });
     }
 
     outDescriptorPool = VK_NULL_HANDLE;
 
-    VkDescriptorPool& descriptorPool = m_vkDescriptorPools.EmplaceBack(VK_NULL_HANDLE);
-    m_descriptorPoolUsageCounts.EmplaceBack(0); // counts array must match pools array size
+    VulkanDescriptorPool& dp = m_pools.EmplaceBack();
+    dp.frameCounter = RenderApi::GetFrameCounter();
 
     VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
+        | (!UseResetDescriptorPool ? VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT : 0);
     poolInfo.maxSets = maxDescriptorSets;
     poolInfo.poolSizeCount = uint32(descriptorPoolSizes.Size());
     poolInfo.pPoolSizes = descriptorPoolSizes.Data();
@@ -345,26 +391,28 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
         g_renderBackend->GetDevice()->GetDevice(),
         &poolInfo,
         nullptr,
-        &descriptorPool));
+        &dp.pool));
 
-    HYP_LOG(RenderingBackend, Debug, "Created new Vulkan descriptor pool {} ({})", (void*)descriptorPool, m_vkDescriptorPools.Size());
+    HYP_LOG(RenderingBackend, Debug, "Created new Vulkan descriptor pool {} ({})", (void*)dp.pool, m_pools.Size());
 
-    outDescriptorPool = descriptorPool;
+    outDescriptorPool = dp.pool;
 
     return {};
 }
 
-RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* device,
+RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
+    VulkanDevice* device,
     VkDescriptorSetLayout layout,
     VkDescriptorSet& outVkDescriptorSet,
     VkDescriptorPool& outVkDescriptorPool)
 {
-    HYP_GFX_ASSERT(layout != VK_NULL_HANDLE);
+    Assert(layout != VK_NULL_HANDLE);
 
     VkDescriptorSetLayout layouts[] = { layout };
 
-    outVkDescriptorPool = GetDescriptorPool();
-    int descriptorPoolIndex = int(m_vkDescriptorPools.Size() - 1);
+    int poolIndex = -1;
+
+    outVkDescriptorPool = GetDescriptorPool(RenderApi::GetFrameCounter(), poolIndex);
 
     bool shouldRetry = false;
 
@@ -372,7 +420,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* dev
     {
         shouldRetry = false;
 
-        HYP_GFX_ASSERT(outVkDescriptorPool != VK_NULL_HANDLE);
+        Assert(outVkDescriptorPool != VK_NULL_HANDLE);
 
         VkDescriptorSetAllocateInfo allocInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
         allocInfo.descriptorPool = outVkDescriptorPool;
@@ -389,12 +437,12 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* dev
             if (vkResult == VK_ERROR_OUT_OF_POOL_MEMORY)
             {
                 // descend down the list of existing descriptor pools. we start trying to allocate from the last descriptor pool (see GetDescriptorPool())
-                --descriptorPoolIndex;
+                --poolIndex;
 
                 // create a new descriptor pool if we're out of existing pools to try with
-                if (descriptorPoolIndex >= 0)
+                if (poolIndex >= 0)
                 {
-                    outVkDescriptorPool = m_vkDescriptorPools[descriptorPoolIndex];
+                    outVkDescriptorPool = m_pools[poolIndex].pool;
                 }
                 else
                 {
@@ -416,32 +464,44 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(VulkanDevice* dev
     }
     while (shouldRetry);
 
-    descriptorPoolIndex = int(m_vkDescriptorPools.IndexOf(m_vkDescriptorPools.Find(outVkDescriptorPool)));
-    HYP_GFX_ASSERT(descriptorPoolIndex >= 0 && descriptorPoolIndex < int(m_vkDescriptorPools.Size()));
+    poolIndex = int(m_pools.IndexOf(m_pools.FindIf([&outVkDescriptorPool](const auto& elem)
+    {
+        return elem.pool == outVkDescriptorPool;
+    })));
 
-    ++m_descriptorPoolUsageCounts[descriptorPoolIndex];
+    Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
 
-    return RendererResult {};
+    ++m_pools[poolIndex].useCount;
+
+    return {};
 }
 
 RendererResult VulkanDescriptorSetManager::DestroyDescriptorSet(VulkanDevice* device, VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)
 {
-    HYP_GFX_ASSERT(vkDescriptorSet != VK_NULL_HANDLE);
-    HYP_GFX_ASSERT(vkDescriptorPool != VK_NULL_HANDLE);
+    Assert(vkDescriptorSet != VK_NULL_HANDLE);
+    Assert(vkDescriptorPool != VK_NULL_HANDLE);
 
-    int descriptorPoolIndex = int(m_vkDescriptorPools.IndexOf(m_vkDescriptorPools.Find(vkDescriptorPool)));
-    HYP_GFX_ASSERT(descriptorPoolIndex >= 0 && descriptorPoolIndex < int(m_vkDescriptorPools.Size()));
+    int poolIndex = int(m_pools.IndexOf(m_pools.FindIf([&vkDescriptorPool](const auto& elem)
+    {
+        return elem.pool == vkDescriptorPool;
+    })));
 
-    vkFreeDescriptorSets(
-        device->GetDevice(),
-        vkDescriptorPool,
-        1,
-        &vkDescriptorSet);
+    Assert(poolIndex >= 0 && poolIndex < int(m_pools.Size()));
 
-    HYP_GFX_ASSERT(m_descriptorPoolUsageCounts[descriptorPoolIndex] > 0, "miscount of descriptor pool usage counts; should never be less than 0");
-    --m_descriptorPoolUsageCounts[descriptorPoolIndex];
+    if (!UseResetDescriptorPool)
+    {
+        vkFreeDescriptorSets(
+            device->GetDevice(),
+            vkDescriptorPool,
+            1,
+            &vkDescriptorSet);
+    }
 
-    return RendererResult {};
+    Assert(m_pools[poolIndex].useCount > 0, "miscount of descriptor pool usage counts; should never be less than 0");
+
+    --m_pools[poolIndex].useCount;
+
+    return {};
 }
 
 VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout)
@@ -450,7 +510,7 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 
     VkDescriptorSetLayout handle = VK_NULL_HANDLE;
 
-    Mutex::Guard guard(m_mutex);
+    TSharedLock lock(m_mutex);
 
     auto it = m_vkDescriptorSetLayouts.Find(hashCode);
 
@@ -464,10 +524,23 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
         return handle;
     }
 
-    handle = CreateVkDescriptorSetLayout(device, layout);
-    HYP_GFX_ASSERT(handle != VK_NULL_HANDLE);
+    lock.Reset();
 
-    m_vkDescriptorSetLayouts.Set(hashCode, handle);
+    handle = CreateVkDescriptorSetLayout(device, layout);
+    AssertDebug(handle != VK_NULL_HANDLE);
+
+    TUniqueLock lock2(m_mutex);
+    
+    // make sure it hasnt changed
+    auto insertResult = m_vkDescriptorSetLayouts.Set(hashCode, handle);
+
+    if (!insertResult.second)
+    {
+        DestroyVkDescriptorSetLayout(device, handle);
+
+        handle = m_vkDescriptorSetLayouts.At(hashCode);
+        Assert(handle != nullptr);
+    }
 
     return handle;
 }
@@ -496,7 +569,7 @@ public:
     {
         AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-        HYP_GFX_ASSERT(texture.IsValid());
+        Assert(texture.IsValid());
 
         const SizeType idx = texture.Id().ToIndex();
 
@@ -525,7 +598,7 @@ public:
                 subResource.baseArrayLayer,
                 subResource.numLayers);
 
-            HYP_GFX_ASSERT(imageView->Create());
+            Assert(imageView->Create());
 
             sharedLock.Reset();
 
@@ -536,7 +609,7 @@ public:
             it = textureImageViews.Set(subResource, imageView).first;
         }
 
-        HYP_GFX_ASSERT(it->second.IsValid());
+        Assert(it->second.IsValid());
 
         return it->second;
     }
@@ -572,7 +645,7 @@ public:
 
         TUniqueLock lock(mutex);
 
-        constexpr uint32 maxCycles = 32;
+        constexpr uint32 MaxCycles = 32;
 
         cleanupIterator = typename decltype(weakTextureHandles)::Iterator {
             &weakTextureHandles,
@@ -587,7 +660,7 @@ public:
 
         uint32 numRemoved = 0;
 
-        for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < maxCycles; i++)
+        for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < MaxCycles; i++)
         {
             auto& entry = *cleanupIterator;
 
@@ -769,6 +842,8 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
     }
 
     frame->ResetFrameState();
+
+    m_descriptorSetManager->OnFrameStart();
 
     // if (m_shouldRecreateSwapchain)
     //{

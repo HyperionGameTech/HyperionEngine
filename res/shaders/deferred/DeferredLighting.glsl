@@ -152,8 +152,9 @@ vec3 SampleEnvProbe_SH(uint env_probe_index, vec3 N)
 
 vec3 SampleEnvProbe_LightField(uint env_probe_index, vec3 N)
 {
-    vec2 uv = GetEnvProbeLightFieldUV(env_probes[env_probe_index].position_in_grid.xyz, N);
-    vec4 color = Texture2D(sampler_linear, light_field_color_texture, uv);
+    //vec2 uv = GetEnvProbeLightFieldUV(env_probes[env_probe_index].position_in_grid.xyz, N);
+    //vec4 color = Texture2D(sampler_linear, light_field_color_texture, uv);
+    vec3 color = vec3(0.0, 1.0, 0.0); // Removed; will come back to this
 
     return color.rgb;
 }

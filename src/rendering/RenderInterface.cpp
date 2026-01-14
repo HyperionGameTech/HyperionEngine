@@ -1721,18 +1721,18 @@ void RenderInterface::CreateBlueNoiseBuffer()
             + ((scramblingTileOffset - (sobol256spp256dOffset + sobol256spp256dSize)) + scramblingTileSize)
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
-    GpuBufferRef blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
-    blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
-    blueNoiseBuffer->SetRequireCpuAccessible(true);
-    HYP_GFX_ASSERT(blueNoiseBuffer->Create());
-    blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
-    blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
-    blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
+    m_blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    m_blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
+    m_blueNoiseBuffer->SetRequireCpuAccessible(true);
+    HYP_GFX_ASSERT(m_blueNoiseBuffer->Create());
+    m_blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
+    m_blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
+    m_blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("BlueNoiseBuffer"_sh, blueNoiseBuffer);
+            ->SetElement("BlueNoiseBuffer"_sh, m_blueNoiseBuffer);
     }
 }
 
@@ -1740,9 +1740,9 @@ void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    GpuBufferRef sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
-    sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
-    HYP_GFX_ASSERT(sphereSamplesBuffer->Create());
+    m_sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
+    m_sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
+    HYP_GFX_ASSERT(m_sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];
 
@@ -1756,14 +1756,14 @@ void RenderInterface::CreateSphereSamplesBuffer()
         sphereSamples[i] = Vec4f(sample, 0.0f);
     }
 
-    sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
+    m_sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
 
     delete[] sphereSamples;
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("SphereSamplesBuffer"_sh, sphereSamplesBuffer);
+            ->SetElement("SphereSamplesBuffer"_sh, m_sphereSamplesBuffer);
     }
 }
 
@@ -1798,10 +1798,10 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("LightFieldDepthTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+    /*globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("BlueNoiseBuffer"_sh, GpuBufferRef::Null());
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("SphereSamplesBuffer"_sh, GpuBufferRef::Null());
+        ->SetElement("SphereSamplesBuffer"_sh, GpuBufferRef::Null());*/
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("LightmapVolumesBuffer"_sh, gpuBuffers[GRB_LIGHTMAP_VOLUMES]->GetBuffer(frameIndex));

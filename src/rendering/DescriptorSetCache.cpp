@@ -34,7 +34,6 @@ DescriptorSetCache::~DescriptorSetCache()
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void DescriptorSetCache::OnFrameStart()
 {
     AssertOnThread(g_renderThread);

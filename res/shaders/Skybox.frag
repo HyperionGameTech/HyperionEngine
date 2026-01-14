@@ -16,7 +16,7 @@ layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
+HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) uniform sampler texture_sampler;
 
 #include "include/gbuffer.inc"
 #include "include/Entity.glsl"
@@ -26,14 +26,9 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler texture_sampler;
 #include "include/material.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform textureCube AlbedoMap;
+HYP_DESCRIPTOR_SRV(Default, AlbedoMap) uniform textureCube AlbedoMap;
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
-{
-    Entity entities[];
-};
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Skybox, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

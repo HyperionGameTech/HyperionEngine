@@ -227,6 +227,7 @@ private:
 
     // Used for half-res rendering
     Handle<FullScreenPass> m_mergeHalfResTexturesPass;
+    GpuBufferRef m_mergeHalfResTexturesUniformBuffer;
 };
 
 } // namespace Hyperion

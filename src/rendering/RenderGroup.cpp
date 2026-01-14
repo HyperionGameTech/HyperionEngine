@@ -18,6 +18,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/EnvGridRenderer.hpp>
@@ -258,17 +259,41 @@ static void RenderAll(
     RenderQueue& rq = frame->renderQueue;
 
     uint32 numShaderUniforms = 0;
+    
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
     rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+    
+    rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    
+    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView()); 
+    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (renderSetup.envGrid != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envGrid) * sizeof(EnvGridShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
 
     if (renderSetup.light != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
     
     if (renderSetup.envProbe != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
+
+    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    if (dpd != nullptr)
+    {
+        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderBackend->GetTextureImageView(dpd->mipChain));
+    }
 
     Mesh* prevMesh = nullptr;
 
@@ -468,18 +493,36 @@ static void RenderAll_Parallel(
     RenderQueue& rq = parallelRenderingState->rootQueue;
     
     uint32 numShaderUniforms = 0;
+    
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
     rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
 
+    rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+
+    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView()); 
+    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
     if (renderSetup.envGrid != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envGrid) * sizeof(EnvGridShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
 
     if (renderSetup.light != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
     
     if (renderSetup.envProbe != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
     
+    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)
     {
@@ -723,23 +766,23 @@ void RenderGroup::PerformRendering(
         return;
     }
 
-    // Setup instancing descriptor set if "Instancing" descriptor set exists in the shader.
-    if (drawCallCollection.instancedDrawCalls.Any() && !drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()])
-    {
-        const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-        Assert(descriptorTableDecl != nullptr);
+    //// Setup instancing descriptor set if "Instancing" descriptor set exists in the shader.
+    //if (drawCallCollection.instancedDrawCalls.Any() && !drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()])
+    //{
+    //    const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    //    Assert(descriptorTableDecl != nullptr);
 
-        const DescriptorSetDeclaration* instancingDescriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("Instancing"_sh);
-        Assert(instancingDescriptorSetDecl != nullptr);
+    //    const DescriptorSetDeclaration* instancingDescriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("Instancing"_sh);
+    //    Assert(instancingDescriptorSetDecl != nullptr);
 
-        const GpuBufferRef& gpuBuffer = drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frame->GetFrameIndex());
-        Assert(gpuBuffer.IsValid());
+    //    const GpuBufferRef& gpuBuffer = drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frame->GetFrameIndex());
+    //    Assert(gpuBuffer.IsValid());
 
-        DescriptorSetRef& descriptorSet = drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()];
-        descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(instancingDescriptorSetDecl));
-        descriptorSet->SetElement("EntityInstanceBatchesBuffer"_sh, gpuBuffer);
-        Assert(descriptorSet->Create());
-    }
+    //    DescriptorSetRef& descriptorSet = drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()];
+    //    descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(instancingDescriptorSetDecl));
+    //    descriptorSet->SetElement("EntityInstanceBatchesBuffer"_sh, gpuBuffer);
+    //    Assert(descriptorSet->Create());
+    //}
 
     const uint8 stencilReference = m_renderableAttributes.GetMaterialAttributes().stencilReference;
 

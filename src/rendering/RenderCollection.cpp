@@ -164,15 +164,6 @@ static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmap
     return value;
 }
 
-template <class T>
-concept BitwiseComparable = std::has_unique_object_representations_v<T>;
-
-template <BitwiseComparable T, BitwiseComparable U>
-int MemCmpSafe(const T* a, const U* b, SizeType count)
-{
-    return std::memcmp(a, b, count);
-}
-
 /// Set attributes, used to decide what shader variant + pipeline to use for rendering the given proxy.
 static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet& attributes, const RenderableAttributeSet* overrideAttributes = nullptr)
 {
