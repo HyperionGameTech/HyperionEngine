@@ -1,9 +1,12 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 #extension GL_ARB_separate_shader_objects : require
-#extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_samplerless_texture_functions : require
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+#extension GL_EXT_nonuniform_qualifier : require
+#endif
 
 #include "include/defines.inc"
 
@@ -31,9 +34,10 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define HAS_REFRACTION 1
 
+#include "include/material.inc"
+
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "include/material.inc"
 #include "include/scene.inc"
 #include "include/Entity.glsl"
 #include "include/packing.inc"
@@ -42,25 +46,6 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 #include "include/gbuffer.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#if HAS_ALBEDO_MAP
-HYP_DESCRIPTOR_SRV(Default, AlbedoMap) uniform texture2D AlbedoMap;
-#endif
-#if HAS_NORMAL_MAP
-HYP_DESCRIPTOR_SRV(Default, NormalMap) uniform texture2D NormalMap;
-#endif
-#if HAS_PARALLAX_MAP
-HYP_DESCRIPTOR_SRV(Default, ParallaxMap) uniform texture2D ParallaxMap;
-#endif
-#if HAS_METALNESS_MAP
-HYP_DESCRIPTOR_SRV(Default, MetalnessMap) uniform texture2D MetalnessMap;
-#endif
-#if HAS_ROUGHNESS_MAP
-HYP_DESCRIPTOR_SRV(Default, RoughnessMap) uniform texture2D RoughnessMap;
-#endif
-#if HAS_AO_MAP
-HYP_DESCRIPTOR_SRV(Default, AoMap) uniform texture2D AoMap;
-#endif
 
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {

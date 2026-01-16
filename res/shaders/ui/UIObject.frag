@@ -1,6 +1,10 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+#extension GL_EXT_nonuniform_qualifier : require
+#endif
+
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_screen_space_position;
 layout(location = 2) in vec2 v_texcoord0;
@@ -51,7 +55,11 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsB
 #endif
 
 #ifdef TEXTURED
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform texture2D textures[];
+#else
 HYP_DESCRIPTOR_SRV(Default, AlbedoMap) uniform texture2D AlbedoMap;
+#endif
 #endif
 
 // clang-format on

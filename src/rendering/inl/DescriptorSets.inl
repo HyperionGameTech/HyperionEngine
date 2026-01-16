@@ -18,6 +18,9 @@ HYP_DESCRIPTOR_CBUFF(Global, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true)
 HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), false);
 
+// Bindless descriptors
+HYP_DESCRIPTOR_SRV_COND(GlobalBindless, Textures, MaxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);
+
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeRadianceTexture, 1);
 HYP_DESCRIPTOR_SSBO(Entity, CurrentEntity, 1, sizeof(EntityShaderData), true); // For non-instanced objects
@@ -48,6 +51,3 @@ HYP_DESCRIPTOR_SRV(View, DepthPyramidResult, 1);
 HYP_DESCRIPTOR_CBUFF(View, DDGIConstants, 1, sizeof(DDGIConstants), false);
 HYP_DESCRIPTOR_SRV(View, DDGIIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DDGIDepthTexture, 1);
-
-// bindless array of textures for RT
-HYP_DESCRIPTOR_SRV(RayTracing, Textures, MaxBindlessResources);

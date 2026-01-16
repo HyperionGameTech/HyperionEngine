@@ -488,7 +488,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     }
 
     constexpr StringHash GlobalSetName = "Global"_sh;
-    constexpr StringHash RayTracingSetName = "RayTracing"_sh;
+    constexpr StringHash GlobalBindlessSetName = "GlobalBindless"_sh;
 
     const DescriptorTableDeclaration& decl = *m_raytracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
 
@@ -501,7 +501,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
             { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
 
     frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet(RayTracingSetName, frame->GetFrameIndex()),
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalBindlessSetName, frame->GetFrameIndex()),
         m_raytracingPipeline);
 
     frame->renderQueue << BindDescriptorSet(jd.Sets[frame->GetFrameIndex()], m_raytracingPipeline);

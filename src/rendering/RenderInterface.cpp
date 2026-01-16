@@ -2209,19 +2209,15 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
         ->SetElement("LightmapVolumeRadianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
-    // Ray tracing specific
-    if (g_renderBackend->GetRenderConfig().raytracing)
+    // Bindless
+    if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
-        // bindless textures support needed for RT
-        Assert(g_renderBackend->GetRenderConfig().bindlessTextures,
-            "Cannot initialize ray tracing data without bindless texture support!");
-
-        DescriptorSet* rayTracingDescriptorSet = globalDescriptorTable->GetDescriptorSet("RayTracing"_sh, frameIndex);
-        Assert(rayTracingDescriptorSet != nullptr);
+        DescriptorSet* bindlessDescriptorSet = globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frameIndex);
+        Assert(bindlessDescriptorSet != nullptr);
 
         for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
-            rayTracingDescriptorSet->SetElement("Textures"_sh, textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+            bindlessDescriptorSet->SetElement("Textures"_sh, textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
         }
     }
 }

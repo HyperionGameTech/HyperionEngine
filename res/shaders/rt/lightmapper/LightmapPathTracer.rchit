@@ -74,7 +74,7 @@ HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTr
 };
 
 // for RT, all textures are bindless
-HYP_DESCRIPTOR_SRV(RayTracing, Textures) uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform texture2D textures[];
 
 float CheckLightIntersection(in Light light, in vec3 position, in vec3 R)
 {

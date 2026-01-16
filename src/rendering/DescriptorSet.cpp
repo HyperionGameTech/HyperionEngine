@@ -87,7 +87,7 @@ DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
     static DescriptorTableDeclaration::DeclareSet s_globalSet { &s_decl, 0, NAME("Global") };
     static DescriptorTableDeclaration::DeclareSet s_viewSet { &s_decl, 1, NAME("View"), /* isTemplate */ true };
     static DescriptorTableDeclaration::DeclareSet s_entitySet { &s_decl, 2, NAME("Entity") };
-    static DescriptorTableDeclaration::DeclareSet s_rayTracingSet { &s_decl, 3, NAME("RayTracing") };
+    static DescriptorTableDeclaration::DeclareSet s_globalBindlessSet { &s_decl, 3, NAME("GlobalBindless") };
 
     return s_decl;
 }
