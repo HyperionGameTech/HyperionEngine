@@ -432,12 +432,14 @@ Handle<Material> Material::Clone() const
 }
 
 void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
-{
+{    
+    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
+
     if (proxy->material.GetUnsafe() != this)
     {
         proxy->material = MakeWeakRef(this);
     }
-
+    
     MaterialShaderData& bufferData = proxy->bufferData;
 
     bufferData.albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO);
@@ -458,7 +460,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);
     Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
-    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, MaxBoundTextures);
+    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources : MaxBoundTextures);
     uint32 remainingTextureSlots = numTextureSlots;
 
     proxy->boundTextures.Clear();
@@ -480,7 +482,14 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
             const uint32 idx = uint32(proxy->boundTextures.Size());
             proxy->boundTextures.PushBack(texture);
 
-            textureIndicesU32[slot] = idx;
+            if (useBindlessTextures)
+            {
+                textureIndicesU32[slot] = texture.Id().ToIndex();
+            }
+            else
+            {
+                textureIndicesU32[slot] = idx;
+            }
 
             // enable this slot for the texture
             bufferData.textureUsage |= (1u << slot);
