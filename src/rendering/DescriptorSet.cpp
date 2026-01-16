@@ -220,6 +220,8 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
     AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
 
+    AssertDebug(ref != nullptr);
+
     // Range check
     AssertDebug(index < layoutElement->count, "Index {} out of range for element {} with count {}",
         index, Name(name), layoutElement->count);
@@ -280,8 +282,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
     DescriptorSetElement* element = nullptr;
 
-    auto it = m_elements.FindAs(name);
-    AssertDebug(it != m_elements.End());
+    auto it = m_elements.Find(Name(name));
 
     if (it == m_elements.End())
     {

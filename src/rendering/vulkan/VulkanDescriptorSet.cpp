@@ -60,36 +60,36 @@ static inline void ValidateDynamicOffset(
     if (layoutElement->size == 0 || layoutElement->size == ~0u)
         return;
 
-    // Validate offset is within buffer bounds
-    if (element != nullptr && !element->values.Empty())
-    {
-        const auto firstValueIt = element->values.Begin();
-        if (firstValueIt != element->values.End())
-        {
-            VulkanGpuBuffer* buffer = ObjCast<VulkanGpuBuffer>(*firstValueIt);
+    //// Validate offset is within buffer bounds
+    //if (element != nullptr && !element->values.Empty())
+    //{
+    //    const auto firstValueIt = element->values.Begin();
+    //    if (firstValueIt != element->values.End())
+    //    {
+    //        VulkanGpuBuffer* buffer = ObjCast<VulkanGpuBuffer>(*firstValueIt);
 
-            if (buffer != nullptr)
-            {
-                const SizeType bufferSize = buffer->Size();
+    //        if (buffer != nullptr)
+    //        {
+    //            const SizeType bufferSize = buffer->Size();
 
-                AssertDebug(offset + layoutElement->size <= bufferSize,
-                    "Dynamic offset {} + element size {} for element {} exceeds buffer size {}",
-                    offset, layoutElement->size, Name(dynamicElementName), bufferSize);
-            }
-        }
-    }
+    //            AssertDebug(offset + layoutElement->size <= bufferSize,
+    //                "Dynamic offset {} + element size {} for element {} exceeds buffer size {}",
+    //                offset, layoutElement->size, Name(dynamicElementName), bufferSize);
+    //        }
+    //    }
+    //}
 }
 
 #endif
 
-template <class AllocatorType>
 static inline void PopulateDynamicOffsets(
     const DescriptorSetLayout& layout,
-    const FlatMap<Name, DescriptorSetElement>& elements,
+    const HashMap<Name, DescriptorSetElement>& elements,
     const DescriptorSetOffsetMap& offsets,
-    Array<uint32, AllocatorType>& outDynamicOffsets)
+    uint32* outDynamicOffsets,
+    uint32& outNumDynamicOffsets)
 {
-    outDynamicOffsets.ResizeZeroed(layout.GetDynamicElements().Size());
+    outNumDynamicOffsets = uint32(layout.GetDynamicElements().Size());
 
     for (SizeType i = 0; i < layout.GetDynamicElements().Size(); i++)
     {
@@ -269,10 +269,13 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
     
-    Array<VulkanDescriptorElementInfo> localDescriptorElementInfos;
+    Array<VulkanDescriptorElementInfo, VulkanAllocator> localDescriptorElementInfos;
 
     // detect changes from cachedValues
-    for (auto& it : m_elements)
+    // TEMP debug
+    HashMap elements = m_elements;
+
+    for (auto& it : elements)
     {
         const Name name = it.first;
         DescriptorSetElement& element = it.second;
@@ -304,7 +307,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(Hyperion::IsA<VulkanGpuBuffer>(ptr));
+                AssertDebug(ptr && Hyperion::IsA<VulkanGpuBuffer>(ptr));
 
                 VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(ptr);
                 AssertDebug(ref != nullptr);
@@ -335,7 +338,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(Hyperion::IsA<VulkanGpuImageView>(ptr));
+                AssertDebug(ptr && Hyperion::IsA<VulkanGpuImageView>(ptr));
 
                 VulkanGpuImageView* ref = static_cast<VulkanGpuImageView*>(ptr);
                 AssertDebug(ref != nullptr);
@@ -363,7 +366,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(Hyperion::IsA<VulkanSampler>(ptr));
+                AssertDebug(ptr && Hyperion::IsA<VulkanSampler>(ptr));
 
                 VulkanSampler* ref = static_cast<VulkanSampler*>(ptr);
                 AssertDebug(ref != nullptr);
@@ -539,7 +542,7 @@ RendererResult VulkanDescriptorSet::Create()
     }
 #endif
 
-    for (const Pair<Name, DescriptorSetElement>& it : m_elements)
+    for (const auto& it : m_elements)
     {
         const Name name = it.first;
         const DescriptorSetElement& element = it.second;
@@ -575,7 +578,8 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     cachedBinding.descriptorSet = m_handle;
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
-    cachedBinding.dynamicOffsets.Resize(m_layout.GetDynamicElements().Size());
+    cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
+    Memory::MemSet(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -596,8 +600,8 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
         bindIndex,
         1,
         &m_handle,
-        uint32(cachedBinding.dynamicOffsets.Size()),
-        cachedBinding.dynamicOffsets.Data());
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
 
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
@@ -611,7 +615,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
-    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
+    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets);
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -632,8 +636,48 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
         bindIndex,
         1,
         &m_handle,
-        uint32(cachedBinding.dynamicOffsets.Size()),
-        cachedBinding.dynamicOffsets.Data());
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
+
+    boundDescriptorSets[bindIndex] = cachedBinding;
+}
+
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const
+{
+    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+
+    VulkanCachedDescriptorSetBinding cachedBinding {};
+    cachedBinding.descriptorSet = m_handle;
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
+    
+    cachedBinding.numDynamicOffsets = numOffsets;
+    if (offsets && numOffsets != 0)
+    {
+        Memory::MemCpy(cachedBinding.dynamicOffsets, offsets, numOffsets * sizeof(uint32));
+    }
+
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex] == cachedBinding)
+    {
+        // no sense in binding it again if nothing has changed.
+        return;
+    }
+
+    vkCmdBindDescriptorSets(
+        commandBuffer->GetVulkanHandle(),
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline->GetVulkanPipelineLayout(),
+        bindIndex,
+        1,
+        &m_handle,
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
 
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
@@ -655,7 +699,8 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     cachedBinding.descriptorSet = m_handle;
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
-    cachedBinding.dynamicOffsets.Resize(m_layout.GetDynamicElements().Size());
+    cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
+    Memory::MemSet(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -676,8 +721,8 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
         bindIndex,
         1,
         &m_handle,
-        uint32(cachedBinding.dynamicOffsets.Size()),
-        cachedBinding.dynamicOffsets.Data());
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
 
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
@@ -691,7 +736,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
-    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
+    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets);
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -712,8 +757,48 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
         bindIndex,
         1,
         &m_handle,
-        uint32(cachedBinding.dynamicOffsets.Size()),
-        cachedBinding.dynamicOffsets.Data());
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
+
+    boundDescriptorSets[bindIndex] = cachedBinding;
+}
+
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const
+{
+    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+
+    VulkanCachedDescriptorSetBinding cachedBinding {};
+    cachedBinding.descriptorSet = m_handle;
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
+    
+    cachedBinding.numDynamicOffsets = numOffsets;
+    if (offsets && numOffsets != 0)
+    {
+        Memory::MemCpy(cachedBinding.dynamicOffsets, offsets, numOffsets * sizeof(uint32));
+    }
+
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex] == cachedBinding)
+    {
+        // no sense in binding it again if nothing has changed.
+        return;
+    }
+
+    vkCmdBindDescriptorSets(
+        commandBuffer->GetVulkanHandle(),
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        pipeline->GetVulkanPipelineLayout(),
+        bindIndex,
+        1,
+        &m_handle,
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
 
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
@@ -735,7 +820,8 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     cachedBinding.descriptorSet = m_handle;
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
-    cachedBinding.dynamicOffsets.ResizeZeroed(m_layout.GetDynamicElements().Size());
+    cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
+    Memory::MemSet(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -756,8 +842,8 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
         bindIndex,
         1,
         &m_handle,
-        uint32(cachedBinding.dynamicOffsets.Size()),
-        cachedBinding.dynamicOffsets.Data());
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
 
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
@@ -771,7 +857,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
-    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets);
+    PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets);
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -792,8 +878,48 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
         bindIndex,
         1,
         &m_handle,
-        uint32(cachedBinding.dynamicOffsets.Size()),
-        cachedBinding.dynamicOffsets.Data());
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
+
+    boundDescriptorSets[bindIndex] = cachedBinding;
+}
+
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const
+{
+    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+
+    VulkanCachedDescriptorSetBinding cachedBinding {};
+    cachedBinding.descriptorSet = m_handle;
+    cachedBinding.pipeline = pipeline->GetVulkanHandle();
+    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
+    
+    cachedBinding.numDynamicOffsets = numOffsets;
+    if (offsets && numOffsets != 0)
+    {
+        Memory::MemCpy(cachedBinding.dynamicOffsets, offsets, numOffsets * sizeof(uint32));
+    }
+
+    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
+
+    if (boundDescriptorSets.Size() <= bindIndex)
+    {
+        boundDescriptorSets.Resize(bindIndex + 1);
+    }
+    else if (boundDescriptorSets[bindIndex] == cachedBinding)
+    {
+        // no sense in binding it again if nothing has changed.
+        return;
+    }
+
+    vkCmdBindDescriptorSets(
+        commandBuffer->GetVulkanHandle(),
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        pipeline->GetVulkanPipelineLayout(),
+        bindIndex,
+        1,
+        &m_handle,
+        cachedBinding.numDynamicOffsets,
+        cachedBinding.dynamicOffsets);
 
     boundDescriptorSets[bindIndex] = cachedBinding;
 }

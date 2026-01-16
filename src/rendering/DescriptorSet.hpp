@@ -551,9 +551,9 @@ private:
 
 struct DescriptorSetElement
 {
+    Range<uint32> dirtyRange;
     Array<ObjectBase*> values;
     Bitset occupiedArrayElems;
-    Range<uint32> dirtyRange {};
 
     HYP_FORCE_INLINE bool IsDirty() const
     {
@@ -621,10 +621,15 @@ public:
 
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const = 0;
+
     virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const = 0;
+
     virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const = 0;
 
 protected:
     DescriptorSetBase(const DescriptorSetLayout& layout)
@@ -674,7 +679,7 @@ protected:
     }
 
     DescriptorSetLayout m_layout;
-    FlatMap<Name, DescriptorSetElement> m_elements;
+    HashMap<Name, DescriptorSetElement> m_elements;
 
     Name m_debugName;
 

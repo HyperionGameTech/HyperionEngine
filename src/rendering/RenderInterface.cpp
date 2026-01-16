@@ -1798,10 +1798,10 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("LightFieldDepthTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+    /*globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("BlueNoiseBuffer"_sh, GpuBufferRef::Null());
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("SphereSamplesBuffer"_sh, GpuBufferRef::Null());
+        ->SetElement("SphereSamplesBuffer"_sh, GpuBufferRef::Null());*/
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("LightmapVolumesBuffer"_sh, gpuBuffers[GRB_LIGHTMAP_VOLUMES]->GetBuffer(frameIndex));
