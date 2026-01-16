@@ -207,14 +207,18 @@ public:
     };
 
     RenderInterface();
+    
     RenderInterface(const RenderInterface& other) = delete;
     RenderInterface& operator=(const RenderInterface& other) = delete;
-    ~RenderInterface();
 
-    void UpdateBuffers(Frame* frame);
+    ~RenderInterface();
 
     void AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
     void RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
+
+    void UpdateBuffers(Frame* frame);
+
+    void CommitDrawState();
 
     BindlessStorage* bindlessStorage;
 
