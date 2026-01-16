@@ -331,9 +331,9 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
         cmdCasted->m_pipeline->Bind(commandBuffer);
     }
 
-    // temporary, will be removed once everything operates through CommitDrawState().
-    RenderInterface::State& state = g_renderInterface->state;
-    state.Reset();
+    //// temporary, will be removed once everything operates through CommitDrawState().
+    //RenderInterface::State& state = g_renderInterface->state;
+    //state.Reset();
 
     static_assert(std::is_trivially_destructible_v<BindGraphicsPipeline>);
     // cmdCasted->~BindGraphicsPipeline();
@@ -432,9 +432,25 @@ void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
 
-    g_renderInterface->state.stencilReference = cmdCasted->m_referenceValue;
-    g_renderInterface->state.stencilCompareMask = cmdCasted->m_compareMask;
-    g_renderInterface->state.stencilWriteMask = cmdCasted->m_writeMask;
+    RenderInterface::State& state = g_renderInterface->state;
+
+    if (state.stencilReference != cmdCasted->m_referenceValue
+        || state.stencilCompareMask != cmdCasted->m_compareMask
+        || state.stencilWriteMask != cmdCasted->m_writeMask)
+    {
+        // set stencil state
+        state.stencilReference = cmdCasted->m_referenceValue;
+        state.stencilCompareMask = cmdCasted->m_compareMask;
+        state.stencilWriteMask = cmdCasted->m_writeMask;
+
+        // invalidate pipeline state
+        state.prevGraphicsPipeline = nullptr;
+
+        state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
+        state.validUniforms = 0;
+
+        Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+    }
 
     static_assert(std::is_trivially_destructible_v<SetStencilState>);
     // cmdCasted->~SetStencilState();

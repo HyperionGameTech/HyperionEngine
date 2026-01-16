@@ -3255,6 +3255,19 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
             if (Entity* entity = ObjCast<Entity>(focusedNode))
             {
                 entity->AddTag<EntityTag::FocusedInEditor>();
+
+                // Debug
+                if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>())
+                {
+                    if (Material* material = meshComponent->material)
+                    {
+                        material->GetRenderAttributes().stencilReference = 0b1000;
+                        material->GetRenderAttributes().flags |= MAF_STENCIL_TEST;
+                        material->SetNeedsRenderProxyUpdate();
+                    }
+                }
+
+                entity->SetNeedsRenderProxyUpdate();
             }
         }
 
@@ -3288,6 +3301,20 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         if (Entity* entity = ObjCast<Entity>(previousFocusedNode))
         {
             entity->RemoveTag<EntityTag::FocusedInEditor>();
+            
+            // Debug
+            if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>())
+            {
+                if (Material* material = meshComponent->material)
+                {
+                    material->GetRenderAttributes().stencilReference = 0;
+                    material->GetRenderAttributes().flags &= ~MAF_STENCIL_TEST;
+
+                    material->SetNeedsRenderProxyUpdate();
+                }
+            }
+
+            entity->SetNeedsRenderProxyUpdate();
         }
     }
 

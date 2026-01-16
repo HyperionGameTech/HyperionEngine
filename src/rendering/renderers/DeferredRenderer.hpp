@@ -177,6 +177,7 @@ protected:
         Array<Texture*> atlasRadianceTextures;
         GraphicsPipelineCacheHandle graphicsPipeline;
         Array<DescriptorSetRef> descriptorSets;
+        Array<GpuBufferRef> uniformBuffers;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;

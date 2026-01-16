@@ -841,7 +841,7 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
         HYP_FAIL("Failed to wait on frame fence! VkResult: {}", frame->GetFence()->GetLastFrameResult());
     }
 
-    frame->ResetFrameState();
+    frame->OnFrameStart();
 
     m_descriptorSetManager->OnFrameStart();
 
@@ -966,19 +966,21 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
 
     graphicsPipeline->SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
     graphicsPipeline->SetTopology(attributes.GetMeshAttributes().topology);
-
     graphicsPipeline->SetCullMode(attributes.GetMaterialAttributes().cullFaces);
     graphicsPipeline->SetFillMode(attributes.GetMaterialAttributes().fillMode);
     graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
     graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
 
-    // group materials that set a stencil value into pipelines that have stencil testing enabled
-    // and the same stencil function
-    if ((attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST) // for specifying stencil testing on pipelines
-        || attributes.GetMaterialAttributes().stencilReference != 0)  // for materials that write a stencil reference value
+    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
+    }
+
+    // for materials that write a stencil reference value
+    if (attributes.GetMaterialAttributes().stencilReference != 0)
+    {
+        graphicsPipeline->SetStencilWrite(true);
     }
 
     return graphicsPipeline;

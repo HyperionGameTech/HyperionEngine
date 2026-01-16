@@ -94,11 +94,8 @@ bool GraphicsPipelineBase::MatchesSignature(
 {
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
 
-    if (meshAttributes.topology != m_topology
-        || meshAttributes.vertexAttributes != m_vertexAttributes)
-    {
+    if (meshAttributes.topology != m_topology || meshAttributes.vertexAttributes != m_vertexAttributes)
         return false;
-    }
 
     const MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
 
@@ -106,26 +103,33 @@ bool GraphicsPipelineBase::MatchesSignature(
         || materialAttributes.cullFaces != m_faceCullMode
         || materialAttributes.fillMode != m_fillMode
         || bool(materialAttributes.flags & MAF_DEPTH_TEST) != m_depthTest
-        || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite
-        || ((materialAttributes.flags & MAF_STENCIL_TEST)
-            ? (!m_stencilFunction.HasValue() || materialAttributes.stencilFunction != *m_stencilFunction)
-            : m_stencilFunction.HasValue()))
+        || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite)
     {
         return false;
+    }
+
+    if (materialAttributes.flags & MAF_STENCIL_TEST)
+    {
+        if (!m_stencilFunction.HasValue())
+            return false;
+
+        if (*m_stencilFunction != materialAttributes.stencilFunction)
+            return false;
+    }
+    else
+    {
+        if (m_stencilFunction.HasValue())
+            return false;
     }
 
     // if no render target desc provided we assume the caller doesn't care and don't bother checking
     if (renderTargetDesc && *renderTargetDesc != m_renderTargetDesc)
-    {
         return false;
-    }
 
     if (shader != nullptr && shader != m_shader)
     {
         if (shader->GetCompiledShader()->GetDefinition() != m_shader->GetCompiledShader()->GetDefinition())
-        {
             return false;
-        }
     }
 
     return true;

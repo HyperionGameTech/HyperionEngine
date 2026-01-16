@@ -32,7 +32,7 @@ static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
     GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) }, // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
     GBufferTargetDesc { GBufferFormat(TF_RGBA32) },      // material data
     GBufferTargetDesc { GBufferFormat(TF_RG16F) },       // velocity
-    GBufferTargetDesc { GBufferFormat(TF_DEPTH_32F) }    // depth
+    GBufferTargetDesc { GBufferFormat(TF_DEPTH_24) }    // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)

@@ -1517,7 +1517,6 @@ void EndFrameRender()
     g_renderBackend->NextFrame();
 
     g_renderInterface->state.Reset();
-
     g_renderInterface->constantsAllocator->OnFrameEnd();
     g_renderInterface->descriptorSetCache->OnFrameEnd();
 
@@ -1715,12 +1714,8 @@ void RenderInterface::CommitDrawState()
 
         pipeline = *cacheHandle;
 
-        RenderInterface::State prevState = state;
-
         BindGraphicsPipeline bindCmd(pipeline, state.viewport);
         BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
-
-        state = prevState;
 
         state.prevGraphicsPipeline = pipeline;
         
@@ -1743,10 +1738,16 @@ void RenderInterface::CommitDrawState()
     const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
     AssertDebug(tableDecl != nullptr);
 
-    static const auto FetchDescriptorSet = [](const DescriptorSetDeclaration& dsDecl, bool& outIsGlobalDS) -> DescriptorSet*
+    enum DescriptorSetStateFlags : uint8
     {
-        outIsGlobalDS = false;
+        DSS_NotDirty = 0x0,
+        DSS_BufferOffsetChanged = 0x1,
+        DSS_Dirty = 0x2,
+        DSS_GlobalReference = 0x4
+    };
 
+    static const auto FetchDescriptorSet = [](const DescriptorSetDeclaration& dsDecl, uint8& outStateFlags) -> DescriptorSet*
+    {
         // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
         if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
         {
@@ -1759,7 +1760,7 @@ void RenderInterface::CommitDrawState()
                 return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
             }
 
-            outIsGlobalDS = true;
+            outStateFlags |= DSS_GlobalReference;
 
             return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
         }
@@ -1782,13 +1783,6 @@ void RenderInterface::CommitDrawState()
 
     uint8 uniformIndexToSetIndex[RenderInterface::State::MaxShaderUniforms];
     Memory::MemSet(uniformIndexToSetIndex, ubyte(-1), sizeof(uniformIndexToSetIndex));
-
-    enum DescriptorSetState : uint8
-    {
-        DSS_NotDirty = 0x0,
-        DSS_BufferOffsetChanged = 0x1,
-        DSS_Dirty = 0x2
-    };
 
     uint8 dsStates[MaxDescriptorSetsBound] = { };
     uint8 dsIndices = 0;
@@ -1843,8 +1837,7 @@ void RenderInterface::CommitDrawState()
         {
             if (!(dsStates[setIndex] & DSS_Dirty))
             {
-                bool isGlobal;
-                setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, isGlobal);
+                setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, dsStates[setIndex]);
                 AssertDebug(setsToBind[setIndex] != nullptr);
                 
                 dsStates[setIndex] |= DSS_Dirty;
@@ -1861,8 +1854,7 @@ void RenderInterface::CommitDrawState()
                 }
                 else
                 {
-                    bool isGlobal;
-                    setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, isGlobal);
+                    setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, dsStates[setIndex]);
                     AssertDebug(setsToBind[setIndex] != nullptr);
 
                     dsStates[setIndex] |= DSS_Dirty;
@@ -1985,10 +1977,9 @@ void RenderInterface::CommitDrawState()
             // need to bind it again anyway if no prev descriptor set here.
             if (!state.prevBoundDescriptorSets[setIndex])
             {
-                bool isGlobalDS = false;
-                setsToBind[setIndex] = FetchDescriptorSet(tableDecl->elements[setIndex], isGlobalDS);
+                setsToBind[setIndex] = FetchDescriptorSet(tableDecl->elements[setIndex], dsStates[setIndex]);
 
-                if (!setsToBind[setIndex]->IsCreated())
+                if (!(dsStates[setIndex] & DSS_GlobalReference) && !setsToBind[setIndex]->IsCreated())
                 {
                     // just create it here, we have nothing to bind for it
                     Assert(setsToBind[setIndex]->Create());
@@ -2003,9 +1994,11 @@ void RenderInterface::CommitDrawState()
         DescriptorSet* ds = setsToBind[setIndex];
             
         if (!ds)
+        {
             continue;
+        }
 
-        if (dsStates[setIndex] & DSS_Dirty)
+        if ((dsStates[setIndex] & DSS_Dirty) && !(dsStates[setIndex] & DSS_GlobalReference))
         {
             if (!ds->IsCreated())
             {

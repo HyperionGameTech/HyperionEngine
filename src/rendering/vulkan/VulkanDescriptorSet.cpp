@@ -243,7 +243,6 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 {
     m_vkDescriptorElementInfos.Clear();
@@ -272,10 +271,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
     Array<VulkanDescriptorElementInfo, VulkanAllocator> localDescriptorElementInfos;
 
     // detect changes from cachedValues
-    // TEMP debug
-    HashMap elements = m_elements;
-
-    for (auto& it : elements)
+    for (auto& it : m_elements)
     {
         const Name name = it.first;
         DescriptorSetElement& element = it.second;
@@ -303,7 +299,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             const bool isDynamic = layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
                 || layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
 
-            for (uint32 index : element.occupiedArrayElems)
+            for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
             {
                 ObjectBase* ptr = element.values[index];
 

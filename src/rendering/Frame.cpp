@@ -10,11 +10,22 @@
 #include <Frame.generated.inl>
 
 namespace Hyperion {
+
+void FrameBase::OnFrameStart()
+{
+    m_frameCounter = RenderApi::GetFrameCounter();
+}
+
 void FrameBase::MarkDescriptorSetUsed(DescriptorSet* descriptorSet)
 {
     HYP_GFX_ASSERT(descriptorSet != nullptr);
 
-    m_usedDescriptorSets.Insert(descriptorSet);
+    if (descriptorSet->frameCounter < m_frameCounter)
+    {
+        m_usedDescriptorSets.PushBack(descriptorSet);
+
+        descriptorSet->frameCounter = m_frameCounter;
+    }
 
 #ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
     descriptorSet->GetCurrentFrames().Insert(WeakHandleFromThis());

@@ -101,7 +101,7 @@ VkFormat ToVkFormat(TextureFormat fmt)
     case TF_BGRA8_SRGB:
         return VK_FORMAT_B8G8R8A8_SRGB;
     case TF_DEPTH_16:
-        return VK_FORMAT_D16_UNORM_S8_UINT;
+        return VK_FORMAT_D16_UNORM;
     case TF_DEPTH_24:
         return VK_FORMAT_D24_UNORM_S8_UINT;
     case TF_DEPTH_32F:

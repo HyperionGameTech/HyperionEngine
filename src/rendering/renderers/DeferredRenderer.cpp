@@ -266,8 +266,10 @@ void DeferredPass::Create()
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
+                TWM_CLAMP_TO_EDGE
+            },
             TextureData { std::move(ltcMatrixData) });
+
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
         InitObject(m_ltcMatrixTexture);
 
@@ -280,7 +282,8 @@ void DeferredPass::Create()
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
+                TWM_CLAMP_TO_EDGE
+            },
             TextureData { std::move(ltcBrdfData) });
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
@@ -306,7 +309,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
             .passOp = SO_KEEP,
             .failOp = SO_KEEP,
             .depthFailOp = SO_KEEP,
-            .compareOp = SCO_EQUAL }
+            .compareOp = SCO_EQUAL
+        }
     };
 
     const RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
@@ -380,7 +384,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     case DPM_INDIRECT_LIGHTING:
     {
         // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+        frame->renderQueue << SetStencilState(0, LightmapStencilMask, 0x0);
 
         // check needs invalidation
         ShaderProperties shaderProperties;
@@ -393,9 +397,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         }
 
         FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
-
-        // reset stencil state
-        frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
+        
+        // reset stencil
+        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
         return;
     }
@@ -403,9 +407,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         HYP_UNREACHABLE();
         return;
     }
-
+    
     // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+    frame->renderQueue << SetStencilState(0, LightmapStencilMask, 0x0);
 
     // last LightType we rendered
     LightType prevLightType = LT_INVALID;
@@ -522,9 +526,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             prevLightType = lightType;
         }
     }
-
-    // reset stencil state
-    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
+        
+    // reset stencil
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 }
 
 #pragma endregion DeferredPass
@@ -666,6 +670,9 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
     };
 
     SafeDelete(std::move(data.descriptorSets));
+    SafeDelete(std::move(data.uniformBuffers));
+
+    data.uniformBuffers.Resize(proxy->numAtlases);
 
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
@@ -695,6 +702,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         descriptorSet->SetElement("LightmapVolumeUniforms"_sh, uniformBuffer);
 
         Assert(descriptorSet->Create());
+
+        data.uniformBuffers[atlasIndex] = std::move(uniformBuffer);
     }
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
@@ -777,7 +786,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     // reset stencil state back to default
-    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
     m_isFirstFrame = false;
 }
