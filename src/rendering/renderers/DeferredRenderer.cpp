@@ -368,6 +368,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             ? &s_deferredDirectLightingTimer
             : &s_deferredIndirectLightingTimer);
 
+    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+    // \TODO instead of 0xFF use LightmapStencilMask ?
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+
     switch (m_mode)
     {
     case DPM_DIRECT_LIGHTING:
@@ -380,9 +384,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         break;
     case DPM_INDIRECT_LIGHTING:
     {
-        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
-
         // check needs invalidation
         ShaderProperties shaderProperties;
         GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
@@ -395,18 +396,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
 
-        // reset stencil state
-        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
-
         return;
     }
     default:
         HYP_UNREACHABLE();
         return;
     }
-
-    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
     // last LightType we rendered
     LightType prevLightType = LT_INVALID;
@@ -523,9 +518,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             prevLightType = lightType;
         }
     }
-
-    // reset stencil state
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 }
 
 #pragma endregion DeferredPass

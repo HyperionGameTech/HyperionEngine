@@ -115,6 +115,11 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
 
     if (m_stencilFunction.HasValue())
     {
+        if (g_renderInterface->state.stencilReference != 0)
+        {
+            HYP_LOG_TEMP("Stencil ref : {}", g_renderInterface->state.stencilReference);
+        }
+
         vkCmdSetStencilReference(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,

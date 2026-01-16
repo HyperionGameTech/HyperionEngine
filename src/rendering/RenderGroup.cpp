@@ -815,8 +815,8 @@ void RenderGroup::PerformRendering(
 
     if (stencilReference != 0)
     {
-        // apply stencil state before render
-        rq << SetStencilState(stencilReference, 0xFF, 0xFF);
+        // apply stencil state before render (write)
+        rq << SetStencilState(stencilReference, 0x0, 0xFF);
     }
 
     if (useIndirectRendering)

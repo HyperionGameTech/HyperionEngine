@@ -563,9 +563,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         bakeEntity.material->SetBucket(RB_LIGHTMAP);
 
-        bakeEntity.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_IRRADIANCE));
-        bakeEntity.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTexture(lightmapElement->GetAtlasIndex(), LTT_RADIANCE));
-
         auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                         lightmapElementId = m_lightmapElementId,
                                         volume = m_volume,

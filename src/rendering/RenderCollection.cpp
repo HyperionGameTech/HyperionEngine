@@ -245,6 +245,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
         if (stencilReferenceValue != (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask))
         {
+            attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
             attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
             attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
             attributes.Invalidate();
@@ -253,6 +254,12 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     else if (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask)
     {
         attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
+
+        if (!attributes.GetMaterialAttributes().stencilReference)
+        {
+            attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
+        }
+
         attributes.Invalidate();
     }
 
@@ -867,9 +874,6 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             renderQueue.Concat(*state->localQueues[i]);
             state->localQueues[i]->Clear();
         }
-
-        // reset stencil state
-        renderQueue << SetStencilState(0, 0xFF, 0x0);
 
         // Add render stats counts to the engine's render stats
         for (EngineStatsValueSet& valueSet : state->statValues)
