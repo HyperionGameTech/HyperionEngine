@@ -37,7 +37,8 @@ public:
     }
 
     RendererResult Create() override;
-    RendererResult ResetFrameState() override;
+
+    void OnFrameStart() override;
 
     HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
     {

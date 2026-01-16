@@ -306,7 +306,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
             .passOp = SO_KEEP,
             .failOp = SO_KEEP,
             .depthFailOp = SO_KEEP,
-            .compareOp = SCO_EQUAL }
+            .compareOp = SCO_EQUAL
+        }
     };
 
     const RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
@@ -395,7 +396,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
 
         // reset stencil state
-        frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
+        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
         return;
     }
@@ -524,7 +525,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     // reset stencil state
-    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 }
 
 #pragma endregion DeferredPass
@@ -666,6 +667,9 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
     };
 
     SafeDelete(std::move(data.descriptorSets));
+    SafeDelete(std::move(data.uniformBuffers));
+
+    data.uniformBuffers.Resize(proxy->numAtlases);
 
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
@@ -695,6 +699,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         descriptorSet->SetElement("LightmapVolumeUniforms"_sh, uniformBuffer);
 
         Assert(descriptorSet->Create());
+
+        data.uniformBuffers[atlasIndex] = std::move(uniformBuffer);
     }
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
@@ -777,7 +783,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     // reset stencil state back to default
-    frame->renderQueue << SetStencilState(0, 0xFF, 0xFF);
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
     m_isFirstFrame = false;
 }

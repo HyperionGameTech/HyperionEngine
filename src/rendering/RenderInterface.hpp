@@ -188,7 +188,7 @@ public:
 
         uint8 stencilReference = 0;
         uint8 stencilCompareMask = 0xFF;
-        uint8 stencilWriteMask = 0xFF;
+        uint8 stencilWriteMask = 0x0;
         
         void Reset()
         {
@@ -202,7 +202,7 @@ public:
             Memory::MemSet(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
             stencilReference = 0;
             stencilCompareMask = 0xFF;
-            stencilWriteMask = 0xFF;
+            stencilWriteMask = 0x0;
         }
     };
 

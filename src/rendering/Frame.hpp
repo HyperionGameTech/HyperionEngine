@@ -29,7 +29,8 @@ public:
 
     virtual bool IsCreated() const = 0;
     virtual RendererResult Create() = 0;
-    virtual RendererResult ResetFrameState() = 0;
+
+    virtual void OnFrameStart();
 
     void UpdateUsedDescriptorSets();
 
@@ -49,12 +50,14 @@ public:
 
 protected:
     explicit FrameBase(uint32 frameIndex)
-        : m_frameIndex(frameIndex)
+        : m_frameIndex(frameIndex),
+          m_frameCounter(0)
     {
     }
 
     uint32 m_frameIndex;
-    HashSet<DescriptorSet*> m_usedDescriptorSets;
+    uint32 m_frameCounter;
+    Array<DescriptorSet*, RenderAllocator> m_usedDescriptorSets;
 };
 
 } // namespace Hyperion

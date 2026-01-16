@@ -863,7 +863,7 @@ void RenderGroup::PerformRendering(
     if (stencilReference != 0)
     {
         // reset back to default
-        rq << SetStencilState(0, 0xFF, 0xFF);
+        rq << SetStencilState(0, 0xFF, 0x0);
     }
 
     g_statRenderGroups++;

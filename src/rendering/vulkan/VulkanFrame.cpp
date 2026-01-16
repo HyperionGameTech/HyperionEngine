@@ -55,8 +55,10 @@ RendererResult VulkanFrame::Create()
     return {};
 }
 
-RendererResult VulkanFrame::ResetFrameState()
+void VulkanFrame::OnFrameStart()
 {
+    FrameBase::OnFrameStart();
+
     RendererResult result;
 
     HYPERION_PASS_ERRORS(m_queueSubmitFence->Reset(), result);
@@ -82,7 +84,7 @@ RendererResult VulkanFrame::ResetFrameState()
         OnFrameEnd.RemoveAllDetached();
     }
 
-    return result;
+    Assert(!result.HasError(), "Failed to acquire frame resources! Error message was: {}", result.GetError().GetMessage());
 }
 
 RendererResult VulkanFrame::Submit(

@@ -841,7 +841,7 @@ VulkanFrame* VulkanRenderBackend::PrepareNextFrame()
         HYP_FAIL("Failed to wait on frame fence! VkResult: {}", frame->GetFence()->GetLastFrameResult());
     }
 
-    frame->ResetFrameState();
+    frame->OnFrameStart();
 
     m_descriptorSetManager->OnFrameStart();
 
