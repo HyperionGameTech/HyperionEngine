@@ -24,8 +24,6 @@
 
 namespace Hyperion {
 
-HYP_DISABLE_OPTIMIZATION;
-
 #pragma region RenderQueue
 
 template <>
@@ -642,7 +640,7 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 
     DescriptorSet* setsToBind[MaxDescriptorSetsBound] {};
 
-    uint32 bufferOffsets[MaxDescriptorSetsBound][MaxDynamicOffsetsPerSet] {};
+    uint8 bufferOffsets[MaxDescriptorSetsBound][MaxDynamicOffsetsPerSet] {}; // index of ShaderUniform
     uint8 bufferOffsetCounts[MaxDescriptorSetsBound] {};
 
 #define IS_BIT_SET(bits, bitIdx) ((bits) & (1u << bitIdx))
@@ -739,9 +737,9 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
             dsStates[setIndex] |= DSS_BufferOffsetChanged;
         }
 
-        dsIndices |= uint8(1u << setIndex);
-
         uniformIndexToSetIndex[uniformIndex] = setIndex;
+
+        dsIndices |= uint8(1u << setIndex);
 
         bits.Set(currBit, false);
     }
@@ -822,8 +820,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
         }
     }
 
-    uint32 offsetValidityMasks[MaxDescriptorSetsBound] = { };
-
     if (state.dirtyBufferOffsets)
     {
         bits.Clear();
@@ -837,16 +833,10 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
             uint8 setIndex = uniformIndexToSetIndex[uniformIndex];
             AssertDebug(setIndex != uint8(-1));
 
-            DescriptorSet* ds = setsToBind[setIndex];
-            AssertDebug(ds != nullptr);
+            const uint8 offsetIndex = bufferOffsetCounts[setIndex]++;
+            AssertDebug(offsetIndex < MaxDynamicOffsetsPerSet);
 
-            // this isn't ideal
-            uint8 descriptorIndex = ds->GetLayout().GetElement(uniform.name)->binding;
-
-            bufferOffsets[setIndex][descriptorIndex] = state.shaderUniformBufferOffsets[uniformIndex];
-            bufferOffsetCounts[setIndex]++;
-
-            offsetValidityMasks[setIndex] |= (1u << descriptorIndex);
+            bufferOffsets[setIndex][offsetIndex] = (uint8)uniformIndex;
 
             bits.Set(currBit, false);
         }
@@ -870,22 +860,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 }
             }
         }
-    }
-
-    // debug
-    Array<ShaderUniform> validUniforms;
-    validUniforms.Resize(RenderInterface::State::MaxShaderUniforms);
-    FOR_EACH_BIT(state.validUniforms, i)
-    {
-        validUniforms[i] = state.shaderUniforms[i];
-    }
-    
-    // debug
-    Array<ShaderUniform> dirtyUniforms;
-    dirtyUniforms.Resize(RenderInterface::State::MaxShaderUniforms);
-    FOR_EACH_BIT(state.dirtyUniforms, i)
-    {
-        dirtyUniforms[i] = state.shaderUniforms[i];
     }
 
     // bind descriptor sets
@@ -913,21 +887,21 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
                 }
             }
         }
-        
-        uint32 compactedOffsets[MaxDynamicOffsetsPerSet] = {};
-        uint8 compactedCount = 0;
 
-        if (bufferOffsetCounts[setIndex] != 0)
+        DescriptorSetOffsetMap offsets {};
+        for (uint8 bufferOffsetIndex = 0; bufferOffsetIndex < bufferOffsetCounts[setIndex]; bufferOffsetIndex++)
         {
-            // offset are in order, but we need to compact them to remove gaps
+            const uint8 shaderUniformIndex = bufferOffsets[setIndex][bufferOffsetIndex];
 
-            FOR_EACH_BIT(offsetValidityMasks[setIndex], i)
-            {
-                compactedOffsets[compactedCount++] = bufferOffsets[setIndex][i];
-            }
+            const ShaderUniform& uniform = state.shaderUniforms[shaderUniformIndex];
+            AssertDebug(uniform.type == ShaderUniform::UT_Buffer);
+
+            const uint32 bufferOffset = state.shaderUniformBufferOffsets[shaderUniformIndex];
+
+            offsets.Add(uniform.name, bufferOffset);
         }
 
-        ds->Bind(commandBuffer, pipeline, compactedOffsets, compactedCount, setIndex);
+        ds->Bind(commandBuffer, pipeline, offsets, setIndex);
 
         state.prevBoundDescriptorSets[setIndex] = ds;
     }
@@ -936,16 +910,6 @@ void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
     state.validUniforms |= state.dirtyUniforms;
     state.dirtyUniforms = 0;
     state.dirtyBufferOffsets = 0;
-
-    // debugging
-    auto& dsDecls = tableDecl->elements;
-    
-    for (uint32 i = 0; i < dsDecls.Size(); i++)
-    {
-        Assert(state.prevBoundDescriptorSets[i] != nullptr
-            && state.prevBoundDescriptorSets[i]->GetLayout().GetDeclaration()->name == dsDecls[i].name,
-            "Invalid descriptor set binding for index {} (name : {})", i, dsDecls[i].name);
-    }
 
 #undef IS_BIT_SET
 

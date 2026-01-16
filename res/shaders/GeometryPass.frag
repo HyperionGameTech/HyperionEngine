@@ -164,28 +164,28 @@ void main()
     texcoord = parallax_texcoord;
 #endif
 
-// #if HAS_ALBEDO_MAP
-//     vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
+#if HAS_ALBEDO_MAP
+    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
-// #ifdef ALPHA_DISCARD
-//     if (albedo_texture.a < alpha_threshold)
-//     {
-//         discard;
-//     }
-// #endif
+#ifdef ALPHA_DISCARD
+    if (albedo_texture.a < alpha_threshold)
+    {
+        discard;
+    }
+#endif
 
-//     gbuffer_albedo *= albedo_texture;
-// #endif
+    gbuffer_albedo *= albedo_texture;
+#endif
 
     gbuffer_albedo.a = max(gbuffer_albedo.a, 0.005);
 
     vec4 normals_texture = vec4(0.0);
 
-// #if HAS_NORMAL_MAP
-//     normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
+#if HAS_NORMAL_MAP
+    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
 
-//     N = normalize(tbn_matrix * normals_texture.xyz);
-//#endif
+    N = normalize(tbn_matrix * normals_texture.xyz);
+#endif
 
 #if SHADING_TYPE_FORWARD
     {
@@ -308,9 +308,6 @@ void main()
         gbuffer_albedo.rgb = lighting;
     }
 #endif
-
-    // debug
-    gbuffer_albedo = vec4(1.0, 0.0, 0.0, 1.0);
 
 #if HAS_METALNESS_MAP
     float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
