@@ -63,7 +63,7 @@ void DX12GraphicsPipeline::SetDebugName(Name name)
 RendererResult DX12GraphicsPipeline::Rebuild()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #pragma endregion DX12GraphicsPipeline

@@ -54,7 +54,7 @@ public:
         // @TODO: Implement single time commands for DX12
         HYP_LOG(RenderingBackend, Warning, "DX12SingleTimeCommands::Execute() not implemented");
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -151,7 +151,7 @@ RendererResult DX12RenderBackend::Initialize()
     if (!SUCCEEDED(res))
         return HYP_MAKE_ERROR(RendererError, "Failed to create D3D12MemoryAllocator instance!", res);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12RenderBackend::Destroy()
@@ -170,7 +170,7 @@ RendererResult DX12RenderBackend::Destroy()
     
     m_dxgiFactory.Reset();
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 const IRenderConfig& DX12RenderBackend::GetRenderConfig() const

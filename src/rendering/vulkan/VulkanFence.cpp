@@ -35,7 +35,7 @@ VulkanFence::~VulkanFence()
 
 RendererResult VulkanFence::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
+    Assert(m_handle == VK_NULL_HANDLE);
 
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fenceCreateInfo { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -43,12 +43,12 @@ RendererResult VulkanFence::Create()
 
     VULKAN_CHECK(vkCreateFence(g_renderBackend->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanFence::Wait(bool timeoutLoop)
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VkResult vkResult;
 
@@ -62,14 +62,14 @@ RendererResult VulkanFence::Wait(bool timeoutLoop)
 
     VULKAN_CHECK(vkResult);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanFence::Reset()
 {
     VULKAN_CHECK(vkResetFences(g_renderBackend->GetDevice()->GetDevice(), 1, &m_handle));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 } // namespace Hyperion

@@ -31,7 +31,7 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         vkGetPhysicalDeviceFeatures(physicalDevice, &m_features);
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &m_memoryProperties);
 
-        HYP_GFX_ASSERT(m_features.samplerAnisotropy);
+        Assert(m_features.samplerAnisotropy);
         
         m_features2 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2

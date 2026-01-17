@@ -36,7 +36,7 @@ bool DX12Sampler::IsCreated() const
 RendererResult DX12Sampler::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

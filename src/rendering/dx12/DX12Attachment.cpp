@@ -40,7 +40,7 @@ bool DX12Attachment::IsCreated() const
 RendererResult DX12Attachment::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #pragma endregion DX12Attachment

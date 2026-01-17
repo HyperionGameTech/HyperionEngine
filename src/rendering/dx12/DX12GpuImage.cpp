@@ -46,13 +46,13 @@ RendererResult DX12GpuImage::Create()
 RendererResult DX12GpuImage::Create(ResourceState initialState)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuImage::Resize(const Vec3u& extent)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 HANDLE DX12GpuImage::GetNativeHandle() const
@@ -96,7 +96,7 @@ RendererResult DX12GpuImage::Blit(
     const DX12GpuImage* srcImage)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuImage::Blit(
@@ -108,7 +108,7 @@ RendererResult DX12GpuImage::Blit(
     uint32 dstFace)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuImage::Blit(
@@ -118,7 +118,7 @@ RendererResult DX12GpuImage::Blit(
     Rect<uint32> dstRect)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuImage::Blit(
@@ -132,13 +132,13 @@ RendererResult DX12GpuImage::Blit(
     uint32 dstFace)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12GpuImage::GenerateMipmaps(DX12CommandBuffer* commandBuffer)
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12GpuImage::CopyFromBuffer(

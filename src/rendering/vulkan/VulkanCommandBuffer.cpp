@@ -31,7 +31,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        HYP_GFX_ASSERT(m_commandPool != VK_NULL_HANDLE);
+        Assert(m_commandPool != VK_NULL_HANDLE);
 
         vkFreeCommandBuffers(g_renderBackend->GetDevice()->GetDevice(), m_commandPool, 1, &m_handle);
 
@@ -49,9 +49,9 @@ RendererResult VulkanCommandBuffer::Create(VkCommandPool commandPool)
 {
     if (IsCreated())
     {
-        HYP_GFX_ASSERT(m_commandPool == commandPool, "Command buffer already created with a different command pool");
+        Assert(m_commandPool == commandPool, "Command buffer already created with a different command pool");
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     m_commandPool = commandPool;
@@ -61,7 +61,7 @@ RendererResult VulkanCommandBuffer::Create(VkCommandPool commandPool)
 
 RendererResult VulkanCommandBuffer::Create()
 {
-    HYP_GFX_ASSERT(m_commandPool != VK_NULL_HANDLE);
+    Assert(m_commandPool != VK_NULL_HANDLE);
 
     VkCommandBufferAllocateInfo allocInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
     allocInfo.level = m_type;
@@ -201,15 +201,15 @@ RendererResult VulkanCommandBuffer::SubmitSecondary(VulkanCommandBuffer* primary
         1,
         &m_handle);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
 {
     static constexpr VkDeviceSize BindingOffsets[] = { 0 };
 
-    HYP_GFX_ASSERT(buffer != nullptr);
-    HYP_GFX_ASSERT(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+    Assert(buffer != nullptr);
+    Assert(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     const VkBuffer vertexBuffers[] = { static_cast<const VulkanGpuBuffer*>(buffer)->GetVulkanHandle() };
 
@@ -218,8 +218,8 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
 
 void VulkanCommandBuffer::BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType)
 {
-    HYP_GFX_ASSERT(buffer != nullptr);
-    HYP_GFX_ASSERT(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
+    Assert(buffer != nullptr);
+    Assert(buffer->GetBufferType() == GpuBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     vkCmdBindIndexBuffer(
         m_handle,

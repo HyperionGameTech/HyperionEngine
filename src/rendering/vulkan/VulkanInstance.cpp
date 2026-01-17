@@ -107,7 +107,7 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-    HYP_GFX_ASSERT(deviceCount != 0, "No devices with Vulkan support found! "
+    Assert(deviceCount != 0, "No devices with Vulkan support found! "
                                      "Please update your graphics drivers or install a Vulkan compatible device.\n");
 
     Array<VkPhysicalDevice> devices;
@@ -353,7 +353,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     }
 #endif
 
-    HYP_GFX_ASSERT(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
+    Assert(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
 
     VkApplicationInfo appInfo { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.pApplicationName = g_appContext->GetAppName().Data();

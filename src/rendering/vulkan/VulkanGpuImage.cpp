@@ -51,7 +51,7 @@ VulkanGpuImage::~VulkanGpuImage()
     {
         if (m_allocation != VK_NULL_HANDLE)
         {
-            HYP_GFX_ASSERT(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
+            Assert(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
 
             vmaDestroyImage(g_renderBackend->GetDevice()->GetAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
@@ -186,7 +186,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (!m_isHandleOwned)
     {
-        HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE, "If m_isHandleOwned is false, the image handle must not be VK_NULL_HANDLE.");
+        Assert(m_handle != VK_NULL_HANDLE, "If m_isHandleOwned is false, the image handle must not be VK_NULL_HANDLE.");
 
         return {};
     }
@@ -560,7 +560,7 @@ void VulkanGpuImage::InsertBarrier(
 
             if (it != m_subResourceStates.End())
             {
-                HYP_GFX_ASSERT(
+                Assert(
                     it->second == prevResourceState,
                     "Sub resource state mismatch for image: mip %d, layer %d",
                     mipLevel,
@@ -851,8 +851,8 @@ void VulkanGpuImage::CopyFromBuffer(
 
 void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuBuffer* dstBuffer) const
 {
-    HYP_GFX_ASSERT(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
-    HYP_GFX_ASSERT(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
+    Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
+    Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
 
     const auto flags = m_textureDesc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL

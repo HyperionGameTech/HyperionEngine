@@ -450,7 +450,7 @@ void VulkanDescriptorSet::Update(bool force)
 {
     static_assert(std::is_trivial_v<VulkanDescriptorElementInfo>, "VulkanDescriptorElementInfo should be a trivial type for fast copy and move operations");
 
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     if (force)
     {
@@ -507,7 +507,7 @@ void VulkanDescriptorSet::Update(bool force)
 
 RendererResult VulkanDescriptorSet::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE && m_vkDescriptorPool == VK_NULL_HANDLE);
+    Assert(m_handle == VK_NULL_HANDLE && m_vkDescriptorPool == VK_NULL_HANDLE);
 
     if (!m_layout.IsValid())
     {
@@ -518,16 +518,10 @@ RendererResult VulkanDescriptorSet::Create()
 
     if (m_layout.IsTemplate())
     {
-        return RendererResult {};
+        return {};
     }
 
-    RendererResult result;
-    HYPERION_PASS_ERRORS(g_renderBackend->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool), result);
-
-    if (!result)
-    {
-        return result;
-    }
+    CheckResultOrReturn(g_renderBackend->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool));
 
     AssertDebug(m_vkDescriptorPool != VK_NULL_HANDLE);
 
@@ -549,7 +543,7 @@ RendererResult VulkanDescriptorSet::Create()
     UpdateDirtyState();
     Update();
 
-    return result;
+    return {};
 }
 
 bool VulkanDescriptorSet::IsCreated() const
@@ -559,7 +553,7 @@ bool VulkanDescriptorSet::IsCreated() const
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
@@ -604,7 +598,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
@@ -640,7 +634,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
@@ -685,7 +679,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;
@@ -721,7 +715,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
@@ -766,7 +760,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCachedDescriptorSetBinding cachedBinding {};
     cachedBinding.descriptorSet = m_handle;

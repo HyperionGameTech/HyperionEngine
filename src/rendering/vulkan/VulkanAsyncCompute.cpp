@@ -38,7 +38,7 @@ RendererResult VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    HYP_GFX_ASSERT(g_renderBackend->GetDevice()->GetQueueFamilyIndices().IsComplete());
+    Assert(g_renderBackend->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
     VulkanDeviceQueue* queue = g_renderBackend->GetDevice()->GetComputeQueue();
 
@@ -53,7 +53,7 @@ RendererResult VulkanAsyncCompute::Create()
 
     for (const VulkanCommandBufferRef& commandBuffer : m_commandBuffers)
     {
-        HYP_GFX_ASSERT(commandBuffer.IsValid());
+        Assert(commandBuffer.IsValid());
 
         CheckResultOrReturn(commandBuffer->Create(queue->commandPools[0]));
     }
@@ -100,16 +100,10 @@ RendererResult VulkanAsyncCompute::WaitForFence(VulkanFrame* frame)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RendererResult result = m_fences[frameIndex]->Wait();
+    CheckResultOrReturn(m_fences[frameIndex]->Wait());
+    CheckResultOrReturn(m_fences[frameIndex]->Reset());
 
-    if (!result)
-    {
-        return result;
-    }
-
-    HYPERION_PASS_ERRORS(m_fences[frameIndex]->Reset(), result);
-
-    return result;
+    return {};
 }
 
 } // namespace Hyperion

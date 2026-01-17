@@ -30,7 +30,7 @@ bool DX12Swapchain::IsCreated() const
 RendererResult DX12Swapchain::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12Swapchain::SetExtent(Vec2u newExtent)

@@ -92,12 +92,12 @@ template <VulkanStruct TBaseType, VulkanStruct TNextType>
 static inline void ChainNext(TBaseType& inStruct, TNextType* next)
 {
     VkBaseOutStructure* current = (VkBaseOutStructure*)&inStruct;
-    HYP_GFX_ASSERT(current != (VkBaseOutStructure*)next);
+    Assert(current != (VkBaseOutStructure*)next);
 
     while (current->pNext != nullptr)
     {
         // check if we'd create circular dependency
-        HYP_GFX_ASSERT(current->pNext != (VkBaseOutStructure*)next);
+        Assert(current->pNext != (VkBaseOutStructure*)next);
         current = current->pNext;
     }
 

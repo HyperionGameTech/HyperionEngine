@@ -314,7 +314,7 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
         return HYP_MAKE_ERROR(RendererError, "Device not supported -- indices setup was not complete.");
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
@@ -333,7 +333,7 @@ RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
 
     vmaCreateAllocator(&createInfo, &m_allocator);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanDevice::DebugLogAllocatorStats() const
@@ -359,7 +359,7 @@ RendererResult VulkanDevice::DestroyAllocator()
         m_allocator = VK_NULL_HANDLE;
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanDevice::WaitIdle() const
@@ -438,7 +438,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     // so for each unsupported extension, remove it from out list of extensions
     for (auto& it : unsupportedExtensions)
     {
-        HYP_GFX_ASSERT(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
+        Assert(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
 
         m_wantedExtensions.Erase(it.first);
     }
@@ -521,12 +521,12 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     HYP_LOG(RenderingBackend, Debug, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 VkQueue VulkanDevice::GetQueue(uint32 queueFamilyIndex, uint32 queueIndex)
 {
-    HYP_GFX_ASSERT(m_device != VK_NULL_HANDLE);
+    Assert(m_device != VK_NULL_HANDLE);
 
     VkQueue queue;
     vkGetDeviceQueue(m_device, queueFamilyIndex, queueIndex, &queue);

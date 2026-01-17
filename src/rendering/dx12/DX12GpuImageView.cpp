@@ -44,7 +44,7 @@ bool DX12GpuImageView::IsCreated() const
 RendererResult DX12GpuImageView::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

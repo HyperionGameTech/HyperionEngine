@@ -25,7 +25,7 @@ RendererResult DX12CommandBuffer::Create()
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12CommandBuffer::Create() not implemented");
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12CommandBuffer::BindVertexBuffer(const DX12GpuBuffer* buffer)

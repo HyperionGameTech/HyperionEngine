@@ -82,7 +82,7 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
 
 void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent)
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCommandBuffer* vulkanCommandBuffer = commandBuffer;
 
@@ -384,7 +384,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VkGraphicsPipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
     const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
-    HYP_GFX_ASSERT(stages.Any(), "No shader stages found");
+    Assert(stages.Any(), "No shader stages found");
 
     pipelineInfo.stageCount = uint32(stages.Size());
     pipelineInfo.pStages = stages.Data();

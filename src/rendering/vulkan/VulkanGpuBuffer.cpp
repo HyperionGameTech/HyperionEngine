@@ -132,7 +132,7 @@ void* VulkanGpuBuffer::Map() const
         return m_mapping;
     }
 
-    HYP_GFX_ASSERT(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
+    Assert(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
     vmaMapMemory(g_renderBackend->GetDevice()->GetAllocator(), m_vmaAllocation, &m_mapping);
 
@@ -189,11 +189,11 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
 
 uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
 {
-    HYP_GFX_ASSERT(
+    Assert(
         g_renderBackend->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
         "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!");
 
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
     info.buffer = m_handle;
@@ -318,7 +318,7 @@ void VulkanGpuBuffer::CopyFrom(
         return;
     }
 
-    HYP_GFX_ASSERT((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
+    Assert((srcOffset + count <= srcBuffer->Size()) && (dstOffset + count <= Size()), "Copy out of bounds!");
 
     VkBufferCopy region {};
     region.size = count;
@@ -347,7 +347,7 @@ RendererResult VulkanGpuBuffer::Create()
 
     if (m_size == 0)
     {
-        HYP_GFX_ASSERT("Creating empty gpu buffer will result in errors!");
+        Assert("Creating empty gpu buffer will result in errors!");
 
         return HYP_MAKE_ERROR(RendererError, "Creating empty gpu buffer will result in errors!");
     }
@@ -526,7 +526,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
     /* check that we have enough space in the memory type */
     const auto& memoryProperties = features.GetPhysicalDeviceMemoryProperties();
 
-    HYP_GFX_ASSERT(memoryTypeIndex < memoryProperties.memoryTypeCount);
+    Assert(memoryTypeIndex < memoryProperties.memoryTypeCount);
 
     const auto heapIndex = memoryProperties.memoryTypes[memoryTypeIndex].heapIndex;
     const auto& heap = memoryProperties.memoryHeaps[heapIndex];

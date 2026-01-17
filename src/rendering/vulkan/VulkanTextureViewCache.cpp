@@ -48,7 +48,7 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Te
 {
     AssertOnThread(g_renderThread);
 
-    HYP_GFX_ASSERT(texture.IsValid());
+    Assert(texture.IsValid());
 
     const SizeType idx = texture.Id().ToIndex();
 
@@ -147,8 +147,8 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
         {
             const SizeType idx = weakTextureHandles.IndexOf(cleanupIterator);
 
-            HYP_GFX_ASSERT(imageViews.HasIndex(idx));
-            HYP_GFX_ASSERT(weakTextureHandles.HasIndex(idx));
+            Assert(imageViews.HasIndex(idx));
+            Assert(weakTextureHandles.HasIndex(idx));
 
             for (auto& it : imageViews.Get(idx))
             {

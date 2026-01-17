@@ -32,7 +32,7 @@ bool DX12Shader::IsCreated() const
 RendererResult DX12Shader::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE

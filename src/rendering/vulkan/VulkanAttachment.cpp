@@ -50,7 +50,7 @@ bool VulkanAttachment::IsCreated() const
 
 RendererResult VulkanAttachment::Create()
 {
-    HYP_GFX_ASSERT(m_image != nullptr);
+    Assert(m_image != nullptr);
 
     m_vkAttachmentDescription = VkAttachmentDescription {
         .format = ToVkFormat(m_image->GetTextureFormat()),

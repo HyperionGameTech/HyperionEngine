@@ -197,7 +197,7 @@ public:
 
     VulkanSwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface) const
     {
-        HYP_GFX_ASSERT(m_physicalDevice != VK_NULL_HANDLE, "No physical device set!");
+        Assert(m_physicalDevice != VK_NULL_HANDLE, "No physical device set!");
 
         VulkanSwapchainSupportDetails details {};
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, surface, &details.capabilities);
@@ -217,7 +217,7 @@ public:
         surfaceFormats.Resize(numSurfaceFormats);
 
         vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &numSurfaceFormats, surfaceFormats.Data());
-        HYP_GFX_ASSERT(surfaceFormats.Any(), "No surface formats available!");
+        Assert(surfaceFormats.Any(), "No surface formats available!");
 
         uint32 numPresentModes = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &numPresentModes, nullptr);
@@ -226,7 +226,7 @@ public:
         presentModes.Resize(numPresentModes);
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &numPresentModes, presentModes.Data());
-        HYP_GFX_ASSERT(presentModes.Any(), "No present modes available!");
+        Assert(presentModes.Any(), "No present modes available!");
 
         details.queueFamilyProperties = queueFamilyProperties;
         details.formats = surfaceFormats;
@@ -339,7 +339,7 @@ public:
             return HYP_MAKE_ERROR(RendererError, "Failed to get image format properties", vkResult);
         }
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     template <class StructType>
