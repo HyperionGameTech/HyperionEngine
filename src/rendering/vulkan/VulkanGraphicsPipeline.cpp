@@ -176,8 +176,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     }
 
     VulkanRenderPassRef renderPass = CreateObject<VulkanRenderPass>(
-        m_renderTargetDesc,
-        RenderPassMode::RENDER_PASS_INLINE);
+        m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
 
     HYP_GFX_CHECK(renderPass->Create());
 

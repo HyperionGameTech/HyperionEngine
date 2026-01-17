@@ -18,6 +18,8 @@
 
 namespace Hyperion {
 
+enum class VulkanRenderPassMode : uint8;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanRenderPass final : public ObjectBase
 {
@@ -26,7 +28,7 @@ class VulkanRenderPass final : public ObjectBase
 public:
     VulkanRenderPass(
         const RenderTargetDesc& renderTargetDesc,
-        RenderPassMode mode);
+        VulkanRenderPassMode renderPassMode);
     ~VulkanRenderPass() override;
 
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
@@ -34,9 +36,9 @@ public:
         return m_handle;
     }
 
-    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
+    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
     {
-        return m_renderTargetDesc.type;
+        return m_renderPassMode;
     }
 
     HYP_FORCE_INLINE RenderTargetDesc& GetRenderTargetDesc()
@@ -51,12 +53,12 @@ public:
 
     HYP_FORCE_INLINE bool IsMultiview() const
     {
-        return m_renderTargetDesc.numViews > 1;
+        return m_renderTargetDesc.numLayers > 1;
     }
 
     HYP_FORCE_INLINE uint32 NumMultiviewLayers() const
     {
-        return m_renderTargetDesc.numViews;
+        return m_renderTargetDesc.numLayers;
     }
 
     Span<const AttachmentDesc> GetAttachmentDescs() const
@@ -78,7 +80,7 @@ private:
     }
     
     RenderTargetDesc m_renderTargetDesc;
-    RenderPassMode m_mode;
+    VulkanRenderPassMode m_renderPassMode;
     
     Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
     Array<VkClearValue, InlineAllocator<2>> m_vkClearValues;

@@ -928,7 +928,7 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
     
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &framebuffer->GetRenderTargetDesc(),
+        framebuffer->GetRenderTargetDesc(),
         attributes,
         cacheHandle);
 

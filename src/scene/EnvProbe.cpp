@@ -245,9 +245,9 @@ void EnvProbe::CreateView()
 
     RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(m_dimensions),
-        .attachments = {},
         .numAttachments = 0,
-        .numViews = 6
+        .attachments = {},
+        .numLayers = 6
     };
 
     if (IsReflectionProbe() || IsSkyProbe())
@@ -271,7 +271,7 @@ void EnvProbe::CreateView()
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
-            .clearColor = Vec4f(FLT16_MAX)
+            .clearColor = { FLT16_MAX, FLT16_MAX }
         });
     }
 

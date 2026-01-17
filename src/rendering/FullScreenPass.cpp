@@ -144,7 +144,6 @@ FullScreenPass::FullScreenPass(
       m_gbuffer(gbuffer),
       m_flags(flags),
       m_blendFunction(BlendFunction::None()),
-      m_renderTargetType(RTT_SHADER_RESOURCE),
       m_isInitialized(false),
       m_isFirstFrame(true)
 {
@@ -252,19 +251,6 @@ void FullScreenPass::SetBlendFunction(const BlendFunction& blendFunction)
     }
 
     m_blendFunction = blendFunction;
-
-    // throw away graphics pipeline cache handle to force recreation.
-    m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
-}
-
-void FullScreenPass::SetRenderTargetType(RenderTargetType renderTargetType)
-{
-    if (m_renderTargetType == renderTargetType)
-    {
-        return;
-    }
-
-    m_renderTargetType = renderTargetType;
 
     // throw away graphics pipeline cache handle to force recreation.
     m_graphicsPipelineCacheHandle = GraphicsPipelineCacheHandle();
@@ -392,9 +378,8 @@ void FullScreenPass::CreateFramebuffer()
     }
 
     RenderTargetDesc renderTargetDesc;
-    renderTargetDesc.type = RTT_SHADER_RESOURCE;
     renderTargetDesc.extent = framebufferExtent;
-    renderTargetDesc.numViews = 1;
+    renderTargetDesc.numLayers = 1;
 
     m_framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
 
@@ -448,7 +433,7 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderableAttr
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &m_framebuffer->GetRenderTargetDesc(),
+        m_framebuffer->GetRenderTargetDesc(),
         renderableAttributes,
         m_graphicsPipelineCacheHandle);
 

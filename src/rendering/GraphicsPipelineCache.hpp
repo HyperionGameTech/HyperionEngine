@@ -81,10 +81,13 @@ public:
     friend struct GraphicsPipelineCacheHandle;
 
     GraphicsPipelineCache();
+    
     GraphicsPipelineCache(const GraphicsPipelineCache&) = delete;
     GraphicsPipelineCache& operator=(const GraphicsPipelineCache&) = delete;
+
     GraphicsPipelineCache(GraphicsPipelineCache&&) = delete;
     GraphicsPipelineCache& operator=(GraphicsPipelineCache&&) = delete;
+
     ~GraphicsPipelineCache();
 
     /*! \brief Gets or creates a graphics pipeline based on the provided shader, render target descriptor, and attributes.
@@ -93,7 +96,7 @@ public:
      */
     void GetOrCreate(
         Shader* shader,
-        const RenderTargetDesc* renderTargetDesc,
+        const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes,
         GraphicsPipelineCacheHandle& outCacheHandle);
 
@@ -102,7 +105,7 @@ public:
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
         Shader* shader,
-        const RenderTargetDesc* renderTargetDesc,
+        const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes);
 
     CachedPipelinesMap* m_cachedPipelines;

@@ -882,7 +882,6 @@ enum RenderTargetType : uint8
     RTT_NONE = 0,
     RTT_PRESENT,         /* for presentation on screen */
     RTT_SHADER_RESOURCE, /* for use as a texture, sampled within in a shader */
-    RTT_RENDER_TARGET,   /* for use as a render target, writen to multiple times within a render pass */
     RTT_MAX
 };
 
@@ -1257,7 +1256,7 @@ struct AttachmentDesc
     LoadOperation loadOp = LoadOperation::CLEAR;
     StoreOperation storeOp = StoreOperation::STORE;
     BlendFunction blendFunction = BlendFunction::None();
-    Vec4f clearColor = Vec4f::Zero();
+    float clearColor[4] = {};
 
     HYP_FORCE_INLINE bool operator==(const AttachmentDesc& other) const
     {
@@ -1266,7 +1265,7 @@ struct AttachmentDesc
             && loadOp == other.loadOp
             && storeOp == other.storeOp
             && blendFunction == other.blendFunction
-            && clearColor == other.clearColor;
+            && Memory::MemCmp(clearColor, other.clearColor, sizeof(clearColor)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
@@ -1276,7 +1275,7 @@ struct AttachmentDesc
             || loadOp != other.loadOp
             || storeOp != other.storeOp
             || blendFunction != other.blendFunction
-            || clearColor != other.clearColor;
+            || Memory::MemCmp(clearColor, other.clearColor, sizeof(clearColor)) != 0;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -1295,33 +1294,26 @@ struct AttachmentDesc
 
 struct RenderTargetDesc
 {
-    static constexpr uint32 MaxAttachments = 8;
-
-    RenderTargetType type = RTT_SHADER_RESOURCE;
-
+    static constexpr uint32 MaxAttachments = 5;
+    
     Vec2u extent = Vec2u::One();
-
+    
+    uint32 numAttachments = 0;
     AttachmentDesc attachments[MaxAttachments];
 
-    uint32 numAttachments = 0;
-    uint32 numViews = 1;
+    uint32 numLayers = 1;
 
     HYP_FORCE_INLINE bool operator==(const RenderTargetDesc& other) const
     {
-        return type == other.type
-            && extent == other.extent
+        return extent == other.extent
             && numAttachments == other.numAttachments
             && std::equal(attachments, attachments + numAttachments, other.attachments)
-            && numViews == other.numViews;
+            && numLayers == other.numLayers;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RenderTargetDesc& other) const
     {
-        return type != other.type
-            || extent != other.extent
-            || numAttachments != other.numAttachments
-            || !std::equal(attachments, attachments + numAttachments, other.attachments)
-            || numViews != other.numViews;
+        return !(*this == other);
     }
 
     void AddAttachment(const AttachmentDesc& attachmentDesc)
@@ -1330,6 +1322,14 @@ struct RenderTargetDesc
             return;
 
         attachments[numAttachments++] = attachmentDesc;
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(extent)
+            .Combine(numAttachments)
+            .Combine(HashCode::GetHashCode(attachments, attachments + numAttachments))
+            .Combine(numLayers);
     }
 };
 

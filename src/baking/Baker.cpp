@@ -175,7 +175,6 @@ void BakerBase::Initialize()
 
         // dummy output target
         RenderTargetDesc renderTargetDesc;
-        renderTargetDesc.type = RTT_SHADER_RESOURCE;
         renderTargetDesc.extent = Vec2u::One();
         renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
         renderTargetDesc.numAttachments = 1;

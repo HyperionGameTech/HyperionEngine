@@ -216,6 +216,7 @@ void LegacyEnvGrid::Init()
 
     RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(FramebufferDimensions),
+        .numAttachments = 4,
         .attachments = {
             AttachmentDesc {
                 TT_CUBEMAP,
@@ -235,7 +236,7 @@ void LegacyEnvGrid::Init()
                 LoadOperation::CLEAR,
                 StoreOperation::STORE,
                 BlendFunction::None(),
-                Vec4f(1000.0f)
+                { 1000.0f, 1000.0f }
             },
             AttachmentDesc {
                 TT_CUBEMAP,
@@ -244,8 +245,7 @@ void LegacyEnvGrid::Init()
                 StoreOperation::STORE
             }
         },
-        .numAttachments = 4,
-        .numViews = 6
+        .numLayers = 6
     };
 
     ViewDesc viewDesc {

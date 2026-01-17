@@ -303,7 +303,7 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 
 void GraphicsPipelineCache::GetOrCreate(
     Shader* shader,
-    const RenderTargetDesc* renderTargetDesc,
+    const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes,
     GraphicsPipelineCacheHandle& outCacheHandle)
 {
@@ -329,7 +329,7 @@ void GraphicsPipelineCache::GetOrCreate(
         return;
     }
 
-    Proc<void(GraphicsPipeline*, SizeType)> newCallback([this, key = PSOCacheKey(attributes)](GraphicsPipeline* graphicsPipeline, SizeType slot)
+    Proc<void(GraphicsPipeline*, SizeType)> newCallback([this, key = PSOCacheKey(attributes, renderTargetDesc)](GraphicsPipeline* graphicsPipeline, SizeType slot)
         {
             TUniqueLock guard(m_mutex);
 
@@ -340,12 +340,12 @@ void GraphicsPipelineCache::GetOrCreate(
             m_cachedPipelines->Add(key, slot);
         });
 
-    Assert(renderTargetDesc && renderTargetDesc->numAttachments > 0,
+    Assert(renderTargetDesc.numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
     GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(
         MakeStrongRef(shader),
-        *renderTargetDesc,
+        renderTargetDesc,
         attributes);
 
     SizeType slot = SizeType(-1);
@@ -400,7 +400,7 @@ void GraphicsPipelineCache::GetOrCreate(
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     Shader* shader,
-    const RenderTargetDesc* renderTargetDesc,
+    const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
@@ -412,7 +412,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
 
     TSharedLock guard(m_mutex);
 
-    const PSOCacheKey key { attributes };
+    const PSOCacheKey key { attributes, renderTargetDesc };
     Span<GraphicsPipelineRef* const> pipelines = m_cachedPipelines->Find(key);
 
     if (!pipelines)

@@ -58,7 +58,6 @@ void EditorViewport::Init()
             .position = Vec2i::Zero()
         },
         .renderTargetDesc = {
-            .type = RTT_SHADER_RESOURCE,
             .extent = Vec2u(m_camera->GetDimensions())
         },
         .camera = m_camera

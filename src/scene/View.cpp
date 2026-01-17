@@ -230,7 +230,11 @@ void View::Init()
                 attachmentDesc.loadOp,
                 attachmentDesc.storeOp);
 
-            attachment->SetClearColor(attachmentDesc.clearColor);
+            attachment->SetClearColor(Vec4f(
+                attachmentDesc.clearColor[0],
+                attachmentDesc.clearColor[1],
+                attachmentDesc.clearColor[2],
+                attachmentDesc.clearColor[3]));
         }
 
         DeferCreate(framebuffer);
