@@ -2,11 +2,12 @@
 
 #include <RenderingPch.hpp>
 
+#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderProxy.hpp>

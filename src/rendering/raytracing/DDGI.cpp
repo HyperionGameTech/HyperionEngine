@@ -8,6 +8,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>

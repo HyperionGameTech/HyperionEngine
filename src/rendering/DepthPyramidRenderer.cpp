@@ -2,6 +2,7 @@
 
 #include <RenderingPch.hpp>
 
+#include <rendering/RenderBackend.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>

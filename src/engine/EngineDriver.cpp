@@ -8,7 +8,6 @@
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
 #include <engine/DebugDrawer.hpp>
-#include <engine/Game.hpp>
 
 #include <engine/threads/SimThread.hpp>
 #include <engine/threads/MainThread.hpp>
@@ -18,6 +17,7 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderMaterial.hpp>
