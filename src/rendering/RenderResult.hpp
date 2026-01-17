@@ -46,16 +46,4 @@ private:
 
 using RendererResult = TResult<void, RendererError>;
 
-bool CheckResult(const RendererResult&);
-
-/// On error, exits the current functon returning the result
-#define CheckResultOrReturn(result)                                  \
-    do                                                               \
-    {                                                                \
-        ::Hyperion::RendererResult _result = (result);               \
-        if (!CheckResult(_result))                                   \
-            return _result.GetError();                               \
-    }                                                                \
-    while (0)
-
 } // namespace Hyperion
