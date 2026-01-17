@@ -25,6 +25,7 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>

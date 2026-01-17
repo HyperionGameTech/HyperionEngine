@@ -2,11 +2,12 @@
 
 #include <RenderingPch.hpp>
 
+#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderQueue.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/GpuImage.hpp>
 #include <rendering/Sampler.hpp>
-#include <rendering/RenderQueue.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderHelpers.hpp>

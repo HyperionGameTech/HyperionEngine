@@ -12,6 +12,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/RenderBackend.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderQueue.hpp>
