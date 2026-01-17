@@ -54,7 +54,7 @@ RendererResult GraphicsPipelineBase::Create()
         return rebuildResult;
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const

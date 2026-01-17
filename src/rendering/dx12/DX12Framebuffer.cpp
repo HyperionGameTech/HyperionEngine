@@ -30,7 +30,7 @@ bool DX12Framebuffer::IsCreated() const
 RendererResult DX12Framebuffer::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult DX12Framebuffer::Resize(Vec2u newSize)
@@ -38,7 +38,7 @@ RendererResult DX12Framebuffer::Resize(Vec2u newSize)
     m_renderTargetDesc.extent = newSize;
 
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 AttachmentRef DX12Framebuffer::AddAttachment(const AttachmentRef& attachment)

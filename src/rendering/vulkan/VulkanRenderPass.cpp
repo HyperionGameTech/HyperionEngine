@@ -259,7 +259,7 @@ RendererResult VulkanRenderPass::Create()
 
     VULKAN_CHECK(vkCreateRenderPass(g_renderBackend->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer)
@@ -269,7 +269,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         return;
     }
 
-    HYP_GFX_ASSERT(framebuffer != nullptr);
+    Assert(framebuffer != nullptr);
 
     VkRenderPassBeginInfo renderPassInfo { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     renderPassInfo.renderPass = m_handle;

@@ -136,7 +136,7 @@ struct CreateGaussianSplattingInstanceBuffers : RenderCommand
 
         CheckResultOrReturn(indirectBuffer->Create());
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -169,7 +169,7 @@ struct CreateGaussianSplattingIndirectBuffers : RenderCommand
 
         stagingBuffer->Copy(byteBuffer.Size(), byteBuffer.Data());
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 

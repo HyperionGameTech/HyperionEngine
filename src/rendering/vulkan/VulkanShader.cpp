@@ -218,7 +218,7 @@ RendererResult VulkanShader::Create()
 {
     if (IsCreated())
     {
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     CheckResultOrReturn(AttachSubShaders());

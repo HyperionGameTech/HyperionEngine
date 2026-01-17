@@ -59,9 +59,7 @@ void VulkanFrame::OnFrameStart()
 {
     FrameBase::OnFrameStart();
 
-    RendererResult result;
-
-    HYPERION_PASS_ERRORS(m_queueSubmitFence->Reset(), result);
+    CheckResult(m_queueSubmitFence->Reset());
 
 #ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
     for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
@@ -83,8 +81,6 @@ void VulkanFrame::OnFrameStart()
         OnFrameEnd(this);
         OnFrameEnd.RemoveAllDetached();
     }
-
-    Assert(!result.HasError(), "Failed to acquire frame resources! Error message was: {}", result.GetError().GetMessage());
 }
 
 RendererResult VulkanFrame::Submit(

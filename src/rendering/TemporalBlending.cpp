@@ -52,7 +52,7 @@ struct RecreateTemporalBlendingFramebuffer : RenderCommand
     {
         temporalBlending.Resize_Internal(newSize);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 

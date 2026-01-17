@@ -30,7 +30,7 @@ bool DX12DescriptorSet::IsCreated() const
 RendererResult DX12DescriptorSet::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12DescriptorSet::UpdateDirtyState(bool* outIsDirty)

@@ -36,7 +36,7 @@ bool DX12Frame::IsCreated() const
 RendererResult DX12Frame::Create()
 {
     // @TODO
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void DX12Frame::OnFrameStart()
