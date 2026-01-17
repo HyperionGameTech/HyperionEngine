@@ -252,6 +252,8 @@ RendererResult VulkanSwapchain::Create()
         VulkanFramebufferRef framebuffer = CreateObject<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
         CheckResultOrReturn(framebuffer->Create());
+        
+        m_framebuffers.PushBack(framebuffer);
     }
 
     // Create present semaphores

@@ -349,7 +349,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     /* Set up our debug and validation layers */
     if (enableDebugLayers)
     {
-        HYP_GFX_CHECK(SetupDebug());
+        CheckResultOrReturn(SetupDebug());
     }
 #endif
 
@@ -450,7 +450,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));
 
     /* Find and set up an adequate GPU for rendering and presentation */
-    HYP_GFX_CHECK(CreateDevice(physicalDevice, surface));
+    CheckResultOrReturn(CreateDevice(physicalDevice, surface));
 
     delete dummySurfaceContext;
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
@@ -474,7 +474,7 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice, VkS
     m_device = CreateObject<VulkanDevice>(physicalDevice);
     m_device->SetWantedExtensions(GetExtensionMap());
 
-    HYP_GFX_CHECK(m_device->Create(surface));
+    CheckResultOrReturn(m_device->Create(surface));
 
     return {};
 }

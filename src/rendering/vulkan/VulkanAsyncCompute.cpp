@@ -55,12 +55,12 @@ RendererResult VulkanAsyncCompute::Create()
     {
         HYP_GFX_ASSERT(commandBuffer.IsValid());
 
-        HYP_GFX_CHECK(commandBuffer->Create(queue->commandPools[0]));
+        CheckResultOrReturn(commandBuffer->Create(queue->commandPools[0]));
     }
 
     for (const VulkanFenceRef& fence : m_fences)
     {
-        HYP_GFX_CHECK(fence->Create());
+        CheckResultOrReturn(fence->Create());
     }
 
     return {};
@@ -74,9 +74,9 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
 
     /// \todo : Call RenderQueue::Prepare to set descriptor sets to be used for the frame.
 
-    HYP_GFX_CHECK(m_commandBuffers[frameIndex]->Begin());
+    CheckResultOrReturn(m_commandBuffers[frameIndex]->Begin());
     renderQueue.Execute(m_commandBuffers[frameIndex]);
-    HYP_GFX_CHECK(m_commandBuffers[frameIndex]->End());
+    CheckResultOrReturn(m_commandBuffers[frameIndex]->End());
 
     VulkanDeviceQueue* computeQueue = g_renderBackend->GetDevice()->GetComputeQueue();
 
@@ -89,7 +89,7 @@ RendererResult VulkanAsyncCompute::PrepareForFrame(VulkanFrame* frame)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    HYP_GFX_CHECK(WaitForFence(frame));
+    CheckResultOrReturn(WaitForFence(frame));
 
     return {};
 }

@@ -514,7 +514,7 @@ RendererResult VulkanDescriptorSet::Create()
         return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName());
     }
 
-    HYP_GFX_CHECK(g_renderBackend->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
+    CheckResultOrReturn(g_renderBackend->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
 
     if (m_layout.IsTemplate())
     {

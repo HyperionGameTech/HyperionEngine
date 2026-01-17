@@ -323,7 +323,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
                 SafeDelete(std::move(imageViews[i]));
             }
 
-            imageViews[i] = g_renderBackend->GetTextureImageView(proxyCasted->boundTextures[i]);
+            imageViews[i] = g_renderInterface->textureViewCache->GetOrCreate(proxyCasted->boundTextures[i]);
         }
     }
 }

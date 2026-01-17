@@ -50,7 +50,7 @@ RendererResult VulkanFrame::Create()
     }
 
     m_queueSubmitFence = CreateObject<VulkanFence>();
-    HYP_GFX_CHECK(m_queueSubmitFence->Create());
+    CheckResultOrReturn(m_queueSubmitFence->Create());
 
     return {};
 }

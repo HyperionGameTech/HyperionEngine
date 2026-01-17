@@ -132,13 +132,11 @@ public:
     template <class LambdaFunction>
     RendererResult Record(const VulkanRenderPass* renderPass, LambdaFunction&& fn)
     {
-        HYP_GFX_CHECK(Begin(renderPass));
+        CheckResultOrReturn(Begin(renderPass));
+        CheckResultOrReturn(fn(this));
+        CheckResultOrReturn(End());
 
-        RendererResult result = fn(this);
-
-        HYPERION_PASS_ERRORS(End(), result);
-
-        return result;
+        return {};
     }
 
     void ResetBoundDescriptorSets()

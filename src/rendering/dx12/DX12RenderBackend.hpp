@@ -86,8 +86,6 @@ public:
         const Mat4f& transform) override;
     DX12GpuTlasRef MakeTLAS() override;
 
-    const DX12GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 layerIndex = 0, uint32 numLayers = ~0u) override;
-
     void PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer) override;
 
     TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
