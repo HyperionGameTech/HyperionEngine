@@ -326,7 +326,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
             m_shader,
-            &renderTargetDesc,
+            renderTargetDesc,
             renderableAttributes,
             cacheHandle);
 
@@ -338,7 +338,7 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
         shader,
-        &renderTargetDesc,
+        renderTargetDesc,
         renderableAttributes,
         cacheHandle);
 
@@ -708,7 +708,7 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &framebuffer->GetRenderTargetDesc(),
+        framebuffer->GetRenderTargetDesc(),
         RenderableAttributeSet(meshAttributes, materialAttributes),
         data.graphicsPipeline);
 
@@ -896,7 +896,7 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &framebuffer->GetRenderTargetDesc(),
+        framebuffer->GetRenderTargetDesc(),
         renderableAttributes,
         data.graphicsPipeline);
 
@@ -1106,7 +1106,7 @@ void EnvGridPass::CreatePipeline()
         
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
-            &m_framebuffer->GetRenderTargetDesc(),
+            m_framebuffer->GetRenderTargetDesc(),
             renderableAttributes,
             cacheHandle);
 
@@ -1319,7 +1319,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
             shader,
-            &m_framebuffer->GetRenderTargetDesc(),
+            m_framebuffer->GetRenderTargetDesc(),
             renderableAttributes,
             cacheHandle);
 

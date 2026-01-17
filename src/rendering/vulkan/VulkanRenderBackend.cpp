@@ -1027,7 +1027,7 @@ VulkanSamplerRef VulkanRenderBackend::MakeSampler(TextureFilterMode filterModeMi
 
 VulkanFramebufferRef VulkanRenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
-    return CreateObject<VulkanFramebuffer>(renderTargetDesc);
+    return CreateObject<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::RenderTarget);
 }
 
 VulkanFrameRef VulkanRenderBackend::MakeFrame(uint32 frameIndex)

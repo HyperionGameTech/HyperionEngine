@@ -19,40 +19,37 @@ struct DescriptorTableDeclaration;
 
 struct PSOCacheKey
 {
-    union
-    {
-        struct
-        {
-            // mesh
-            uint16 vertexAttributes : 9;
-            uint8 topology : 3;
-            // material
-            uint8 fillMode : 1;
-            uint8 faceCullMode : 2;
-            uint8 materialFlags;
-            uint32 blend;
-            uint32 stencil;
-            HashedShaderDefinition shader;
-        };
-
-        ubyte rawBytes[40];
-    };
+    HashCode hashCode;
 
     PSOCacheKey()
-        : rawBytes{}
     {
     }
 
-    explicit PSOCacheKey(const RenderableAttributeSet& attributes);
+    PSOCacheKey(
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc);
+    
+    PSOCacheKey(const PSOCacheKey& other) = default;
+    PSOCacheKey& operator=(const PSOCacheKey& other) = default;
 
-    bool operator==(const PSOCacheKey& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const PSOCacheKey& other) const
     {
-        return Memory::MemCmp(this, &other, sizeof(PSOCacheKey)) == 0;
+        return hashCode == other.hashCode;
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr bool operator!=(const PSOCacheKey& other) const
     {
-        return HashCode::GetHashCode(rawBytes, rawBytes + sizeof(rawBytes));
+        return hashCode != other.hashCode;
+    }
+
+    HYP_FORCE_INLINE constexpr operator HashCode() const
+    {
+        return hashCode;
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return hashCode;
     }
 };
 
@@ -194,7 +191,7 @@ public:
 
     bool MatchesSignature(
         const Shader* shader,
-        const RenderTargetDesc* renderTargetDesc,
+        const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) const;
 
     // Deprecated - will be removed to decouple from vulkan

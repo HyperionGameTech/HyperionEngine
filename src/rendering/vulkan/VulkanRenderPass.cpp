@@ -21,7 +21,7 @@ extern VulkanRenderBackend* g_renderBackend;
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
-static VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, RenderTargetType renderTargetType)
+static VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode)
 {
     const bool isDepth = TextureUtils::IsDepthFormat(attachmentDesc.format);
 
@@ -33,7 +33,7 @@ static VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& a
         .stencilLoadOp = isDepth ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = isDepth ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = GetInitialLayout(attachmentDesc.loadOp, isDepth),
-        .finalLayout = GetFinalLayout(renderTargetType, isDepth)
+        .finalLayout = GetFinalLayout(renderPassMode, isDepth)
     };
 }
 
@@ -45,9 +45,9 @@ static VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
     };
 }
 
-VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, RenderPassMode mode)
+VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode)
     : m_renderTargetDesc(renderTargetDesc),
-      m_mode(mode),
+      m_renderPassMode(renderPassMode),
       m_handle(VK_NULL_HANDLE),
       m_recordingFramebuffer(nullptr)
 {
@@ -66,9 +66,9 @@ void VulkanRenderPass::CreateDependencies()
     Optional<VkSubpassDependency> loadDependency;
     Optional<VkSubpassDependency> storeDependency;
 
-    switch (GetRenderTargetType())
+    switch (m_renderPassMode)
     {
-    case RTT_PRESENT:
+    case VulkanRenderPassMode::Presentation:
         loadDependency = VkSubpassDependency {
             .srcSubpass = VK_SUBPASS_EXTERNAL,
             .dstSubpass = 0,
@@ -80,8 +80,7 @@ void VulkanRenderPass::CreateDependencies()
         };
 
         break;
-    case RTT_SHADER_RESOURCE: // fallthrough
-    case RTT_RENDER_TARGET:
+    case VulkanRenderPassMode::RenderTarget:
     {
         for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
         {
@@ -167,7 +166,7 @@ void VulkanRenderPass::CreateDependencies()
         break;
     }
     default:
-        HYP_FAIL("Unsupported RenderTargetType value {}", GetRenderTargetType());
+        HYP_UNREACHABLE();
     }
 
     if (loadDependency.HasValue())
@@ -200,7 +199,7 @@ RendererResult VulkanRenderPass::Create()
         const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
 
         uint32 attachmentIndex = uint32(vkAttachmentDescriptions.Size());
-        vkAttachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, GetRenderTargetType()));
+        vkAttachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, m_renderPassMode));
 
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
@@ -217,10 +216,10 @@ RendererResult VulkanRenderPass::Create()
             VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
             clearValue.color = {
                 .float32 = {
-                    attachmentDesc.clearColor.x,
-                    attachmentDesc.clearColor.y,
-                    attachmentDesc.clearColor.z,
-                    attachmentDesc.clearColor.w
+                    attachmentDesc.clearColor[0],
+                    attachmentDesc.clearColor[1],
+                    attachmentDesc.clearColor[2],
+                    attachmentDesc.clearColor[3]
                 }
             };
         }
@@ -249,7 +248,7 @@ RendererResult VulkanRenderPass::Create()
 
     if (IsMultiview())
     {
-        for (uint32 i = 0; i < m_renderTargetDesc.numViews; i++)
+        for (uint32 i = 0; i < m_renderTargetDesc.numLayers; i++)
         {
             multiviewViewMask |= 1 << i;
             multiviewCorrelationMask |= 1 << i;
@@ -279,18 +278,6 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     renderPassInfo.renderArea.extent = VkExtent2D { framebuffer->GetWidth(), framebuffer->GetHeight() };
     renderPassInfo.clearValueCount = uint32(m_vkClearValues.Size());
     renderPassInfo.pClearValues = m_vkClearValues.Data();
-
-    VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE;
-
-    switch (m_mode)
-    {
-    case RENDER_PASS_INLINE:
-        contents = VK_SUBPASS_CONTENTS_INLINE;
-        break;
-    case RENDER_PASS_SECONDARY_COMMAND_BUFFER:
-        contents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
-        break;
-    }
 
     VulkanFrame* currentFrame = g_renderBackend->GetCurrentFrame();
     if (currentFrame != nullptr)
@@ -322,7 +309,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     }
 #endif
 
-    vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, contents);
+    vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     m_recordingFramebuffer = framebuffer;
 }
@@ -343,8 +330,8 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
         attachment->GetImage()->SetResourceState(
             attachment->IsDepthAttachment()
-                ? PostRenderResourceStatesDepth[GetRenderTargetType()]
-                : PostRenderResourceStates[GetRenderTargetType()]);
+                ? PostRenderResourceStatesDepth[uint32(m_renderPassMode)]
+                : PostRenderResourceStates[uint32(m_renderPassMode)]);
     }
 
     m_recordingFramebuffer = nullptr;

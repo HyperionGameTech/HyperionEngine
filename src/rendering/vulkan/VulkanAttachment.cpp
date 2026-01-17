@@ -27,10 +27,10 @@ extern VkImageLayout GetVkImageLayout(ResourceState state);
 VulkanAttachment::VulkanAttachment(
     const VulkanGpuImageRef& image,
     const VulkanFramebufferWeakRef& framebuffer,
-    RenderTargetType renderTargetType,
+    VulkanRenderPassMode renderPassMode,
     const AttachmentDesc& attachmentDesc)
     : AttachmentBase(image, framebuffer, attachmentDesc),
-      m_renderTargetType(renderTargetType),
+      m_renderPassMode(renderPassMode),
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
 {
@@ -60,7 +60,7 @@ RendererResult VulkanAttachment::Create()
         .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = IsDepthAttachment() ? ToVkStoreOp(m_attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = GetInitialLayout(m_attachmentDesc.loadOp, IsDepthAttachment()),
-        .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
+        .finalLayout = GetFinalLayout(m_renderPassMode, IsDepthAttachment())
     };
 
     AssertDebug(HasBinding());

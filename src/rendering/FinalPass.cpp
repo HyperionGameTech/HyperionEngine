@@ -157,8 +157,6 @@ FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
         swapchain->GetExtent(),
         nullptr);
 
-    passData.renderTextureToScreenPass->SetRenderTargetType(RTT_PRESENT);
-
     passData.renderTextureToScreenPass->SetBlendFunction(BlendFunction(
         BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
         BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));

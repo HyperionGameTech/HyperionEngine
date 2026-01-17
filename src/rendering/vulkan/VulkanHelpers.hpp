@@ -30,24 +30,20 @@ constexpr ResourceState PreRenderResourceStatesDepth[2] = {
     RS_DEPTH_STENCIL // LOAD
 };
 
-constexpr ResourceState PostRenderResourceStates[RTT_MAX] = {
-    RS_UNDEFINED,       // RTT_NONE
-    RS_PRESENT,         // RTT_PRESENT
-    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
-    RS_RENDER_TARGET    // RTT_RENDER_TARGET
+constexpr ResourceState PostRenderResourceStates[2] = {
+    RS_SHADER_RESOURCE, // RenderTarget
+    RS_PRESENT          // Presentation
 };
 
-constexpr ResourceState PostRenderResourceStatesDepth[RTT_MAX] = {
-    RS_UNDEFINED,       // RTT_NONE
-    RS_DEPTH_STENCIL,   // RTT_PRESENT
-    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
-    RS_DEPTH_STENCIL    // RTT_RENDER_TARGET
+constexpr ResourceState PostRenderResourceStatesDepth[2] = {
+    RS_SHADER_RESOURCE, // RenderTarget
+    RS_DEPTH_STENCIL    // Presentation
 };
 
-enum RenderPassMode : uint8
+enum class VulkanRenderPassMode : uint8
 {
-    RENDER_PASS_INLINE = 0,
-    RENDER_PASS_SECONDARY_COMMAND_BUFFER = 1
+    RenderTarget,
+    Presentation
 };
 
 VkIndexType ToVkIndexType(GpuElemType);
@@ -65,7 +61,7 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type);
 VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false);
 VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false);
 VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment);
-VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment);
+VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthAttachment);
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);
 VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation);
 VkImageLayout GetIntermediateLayout(bool isDepthAttachment);

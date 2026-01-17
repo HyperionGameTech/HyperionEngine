@@ -32,16 +32,13 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
         const VulkanGpuImageRef& image = attachmentDef->image;
         HYP_GFX_ASSERT(image.IsValid());
 
-        switch (framebuffer->GetRenderTargetType())
+        switch (framebuffer->GetRenderPassMode())
         {
-        case RTT_PRESENT:
+        case VulkanRenderPassMode::Presentation:
             // renderQueue << InsertBarrier(image, RS_PRESENT);
             break;
-        case RTT_SHADER_RESOURCE:
+        case VulkanRenderPassMode::RenderTarget:
             renderQueue << InsertBarrier(image, RS_SHADER_RESOURCE);
-            break;
-        case RTT_RENDER_TARGET:
-            renderQueue << InsertBarrier(image, RS_RENDER_TARGET);
             break;
         default:
             HYP_NOT_IMPLEMENTED();
@@ -155,7 +152,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         VulkanAttachmentRef newAttachment = CreateObject<VulkanAttachment>(
             newImage,
             framebufferWeak,
-            framebuffer->GetRenderTargetType(),
+            framebuffer->GetRenderPassMode(),
             def.attachment->GetAttachmentDesc());
 
         newAttachment->SetBinding(def.attachment->GetBinding());
@@ -203,9 +200,10 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
 #pragma region VulkanFramebuffer
 
-VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc)
+VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode)
     : FramebufferBase(renderTargetDesc),
-      m_handle(VK_NULL_HANDLE)
+      m_handle(VK_NULL_HANDLE),
+      m_renderPassMode(renderPassMode)
 {
     m_attachmentMap.framebufferWeak = WeakHandleFromThis();
 }
@@ -252,7 +250,7 @@ RendererResult VulkanFramebuffer::Create()
         m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
     }
     
-    m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, RenderPassMode::RENDER_PASS_INLINE);
+    m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, m_renderPassMode);
     HYP_GFX_CHECK(m_renderPass->Create());
 
     Array<VkImageView> attachmentImageViews;
@@ -396,14 +394,14 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
     VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
         image,
         WeakHandleFromThis(),
-        GetRenderTargetType(),
+        GetRenderPassMode(),
         AttachmentDesc {
             .imageType = image->GetTextureDesc().type,
             .format = image->GetTextureDesc().format,
             .loadOp = loadOp,
             .storeOp = storeOp,
             .blendFunction = BlendFunction::None(),
-            .clearColor = Vec4f::Zero()
+            .clearColor = { }
         });
 
     attachment->SetBinding(binding);
@@ -423,7 +421,7 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
         m_renderTargetDesc.extent,
         format,
         type,
-        GetRenderTargetType(),
+        GetRenderPassMode(),
         loadOp,
         storeOp);
 }

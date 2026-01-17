@@ -32,12 +32,6 @@
 
 namespace Hyperion {
 
-enum ProbeSystemUpdates : uint32
-{
-    PROBE_SYSTEM_UPDATES_NONE = 0x0,
-    PROBE_SYSTEM_UPDATES_TLAS = 0x1
-};
-
 static constexpr TextureFormat DdgiIrradianceFormat = TF_RGBA16F;
 static constexpr TextureFormat DdgiDepthFormat = TF_RG16F;
 static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / sizeof(uint32);
@@ -48,7 +42,6 @@ static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / s
 
 DDGI::DDGI(DDGIInfo&& gridInfo)
     : m_gridInfo(std::move(gridInfo)),
-      m_updates { PROBE_SYSTEM_UPDATES_NONE, PROBE_SYSTEM_UPDATES_NONE },
       m_counter(0)
 {
 }
@@ -136,7 +129,8 @@ void DDGI::CreateStorageBuffers()
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_STORAGE | IU_SAMPLED });
+            IU_STORAGE | IU_SAMPLED
+        });
 
         Assert(m_irradianceImage->Create());
     }
@@ -161,7 +155,8 @@ void DDGI::CreateStorageBuffers()
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_STORAGE | IU_SAMPLED });
+            IU_STORAGE | IU_SAMPLED
+        });
 
         Assert(m_depthImage->Create());
     }

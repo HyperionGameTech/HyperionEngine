@@ -150,7 +150,7 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
     
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
         m_shader,
-        &framebuffer->GetRenderTargetDesc(),
+        framebuffer->GetRenderTargetDesc(),
         m_renderableAttributes,
         cacheHandle);
 

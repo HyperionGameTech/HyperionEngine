@@ -21,7 +21,10 @@
 #include <vulkan/vulkan.h>
 
 namespace Hyperion {
+
 class VulkanCommandBuffer;
+
+enum class VulkanRenderPassMode : uint8;
 
 struct VulkanAttachmentDef
 {
@@ -60,7 +63,7 @@ struct VulkanAttachmentMap
         return attachments.Size();
     }
 
-    HYP_FORCE_INLINE const VulkanAttachmentRef& GetAttachment(uint32 binding) const
+    const VulkanAttachmentRef& GetAttachment(uint32 binding) const
     {
         const auto it = attachments.Find(binding);
 
@@ -72,7 +75,7 @@ struct VulkanAttachmentMap
         return it->second.attachment;
     }
 
-    HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment)
+     VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment)
     {
         Assert(attachment.IsValid());
         Assert(attachment->GetImage().IsValid());
@@ -86,17 +89,18 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 VulkanGpuImageRef(attachment->GetImage()),
-                attachment });
+                attachment
+            });
 
         return attachment;
     }
 
-    HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(
+    VulkanAttachmentRef AddAttachment(
         uint32 binding,
         Vec2u extent,
         TextureFormat format,
         TextureType type,
-        RenderTargetType renderTargetType,
+        VulkanRenderPassMode renderPassMode,
         LoadOperation loadOp,
         StoreOperation storeOp)
     {
@@ -111,14 +115,14 @@ struct VulkanAttachmentMap
         VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
             image,
             framebufferWeak,
-            renderTargetType,
+            renderPassMode,
             AttachmentDesc {
                 .imageType = type,
                 .format = format,
                 .loadOp = loadOp,
                 .storeOp = storeOp,
                 .blendFunction = BlendFunction::None(),
-                .clearColor = Vec4f::Zero()
+                .clearColor = {}
             });
 
         attachment->SetBinding(binding);
@@ -127,7 +131,8 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 image,
-                attachment });
+                attachment
+            });
 
         return attachment;
     }
@@ -141,7 +146,7 @@ class VulkanFramebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(VulkanFramebuffer);
 
 public:
-    explicit VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc);
+    VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode);
     ~VulkanFramebuffer() override;
 
     HYP_FORCE_INLINE const VkFramebuffer& GetVulkanHandle() const
@@ -152,6 +157,16 @@ public:
     HYP_FORCE_INLINE const VulkanRenderPassRef& GetRenderPass() const
     {
         return m_renderPass;
+    }
+
+    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
+    {
+        return m_renderPassMode;
+    }
+
+    HYP_FORCE_INLINE const VulkanAttachmentMap& GetAttachmentMap() const
+    {
+        return m_attachmentMap;
     }
 
     VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment) override;
@@ -173,11 +188,6 @@ public:
         return int(m_attachmentMap.Size());
     }
 
-    HYP_FORCE_INLINE const VulkanAttachmentMap& GetAttachmentMap() const
-    {
-        return m_attachmentMap;
-    }
-
     bool IsCreated() const override;
 
     RendererResult Create() override;
@@ -191,6 +201,7 @@ public:
 
 private:
     VkFramebuffer m_handle;
+    VulkanRenderPassMode m_renderPassMode;
     VulkanRenderPassRef m_renderPass;
     VulkanAttachmentMap m_attachmentMap;
 };

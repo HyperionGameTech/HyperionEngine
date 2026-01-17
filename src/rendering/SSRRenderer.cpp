@@ -161,7 +161,7 @@ void SSRRenderer::CreatePasses()
         // Create framebuffer for UVs texture
         RenderTargetDesc renderTargetDesc {};
         renderTargetDesc.extent = m_uvsTexture->GetExtent().GetXY();
-        renderTargetDesc.numViews = 1;
+        renderTargetDesc.numLayers = 1;
 
         FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
         AttachmentRef attachment = writeUvsFramebuffer->AddAttachment(
@@ -218,7 +218,7 @@ void SSRRenderer::CreatePasses()
         // Create framebuffer for sampled result texture
         RenderTargetDesc renderTargetDesc {};
         renderTargetDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
-        renderTargetDesc.numViews = 1;
+        renderTargetDesc.numLayers = 1;
 
         FramebufferRef sampleGbufferFramebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
         sampleGbufferFramebuffer->AddAttachment(

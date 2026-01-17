@@ -333,7 +333,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     {
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
             state.particleShader,
-            &renderTargetDesc,
+            renderTargetDesc,
             state.renderableAttributes,
             state.graphicsPipelineHandle);
     }

@@ -247,12 +247,13 @@ RendererResult VulkanSwapchain::Create()
         AssertDebug(image->GetResourceState() == RS_PRESENT);
 
         RenderTargetDesc renderTargetDesc {};
-        renderTargetDesc.type = RTT_PRESENT;
         renderTargetDesc.extent = m_extent;
 
-        VulkanFramebufferRef& framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(renderTargetDesc));
+        VulkanFramebufferRef framebuffer = CreateObject<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
+
+        m_framebuffers.PushBack(framebuffer);
     }
 
     // Create present semaphores

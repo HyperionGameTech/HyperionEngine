@@ -131,8 +131,6 @@ private:
     DDGIInfo m_gridInfo;
     Array<DDGIProbeData, DynamicAllocator> m_probeData;
 
-    FixedArray<uint32, NumFramesInFlight> m_updates;
-
     ComputePipelineRef m_updateIrradiance;
     ComputePipelineRef m_updateDepth;
     ComputePipelineRef m_copyBorderTexelsIrradiance;

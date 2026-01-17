@@ -34,11 +34,6 @@ public:
         return m_renderTargetDesc.extent;
     }
 
-    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
-    {
-        return m_renderTargetDesc.type;
-    }
-
     HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
     {
         return m_renderTargetDesc;

@@ -195,7 +195,7 @@ void Light::CreateShadowViews()
         shadowViewFlags[0] |= ViewFlags::NO_FRUSTUM_CULLING;
 
         renderTargetDesc.numAttachments = 0;
-        renderTargetDesc.numViews = 6;
+        renderTargetDesc.numLayers = 6;
 
         // depth, depth^2 texture (for variance shadow map)
         AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
@@ -203,7 +203,7 @@ void Light::CreateShadowViews()
         moments.format = PointLightShadowFormat;
         moments.loadOp = LoadOperation::CLEAR;
         moments.storeOp = StoreOperation::STORE;
-        moments.clearColor = Vec4f(10000.0f);
+        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.imageType = TT_CUBEMAP;
@@ -232,7 +232,7 @@ void Light::CreateShadowViews()
         moments.imageType = TT_TEX2D;
         moments.loadOp = LoadOperation::CLEAR;
         moments.storeOp = StoreOperation::STORE;
-        moments.clearColor = Vec4f(1000.0f);
+        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.format = TF_DEPTH_32F;

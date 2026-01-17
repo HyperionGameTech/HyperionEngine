@@ -499,9 +499,9 @@ VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachme
     return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
 }
 
-VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment)
+VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthAttachment)
 {
-    return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[renderTargetType] : PostRenderResourceStates[renderTargetType]);
+    return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[uint8(renderPassMode)] : PostRenderResourceStates[uint8(renderPassMode)]);
 }
 
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)

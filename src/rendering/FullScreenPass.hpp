@@ -131,13 +131,6 @@ public:
         Must be set before Create() is called. */
     void SetBlendFunction(const BlendFunction& blendFunction);
 
-    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
-    {
-        return m_renderTargetType;
-    }
-
-    void SetRenderTargetType(RenderTargetType renderTargetType);
-
     HYP_FORCE_INLINE const Optional<DescriptorTableRef>& GetDescriptorTable() const
     {
         return m_descriptorTable;
@@ -205,8 +198,6 @@ protected:
     TextureFormat m_imageFormat;
 
     BlendFunction m_blendFunction;
-
-    RenderTargetType m_renderTargetType;
 
     Optional<DescriptorTableRef> m_descriptorTable;
 

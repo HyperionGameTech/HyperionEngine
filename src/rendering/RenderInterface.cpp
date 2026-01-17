@@ -1696,7 +1696,7 @@ void RenderInterface::CommitDrawState()
     if (!state.prevGraphicsPipeline
         || !state.prevGraphicsPipeline->MatchesSignature(
                 state.shader,
-                &state.renderTargetDesc,
+                state.renderTargetDesc,
                 state.renderGroup
                     ? state.renderGroup->GetRenderableAttributes()
                     : s_defaultAttributes
@@ -1706,7 +1706,7 @@ void RenderInterface::CommitDrawState()
         
         graphicsPipelineCache->GetOrCreate(
             state.shader,
-            &state.renderTargetDesc,
+            state.renderTargetDesc,
             state.renderGroup
                 ? state.renderGroup->GetRenderableAttributes()
                 : s_defaultAttributes,
