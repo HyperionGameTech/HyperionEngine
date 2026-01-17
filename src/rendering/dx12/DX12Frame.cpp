@@ -39,10 +39,9 @@ RendererResult DX12Frame::Create()
     HYPERION_RETURN_OK;
 }
 
-RendererResult DX12Frame::ResetFrameState()
+void DX12Frame::OnFrameStart()
 {
     // @TODO
-    HYPERION_RETURN_OK;
 }
 
 #pragma endregion DX12Frame

@@ -14,6 +14,9 @@
 
 #include <dxgi1_6.h>
 
+#pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "dxgi.lib")
+
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
@@ -25,7 +28,6 @@ class DX12RenderConfig final : public IRenderConfig
 public:
     DX12RenderConfig()
     {
-        uniqueDrawCallPerMaterial = true;
         bindlessTextures = false;
         raytracing = false;
         indirectRendering = false;
@@ -227,7 +229,7 @@ DX12DescriptorTableRef DX12RenderBackend::MakeDescriptorTable(const DescriptorTa
 
 DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     const DX12ShaderRef& shader,
-    Span<const DX12FramebufferRef> framebuffers,
+    const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
     // @TODO: Implement graphics pipeline creation for DX12
@@ -280,13 +282,7 @@ DX12SamplerRef DX12RenderBackend::MakeSampler(TextureFilterMode filterModeMin, T
     return SamplerRef();
 }
 
-DX12FramebufferRef DX12RenderBackend::MakeFramebuffer(Vec2u extent, uint32 numViews)
-{
-    // @TODO: Implement framebuffer creation for DX12
-    return FramebufferRef();
-}
-
-DX12FramebufferRef DX12RenderBackend::MakeFramebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews)
+DX12FramebufferRef DX12RenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
     // @TODO: Implement framebuffer creation for DX12
     return FramebufferRef();

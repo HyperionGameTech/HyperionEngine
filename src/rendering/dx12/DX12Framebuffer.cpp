@@ -13,8 +13,8 @@ extern DX12RenderBackend* g_renderBackend;
 
 #pragma region DX12Framebuffer
 
-DX12Framebuffer::DX12Framebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews)
-    : FramebufferBase(extent, renderTargetType)
+DX12Framebuffer::DX12Framebuffer(const RenderTargetDesc& renderTargetDesc)
+    : FramebufferBase(renderTargetDesc)
 {
 }
 
@@ -35,7 +35,8 @@ RendererResult DX12Framebuffer::Create()
 
 RendererResult DX12Framebuffer::Resize(Vec2u newSize)
 {
-    m_extent = newSize;
+    m_renderTargetDesc.extent = newSize;
+
     // @TODO
     HYPERION_RETURN_OK;
 }

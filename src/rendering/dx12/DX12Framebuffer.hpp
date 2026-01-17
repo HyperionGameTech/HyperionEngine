@@ -20,7 +20,7 @@ class DX12Framebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(DX12Framebuffer);
 
 public:
-    DX12Framebuffer(Vec2u extent, RenderTargetType renderTargetType, uint32 numViews = 1);
+    explicit DX12Framebuffer(const RenderTargetDesc& renderTargetDesc);
     ~DX12Framebuffer() override;
 
     bool IsCreated() const override;

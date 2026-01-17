@@ -12,6 +12,8 @@
 
 namespace Hyperion {
 
+struct AttachmentDesc;
+
 HYP_CLASS(NoScriptBindings)
 class DX12Attachment final : public AttachmentBase
 {
@@ -21,18 +23,12 @@ public:
     DX12Attachment(
         const DX12GpuImageRef& image,
         const DX12FramebufferWeakRef& framebuffer,
-        RenderTargetType renderTargetType,
-        LoadOperation loadOperation = LoadOperation::CLEAR,
-        StoreOperation storeOperation = StoreOperation::STORE,
-        BlendFunction blendFunction = BlendFunction::None());
+        const AttachmentDesc& attachmentDesc);
     ~DX12Attachment() override;
 
     bool IsCreated() const override;
 
     RendererResult Create() override;
-
-private:
-    RenderTargetType m_renderTargetType;
 };
 
 } // namespace Hyperion

@@ -20,12 +20,8 @@ extern DX12RenderBackend* g_renderBackend;
 DX12Attachment::DX12Attachment(
     const DX12GpuImageRef& image,
     const DX12FramebufferWeakRef& framebuffer,
-    RenderTargetType renderTargetType,
-    LoadOperation loadOperation,
-    StoreOperation storeOperation,
-    BlendFunction blendFunction)
-    : AttachmentBase(image, framebuffer, loadOperation, storeOperation, blendFunction),
-      m_renderTargetType(renderTargetType)
+    const AttachmentDesc& attachmentDesc)
+    : AttachmentBase(image, framebuffer, attachmentDesc)
 {
     m_imageView = CreateObject<DX12GpuImageView>(image);
 }

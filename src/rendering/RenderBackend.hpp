@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+
+#include <core/utilities/Span.hpp>
+
 #include <rendering/Shared.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
@@ -12,10 +16,6 @@
 
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/RefCountedPtr.hpp>
-
-#include <core/utilities/Span.hpp>
-
-#include <core/Defines.hpp>
 
 namespace Hyperion {
 
@@ -142,8 +142,16 @@ public:
 
 } // namespace Hyperion
 
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
 #if HYP_VULKAN
-#include <rendering/vulkan/VulkanRenderBackend.inc>
+#include <rendering/vulkan/VulkanRenderBackend.hpp>
 #elif HYP_DX12
-#include <rendering/dx12/DX12RenderBackend.inc>
+#include <rendering/dx12/DX12RenderBackend.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
 #endif

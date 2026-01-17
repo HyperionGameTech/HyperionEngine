@@ -638,46 +638,6 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const
-{
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
-
-    VulkanCachedDescriptorSetBinding cachedBinding {};
-    cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = pipeline->GetVulkanHandle();
-    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
-    
-    cachedBinding.numDynamicOffsets = numOffsets;
-    if (offsets && numOffsets != 0)
-    {
-        Memory::MemCpy(cachedBinding.dynamicOffsets, offsets, numOffsets * sizeof(uint32));
-    }
-
-    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
-
-    if (boundDescriptorSets.Size() <= bindIndex)
-    {
-        boundDescriptorSets.Resize(bindIndex + 1);
-    }
-    else if (boundDescriptorSets[bindIndex] == cachedBinding)
-    {
-        // no sense in binding it again if nothing has changed.
-        return;
-    }
-
-    vkCmdBindDescriptorSets(
-        commandBuffer->GetVulkanHandle(),
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline->GetVulkanPipelineLayout(),
-        bindIndex,
-        1,
-        &m_handle,
-        cachedBinding.numDynamicOffsets,
-        cachedBinding.dynamicOffsets);
-
-    boundDescriptorSets[bindIndex] = cachedBinding;
-}
-
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
@@ -759,46 +719,6 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const
-{
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
-
-    VulkanCachedDescriptorSetBinding cachedBinding {};
-    cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = pipeline->GetVulkanHandle();
-    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
-    
-    cachedBinding.numDynamicOffsets = numOffsets;
-    if (offsets && numOffsets != 0)
-    {
-        Memory::MemCpy(cachedBinding.dynamicOffsets, offsets, numOffsets * sizeof(uint32));
-    }
-
-    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
-
-    if (boundDescriptorSets.Size() <= bindIndex)
-    {
-        boundDescriptorSets.Resize(bindIndex + 1);
-    }
-    else if (boundDescriptorSets[bindIndex] == cachedBinding)
-    {
-        // no sense in binding it again if nothing has changed.
-        return;
-    }
-
-    vkCmdBindDescriptorSets(
-        commandBuffer->GetVulkanHandle(),
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        pipeline->GetVulkanPipelineLayout(),
-        bindIndex,
-        1,
-        &m_handle,
-        cachedBinding.numDynamicOffsets,
-        cachedBinding.dynamicOffsets);
-
-    boundDescriptorSets[bindIndex] = cachedBinding;
-}
-
 void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const
 {
     HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
@@ -854,46 +774,6 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
 
     PopulateDynamicOffsets(m_layout, m_elements, offsets, cachedBinding.dynamicOffsets, cachedBinding.numDynamicOffsets);
-
-    auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
-
-    if (boundDescriptorSets.Size() <= bindIndex)
-    {
-        boundDescriptorSets.Resize(bindIndex + 1);
-    }
-    else if (boundDescriptorSets[bindIndex] == cachedBinding)
-    {
-        // no sense in binding it again if nothing has changed.
-        return;
-    }
-
-    vkCmdBindDescriptorSets(
-        commandBuffer->GetVulkanHandle(),
-        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        pipeline->GetVulkanPipelineLayout(),
-        bindIndex,
-        1,
-        &m_handle,
-        cachedBinding.numDynamicOffsets,
-        cachedBinding.dynamicOffsets);
-
-    boundDescriptorSets[bindIndex] = cachedBinding;
-}
-
-void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const uint32* offsets, uint32 numOffsets, uint32 bindIndex) const
-{
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
-
-    VulkanCachedDescriptorSetBinding cachedBinding {};
-    cachedBinding.descriptorSet = m_handle;
-    cachedBinding.pipeline = pipeline->GetVulkanHandle();
-    cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
-    
-    cachedBinding.numDynamicOffsets = numOffsets;
-    if (offsets && numOffsets != 0)
-    {
-        Memory::MemCpy(cachedBinding.dynamicOffsets, offsets, numOffsets * sizeof(uint32));
-    }
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
