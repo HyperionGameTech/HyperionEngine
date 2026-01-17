@@ -875,6 +875,8 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             state->localQueues[i]->Clear();
         }
 
+        renderQueue << SetStencilState(0, 0xFF, 0x0); // reset stencil
+
         // Add render stats counts to the engine's render stats
         for (EngineStatsValueSet& valueSet : state->statValues)
         {

@@ -114,16 +114,6 @@ public:
         m_blendFunction = blendFunction;
     }
 
-    HYP_FORCE_INLINE const Optional<StencilFunction>& GetStencilFunction() const
-    {
-        return m_stencilFunction;
-    }
-
-    HYP_FORCE_INLINE void SetStencilFunction(const Optional<StencilFunction>& optStencilFunction)
-    {
-        m_stencilFunction = optStencilFunction;
-    }
-
     HYP_FORCE_INLINE bool GetDepthTest() const
     {
         return m_depthTest;
@@ -142,6 +132,26 @@ public:
     HYP_FORCE_INLINE void SetDepthWrite(bool depthWrite)
     {
         m_depthWrite = depthWrite;
+    }
+
+    HYP_FORCE_INLINE const Optional<StencilFunction>& GetStencilFunction() const
+    {
+        return m_stencilFunction;
+    }
+
+    HYP_FORCE_INLINE void SetStencilFunction(const Optional<StencilFunction>& optStencilFunction)
+    {
+        m_stencilFunction = optStencilFunction;
+    }
+
+    HYP_FORCE_INLINE bool GetStencilWrite() const
+    {
+        return m_stencilWrite;
+    }
+
+    HYP_FORCE_INLINE void SetStencilWrite(bool stencilWrite)
+    {
+        m_stencilWrite = stencilWrite;
     }
 
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
@@ -210,10 +220,12 @@ protected:
     FaceCullMode m_faceCullMode = FCM_BACK;
     FillMode m_fillMode = FM_FILL;
     BlendFunction m_blendFunction = BlendFunction::None();
-    Optional<StencilFunction> m_stencilFunction;
 
     bool m_depthTest = true;
     bool m_depthWrite = true;
+
+    bool m_stencilWrite = false;
+    Optional<StencilFunction> m_stencilFunction;
 
     ShaderRef m_shader;
     RenderTargetDesc m_renderTargetDesc;

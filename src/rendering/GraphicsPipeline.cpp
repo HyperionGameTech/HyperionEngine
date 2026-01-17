@@ -108,7 +108,7 @@ bool GraphicsPipelineBase::MatchesSignature(
         return false;
     }
 
-    if ((materialAttributes.flags & MAF_STENCIL_TEST) || materialAttributes.stencilReference != 0)
+    if (materialAttributes.flags & MAF_STENCIL_TEST)
     {
         if (!m_stencilFunction.HasValue())
             return false;

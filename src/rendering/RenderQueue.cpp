@@ -443,36 +443,13 @@ void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         state.stencilCompareMask = cmdCasted->m_compareMask;
         state.stencilWriteMask = cmdCasted->m_writeMask;
 
-        //if (state.prevGraphicsPipeline != nullptr && state.prevGraphicsPipeline->GetStencilFunction().HasValue())
-        //{
-        //    // vulkan only for now, will separate when render backend and render interface are merged
-        //    vkCmdSetStencilReference(
-        //        commandBuffer->GetVulkanHandle(),
-        //        VK_STENCIL_FRONT_AND_BACK,
-        //        state.stencilReference);
+        // invalidate pipeline state
+        state.prevGraphicsPipeline = nullptr;
 
-        //    vkCmdSetStencilCompareMask(
-        //        commandBuffer->GetVulkanHandle(),
-        //        VK_STENCIL_FRONT_AND_BACK,
-        //        state.stencilCompareMask);
+        state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
+        state.validUniforms = 0;
 
-        //    vkCmdSetStencilWriteMask(
-        //        commandBuffer->GetVulkanHandle(),
-        //        VK_STENCIL_FRONT_AND_BACK,
-        //        state.stencilWriteMask);
-        //}
-        //else
-        {
-            // invalidate pipeline state
-            state.prevGraphicsPipeline = nullptr;
-
-            state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
-            state.validUniforms = 0;
-
-            Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
-        }
-
-        HYP_LOG_TEMP("Set stencil ref to {}", state.stencilReference);
+        Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
     }
 
     static_assert(std::is_trivially_destructible_v<SetStencilState>);

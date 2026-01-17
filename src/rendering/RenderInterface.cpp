@@ -1714,12 +1714,8 @@ void RenderInterface::CommitDrawState()
 
         pipeline = *cacheHandle;
 
-        RenderInterface::State prevState = state;
-
         BindGraphicsPipeline bindCmd(pipeline, state.viewport);
         BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
-
-        state = prevState;
 
         state.prevGraphicsPipeline = pipeline;
         

@@ -266,8 +266,10 @@ void DeferredPass::Create()
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
+                TWM_CLAMP_TO_EDGE
+            },
             TextureData { std::move(ltcMatrixData) });
+
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
         InitObject(m_ltcMatrixTexture);
 
@@ -280,7 +282,8 @@ void DeferredPass::Create()
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
+                TWM_CLAMP_TO_EDGE
+            },
             TextureData { std::move(ltcBrdfData) });
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
@@ -368,10 +371,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             ? &s_deferredDirectLightingTimer
             : &s_deferredIndirectLightingTimer);
 
-    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-    // \TODO instead of 0xFF use LightmapStencilMask ?
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
-
     switch (m_mode)
     {
     case DPM_DIRECT_LIGHTING:
@@ -384,6 +383,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         break;
     case DPM_INDIRECT_LIGHTING:
     {
+        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+        frame->renderQueue << SetStencilState(0, LightmapStencilMask, 0x0);
+
         // check needs invalidation
         ShaderProperties shaderProperties;
         GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
@@ -395,6 +397,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         }
 
         FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
+        
+        // reset stencil
+        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 
         return;
     }
@@ -402,6 +407,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         HYP_UNREACHABLE();
         return;
     }
+    
+    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+    frame->renderQueue << SetStencilState(0, LightmapStencilMask, 0x0);
 
     // last LightType we rendered
     LightType prevLightType = LT_INVALID;
@@ -518,6 +526,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             prevLightType = lightType;
         }
     }
+        
+    // reset stencil
+    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
 }
 
 #pragma endregion DeferredPass

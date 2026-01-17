@@ -3261,7 +3261,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
                 {
                     if (Material* material = meshComponent->material)
                     {
-                        material->GetRenderAttributes().stencilReference = 50;
+                        material->GetRenderAttributes().stencilReference = 0b1000;
                         material->GetRenderAttributes().flags |= MAF_STENCIL_TEST;
                         material->SetNeedsRenderProxyUpdate();
                     }
@@ -3309,6 +3309,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
                 {
                     material->GetRenderAttributes().stencilReference = 0;
                     material->GetRenderAttributes().flags &= ~MAF_STENCIL_TEST;
+
                     material->SetNeedsRenderProxyUpdate();
                 }
             }

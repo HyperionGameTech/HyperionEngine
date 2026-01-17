@@ -113,18 +113,16 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
             m_pushConstants.Data());
     }
 
-    if (m_stencilFunction.HasValue())
+    if (m_stencilWrite || m_stencilFunction.HasValue())
     {
-        if (g_renderInterface->state.stencilReference != 0)
-        {
-            HYP_LOG_TEMP("Stencil ref : {}", g_renderInterface->state.stencilReference);
-        }
-
         vkCmdSetStencilReference(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
             g_renderInterface->state.stencilReference);
+    }
 
+    if (m_stencilFunction.HasValue())
+    {
         vkCmdSetStencilCompareMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
@@ -302,9 +300,13 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    if (m_stencilFunction.HasValue())
+    if (m_stencilWrite || m_stencilFunction.HasValue())
     {
         dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+    }
+
+    if (m_stencilFunction.HasValue())
+    {
         dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
         dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
     }
@@ -337,9 +339,11 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        { .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+        {
+            .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = uint32(g_renderBackend->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(g_renderBackend->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
+        }
     };
 
     layoutInfo.pushConstantRangeCount = uint32(std::size(pushConstantRanges));
