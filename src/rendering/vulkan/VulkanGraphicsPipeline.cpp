@@ -178,7 +178,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VulkanRenderPassRef renderPass = CreateObject<VulkanRenderPass>(
         m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
 
-    HYP_GFX_CHECK(renderPass->Create());
+    CheckResultOrReturn(renderPass->Create());
 
     m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
 

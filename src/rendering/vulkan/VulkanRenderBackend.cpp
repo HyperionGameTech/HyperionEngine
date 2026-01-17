@@ -662,7 +662,7 @@ RendererResult VulkanRenderBackend::Destroy()
     delete m_asyncCompute;
     m_asyncCompute = nullptr;
 
-    HYP_GFX_CHECK(m_instance->GetDevice()->WaitIdle());
+    CheckResultOrReturn(m_instance->GetDevice()->WaitIdle());
 
     PoolDelete(*g_renderPool, m_instance);
     m_instance = nullptr;

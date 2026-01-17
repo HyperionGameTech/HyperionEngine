@@ -113,7 +113,7 @@ RendererResult VulkanShader::AttachSubShaders()
         // since we reinterpret it as uint32 ptr we need to make sure it is aligned as uint32
         byteBuffer.SetSize(ByteUtil::AlignAs(byteBuffer.Size(), alignof(uint32)));
 
-        HYP_GFX_CHECK(AttachSubShader(ShaderModuleType(index), ShaderObject { srcName, std::move(byteBuffer) }));
+        CheckResultOrReturn(AttachSubShader(ShaderModuleType(index), ShaderObject { srcName, std::move(byteBuffer) }));
     }
 
     return {};
@@ -221,7 +221,7 @@ RendererResult VulkanShader::Create()
         HYPERION_RETURN_OK;
     }
 
-    HYP_GFX_CHECK(AttachSubShaders());
+    CheckResultOrReturn(AttachSubShaders());
 
     bool isRaytracing = false;
 
@@ -234,7 +234,7 @@ RendererResult VulkanShader::Create()
 
     if (isRaytracing)
     {
-        HYP_GFX_CHECK(CreateShaderGroups());
+        CheckResultOrReturn(CreateShaderGroups());
     }
 
 #ifdef HYP_DEBUG_MODE

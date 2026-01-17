@@ -13,11 +13,14 @@
 #include <core/containers/SparsePagedArray.hpp>
 #include <core/containers/HashMap.hpp>
 
+#include <core/threading/SharedMutex.hpp>
+
 namespace Hyperion {
 
 class VulkanTextureViewCache final : public TextureViewCacheBase
 {
 public:
+    SharedMutex mutex;
     // map texture ID -> image views
     SparsePagedArray<HashMap<ImageSubResource, VulkanGpuImageViewRef>, 1024> imageViews;
     // to keep texture IDs as valid
@@ -32,7 +35,13 @@ public:
 
     ~VulkanTextureViewCache() override;
 
-    const VulkanGpuImageViewRef& GetOrCreate(const Handle<Texture>& texture) override;
+    const VulkanGpuImageViewRef& GetOrCreate(
+        const Handle<Texture>& texture,
+        uint32 mipIndex = 0,
+        uint32 numMips = ~0u,
+        uint32 layerIndex = 0,
+        uint32 numLayers = ~0u) override;
+
     const VulkanGpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource) override;
 
     void RemoveTexture(const Texture* texture) override;

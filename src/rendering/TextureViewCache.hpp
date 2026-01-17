@@ -16,7 +16,13 @@ class TextureViewCacheBase
 public:
     virtual ~TextureViewCacheBase() = default;
 
-    virtual const GpuImageViewRef& GetOrCreate(const Handle<Texture>& texture) = 0;
+    virtual const GpuImageViewRef& GetOrCreate(
+        const Handle<Texture>& texture,
+        uint32 mipIndex = 0,
+        uint32 numMips = ~0u,
+        uint32 layerIndex = 0,
+        uint32 numLayers = ~0u) = 0;
+
     virtual const GpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource) = 0;
 
     virtual void RemoveTexture(const Texture* texture) = 0;

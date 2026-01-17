@@ -26,6 +26,7 @@
 #include <rendering/Swapchain.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/ConstantsAllocator.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSetCache.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
@@ -2175,7 +2176,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     for (uint32 i = 0; i < MaxBoundReflectionProbes; i++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement(NAME("EnvProbeTextures"), i, g_renderInterface->textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
+            ->SetElement(NAME("EnvProbeTextures"), i, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
     }
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
@@ -2217,7 +2218,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
 
         for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
         {
-            bindlessDescriptorSet->SetElement("Textures"_sh, textureIndex, g_renderBackend->GetTextureImageView(placeholderData->defaultTexture2d));
+            bindlessDescriptorSet->SetElement("Textures"_sh, textureIndex, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
         }
     }
 }

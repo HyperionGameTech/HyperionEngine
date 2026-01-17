@@ -432,7 +432,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     const ExtensionMap unsupportedExtensions = GetUnsupportedExtensions();
     const auto supportedExtensions = GetSupportedExtensions();
 
-    HYP_GFX_CHECK(CheckDeviceSuitable(unsupportedExtensions));
+    CheckResultOrReturn(CheckDeviceSuitable(unsupportedExtensions));
 
     // no _required_ extensions were missing (otherwise would have caused an error)
     // so for each unsupported extension, remove it from out list of extensions

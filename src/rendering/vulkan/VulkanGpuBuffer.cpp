@@ -355,7 +355,7 @@ RendererResult VulkanGpuBuffer::Create()
     const auto createInfo = GetBufferCreateInfo();
     const auto allocInfo = GetAllocationCreateInfo();
 
-    HYP_GFX_CHECK(CheckCanAllocate(createInfo, allocInfo, m_size));
+    CheckResultOrReturn(CheckCanAllocate(createInfo, allocInfo, m_size));
 
     if (m_alignment != 0)
     {
@@ -468,7 +468,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
     if (shouldCreate)
     {
-        HYP_GFX_CHECK(Create());
+        CheckResultOrReturn(Create());
     }
 
     return {};

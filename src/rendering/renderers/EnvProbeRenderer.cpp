@@ -339,7 +339,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
             subResource.baseMipLevel = mipIndex;
             subResource.numLevels = 1;
             subResource.baseArrayLayer = 0;
-            subResource.numLayers = 1;
+            subResource.numLayers = 6;
 
             const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(prefilteredEnvMap, subResource);
             Assert(imageView != nullptr);

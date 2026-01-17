@@ -293,7 +293,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (!formatSupportResult)
     {
-        HYP_GFX_CHECK(formatSupportResult);
+        CheckResultOrReturn(formatSupportResult);
     }
 
     const QueueFamilyIndices& qfIndices = g_renderBackend->GetDevice()->GetQueueFamilyIndices();
@@ -422,7 +422,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         m_resourceState = RS_UNDEFINED;
         m_subResourceStates.Clear();
 
-        HYP_GFX_CHECK(Create());
+        CheckResultOrReturn(Create());
 
         if (previousResourceState != RS_UNDEFINED)
         {

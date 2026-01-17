@@ -10,6 +10,7 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
@@ -18,6 +19,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/PlaceholderData.hpp>
+
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -292,7 +294,7 @@ static void RenderAll(
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderBackend->GetTextureImageView(dpd->mipChain));
+        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
     }
 
     Mesh* prevMesh = nullptr;
@@ -532,7 +534,7 @@ static void RenderAll_Parallel(
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     if (dpd != nullptr)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderBackend->GetTextureImageView(dpd->mipChain));
+        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
     }
 
     // Store the proc in the parallel rendering state so that it doesn't get destroyed until we're done with it

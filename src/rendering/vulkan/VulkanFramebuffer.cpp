@@ -72,7 +72,7 @@ RendererResult VulkanAttachmentMap::Create()
                 def.image->SetDebugName(NAME_FMT("{}_RT_{}", framebuffer->Id(), it.first));
             }
 
-            HYP_GFX_CHECK(def.image->Create());
+            CheckResultOrReturn(def.image->Create());
         }
 
         attachmentDefs.PushBack(&def);
@@ -81,7 +81,7 @@ RendererResult VulkanAttachmentMap::Create()
 
         if (!def.attachment->IsCreated())
         {
-            HYP_GFX_CHECK(def.attachment->Create());
+            CheckResultOrReturn(def.attachment->Create());
         }
     }
 
@@ -238,7 +238,7 @@ RendererResult VulkanFramebuffer::Create()
         HYPERION_RETURN_OK;
     }
 
-    HYP_GFX_CHECK(m_attachmentMap.Create());
+    CheckResultOrReturn(m_attachmentMap.Create());
 
     m_renderTargetDesc.numAttachments = 0;
 
@@ -251,7 +251,7 @@ RendererResult VulkanFramebuffer::Create()
     }
     
     m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, m_renderPassMode);
-    HYP_GFX_CHECK(m_renderPass->Create());
+    CheckResultOrReturn(m_renderPass->Create());
 
     Array<VkImageView> attachmentImageViews;
     attachmentImageViews.Reserve(m_attachmentMap.attachments.Size());
@@ -335,7 +335,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
         HYPERION_RETURN_OK;
     }
 
-    HYP_GFX_CHECK(m_attachmentMap.Resize(newSize));
+    CheckResultOrReturn(m_attachmentMap.Resize(newSize));
 
     if (m_handle != VK_NULL_HANDLE)
     {

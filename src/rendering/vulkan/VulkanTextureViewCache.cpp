@@ -20,12 +20,17 @@ VulkanTextureViewCache::~VulkanTextureViewCache()
     {
         for (auto& jt : it)
         {
-            SafeDelete(std::move(jt));
+            SafeDelete(std::move(jt.second));
         }
     }
 }
 
-const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
+const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
+    const Handle<Texture>& texture,
+    uint32 mipIndex,
+    uint32 numMips,
+    uint32 layerIndex,
+    uint32 numLayers)
 {
     const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
     const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
@@ -47,6 +52,8 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Te
 
     const SizeType idx = texture.Id().ToIndex();
 
+    TSharedLock sharedLock(mutex);
+
     if (!imageViews.HasIndex(idx))
     {
         imageViews.Emplace(idx);
@@ -55,24 +62,33 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Te
 
     auto& textureImageViews = imageViews.Get(idx);
 
+    ValueStorage<TUniqueLock<SharedMutex>> uniqueLockStorage {};
+    bool isLockUnique = false;
+    HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
+
     auto it = textureImageViews.Find(subResource);
 
     if (it == textureImageViews.End())
     {
-
         VulkanGpuImageViewRef imageView = CreateObject<VulkanGpuImageView>(
-            VulkanGpuImageRef(texture->GetGpuImage()),
+            texture->GetGpuImage(),
             subResource.baseMipLevel,
             subResource.numLevels,
             subResource.baseArrayLayer,
             subResource.numLayers);
 
-        HYP_GFX_ASSERT(imageView->Create());
+        Assert(imageView->Create());
+
+        sharedLock.Reset();
+
+        uniqueLockStorage.Construct(mutex);
+
+        isLockUnique = true;
 
         it = textureImageViews.Set(subResource, imageView).first;
     }
 
-    HYP_GFX_ASSERT(it->second.IsValid());
+    Assert(it->second.IsValid());
 
     return it->second;
 }
@@ -87,6 +103,8 @@ void VulkanTextureViewCache::RemoveTexture(const Texture* texture)
     }
 
     const SizeType idx = texture->Id().ToIndex();
+
+    TUniqueLock lock(mutex);
 
     if (imageViews.HasIndex(idx))
     {
@@ -104,7 +122,9 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
 {
     AssertOnThread(g_renderThread);
 
-    constexpr uint32 maxCycles = 32;
+    TUniqueLock lock(mutex);
+
+    constexpr uint32 MaxCycles = 32;
 
     cleanupIterator = typename decltype(weakTextureHandles)::Iterator {
         &weakTextureHandles,
@@ -119,7 +139,7 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
 
     uint32 numRemoved = 0;
 
-    for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < maxCycles; i++)
+    for (uint32 i = 0; cleanupIterator != weakTextureHandles.End() && i < MaxCycles; i++)
     {
         auto& entry = *cleanupIterator;
 
