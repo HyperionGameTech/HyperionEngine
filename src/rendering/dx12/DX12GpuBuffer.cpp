@@ -127,10 +127,12 @@ void DX12GpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Read() not implemented");
 }
 
-void DX12GpuBuffer::Map() const
+void* DX12GpuBuffer::Map() const
 {
     // @TODO
     HYP_LOG(RenderingBackend, Warning, "DX12GpuBuffer::Map() not implemented");
+
+    return nullptr;
 }
 
 void DX12GpuBuffer::Unmap() const

@@ -26,7 +26,8 @@ public:
 
     bool IsCreated() const override;
     RendererResult Create() override;
-    RendererResult ResetFrameState() override;
+
+    void OnFrameStart() override;
 };
 
 } // namespace Hyperion
