@@ -15,6 +15,8 @@
 
 namespace Hyperion {
 
+enum class ShaderCacheId : uint64;
+
 HYP_ENUM()
 enum MaterialAttributeFlags : uint8
 {
@@ -100,6 +102,64 @@ struct MaterialAttributes
         hc.Add(textureMask);
 
         return hc;
+    }
+};
+
+struct RuntimeMaterialAttributes
+{
+    ShaderCacheId shaderCacheId; // id in cache
+    RenderBucket bucket;
+    FillMode fillMode;
+    FaceCullMode cullFaces;
+    EnumFlags<MaterialAttributeFlags> flags;
+    uint8 stencilReference;
+    StencilFunction stencilFunction;
+    BlendFunction blendFunction;
+    uint32 textureMask;
+
+    HYP_API RuntimeMaterialAttributes();
+
+    HYP_API explicit RuntimeMaterialAttributes(const MaterialAttributes&);
+
+    HYP_API explicit operator MaterialAttributes() const;
+
+    HYP_FORCE_INLINE bool operator==(const RuntimeMaterialAttributes& other) const
+    {
+        return shaderCacheId == other.shaderCacheId
+            && bucket == other.bucket
+            && fillMode == other.fillMode
+            && blendFunction == other.blendFunction
+            && cullFaces == other.cullFaces
+            && flags == other.flags
+            && stencilFunction == other.stencilFunction
+            && stencilReference == other.stencilReference
+            && textureMask == other.textureMask;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const RuntimeMaterialAttributes& other) const
+    {
+        return shaderCacheId != other.shaderCacheId
+            || bucket != other.bucket
+            || fillMode != other.fillMode
+            || blendFunction != other.blendFunction
+            || cullFaces != other.cullFaces
+            || flags != other.flags
+            || stencilFunction != other.stencilFunction
+            || stencilReference != other.stencilReference
+            || textureMask != other.textureMask;
+    }
+
+    constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(shaderCacheId)
+            .Combine(bucket)
+            .Combine(fillMode)
+            .Combine(cullFaces)
+            .Combine(flags)
+            .Combine(stencilReference)
+            .Combine(stencilFunction)
+            .Combine(blendFunction)
+            .Combine(textureMask);
     }
 };
 

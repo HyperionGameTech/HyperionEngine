@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderMaterial.hpp>
+#include <rendering/MaterialTextureCache.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/GpuBufferHolderMap.hpp>
@@ -890,7 +890,6 @@ void Init()
     }
 
     g_renderInterface = PoolNew<RenderInterface>(*g_renderPool);
-    g_renderInterface->materialDescriptorSetManager->CreateFallbackMaterialDescriptorSet();
 
     g_renderInterface->finalPass = PoolNew<FinalPass>(*g_renderPool);
     g_renderInterface->finalPass->Create();
@@ -1540,7 +1539,7 @@ RenderInterface::RenderInterface()
       constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
       descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
-      materialDescriptorSetManager(PoolNew<MaterialDescriptorSetManager>(*g_renderPool)),
+      materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       finalPass(nullptr),
@@ -1656,8 +1655,8 @@ RenderInterface::~RenderInterface()
     PoolDelete(*g_renderPool, placeholderData);
     placeholderData = nullptr;
 
-    PoolDelete(*g_renderPool, materialDescriptorSetManager);
-    materialDescriptorSetManager = nullptr;
+    PoolDelete(*g_renderPool, materialTextureCache);
+    materialTextureCache = nullptr;
 
     PoolDelete(*g_renderPool, graphicsPipelineCache);
     graphicsPipelineCache = nullptr;
@@ -1702,21 +1701,15 @@ void RenderInterface::CommitDrawState()
 
     if (!state.prevGraphicsPipeline
         || !state.prevGraphicsPipeline->MatchesSignature(
-                state.shader,
-                state.renderTargetDesc,
-                state.renderGroup
-                    ? state.renderGroup->GetRenderableAttributes()
-                    : s_defaultAttributes
+                state.attributes,
+                state.renderTargetDesc
             ))
     {
         GraphicsPipelineCacheHandle cacheHandle;
         
         graphicsPipelineCache->GetOrCreate(
-            state.shader,
+            state.attributes,
             state.renderTargetDesc,
-            state.renderGroup
-                ? state.renderGroup->GetRenderableAttributes()
-                : s_defaultAttributes,
             cacheHandle);
 
         pipeline = *cacheHandle;
@@ -2089,7 +2082,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
 
     m_blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     m_blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
-    //m_blueNoiseBuffer->SetRequireCpuAccessible(true);
+    m_blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(m_blueNoiseBuffer->Create());
 
     m_blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);

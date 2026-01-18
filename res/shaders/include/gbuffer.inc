@@ -19,14 +19,6 @@
 #define HYP_SAMPLER_LINEAR sampler_linear
 #endif
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-#define HYP_GBUFFER_TEXTURE(index) (gbuffer_textures[index])
-#define gbuffer_albedo_texture HYP_GBUFFER_TEXTURE(0)
-#define gbuffer_normals_texture HYP_GBUFFER_TEXTURE(1)
-#define gbuffer_material_texture HYP_GBUFFER_TEXTURE(2)
-#define gbuffer_velocity_texture HYP_GBUFFER_TEXTURE(3)
-#endif
-
 struct GBufferMaterialParams
 {
     float roughness;

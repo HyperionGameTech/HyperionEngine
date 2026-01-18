@@ -190,9 +190,8 @@ public:
     virtual void Bind(CommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent) = 0;
 
     bool MatchesSignature(
-        const Shader* shader,
-        const RenderTargetDesc& renderTargetDesc,
-        const RenderableAttributeSet& attributes) const;
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc) const;
 
     // Deprecated - will be removed to decouple from vulkan
     HYP_DEPRECATED virtual void SetPushConstants(const void* data, SizeType size) = 0;

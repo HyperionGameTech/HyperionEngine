@@ -80,9 +80,8 @@ void GraphicsPipelineBase::SetRenderTargetDesc(const RenderTargetDesc& renderTar
 }
 
 bool GraphicsPipelineBase::MatchesSignature(
-    const Shader* shader,
-    const RenderTargetDesc& renderTargetDesc,
-    const RenderableAttributeSet& attributes) const
+    const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc) const
 {
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
 
@@ -114,15 +113,12 @@ bool GraphicsPipelineBase::MatchesSignature(
             return false;
     }
 
+    if (materialAttributes.shaderDefinition != m_shader->GetCompiledShader()->GetDefinition())
+        return false;
+
     // if no render target desc provided we assume the caller doesn't care and don't bother checking
     if (renderTargetDesc != m_renderTargetDesc)
         return false;
-
-    if (shader != nullptr && shader != m_shader)
-    {
-        if (shader->GetCompiledShader()->GetDefinition() != m_shader->GetCompiledShader()->GetDefinition())
-            return false;
-    }
 
     return true;
 }

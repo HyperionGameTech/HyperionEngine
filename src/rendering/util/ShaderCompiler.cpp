@@ -205,10 +205,10 @@ static String BuildPreamble(const ShaderProperties& properties)
         // property has a value -- if integral or float, use that value
         if (property.HasValue())
         {
-            if (property.currentValue.Is<Name>())
+            if (property.currentValue.IsName())
             {
                 // string values are defined as KEY_VALUE = 1
-                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<Name>());
+                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.GetName());
             }
             else
             {
@@ -252,11 +252,6 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
 #endif
 
     properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGBufferTargets))));
-
-    if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
-    {
-        properties.Set(ShaderProperty(NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING")));
-    }
 
     if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
@@ -1614,11 +1609,18 @@ String ShaderProperty::GetValueString() const
     {
         String str;
 
-        Visit(currentValue,
-            [&str](auto&& value)
-            {
-                str = HYP_FORMAT("{}", value);
-            });
+        switch (currentValue.index)
+        {
+        case 0:
+            str = HYP_FORMAT("{}", currentValue.nameValue);
+            break;
+        case 1:
+            str = HYP_FORMAT("{}", currentValue.intValue);
+            break;
+        case 2:
+            str = HYP_FORMAT("{}", currentValue.floatValue);
+            break;
+        }
 
         return str;
     }

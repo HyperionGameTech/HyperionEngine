@@ -30,7 +30,7 @@ class SkyProbe;
 class RenderGlobalState;
 class RenderResourceLock;
 class UIRenderer;
-class MaterialDescriptorSetManager;
+class MaterialTextureCache;
 class GraphicsPipelineCache;
 class BindlessStorage;
 class RenderCollector;
@@ -172,7 +172,7 @@ public:
         static constexpr uint32 MaxBoundDescriptorSets = 8;
 
         Shader* shader = nullptr;
-        RenderGroup* renderGroup = nullptr;
+        RenderableAttributeSet attributes;
         Viewport viewport;
         RenderTargetDesc renderTargetDesc;
 
@@ -193,7 +193,7 @@ public:
         void Reset()
         {
             shader = nullptr;
-            renderGroup = nullptr;
+            attributes = {};
             validUniforms = 0;
             dirtyUniforms = 0;
             dirtyBufferOffsets = 0;
@@ -234,7 +234,7 @@ public:
 
     GlobalGpuBuffers gpuBuffers;
 
-    MaterialDescriptorSetManager* materialDescriptorSetManager;
+    MaterialTextureCache* materialTextureCache;
 
     GraphicsPipelineCache* graphicsPipelineCache;
 

@@ -694,7 +694,7 @@ enum class GpuBufferType : uint8
 };
 
 HYP_ENUM()
-enum GpuElemType : uint32
+enum GpuElemType : uint8
 {
     GET_UNSIGNED_BYTE,
     GET_SIGNED_BYTE,
@@ -720,7 +720,7 @@ static inline constexpr uint32 GpuElemTypeSize(GpuElemType type)
 }
 
 HYP_ENUM()
-enum FaceCullMode : uint32
+enum FaceCullMode : uint8
 {
     FCM_NONE,
     FCM_BACK,
@@ -728,14 +728,14 @@ enum FaceCullMode : uint32
 };
 
 HYP_ENUM()
-enum FillMode : uint32
+enum FillMode : uint8
 {
     FM_FILL,
     FM_LINE
 };
 
 HYP_ENUM()
-enum Topology : uint32
+enum Topology : uint8
 {
     TOP_TRIANGLES,
     TOP_TRIANGLE_FAN,
@@ -747,7 +747,7 @@ enum Topology : uint32
 };
 
 HYP_ENUM()
-enum BlendModeFactor : uint32
+enum BlendModeFactor : uint8
 {
     BMF_NONE,
 
@@ -1614,18 +1614,115 @@ struct ShaderProperty
 {
     HYP_STRUCT_BODY(ShaderProperty);
 
-    using Value = Variant<Name, int, float>;
+    struct Value
+    {
+        union
+        {
+            Name nameValue;
+            int intValue;
+            float floatValue;
+        };
 
-    HYP_FIELD()
+        uint8 index;
+
+        Value()
+            : nameValue(),
+              index(uint8(-1))
+        {
+        }
+
+        Value(Name value)
+            : nameValue(value),
+              index(0)
+        {
+        }
+
+        Value(int value)
+            : intValue(value),
+              index(1)
+        {
+        }
+
+        Value(float value)
+            : floatValue(value),
+              index(2)
+        {
+        }
+
+        Value(const Value& other) = default;
+        Value& operator=(const Value& other) = default;
+
+        bool operator==(const Value& other) const
+        {
+            if (index != other.index)
+            {
+                return false;
+            }
+
+            switch (index)
+            {
+            case 0:
+                return nameValue == other.nameValue;
+            case 1:
+                return intValue == other.intValue;
+            case 2:
+                return floatValue == other.floatValue;
+            }
+
+            return false;
+        }
+
+        bool operator!=(const Value& other) const
+        {
+            return !(*this == other);
+        }
+
+        HYP_FORCE_INLINE bool IsValid() const
+        {
+            return index != uint8(-1);
+        }
+
+        HYP_FORCE_INLINE bool IsName() const
+        {
+            return index == 0;
+        }
+
+        HYP_FORCE_INLINE bool IsInt() const
+        {
+            return index == 1;
+        }
+
+        HYP_FORCE_INLINE bool IsFloat() const
+        {
+            return index == 2;
+        }
+
+        HYP_FORCE_INLINE Name GetName() const
+        {
+            return index == 0 ? nameValue : Name::Invalid();
+        }
+
+        HYP_FORCE_INLINE int GetInt() const
+        {
+            return index == 1 ? intValue : 0;
+        }
+
+        HYP_FORCE_INLINE float GetFloat() const
+        {
+            return index == 2 ? floatValue : 0.0f;
+        }
+    };
+
+    HYP_FIELD(Property = "Name")
     Name name;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Flags")
     ShaderPropertyFlags flags;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Value currentValue;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Array<Value> enumValues;
 
     HYP_FIELD(Transient)
@@ -1640,7 +1737,6 @@ struct ShaderProperty
         : name(name),
           flags(flags)
     {
-        cachedHashCode = GetHashCode();
     }
 
     ShaderProperty(Name name, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
@@ -1648,7 +1744,6 @@ struct ShaderProperty
           flags(flags),
           currentValue(currentValue)
     {
-        cachedHashCode = GetHashCode();
     }
 
     explicit ShaderProperty(const VertexAttribute& vertexAttribute)
@@ -1755,7 +1850,7 @@ struct ShaderProperty
 
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return currentValue.IsValid();
+        return currentValue.index != uint8(-1);
     }
 
     HYP_FORCE_INLINE Name GetName() const
@@ -1793,6 +1888,90 @@ struct ShaderProperty
         if (!enumValues.Contains(enumValue))
         {
             enumValues.PushBack(enumValue);
+        }
+    }
+
+    static Variant<Name, int, float> SerializeValueImpl(const Value& value)
+    {
+        Variant<Name, int, float> var;
+        switch (value.index)
+        {
+        case 0:
+            var.Set(value.nameValue);
+            break;
+        case 1:
+            var.Set(value.intValue);
+            break;
+        case 2:
+            var.Set(value.floatValue);
+            break;
+        default:
+            break;
+        }
+
+        return var;
+    }
+
+    static Value DeserializeValueImpl(const Variant<Name, int, float>& var)
+    {
+        Value value;
+
+        switch (var.GetTypeIndex())
+        {
+        case 0:
+            value.nameValue = var.GetUnchecked<Name>();
+            value.index = 0;
+            break;
+        case 1:
+            value.intValue = var.GetUnchecked<int>();
+            value.index = 1;
+            break;
+        case 2:
+            value.floatValue = var.GetUnchecked<float>();
+            value.index = 2;
+            break;
+        default:
+            break;
+        }
+
+        return value;
+    }
+
+    HYP_METHOD(Property = "Value", Serialize, NoScriptBindings)
+    Variant<Name, int, float> SerializeValue() const
+    {
+        return SerializeValueImpl(currentValue);
+    }
+
+    HYP_METHOD(Property = "Value", Serialize, NoScriptBindings)
+    void DeserializeValue(const Variant<Name, int, float>& var)
+    {
+        DeserializeValueImpl(var);
+    }
+    
+    HYP_METHOD(Property = "EnumValues", Serialize, NoScriptBindings)
+    Array<Variant<Name, int, float>> SerializeEnumValues() const
+    {
+        Array<Variant<Name, int, float>> values;
+        values.Reserve(enumValues.Size());
+
+        for (const Value& value : enumValues)
+        {
+            values.PushBack(SerializeValueImpl(value));
+        }
+
+        return values;
+    }
+
+    HYP_METHOD(Property = "EnumValues", Serialize, NoScriptBindings)
+    void DeserializeEnumValues(const Array<Variant<Name, int, float>>& values)
+    {
+        enumValues.Clear();
+        enumValues.Reserve(values.Size());
+
+        for (const Variant<Name, int, float>& var : values)
+        {
+            enumValues.PushBack(DeserializeValueImpl(var));
         }
     }
 

@@ -5,7 +5,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderMaterial.hpp>
+#include <rendering/MaterialTextureCache.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -151,9 +151,8 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
     GraphicsPipelineCacheHandle cacheHandle;
     
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        m_shader,
-        framebuffer->GetRenderTargetDesc(),
         m_renderableAttributes,
+        framebuffer->GetRenderTargetDesc(),
         cacheHandle);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
@@ -333,7 +332,7 @@ static void RenderAll(
                 RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
                 AssertDebug(materialProxy != nullptr);
 
-                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                 AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                 FOR_EACH_BIT(textureMask, bit)
@@ -416,7 +415,7 @@ static void RenderAll(
                 RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
                 AssertDebug(materialProxy != nullptr);
 
-                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                 AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                 FOR_EACH_BIT(textureMask, bit)
@@ -588,7 +587,7 @@ static void RenderAll_Parallel(
                             RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
                             AssertDebug(materialProxy != nullptr);
 
-                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                             FOR_EACH_BIT(textureMask, bit)
@@ -694,7 +693,7 @@ static void RenderAll_Parallel(
                             RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
                             AssertDebug(materialProxy != nullptr);
 
-                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                             FOR_EACH_BIT(textureMask, bit)
@@ -813,7 +812,7 @@ void RenderGroup::PerformRendering(
     
     rq << SetCurrentShader(m_shader);
     rq << SetCurrentView(renderSetup.view);
-    rq << SetCurrentRenderGroup(this);
+    rq << SetCurrentAttributes(m_renderableAttributes);
 
     if (stencilReference != 0)
     {

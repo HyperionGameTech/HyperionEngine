@@ -9,7 +9,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GraphicsPipeline.hpp>

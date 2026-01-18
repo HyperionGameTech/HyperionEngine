@@ -100,9 +100,6 @@ protected:
 private:
     const DeferredPassMode m_mode;
 
-    FixedArray<GraphicsPipelineCacheHandle, LT_MAX> m_directLightGraphicsPipelines;
-    FixedArray<FixedArray<DescriptorSetRef, NumFramesInFlight>, LT_MAX> m_directPassDescriptorSets;
-
     Handle<Texture> m_ltcMatrixTexture;
     Handle<Texture> m_ltcBrdfTexture;
     SamplerRef m_ltcSampler;

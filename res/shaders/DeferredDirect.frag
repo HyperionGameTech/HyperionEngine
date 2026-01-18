@@ -11,27 +11,20 @@ layout(location = 0) out vec4 output_color;
 
 #define HYP_DEFERRED_NO_ENV_GRID
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D gbuffer_textures[NUM_GBUFFER_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-#endif
+HYP_DESCRIPTOR_SRV(DeferredPass, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+HYP_DESCRIPTOR_SRV(DeferredPass, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+HYP_DESCRIPTOR_SRV(DeferredPass, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+HYP_DESCRIPTOR_SRV(DeferredPass, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_SRV(View, SSAOResultTexture) uniform texture2D ssao_gi_result;
-HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
+HYP_DESCRIPTOR_SRV(DeferredPass, SSAOResultTexture) uniform texture2D ssao_gi_result;
+HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
 
 #include "include/env_probe.inc"
-
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/shared.inc"
@@ -40,23 +33,23 @@ HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field
 #include "include/Entity.glsl"
 
 #include "include/scene.inc"
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(DeferredPass, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SSBO_DYNAMIC(DeferredPass, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+HYP_DESCRIPTOR_SRV(DeferredPass, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DEFERRED_NO_REFRACTION
 #include "./deferred/DeferredLighting.glsl"
@@ -69,11 +62,11 @@ vec2 texcoord = v_texcoord0;
 #include "include/PhysicalCamera.inc"
 #include "include/LightRays.glsl"
 
-HYP_DESCRIPTOR_SAMPLER(DeferredDirectDescriptorSet, LTCSampler) uniform sampler ltc_sampler;
-HYP_DESCRIPTOR_SRV(DeferredDirectDescriptorSet, LTCMatrixTexture) uniform texture2D ltc_matrix_texture;
-HYP_DESCRIPTOR_SRV(DeferredDirectDescriptorSet, LTCBRDFTexture) uniform texture2D ltc_brdf_texture;
+HYP_DESCRIPTOR_SAMPLER(DeferredPass, LTCSampler) uniform sampler ltc_sampler;
+HYP_DESCRIPTOR_SRV(DeferredPass, LTCMatrixTexture) uniform texture2D ltc_matrix_texture;
+HYP_DESCRIPTOR_SRV(DeferredPass, LTCBRDFTexture) uniform texture2D ltc_brdf_texture;
 
-HYP_DESCRIPTOR_SSBO(DeferredDirectDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(DeferredPass, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
