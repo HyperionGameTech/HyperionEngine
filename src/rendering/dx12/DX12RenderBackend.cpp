@@ -343,16 +343,19 @@ DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     graphicsPipeline->SetBlendFunction(attributes.GetMaterialAttributes().blendFunction);
     graphicsPipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     graphicsPipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
-
-    // group materials that set a stencil value into pipelines that have stencil testing enabled
-    // and the same stencil function
-    if ((attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST) // for specifying stencil testing on pipelines
-        || attributes.GetMaterialAttributes().stencilReference != 0)  // for materials that write a stencil reference value
+    
+    if (attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)  
     {
         graphicsPipeline->SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     }
 
-    graphicsPipeline->SetFramebuffers(framebuffers);
+    // for materials that write a stencil reference value
+    if (attributes.GetMaterialAttributes().stencilReference != 0)
+    {
+        graphicsPipeline->SetStencilWrite(true);
+    }
+
+    graphicsPipeline->SetRenderTargetDesc(renderTargetDesc);
 
     return graphicsPipeline;
 }

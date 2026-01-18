@@ -285,21 +285,19 @@ elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
     set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
 endif()
 
-# if (WIN32)
-#     set(RENDERING_BACKEND "DX12")
-# elseif(NOT IOS)
-    find_package(Vulkan REQUIRED)
-# endif()
-
 if (NOT DEFINED RENDERING_BACKEND)
-    if (Vulkan_FOUND)
+    if (WIN32)
+        set(RENDERING_BACKEND "DX12")
+    elseif((APPLE) OR (UNIX))
         set(RENDERING_BACKEND "Vulkan")
     else()
-        message(FATAL_ERROR "No rendering backend found")
+        message(FATAL_ERROR "No rendering backend defined and unable to select default for platform!")
     endif()
 endif()
 
 if (RENDERING_BACKEND STREQUAL "Vulkan")
+    find_package(Vulkan REQUIRED)
+
     add_definitions(-DHYP_VULKAN=1)
     set(HYP_VULKAN 1)
 

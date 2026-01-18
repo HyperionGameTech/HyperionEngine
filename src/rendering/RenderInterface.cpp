@@ -2089,7 +2089,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
 
     m_blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     m_blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
-    m_blueNoiseBuffer->SetRequireCpuAccessible(true);
+    //m_blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(m_blueNoiseBuffer->Create());
 
     m_blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);

@@ -14,6 +14,8 @@
 
 namespace Hyperion {
 
+enum ShaderModuleType : uint8;
+
 HYP_CLASS(NoScriptBindings)
 class DX12Shader final : public ShaderBase
 {

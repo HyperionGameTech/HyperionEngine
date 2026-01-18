@@ -10,21 +10,48 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <dxgi1_4.h>
-#include <d3d12.h>
-#include <wrl.h>
+#include <rendering/dx12/DX12Shared.hpp>
 
 #include <core/memory/Pimpl.hpp>
+
+#include <D3D12MemAlloc.h>
+
+#include <dxgi1_6.h>
 
 namespace Hyperion {
 
 class DX12RenderConfig;
+class DX12DescriptorHeapManager;
+
+struct DX12QueueData
+{
+    ComPtr<ID3D12CommandQueue> commandQueue;
+    FixedArray<ComPtr<ID3D12CommandAllocator>, NumFramesInFlight> commandAllocators;
+};
 
 class DX12RenderBackend final : public IRenderBackend
 {
 public:
     DX12RenderBackend();
     ~DX12RenderBackend() override;
+
+    HYP_FORCE_INLINE ID3D12Device* GetDevice() const
+    {
+        return m_device.Get();
+    }
+
+    HYP_FORCE_INLINE const DX12QueueData* GetQueueData(D3D12_COMMAND_LIST_TYPE commandListType) const
+    {
+        auto it = m_queueData.Find(commandListType);
+        if (it != m_queueData.End())
+            return &it->second;
+        return nullptr;
+    }
+
+    HYP_FORCE_INLINE D3D12MA::Allocator* GetAllocator() const
+    {
+        return m_allocator;
+    }
 
     RendererResult Initialize() override;
     RendererResult Destroy() override;
@@ -100,6 +127,10 @@ public:
     void ReleaseTransientMemory() override;
 
     void NextFrame() override;
+    
+    ComPtr<IDXGIFactory4> dxgiFactory;
+
+    DX12DescriptorHeapManager* descriptorHeapManager;
 
 private:
     Pimpl<DX12RenderConfig> m_renderConfig;
@@ -107,16 +138,18 @@ private:
     FixedArray<DX12FrameRef, NumFramesInFlight> m_frames;
     uint32 m_currentFrameIndex;
 
-    FixedArray<DX12CommandBufferRef, NumFramesInFlight> m_commandBuffers;
+    DX12CommandBufferRef m_commandBuffer;
     
-    Microsoft::WRL::ComPtr<IDXGIFactory4> m_dxgiFactory;
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> m_hardwareAdapter;
+    ComPtr<IDXGIAdapter1> m_hardwareAdapter;
 
-    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+    ComPtr<ID3D12Device> m_device;
 
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_directQueue;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_computeQueue;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_copyQueue;
+    FlatMap<D3D12_COMMAND_LIST_TYPE, DX12QueueData> m_queueData;
+
+    ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;
+
+    D3D12MA::Allocator* m_allocator;
 };
+
 
 } // namespace Hyperion
