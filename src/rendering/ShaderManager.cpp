@@ -33,7 +33,7 @@ public:
 
         ShaderCacheId cacheId;
         ShaderWeakRef shader;
-        RC<CompiledShader> compiledShader;
+        CompiledShader* compiledShader = nullptr;
         AtomicVar<State> state = State::UNLOADED;
         ThreadId loadingThreadId;
     };
@@ -41,6 +41,9 @@ public:
     HashMap<ShaderDefinition, RC<ShaderMapEntry>> m_map;
     SparsePagedArray<ShaderDefinition, 64> m_definitionsById;
     SharedMutex m_mutex;
+
+    // these live forever to keep pointers valid
+    SparsePagedArray<CompiledShader, 16> m_compiledShaderCache;
 
     ShaderRef GetOrCreate(const ShaderDefinition& definition, ShaderCacheId& outCacheId, bool doLoadShader)
     {
@@ -127,6 +130,14 @@ public:
                         definition.GetProperties().ToString());
                 }
             }
+            else
+            {
+                entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
+
+                // if we got here, the shader is no longer alive (all weak refs destroyed)
+                // we need to load it again.
+                HYP_LOG(Shader, Debug, "Shader {} had all refs expire, reloading shader", definition.name);
+            }
         }
 
         if (!entry)
@@ -134,7 +145,7 @@ public:
             entry = MakeRefCountedPtr<ShaderMapEntry>();
 
             entry->cacheId = GenerateShaderCacheId();
-            entry->compiledShader = MakeRefCountedPtr<CompiledShader>();
+            entry->compiledShader = GetCompiledShader(entry->cacheId);
 
             if (doLoadShader)
             {
@@ -229,6 +240,28 @@ public:
         TSharedLock lock(m_mutex);
 
         return m_definitionsById.TryGet(uint64(shaderCacheId));
+    }
+
+    CompiledShader* GetCompiledShader(ShaderCacheId shaderCacheId)
+    {
+        TSharedLock lock(m_mutex);
+
+        if (!m_compiledShaderCache.HasIndex(uint64(shaderCacheId)))
+        {
+            lock.Reset();
+
+            TUniqueLock uniqueLock(m_mutex);
+
+            if (!m_compiledShaderCache.HasIndex(uint64(shaderCacheId)))
+            {
+                return &*m_compiledShaderCache.Emplace(uint64(shaderCacheId));
+            }
+
+            // someone else added it before we did
+            lock.Reset(m_mutex);
+        }
+        
+        return &m_compiledShaderCache.Get(uint64(shaderCacheId));
     }
 
     SizeType CalculateMemoryUsage() const

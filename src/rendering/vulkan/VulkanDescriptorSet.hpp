@@ -42,7 +42,15 @@ struct VulkanCachedDescriptor
 
     HYP_FORCE_INLINE bool operator==(const VulkanCachedDescriptor& other) const
     {
-        return Memory::MemCmp(this, &other, sizeof(VulkanCachedDescriptor)) == 0;
+        static_assert(sizeof(VkDescriptorBufferInfo) == sizeof(VkDescriptorImageInfo));
+
+        return binding == other.binding
+            && index == other.index
+            && descriptorType == other.descriptorType
+            && (descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+                    ? (accelerationStructureInfo.accelerationStructureCount == other.accelerationStructureInfo.accelerationStructureCount
+                        && Memory::MemCmpSafe(accelerationStructureInfo.pAccelerationStructures, other.accelerationStructureInfo.pAccelerationStructures, sizeof(const VkAccelerationStructureKHR*) * accelerationStructureInfo.accelerationStructureCount) == 0)
+                    : Memory::MemCmpSafe(&bufferInfo, &other.bufferInfo, sizeof(VkDescriptorBufferInfo)) == 0);
     }
 
     HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptor& other) const

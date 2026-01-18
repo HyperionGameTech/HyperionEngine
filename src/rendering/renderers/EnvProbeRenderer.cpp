@@ -21,6 +21,7 @@
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

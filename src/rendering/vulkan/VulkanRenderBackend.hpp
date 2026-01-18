@@ -156,7 +156,7 @@ public:
 
     VulkanFrameRef MakeFrame(uint32 frameIndex) override;
 
-    VulkanShaderRef MakeShader(const RC<CompiledShader>& compiledShader) override;
+    VulkanShaderRef MakeShader(const CompiledShader* compiledShader) override;
 
     VulkanGpuBlasRef MakeGpuBlas(
         const VulkanGpuBufferRef& packedVerticesBuffer,

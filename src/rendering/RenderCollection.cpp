@@ -899,6 +899,16 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         state = state->next;
     }
 
+    // Reset draw states
+    renderQueue << SetTopology(TOP_TRIANGLES);
+    renderQueue << SetFillMode(FM_FILL);
+    renderQueue << SetFaceCullMode(FCM_BACK);
+    renderQueue << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+    renderQueue << SetCurrentBlendFunction(BlendFunction::None());
+    renderQueue << SetDepthWrite(true);
+    renderQueue << SetDepthTest(true);
+    renderQueue << SetStencilTest(false);
+
     parallelRenderingStateTail = nullptr;
 }
 

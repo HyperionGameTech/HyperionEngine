@@ -903,7 +903,7 @@ VulkanFrameRef VulkanRenderBackend::MakeFrame(uint32 frameIndex)
     return CreateObject<VulkanFrame>(frameIndex);
 }
 
-VulkanShaderRef VulkanRenderBackend::MakeShader(const RC<CompiledShader>& compiledShader)
+VulkanShaderRef VulkanRenderBackend::MakeShader(const CompiledShader* compiledShader)
 {
     return CreateObject<VulkanShader>(compiledShader);
 }

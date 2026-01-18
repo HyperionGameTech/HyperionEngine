@@ -411,7 +411,7 @@ DX12FrameRef DX12RenderBackend::MakeFrame(uint32 frameIndex)
     return CreateObject<DX12Frame>(frameIndex);
 }
 
-DX12ShaderRef DX12RenderBackend::MakeShader(const RC<CompiledShader>& compiledShader)
+DX12ShaderRef DX12RenderBackend::MakeShader(const CompiledShader* compiledShader)
 {
     return CreateObject<DX12Shader>(compiledShader);
 }

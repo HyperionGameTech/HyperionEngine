@@ -18,6 +18,7 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <scene/Light.hpp>

@@ -99,7 +99,8 @@ DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
 DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     : m_decl(decl),
       m_isTemplate(false),
-      m_isReference(false)
+      m_isReference(false),
+      m_cachedHashCode(HashCode())
 {
     if (!decl)
     {
@@ -201,6 +202,8 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     {
         m_dynamicElements[i] = dynamicElementsWithIndex[i].first;
     }
+
+    m_cachedHashCode = m_elements.GetHashCode();
 }
 
 #pragma endregion DescriptorSetLayout

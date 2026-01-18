@@ -15,6 +15,7 @@
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>

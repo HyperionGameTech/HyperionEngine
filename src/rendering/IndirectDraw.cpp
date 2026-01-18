@@ -14,6 +14,7 @@
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/EnvGridRenderer.hpp>

@@ -9,6 +9,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/Vertex.hpp>
 #include <rendering/Shared.hpp>
 
 // Uncomment to enable trace collection for commands.
@@ -702,15 +703,15 @@ private:
 class SetCurrentShader final : public CmdBase
 {
 public:
-    explicit SetCurrentShader(Shader* shader)
-        : m_shader(shader)
+    explicit SetCurrentShader(const ShaderDesc& shaderDesc)
+        : shaderDesc(shaderDesc)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    Shader* m_shader;
+    ShaderDesc shaderDesc;
 };
 
 class SetCurrentView final : public CmdBase
@@ -727,18 +728,130 @@ private:
     View* m_view;
 };
 
-class SetCurrentAttributes final : public CmdBase
+class SetTopology final : public CmdBase
 {
 public:
-    explicit SetCurrentAttributes(const RenderableAttributeSet& attributes)
-        : m_attributes(attributes)
+    explicit SetTopology(Topology topology)
+        : topology(topology)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RenderableAttributeSet m_attributes;
+    Topology topology;
+};
+
+class SetVertexAttributes final : public CmdBase
+{
+public:
+    explicit SetVertexAttributes(VertexAttributeSet vertexAttributes)
+        : vertexAttributes(vertexAttributes)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    VertexAttributeSet vertexAttributes;
+};
+
+class SetCurrentBlendFunction final : public CmdBase
+{
+public:
+    explicit SetCurrentBlendFunction(const BlendFunction& blendFunction)
+        : blendFunction(blendFunction)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    BlendFunction blendFunction;
+};
+
+class SetDepthWrite final : public CmdBase
+{
+public:
+    explicit SetDepthWrite(bool depthWrite)
+        : depthWrite(depthWrite)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool depthWrite;
+};
+
+class SetDepthTest final : public CmdBase
+{
+public:
+    explicit SetDepthTest(bool depthTest)
+        : depthTest(depthTest)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool depthTest;
+};
+
+class SetStencilTest final : public CmdBase
+{
+public:
+    explicit SetStencilTest(bool stencilTest)
+        : stencilTest(stencilTest)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool stencilTest;
+};
+
+class SetStencilFunction final : public CmdBase
+{
+public:
+    explicit SetStencilFunction(StencilFunction stencilFunction)
+        : stencilFunction(stencilFunction)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    StencilFunction stencilFunction;
+};
+
+class SetFillMode final : public CmdBase
+{
+public:
+    explicit SetFillMode(FillMode fillMode)
+        : fillMode(fillMode)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    FillMode fillMode;
+};
+
+class SetFaceCullMode final : public CmdBase
+{
+public:
+    explicit SetFaceCullMode(FaceCullMode faceCullMode)
+        : faceCullMode(faceCullMode)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    FaceCullMode faceCullMode;
 };
 
 class SetShaderUniform final : public CmdBase

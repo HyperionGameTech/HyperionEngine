@@ -9,7 +9,6 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/Shader.hpp>
 #include <rendering/GpuBuffer.hpp>
 
 namespace Hyperion {
@@ -171,7 +170,6 @@ public:
         static constexpr uint32 MaxShaderUniforms = 32;
         static constexpr uint32 MaxBoundDescriptorSets = 8;
 
-        Shader* shader = nullptr;
         RenderableAttributeSet attributes;
         Viewport viewport;
         RenderTargetDesc renderTargetDesc;
@@ -192,7 +190,6 @@ public:
         
         void Reset()
         {
-            shader = nullptr;
             attributes = {};
             validUniforms = 0;
             dirtyUniforms = 0;

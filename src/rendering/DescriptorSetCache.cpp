@@ -90,23 +90,17 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
 
     if (mapIt->second.Any())
     {
-        for (auto it = mapIt->second.Begin(); it != mapIt->second.End();)
-        {
-            DescriptorSetRef& ds = *it;
+        auto it = mapIt->second.Begin();
 
-            /*if (*ds->GetLayout().GetDeclaration() == *layout.GetDeclaration())
-            {*/
-                auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
-                inUseElem.frameCounter = RenderApi::GetFrameCounter();
-                inUseElem.descriptorSet = std::move(ds);
+        DescriptorSetRef& ds = *it;
 
-                mapIt->second.Erase(it);
+        auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
+        inUseElem.frameCounter = RenderApi::GetFrameCounter();
+        inUseElem.descriptorSet = std::move(ds);
 
-                return inUseElem.descriptorSet;
-            //}
+        mapIt->second.Erase(it);
 
-            ++it;
-        }
+        return inUseElem.descriptorSet;
     }
 
     // need to allocate new descriptor set

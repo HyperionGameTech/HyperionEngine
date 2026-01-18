@@ -10,6 +10,8 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/Shared.hpp>
+
 #include <vulkan/vulkan.h>
 
 namespace Hyperion {
@@ -67,7 +69,7 @@ class VulkanShader final : public ShaderBase
 
 public:
     VulkanShader();
-    explicit VulkanShader(const RC<CompiledShader>& compiledShader);
+    explicit VulkanShader(const CompiledShader* compiledShader);
     ~VulkanShader() override;
 
     HYP_FORCE_INLINE const Array<VulkanShaderModule>& GetShaderModules() const

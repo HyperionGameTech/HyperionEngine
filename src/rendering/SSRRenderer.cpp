@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "Shared.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/SSRRenderer.hpp>
@@ -17,6 +16,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

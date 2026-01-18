@@ -20,6 +20,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

@@ -1614,104 +1614,7 @@ struct ShaderProperty
 {
     HYP_STRUCT_BODY(ShaderProperty);
 
-    struct Value
-    {
-        union
-        {
-            Name nameValue;
-            int intValue;
-            float floatValue;
-        };
-
-        uint8 index;
-
-        Value()
-            : nameValue(),
-              index(uint8(-1))
-        {
-        }
-
-        Value(Name value)
-            : nameValue(value),
-              index(0)
-        {
-        }
-
-        Value(int value)
-            : intValue(value),
-              index(1)
-        {
-        }
-
-        Value(float value)
-            : floatValue(value),
-              index(2)
-        {
-        }
-
-        Value(const Value& other) = default;
-        Value& operator=(const Value& other) = default;
-
-        bool operator==(const Value& other) const
-        {
-            if (index != other.index)
-            {
-                return false;
-            }
-
-            switch (index)
-            {
-            case 0:
-                return nameValue == other.nameValue;
-            case 1:
-                return intValue == other.intValue;
-            case 2:
-                return floatValue == other.floatValue;
-            }
-
-            return false;
-        }
-
-        bool operator!=(const Value& other) const
-        {
-            return !(*this == other);
-        }
-
-        HYP_FORCE_INLINE bool IsValid() const
-        {
-            return index != uint8(-1);
-        }
-
-        HYP_FORCE_INLINE bool IsName() const
-        {
-            return index == 0;
-        }
-
-        HYP_FORCE_INLINE bool IsInt() const
-        {
-            return index == 1;
-        }
-
-        HYP_FORCE_INLINE bool IsFloat() const
-        {
-            return index == 2;
-        }
-
-        HYP_FORCE_INLINE Name GetName() const
-        {
-            return index == 0 ? nameValue : Name::Invalid();
-        }
-
-        HYP_FORCE_INLINE int GetInt() const
-        {
-            return index == 1 ? intValue : 0;
-        }
-
-        HYP_FORCE_INLINE float GetFloat() const
-        {
-            return index == 2 ? floatValue : 0.0f;
-        }
-    };
+    using Value = Variant<Name, int, float>;
 
     HYP_FIELD(Property = "Name")
     Name name;
@@ -1850,7 +1753,7 @@ struct ShaderProperty
 
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return currentValue.index != uint8(-1);
+        return currentValue.HasValue();
     }
 
     HYP_FORCE_INLINE Name GetName() const
@@ -1888,90 +1791,6 @@ struct ShaderProperty
         if (!enumValues.Contains(enumValue))
         {
             enumValues.PushBack(enumValue);
-        }
-    }
-
-    static Variant<Name, int, float> SerializeValueImpl(const Value& value)
-    {
-        Variant<Name, int, float> var;
-        switch (value.index)
-        {
-        case 0:
-            var.Set(value.nameValue);
-            break;
-        case 1:
-            var.Set(value.intValue);
-            break;
-        case 2:
-            var.Set(value.floatValue);
-            break;
-        default:
-            break;
-        }
-
-        return var;
-    }
-
-    static Value DeserializeValueImpl(const Variant<Name, int, float>& var)
-    {
-        Value value;
-
-        switch (var.GetTypeIndex())
-        {
-        case 0:
-            value.nameValue = var.GetUnchecked<Name>();
-            value.index = 0;
-            break;
-        case 1:
-            value.intValue = var.GetUnchecked<int>();
-            value.index = 1;
-            break;
-        case 2:
-            value.floatValue = var.GetUnchecked<float>();
-            value.index = 2;
-            break;
-        default:
-            break;
-        }
-
-        return value;
-    }
-
-    HYP_METHOD(Property = "Value", Serialize, NoScriptBindings)
-    Variant<Name, int, float> SerializeValue() const
-    {
-        return SerializeValueImpl(currentValue);
-    }
-
-    HYP_METHOD(Property = "Value", Serialize, NoScriptBindings)
-    void DeserializeValue(const Variant<Name, int, float>& var)
-    {
-        DeserializeValueImpl(var);
-    }
-    
-    HYP_METHOD(Property = "EnumValues", Serialize, NoScriptBindings)
-    Array<Variant<Name, int, float>> SerializeEnumValues() const
-    {
-        Array<Variant<Name, int, float>> values;
-        values.Reserve(enumValues.Size());
-
-        for (const Value& value : enumValues)
-        {
-            values.PushBack(SerializeValueImpl(value));
-        }
-
-        return values;
-    }
-
-    HYP_METHOD(Property = "EnumValues", Serialize, NoScriptBindings)
-    void DeserializeEnumValues(const Array<Variant<Name, int, float>>& values)
-    {
-        enumValues.Clear();
-        enumValues.Reserve(values.Size());
-
-        for (const Variant<Name, int, float>& var : values)
-        {
-            enumValues.PushBack(DeserializeValueImpl(var));
         }
     }
 
@@ -2466,6 +2285,203 @@ struct ShaderDefinition
     {
         // ensure they return the same hash codes so they can be compared.
         return (operator HashedShaderDefinition()).GetHashCode();
+    }
+};
+
+/*! \brief For requested shader instance */
+struct ShaderDesc
+{
+    static constexpr uint32 MaxShaderProperties = 8;
+
+    struct PropertyValue
+    {
+        union
+        {
+            Name nameValue;
+            int intValue;
+            float floatValue;
+        };
+
+        uint8 index;
+
+        PropertyValue()
+            : nameValue(),
+              index(uint8(-1))
+        {
+        }
+
+        PropertyValue(Name value)
+            : nameValue(value),
+              index(0)
+        {
+        }
+
+        PropertyValue(int value)
+            : intValue(value),
+              index(1)
+        {
+        }
+
+        PropertyValue(float value)
+            : floatValue(value),
+              index(2)
+        {
+        }
+
+        PropertyValue(const PropertyValue& other) = default;
+        PropertyValue& operator=(const PropertyValue& other) = default;
+
+        bool operator==(const PropertyValue& other) const
+        {
+            if (index != other.index)
+            {
+                return false;
+            }
+
+            switch (index)
+            {
+            case 0:
+                return nameValue == other.nameValue;
+            case 1:
+                return intValue == other.intValue;
+            case 2:
+                return floatValue == other.floatValue;
+            }
+
+            return false;
+        }
+
+        bool operator!=(const PropertyValue& other) const
+        {
+            return !(*this == other);
+        }
+
+        HYP_FORCE_INLINE bool IsValid() const
+        {
+            return index != uint8(-1);
+        }
+
+        HYP_FORCE_INLINE bool IsName() const
+        {
+            return index == 0;
+        }
+
+        HYP_FORCE_INLINE bool IsInt() const
+        {
+            return index == 1;
+        }
+
+        HYP_FORCE_INLINE bool IsFloat() const
+        {
+            return index == 2;
+        }
+
+        HYP_FORCE_INLINE Name GetName() const
+        {
+            return index == 0 ? nameValue : Name::Invalid();
+        }
+
+        HYP_FORCE_INLINE int GetInt() const
+        {
+            return index == 1 ? intValue : 0;
+        }
+
+        HYP_FORCE_INLINE float GetFloat() const
+        {
+            return index == 2 ? floatValue : 0.0f;
+        }
+
+        HYP_FORCE_INLINE HashCode GetHashCode() const
+        {
+            switch (index)
+            {
+            case 0:
+                return nameValue.GetHashCode();
+            case 1:
+                return HashCode::GetHashCode(intValue);
+            case 2:
+                return HashCode::GetHashCode(floatValue);
+            default:
+                return HashCode();
+            }
+        }
+    };
+
+    Name shaderName;
+    Name propertyNames[MaxShaderProperties];
+    PropertyValue propertyValues[MaxShaderProperties];
+    uint32 numProperties = 0;
+
+    ShaderDesc() = default;
+    
+    explicit ShaderDesc(Name shaderName)
+        : shaderName(shaderName),
+          numProperties(0)
+    {
+    }
+
+    template <SizeType N>
+    ShaderDesc(Name shaderName, const Pair<Name, PropertyValue>(&properties)[N])
+        : shaderName(shaderName),
+          numProperties(N)
+    {
+        static_assert(N <= MaxShaderProperties);
+
+        for (uint32 i = 0; i < N; i++)
+        {
+            propertyNames[i] = properties[i].first;
+            propertyValues[i] = properties[i].second;
+        }
+    }
+
+    explicit ShaderDesc(const ShaderDefinition& shaderDefinition)
+        : shaderName(shaderDefinition.name),
+          numProperties(0)
+    {
+        for (const ShaderProperty& property : shaderDefinition.GetProperties().GetPropertySet())
+        {
+            const uint32 propertyIndex = numProperties++;
+
+            if (propertyIndex == ShaderDesc::MaxShaderProperties)
+            {
+                break;
+            }
+
+            propertyNames[propertyIndex] = property.name;
+            if (property.HasValue())
+            {
+                if (property.currentValue.Is<Name>())
+                    propertyValues[propertyIndex] = property.currentValue.GetUnchecked<Name>();
+                else if (property.currentValue.Is<int>())
+                    propertyValues[propertyIndex] = property.currentValue.GetUnchecked<int>();
+                else if (property.currentValue.Is<float>())
+                    propertyValues[propertyIndex] = property.currentValue.GetUnchecked<float>();
+            }
+        }
+    }
+
+    ShaderDesc(const ShaderDesc& other) = default;
+    ShaderDesc& operator=(const ShaderDesc& other) = default;
+
+    HYP_FORCE_INLINE bool operator==(const ShaderDesc& other) const
+    {
+        return shaderName == other.shaderName
+            && numProperties == other.numProperties
+            && std::equal(propertyNames, propertyNames + numProperties, other.propertyNames)
+            && std::equal(propertyValues, propertyValues + numProperties, other.propertyValues);
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ShaderDesc& other) const
+    {
+        return !(*this == other);
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(shaderName)
+            .Combine(numProperties)
+            .Combine(HashCode::GetHashCode(propertyNames, propertyNames + numProperties))
+            .Combine(HashCode::GetHashCode(propertyValues, propertyValues + numProperties));
     }
 };
 

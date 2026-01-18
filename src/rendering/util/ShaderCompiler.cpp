@@ -29,6 +29,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
 
 #define HYP_SHADER_REFLECTION 1
 
@@ -205,10 +206,10 @@ static String BuildPreamble(const ShaderProperties& properties)
         // property has a value -- if integral or float, use that value
         if (property.HasValue())
         {
-            if (property.currentValue.IsName())
+            if (property.currentValue.Is<Name>())
             {
                 // string values are defined as KEY_VALUE = 1
-                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.GetName());
+                preamble += HYP_FORMAT("#define {}_{} 1\n", property.name, property.currentValue.Get<Name>());
             }
             else
             {
@@ -304,18 +305,430 @@ static bool SatisfiesRequestedPropertySet(const ShaderProperties& requested, con
 
 #pragma endregion Helpers
 
+#pragma region Internal structures
+
+
+
+enum class DescriptorUsageFlags : uint32
+{
+    NONE = 0x0,
+    DYNAMIC = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
+
+struct DescriptorUsageType
+{
+    Name name;
+    uint32 size = ~0u;
+    Array<Name> fieldNames;
+    Array<DescriptorUsageType, DynamicAllocator> fieldTypes;
+
+    DescriptorUsageType() = default;
+
+    DescriptorUsageType(Name name, uint32 size = ~0u)
+        : name(name),
+          size(size)
+    {
+    }
+
+    DescriptorUsageType(const DescriptorUsageType& other) = default;
+    DescriptorUsageType& operator=(const DescriptorUsageType& other) = default;
+    DescriptorUsageType(DescriptorUsageType&& other) noexcept = default;
+    DescriptorUsageType& operator=(DescriptorUsageType&& other) noexcept = default;
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return name.IsValid();
+    }
+
+    HYP_FORCE_INLINE bool HasExplicitSize() const
+    {
+        return size != ~0u;
+    }
+
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        return name;
+    }
+
+    HYP_FORCE_INLINE uint32 GetSize() const
+    {
+        return size;
+    }
+
+    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> AddField(Name fieldName, const DescriptorUsageType& type)
+    {
+        return Pair<Name, DescriptorUsageType&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
+    }
+
+    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> GetField(SizeType index)
+    {
+        return { fieldNames[index], fieldTypes[index] };
+    }
+
+    HYP_FORCE_INLINE const Pair<Name, const DescriptorUsageType&> GetField(SizeType index) const
+    {
+        return { fieldNames[index], fieldTypes[index] };
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType&>> FindField(StringHash fieldName)
+    {
+        for (SizeType i = 0; i < fieldNames.Size(); i++)
+        {
+            if (fieldNames[i] == fieldName)
+            {
+                return Pair<Name, DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
+            }
+        }
+
+        return {};
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType&>> FindField(StringHash fieldName) const
+    {
+        for (SizeType i = 0; i < fieldNames.Size(); i++)
+        {
+            if (fieldNames[i] == fieldName)
+            {
+                return Pair<Name, const DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
+            }
+        }
+
+        return {};
+    }
+
+    HYP_FORCE_INLINE bool operator<(const DescriptorUsageType& other) const
+    {
+        if (size != other.size)
+        {
+            return size < other.size;
+        }
+
+        if (fieldTypes.Size() != other.fieldTypes.Size())
+        {
+            return fieldTypes.Size() < other.fieldTypes.Size();
+        }
+
+        for (SizeType i = 0; i < fieldTypes.Size(); i++)
+        {
+            if (fieldTypes[i] != other.fieldTypes[i])
+            {
+                return fieldTypes[i] < other.fieldTypes[i];
+            }
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const DescriptorUsageType& other) const
+    {
+        return name == other.name
+            && size == other.size
+            && fieldNames == other.fieldNames
+            && fieldTypes == other.fieldTypes;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageType& other) const
+    {
+        return name != other.name
+            || size != other.size
+            || fieldNames != other.fieldNames
+            || fieldTypes != other.fieldTypes;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(size);
+        hc.Add(fieldNames);
+        hc.Add(fieldTypes);
+
+        return hc;
+    }
+};
+
+struct DescriptorUsage
+{
+    DescriptorSlot slot;
+    Name setName;
+    Name descriptorName;
+    DescriptorUsageType type;
+    EnumFlags<DescriptorUsageFlags> flags;
+    HashMap<String, String> params;
+
+    DescriptorUsage()
+        : slot((DescriptorSlot)0),
+          setName(Name::Invalid()),
+          flags(DescriptorUsageFlags::NONE)
+    {
+    }
+
+    DescriptorUsage(DescriptorSlot slot, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
+        : slot(slot),
+          setName(setName),
+          descriptorName(descriptorName),
+          flags(flags),
+          params(std::move(params))
+    {
+    }
+
+    DescriptorUsage(const DescriptorUsage& other)
+        : slot(other.slot),
+          setName(other.setName),
+          descriptorName(other.descriptorName),
+          type(other.type),
+          flags(other.flags),
+          params(other.params)
+    {
+    }
+
+    DescriptorUsage& operator=(const DescriptorUsage& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        slot = other.slot;
+        setName = other.setName;
+        descriptorName = other.descriptorName;
+        type = other.type;
+        flags = other.flags;
+        params = other.params;
+
+        return *this;
+    }
+
+    DescriptorUsage(DescriptorUsage&& other) noexcept
+        : slot(other.slot),
+          setName(std::move(other.setName)),
+          descriptorName(std::move(other.descriptorName)),
+          type(std::move(other.type)),
+          flags(other.flags),
+          params(std::move(other.params))
+    {
+    }
+
+    DescriptorUsage& operator=(DescriptorUsage&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        slot = other.slot;
+        setName = std::move(other.setName);
+        descriptorName = std::move(other.descriptorName);
+        type = std::move(other.type);
+        flags = other.flags;
+        params = std::move(other.params);
+
+        return *this;
+    }
+
+    ~DescriptorUsage() = default;
+
+    HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
+    {
+        return slot == other.slot
+            && setName == other.setName
+            && descriptorName == other.descriptorName
+            && type == other.type
+            && flags == other.flags
+            && params == other.params;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const DescriptorUsage& other) const
+    {
+        return slot != other.slot
+            || setName != other.setName
+            || descriptorName != other.descriptorName
+            || type != other.type
+            || flags != other.flags
+            || params != other.params;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const DescriptorUsage& other) const
+    {
+        if (slot != other.slot)
+        {
+            return slot < other.slot;
+        }
+
+        if (setName != other.setName)
+        {
+            return setName < other.setName;
+        }
+
+        if (descriptorName != other.descriptorName)
+        {
+            return descriptorName < other.descriptorName;
+        }
+
+        if (type != other.type)
+        {
+            return type < other.type;
+        }
+
+        if (flags != other.flags)
+        {
+            return uint32(flags) < uint32(other.flags);
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE uint32 GetCount() const
+    {
+        uint32 value = 1;
+
+        auto it = params.Find("count");
+
+        if (it == params.End())
+        {
+            return value;
+        }
+
+        if (StringUtil::Parse(it->second, &value))
+        {
+            return value;
+        }
+
+        return 1;
+    }
+
+    HYP_FORCE_INLINE uint32 GetSize() const
+    {
+        if (type.HasExplicitSize())
+        {
+            return type.size;
+        }
+
+        uint32 value = ~0u;
+
+        auto it = params.Find("size");
+
+        if (it == params.End())
+        {
+            return value;
+        }
+
+        if (StringUtil::Parse(it->second, &value))
+        {
+            return value;
+        }
+
+        return uint32(-1);
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(slot);
+        hc.Add(setName.GetHashCode());
+        hc.Add(descriptorName.GetHashCode());
+        hc.Add(type);
+        hc.Add(flags);
+        hc.Add(params.GetHashCode());
+
+        return hc;
+    }
+};
+
+struct DescriptorUsageSet
+{
+    FlatSet<DescriptorUsage> elements;
+
+    void BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const;
+
+    HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
+    {
+        return elements[index];
+    }
+
+    HYP_FORCE_INLINE const DescriptorUsage& operator[](SizeType index) const
+    {
+        return elements[index];
+    }
+
+    HYP_FORCE_INLINE bool operator==(const DescriptorUsageSet& other) const
+    {
+        return elements == other.elements;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageSet& other) const
+    {
+        return elements != other.elements;
+    }
+
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        return elements.Size();
+    }
+
+    HYP_FORCE_INLINE void Add(const DescriptorUsage& descriptorUsage)
+    {
+        elements.Insert(descriptorUsage);
+    }
+
+    HYP_FORCE_INLINE DescriptorUsage* Find(StringHash descriptorName)
+    {
+        auto it = elements.FindIf([descriptorName](const DescriptorUsage& descriptorUsage)
+            {
+                return descriptorUsage.descriptorName == descriptorName;
+            });
+
+        if (it == elements.End())
+        {
+            return nullptr;
+        }
+
+        return it;
+    }
+
+    HYP_FORCE_INLINE const DescriptorUsage* Find(StringHash descriptorName) const
+    {
+        return const_cast<const DescriptorUsageSet*>(this)->Find(descriptorName);
+    }
+
+    HYP_FORCE_INLINE void Merge(const Array<DescriptorUsage>& other)
+    {
+        elements.Merge(other);
+    }
+
+    HYP_FORCE_INLINE void Merge(Array<DescriptorUsage>&& other)
+    {
+        elements.Merge(std::move(other));
+    }
+
+    HYP_FORCE_INLINE void Merge(const DescriptorUsageSet& other)
+    {
+        elements.Merge(other.elements);
+    }
+
+    HYP_FORCE_INLINE void Merge(DescriptorUsageSet&& other)
+    {
+        elements.Merge(std::move(other.elements));
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return elements.GetHashCode();
+    }
+};
+
+#pragma endregion Internal structures
+
 #pragma region CompiledShader
 
 CompiledShader::CompiledShader(const CompiledShader& other)
     : definition(other.definition),
-      descriptorUsageSet(other.descriptorUsageSet),
+      descriptorTableDeclaration(other.descriptorTableDeclaration),
       entryPointName(other.entryPointName),
       modules(other.modules)
 {
-    if (other.descriptorTableDeclaration != nullptr)
-    {
-        descriptorTableDeclaration = new DescriptorTableDeclaration(*other.descriptorTableDeclaration);
-    }
 }
 
 CompiledShader& CompiledShader::operator=(const CompiledShader& other)
@@ -325,18 +738,7 @@ CompiledShader& CompiledShader::operator=(const CompiledShader& other)
         definition = other.definition;
         entryPointName = other.entryPointName;
         modules = other.modules;
-        descriptorUsageSet = other.descriptorUsageSet;
-
-        if (descriptorTableDeclaration != nullptr)
-        {
-            delete descriptorTableDeclaration;
-            descriptorTableDeclaration = nullptr;
-        }
-
-        if (other.descriptorTableDeclaration != nullptr)
-        {
-            descriptorTableDeclaration = new DescriptorTableDeclaration(*other.descriptorTableDeclaration);
-        }
+        descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
     }
 
     return *this;
@@ -344,12 +746,10 @@ CompiledShader& CompiledShader::operator=(const CompiledShader& other)
 
 CompiledShader::CompiledShader(CompiledShader&& other) noexcept
     : definition(std::move(other.definition)),
-      descriptorUsageSet(std::move(other.descriptorUsageSet)),
+      descriptorTableDeclaration(std::move(other.descriptorTableDeclaration)),
       entryPointName(std::move(other.entryPointName)),
-      modules(std::move(other.modules)),
-      descriptorTableDeclaration(other.descriptorTableDeclaration)
+      modules(std::move(other.modules))
 {
-    other.descriptorTableDeclaration = nullptr;
 }
 
 CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
@@ -359,27 +759,13 @@ CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
         definition = std::move(other.definition);
         entryPointName = std::move(other.entryPointName);
         modules = std::move(other.modules);
-        descriptorUsageSet = std::move(other.descriptorUsageSet);
-
-        if (descriptorTableDeclaration != nullptr)
-        {
-            delete descriptorTableDeclaration;
-            descriptorTableDeclaration = nullptr;
-        }
-
-        descriptorTableDeclaration = other.descriptorTableDeclaration;
-        other.descriptorTableDeclaration = nullptr;
+        descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
     }
     return *this;
 }
 
 CompiledShader::~CompiledShader()
 {
-    if (descriptorTableDeclaration != nullptr)
-    {
-        delete descriptorTableDeclaration;
-        descriptorTableDeclaration = nullptr;
-    }
 }
 
 uint64 CompiledShader::GetRevisionNumber() const
@@ -1033,8 +1419,6 @@ static ByteBuffer CompileToSPIRV(
 
             if (reflectionIndex == -1)
             {
-                HYP_LOG(ShaderCompiler, Warning, "Missing reflection data for shader input {}!", du.descriptorName);
-
                 continue;
             }
             
@@ -1051,8 +1435,6 @@ static ByteBuffer CompileToSPIRV(
                 
                 if (!refl->getType())
                 {
-                    HYP_LOG(ShaderCompiler, Error, "INVALID reflection data for shader input {}!", du.descriptorName);
-
                     continue;
                 }
 
@@ -1070,8 +1452,6 @@ static ByteBuffer CompileToSPIRV(
 
                 if (!refl->getType())
                 {
-                    HYP_LOG(ShaderCompiler, Error, "INVALID reflection data for shader input {}!", du.descriptorName);
-
                     continue;
                 }
                 
@@ -1609,18 +1989,10 @@ String ShaderProperty::GetValueString() const
     {
         String str;
 
-        switch (currentValue.index)
-        {
-        case 0:
-            str = HYP_FORMAT("{}", currentValue.nameValue);
-            break;
-        case 1:
-            str = HYP_FORMAT("{}", currentValue.intValue);
-            break;
-        case 2:
-            str = HYP_FORMAT("{}", currentValue.floatValue);
-            break;
-        }
+        Visit(currentValue, [&](auto&& value)
+            {
+                str = HYP_FORMAT("{}", value);
+            });
 
         return str;
     }
@@ -3072,8 +3444,6 @@ bool ShaderCompiler::CompileBundle(
                     return;
                 }
 
-                compiledShader.descriptorUsageSet = descriptorUsageSetsMerged;
-
                 // write the spirv to the output file
                 FileByteWriter spirvWriter(outputFilepath.Data());
 
@@ -3098,16 +3468,8 @@ bool ShaderCompiler::CompileBundle(
             numCompiledPermutations.Increment(uint32(!anyFilesErrored.Get(MemoryOrder::RELAXED) && anyFilesCompiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
             numErroredPermutations.Increment(uint32(anyFilesErrored.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
 
-            if (!compiledShader.descriptorTableDeclaration)
-            {
-                compiledShader.descriptorTableDeclaration = new DescriptorTableDeclaration();
-            }
-            else
-            {
-                *compiledShader.descriptorTableDeclaration = DescriptorTableDeclaration();
-            }
-
-            compiledShader.descriptorUsageSet.BuildDescriptorTableDeclaration(*compiledShader.descriptorTableDeclaration);
+            compiledShader.descriptorTableDeclaration = DescriptorTableDeclaration();
+            descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(compiledShader.descriptorTableDeclaration);
 
             Mutex::Guard guard(compiledShadersMutex);
             out.compiledShaders.PushBack(std::move(compiledShader));

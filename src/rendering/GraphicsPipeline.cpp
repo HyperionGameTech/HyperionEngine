@@ -83,6 +83,10 @@ bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
     const RenderTargetDesc& renderTargetDesc) const
 {
+
+    if (renderTargetDesc != m_renderTargetDesc)
+        return false;
+
     const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
 
     if (meshAttributes.topology != m_topology || meshAttributes.vertexAttributes != m_vertexAttributes)
@@ -113,12 +117,14 @@ bool GraphicsPipelineBase::MatchesSignature(
             return false;
     }
 
-    if (materialAttributes.shaderDefinition != m_shader->GetCompiledShader()->GetDefinition())
-        return false;
+    const ShaderDefinition& shaderDefinition = m_shader->GetCompiledShader()->GetDefinition();
 
-    // if no render target desc provided we assume the caller doesn't care and don't bother checking
-    if (renderTargetDesc != m_renderTargetDesc)
+    if (materialAttributes.shaderDefinition.name != shaderDefinition.name
+        || (shaderDefinition.properties.GetRequiredVertexAttributes().flagMask & meshAttributes.vertexAttributes.flagMask) != shaderDefinition.properties.GetRequiredVertexAttributes().flagMask
+        || materialAttributes.shaderDefinition.GetProperties().GetPropertySetHashCode() != shaderDefinition.properties.GetPropertySetHashCode())
+    {
         return false;
+    }
 
     return true;
 }
