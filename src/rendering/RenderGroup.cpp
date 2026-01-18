@@ -5,7 +5,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderMaterial.hpp>
+#include <rendering/MaterialTextureCache.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -333,7 +333,7 @@ static void RenderAll(
                 RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
                 AssertDebug(materialProxy != nullptr);
 
-                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                 AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                 FOR_EACH_BIT(textureMask, bit)
@@ -416,7 +416,7 @@ static void RenderAll(
                 RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
                 AssertDebug(materialProxy != nullptr);
 
-                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                 AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                 FOR_EACH_BIT(textureMask, bit)
@@ -588,7 +588,7 @@ static void RenderAll_Parallel(
                             RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
                             AssertDebug(materialProxy != nullptr);
 
-                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                             FOR_EACH_BIT(textureMask, bit)
@@ -694,7 +694,7 @@ static void RenderAll_Parallel(
                             RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
                             AssertDebug(materialProxy != nullptr);
 
-                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(materialBoundIndex);
+                            Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                             AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
                             FOR_EACH_BIT(textureMask, bit)

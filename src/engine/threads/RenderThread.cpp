@@ -16,7 +16,6 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderProxy.hpp>

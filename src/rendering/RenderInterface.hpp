@@ -30,7 +30,7 @@ class SkyProbe;
 class RenderGlobalState;
 class RenderResourceLock;
 class UIRenderer;
-class MaterialDescriptorSetManager;
+class MaterialTextureCache;
 class GraphicsPipelineCache;
 class BindlessStorage;
 class RenderCollector;
@@ -234,7 +234,7 @@ public:
 
     GlobalGpuBuffers gpuBuffers;
 
-    MaterialDescriptorSetManager* materialDescriptorSetManager;
+    MaterialTextureCache* materialTextureCache;
 
     GraphicsPipelineCache* graphicsPipelineCache;
 

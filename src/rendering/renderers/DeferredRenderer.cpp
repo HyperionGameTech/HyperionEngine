@@ -10,7 +10,6 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/SSRRenderer.hpp>
@@ -510,17 +509,17 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             // Bind material descriptor set (for area lights)
 
-            // @TOOD FIxme use new way!!!
-            if (materialDescriptorSetIndex != ~0u)
-            {
-                const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
+            //// @TOOD FIxme use new way!!!
+            //if (materialDescriptorSetIndex != ~0u)
+            //{
+            //    const DescriptorSetRef& materialDescriptorSet = g_renderInterface->materialDescriptorSetManager->ForBoundMaterial(light->GetMaterial(), frame->GetFrameIndex());
 
-                frame->renderQueue << BindDescriptorSet(
-                    materialDescriptorSet,
-                    pipeline,
-                    {},
-                    materialDescriptorSetIndex);
-            }
+            //    frame->renderQueue << BindDescriptorSet(
+            //        materialDescriptorSet,
+            //        pipeline,
+            //        {},
+            //        materialDescriptorSetIndex);
+            //}
 
             frame->renderQueue << DrawIndexed(6);
 

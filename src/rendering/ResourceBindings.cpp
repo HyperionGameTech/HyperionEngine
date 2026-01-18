@@ -3,7 +3,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderMaterial.hpp>
+#include <rendering/MaterialTextureCache.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
@@ -284,9 +284,9 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
     if (prev != ~0u)
     {
-        if (g_renderInterface->materialDescriptorSetManager->imageViews.HasIndex(prev))
+        if (g_renderInterface->materialTextureCache->imageViews.HasIndex(prev))
         {
-            auto& imageViews = g_renderInterface->materialDescriptorSetManager->imageViews.Get(prev);
+            auto& imageViews = g_renderInterface->materialTextureCache->imageViews.Get(prev);
 
             if (imageViews.Any())
             {
@@ -302,7 +302,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
         RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
 
-        auto imageViewsIt = g_renderInterface->materialDescriptorSetManager->imageViews.Emplace(next);
+        auto imageViewsIt = g_renderInterface->materialTextureCache->imageViews.Emplace(next);
         auto& imageViews = *imageViewsIt;
 
         if (imageViews.Size() < proxyCasted->boundTextures.Size())
