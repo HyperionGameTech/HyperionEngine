@@ -15,10 +15,10 @@
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
+#include <rendering/vulkan/VulkanShader.hpp>
 
 #include <rendering/RenderPipeline.hpp>
 #include <rendering/Device.hpp>
-#include <rendering/Shader.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Shared.hpp>
 

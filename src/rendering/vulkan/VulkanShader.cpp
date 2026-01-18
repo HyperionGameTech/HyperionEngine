@@ -31,7 +31,7 @@ VulkanShader::VulkanShader()
 {
 }
 
-VulkanShader::VulkanShader(const RC<CompiledShader>& compiledShader)
+VulkanShader::VulkanShader(const CompiledShader* compiledShader)
     : ShaderBase(compiledShader)
 {
 #ifdef HYP_DEBUG_MODE

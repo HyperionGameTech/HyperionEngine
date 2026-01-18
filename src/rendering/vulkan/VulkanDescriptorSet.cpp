@@ -268,7 +268,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         }
     }
     
-    Array<VulkanCachedDescriptor, VulkanAllocator> localDescriptors;
+    Array<VulkanCachedDescriptor> localDescriptors;
 
     // detect changes from cachedValues
     for (auto& it : m_elements)
@@ -296,12 +296,12 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             const bool layoutHasSize = layoutElement->size != 0 && layoutElement->size != ~0u;
             const bool isDynamic = layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
                 || layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
-            for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
+
             for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(ptr && Hyperion::IsA<VulkanGpuBuffer>(ptr));
+                AssertDebug(ptr && Hyperion::IsA<VulkanGpuBuffer>(ptr), "Invalid buffer descriptor: {}", name);
 
                 VulkanGpuBuffer* ref = static_cast<VulkanGpuBuffer*>(ptr);
                 AssertDebug(ref != nullptr);
@@ -332,7 +332,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(ptr && Hyperion::IsA<VulkanGpuImageView>(ptr));
+                AssertDebug(ptr && Hyperion::IsA<VulkanGpuImageView>(ptr), "Invalid image descriptor: {}", name);
 
                 VulkanGpuImageView* ref = static_cast<VulkanGpuImageView*>(ptr);
                 AssertDebug(ref != nullptr);
@@ -360,7 +360,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             {
                 ObjectBase* ptr = element.values[index];
 
-                AssertDebug(ptr && Hyperion::IsA<VulkanSampler>(ptr));
+                AssertDebug(ptr && Hyperion::IsA<VulkanSampler>(ptr), "Invalid sampler descriptor: {}", name);
 
                 VulkanSampler* ref = static_cast<VulkanSampler*>(ptr);
                 AssertDebug(ref != nullptr);
@@ -418,7 +418,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         for (SizeType i = 0; i < localDescriptors.Size(); i++)
         {
-            if (Memory::MemCmp(localDescriptors.Data() + i, cachedValues.Data() + i, sizeof(VulkanCachedDescriptor)) != 0)
+            if (localDescriptors[i] != cachedValues[i])
             {
                 localDirtyRange |= { uint32(i), uint32(i + 1) };
             }
@@ -428,8 +428,12 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         {
             AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
             AssertDebug(localDirtyRange.GetEnd() <= localDescriptors.Size());
-
+            
             Memory::MemCpy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * SizeType(localDirtyRange.Distance()));
+            // std::copy_n(
+            //     std::begin(cachedValues) + localDirtyRange.GetStart(),
+            //     localDirtyRange.Distance(),
+            //     std::begin(localDescriptors) + localDirtyRange.GetStart());
 
             // mark the element as dirty
             element.dirtyRange |= localDirtyRange;

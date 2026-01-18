@@ -10,7 +10,6 @@
 #include <core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/Device.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
@@ -40,12 +39,16 @@ class ShaderBase : public ObjectBase
     HYP_OBJECT_BODY(ShaderBase);
 
 public:
-    ShaderBase() = default;
+    ShaderBase()
+        : m_compiledShader(nullptr)
+    {
+    }
+
     virtual ~ShaderBase() override = default;
 
-    HYP_FORCE_INLINE CompiledShader* GetCompiledShader() const
+    HYP_FORCE_INLINE const CompiledShader* GetCompiledShader() const
     {
-        return m_compiledShader.Get();
+        return m_compiledShader;
     }
 
     virtual bool IsCreated() const = 0;
@@ -63,12 +66,12 @@ public:
     }
 
 protected:
-    ShaderBase(const RC<CompiledShader>& compiledShader)
+    explicit ShaderBase(const CompiledShader* compiledShader)
         : m_compiledShader(compiledShader)
     {
     }
 
-    RC<CompiledShader> m_compiledShader;
+    const CompiledShader* m_compiledShader;
     Name m_debugName;
 };
 

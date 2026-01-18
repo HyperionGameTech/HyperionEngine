@@ -62,6 +62,14 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
     EnvProbe current_env_probe;
 };
 
+#if ENV_PROBE_CUBEMAP
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
+#else
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+#endif
+
+HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+
 #include "./DeferredLighting.glsl"
 
 layout(push_constant) uniform PushConstant

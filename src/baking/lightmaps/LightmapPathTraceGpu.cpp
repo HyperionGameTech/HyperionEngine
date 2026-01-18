@@ -24,8 +24,10 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <rendering/raytracing/MeshBlasBuilder.hpp>
 

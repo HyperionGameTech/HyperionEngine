@@ -24,9 +24,8 @@ HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerLinear) uniform sampler sampler_line
 HYP_DESCRIPTOR_SRV(DeferredPass, SSAOResultTexture) uniform texture2D ssao_gi_result;
 HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
 
-#include "include/env_probe.inc"
-
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "include/env_probe.inc"
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
 #include "include/material.inc"
@@ -52,8 +51,12 @@ HYP_DESCRIPTOR_SRV(DeferredPass, ShadowMapsTextureArray) uniform texture2DArray 
 HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DEFERRED_NO_REFRACTION
+#define HYP_DEFERRED_NO_ENV_PROBE
+#define HYP_DEFERRED_NO_ENV_GRID
 #include "./deferred/DeferredLighting.glsl"
 #undef HYP_DEFERRED_NO_REFRACTION
+#undef HYP_DEFERRED_NO_ENV_PROBE
+#undef HYP_DEFERRED_NO_ENV_GRID
 
 vec2 texcoord = v_texcoord0;
 
@@ -65,11 +68,6 @@ vec2 texcoord = v_texcoord0;
 HYP_DESCRIPTOR_SAMPLER(DeferredPass, LTCSampler) uniform sampler ltc_sampler;
 HYP_DESCRIPTOR_SRV(DeferredPass, LTCMatrixTexture) uniform texture2D ltc_matrix_texture;
 HYP_DESCRIPTOR_SRV(DeferredPass, LTCBRDFTexture) uniform texture2D ltc_brdf_texture;
-
-HYP_DESCRIPTOR_SSBO(DeferredPass, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material materials[];
-};
 
 #ifdef LIGHT_TYPE_AREA_RECT // material texture bindings used for textured rectangular area light
 HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;

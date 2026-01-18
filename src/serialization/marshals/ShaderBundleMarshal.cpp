@@ -40,11 +40,6 @@ public:
             return { FBOMResult::FBOM_ERR, "Shader out of date" };
         }
 
-        AssertDebug(compiledShader.descriptorTableDeclaration == nullptr);
-
-        compiledShader.descriptorTableDeclaration = new DescriptorTableDeclaration;
-        compiledShader.descriptorUsageSet.BuildDescriptorTableDeclaration(*compiledShader.descriptorTableDeclaration);
-
         return { FBOMResult::FBOM_OK };
     }
 };

@@ -111,7 +111,7 @@ public:
 
     virtual FrameRef MakeFrame(uint32 frameIndex) = 0;
 
-    virtual ShaderRef MakeShader(const RC<CompiledShader>& compiledShader) = 0;
+    virtual ShaderRef MakeShader(const CompiledShader* compiledShader) = 0;
 
     virtual GpuBlasRef MakeGpuBlas(
         const GpuBufferRef& packedVerticesBuffer,

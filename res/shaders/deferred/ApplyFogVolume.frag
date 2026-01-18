@@ -40,17 +40,9 @@ HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D GBufferDepthText
 #include "../include/packing.inc"
 #include "../include/shared.inc"
 
-#include "../include/env_probe.inc"
 #include "../include/gbuffer.inc"
 
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
 
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 {
@@ -66,13 +58,18 @@ HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #include "../include/brdf.inc"
-#include "DeferredLighting.glsl"
-#include "../include/shadows.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
+#define HYP_DEFERRED_NO_REFRACTION
+#define HYP_DEFERRED_NO_ENV_GRID
+#define HYP_DEFERRED_NO_ENV_PROBE
+
+#include "DeferredLighting.glsl"
+
+#undef HYP_DEFERRED_NO_REFRACTION
+#undef HYP_DEFERRED_NO_ENV_GRID
+#undef HYP_DEFERRED_NO_ENV_PROBE
+
+#include "../include/shadows.inc"
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
 {

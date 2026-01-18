@@ -14,7 +14,6 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/StringUtil.hpp>
 
-#include <rendering/Shader.hpp>
 #include <rendering/Shared.hpp>
 
 #include <util/ini/INIFile.hpp>
@@ -43,442 +42,235 @@ enum class ProcessShaderSourcePhase : uint32
 };
 
 HYP_ENUM()
-enum class DescriptorUsageFlags : uint32
+enum DescriptorSlot : uint32
 {
-    NONE = 0x0,
-    DYNAMIC = 0x1
+    DESCRIPTOR_SLOT_NONE = 0,
+    DESCRIPTOR_SLOT_SRV,
+    DESCRIPTOR_SLOT_UAV,
+    DESCRIPTOR_SLOT_CBUFF,
+    DESCRIPTOR_SLOT_SSBO,
+    DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE,
+    DESCRIPTOR_SLOT_SAMPLER,
+    DESCRIPTOR_SLOT_MAX
 };
 
-HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
+HYP_ENUM()
+enum class DescriptorSetDeclarationFlags : uint8
+{
+    NONE = 0x0,
+    REFERENCE = 0x1, // is this a reference to a global descriptor set declaration?
+    TEMPLATE = 0x2   // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
+};
+
+HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 HYP_STRUCT()
-struct DescriptorUsageType
+struct DescriptorDeclaration
 {
-    HYP_STRUCT_BODY(DescriptorUsageType);
+    HYP_STRUCT_BODY(DescriptorDeclaration);
+
+    using ConditionFunction = bool (*)();
+
+    HYP_FIELD(Property = "Slot", Serialize = true)
+    DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
 
+    HYP_FIELD(Property = "Count", Serialize = true)
+    uint32 count = 1;
+
     HYP_FIELD(Property = "Size", Serialize = true)
-    uint32 size = ~0u;
+    uint32 size = uint32(-1);
 
-    HYP_FIELD(Property = "FieldNames", Serialize = true)
-    Array<Name> fieldNames;
+    HYP_FIELD(Property = "IsDynamic", Serialize = true)
+    bool isDynamic = false;
 
-    HYP_FIELD(Property = "FieldTypes", Serialize = true)
-    Array<DescriptorUsageType, DynamicAllocator> fieldTypes;
+    HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
+    uint32 index = ~0u;
 
-    DescriptorUsageType() = default;
-
-    DescriptorUsageType(Name name, uint32 size = ~0u)
-        : name(name),
-          size(size)
-    {
-    }
-
-    DescriptorUsageType(const DescriptorUsageType& other) = default;
-    DescriptorUsageType& operator=(const DescriptorUsageType& other) = default;
-    DescriptorUsageType(DescriptorUsageType&& other) noexcept = default;
-    DescriptorUsageType& operator=(DescriptorUsageType&& other) noexcept = default;
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return name.IsValid();
-    }
-
-    HYP_FORCE_INLINE bool HasExplicitSize() const
-    {
-        return size != ~0u;
-    }
-
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return name;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSize() const
-    {
-        return size;
-    }
-
-    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> AddField(Name fieldName, const DescriptorUsageType& type)
-    {
-        return Pair<Name, DescriptorUsageType&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
-    }
-
-    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> GetField(SizeType index)
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE const Pair<Name, const DescriptorUsageType&> GetField(SizeType index) const
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType&>> FindField(StringHash fieldName)
-    {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
-        {
-            if (fieldNames[i] == fieldName)
-            {
-                return Pair<Name, DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
-            }
-        }
-
-        return {};
-    }
-
-    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType&>> FindField(StringHash fieldName) const
-    {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
-        {
-            if (fieldNames[i] == fieldName)
-            {
-                return Pair<Name, const DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
-            }
-        }
-
-        return {};
-    }
-
-    HYP_FORCE_INLINE bool operator<(const DescriptorUsageType& other) const
-    {
-        if (size != other.size)
-        {
-            return size < other.size;
-        }
-
-        if (fieldTypes.Size() != other.fieldTypes.Size())
-        {
-            return fieldTypes.Size() < other.fieldTypes.Size();
-        }
-
-        for (SizeType i = 0; i < fieldTypes.Size(); i++)
-        {
-            if (fieldTypes[i] != other.fieldTypes[i])
-            {
-                return fieldTypes[i] < other.fieldTypes[i];
-            }
-        }
-
-        return false;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsageType& other) const
-    {
-        return name == other.name
-            && size == other.size
-            && fieldNames == other.fieldNames
-            && fieldTypes == other.fieldTypes;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageType& other) const
-    {
-        return name != other.name
-            || size != other.size
-            || fieldNames != other.fieldNames
-            || fieldTypes != other.fieldTypes;
-    }
+    ConditionFunction cond = nullptr;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
+
+        hc.Add(slot);
         hc.Add(name);
+        hc.Add(count);
         hc.Add(size);
-        hc.Add(fieldNames);
-        hc.Add(fieldTypes);
+        hc.Add(isDynamic);
+        hc.Add(index);
+
+        // cond excluded intentionally
 
         return hc;
     }
 };
 
 HYP_STRUCT()
-struct DescriptorUsage
+struct DescriptorSetDeclaration
 {
-    HYP_STRUCT_BODY(DescriptorUsage);
+    HYP_STRUCT_BODY(DescriptorSetDeclaration);
 
-    HYP_FIELD(Property = "Slot", Serialize = true)
-    DescriptorSlot slot;
+    HYP_FIELD(Property = "SetIndex", Serialize = true)
+    uint32 setIndex = ~0u;
 
-    HYP_FIELD(Property = "SetName", Serialize = true)
-    Name setName;
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name name = Name::Invalid();
 
-    HYP_FIELD(Property = "DescriptorName", Serialize = true)
-    Name descriptorName;
-
-    HYP_FIELD(Property = "Type", Serialize = true)
-    DescriptorUsageType type;
+    HYP_FIELD(Property = "Slots", Serialize = true)
+    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, DESCRIPTOR_SLOT_MAX> slots = {};
 
     HYP_FIELD(Property = "Flags", Serialize = true)
-    EnumFlags<DescriptorUsageFlags> flags;
+    EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
 
-    HYP_FIELD(Property = "Params", Serialize = true)
-    HashMap<String, String> params;
+    DescriptorSetDeclaration() = default;
 
-    DescriptorUsage()
-        : slot((DescriptorSlot)0),
-          setName(Name::Invalid()),
-          flags(DescriptorUsageFlags::NONE)
+    DescriptorSetDeclaration(uint32 setIndex, Name name)
+        : setIndex(setIndex),
+          name(name)
     {
     }
 
-    DescriptorUsage(DescriptorSlot slot, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
-        : slot(slot),
-          setName(setName),
-          descriptorName(descriptorName),
-          flags(flags),
-          params(std::move(params))
+    DescriptorSetDeclaration(const DescriptorSetDeclaration& other) = default;
+    DescriptorSetDeclaration& operator=(const DescriptorSetDeclaration& other) = default;
+    DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
+    DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
+    ~DescriptorSetDeclaration() = default;
+
+    HYP_FORCE_INLINE void AddDescriptorDeclaration(DescriptorDeclaration decl)
     {
+        AssertDebug(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
+
+        decl.index = uint32(slots[uint32(decl.slot) - 1].Size());
+        slots[uint32(decl.slot) - 1].PushBack(std::move(decl));
     }
 
-    DescriptorUsage(const DescriptorUsage& other)
-        : slot(other.slot),
-          setName(other.setName),
-          descriptorName(other.descriptorName),
-          type(other.type),
-          flags(other.flags),
-          params(other.params)
-    {
-    }
+    /*! \brief Calculate a flat index for a Descriptor that is part of this set.
+        Returns -1 if not found */
+    uint32 CalculateFlatIndex(DescriptorSlot slot, StringHash name) const;
 
-    DescriptorUsage& operator=(const DescriptorUsage& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        setName = other.setName;
-        descriptorName = other.descriptorName;
-        type = other.type;
-        flags = other.flags;
-        params = other.params;
-
-        return *this;
-    }
-
-    DescriptorUsage(DescriptorUsage&& other) noexcept
-        : slot(other.slot),
-          setName(std::move(other.setName)),
-          descriptorName(std::move(other.descriptorName)),
-          type(std::move(other.type)),
-          flags(other.flags),
-          params(std::move(other.params))
-    {
-    }
-
-    DescriptorUsage& operator=(DescriptorUsage&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        setName = std::move(other.setName);
-        descriptorName = std::move(other.descriptorName);
-        type = std::move(other.type);
-        flags = other.flags;
-        params = std::move(other.params);
-
-        return *this;
-    }
-
-    ~DescriptorUsage() = default;
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
-    {
-        return slot == other.slot
-            && setName == other.setName
-            && descriptorName == other.descriptorName
-            && type == other.type
-            && flags == other.flags
-            && params == other.params;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsage& other) const
-    {
-        return slot != other.slot
-            || setName != other.setName
-            || descriptorName != other.descriptorName
-            || type != other.type
-            || flags != other.flags
-            || params != other.params;
-    }
-
-    HYP_FORCE_INLINE bool operator<(const DescriptorUsage& other) const
-    {
-        if (slot != other.slot)
-        {
-            return slot < other.slot;
-        }
-
-        if (setName != other.setName)
-        {
-            return setName < other.setName;
-        }
-
-        if (descriptorName != other.descriptorName)
-        {
-            return descriptorName < other.descriptorName;
-        }
-
-        if (type != other.type)
-        {
-            return type < other.type;
-        }
-
-        if (flags != other.flags)
-        {
-            return uint32(flags) < uint32(other.flags);
-        }
-
-        return false;
-    }
-
-    HYP_FORCE_INLINE uint32 GetCount() const
-    {
-        uint32 value = 1;
-
-        auto it = params.Find("count");
-
-        if (it == params.End())
-        {
-            return value;
-        }
-
-        if (StringUtil::Parse(it->second, &value))
-        {
-            return value;
-        }
-
-        return 1;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSize() const
-    {
-        if (type.HasExplicitSize())
-        {
-            return type.size;
-        }
-
-        uint32 value = ~0u;
-
-        auto it = params.Find("size");
-
-        if (it == params.End())
-        {
-            return value;
-        }
-
-        if (StringUtil::Parse(it->second, &value))
-        {
-            return value;
-        }
-
-        return uint32(-1);
-    }
+    DescriptorDeclaration* FindDescriptorDeclaration(StringHash name) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(slot);
-        hc.Add(setName.GetHashCode());
-        hc.Add(descriptorName.GetHashCode());
-        hc.Add(type);
+
+        hc.Add(setIndex);
+        hc.Add(name);
         hc.Add(flags);
-        hc.Add(params.GetHashCode());
+
+        for (const auto& slot : slots)
+        {
+            for (const auto& decl : slot)
+            {
+                hc.Add(decl.GetHashCode());
+            }
+        }
 
         return hc;
     }
 };
 
 HYP_STRUCT()
-struct DescriptorUsageSet
+struct DescriptorTableDeclaration
 {
-    HYP_STRUCT_BODY(DescriptorUsageSet);
+    HYP_STRUCT_BODY(DescriptorTableDeclaration);
 
-    HYP_FIELD()
-    FlatSet<DescriptorUsage> elements;
+    HYP_FIELD(Property = "Elements", Serialize = true)
+    Array<DescriptorSetDeclaration> elements;
 
-    void BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const;
+    DescriptorSetDeclaration* FindDescriptorSetDeclaration(StringHash name) const;
+    DescriptorSetDeclaration* AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration);
 
-    HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
+    /*! \brief Get the index of a descriptor set in the table
+        \param name The name of the descriptor set
+        \return The index of the descriptor set in the table, or -1 if not found */
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(StringHash name) const
     {
-        return elements[index];
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsage& operator[](SizeType index) const
-    {
-        return elements[index];
-    }
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsageSet& other) const
-    {
-        return elements == other.elements;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageSet& other) const
-    {
-        return elements != other.elements;
-    }
-
-    HYP_FORCE_INLINE SizeType Size() const
-    {
-        return elements.Size();
-    }
-
-    HYP_FORCE_INLINE void Add(const DescriptorUsage& descriptorUsage)
-    {
-        elements.Insert(descriptorUsage);
-    }
-
-    HYP_FORCE_INLINE DescriptorUsage* Find(StringHash descriptorName)
-    {
-        auto it = elements.FindIf([descriptorName](const DescriptorUsage& descriptorUsage)
-            {
-                return descriptorUsage.descriptorName == descriptorName;
-            });
-
-        if (it == elements.End())
+        for (const auto& it : elements)
         {
-            return nullptr;
+            if (it.name == name)
+            {
+                return it.setIndex;
+            }
         }
 
-        return it;
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsage* Find(StringHash descriptorName) const
-    {
-        return const_cast<const DescriptorUsageSet*>(this)->Find(descriptorName);
-    }
-
-    HYP_FORCE_INLINE void Merge(const Array<DescriptorUsage>& other)
-    {
-        elements.Merge(other);
-    }
-
-    HYP_FORCE_INLINE void Merge(Array<DescriptorUsage>&& other)
-    {
-        elements.Merge(std::move(other));
-    }
-
-    HYP_FORCE_INLINE void Merge(const DescriptorUsageSet& other)
-    {
-        elements.Merge(other.elements);
-    }
-
-    HYP_FORCE_INLINE void Merge(DescriptorUsageSet&& other)
-    {
-        elements.Merge(std::move(other.elements));
+        return ~0u;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return elements.GetHashCode();
+        HashCode hc;
+
+        for (const DescriptorSetDeclaration& decl : elements)
+        {
+            hc.Add(decl.GetHashCode());
+        }
+
+        return hc;
     }
+
+    struct DeclareSet
+    {
+        DeclareSet(DescriptorTableDeclaration* table, uint32 setIndex, Name name, bool isTemplate = false)
+        {
+            AssertDebug(table != nullptr);
+
+            if (table->elements.Size() <= setIndex)
+            {
+                table->elements.Resize(setIndex + 1);
+            }
+
+            DescriptorSetDeclaration& decl = table->elements[setIndex];
+            decl.setIndex = setIndex;
+            decl.name = name;
+
+            if (isTemplate)
+            {
+                decl.flags |= DescriptorSetDeclarationFlags::TEMPLATE;
+            }
+        }
+    };
+
+    struct DeclareDescriptor
+    {
+        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        {
+            AssertDebug(table != nullptr);
+
+            uint32 setIndex = ~0u;
+
+            for (SizeType i = 0; i < table->elements.Size(); ++i)
+            {
+                if (table->elements[i].name == setName)
+                {
+                    setIndex = uint32(i);
+                    break;
+                }
+            }
+
+            AssertDebug(setIndex != ~0u, "Descriptor set {} not found", setName);
+
+            DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
+            AssertDebug(descriptorSetDecl.setIndex == setIndex);
+            AssertDebug(slotType > 0 && slotType < descriptorSetDecl.slots.Size());
+
+            const uint32 slotTypeIndex = uint32(slotType) - 1;
+
+            const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
+
+            DescriptorDeclaration& descriptorDecl = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
+            descriptorDecl.index = slotIndex;
+            descriptorDecl.slot = slotType;
+            descriptorDecl.name = descriptorName;
+            descriptorDecl.cond = cond;
+            descriptorDecl.size = size;
+            descriptorDecl.count = count;
+            descriptorDecl.isDynamic = isDynamic;
+        }
+    };
 };
 
 HYP_STRUCT()
@@ -489,11 +281,8 @@ struct HYP_API CompiledShader
     HYP_FIELD(Property = "Definition")
     ShaderDefinition definition;
 
-    HYP_FIELD(Property = "DescriptorTableDeclaration", Transient) // built after load, not serialized
-    DescriptorTableDeclaration* descriptorTableDeclaration = nullptr;
-
-    HYP_FIELD(Property = "DescriptorUsageSet")
-    DescriptorUsageSet descriptorUsageSet;
+    HYP_FIELD(Property = "DescriptorTableDeclaration")
+    DescriptorTableDeclaration descriptorTableDeclaration;
 
     HYP_FIELD(Property = "EntryPointName")
     String entryPointName = "main";
@@ -544,7 +333,8 @@ struct HYP_API CompiledShader
 
     HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDescriptorTableDeclaration() const
     {
-        return descriptorTableDeclaration;
+        // \TODO return reference
+        return &descriptorTableDeclaration;
     }
 
     HYP_FORCE_INLINE const String& GetEntryPointName() const
@@ -646,7 +436,7 @@ class ShaderCompiler
         Array<ProcessError> errors;
         Array<VertexAttributeDefinition> requiredAttributes;
         Array<VertexAttributeDefinition> optionalAttributes;
-        Array<DescriptorUsage> descriptorUsages;
+        Array<struct DescriptorUsage, DynamicAllocator> descriptorUsages;
 
         ProcessResult() = default;
         ProcessResult(const ProcessResult& other) = default;

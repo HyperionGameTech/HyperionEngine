@@ -309,9 +309,7 @@ void GraphicsPipelineCache::GetOrCreate(
 {
     HYP_SCOPE;
 
-    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(
-        attributes,
-        renderTargetDesc);
+    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(attributes, renderTargetDesc);
 
     if (cacheHandle.IsAlive())
     {
@@ -342,6 +340,9 @@ void GraphicsPipelineCache::GetOrCreate(
         shader,
         renderTargetDesc,
         attributes);
+
+    // sanity check: newly created pipeline must match or caching will fail.
+    AssertDebug(graphicsPipeline->MatchesSignature(attributes, renderTargetDesc));
 
     SizeType slot = SizeType(-1);
 

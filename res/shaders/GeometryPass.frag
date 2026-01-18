@@ -64,6 +64,7 @@ HYP_DESCRIPTOR_SRV(Default, EnvProbeTextures, count = 16) uniform textureCube en
 #else
 HYP_DESCRIPTOR_SRV(Default, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
 #endif
+
 HYP_DESCRIPTOR_SSBO(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;

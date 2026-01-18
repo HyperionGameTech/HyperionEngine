@@ -1731,8 +1731,8 @@ void RenderInterface::CommitDrawState()
     }
 
     Shader* shader = pipeline->GetShader();
-    CompiledShader* compiledShader = shader->GetCompiledShader();
 
+    const CompiledShader* compiledShader = shader->GetCompiledShader();
     AssertDebug(compiledShader != nullptr);
 
     const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
@@ -1821,6 +1821,8 @@ void RenderInterface::CommitDrawState()
 
         if (!decl)
         {
+            // HYP_LOG_TEMP("Warning: uniform {} not found for shader {}", uniform.name, shader->GetCompiledShader()->GetName());
+
             // not found; skip
             state.dirtyUniforms &= ~(1u << uniformIndex);
             state.dirtyBufferOffsets &= ~(1u << uniformIndex);
@@ -1922,20 +1924,28 @@ void RenderInterface::CommitDrawState()
             switch (uniform.type)
             {
             case ShaderUniform::UT_Buffer:
+                AssertDebug(uniform.buffer != nullptr);
+
                 ds->SetElement(uniform.name, uniform.buffer);
 
                 state.dirtyBufferOffsets |= (1u << uniformIndex);
 
                 break;
             case ShaderUniform::UT_ImageView:
+                AssertDebug(uniform.imageView != nullptr);
+
                 ds->SetElement(uniform.name, uniform.imageView);
 
                 break;
             case ShaderUniform::UT_Sampler:
+                AssertDebug(uniform.sampler != nullptr);
+
                 ds->SetElement(uniform.name, uniform.sampler);
 
                 break;
             case ShaderUniform::UT_Tlas:
+                AssertDebug(uniform.tlas != nullptr);
+
                 ds->SetElement(uniform.name, uniform.tlas);
 
                 break;
@@ -1967,6 +1977,23 @@ void RenderInterface::CommitDrawState()
 
             bits.Set(currBit, false);
         }
+    }
+
+    // For debugging:
+    Array<Name, RenderTempAllocator> dirtyUniforms;
+    dirtyUniforms.Reserve(State::MaxShaderUniforms);
+
+    FOR_EACH_BIT(state.dirtyUniforms, bit)
+    {
+        dirtyUniforms.PushBack(Name(state.shaderUniforms[bit].name));
+    }
+    
+    Array<Name, RenderTempAllocator> validUniforms;
+    validUniforms.Reserve(State::MaxShaderUniforms);
+
+    FOR_EACH_BIT(state.validUniforms, bit)
+    {
+        validUniforms.PushBack(Name(state.shaderUniforms[bit].name));
     }
     
     // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)

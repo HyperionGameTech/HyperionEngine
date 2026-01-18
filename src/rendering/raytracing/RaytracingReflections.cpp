@@ -14,6 +14,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/TextureViewCache.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>

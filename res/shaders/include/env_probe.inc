@@ -201,15 +201,4 @@ vec3 SphericalHarmonicsSample(const in SH9 sh, vec3 normal)
     return result;
 }
 
-#if !defined(HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS)
-#if !defined(VERTEX_SHADER)
-#if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
-#else
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
-#endif // !ENV_PROBE_CUBEMAP
-#endif // !defined(VERTEX_SHADER)
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
-#endif // !defined(HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS)
-
 #endif

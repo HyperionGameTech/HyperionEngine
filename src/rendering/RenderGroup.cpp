@@ -810,9 +810,20 @@ void RenderGroup::PerformRendering(
 
     RenderQueue& rq = *pRenderQueue;
     
-    rq << SetCurrentShader(m_shader);
+    rq << SetTopology(m_renderableAttributes.GetMeshAttributes().topology);
+    rq << SetVertexAttributes(m_renderableAttributes.GetMeshAttributes().vertexAttributes);
+    
     rq << SetCurrentView(renderSetup.view);
-    rq << SetCurrentAttributes(m_renderableAttributes);
+    
+    rq << SetCurrentShader(ShaderDesc(m_renderableAttributes.GetMaterialAttributes().shaderDefinition));
+
+    rq << SetDepthTest(bool(m_renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+    rq << SetDepthWrite(bool(m_renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    rq << SetStencilTest(bool(m_renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+    rq << SetCurrentBlendFunction(m_renderableAttributes.GetMaterialAttributes().blendFunction);
+    rq << SetStencilFunction(m_renderableAttributes.GetMaterialAttributes().stencilFunction);
+    rq << SetFillMode(m_renderableAttributes.GetMaterialAttributes().fillMode);
+    rq << SetFaceCullMode(m_renderableAttributes.GetMaterialAttributes().cullFaces);
 
     if (stencilReference != 0)
     {

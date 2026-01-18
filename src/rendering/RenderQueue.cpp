@@ -464,7 +464,44 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
     SetCurrentShader* cmdCasted = static_cast<SetCurrentShader*>(cmd);
 
-    g_renderInterface->state.shader = cmdCasted->m_shader;
+    RenderInterface::State& state = g_renderInterface->state;
+
+    ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
+
+    shaderDefinition.name = cmdCasted->shaderDesc.shaderName;
+
+    shaderDefinition.properties = ShaderProperties {};
+    MergeGlobalShaderProperties(shaderDefinition.properties);
+
+    // set required vertex attributes for the shader based on current vertexAttributes value
+    shaderDefinition.properties.SetRequiredVertexAttributes(state.attributes.GetMeshAttributes().vertexAttributes);
+
+    for (uint32 propertyIndex = 0; propertyIndex < cmdCasted->shaderDesc.numProperties; propertyIndex++)
+    {
+        ShaderProperty property;
+        property.name = cmdCasted->shaderDesc.propertyNames[propertyIndex];
+        if (cmdCasted->shaderDesc.propertyValues[propertyIndex].IsValid())
+        {
+            switch (cmdCasted->shaderDesc.propertyValues[propertyIndex].index)
+            {
+            case 0:
+                property.currentValue = cmdCasted->shaderDesc.propertyValues[propertyIndex].nameValue;
+                break;
+            case 1:
+                property.currentValue = cmdCasted->shaderDesc.propertyValues[propertyIndex].intValue;
+                break;
+            case 2:
+                property.currentValue = cmdCasted->shaderDesc.propertyValues[propertyIndex].floatValue;
+                break;
+            default:
+                break;
+            }
+        }
+
+        shaderDefinition.properties.Set(property);
+    }
+
+    state.attributes.Invalidate();
 
     static_assert(std::is_trivially_destructible_v<SetCurrentShader>);
     // cmdCasted->~SetCurrentShader();
@@ -500,20 +537,206 @@ void SetCurrentView::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetCurrentView
 
-#pragma region SetCurrentAttributes
+#pragma region SetTopology
 
-void SetCurrentAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+void SetTopology::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
-    SetCurrentAttributes* cmdCasted = static_cast<SetCurrentAttributes*>(cmd);
+    SetTopology* cmdCasted = static_cast<SetTopology*>(cmd);
 
-    g_renderInterface->state.attributes = cmdCasted->m_attributes;
+    if (g_renderInterface->state.attributes.GetMeshAttributes().topology == cmdCasted->topology)
+        return;
+
+    g_renderInterface->state.attributes.GetMeshAttributes().topology = cmdCasted->topology;
+    g_renderInterface->state.attributes.Invalidate();
     
-    // \TODO: Fix
-    //static_assert(std::is_trivially_destructible_v<SetCurrentAttributes>);
-    // cmdCasted->~SetCurrentAttributes();
+    static_assert(std::is_trivially_destructible_v<SetTopology>);
+    // cmdCasted->~SetTopology();
 }
 
-#pragma endregion SetCurrentAttributes
+#pragma endregion SetTopology
+
+#pragma region SetVertexAttributes
+
+void SetVertexAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetVertexAttributes* cmdCasted = static_cast<SetVertexAttributes*>(cmd);
+
+    RenderInterface::State& state = g_renderInterface->state;
+
+    if (state.attributes.GetMeshAttributes().vertexAttributes == cmdCasted->vertexAttributes)
+        return;
+
+    state.attributes.GetMeshAttributes().vertexAttributes = cmdCasted->vertexAttributes;
+
+    // Update shader req'd vertex attributes based on this
+    state.attributes.GetMaterialAttributes().shaderDefinition.properties.SetRequiredVertexAttributes(cmdCasted->vertexAttributes);
+
+    state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetVertexAttributes>);
+    // cmdCasted->~SetVertexAttributes();
+}
+
+#pragma endregion SetVertexAttributes
+
+#pragma region SetCurrentBlendFunction
+
+void SetCurrentBlendFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentBlendFunction* cmdCasted = static_cast<SetCurrentBlendFunction*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction == cmdCasted->blendFunction)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction = cmdCasted->blendFunction;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetCurrentBlendFunction>);
+    // cmdCasted->~SetCurrentBlendFunction();
+}
+
+#pragma endregion SetCurrentBlendFunction
+
+#pragma region SetDepthWrite
+
+void SetDepthWrite::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthWrite* cmdCasted = static_cast<SetDepthWrite*>(cmd);
+
+    if (cmdCasted->depthWrite)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_WRITE;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_WRITE;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetDepthWrite>);
+    // cmdCasted->~SetDepthWrite();
+}
+
+#pragma endregion SetDepthWrite
+
+#pragma region SetDepthTest
+
+void SetDepthTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthTest* cmdCasted = static_cast<SetDepthTest*>(cmd);
+
+    if (cmdCasted->depthTest)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_TEST;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_TEST;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetDepthTest>);
+    // cmdCasted->~SetDepthTest();
+}
+
+#pragma endregion SetDepthTest
+
+#pragma region SetStencilTest
+
+void SetStencilTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetStencilTest* cmdCasted = static_cast<SetStencilTest*>(cmd);
+
+    if (cmdCasted->stencilTest)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetStencilTest>);
+    // cmdCasted->~SetStencilTest();
+}
+
+#pragma endregion SetStencilTest
+
+#pragma region SetStencilFunction
+
+void SetStencilFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetStencilFunction* cmdCasted = static_cast<SetStencilFunction*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction == cmdCasted->stencilFunction)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction = cmdCasted->stencilFunction;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetStencilFunction>);
+    // cmdCasted->~SetStencilFunction();
+}
+
+#pragma endregion SetStencilFunction
+
+#pragma region SetFillMode
+
+void SetFillMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetFillMode* cmdCasted = static_cast<SetFillMode*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().fillMode == cmdCasted->fillMode)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().fillMode = cmdCasted->fillMode;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetFillMode>);
+    // cmdCasted->~SetFillMode();
+}
+
+#pragma endregion SetFillMode
+
+#pragma region SetFaceCullMode
+
+void SetFaceCullMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetFaceCullMode* cmdCasted = static_cast<SetFaceCullMode*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces == cmdCasted->faceCullMode)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces = cmdCasted->faceCullMode;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetFaceCullMode>);
+    // cmdCasted->~SetFaceCullMode();
+}
+
+#pragma endregion SetFaceCullMode
 
 #pragma region SetShaderUniform
 

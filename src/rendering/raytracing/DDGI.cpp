@@ -19,6 +19,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 

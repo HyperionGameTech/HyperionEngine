@@ -102,7 +102,7 @@ public:
 
     DX12FrameRef MakeFrame(uint32 frameIndex) override;
 
-    DX12ShaderRef MakeShader(const RC<CompiledShader>& compiledShader) override;
+    DX12ShaderRef MakeShader(const CompiledShader* compiledShader) override;
 
     DX12GpuBlasRef MakeGpuBlas(
         const DX12GpuBufferRef& packedVerticesBuffer,

@@ -417,6 +417,7 @@ void FullScreenPass::CreatePipeline()
     };
 
     const MaterialAttributes materialAttributes {
+        .shaderDefinition = m_shader ? m_shader->GetCompiledShader()->GetDefinition() : ShaderDefinition(),
         .fillMode = FM_FILL,
         .blendFunction = m_blendFunction,
         .flags = MAF_NONE

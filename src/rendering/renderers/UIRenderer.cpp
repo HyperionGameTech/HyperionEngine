@@ -11,7 +11,6 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderConfig.hpp>
-#include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>

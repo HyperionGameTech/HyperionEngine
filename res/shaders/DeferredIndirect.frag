@@ -57,6 +57,7 @@ vec2 texcoord = v_texcoord0;
 
 #include "include/rt/probe/probe_uniforms.inc"
 
+#if RT_GI
 HYP_DESCRIPTOR_CBUFF(DeferredPass, DDGIConstants) uniform DDGI
 {
     DDGIConstants ddgiConstants;
@@ -66,7 +67,7 @@ HYP_DESCRIPTOR_SRV(DeferredPass, DDGIIrradianceTexture) uniform texture2D probe_
 HYP_DESCRIPTOR_SRV(DeferredPass, DDGIDepthTexture) uniform texture2D probe_depth;
 #include "include/DDGI.inc"
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#endif
 
 #include "include/env_probe.inc"
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, EnvGridsBuffer) uniform EnvGridsBuffer
@@ -75,8 +76,12 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, EnvGridsBuffer) uniform EnvGridsBuffe
 };
 
 #define HYP_DEFERRED_NO_REFRACTION
+#define HYP_DEFERRED_NO_ENV_PROBE
 #include "./deferred/DeferredLighting.glsl"
 #undef HYP_DEFERRED_NO_REFRACTION
+#undef HYP_DEFERRED_NO_ENV_PROBE
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 // clang-format on
 
@@ -124,31 +129,30 @@ void main()
     const float perceptual_roughness = sqrt(roughness);
 
     reflections = Texture2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
-    
 
-#ifdef ENV_GRID_REFLECTIONS
+#if ENV_GRID_REFLECTIONS
     vec4 env_grid_radiance = Texture2D(HYP_SAMPLER_LINEAR, env_grid_radiance_texture, texcoord);
     reflections = reflections * (1.0 - env_grid_radiance.a) + (vec4(env_grid_radiance.rgb, 1.0) * env_grid_radiance.a);
 #endif
 
-#ifdef ENV_GRID_GI
+#if ENV_GRID_GI
     irradiance += Texture2D(HYP_SAMPLER_LINEAR, env_grid_irradiance_texture, texcoord).rgb * ENV_GRID_MULTIPLIER;
 #endif
 
-#ifdef SSGI_ENABLED
+#if SSGI_ENABLED
     const vec4 ssgi = Texture2D(HYP_SAMPLER_LINEAR, ssgi_result, v_texcoord0);
     irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
 #endif
 
-#ifdef RT_REFLECTIONS
+#if RT_REFLECTIONS
     CalculateRaytracingReflection(deferred_params, texcoord, reflections);
 #endif
 
-#ifdef RT_GI
+#if RT_GI
     irradiance += DDGISampleIrradiance(position.xyz, normal, V).rgb * DDGI_MULTIPLIER;
 #endif
 
-#ifdef HBIL_ENABLED
+#if HBIL_ENABLED
     CalculateHBILIrradiance(deferred_params, ssao_data, irradiance);
 #endif
 
@@ -183,7 +187,4 @@ void main()
 #endif
 
     output_color = vec4(result, 1.0);
-
-    // debug: render albedo
-    //output_color = vec4(albedo.rgb, 1.0);
 }

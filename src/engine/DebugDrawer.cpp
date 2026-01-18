@@ -909,6 +909,7 @@ GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet at
 
     AssertDebug(passData != nullptr);
 
+    attributes.SetShaderDefinition(m_shader->GetCompiledShader()->GetDefinition());
     attributes.SetLayerIndex(layerIndex);
 
     auto it = m_graphicsPipelines.Find(attributes);

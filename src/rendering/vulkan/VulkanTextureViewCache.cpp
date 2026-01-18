@@ -32,6 +32,11 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
     uint32 layerIndex,
     uint32 numLayers)
 {
+    if (!texture)
+    {
+        return VulkanGpuImageViewRef::Null();
+    }
+
     const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
     const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
 

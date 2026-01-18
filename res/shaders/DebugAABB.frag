@@ -72,21 +72,30 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer CurrentEntity
 
 #endif
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 #include "include/env_probe.inc"
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
+#if ENV_PROBE_CUBEMAP
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
+#else
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+#endif
+
+HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+
+#define HYP_DEFERRED_NO_REFRACTION
+#define HYP_DEFERRED_NO_ENV_GRID
 
 #include "deferred/DeferredLighting.glsl"
+
+#undef HYP_DEFERRED_NO_REFRACTION
+#undef HYP_DEFERRED_NO_ENV_GRID
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
