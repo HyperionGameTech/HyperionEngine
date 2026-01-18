@@ -256,7 +256,7 @@ static void RenderAll(
     const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
-    const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+    const RuntimeMaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
 
     RenderQueue& rq = frame->renderQueue;
 
@@ -496,7 +496,7 @@ static void RenderAll_Parallel(
     const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
-    const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+    const RuntimeMaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
 
     RenderQueue& rq = parallelRenderingState->rootQueue;
     
@@ -813,7 +813,7 @@ void RenderGroup::PerformRendering(
     
     rq << SetCurrentShader(m_shader);
     rq << SetCurrentView(renderSetup.view);
-    rq << SetCurrentRenderGroup(this);
+    rq << SetCurrentAttributes(m_renderableAttributes);
 
     if (stencilReference != 0)
     {

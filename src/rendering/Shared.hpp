@@ -694,7 +694,7 @@ enum class GpuBufferType : uint8
 };
 
 HYP_ENUM()
-enum GpuElemType : uint32
+enum GpuElemType : uint8
 {
     GET_UNSIGNED_BYTE,
     GET_SIGNED_BYTE,
@@ -720,7 +720,7 @@ static inline constexpr uint32 GpuElemTypeSize(GpuElemType type)
 }
 
 HYP_ENUM()
-enum FaceCullMode : uint32
+enum FaceCullMode : uint8
 {
     FCM_NONE,
     FCM_BACK,
@@ -728,14 +728,14 @@ enum FaceCullMode : uint32
 };
 
 HYP_ENUM()
-enum FillMode : uint32
+enum FillMode : uint8
 {
     FM_FILL,
     FM_LINE
 };
 
 HYP_ENUM()
-enum Topology : uint32
+enum Topology : uint8
 {
     TOP_TRIANGLES,
     TOP_TRIANGLE_FAN,
@@ -747,7 +747,7 @@ enum Topology : uint32
 };
 
 HYP_ENUM()
-enum BlendModeFactor : uint32
+enum BlendModeFactor : uint8
 {
     BMF_NONE,
 

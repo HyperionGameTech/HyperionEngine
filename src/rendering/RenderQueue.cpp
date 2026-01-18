@@ -500,19 +500,19 @@ void SetCurrentView::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetCurrentView
 
-#pragma region SetCurrentRenderGroup
+#pragma region SetCurrentAttributes
 
-void SetCurrentRenderGroup::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+void SetCurrentAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
-    SetCurrentRenderGroup* cmdCasted = static_cast<SetCurrentRenderGroup*>(cmd);
+    SetCurrentAttributes* cmdCasted = static_cast<SetCurrentAttributes*>(cmd);
 
-    g_renderInterface->state.renderGroup = cmdCasted->m_renderGroup;
+    g_renderInterface->state.attributes = cmdCasted->m_attributes;
 
-    static_assert(std::is_trivially_destructible_v<SetCurrentRenderGroup>);
-    // cmdCasted->~SetCurrentRenderGroup();
+    static_assert(std::is_trivially_destructible_v<SetCurrentAttributes>);
+    // cmdCasted->~SetCurrentAttributes();
 }
 
-#pragma endregion SetCurrentRenderGroup
+#pragma endregion SetCurrentAttributes
 
 #pragma region SetShaderUniform
 

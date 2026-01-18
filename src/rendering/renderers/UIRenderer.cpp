@@ -49,35 +49,31 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
 
     if (overrideAttributes.HasValue())
     {
-        if (const ShaderDefinition& overrideShaderDefinition = overrideAttributes->GetShaderDefinition())
+        if (ShaderCacheId shaderCacheId = overrideAttributes->GetShaderCacheId(); shaderCacheId != InvalidShaderCacheId)
         {
-            attributes.SetShaderDefinition(overrideShaderDefinition);
+            attributes.SetShaderCacheId(shaderCacheId);
         }
 
-        ShaderDefinition shaderDefinition = overrideAttributes->GetShaderDefinition().IsValid()
-            ? overrideAttributes->GetShaderDefinition()
-            : attributes.GetShaderDefinition();
-
-#ifdef HYP_DEBUG_MODE
-        Assert(shaderDefinition.IsValid());
-#endif
+        const ShaderDefinition* shaderDefinition = g_shaderManager->GetShaderDefinition(attributes.GetShaderCacheId());
+        AssertDebug(shaderDefinition != nullptr, "Could not find ShaderDefinition for ShaderCacheId value {}", attributes.GetShaderCacheId());
 
         // Check for varying vertex attributes on the override shader compared to the entity's vertex
         // attributes. If there is not a match, we should switch to a version of the override shader that
         // has matching vertex attribs.
         const VertexAttributeSet meshVertexAttributes = attributes.GetMeshAttributes().vertexAttributes;
 
-        if (meshVertexAttributes != shaderDefinition.GetProperties().GetRequiredVertexAttributes())
+        MaterialAttributes newMaterialAttributes = static_cast<MaterialAttributes>(overrideAttributes->GetMaterialAttributes());
+        newMaterialAttributes.shaderDefinition = *shaderDefinition;
+
+        if (meshVertexAttributes != newMaterialAttributes.shaderDefinition.GetProperties().GetRequiredVertexAttributes())
         {
-            shaderDefinition.properties.SetRequiredVertexAttributes(meshVertexAttributes);
+            newMaterialAttributes.shaderDefinition.properties.SetRequiredVertexAttributes(meshVertexAttributes);
         }
 
-        MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
-        newMaterialAttributes.shaderDefinition = shaderDefinition;
         // do not override bucket!
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
-        attributes.SetMaterialAttributes(newMaterialAttributes);
+        attributes.SetMaterialAttributes(RuntimeMaterialAttributes(newMaterialAttributes));
     }
 
     return attributes;
@@ -113,13 +109,23 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         RenderableAttributeSet attributes = GetMergedRenderableAttributes(RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() }, overrideAttributes);
 
+        // \TODO Optimize. may not be needed since we set textureMask when textures on material are changed,
+        // So we may already have the mappings separated so that ui objects with/without textures already are binned appropriately.
+        // in that case, this logic could be moved below into the `if (!rg.IsValid())` part, minimizing calls in hot path
         if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
         {
             if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
             {
-                ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
+                ShaderDefinition shaderDefinition;
+                if (const ShaderDefinition* currentDefinition = g_shaderManager->GetShaderDefinition(attributes.GetShaderCacheId()))
+                {
+                    shaderDefinition = *currentDefinition;
+                }
+
+
                 shaderDefinition.GetProperties().Set(NAME("TEXTURED"));
-                attributes.SetShaderDefinition(shaderDefinition);
+
+                attributes.SetShaderCacheId(g_shaderManager->GetShaderCacheId(shaderDefinition, /* createIfNotExists */ true));
             }
         }
 
@@ -132,7 +138,11 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         if (!rg.IsValid())
         {
-            ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
+            ShaderDefinition shaderDefinition;
+            if (const ShaderDefinition* currentDefinition = g_shaderManager->GetShaderDefinition(attributes.GetShaderCacheId()))
+            {
+                shaderDefinition = *currentDefinition;
+            }
 
             ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
             Assert(shader.IsValid());

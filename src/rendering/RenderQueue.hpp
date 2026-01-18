@@ -8,6 +8,7 @@
 #include <rendering/CommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shared.hpp>
 
 // Uncomment to enable trace collection for commands.
@@ -726,18 +727,18 @@ private:
     View* m_view;
 };
 
-class SetCurrentRenderGroup final : public CmdBase
+class SetCurrentAttributes final : public CmdBase
 {
 public:
-    explicit SetCurrentRenderGroup(RenderGroup* renderGroup)
-        : m_renderGroup(renderGroup)
+    explicit SetCurrentAttributes(const RenderableAttributeSet& attributes)
+        : m_attributes(attributes)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RenderGroup* m_renderGroup;
+    RenderableAttributeSet m_attributes;
 };
 
 class SetShaderUniform final : public CmdBase

@@ -253,11 +253,6 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
 
     properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGBufferTargets))));
 
-    if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
-    {
-        properties.Set(ShaderProperty(NAME("HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING")));
-    }
-
     if (g_renderBackend->GetRenderConfig().bindlessTextures)
     {
         properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));

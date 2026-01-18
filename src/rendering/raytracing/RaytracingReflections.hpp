@@ -42,20 +42,21 @@ public:
     friend struct DestroyRaytracingReflections;
     friend struct CreateRTRadianceImageOutputs;
 
-    HYP_API RaytracingReflections(
+    RaytracingReflections(
         RaytracingReflectionsConfig&& config,
         GBuffer* gbuffer);
 
-    HYP_API ~RaytracingReflections();
+    ~RaytracingReflections();
 
     HYP_FORCE_INLINE bool IsPathTracer() const
     {
         return m_config.pathTracing;
     }
 
-    HYP_API void Create();
+    const GpuImageViewRef& GetFinalImageView() const;
 
-    HYP_API void Render(Frame* frame, const RenderSetup& renderSetup);
+    void Create();
+    void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
     void CreateImages();

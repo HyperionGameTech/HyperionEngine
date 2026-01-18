@@ -89,7 +89,7 @@ bool GraphicsPipelineBase::MatchesSignature(
     if (meshAttributes.topology != m_topology || meshAttributes.vertexAttributes != m_vertexAttributes)
         return false;
 
-    const MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+    const RuntimeMaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
 
     if (materialAttributes.blendFunction != m_blendFunction
         || materialAttributes.cullFaces != m_faceCullMode

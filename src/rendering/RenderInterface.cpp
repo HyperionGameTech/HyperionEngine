@@ -1703,9 +1703,7 @@ void RenderInterface::CommitDrawState()
         || !state.prevGraphicsPipeline->MatchesSignature(
                 state.shader,
                 state.renderTargetDesc,
-                state.renderGroup
-                    ? state.renderGroup->GetRenderableAttributes()
-                    : s_defaultAttributes
+                state.attributes
             ))
     {
         GraphicsPipelineCacheHandle cacheHandle;
@@ -1713,9 +1711,7 @@ void RenderInterface::CommitDrawState()
         graphicsPipelineCache->GetOrCreate(
             state.shader,
             state.renderTargetDesc,
-            state.renderGroup
-                ? state.renderGroup->GetRenderableAttributes()
-                : s_defaultAttributes,
+            state.attributes,
             cacheHandle);
 
         pipeline = *cacheHandle;

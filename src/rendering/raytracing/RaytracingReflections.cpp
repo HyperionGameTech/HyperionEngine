@@ -77,6 +77,16 @@ RaytracingReflections::~RaytracingReflections()
     PUSH_RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet);
 }
 
+const GpuImageViewRef& RaytracingReflections::GetFinalImageView() const
+{
+    if (m_temporalBlending != nullptr)
+    {
+        return g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
+    }
+
+    return g_renderInterface->textureViewCache->GetOrCreate(m_texture);
+}
+
 void RaytracingReflections::Create()
 {
     CreateImages();

@@ -30,6 +30,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
 
@@ -130,18 +131,19 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-static void GetDeferredShaderProperties(
+static ShaderRef GetDeferredShader(
     DeferredPassMode mode,
-    ShaderProperties& outShaderProperties,
+    ShaderCacheId& outShaderCacheId,
     const RenderProxyList* rpl = nullptr,
     LightType lightType = LT_INVALID)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
 
-    outShaderProperties.SetRequiredVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    ShaderProperties shaderProperties;
+    shaderProperties.SetRequiredVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    MergeGlobalShaderProperties(outShaderProperties);
+    MergeGlobalShaderProperties(shaderProperties);
 
 #define DEF_STATIC_CONFIGURATION_VALUE(name, path)                        \
     static const ConfigurationValue& s_##name = s_globalConfig.Get(path); \
@@ -163,32 +165,38 @@ static void GetDeferredShaderProperties(
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        outShaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.raytracing && raytracingReflections);
-        outShaderProperties.Set(NAME("RT_GI"), s_renderConfig.raytracing && raytracingGlobalIllumination);
-        outShaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
-        outShaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
-        outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
-        outShaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
-        outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
+        shaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.raytracing && raytracingReflections);
+        shaderProperties.Set(NAME("RT_GI"), s_renderConfig.raytracing && raytracingGlobalIllumination);
+        shaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
+        shaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
+        shaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
+        shaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
+        shaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
     }
 
     if (s_renderConfig.raytracing && pathTracing)
     {
-        outShaderProperties.Set(ShaderProperty(NAME("PATHTRACER")));
+        shaderProperties.Set(ShaderProperty(NAME("PATHTRACER")));
     }
     else if (debugReflections)
     {
-        outShaderProperties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
+        shaderProperties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
     }
     else if (debugIrradiance)
     {
-        outShaderProperties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+        shaderProperties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
     }
 
     if (lightType != LT_INVALID)
     {
-        outShaderProperties.Merge(s_deferredLightTypeProperties[uint32(lightType)]);
+        shaderProperties.Merge(s_deferredLightTypeProperties[uint32(lightType)]);
     }
+
+    ShaderDefinition shaderDefinition;
+    shaderDefinition.name = mode == DPM_INDIRECT_LIGHTING ? NAME("DeferredIndirect") : NAME("DeferredDirect");
+    shaderDefinition.properties = std::move(shaderProperties);
+
+    return g_shaderManager->GetOrCreate(shaderDefinition, outShaderCacheId);
 }
 
 static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
@@ -225,8 +233,7 @@ static inline bool ShouldRecreatePipeline(
 
 DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
     : FullScreenPass(nullptr, nullptr, framebuffer, TF_RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
-      m_mode(mode),
-      m_directLightGraphicsPipelines()
+      m_mode(mode)
 {
     Assert(m_framebuffer.IsValid());
 
@@ -348,8 +355,6 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
 void DeferredPass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
-
-    m_directLightGraphicsPipelines = {};
 }
 
 void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer)
@@ -360,56 +365,110 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     AssertDebug(rs.world && rs.view);
     AssertDebug(rs.passData != nullptr);
 
+    ENGINE_STAT_SCOPE(
+        m_mode == DPM_DIRECT_LIGHTING
+            ? &s_deferredDirectLightingTimer
+            : &s_deferredIndirectLightingTimer);
+
+    const uint32 frameIndex = frame->GetFrameIndex();
+
     const Viewport& viewport = rs.view->GetViewport();
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    ENGINE_STAT_SCOPE(
-        m_mode == DPM_DIRECT_LIGHTING
-            ? &s_deferredDirectLightingTimer
-            : &s_deferredIndirectLightingTimer);
-
-    switch (m_mode)
+    if (m_mode == DPM_DIRECT_LIGHTING && rpl.GetLights().NumCurrent() == 0)
     {
-    case DPM_DIRECT_LIGHTING:
-        // no lights bound, do not render direct shading at all
-        if (rpl.GetLights().NumCurrent() == 0)
-        {
-            return;
-        }
+        return; // nothing to do for direct pass if no lights active
+    }
 
-        break;
-    case DPM_INDIRECT_LIGHTING:
+    const MeshAttributes meshAttributes {
+        VertexAttribute::Position
+            | VertexAttribute::Normal
+            | VertexAttribute::TexCoord0
+    };
+
+    static const MaterialAttributes materialAttributes {
+        .fillMode = FM_FILL,
+        .blendFunction = m_blendFunction,
+        .flags = MAF_STENCIL_TEST,
+        .stencilFunction = StencilFunction {
+            .passOp = SO_KEEP,
+            .failOp = SO_KEEP,
+            .depthFailOp = SO_KEEP,
+            .compareOp = SCO_EQUAL
+        }
+    };
+
+    RenderableAttributeSet attributes { meshAttributes, materialAttributes };
+
+    RenderQueue& rq = frame->renderQueue;
+
+    rq << SetCurrentView(rs.view);
+
+    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
+    rq << SetStencilState(0, LightmapStencilMask, 0x0);
+
+    uint32 numShaderUniforms = 0;
+
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(numShaderUniforms++, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+
+    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
+    if (rs.envGrid != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(rs.envGrid) * sizeof(EnvGridShaderData));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
+
+    rq << SetShaderUniform(numShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
+    rq << SetShaderUniform(numShaderUniforms++, "LTCMatrixTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcMatrixTexture));
+    rq << SetShaderUniform(numShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
+
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    if (dpd != nullptr)
     {
-        // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-        frame->renderQueue << SetStencilState(0, LightmapStencilMask, 0x0);
+        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    
+        if (dpd->hbao != nullptr)
+            rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
-        // check needs invalidation
-        ShaderProperties shaderProperties;
-        GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
+        if (dpd->ssgi != nullptr && m_mode == DPM_INDIRECT_LIGHTING)
+            rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
-        if (ShouldRecreatePipeline(m_graphicsPipelineCacheHandle, shaderProperties))
-        {
-            m_graphicsPipelineCacheHandle = CreatePipeline(shaderProperties);
-            AssertDebug(!ShouldRecreatePipeline(m_graphicsPipelineCacheHandle, shaderProperties));
-        }
+        if (dpd->raytracingReflections != nullptr)
+            rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->raytracingReflections->GetFinalImageView());
+    }
 
-        FullScreenPass::RenderToFramebuffer_Internal(frame, rs, framebuffer);
+    if (m_mode == DPM_INDIRECT_LIGHTING)
+    {
+        ShaderCacheId shaderCacheId;
+        ShaderRef shader = GetDeferredShader(DPM_INDIRECT_LIGHTING, shaderCacheId, &rpl);
+
+        attributes.GetMaterialAttributes().shaderCacheId = shaderCacheId;
+        attributes.Invalidate();
+ 
+        rq << SetCurrentShader(shader);
+        rq << SetCurrentAttributes(attributes);
+
+        rq << CommitDrawState();
+
+        rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        rq << DrawIndexed(6);
         
         // reset stencil
-        frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+        rq << SetStencilState(0, 0xFF, 0x0);
 
         return;
     }
-    default:
-        HYP_UNREACHABLE();
-        return;
-    }
-    
-    // stencil state: only render where stencil == 0 (non-lightmapped geometry)
-    frame->renderQueue << SetStencilState(0, LightmapStencilMask, 0x0);
 
     // last LightType we rendered
     LightType prevLightType = LT_INVALID;
@@ -419,8 +478,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     {
         const LightType lightType = LightType(lightTypeIndex);
 
-        DescriptorSetRef& directPassDescriptorSet = m_directPassDescriptorSets[lightTypeIndex][frame->GetFrameIndex()];
-
         for (Light* light : rpl.GetLights())
         {
             if (light->GetLightType() != lightTypeIndex)
@@ -428,84 +485,26 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 continue;
             }
 
-            bool pipelineChanged = false;
-
             if (lightType != prevLightType)
             {
-                ShaderProperties shaderProperties;
-                GetDeferredShaderProperties(m_mode, shaderProperties, &rpl, lightType);
+                ShaderCacheId shaderCacheId;
+                ShaderRef shader = GetDeferredShader(DPM_DIRECT_LIGHTING, shaderCacheId, &rpl);
 
-                if (ShouldRecreatePipeline(m_directLightGraphicsPipelines[lightTypeIndex], shaderProperties))
-                {
-                    m_directLightGraphicsPipelines[lightTypeIndex] = CreatePipeline(shaderProperties);
-
-                    AssertDebug(!ShouldRecreatePipeline(m_directLightGraphicsPipelines[lightTypeIndex], shaderProperties));
-                }
-
-                pipelineChanged = true;
+                attributes.GetMaterialAttributes().shaderCacheId = shaderCacheId;
+                attributes.Invalidate();
+ 
+                rq << SetCurrentShader(shader);
+                rq << SetCurrentAttributes(attributes);
             }
 
-            const GraphicsPipelineRef& pipeline = *m_directLightGraphicsPipelines[lightTypeIndex];
+            uint32 localNumShaderUniforms = numShaderUniforms;
+            rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(light) * sizeof(LightShaderData));
 
-            if (pipelineChanged && !directPassDescriptorSet.IsValid())
-            {
-                // create direct pass descriptor set
-                const DescriptorTableDeclaration* descriptorTableDecl = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
-                AssertDebug(descriptorTableDecl != nullptr);
+            rq << CommitDrawState();
 
-                const DescriptorSetDeclaration* descriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("DeferredDirectDescriptorSet"_sh);
-                AssertDebug(descriptorSetDecl != nullptr);
-
-                directPassDescriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
-                Assert(directPassDescriptorSet.IsValid());
-
-                directPassDescriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frame->GetFrameIndex()));
-                directPassDescriptorSet->SetElement("LTCSampler"_sh, m_ltcSampler);
-                directPassDescriptorSet->SetElement("LTCMatrixTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcMatrixTexture));
-                directPassDescriptorSet->SetElement("LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
-
-                Assert(directPassDescriptorSet->Create());
-            }
-
-            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorSetIndex("Global"_sh);
-            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorSetIndex("View"_sh);
-            const uint32 materialDescriptorSetIndex = lightType == LT_AREA_RECT
-                ? pipeline->GetDescriptorSetIndex("Material"_sh)
-                : ~0u;
-
-            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorSetIndex("DeferredDirectDescriptorSet"_sh);
-
-            if (pipelineChanged)
-            {
-                pipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
-
-                frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
-
-                if (deferredDirectDescriptorSetIndex != ~0u)
-                {
-                    frame->renderQueue << BindDescriptorSet(
-                        directPassDescriptorSet,
-                        pipeline,
-                        {},
-                        deferredDirectDescriptorSetIndex);
-                }
-
-                frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-                frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-            }
-
-            frame->renderQueue << BindDescriptorSet(
-                g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
-                pipeline,
-                { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                    { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(light, 0) } },
-                globalDescriptorSetIndex);
-
-            frame->renderQueue << BindDescriptorSet(
-                rs.passData->descriptorSets[frame->GetFrameIndex()],
-                pipeline,
-                {},
-                viewDescriptorSetIndex);
+            rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+            rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+            rq << DrawIndexed(6);
 
             // Bind material descriptor set (for area lights)
 
@@ -521,7 +520,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             //        materialDescriptorSetIndex);
             //}
 
-            frame->renderQueue << DrawIndexed(6);
 
             prevLightType = lightType;
         }
