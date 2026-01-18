@@ -203,6 +203,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     // set default particle graphics attributes (translucent)
     MaterialAttributes materialAttributes {};
+    materialAttributes.shaderDefinition = ShaderDefinition { NAME("Particle"), properties };
     materialAttributes.bucket = RB_TRANSLUCENT;
     materialAttributes.blendFunction = BlendFunction::AlphaBlending();
     materialAttributes.cullFaces = FCM_FRONT;
@@ -333,9 +334,8 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     if (!state.graphicsPipelineHandle.IsAlive() || (*state.graphicsPipelineHandle)->GetRenderTargetDesc() != renderTargetDesc)
     {
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            state.particleShader,
-            renderTargetDesc,
             state.renderableAttributes,
+            renderTargetDesc,
             state.graphicsPipelineHandle);
     }
 

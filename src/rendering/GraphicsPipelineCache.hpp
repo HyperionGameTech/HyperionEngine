@@ -95,18 +95,16 @@ public:
      *  Instead, use the returned pointer to access the graphics pipeline. It's guaranteed to be valid for at least 10 frames after this method returns.
      */
     void GetOrCreate(
-        Shader* shader,
-        const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc,
         GraphicsPipelineCacheHandle& outCacheHandle);
 
     int RunCleanupCycle(int maxIter = 10);
 
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
-        Shader* shader,
-        const RenderTargetDesc& renderTargetDesc,
-        const RenderableAttributeSet& attributes);
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc);
 
     CachedPipelinesMap* m_cachedPipelines;
     SharedMutex m_mutex;

@@ -151,9 +151,8 @@ GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
     GraphicsPipelineCacheHandle cacheHandle;
     
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        m_shader,
-        framebuffer->GetRenderTargetDesc(),
         m_renderableAttributes,
+        framebuffer->GetRenderTargetDesc(),
         cacheHandle);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
@@ -256,7 +255,7 @@ static void RenderAll(
     const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
-    const RuntimeMaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+    const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
 
     RenderQueue& rq = frame->renderQueue;
 
@@ -496,7 +495,7 @@ static void RenderAll_Parallel(
     const RenderableAttributeSet& renderableAttributes = renderGroup->GetRenderableAttributes();
 
     const MeshAttributes& meshAttributes = renderableAttributes.GetMeshAttributes();
-    const RuntimeMaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
+    const MaterialAttributes& materialAttributes = renderableAttributes.GetMaterialAttributes();
 
     RenderQueue& rq = parallelRenderingState->rootQueue;
     

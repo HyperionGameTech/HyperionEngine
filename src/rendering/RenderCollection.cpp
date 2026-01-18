@@ -144,8 +144,6 @@ static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 
 } // namespace PropNames
 
-static const ShaderProperties s_defaultProperties; // used as a fallback
-
 // Get the stencil reference value to set for a lightmapped object,
 // based on its associated atlas index.
 static constexpr inline uint8 GetLightmapStencilValue(LightmapElementId lightmapElementId)
@@ -202,21 +200,22 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
     if (overrideAttributes)
     {
-        if (ShaderCacheId shaderCacheId = overrideAttributes->GetShaderCacheId(); shaderCacheId != InvalidShaderCacheId)
+        if (const ShaderDefinition& overrideShaderDefinition = overrideAttributes->GetShaderDefinition())
         {
-            attributes.SetShaderCacheId(shaderCacheId);
+            attributes.SetShaderDefinition(overrideShaderDefinition);
         }
 
-        const ShaderDefinition* shaderDefinition = g_shaderManager->GetShaderDefinition(attributes.GetShaderCacheId());
-        AssertDebug(shaderDefinition != nullptr, "Could not find ShaderDefinition for ShaderCacheId value {}", attributes.GetShaderCacheId());
+        const ShaderDefinition& shaderDefinition = overrideAttributes->GetShaderDefinition().IsValid()
+            ? overrideAttributes->GetShaderDefinition()
+            : attributes.GetShaderDefinition();
 
         // Check for varying vertex attributes on the override shader compared to the entity's vertex
         // attributes. If there is not a match, we should switch to a version of the override shader that
         // has matching vertex attribs.
         const VertexAttributeSet meshVertexAttributes = attributes.GetMeshAttributes().vertexAttributes;
 
-        MaterialAttributes newMaterialAttributes = static_cast<MaterialAttributes>(overrideAttributes->GetMaterialAttributes());
-        newMaterialAttributes.shaderDefinition = *shaderDefinition;
+        MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
+        newMaterialAttributes.shaderDefinition = shaderDefinition;
 
         if (meshVertexAttributes != newMaterialAttributes.shaderDefinition.GetProperties().GetRequiredVertexAttributes())
         {
@@ -226,7 +225,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         // do not override bucket!
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
-        attributes.SetMaterialAttributes(RuntimeMaterialAttributes(newMaterialAttributes));
+        attributes.SetMaterialAttributes(newMaterialAttributes);
     }
 
     const bool hasInstancing = proxy.instanceData.enableAutoInstancing || proxy.instanceData.numInstances > 1;
@@ -263,12 +262,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.Invalidate();
     }
 
-    const ShaderDefinition* currentShaderDefinition = g_shaderManager->GetShaderDefinition(attributes.GetShaderCacheId());
-    AssertDebug(currentShaderDefinition != nullptr);
+    const ShaderDefinition& currentShaderDefinition = attributes.GetShaderDefinition();
+    const ShaderProperties& currentProperties = currentShaderDefinition.GetProperties();
 
-    const ShaderProperties& currentProperties = currentShaderDefinition ? currentShaderDefinition->GetProperties() : s_defaultProperties;
-
-    ShaderDefinition shaderDefinition = currentShaderDefinition ? *currentShaderDefinition : ShaderDefinition();
+    ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
     bool shaderDefinitionChanged = false;
 
     if (hasInstancing != shaderDefinition.GetProperties().Has(PropNames::s_nameInstancing))
@@ -326,7 +323,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     if (shaderDefinitionChanged)
     {
         // Update the shader definition in the attributes
-        attributes.SetShaderCacheId(g_shaderManager->GetShaderCacheId(shaderDefinition));
+        attributes.SetShaderDefinition(shaderDefinition);
     }
 }
 
@@ -346,10 +343,9 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
         renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
     }
 
-    const ShaderDefinition* shaderDefinition = g_shaderManager->GetShaderDefinition(attributes.GetShaderCacheId());
-    Assert(shaderDefinition != nullptr);
+    ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(*shaderDefinition);
+    ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
 
     if (!shader.IsValid())
     {

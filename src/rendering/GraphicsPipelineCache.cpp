@@ -11,6 +11,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/ShaderManager.hpp>
 
 // For CompiledShader
 #include <rendering/util/ShaderCompiler.hpp>
@@ -302,24 +303,15 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 }
 
 void GraphicsPipelineCache::GetOrCreate(
-    Shader* shader,
-    const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc,
     GraphicsPipelineCacheHandle& outCacheHandle)
 {
     HYP_SCOPE;
 
-    if (!shader)
-    {
-        HYP_LOG(Rendering, Error, "Shader is null or invalid!");
-
-        return;
-    }
-
     GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(
-        shader,
-        renderTargetDesc,
-        attributes);
+        attributes,
+        renderTargetDesc);
 
     if (cacheHandle.IsAlive())
     {
@@ -343,8 +335,11 @@ void GraphicsPipelineCache::GetOrCreate(
     Assert(renderTargetDesc.numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
+    ShaderRef shader = g_shaderManager->GetOrCreate(attributes.GetShaderDefinition());
+    Assert(shader.IsValid());
+
     GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(
-        MakeStrongRef(shader),
+        shader,
         renderTargetDesc,
         attributes);
 
@@ -399,9 +394,8 @@ void GraphicsPipelineCache::GetOrCreate(
 }
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
-    Shader* shader,
-    const RenderTargetDesc& renderTargetDesc,
-    const RenderableAttributeSet& attributes)
+    const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc)
 {
     HYP_SCOPE;
 
@@ -428,7 +422,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(shader, renderTargetDesc, attributes))
+        if ((*pPipeline)->MatchesSignature(attributes, renderTargetDesc))
         {
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());

@@ -131,19 +131,18 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-static ShaderRef GetDeferredShader(
+static void GetDeferredShaderProperties(
     DeferredPassMode mode,
-    ShaderCacheId& outShaderCacheId,
+    ShaderProperties& outShaderProperties,
     const RenderProxyList* rpl = nullptr,
     LightType lightType = LT_INVALID)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
 
-    ShaderProperties shaderProperties;
-    shaderProperties.SetRequiredVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    outShaderProperties.SetRequiredVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    MergeGlobalShaderProperties(shaderProperties);
+    MergeGlobalShaderProperties(outShaderProperties);
 
 #define DEF_STATIC_CONFIGURATION_VALUE(name, path)                        \
     static const ConfigurationValue& s_##name = s_globalConfig.Get(path); \
@@ -165,38 +164,32 @@ static ShaderRef GetDeferredShader(
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        shaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.raytracing && raytracingReflections);
-        shaderProperties.Set(NAME("RT_GI"), s_renderConfig.raytracing && raytracingGlobalIllumination);
-        shaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
-        shaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
-        shaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
-        shaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
-        shaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
+        outShaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.raytracing && raytracingReflections);
+        outShaderProperties.Set(NAME("RT_GI"), s_renderConfig.raytracing && raytracingGlobalIllumination);
+        outShaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
+        outShaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
+        outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
+        outShaderProperties.Set(NAME("HBAO_ENABLED"), hbao);
+        outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
     }
 
     if (s_renderConfig.raytracing && pathTracing)
     {
-        shaderProperties.Set(ShaderProperty(NAME("PATHTRACER")));
+        outShaderProperties.Set(ShaderProperty(NAME("PATHTRACER")));
     }
     else if (debugReflections)
     {
-        shaderProperties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
+        outShaderProperties.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
     }
     else if (debugIrradiance)
     {
-        shaderProperties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+        outShaderProperties.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
     }
 
     if (lightType != LT_INVALID)
     {
-        shaderProperties.Merge(s_deferredLightTypeProperties[uint32(lightType)]);
+        outShaderProperties.Merge(s_deferredLightTypeProperties[uint32(lightType)]);
     }
-
-    ShaderDefinition shaderDefinition;
-    shaderDefinition.name = mode == DPM_INDIRECT_LIGHTING ? NAME("DeferredIndirect") : NAME("DeferredDirect");
-    shaderDefinition.properties = std::move(shaderProperties);
-
-    return g_shaderManager->GetOrCreate(shaderDefinition, outShaderCacheId);
 }
 
 static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
@@ -308,16 +301,21 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
         .vertexAttributes = shaderProperties.GetRequiredVertexAttributes()
     };
 
-    const MaterialAttributes materialAttributes {
-        .fillMode = FM_FILL,
-        .blendFunction = m_blendFunction,
-        .flags = MAF_STENCIL_TEST,
-        .stencilFunction = StencilFunction {
-            .passOp = SO_KEEP,
-            .failOp = SO_KEEP,
-            .depthFailOp = SO_KEEP,
-            .compareOp = SCO_EQUAL
-        }
+    MaterialAttributes materialAttributes;
+    materialAttributes.shaderDefinition = ShaderDefinition {
+        m_mode == DPM_INDIRECT_LIGHTING
+            ? NAME("DeferredIndirect")
+            : NAME("DeferredDirect"),
+        shaderProperties
+    };
+    materialAttributes.fillMode = FM_FILL,
+    materialAttributes.blendFunction = m_blendFunction,
+    materialAttributes.flags = MAF_STENCIL_TEST,
+    materialAttributes.stencilFunction = StencilFunction {
+        .passOp = SO_KEEP,
+        .failOp = SO_KEEP,
+        .depthFailOp = SO_KEEP,
+        .compareOp = SCO_EQUAL
     };
 
     const RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
@@ -332,9 +330,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
         Assert(m_shader.IsValid());
 
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            m_shader,
-            renderTargetDesc,
             renderableAttributes,
+            renderTargetDesc,
             cacheHandle);
 
         return cacheHandle;
@@ -344,9 +341,8 @@ GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties&
     Assert(shader != nullptr);
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        shader,
-        renderTargetDesc,
         renderableAttributes,
+        renderTargetDesc,
         cacheHandle);
 
     return cacheHandle;
@@ -389,16 +385,18 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             | VertexAttribute::TexCoord0
     };
 
-    static const MaterialAttributes materialAttributes {
-        .fillMode = FM_FILL,
-        .blendFunction = m_blendFunction,
-        .flags = MAF_STENCIL_TEST,
-        .stencilFunction = StencilFunction {
-            .passOp = SO_KEEP,
-            .failOp = SO_KEEP,
-            .depthFailOp = SO_KEEP,
-            .compareOp = SCO_EQUAL
-        }
+    MaterialAttributes materialAttributes;
+    materialAttributes.shaderDefinition.name = m_mode == DPM_DIRECT_LIGHTING
+        ? NAME("DeferredDirect")
+        : NAME("DeferredIndirect");
+    materialAttributes.fillMode = FM_FILL,
+    materialAttributes.blendFunction = m_blendFunction,
+    materialAttributes.flags = MAF_STENCIL_TEST,
+    materialAttributes.stencilFunction = StencilFunction {
+        .passOp = SO_KEEP,
+        .failOp = SO_KEEP,
+        .depthFailOp = SO_KEEP,
+        .compareOp = SCO_EQUAL
     };
 
     RenderableAttributeSet attributes { meshAttributes, materialAttributes };
@@ -449,13 +447,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
-        ShaderCacheId shaderCacheId;
-        ShaderRef shader = GetDeferredShader(DPM_INDIRECT_LIGHTING, shaderCacheId, &rpl);
+        ShaderProperties shaderProperties;
+        GetDeferredShaderProperties(m_mode, shaderProperties, &rpl);
 
-        attributes.GetMaterialAttributes().shaderCacheId = shaderCacheId;
+        attributes.GetMaterialAttributes().shaderDefinition.properties = std::move(shaderProperties);
         attributes.Invalidate();
  
-        rq << SetCurrentShader(shader);
         rq << SetCurrentAttributes(attributes);
 
         rq << CommitDrawState();
@@ -487,13 +484,12 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
             if (lightType != prevLightType)
             {
-                ShaderCacheId shaderCacheId;
-                ShaderRef shader = GetDeferredShader(DPM_DIRECT_LIGHTING, shaderCacheId, &rpl);
+                ShaderProperties shaderProperties;
+                GetDeferredShaderProperties(m_mode, shaderProperties, &rpl, lightType);
 
-                attributes.GetMaterialAttributes().shaderCacheId = shaderCacheId;
+                attributes.GetMaterialAttributes().shaderDefinition.properties = std::move(shaderProperties);
                 attributes.Invalidate();
  
-                rq << SetCurrentShader(shader);
                 rq << SetCurrentAttributes(attributes);
             }
 
@@ -705,9 +701,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
     }
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        m_shader,
-        framebuffer->GetRenderTargetDesc(),
         RenderableAttributeSet(meshAttributes, materialAttributes),
+        framebuffer->GetRenderTargetDesc(),
         data.graphicsPipeline);
 
     data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
@@ -893,9 +888,8 @@ const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* frame
     data.descriptorTable = descriptorTable;
 
     g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        m_shader,
-        framebuffer->GetRenderTargetDesc(),
         renderableAttributes,
+        framebuffer->GetRenderTargetDesc(),
         data.graphicsPipeline);
 
     return *data.graphicsPipeline;
@@ -1103,9 +1097,8 @@ void EnvGridPass::CreatePipeline()
         
         
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            shader,
-            m_framebuffer->GetRenderTargetDesc(),
             renderableAttributes,
+            m_framebuffer->GetRenderTargetDesc(),
             cacheHandle);
 
         m_graphicsPipelines[passMode] = std::move(cacheHandle);
@@ -1316,9 +1309,8 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
         GraphicsPipelineCacheHandle cacheHandle;
 
         g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            shader,
-            m_framebuffer->GetRenderTargetDesc(),
             renderableAttributes,
+            m_framebuffer->GetRenderTargetDesc(),
             cacheHandle);
 
         m_cubemapGraphicsPipelines[it.first] = std::move(cacheHandle);

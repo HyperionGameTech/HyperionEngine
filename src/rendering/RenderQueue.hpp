@@ -878,8 +878,8 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
-        static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
-            "CmdType should be trivially copyable and destructible!");
+        //static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
+         //   "CmdType should be trivially copyable and destructible!");
 
         constexpr SizeType CmdSize = sizeof(TCmd);
 

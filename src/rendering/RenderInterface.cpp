@@ -1701,17 +1701,15 @@ void RenderInterface::CommitDrawState()
 
     if (!state.prevGraphicsPipeline
         || !state.prevGraphicsPipeline->MatchesSignature(
-                state.shader,
-                state.renderTargetDesc,
-                state.attributes
+                state.attributes,
+                state.renderTargetDesc
             ))
     {
         GraphicsPipelineCacheHandle cacheHandle;
         
         graphicsPipelineCache->GetOrCreate(
-            state.shader,
-            state.renderTargetDesc,
             state.attributes,
+            state.renderTargetDesc,
             cacheHandle);
 
         pipeline = *cacheHandle;

@@ -195,7 +195,7 @@ struct MeshAttributes
 class RenderableAttributeSet
 {
     MeshAttributes m_meshAttributes;
-    RuntimeMaterialAttributes m_materialAttributes;
+    MaterialAttributes m_materialAttributes;
     uint32 m_layerIndex;
 
     mutable HashCode m_cachedHashCode;
@@ -233,19 +233,19 @@ public:
         return GetHashCode().Value() < other.GetHashCode().Value();
     }
 
-    HYP_FORCE_INLINE ShaderCacheId GetShaderCacheId() const
+    HYP_FORCE_INLINE const ShaderDefinition& GetShaderDefinition() const
     {
-        return m_materialAttributes.shaderCacheId;
+        return m_materialAttributes.shaderDefinition;
     }
 
-    HYP_FORCE_INLINE void SetShaderCacheId(ShaderCacheId shaderCacheId)
+    HYP_FORCE_INLINE void SetShaderDefinition(const ShaderDefinition& shaderDefinition)
     {
-        if (m_materialAttributes.shaderCacheId == shaderCacheId)
+        if (m_materialAttributes.shaderDefinition == shaderDefinition)
         {
             return;
         }
 
-        m_materialAttributes.shaderCacheId = shaderCacheId;
+        m_materialAttributes.shaderDefinition = shaderDefinition;
         m_needsHashCodeRecalculation = true;
     }
 
@@ -265,17 +265,17 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
-    HYP_FORCE_INLINE RuntimeMaterialAttributes& GetMaterialAttributes()
+    HYP_FORCE_INLINE MaterialAttributes& GetMaterialAttributes()
     {
         return m_materialAttributes;
     }
 
-    HYP_FORCE_INLINE const RuntimeMaterialAttributes& GetMaterialAttributes() const
+    HYP_FORCE_INLINE const MaterialAttributes& GetMaterialAttributes() const
     {
         return m_materialAttributes;
     }
 
-    HYP_FORCE_INLINE void SetMaterialAttributes(const RuntimeMaterialAttributes& materialAttributes)
+    HYP_FORCE_INLINE void SetMaterialAttributes(const MaterialAttributes& materialAttributes)
     {
         if (m_materialAttributes == materialAttributes)
         {
