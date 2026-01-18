@@ -59,55 +59,66 @@ static D3D12_DEPTH_STENCIL_DESC GetDefaultDepthStencilDesc()
     return desc;
 }
 
-static bool GetSemanticNameAndIndex(VertexAttribute::Type type, const char*& outNameStr, int& outIndex)
+static bool GetSemanticNameAndIndex(const VertexAttribute& attribute, const char*& outNameStr, int& outIndex)
 {
     outNameStr = nullptr;
     outIndex = 0;
 
     DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
 
-    switch (type)
+    if (std::strcmp(attribute.name, VertexAttribute::Position.name) == 0)
     {
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION: 
         outNameStr = "POSITION";
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL:   
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::Normal.name) == 0)
+    {
         outNameStr = "NORMAL";
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0: 
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::TexCoord0.name) == 0)
+    {
         outNameStr = "TEXCOORD";
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD1: 
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::TexCoord1.name) == 0)
+    {
         outNameStr = "TEXCOORD";
         outIndex = 1;
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_TANGENT:  
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::Tangent.name) == 0)
+    {
         outNameStr = "TANGENT";
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_BITANGENT: 
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::Bitangent.name) == 0)
+    {
         outNameStr = "BINORMAL";
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES: 
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::BoneIndices.name) == 0)
+    {
         outNameStr = "BLENDINDICES";
         return true;
-    case VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS: 
+    }
+    else if (std::strcmp(attribute.name, VertexAttribute::BoneWeights.name) == 0)
+    {
         outNameStr = "BLENDWEIGHT";
         return true;
-    default: 
-        return false;
     }
+
+    return false;
 }
 
-static DXGI_FORMAT VertexAttributeTypeToDXGIFormat(VertexAttribute::Type type)
+static DXGI_FORMAT VertexAttributeTypeToDXGIFormat(const VertexAttribute& attribute)
 {
-    if ((type == VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES))
+    if (std::strcmp(attribute.name, VertexAttribute::BoneIndices.name) == 0)
     {
         return DXGI_FORMAT_R32G32B32A32_UINT;
     }
 
-    const VertexAttribute& attr = VertexAttribute::mapping[type];
-
-    switch (attr.size)
+    switch (attribute.size)
     {
     case 16:
         return DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -118,7 +129,7 @@ static DXGI_FORMAT VertexAttributeTypeToDXGIFormat(VertexAttribute::Type type)
     case 4:
         return DXGI_FORMAT_R32_FLOAT;
     default:
-        HYP_UNREACHABLE();
+        return DXGI_FORMAT_UNKNOWN;
     }
 }
 
@@ -129,32 +140,32 @@ static RendererResult BuildInputElementDesc(const VertexAttributeSet& vertexAttr
     if (vertexAttributes == 0)
         return HYP_MAKE_ERROR(RendererError, "VertexAttributes empty! Cannot create input element descs");
 
-    const Array<VertexAttribute::Type> types = vertexAttributes.BuildAttributes();
+    const Array<const VertexAttribute*> attributes = vertexAttributes.BuildAttributes();
 
     FlatMap<uint32, uint32> bindingOffsets;
 
-    for (VertexAttribute::Type type : types)
+    for (const VertexAttribute* attribute : attributes)
     {
+        AssertDebug(attribute != nullptr);
+
         const char* semanticName = nullptr;
         int semanticIndex = -1;
 
-        if (!GetSemanticNameAndIndex(type, semanticName, semanticIndex))
-            return HYP_MAKE_ERROR(RendererError, "Failed to get semantic name/index for attribute type {}", 0, type);
+        if (!GetSemanticNameAndIndex(*attribute, semanticName, semanticIndex))
+            return HYP_MAKE_ERROR(RendererError, "Failed to get semantic name/index for attribute type {}", 0, attribute->name);
 
         AssertDebug(semanticName != nullptr && semanticIndex >= 0);
-
-        const VertexAttribute& attr = VertexAttribute::mapping[type];
 
         D3D12_INPUT_ELEMENT_DESC& desc = outInputElementDescs.EmplaceBack();
         desc.SemanticName = semanticName;
         desc.SemanticIndex = UINT(semanticIndex);
-        desc.Format = VertexAttributeTypeToDXGIFormat(type);
-        desc.InputSlot = attr.binding;
-        desc.AlignedByteOffset = bindingOffsets[attr.binding];
+        desc.Format = VertexAttributeTypeToDXGIFormat(*attribute);
+        desc.InputSlot = attribute->binding;
+        desc.AlignedByteOffset = bindingOffsets[attribute->binding];
         desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
         desc.InstanceDataStepRate = 0;
 
-        bindingOffsets[attr.binding] += attr.size;
+        bindingOffsets[attribute->binding] += attribute->size;
     }
 
     return {};
@@ -257,21 +268,20 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
     psoDesc.BlendState.IndependentBlendEnable = FALSE;
 
-    if (m_framebuffers.Any())
+    if (m_renderTargetDesc.numAttachments > 0)
     {
         bool hasDSV = false;
 
-        for (const auto& pair : m_framebuffers[0]->GetAttachments())
+        for (uint32 attachmentIndex = 0; attachmentIndex < m_renderTargetDesc.numAttachments; attachmentIndex++)
         {
-            uint32 binding = pair.first;
-            const DX12AttachmentRef& attachment = pair.second;
+            const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIndex];
 
-            if (attachment->IsDepthAttachment())
+            if (TextureUtils::IsDepthFormat(attachmentDesc.format))
             {
                 if (hasDSV)
                     return HYP_MAKE_ERROR(RendererError, "Pipeline cannot have multiple depth stencil targets!");
 
-                psoDesc.DSVFormat = ToDXGIFormat(attachment->GetFormat(), DX12ViewType::RTV_DSV);
+                psoDesc.DSVFormat = ToDXGIFormat(attachmentDesc.format, DX12ViewType::RTV_DSV);
                 hasDSV = true;
 
                 continue;
@@ -296,7 +306,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
             rtBlend.LogicOpEnable = FALSE;
             rtBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-            psoDesc.RTVFormats[rtIndex] = ToDXGIFormat(attachment->GetFormat(), DX12ViewType::RTV_DSV);
+            psoDesc.RTVFormats[rtIndex] = ToDXGIFormat(attachmentDesc.format, DX12ViewType::RTV_DSV);
         }
     }
 

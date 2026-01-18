@@ -2291,7 +2291,7 @@ struct ShaderDefinition
 };
 
 HYP_ENUM()
-enum ShaderModuleType : uint32
+enum ShaderModuleType : uint8
 {
     SMT_UNSET = 0,
 

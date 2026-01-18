@@ -147,74 +147,58 @@ RendererResult DX12Framebuffer::Create()
 
 RendererResult DX12Framebuffer::Resize(Vec2u newSize)
 {
-    if (m_extent == newSize)
+    if (GetExtent() == newSize)
     {
-        // same size, ok
         return {};
     }
 
-    m_extent = newSize;
+    m_renderTargetDesc.extent = newSize;
 
     if (!IsCreated())
     {
-        // not created yet, when Create() is called we'll create with the new size
         return {};
     }
 
-    g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
-    g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
-    
-    m_isCreated = false;
-
-    struct AttachmentDef {
-        uint32 binding;
-        DX12AttachmentRef attachment;
-        DX12GpuImageRef image;
-    };
-
-    Array<AttachmentDef> definitions;
-    definitions.Reserve(m_attachments.Size());
-    
+    // Resize all attachments
     for (auto& it : m_attachments)
     {
-        definitions.PushBack({ it.first, it.second, it.second->GetImage() });
-    }
+        DX12AttachmentRef& attachment = it.second;
+        Assert(attachment.IsValid());
 
-    for (const auto& def : definitions)
-    {
-        DX12GpuImageRef newImage = def.image;
+        DX12GpuImageRef image = attachment->GetImage();
+        TextureDesc textureDesc = image->GetTextureDesc();
+        textureDesc.extent = Vec3u {
+            newSize.x,
+            newSize.y,
+            1
+        };
 
-        if (def.attachment->GetFramebuffer().GetUnsafe() == this)
-        {
-            // owned, resize it
-            TextureDesc textureDesc = def.image->GetTextureDesc();
-            textureDesc.extent = Vec3u { newSize.x, newSize.y, 1 };
-            
-            newImage = CreateObject<DX12GpuImage>(textureDesc);
-            newImage->SetDebugName(def.image->GetDebugName());
-            CheckResultOrReturn(newImage->Create());
-        }
-        else
-        {
-            // sizes must match
-            Assert(def.image->GetExtent().GetXY() == newSize);
-        }
+        DX12GpuImageRef newImage = CreateObject<DX12GpuImage>(textureDesc);
+        newImage->SetDebugName(image->GetDebugName());
+        CheckResultOrReturn(newImage->Create());
 
         DX12AttachmentRef newAttachment = CreateObject<DX12Attachment>(
             newImage,
             MakeWeakRef(this),
-            m_renderTargetType,
-            def.attachment->GetLoadOperation(),
-            def.attachment->GetStoreOperation());
-            
-        newAttachment->SetBinding(def.binding);
+            AttachmentDesc {
+                .imageType = newImage->GetTextureDesc().type,
+                .format = newImage->GetTextureDesc().format,
+                .loadOp = attachment->GetLoadOperation(),
+                .storeOp = attachment->GetStoreOperation(),
+                .blendFunction = BlendFunction::None(),
+                .clearColor = { }
+            });
+
+        newAttachment->SetBinding(attachment->GetBinding());
         CheckResultOrReturn(newAttachment->Create());
-        
-        // Update map
-        AddAttachment(newAttachment);
+
+        it.second = newAttachment;
+
+        attachment.Reset();
+        image.Reset();
     }
-    
-    return Create();
+
+    return {};
 }
 
 AttachmentRef DX12Framebuffer::AddAttachment(const AttachmentRef& attachment)
@@ -223,14 +207,23 @@ AttachmentRef DX12Framebuffer::AddAttachment(const AttachmentRef& attachment)
     return attachment;
 }
 
-DX12AttachmentRef DX12Framebuffer::AddAttachment(uint32 binding, const DX12GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp)
+DX12AttachmentRef DX12Framebuffer::AddAttachment(
+    uint32 binding,
+    const DX12GpuImageRef& image,
+    LoadOperation loadOp,
+    StoreOperation storeOp)
 {
     DX12AttachmentRef attachment = CreateObject<DX12Attachment>(
         image,
         MakeWeakRef(this),
-        m_renderTargetType,
-        loadOp,
-        storeOp);
+        AttachmentDesc {
+            .imageType = image->GetTextureDesc().type,
+            .format = image->GetTextureDesc().format,
+            .loadOp = loadOp,
+            .storeOp = storeOp,
+            .blendFunction = BlendFunction::None(),
+            .clearColor = { }
+        });
 
     attachment->SetBinding(binding);
 
@@ -247,7 +240,11 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
     TextureDesc textureDesc;
     textureDesc.type = type;
     textureDesc.format = format;
-    textureDesc.extent = Vec3u { m_extent.x, m_extent.y, 1 };
+    textureDesc.extent = Vec3u {
+        m_renderTargetDesc.extent.x,
+        m_renderTargetDesc.extent.y,
+        1
+    };
     textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
     DX12GpuImageRef image = CreateObject<DX12GpuImage>(textureDesc);
@@ -255,9 +252,14 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
     DX12AttachmentRef attachment = CreateObject<DX12Attachment>(
         image,
         MakeWeakRef(this),
-        m_renderTargetType,
-        loadOp,
-        storeOp);
+        AttachmentDesc {
+            .imageType = image->GetTextureDesc().type,
+            .format = image->GetTextureDesc().format,
+            .loadOp = loadOp,
+            .storeOp = storeOp,
+            .blendFunction = BlendFunction::None(),
+            .clearColor = { }
+        });
 
     attachment->SetBinding(binding);
 
