@@ -115,7 +115,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
             g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
                 ->SetElement("EnvProbeTextures"_sh, next,
                     proxyCasted->texture != nullptr
-                        ? g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(proxyCasted->texture))
+                        ? g_renderInterface->textureViewCache->GetOrCreate(proxyCasted->texture)
                         : g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
         }
     }
@@ -337,7 +337,7 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     {
         if (next != ~0u)
         {
-            g_renderInterface->bindlessStorage->AddResource(texture->Id(), g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(texture)));
+            g_renderInterface->bindlessStorage->AddResource(texture->Id(), g_renderInterface->textureViewCache->GetOrCreate(texture));
         }
         else
         {

@@ -36,13 +36,13 @@ public:
     ~VulkanTextureViewCache() override;
 
     const VulkanGpuImageViewRef& GetOrCreate(
-        const Handle<Texture>& texture,
+        Texture* texture,
         uint32 mipIndex = 0,
         uint32 numMips = ~0u,
         uint32 layerIndex = 0,
         uint32 numLayers = ~0u) override;
 
-    const VulkanGpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource) override;
+    const VulkanGpuImageViewRef& GetOrCreate(Texture* texture, const ImageSubResource& subResource) override;
 
     void RemoveTexture(const Texture* texture) override;
     void CleanupUnusedTextures() override;

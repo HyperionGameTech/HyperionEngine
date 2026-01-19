@@ -256,7 +256,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
             const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet"_sh, frameIndex);
             AssertDebug(descriptorSet != nullptr);
 
-            descriptorSet->SetElement("ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(proxy->particleTexture)));
+            descriptorSet->SetElement("ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->particleTexture));
         }
     }
 

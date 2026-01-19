@@ -424,38 +424,36 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
 
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    AssertDebug(dpd != nullptr);
 
-    if (dpd != nullptr)
+    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+
+    for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
-        const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+        rq << SetShaderUniform(numShaderUniforms++, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+    }
 
-        for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
-        {
-            rq << SetShaderUniform(numShaderUniforms++, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
-        }
-
-        rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
     
-        if (dpd->hbao != nullptr)
-            rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+    if (dpd->hbao != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
-        if (dpd->reflectionsPass != nullptr)
-            rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
+    if (dpd->reflectionsPass != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
 
-        if (m_mode == DPM_INDIRECT_LIGHTING)
+    if (m_mode == DPM_INDIRECT_LIGHTING)
+    {
+        if (dpd->ssgi != nullptr)
+            rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, dpd->hbao->GetFinalImageView());
+
+        if (dpd->raytracingReflections != nullptr)
+            rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->raytracingReflections->GetFinalImageView());
+
+        if (dpd->ddgi)
         {
-            if (dpd->ssgi != nullptr)
-                rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, dpd->hbao->GetFinalImageView());
-
-            if (dpd->raytracingReflections != nullptr)
-                rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->raytracingReflections->GetFinalImageView());
-
-            if (dpd->ddgi)
-            {
-                rq << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
-                rq << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, dpd->ddgi->GetIrradianceImageView());
-                rq << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
-            }
+            rq << SetShaderUniform(numShaderUniforms++, "DDGIConstants"_sh, dpd->ddgi->GetConstantBuffer(frameIndex));
+            rq << SetShaderUniform(numShaderUniforms++, "DDGIIrradianceTexture"_sh, dpd->ddgi->GetIrradianceImageView());
+            rq << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
         }
     }
 
@@ -715,8 +713,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
         Assert(uniformBuffer->Create());
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        descriptorSet->SetElement("IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? MakeStrongRef(irradianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? MakeStrongRef(radianceTexture) : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
         descriptorSet->SetElement("Sampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         descriptorSet->SetElement("GBufferSampler"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         descriptorSet->SetElement("LightmapVolumeUniforms"_sh, uniformBuffer);
@@ -825,7 +823,6 @@ FogVolumePass::~FogVolumePass()
 {
     for (FogVolumePassData& data : m_fogVolumePassData)
     {
-        SafeDelete(std::move(data.descriptorTable));
         SafeDelete(std::move(data.cBuffer));
     }
 }
@@ -848,79 +845,6 @@ void FogVolumePass::Create()
     FullScreenPass::Create();
 }
 
-const GraphicsPipelineRef& FogVolumePass::GetGraphicsPipeline(Framebuffer* framebuffer, FogVolumePassData& data)
-{
-    FogVolume* volume = data.volume;
-    AssertDebug(volume != nullptr);
-
-    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(RenderApi::GetRenderProxy(volume));
-    Assert(proxy != nullptr);
-
-    if (data.graphicsPipeline.IsAlive())
-    {
-        const GraphicsPipelineRef& graphicsPipeline = *data.graphicsPipeline;
-        AssertDebug(graphicsPipeline != nullptr);
-
-        return graphicsPipeline;
-    }
-
-    const MeshAttributes meshAttributes = m_volumeMesh->GetMeshAttributes();
-
-    MaterialAttributes materialAttributes;
-    materialAttributes.fillMode = FM_FILL;
-    materialAttributes.flags = MAF_NONE;
-    materialAttributes.bucket = RB_TRANSLUCENT;
-    materialAttributes.cullFaces = FCM_FRONT; // cull front faces to render inside of the volume
-    // blending for fog volumes: src: src_alpha, dst: 1 - src_alpha
-    materialAttributes.blendFunction = BlendFunction(
-        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
-
-    RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
-
-    if (!data.cBuffer)
-    {
-        data.cBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
-        Assert(data.cBuffer->Create());
-    }
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-#ifdef HYP_DEBUG_MODE
-    descriptorTable->SetDebugName(NAME_FMT("DescriptorTable_{}_{}", m_shader->GetCompiledShader()->GetName(), volume->GetName()));
-#endif
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("FogVolume"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->volumeTexture != nullptr ? MakeStrongRef(proxy->volumeTexture) : g_renderInterface->placeholderData->defaultTexture3d));
-        descriptorSet->SetElement("NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->noiseTexture != nullptr ? MakeStrongRef(proxy->noiseTexture) : g_renderInterface->placeholderData->defaultTexture3d));
-        descriptorSet->SetElement("FogVolumeUniforms"_sh, data.cBuffer);
-    }
-
-    data.volumeTexture = proxy->volumeTexture;
-    data.noiseTexture = proxy->noiseTexture;
-
-    Assert(descriptorTable->Create());
-
-    /// \todo Don't throw away old descriptor table if only uniforms changed!
-    if (data.descriptorTable)
-    {
-        SafeDelete(std::move(data.descriptorTable));
-    }
-
-    data.descriptorTable = descriptorTable;
-
-    g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        renderableAttributes,
-        framebuffer->GetRenderTargetDesc(),
-        data.graphicsPipeline);
-
-    return *data.graphicsPipeline;
-}
-
 void FogVolumePass::Resize_Internal(Vec2u newSize)
 {
     FullScreenPass::Resize_Internal(newSize);
@@ -931,7 +855,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.world && renderSetup.volume);
+    AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
     FogVolume* volume = ObjCast<FogVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
@@ -940,39 +864,69 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     Assert(proxy != nullptr);
 
     FogVolumePassData& data = GetFogVolumePassData(volume);
-
-    if (proxy->forceRebind
-        || proxy->volumeTexture != data.volumeTexture
-        || proxy->noiseTexture != data.noiseTexture)
-    {
-        // force graphics pipeline re-creation
-        data.graphicsPipeline = {};
-    }
-
-    const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
+    data.noiseTexture = proxy->noiseTexture;
+    data.volumeTexture = proxy->volumeTexture;
 
     UpdateUniforms(frame, renderSetup, data);
 
-    frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
+    RenderQueue& rq = frame->renderQueue;
 
-    frame->renderQueue << BindDescriptorTable(
-        data.descriptorTable,
-        graphicsPipeline,
-        { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view ? renderSetup.view->GetCamera() : nullptr, 0) } } } },
-        frame->GetFrameIndex());
+    //MaterialAttributes materialAttributes;
+    //materialAttributes.fillMode = FM_FILL;
+    //materialAttributes.flags = MAF_NONE;
+    //materialAttributes.bucket = RB_TRANSLUCENT;
+    //materialAttributes.cullFaces = FCM_FRONT; // cull front faces to render inside of the volume
+    //// blending for fog volumes: src: src_alpha, dst: 1 - src_alpha
+    //materialAttributes.blendFunction = BlendFunction(
+    //    BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+    //    BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
+    
+    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
 
-    const uint32 viewDescriptorSetIndex = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex("View"_sh);
+    rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("ApplyFogVolume"), shaderProperties)));
 
-    if (viewDescriptorSetIndex != ~0u)
+    rq << SetCurrentView(renderSetup.view);
+    
+    rq << SetTopology(m_volumeMesh->GetTopology());
+    rq << SetVertexAttributes(m_volumeMesh->GetVertexAttributes());
+
+    rq << SetFillMode(FM_FILL);
+    rq << SetDepthWrite(false);
+    rq << SetDepthTest(false);
+    rq << SetStencilTest(false);
+    //rq << SetFaceCullMode(FCM_FRONT);  // cull front faces to render inside of the volume
+    rq << SetCurrentBlendFunction(BlendFunction(
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
+
+    rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    rq << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+
+    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+
+    for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
-        AssertDebug(renderSetup.passData != nullptr);
-
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-            graphicsPipeline,
-            {},
-            viewDescriptorSetIndex);
+        rq << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
+
+    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+
+    rq << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    rq << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
+    if (data.volumeTexture)
+        rq << SetShaderUniform(5 + GTN_MAX, "DataMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.volumeTexture));
+
+    if (data.noiseTexture)
+        rq << SetShaderUniform(6 + GTN_MAX, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(data.noiseTexture));
+
+    rq << SetShaderUniform(7 + GTN_MAX, "FogVolumeUniforms"_sh, data.cBuffer);
+
+    rq << CommitDrawState();
 
     frame->renderQueue << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
@@ -988,6 +942,12 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     AssertDebug(renderSetup.world && renderSetup.view);
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
+    
+    if (!data.cBuffer)
+    {
+        data.cBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
+        Assert(data.cBuffer->Create());
+    }
 
     GpuBufferBase* cBuffer = data.cBuffer;
     AssertDebug(cBuffer != nullptr);
@@ -1886,7 +1846,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         if (ssrTexture)
         {
-            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(ssrTexture)));
+            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
             passData.cachedSsrTexture = ssrTexture;
         }
         else
@@ -2528,7 +2488,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                     continue;
                 }
 
-                passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(MakeStrongRef(currentSsrTexture)));
+                passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(currentSsrTexture));
             }
 
             passData.cachedSsrTexture = currentSsrTexture;

@@ -15,8 +15,10 @@ layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler SamplerLinear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler SamplerNearest;
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+HYP_DESCRIPTOR_SAMPLER(FogVolume, SamplerLinear) uniform sampler SamplerLinear;
+HYP_DESCRIPTOR_SAMPLER(FogVolume, SamplerNearest) uniform sampler SamplerNearest;
 
 #define texture_sampler SamplerLinear
 #define sampler_linear SamplerLinear
@@ -24,15 +26,11 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler SamplerNearest;
 #define HYP_SAMPLER_NEAREST SamplerNearest
 #define HYP_SAMPLER_LINEAR SamplerLinear
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D GBufferTextures[NUM_GBUFFER_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D GBufferAlbedoTexture;
-HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D GBufferNormalsTexture;
-HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D GBufferMaterialTexture;
-HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D GBufferVelocityTexture;
-#endif
-HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D GBufferDepthTexture;
+HYP_DESCRIPTOR_SRV(FogVolume, GBufferAlbedoTexture) uniform texture2D GBufferAlbedoTexture;
+HYP_DESCRIPTOR_SRV(FogVolume, GBufferNormalsTexture) uniform texture2D GBufferNormalsTexture;
+HYP_DESCRIPTOR_SRV(FogVolume, GBufferMaterialTexture) uniform utexture2D GBufferMaterialTexture;
+HYP_DESCRIPTOR_SRV(FogVolume, GBufferVelocityTexture) uniform texture2D GBufferVelocityTexture;
+HYP_DESCRIPTOR_SRV(FogVolume, GBufferDepthTexture) uniform texture2D GBufferDepthTexture;
 
 #include "../include/scene.inc"
 #include "../include/material.inc"
@@ -42,20 +40,13 @@ HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D GBufferDepthText
 
 #include "../include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(FogVolume, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
-
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+HYP_DESCRIPTOR_SRV(FogVolume, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(FogVolume, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #include "../include/brdf.inc"
 
@@ -71,16 +62,6 @@ HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCube
 
 #include "../include/shadows.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
-{
-    Entity entity;
-};
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material material;
-};
-
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
 #endif
@@ -89,7 +70,8 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBu
 
 #include "FogVolume.inl"
 
-HYP_DESCRIPTOR_SRV(FogVolume, DataMap) uniform texture3D DataMap;
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
 HYP_DESCRIPTOR_SRV(FogVolume, NoiseMap) uniform texture3D NoiseMap;
 HYP_DESCRIPTOR_CBUFF(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
 {
