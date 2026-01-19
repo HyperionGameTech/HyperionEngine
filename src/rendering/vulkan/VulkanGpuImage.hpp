@@ -63,26 +63,16 @@ public:
     RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuImage* srcImage,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) override;
-
-    RendererResult Blit(
-        VulkanCommandBuffer* commandBuffer,
-        const VulkanGpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) override;
-
+        
     RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) override;
+        const ImageSubResource& srcSubResource,
+        const ImageSubResource& dstSubResource) override;
 
     RendererResult GenerateMipmaps(VulkanCommandBuffer* commandBuffer) override;
 

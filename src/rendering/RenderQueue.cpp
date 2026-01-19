@@ -517,19 +517,8 @@ void SetCurrentView::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     Framebuffer* framebuffer = nullptr;
 
-    if (!cmdCasted->m_view || !(framebuffer = cmdCasted->m_view->GetOutputTarget().GetFramebuffer()))
-    {
-        g_renderInterface->state.renderTargetDesc = {};
-    }
-    else
-    {
-        g_renderInterface->state.renderTargetDesc = framebuffer->GetRenderTargetDesc();
-    }
-
-    if (cmdCasted->m_view)
-    {
-        g_renderInterface->state.viewport = cmdCasted->m_view->GetViewport();
-    }
+    g_renderInterface->state.renderTargetDesc = cmdCasted->renderTargetDesc;
+    g_renderInterface->state.viewport = cmdCasted->viewport;
 
     static_assert(std::is_trivially_destructible_v<SetCurrentView>);
     // cmdCasted->~SetCurrentView();

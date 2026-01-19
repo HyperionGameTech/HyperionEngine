@@ -328,6 +328,11 @@ static inline constexpr bool IsDepthFormat(TextureFormat fmt)
     return IsDepthFormat(GetBaseFormat(fmt));
 }
 
+static inline constexpr bool HasStencilComponent(TextureFormat fmt)
+{
+    return fmt == TF_DEPTH_24; // assuming 8 bits of stencil in D24S8
+}
+
 static inline constexpr bool IsSrgbFormat(TextureFormat fmt)
 {
     return fmt >= TF_SRGB && fmt < TF_DEPTH;
@@ -1036,16 +1041,6 @@ struct alignas(16) MeshDescription
     uint32 numVertices;
 };
 
-using ImageSubResourceFlagBits = uint32;
-
-enum ImageSubResourceFlags : ImageSubResourceFlagBits
-{
-    IMAGE_SUB_RESOURCE_FLAGS_NONE = 0,
-    IMAGE_SUB_RESOURCE_FLAGS_COLOR = 1 << 0,
-    IMAGE_SUB_RESOURCE_FLAGS_DEPTH = 1 << 1,
-    IMAGE_SUB_RESOURCE_FLAGS_STENCIL = 1 << 2
-};
-
 static inline uint64 GetImageSubResourceKey(uint32 baseArrayLayer, uint32 baseMipLevel)
 {
     return (uint64(baseArrayLayer) << 32) | (uint64(baseMipLevel));
@@ -1054,7 +1049,6 @@ static inline uint64 GetImageSubResourceKey(uint32 baseArrayLayer, uint32 baseMi
 /* images */
 struct ImageSubResource
 {
-    ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_COLOR;
     uint32 baseArrayLayer = 0;
     uint32 baseMipLevel = 0;
     uint32 numLayers = 1;
@@ -1062,8 +1056,7 @@ struct ImageSubResource
 
     bool operator==(const ImageSubResource& other) const
     {
-        return flags == other.flags
-            && baseArrayLayer == other.baseArrayLayer
+        return baseArrayLayer == other.baseArrayLayer
             && numLayers == other.numLayers
             && baseMipLevel == other.baseMipLevel
             && numLevels == other.numLevels;
@@ -1077,7 +1070,6 @@ struct ImageSubResource
     HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(flags);
         hc.Add(baseArrayLayer);
         hc.Add(numLayers);
         hc.Add(baseMipLevel);

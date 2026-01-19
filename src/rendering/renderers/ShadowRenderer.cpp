@@ -312,7 +312,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 atlasElement.layerIndex, numLayers, numLayers, (atlasElement.layerIndex * numLayers) + numLayers,
                 shadowMapImage->NumArrayLayers());
 
-            const ImageSubResource subResource {
+            const ImageSubResource baseSubResource {
                 .baseArrayLayer = (atlasElement.layerIndex * numLayers),
                 .baseMipLevel = 0,
                 .numLayers = numLayers,
@@ -320,7 +320,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             };
 
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
-            frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, subResource);
+            frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, baseSubResource);
 
             for (uint32 layerIndex = 0; layerIndex < numLayers; layerIndex++)
             {
@@ -332,15 +332,23 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                         atlasElement.offsetCoords.x,
                         atlasElement.offsetCoords.y,
                         atlasElement.offsetCoords.x + atlasElement.dimensions.x,
-                        atlasElement.offsetCoords.y + atlasElement.dimensions.y },
-                    0,                                      /* srcMip */
-                    subResource.baseMipLevel,               /* dstMip */
-                    layerIndex,                             /* srcFace */
-                    subResource.baseArrayLayer + layerIndex /* dstFace */
+                        atlasElement.offsetCoords.y + atlasElement.dimensions.y
+                    },
+                    ImageSubResource {
+                        .baseArrayLayer = layerIndex,
+                        .baseMipLevel = 0,
+                        .numLayers = 1
+                    },
+                    ImageSubResource {
+                        .baseArrayLayer = baseSubResource.baseArrayLayer + layerIndex,
+                        .baseMipLevel = baseSubResource.baseMipLevel,
+                        .numLayers = 1,
+                        .numLevels = 1
+                    }
                 );
             }
 
-            frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, subResource);
+            frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, baseSubResource);
             frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
         }
     }
@@ -376,11 +384,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 atlasElement.offsetCoords.x,
                 atlasElement.offsetCoords.y,
                 atlasElement.offsetCoords.x + atlasElement.dimensions.x,
-                atlasElement.offsetCoords.y + atlasElement.dimensions.y },
-            0,                      /* srcMip */
-            0,                      /* dstMip */
-            0,                      /* srcFace */
-            atlasElement.layerIndex /* dstFace */
+                atlasElement.offsetCoords.y + atlasElement.dimensions.y
+            },
+            ImageSubResource {
+                .baseArrayLayer = 0,
+                .numLayers = 1
+            },
+            ImageSubResource {
+                .baseArrayLayer = atlasElement.layerIndex,
+                .numLayers = 1
+            }
         );
 
         // put the images back into a state for reading

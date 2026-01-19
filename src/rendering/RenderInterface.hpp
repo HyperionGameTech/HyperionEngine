@@ -44,6 +44,7 @@ class World;
 class ConstantsAllocator;
 class RenderGroup;
 class DescriptorSetCache;
+class Texture;
 
 namespace RenderApi {
 
@@ -230,6 +231,11 @@ public:
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
     GlobalGpuBuffers gpuBuffers;
+    
+    GpuBufferRef blueNoiseBuffer;
+    GpuBufferRef sphereSamplesBuffer;
+
+    Handle<Texture> envProbesTexture;
 
     MaterialTextureCache* materialTextureCache;
 
@@ -250,11 +256,9 @@ public:
 private:
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
+    void CreateEnvProbesTexture();
 
     void SetDefaultDescriptorSetElements(uint32 frameIndex);
-
-    GpuBufferRef m_blueNoiseBuffer;
-    GpuBufferRef m_sphereSamplesBuffer;
 };
 
 } // namespace Hyperion

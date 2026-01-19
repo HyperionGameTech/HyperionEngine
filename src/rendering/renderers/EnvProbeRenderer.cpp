@@ -402,9 +402,74 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                 .numLevels = 1 });
     }
 
-    DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle, pipelines = std::move(pipelines), descriptorTables = std::move(descriptorTables), buffers = std::move(buffers)](...) mutable
+    // Update in env probes texture array if bound
+    if (envProbe->IsA(SkyProbe::StaticClass()) || envProbe->IsA(ReflectionProbe::StaticClass()))
+    {
+        const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
+
+        if (boundIndex != ~0u)
         {
+            // blit to the array texture
+            const GpuImageRef& srcImage = prefilteredEnvMap->GetGpuImage();
+            AssertDebug(srcImage.IsValid());
+
+            const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
+            Assert(dstImage.IsValid());
+
+            frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
+            frame->renderQueue << InsertBarrier(dstImage, RS_COPY_DST);
+
+            for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
+            {
+                if (mipIndex >= srcImage->NumMips())
+                {
+                    break;
+                }
+            
+                ImageSubResource srcSubResource {};
+                srcSubResource.baseMipLevel = mipIndex;
+                srcSubResource.numLevels = 1;
+                srcSubResource.baseArrayLayer = 0;
+                srcSubResource.numLayers = 6;
+
+                ImageSubResource dstSubResource {};
+                dstSubResource.baseMipLevel = mipIndex;
+                srcSubResource.numLevels = 1;
+                dstSubResource.baseArrayLayer = 6 * boundIndex;
+                dstSubResource.numLayers = 6;
+
+                const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
+                const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+
+                frame->renderQueue << Blit(
+                    srcImage,
+                    dstImage,
+                    Rect<uint32> {
+                        0, 0,
+                        srcMipExtent.x, srcMipExtent.y
+                    },
+                    Rect<uint32> {
+                        0, 0,
+                        dstMipExtent.x, dstMipExtent.y
+                    },
+                    srcSubResource,
+                    dstSubResource);
+            }
+
+            frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+            frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+        }
+    }
+
+    DelegateHandler* delegateHandle = new DelegateHandler();
+    *delegateHandle = frame->OnFrameEnd.Bind([
+        delegateHandle,
+        pipelines = std::move(pipelines),
+        descriptorTables = std::move(descriptorTables),
+        buffers = std::move(buffers)](...) mutable
+        {
+            // Readback the texture and save it to image data
+
             SafeDelete(std::move(pipelines));
             SafeDelete(std::move(descriptorTables));
             SafeDelete(std::move(buffers));
@@ -675,10 +740,13 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([envProbe = MakeStrongRef(envProbe), pipelines = std::move(pipelines), descriptorTables = std::move(computeShDescriptorTables), shTilesBuffers = std::move(shTilesBuffers), delegateHandle](Frame* frame) mutable
+    *delegateHandle = frame->OnFrameEnd.Bind([
+        envProbe = MakeStrongRef(envProbe),
+        pipelines = std::move(pipelines),
+        descriptorTables = std::move(computeShDescriptorTables),
+        shTilesBuffers = std::move(shTilesBuffers),
+        delegateHandle](Frame* frame) mutable
         {
-            HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
-
             const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
             Assert(boundIndex != ~0u);
 

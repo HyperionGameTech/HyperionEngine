@@ -393,32 +393,33 @@ public:
     Blit(GpuImage* srcImage, GpuImage* dstImage)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
-          m_hasMipFaceInfo(false),
-          m_hasSrcRect(false),
-          m_hasDstRect(false)
+          m_hasSubResource(false),
+          m_hasRect(false)
     {
     }
 
-    Blit(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+    Blit(GpuImage* srcImage, GpuImage* dstImage,
+        const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
-          m_hasMipFaceInfo(false),
-          m_hasSrcRect(true),
-          m_hasDstRect(true)
+          m_hasSubResource(false),
+          m_hasRect(true)
     {
     }
 
-    Blit(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect, uint32 srcMip, uint32 dstMip, uint32 srcFace, uint32 dstFace)
+    Blit(GpuImage* srcImage, GpuImage* dstImage,
+        const Rect<uint32>& srcRect, const Rect<uint32>& dstRect,
+        const ImageSubResource& srcSubResource, const ImageSubResource& dstSubResource)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
-          m_mipFaceInfo(MipFaceInfo { srcMip, dstMip, srcFace, dstFace }),
-          m_hasMipFaceInfo(true),
-          m_hasSrcRect(true),
-          m_hasDstRect(true)
+          m_srcSubResource(srcSubResource),
+          m_dstSubResource(dstSubResource),
+          m_hasSubResource(true),
+          m_hasRect(true)
     {
     }
 
@@ -426,22 +427,17 @@ public:
     {
         Blit* cmdCasted = static_cast<Blit*>(cmd);
 
-        if (cmdCasted->m_hasMipFaceInfo)
+        if (cmdCasted->m_hasSubResource)
         {
-            MipFaceInfo info = cmdCasted->m_mipFaceInfo;
-
-            if (cmdCasted->m_hasSrcRect && cmdCasted->m_hasDstRect)
-            {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect, info.srcMip, info.dstMip, info.srcFace, info.dstFace);
-            }
-            else
-            {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, info.srcMip, info.dstMip, info.srcFace, info.dstFace);
-            }
+            cmdCasted->m_dstImage->Blit(
+                commandBuffer, 
+                cmdCasted->m_srcImage,
+                cmdCasted->m_srcRect, cmdCasted->m_dstRect,
+                cmdCasted->m_srcSubResource, cmdCasted->m_dstSubResource);
         }
         else
         {
-            if (cmdCasted->m_hasSrcRect && cmdCasted->m_hasDstRect)
+            if (cmdCasted->m_hasRect)
             {
                 cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
             }
@@ -456,31 +452,23 @@ public:
     }
 
 private:
-    struct MipFaceInfo
-    {
-        uint32 srcMip;
-        uint32 dstMip;
-        uint32 srcFace;
-        uint32 dstFace;
-    };
-
     GpuImage* m_srcImage;
     GpuImage* m_dstImage;
 
-    MipFaceInfo m_mipFaceInfo;
+    ImageSubResource m_srcSubResource;
+    ImageSubResource m_dstSubResource;
 
     Rect<uint32> m_srcRect;
     Rect<uint32> m_dstRect;
 
-    bool m_hasMipFaceInfo : 1;
-    bool m_hasSrcRect : 1;
-    bool m_hasDstRect : 1;
+    bool m_hasSubResource : 1;
+    bool m_hasRect : 1;
 };
 
 class BlitRect final : public CmdBase
 {
 public:
-    BlitRect(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+    HYP_DEPRECATED BlitRect(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
@@ -492,7 +480,10 @@ public:
     {
         BlitRect* cmdCasted = static_cast<BlitRect*>(cmd);
 
-        cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
+        cmdCasted->m_dstImage->Blit(
+            commandBuffer,
+            cmdCasted->m_srcImage,
+            cmdCasted->m_srcRect, cmdCasted->m_dstRect);
 
         static_assert(std::is_trivially_destructible_v<BlitRect>);
         // cmdCasted->~BlitRect();
@@ -717,15 +708,17 @@ private:
 class SetCurrentView final : public CmdBase
 {
 public:
-    explicit SetCurrentView(View* view)
-        : m_view(view)
+    SetCurrentView(const RenderTargetDesc& renderTargetDesc, const Viewport& viewport)
+        : renderTargetDesc(renderTargetDesc),
+          viewport(viewport)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    View* m_view;
+    RenderTargetDesc renderTargetDesc;
+    Viewport viewport;
 };
 
 class SetTopology final : public CmdBase

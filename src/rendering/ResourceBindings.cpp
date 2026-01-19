@@ -88,15 +88,6 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
         "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
 
-    if (prev != ~0u)
-    {
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("EnvProbeTextures"_sh, prev, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
-        }
-    }
-
     if (next != ~0u)
     {
         IRenderProxy* proxy = RenderApi::GetRenderProxy(envProbe);
@@ -110,14 +101,65 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
         AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
 
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        if (!proxyCasted->texture)
         {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("EnvProbeTextures"_sh, next,
-                    proxyCasted->texture != nullptr
-                        ? g_renderInterface->textureViewCache->GetOrCreate(proxyCasted->texture)
-                        : g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultCubemap));
+            HYP_LOG(Rendering, Warning, "No EnvProbe texture for {}", envProbe->Id());
+
+            return;
         }
+
+        // blit to the array texture
+        const GpuImageRef& srcImage = proxyCasted->texture->GetGpuImage();
+        AssertDebug(srcImage.IsValid());
+
+        const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
+        Assert(dstImage.IsValid());
+
+        Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+        Assert(currentFrame != nullptr);
+
+        RenderQueue& rq = currentFrame->preRenderQueue;
+
+        rq << InsertBarrier(srcImage, RS_COPY_SRC);
+        rq << InsertBarrier(dstImage, RS_COPY_DST);
+
+        for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
+        {
+            if (mipIndex >= srcImage->NumMips())
+            {
+                break;
+            }
+            
+            ImageSubResource srcSubResource {};
+            srcSubResource.baseMipLevel = mipIndex;
+            srcSubResource.baseArrayLayer = 0;
+            srcSubResource.numLayers = 6;
+
+            ImageSubResource dstSubResource {};
+            dstSubResource.baseMipLevel = mipIndex;
+            dstSubResource.baseArrayLayer = 6 * next;
+            dstSubResource.numLayers = 6;
+
+            const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
+            const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+
+            rq << Blit(
+                srcImage,
+                dstImage,
+                Rect<uint32> {
+                    0, 0,
+                    srcMipExtent.x, srcMipExtent.y
+                },
+                Rect<uint32> {
+                    0, 0,
+                    dstMipExtent.x, dstMipExtent.y
+                },
+                srcSubResource,
+                dstSubResource);
+        }
+
+        rq << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+        rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }
 }
 

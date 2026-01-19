@@ -166,14 +166,6 @@ public:
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
         const GpuImage* srcImage,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) = 0;
-
-    virtual RendererResult Blit(
-        CommandBuffer* commandBuffer,
-        const GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) = 0;
 
@@ -182,10 +174,8 @@ public:
         const GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) = 0;
+        const ImageSubResource& srcSubResource,
+        const ImageSubResource& dstSubResource) = 0;
 
     virtual RendererResult GenerateMipmaps(CommandBuffer* commandBuffer) = 0;
 
