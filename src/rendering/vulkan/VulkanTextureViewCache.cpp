@@ -26,7 +26,7 @@ VulkanTextureViewCache::~VulkanTextureViewCache()
 }
 
 const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
-    const Handle<Texture>& texture,
+    Texture* texture,
     uint32 mipIndex,
     uint32 numMips,
     uint32 layerIndex,
@@ -49,20 +49,20 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
     return GetOrCreate(texture, subResource);
 }
 
-const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
+const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(Texture* texture, const ImageSubResource& subResource)
 {
     AssertOnThread(g_renderThread);
 
-    Assert(texture.IsValid());
+    Assert(texture != nullptr);
 
-    const SizeType idx = texture.Id().ToIndex();
+    const SizeType idx = texture->Id().ToIndex();
 
     TSharedLock sharedLock(mutex);
 
     if (!imageViews.HasIndex(idx))
     {
         imageViews.Emplace(idx);
-        weakTextureHandles.Emplace(idx, texture.ToWeak());
+        weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
     }
 
     auto& textureImageViews = imageViews.Get(idx);
