@@ -5,21 +5,8 @@
 #include "../include/brdf.inc"
 #include "../include/Octahedron.glsl"
 
-#define DEFERRED_FLAGS_VCT_ENABLED 0x2
-#define DEFERRED_FLAGS_ENV_PROBE_ENABLED 0x4
-#define DEFERRED_FLAGS_HBAO_ENABLED 0x8
-#define DEFERRED_FLAGS_HBIL_ENABLED 0x10
-#define DEFERRED_FLAGS_RT_RADIANCE_ENABLED 0x20
-
 #define HYP_HBIL_MULTIPLIER 1.0
 #define ENV_GRID_MULTIPLIER 1.0
-
-struct DeferredParams
-{
-    uint flags;
-    uint screen_width;
-    uint screen_height;
-};
 
 struct Refraction
 {
@@ -270,9 +257,9 @@ void ApplyReflectionProbe(uint probe_texture_index, vec3 probe_world_position, v
 #endif
 
 #if ENV_PROBE_CUBEMAP
-    ibl = TextureCubeLod(sampler_linear, env_probe_textures[probe_texture_index], normalize(R), lod);
+    ibl = textureLod(samplerCubeArray(envProbesTexture, sampler_linear), vec4(normalize(R), float(probe_texture_index)), lod);
 #else
-    ibl = Texture2DLod(sampler_linear, env_probe_textures[probe_texture_index], EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, lod);
+    ibl = textureLod(sampler2DArray(envProbesTexture, sampler_linear), vec3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
 #endif
 }
 
@@ -302,28 +289,25 @@ vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 ca
 
 #ifndef HYP_DEFERRED_NO_RT_RADIANCE
 #ifdef PATHTRACER
-vec4 CalculatePathTracing(DeferredParams deferred_params, vec2 uv)
+vec4 CalculatePathTracing(vec2 uv)
 {
     return Texture2DLod(sampler_linear, rt_radiance_final, uv, 0.0);
 }
 #endif
 
 #ifdef RT_REFLECTIONS
-void CalculateRaytracingReflection(DeferredParams deferred_params, vec2 uv, inout vec4 reflections)
+void CalculateRaytracingReflection(vec2 uv, inout vec4 reflections)
 {
-    const bool enabled = bool(deferred_params.flags & DEFERRED_FLAGS_RT_RADIANCE_ENABLED);
-
     vec4 rt_radiance = Texture2DLod(sampler_linear, rt_radiance_final, uv, 0.0);
-    rt_radiance *= float(enabled);
 
     reflections = reflections * (1.0 - rt_radiance.a) + vec4(rt_radiance.rgb, 1.0) * rt_radiance.a;
 }
 #endif
 #endif
 
-void CalculateHBILIrradiance(DeferredParams deferred_params, in vec4 ssao_data, inout vec3 irradiance)
+void CalculateHBILIrradiance(in vec4 ssao_data, inout vec3 irradiance)
 {
-    irradiance += pow(ssao_data.rgb, vec3(2.2)) * HYP_HBIL_MULTIPLIER * float(bool(deferred_params.flags & DEFERRED_FLAGS_HBIL_ENABLED));
+    irradiance += pow(ssao_data.rgb, vec3(2.2)) * HYP_HBIL_MULTIPLIER;
 }
 
 void IntegrateReflections(inout vec3 Fr, in vec4 reflections)

@@ -500,7 +500,13 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 
         if (attachment->IsDepthAttachment())
         {
-            clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            clearAttachment.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+            if (TextureUtils::HasStencilComponent(attachment->GetFormat()))
+            {
+                clearAttachment.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+
             clearAttachment.colorAttachment = VK_ATTACHMENT_UNUSED;
             clearAttachment.clearValue.depthStencil = { 1.0f, 0 };
         }

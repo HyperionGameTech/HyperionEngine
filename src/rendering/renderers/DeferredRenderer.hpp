@@ -49,19 +49,6 @@ class RenderCollector;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
 
-using DeferredFlagBits = uint32;
-
-enum DeferredFlags : DeferredFlagBits
-{
-    DEFERRED_FLAGS_NONE = 0x0,
-    DEFERRED_FLAGS_VCT_ENABLED = 0x2,
-    DEFERRED_FLAGS_ENV_PROBE_ENABLED = 0x4,
-    DEFERRED_FLAGS_HBAO_ENABLED = 0x8,
-    DEFERRED_FLAGS_HBIL_ENABLED = 0x10,
-    DEFERRED_FLAGS_RT_RADIANCE_ENABLED = 0x20,
-    DEFERRED_FLAGS_DDGI_ENABLED = 0x40
-};
-
 enum DeferredPassMode : uint32
 {
     DPM_INDIRECT_LIGHTING,

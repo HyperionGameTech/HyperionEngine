@@ -90,16 +90,17 @@ int GetLocalEnvProbeIndex(in EnvGrid env_grid, vec3 world_position)
 vec4 EnvProbeSample(
     sampler samp,
 #if ENV_PROBE_CUBEMAP
-    textureCube tex,
+    textureCubeArray tex,
 #else
-    texture2D tex,
+    texture2DArray tex,
 #endif
+    uint texture_index,
     vec3 coord, float lod)
 {
 #if ENV_PROBE_CUBEMAP
-    vec4 color = textureLod(samplerCube(tex, samp), normalize(coord), lod);
+    vec4 color = textureLod(samplerCubeArray(tex, samp), vec4(normalize(coord), float(texture_index)), lod);
 #else
-    vec4 color = textureLod(sampler2D(tex, samp), EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, lod);
+    vec4 color = textureLod(sampler2DArray(tex, samp), vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(texture_index)), lod);
 #endif
     // color.rgb = pow(color.rgb, vec3(2.2));
     return color;
@@ -121,10 +122,17 @@ vec3 EnvProbeCoordParallaxCorrected(
 }
 
 vec4 EnvProbeSampleParallaxCorrected(
-    sampler samp, textureCube tex,
-    EnvProbe env_probe,
+    sampler samp,
+#if ENV_PROBE_CUBEMAP
+    textureCubeArray tex,
+#else
+    texture2DArray tex,
+#endif
+    in EnvProbe env_probe,
     vec3 world, vec3 R, float lod)
 {
+    uint probe_texture_index = env_probe.texture_index;
+
     vec3 rbmax = (env_probe.aabb_max.xyz - world) / R;
     vec3 rbmin = (env_probe.aabb_min.xyz - world) / R;
     vec3 rbminmax = max(rbmax, rbmin);
@@ -134,24 +142,11 @@ vec4 EnvProbeSampleParallaxCorrected(
     vec3 box = world + R * correction;
     vec3 coord = box - env_probe.world_position.xyz;
 
-    return textureLod(samplerCube(tex, samp), coord, lod);
-}
-
-vec4 EnvProbeSampleParallaxCorrected(
-    samplerCube tex,
-    EnvProbe env_probe,
-    vec3 world, vec3 R, float lod)
-{
-    vec3 rbmax = (env_probe.aabb_max.xyz - world) / R;
-    vec3 rbmin = (env_probe.aabb_min.xyz - world) / R;
-    vec3 rbminmax = max(rbmax, rbmin);
-
-    float correction = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
-
-    vec3 box = world + R * correction;
-    vec3 coord = box - env_probe.world_position.xyz;
-
-    return textureLod(tex, coord, lod);
+#if ENV_PROBE_CUBEMAP
+    return textureLod(samplerCubeArray(tex, samp), vec4(coord, float(probe_texture_index)), lod);
+#else
+    return textureLod(sampler2DArray(tex, samp), vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(probe_texture_index)), lod);
+#endif
 }
 
 float[9] ProjectSHBands(vec3 N)

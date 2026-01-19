@@ -62,9 +62,9 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer { En
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
+HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
 #include "../include/rt/RTRadiance.inc"

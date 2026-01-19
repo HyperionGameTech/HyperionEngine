@@ -85,11 +85,6 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, EnvGridsBuffer) uniform EnvGridsBuffe
 
 // clang-format on
 
-layout(push_constant) uniform PushConstant
-{
-    DeferredParams deferred_params;
-};
-
 #define DDGI_MULTIPLIER 1.0
 
 void main()
@@ -121,8 +116,10 @@ void main()
     vec4 reflections = vec4(0.0);
     vec3 ibl = vec3(0.0);
 
+#if HBAO_ENABLED
     const vec4 ssao_data = Texture2D(HYP_SAMPLER_NEAREST, ssao_gi_result, v_texcoord0);
-    ao = mix(1.0, ssao_data.a, bool(deferred_params.flags & DEFERRED_FLAGS_HBAO_ENABLED));
+    ao = ssao_data.a;
+#endif
 
     const vec3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
 
@@ -145,7 +142,7 @@ void main()
 #endif
 
 #if RT_REFLECTIONS
-    CalculateRaytracingReflection(deferred_params, texcoord, reflections);
+    CalculateRaytracingReflection(texcoord, reflections);
 #endif
 
 #if RT_GI
@@ -153,7 +150,7 @@ void main()
 #endif
 
 #if HBIL_ENABLED
-    CalculateHBILIrradiance(deferred_params, ssao_data, irradiance);
+    CalculateHBILIrradiance(ssao_data, irradiance);
 #endif
 
     const float NdotV = max(0.0001, dot(N, V));
@@ -176,7 +173,7 @@ void main()
     result = Fd + Fr;
 
 #ifdef PATHTRACER
-    result = CalculatePathTracing(deferred_params, texcoord).rgb;
+    result = CalculatePathTracing(texcoord).rgb;
 #elif defined(DEBUG_REFLECTIONS)
     result = E * reflections.rgb;
 #elif defined(DEBUG_IRRADIANCE)

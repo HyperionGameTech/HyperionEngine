@@ -42,7 +42,7 @@ HYP_DESCRIPTOR_SRV(View, SSGIResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, SSAOResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, TAAResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture, 1);
-HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, MaxBoundReflectionProbes);
+HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture, MaxBoundReflectionProbes);
 HYP_DESCRIPTOR_SRV(View, EnvGridIrradianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, EnvGridRadianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture, 1);

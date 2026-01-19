@@ -77,11 +77,6 @@ HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-layout(push_constant) uniform PushConstant
-{
-    DeferredParams deferred_params;
-};
-
 void main()
 {
     vec4 albedo = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord);
@@ -133,8 +128,10 @@ void main()
         float ao = 1.0;
         float shadow = 1.0;
 
+#if HBAO_ENABLED
         const vec4 ssao_data = Texture2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
-        ao = mix(1.0, ssao_data.a, bool(deferred_params.flags & DEFERRED_FLAGS_HBAO_ENABLED));
+        ao = ssao_data.a;
+#endif
 
         vec4 area_light_radiance;
 

@@ -266,7 +266,7 @@ struct SubtypeResourceBindings
 
 static SparsePagedArray<SubtypeResourceBindings, 64> s_subtypeBindings;
 
-static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const Class* cls)
+static inline SubtypeResourceBindings& GetSubtypeBindings(const Class* cls)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -282,14 +282,14 @@ static inline SubtypeResourceBindings& ResourceBinding_GetSubtypeBindings(const 
     return *bindings;
 }
 
-static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
+void AssignResourceBinding(ObjectBase* resource, uint32 binding)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
     AssertDebug(resource != nullptr);
 
-    SubtypeResourceBindings& bindings = ResourceBinding_GetSubtypeBindings(resource->InstanceClass());
+    SubtypeResourceBindings& bindings = GetSubtypeBindings(resource->InstanceClass());
 
     ObjIdBase resourceId = resource->Id();
     AssertDebug(resourceId.IsValid());
@@ -309,7 +309,7 @@ static void ResourceBinding_Assign(ObjectBase* resource, uint32 binding)
     bindings.bindingIndices.Emplace(resourceId.ToIndex(), binding);
 }
 
-static uint32 ResourceBinding_Retrieve(const ObjectBase* resource)
+uint32 RetrieveResourceBinding(const ObjectBase* resource)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -319,13 +319,11 @@ static uint32 ResourceBinding_Retrieve(const ObjectBase* resource)
         return ~0u; // invalid resource
     }
 
-    const SubtypeResourceBindings& bindings = ResourceBinding_GetSubtypeBindings(resource->InstanceClass());
+    const SubtypeResourceBindings& bindings = GetSubtypeBindings(resource->InstanceClass());
 
     const ObjIdBase resourceId = resource->Id();
 
     const uint32* elem = bindings.bindingIndices.TryGet(resourceId.ToIndex());
-
-    AssertDebug(elem != nullptr, "Failed to retrieve resource binding for resource with ID: {}", resourceId);
 
     return elem ? *elem : ~0u;
 }
@@ -1083,7 +1081,7 @@ void UpdateGpuData(const ObjectBase* resource)
         "Cannot use UpdateGpuData() for type which does not have a RenderProxy! Type: {}",
         subtypeData.typeInfo->name);
 
-    const uint32 bindingIndex = ResourceBinding_Retrieve(resource);
+    const uint32 bindingIndex = RetrieveResourceBinding(resource);
     AssertDebug(bindingIndex != ~0u);
 
     const uint32 idx = resourceId.ToIndex();
@@ -1095,23 +1093,6 @@ void UpdateGpuData(const ObjectBase* resource)
 
     // set it as no longer needing update next frame since we updated immediately
     subtypeData.indicesPendingUpdate.Set(idx, false);
-}
-
-void AssignResourceBinding(ObjectBase* resource, uint32 binding)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    ResourceBinding_Assign(resource, binding);
-}
-
-uint32 RetrieveResourceBinding(const ObjectBase* resource)
-{
-    HYP_SCOPE;
-    // FIXME: Add better check to ensure it is from a render task thread.
-    AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    return ResourceBinding_Retrieve(resource);
 }
 
 void SetForceRebind(ObjectBase* resource, bool forceRebind)
@@ -1354,7 +1335,7 @@ void BeginFrameRender()
 
                 AssertDebug(subtypeData.hasProxyData);
 
-                const uint32 bindingIndex = ResourceBinding_Retrieve(resource);
+                const uint32 bindingIndex = RetrieveResourceBinding(resource);
                 AssertDebug(bindingIndex != ~0u,
                     "Failed to retrieve binding for resource: {} in frame {}, but it is marked as bound (index: {})",
                     i, slot, i);
@@ -1588,6 +1569,7 @@ RenderInterface::RenderInterface()
 
     CreateSphereSamplesBuffer();
     CreateBlueNoiseBuffer();
+    CreateEnvProbesTexture();
 
     globalDescriptorTable->Create();
 
@@ -2107,19 +2089,19 @@ void RenderInterface::CreateBlueNoiseBuffer()
             + ((scramblingTileOffset - (sobol256spp256dOffset + sobol256spp256dSize)) + scramblingTileSize)
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
-    m_blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
-    m_blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
-    m_blueNoiseBuffer->SetRequireCpuAccessible(true);
-    CheckResult(m_blueNoiseBuffer->Create());
+    blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
+    blueNoiseBuffer->SetRequireCpuAccessible(true);
+    CheckResult(blueNoiseBuffer->Create());
 
-    m_blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
-    m_blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
-    m_blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
+    blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
+    blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
+    blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("BlueNoiseBuffer"_sh, m_blueNoiseBuffer);
+            ->SetElement("BlueNoiseBuffer"_sh, blueNoiseBuffer);
     }
 }
 
@@ -2127,9 +2109,9 @@ void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    m_sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
-    m_sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
-    CheckResult(m_sphereSamplesBuffer->Create());
+    sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
+    sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
+    CheckResult(sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];
 
@@ -2143,15 +2125,30 @@ void RenderInterface::CreateSphereSamplesBuffer()
         sphereSamples[i] = Vec4f(sample, 0.0f);
     }
 
-    m_sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
+    sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
 
     delete[] sphereSamples;
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("SphereSamplesBuffer"_sh, m_sphereSamplesBuffer);
+            ->SetElement("SphereSamplesBuffer"_sh, sphereSamplesBuffer);
     }
+}
+
+void RenderInterface::CreateEnvProbesTexture()
+{
+    TextureDesc textureDesc;
+    textureDesc.format = TF_RGBA8;
+    textureDesc.extent = Vec3u { 128, 128, 1 };
+    textureDesc.imageUsage = IU_SAMPLED;
+    textureDesc.type = TT_CUBEMAP_ARRAY;
+    textureDesc.numLayers = MaxBoundReflectionProbes;
+    textureDesc.filterModeMag = TFM_LINEAR_MIPMAP;
+    textureDesc.filterModeMin = TFM_LINEAR;
+
+    envProbesTexture = CreateObject<Texture>(textureDesc);
+    InitObject(envProbesTexture);
 }
 
 void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
@@ -2193,11 +2190,8 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("LightmapVolumesBuffer"_sh, gpuBuffers[GRB_LIGHTMAP_VOLUMES]->GetBuffer(frameIndex));
 
-    for (uint32 i = 0; i < MaxBoundReflectionProbes; i++)
-    {
-        globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement(NAME("EnvProbeTextures"), i, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
-    }
+    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+        ->SetElement(NAME("EnvProbesTexture"), textureViewCache->GetOrCreate(placeholderData->defaultCubemapArray));
 
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("RTRadianceResultTexture"_sh, placeholderData->GetImageView2D1x1R8());

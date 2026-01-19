@@ -55,11 +55,6 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
 
 #include "./DeferredLighting.glsl"
 
-layout(push_constant) uniform PushConstant
-{
-    DeferredParams deferred_params;
-};
-
 #if defined(MODE_RADIANCE) || defined(IRRADIANCE_MODE_VOXEL)
 HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {

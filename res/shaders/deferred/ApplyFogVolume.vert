@@ -25,7 +25,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
 #include "FogVolume.inl"
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(FogVolume, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };

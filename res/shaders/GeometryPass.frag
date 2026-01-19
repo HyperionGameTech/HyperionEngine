@@ -60,9 +60,9 @@ HYP_DESCRIPTOR_CBUFF(Default, WorldsBuffer) uniform WorldsBuffer
 #ifdef SHADING_TYPE_FORWARD
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Default, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
+HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(Default, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
 HYP_DESCRIPTOR_SSBO(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
