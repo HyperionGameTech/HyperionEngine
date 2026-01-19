@@ -37,7 +37,6 @@ HYP_DESCRIPTOR_UAV(RTRadianceDescriptorSet, OutputImage, format = rgba8) uniform
 #include "../../include/noise.inc"
 #include "../../include/brdf.inc"
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 /// Blue noise
 HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
@@ -51,6 +50,8 @@ HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 
 #include "../../include/env_probe.inc"
 
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
@@ -63,6 +64,12 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer { EnvGrid env_grid; };
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
+
+#if ENV_PROBE_CUBEMAP
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform textureCube env_probe_textures[16];
+#else
+HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, count = 16) uniform texture2D env_probe_textures[16];
+#endif
 
 #include "../../include/Octahedron.glsl"
 

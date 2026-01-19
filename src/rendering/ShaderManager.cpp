@@ -32,18 +32,18 @@ public:
         };
 
         ShaderCacheId cacheId;
-        ShaderWeakRef shader;
+        ShaderRef shaderInstance;
         CompiledShader* compiledShader = nullptr;
         AtomicVar<State> state = State::UNLOADED;
         ThreadId loadingThreadId;
     };
 
-    HashMap<ShaderDefinition, RC<ShaderMapEntry>> m_map;
-    SparsePagedArray<ShaderDefinition, 64> m_definitionsById;
+    HashMap<ShaderDefinition, ShaderMapEntry*> m_entryMap;
     SharedMutex m_mutex;
 
     // these live forever to keep pointers valid
     SparsePagedArray<CompiledShader, 16> m_compiledShaderCache;
+    SparsePagedArray<ShaderMapEntry, 16> m_entries;
 
     ShaderRef GetOrCreate(const ShaderDefinition& definition, ShaderCacheId& outCacheId, bool doLoadShader)
     {
@@ -64,15 +64,15 @@ public:
 
         outCacheId = InvalidShaderCacheId;
 
-        RC<ShaderMapEntry> entry;
+        ShaderMapEntry* entry = nullptr;
         bool shouldAddEntryToCache = false;
 
         { // pulling value from cache if it exists
             TSharedLock lock(m_mutex);
 
-            auto it = m_map.Find(definition);
+            auto it = m_entryMap.Find(definition);
 
-            if (it != m_map.End())
+            if (it != m_entryMap.End())
             {
                 entry = it->second;
             }
@@ -115,36 +115,26 @@ public:
                 numSpins++;
             }
 
-            if (ShaderRef shader = entry->shader.Lock(); shader.IsValid())
+            if (EnsureContainsProperties(definition.GetProperties(), entry->shaderInstance->GetCompiledShader()->GetProperties()))
             {
-                if (EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetProperties()))
-                {
-                    return shader;
-                }
-                else
-                {
-                    HYP_LOG(Shader, Error,
-                        "Loaded shader from cache (Name: {}, Properties: {}) does not contain the requested properties!\n\tRequested: {}",
-                        definition.GetName(),
-                        shader->GetCompiledShader()->GetProperties().ToString(),
-                        definition.GetProperties().ToString());
-                }
+                return entry->shaderInstance;
             }
             else
             {
-                entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-
-                // if we got here, the shader is no longer alive (all weak refs destroyed)
-                // we need to load it again.
-                HYP_LOG(Shader, Debug, "Shader {} had all refs expire, reloading shader", definition.name);
+                HYP_LOG(Shader, Error,
+                    "Loaded shader from cache (Name: {}, Properties: {}) does not contain the requested properties!\n\tRequested: {}",
+                    definition.GetName(),
+                    entry->shaderInstance->GetCompiledShader()->GetProperties().ToString(),
+                    definition.GetProperties().ToString());
             }
         }
 
         if (!entry)
         {
-            entry = MakeRefCountedPtr<ShaderMapEntry>();
+            ShaderCacheId cacheId = GenerateShaderCacheId();
 
-            entry->cacheId = GenerateShaderCacheId();
+            entry = GetShaderMapEntry(cacheId);
+            entry->cacheId = cacheId;
             entry->compiledShader = GetCompiledShader(entry->cacheId);
 
             if (doLoadShader)
@@ -163,12 +153,11 @@ public:
             TUniqueLock lock(m_mutex);
 
             // double check, as we don't want to overwrite an entry, potentially invalidating references to the compiled shader.
-            auto it = m_map.Find(definition);
+            auto it = m_entryMap.Find(definition);
 
-            if (it == m_map.End())
+            if (it == m_entryMap.End())
             {
-                m_map.Insert(definition, entry);
-                m_definitionsById.Emplace(uint64(entry->cacheId), definition);
+                m_entryMap.Insert(definition, entry);
             }
         }
 
@@ -198,7 +187,7 @@ public:
             DeferCreate(shader);
 
             // Update the entry
-            entry->shader = shader;
+            entry->shaderInstance = shader;
             entry->state.Set(ShaderMapEntry::State::LOADED, MemoryOrder::SEQUENTIAL);
         }
 
@@ -216,9 +205,9 @@ public:
         { // check through mapping
             TSharedLock lock(m_mutex);
 
-            auto it = m_map.Find(definition);
+            auto it = m_entryMap.Find(definition);
 
-            if (it != m_map.End())
+            if (it != m_entryMap.End())
             {
                 return it->second->cacheId;
             }
@@ -239,7 +228,14 @@ public:
     {
         TSharedLock lock(m_mutex);
 
-        return m_definitionsById.TryGet(uint64(shaderCacheId));
+        const ShaderMapEntry* entry = m_entries.TryGet(uint64(shaderCacheId));
+
+        if (!entry)
+        {
+            return nullptr;
+        }
+
+        return &entry->compiledShader->definition;
     }
 
     CompiledShader* GetCompiledShader(ShaderCacheId shaderCacheId)
@@ -264,6 +260,28 @@ public:
         return &m_compiledShaderCache.Get(uint64(shaderCacheId));
     }
 
+    ShaderMapEntry* GetShaderMapEntry(ShaderCacheId shaderCacheId)
+    {
+        TSharedLock lock(m_mutex);
+
+        if (!m_entries.HasIndex(uint64(shaderCacheId)))
+        {
+            lock.Reset();
+
+            TUniqueLock uniqueLock(m_mutex);
+
+            if (!m_entries.HasIndex(uint64(shaderCacheId)))
+            {
+                return &*m_entries.Emplace(uint64(shaderCacheId));
+            }
+
+            // someone else added it before we did
+            lock.Reset(m_mutex);
+        }
+        
+        return &m_entries.Get(uint64(shaderCacheId));
+    }
+
     SizeType CalculateMemoryUsage() const
     {
         HYP_SCOPE;
@@ -272,19 +290,16 @@ public:
 
         TSharedLock lock(m_mutex);
 
-        for (const auto& it : m_map)
+        for (const auto& it : m_entryMap)
         {
             totalMemoryUsage += sizeof(it.first);
             totalMemoryUsage += sizeof(it.second);
 
-            if (const RC<ShaderMapEntry>& entry = it.second)
+            if (const ShaderMapEntry* entry = it.second)
             {
-                if (ShaderRef shader = entry->shader.Lock(); shader.IsValid())
+                for (const ByteBuffer& byteBuffer : entry->shaderInstance->GetCompiledShader()->modules)
                 {
-                    for (const ByteBuffer& byteBuffer : shader->GetCompiledShader()->modules)
-                    {
-                        totalMemoryUsage += byteBuffer.Size();
-                    }
+                    totalMemoryUsage += byteBuffer.Size();
                 }
             }
         }
