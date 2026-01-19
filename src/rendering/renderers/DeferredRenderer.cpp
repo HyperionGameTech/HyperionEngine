@@ -439,6 +439,9 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         if (dpd->hbao != nullptr)
             rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
+        if (dpd->reflectionsPass != nullptr)
+            rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
+
         if (m_mode == DPM_INDIRECT_LIGHTING)
         {
             if (dpd->ssgi != nullptr)
