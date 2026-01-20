@@ -105,14 +105,14 @@ public:
 
     HYP_FORCE_INLINE void GetPreviousFrameRays(Array<LightmapRay>& outRays) const
     {
-        Mutex::Guard guard(m_previousFrameRaysMutex);
+        TSharedLock lock(m_previousFrameRaysMutex);
 
         outRays = m_previousFrameRays;
     }
 
     HYP_FORCE_INLINE void SetPreviousFrameRays(const Array<LightmapRay>& rays)
     {
-        Mutex::Guard guard(m_previousFrameRaysMutex);
+        TUniqueLock lock(m_previousFrameRaysMutex);
 
         m_previousFrameRays = rays;
     }
@@ -147,8 +147,7 @@ public:
         return m_runningSemaphore.IsInSignalState();
     }
 
-    // Number of GPU path tracing tasks running, used to not overwhelm the gpu while rendering the frame
-    AtomicVar<uint32> NumConcurrentRenderingTasks;
+    AtomicVar<bool> tracingComplete;
 
 protected:
     virtual void Start_Internal() = 0;
@@ -186,10 +185,10 @@ protected:
     Array<uint32> m_texelIndices; // flattened texel indices, flattened so that meshes are grouped together
 
     Array<LightmapRay> m_previousFrameRays;
-    mutable Mutex m_previousFrameRaysMutex;
+    SharedMutex m_previousFrameRaysMutex;
 
     Array<TaskBatch*> m_currentTasks;
-    mutable Mutex m_currentTasksMutex;
+    SharedMutex m_currentTasksMutex;
 
     Semaphore<int32> m_runningSemaphore;
     uint32 m_texelIndex;

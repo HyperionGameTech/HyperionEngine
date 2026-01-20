@@ -73,7 +73,7 @@ namespace Baking {
 
 // Changing tile size will change the number of jobs that get enqueued.
 // Smaller tile size = more jobs required to complete the bake
-static constexpr uint32 TileSize = 64;
+static constexpr uint32 TileSize = 32;
 
 // Too many concurrent jobs will cause excessive memory usage and thrashing
 static constexpr uint32 MaxConcurrentJobs = 8;
@@ -352,7 +352,8 @@ void BakerBase::Build()
             meshComponent.mesh,
             meshComponent.material,
             Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
-            boundingBoxComponent.worldAabb });
+            boundingBoxComponent.worldAabb
+        });
     }
 
     // set pointers in map after pushing, so that the addresses are stable
@@ -400,7 +401,7 @@ void BakerBase::DispatchJobs()
             const uint32 x = i % dimensions.x;
             const uint32 y = i / dimensions.y;
 
-            const Vec2i tileCoord { int(x / TileSize), int(y / TileSize) };
+            const Vec2i tileCoord = Vec2i(int32(x / TileSize), int32(y / TileSize));
             tileBuckets[tileCoord].PushBack(i);
         }
 

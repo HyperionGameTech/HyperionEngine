@@ -28,7 +28,7 @@ public:
 
     virtual bool ShouldSplitIntoJobs() const override
     {
-        return true;
+        return false;
     }
 
     virtual uint32 GetShadingTypesMask() const override
