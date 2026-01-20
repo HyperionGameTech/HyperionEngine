@@ -407,6 +407,8 @@ struct ProbeRayData
 
 struct alignas(16) DDGIConstants
 {
+    Mat4f rotationMatrix;
+
     Vec4f aabbMax;
     Vec4f aabbMin;
     Vec4u probeBorder;

@@ -503,7 +503,7 @@ void IndirectRenderer::RebuildDescriptors(Frame* frame)
     descriptorSet->SetElement("ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
     descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
 
-    descriptorSet->Update();
+    descriptorSet->Update(/* force */ true);
 }
 
 #pragma endregion IndirectRenderer

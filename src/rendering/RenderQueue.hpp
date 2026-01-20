@@ -666,6 +666,12 @@ private:
 class TraceRays final : public CmdBase
 {
 public:
+    explicit TraceRays(const Vec3u& workgroupCount)
+        : m_pipeline(nullptr),
+          m_workgroupCount(workgroupCount)
+    {
+    }
+
     TraceRays(RayTracingPipeline* pipeline, const Vec3u& workgroupCount)
         : m_pipeline(pipeline),
           m_workgroupCount(workgroupCount)

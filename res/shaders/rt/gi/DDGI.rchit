@@ -9,8 +9,8 @@
 
 #define HYP_NO_CUBEMAP
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -32,15 +32,15 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIConstants) uniform CBuffer
+HYP_DESCRIPTOR_CBUFF(DDGI, DDGIConstants) uniform CBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+HYP_DESCRIPTOR_SRV(DDGI, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(DDGI, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/shadows.inc"
@@ -66,17 +66,17 @@ struct PackedVertex
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(DDGI, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+HYP_DESCRIPTOR_SSBO(DDGI, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };

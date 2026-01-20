@@ -27,12 +27,12 @@
 
 shared ProbeRayData ray_cache[CACHE_SIZE];
 
-HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIConstants) uniform CBuffer
+HYP_DESCRIPTOR_CBUFF(DDGI, DDGIConstants) uniform CBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, ProbeRayData) buffer ProbeRayDataBuffer
+HYP_DESCRIPTOR_SSBO(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
 {
     ProbeRayData probe_rays[];
 };
@@ -41,8 +41,8 @@ HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, ProbeRayData) buffer ProbeRayDataBuffer
 
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = 1) in;
 
-HYP_DESCRIPTOR_UAV(DDGIDescriptorSet, OutputIrradianceImage, format = rgba16f) uniform image2D output_irradiance;
-HYP_DESCRIPTOR_UAV(DDGIDescriptorSet, OutputDepthImage, format = rg16f) uniform image2D output_depth;
+HYP_DESCRIPTOR_UAV(DDGI, OutputIrradianceImage, format = rgba16f) uniform image2D output_irradiance;
+HYP_DESCRIPTOR_UAV(DDGI, OutputDepthImage, format = rg16f) uniform image2D output_depth;
 
 vec2 NormalizeOctahedralCoord(uvec2 coord)
 {
