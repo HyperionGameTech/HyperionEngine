@@ -1755,14 +1755,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
         {
             ComputePipeline* pipeline = nullptr;
 
-            ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
-
-            if (shaderDefinition.properties.GetRequiredVertexAttributes() != 0)
-            {
-                shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
-
-                state.attributes.Invalidate();
-            }
+            const ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
 
             if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(shaderDefinition))
             {
@@ -1789,14 +1782,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
         {
             RayTracingPipeline* pipeline = nullptr;
 
-            ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
-
-            if (shaderDefinition.properties.GetRequiredVertexAttributes() != 0)
-            {
-                shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
-
-                state.attributes.Invalidate();
-            }
+            const ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
 
             if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(shaderDefinition))
             {

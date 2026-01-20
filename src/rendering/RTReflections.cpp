@@ -32,7 +32,7 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <RayTracingReflections.generated.inl>
+#include <RTReflections.generated.inl>
 
 namespace Hyperion {
 
