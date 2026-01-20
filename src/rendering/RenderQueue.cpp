@@ -375,6 +375,8 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     DispatchCompute* cmdCasted = static_cast<DispatchCompute*>(cmd);
 
+    g_renderInterface->CommitPipelineState(PSO_Compute);
+
     cmdCasted->m_pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
 
     static_assert(std::is_trivially_destructible_v<DispatchCompute>);
@@ -388,6 +390,8 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     TraceRays* cmdCasted = static_cast<TraceRays*>(cmd);
+    
+    g_renderInterface->CommitPipelineState(PSO_RayTracing);
 
     cmdCasted->m_pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
 

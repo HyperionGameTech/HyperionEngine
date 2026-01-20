@@ -1616,14 +1616,6 @@ void DeferredRenderer::Shutdown()
 {
 }
 
-//#define CHECK_FRAMEBUFFER_SIZE(fb)                                                                    \
-//    Assert(fb->GetExtent() == passData.viewport.extent,                                               \
-//        "Deferred pass framebuffer extent does not match viewport extent! Expected {}x{}, got {}x{}", \
-//        passData.viewport.extent.x, passData.viewport.extent.y,                                       \
-//        fb->GetExtent().x, fb->GetExtent().y)
-
-#define CHECK_FRAMEBUFFER_SIZE(...)
-
 Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     HYP_SCOPE;
@@ -1654,10 +1646,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
 
         const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-        CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
-
         const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-        CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
         passData.envGridRadiancePass = CreateObject<EnvGridPass>(EGPM_RADIANCE, passData.viewport.extent, gbuffer);
         passData.envGridRadiancePass->Create();
@@ -1994,10 +1983,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     gbuffer->Resize(newSize);
 
     const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
-
     const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
 
     {
         if (passData.deferredShadingFramebuffer.IsValid())
@@ -2006,7 +1992,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
         }
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
-        CHECK_FRAMEBUFFER_SIZE(passData.deferredShadingFramebuffer);
     }
 
     passData.directPass->Resize(newSize);
@@ -2386,16 +2371,9 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     const uint32 frameIndex = frame->GetFrameIndex();
 
     Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    CHECK_FRAMEBUFFER_SIZE(opaquePassFramebuffer);
-
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    CHECK_FRAMEBUFFER_SIZE(lightmapPassFramebuffer);
-
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-    CHECK_FRAMEBUFFER_SIZE(translucentPassFramebuffer);
-
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
-    CHECK_FRAMEBUFFER_SIZE(debugPassFramebuffer);
 
     const bool doParticles = true;
     const bool doGaussianSplatting = false; // environment && environment->IsReady();
@@ -2737,8 +2715,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     m_lastFrameData.passData.Insert(lastFrameDataIt, Pair<View*, DeferredRendererPassData*> { view, &passData });
 }
-
-#undef CHECK_FRAMEBUFFER_SIZE
 
 void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
 {

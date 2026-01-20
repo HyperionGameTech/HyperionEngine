@@ -58,6 +58,8 @@ public:
     // Deprecated - will be removed to decouple from vulkan
     HYP_DEPRECATED HYP_API virtual void SetPushConstants(const void* data, SizeType size) = 0;
 
+    uint32 lastFrame = uint32(-1);
+
 protected:
     RaytracingPipelineBase() = default;
 

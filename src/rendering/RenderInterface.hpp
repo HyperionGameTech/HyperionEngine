@@ -31,6 +31,8 @@ class RenderResourceLock;
 class UIRenderer;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
+class ComputePipelineCache;
+class RaytracingPipelineCache;
 class BindlessStorage;
 class RenderCollector;
 struct WorldShaderData;
@@ -151,6 +153,13 @@ enum GlobalRendererType : uint32
     GRT_MAX
 };
 
+enum PSOType : uint8
+{
+    PSO_Graphics,
+    PSO_Compute,
+    PSO_RayTracing
+};
+
 struct GlobalGpuBuffers
 {
     GpuBufferHolderBase* buffers[GRB_MAX];
@@ -182,12 +191,20 @@ public:
         uint32 shaderUniformBufferOffsets[MaxShaderUniforms] {};
         uint32 dirtyBufferOffsets = 0;
 
-        GraphicsPipeline* prevGraphicsPipeline = nullptr;
         DescriptorSet* prevBoundDescriptorSets[MaxBoundDescriptorSets] {};
 
         uint8 stencilReference = 0;
         uint8 stencilCompareMask = 0xFF;
         uint8 stencilWriteMask = 0x0;
+        
+        union
+        {
+            GraphicsPipeline* prevGraphicsPipeline = nullptr;
+            ComputePipeline* prevComputePipeline;
+            RaytracingPipeline* prevRaytracingPipeline;
+        };
+
+        PSOType prevPSOType = PSO_Graphics;
         
         void Reset()
         {
@@ -196,11 +213,15 @@ public:
             dirtyUniforms = 0;
             dirtyBufferOffsets = 0;
             renderTargetDesc = {};
-            prevGraphicsPipeline = nullptr;
+            
             Memory::MemSet(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
+
             stencilReference = 0;
             stencilCompareMask = 0xFF;
             stencilWriteMask = 0x0;
+            
+            prevPSOType = PSO_Graphics;
+            prevGraphicsPipeline = nullptr;
         }
     };
 
@@ -216,7 +237,12 @@ public:
 
     void UpdateBuffers(Frame* frame);
 
-    void CommitDrawState();
+    void CommitDrawState()
+    {
+        CommitPipelineState(PSO_Graphics);
+    }
+    
+    void CommitPipelineState(PSOType psoType);
 
     BindlessStorage* bindlessStorage;
 
@@ -240,6 +266,8 @@ public:
     MaterialTextureCache* materialTextureCache;
 
     GraphicsPipelineCache* graphicsPipelineCache;
+    ComputePipelineCache* computePipelineCache;
+    RaytracingPipelineCache* raytracingPipelineCache;
 
     FinalPass* finalPass;
 
