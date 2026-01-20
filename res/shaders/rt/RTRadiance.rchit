@@ -21,8 +21,8 @@
 #include "../include/rt/mesh.inc"
 #include "../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -30,8 +30,8 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+HYP_DESCRIPTOR_SRV(RTReflections, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(RTReflections, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/shadows.inc"
@@ -61,27 +61,27 @@ struct PackedVertex
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(RTReflections, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+HYP_DESCRIPTOR_SSBO(RTReflections, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO(RTReflections, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_CBUFF(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+HYP_DESCRIPTOR_CBUFF(RTReflections, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };

@@ -129,6 +129,7 @@ void main()
 
         if (payload.distance < 0.0)
         {
+#if HAS_ENV_PROBE
             // hit the sky, sample the environment map
             if (current_env_probe.texture_index != ~0u)
             {
@@ -136,6 +137,7 @@ void main()
 
                 bounces[bounce_index].emissive += EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 0.0);
             }
+#endif
             
             for (uint light_index = 0; light_index < ddgiConstants.num_bound_lights; light_index++)
             {
