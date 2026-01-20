@@ -44,10 +44,7 @@ private:
     GpuImageViewRef m_depthPyramidView;
     Array<GpuImageViewRef> m_mipImageViews;
     Array<GpuBufferRef> m_mipUniformBuffers;
-    Array<DescriptorTableRef> m_mipDescriptorTables;
     SamplerRef m_depthPyramidSampler;
-
-    ComputePipelineRef m_generateDepthPyramid;
 
     bool m_isRendered;
 };

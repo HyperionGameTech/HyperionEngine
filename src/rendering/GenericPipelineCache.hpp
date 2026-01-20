@@ -38,10 +38,10 @@ public:
      *  \param shaderDefinition The shader definition to use
      *  \return Reference to the pipeline (may not be created yet if async creation is pending)
      */
-    PipelineRefType GetOrCreate(const ShaderDefinition& shaderDefinition);
+    PipelineType* GetOrCreate(const ShaderDefinition& shaderDefinition);
 
-    /*! \brief Finds an existing pipeline by shader definition, returns null ref if not found. */
-    PipelineRefType Find(const ShaderDefinition& shaderDefinition) const;
+    /*! \brief Finds an existing pipeline by shader definition, returns nullptr if not found. */
+    PipelineType* Find(const ShaderDefinition& shaderDefinition) const;
 
     /*! \brief Runs cleanup cycle to remove unused pipelines.
      *  \param maxIter Maximum number of pipelines to check this cycle

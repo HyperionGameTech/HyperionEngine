@@ -1457,8 +1457,8 @@ void EndFrameRender()
     }
 
     numCleanupCycles -= g_renderInterface->graphicsPipelineCache->RunCleanupCycle(16);
-    numCleanupCycles -= g_renderInterface->computePipelineCache->RunCleanupCycle(8);
-    numCleanupCycles -= g_renderInterface->raytracingPipelineCache->RunCleanupCycle(4);
+    numCleanupCycles -= g_renderInterface->computePipelineCache->RunCleanupCycle(4);
+    numCleanupCycles -= g_renderInterface->raytracingPipelineCache->RunCleanupCycle(1);
 
     for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
@@ -1744,15 +1744,15 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
         {
             ComputePipeline* pipeline = nullptr;
 
-            const ShaderDefinition shaderDef = state.attributes.GetShaderDefinition();
+            ShaderDefinition shaderDefinition = state.attributes.GetShaderDefinition();
+            shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
+            shaderDefinition.GetProperties().SetOptionalVertexAttributes(0);
 
             if (!state.prevComputePipeline
-                || state.prevComputePipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDef)
+                || state.prevComputePipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDefinition)
             {
-                ComputePipelineRef pipelineRef = computePipelineCache->GetOrCreate(shaderDef);
-                AssertDebug(pipelineRef.IsValid());
-
-                pipeline = pipelineRef.Get();
+                pipeline = computePipelineCache->GetOrCreate(shaderDefinition);
+                AssertDebug(pipeline != nullptr);
 
                 BindComputePipeline bindCmd(pipeline);
                 BindComputePipeline::InvokeStatic(&bindCmd, commandBuffer);
@@ -1774,15 +1774,15 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
         {
             RaytracingPipeline* pipeline = nullptr;
 
-            const ShaderDefinition shaderDef = state.attributes.GetShaderDefinition();
+            ShaderDefinition shaderDefinition = state.attributes.GetShaderDefinition();
+            shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
+            shaderDefinition.GetProperties().SetOptionalVertexAttributes(0);
 
             if (!state.prevRaytracingPipeline
-                || state.prevRaytracingPipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDef)
+                || state.prevRaytracingPipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDefinition)
             {
-                RaytracingPipelineRef pipelineRef = raytracingPipelineCache->GetOrCreate(shaderDef);
-                AssertDebug(pipelineRef.IsValid());
-
-                pipeline = pipelineRef.Get();
+                pipeline = raytracingPipelineCache->GetOrCreate(shaderDefinition);
+                AssertDebug(pipeline != nullptr);
 
                 BindRaytracingPipeline bindCmd(pipeline);
                 BindRaytracingPipeline::InvokeStatic(&bindCmd, commandBuffer);

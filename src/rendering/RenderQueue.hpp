@@ -644,6 +644,12 @@ private:
 class DispatchCompute final : public CmdBase
 {
 public:
+    explicit DispatchCompute(Vec3u workgroupCount)
+        : m_pipeline(nullptr),
+          m_workgroupCount(workgroupCount)
+    {
+    }
+
     DispatchCompute(ComputePipeline* pipeline, Vec3u workgroupCount)
         : m_pipeline(pipeline),
           m_workgroupCount(workgroupCount)

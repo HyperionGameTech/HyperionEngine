@@ -375,9 +375,17 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     DispatchCompute* cmdCasted = static_cast<DispatchCompute*>(cmd);
 
-    g_renderInterface->CommitPipelineState(PSO_Compute);
+    ComputePipeline* pipeline = cmdCasted->m_pipeline;
 
-    cmdCasted->m_pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
+    if (pipeline == nullptr)
+    {
+        pipeline = g_renderInterface->state.prevComputePipeline;
+        AssertDebug(pipeline != nullptr, "No compute pipeline set, call SetCurrentShader before DispatchCompute() without pipeline passed");
+        
+        g_renderInterface->CommitPipelineState(PSO_Compute);
+    }
+
+    pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
 
     static_assert(std::is_trivially_destructible_v<DispatchCompute>);
     // cmdCasted->~DispatchCompute();
