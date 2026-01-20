@@ -18,8 +18,6 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <cstring>
-
 #include <VulkanRayTracingPipeline.generated.inl>
 
 namespace Hyperion {
