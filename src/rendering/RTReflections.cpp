@@ -19,9 +19,9 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
-#include <rendering/raytracing/RaytracingReflections.hpp>
-#include <rendering/raytracing/DDGI.hpp>
+#include <rendering/AccelerationStructure.hpp>
+#include <rendering/RTReflections.hpp>
+#include <rendering/DDGI.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -32,7 +32,7 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
-#include <RaytracingReflections.generated.inl>
+#include <RayTracingReflections.generated.inl>
 
 namespace Hyperion {
 
@@ -62,15 +62,15 @@ struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
 
 #pragma endregion Render commands
 
-RaytracingReflections::RaytracingReflections(RaytracingReflectionsConfig&& config, GBuffer* gbuffer)
+RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& config, GBuffer* gbuffer)
     : m_config(std::move(config)),
       m_gbuffer(gbuffer)
 {
 }
 
-RaytracingReflections::~RaytracingReflections()
+RayTracingReflections::~RayTracingReflections()
 {
-    SafeDelete(std::move(m_raytracingPipeline));
+    SafeDelete(std::move(m_rayTracingPipeline));
 
     // remove result image from global descriptor set
     SafeDelete(std::move(m_texture));
@@ -78,7 +78,7 @@ RaytracingReflections::~RaytracingReflections()
     PUSH_RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet);
 }
 
-const GpuImageViewRef& RaytracingReflections::GetFinalImageView() const
+const GpuImageViewRef& RayTracingReflections::GetFinalImageView() const
 {
     if (m_temporalBlending != nullptr)
     {
@@ -88,17 +88,17 @@ const GpuImageViewRef& RaytracingReflections::GetFinalImageView() const
     return g_renderInterface->textureViewCache->GetOrCreate(m_texture);
 }
 
-void RaytracingReflections::Create()
+void RayTracingReflections::Create()
 {
     CreateImages();
     CreateTemporalBlending();
 }
 
-void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
+void RayTracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
-    RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
     const auto SetDescriptorElements = [this, pd](DescriptorSet* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
@@ -113,7 +113,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
         descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     };
 
-    if (!m_raytracingPipeline)
+    if (!m_rayTracingPipeline)
     {
         ShaderRef shader = g_shaderManager->GetOrCreate(
             s_shaderNames[IsPathTracer()],
@@ -123,8 +123,8 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
 
         Assert(shader != nullptr);
 
-        m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, DescriptorTableRef::Null());
-        Assert(m_raytracingPipeline->Create());
+        m_rayTracingPipeline = g_renderBackend->MakeRayTracingPipeline(shader, DescriptorTableRef::Null());
+        Assert(m_rayTracingPipeline->Create());
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
@@ -133,12 +133,12 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
         }
     }
     
-    DescriptorSetRef& descriptorSet = pd->raytracingDescriptorSets[frame->GetFrameIndex()];
+    DescriptorSetRef& descriptorSet = pd->rayTracingDescriptorSets[frame->GetFrameIndex()];
     bool needsCreate = false;
 
     if (!descriptorSet)
     {
-        const DescriptorTableDeclaration* tableDecl = m_raytracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration* tableDecl = m_rayTracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
         AssertDebug(tableDecl != nullptr);
 
         const DescriptorSetDeclaration* setDecl = tableDecl->FindDescriptorSetDeclaration("RTRadianceDescriptorSet"_sh);
@@ -152,7 +152,7 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
         needsCreate = true;
     }
     
-    SetDescriptorElements(descriptorSet, pd->raytracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
+    SetDescriptorElements(descriptorSet, pd->rayTracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
 
     if (needsCreate)
     {
@@ -165,9 +165,9 @@ void RaytracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup&
     }
 }
 
-void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
+void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
 {
-    RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
     
     GpuBufferRef& constants = pd->constants;
@@ -175,7 +175,7 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     {
         constants = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
         constants->SetRequireCpuAccessible(true);
-        constants->SetDebugName(NAME("RaytracingConstants"));
+        constants->SetDebugName(NAME("RayTracingConstants"));
         Assert(constants->Create());
     }
 
@@ -184,7 +184,7 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     {
         lightsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxLights);
         lightsBuffer->SetRequireCpuAccessible(true);
-        lightsBuffer->SetDebugName(NAME("RaytracingLightsBuffer"));
+        lightsBuffer->SetDebugName(NAME("RayTracingLightsBuffer"));
         Assert(lightsBuffer->Create());
     }
 
@@ -192,7 +192,7 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     {
         Vec2i extent;
         View* view = nullptr;
-        RaytracingPassData* passData = nullptr;
+        RayTracingPassData* passData = nullptr;
 
         void operator()(Frame*)
         {
@@ -255,13 +255,13 @@ void RaytracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     }).Detach();
 }
 
-void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
+void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Ray traced reflections");
 
     AssertDebug(renderSetup.world && renderSetup.view);
 
-    RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
     AssertDebug(pd != nullptr);
 
     DeferredRendererPassData* parentPass = pd->parentPass;
@@ -288,19 +288,19 @@ void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         }
     }
 
-    const DescriptorTableDeclaration* tableDecl = m_raytracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration* tableDecl = m_rayTracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
     AssertDebug(tableDecl != nullptr);
 
     static const uint32 s_globalDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("Global"_sh);
     static const uint32 s_viewDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("View"_sh);
     static const uint32 s_bindlessDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("GlobalBindless"_sh);
-    static const uint32 s_raytracingDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("RTRadianceDescriptorSet"_sh);
+    static const uint32 s_rayTracingDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("RTRadianceDescriptorSet"_sh);
 
-    frame->renderQueue << BindRaytracingPipeline(m_raytracingPipeline);
+    frame->renderQueue << BindRayTracingPipeline(m_rayTracingPipeline);
     
     frame->renderQueue << BindDescriptorSet(
         g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
-        m_raytracingPipeline,
+        m_rayTracingPipeline,
         { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
             { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
             { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
@@ -308,39 +308,39 @@ void RaytracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << BindDescriptorSet(
         g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frame->GetFrameIndex()),
-        m_raytracingPipeline,
+        m_rayTracingPipeline,
         {},
         s_bindlessDescriptorSetIndex);
 
     frame->renderQueue << BindDescriptorSet(
         parentPass->descriptorSets[frame->GetFrameIndex()],
-        m_raytracingPipeline,
+        m_rayTracingPipeline,
         {},
         s_viewDescriptorSetIndex);
     
     frame->renderQueue << BindDescriptorSet(
-        pd->raytracingDescriptorSets[frame->GetFrameIndex()],
-        m_raytracingPipeline,
+        pd->rayTracingDescriptorSets[frame->GetFrameIndex()],
+        m_rayTracingPipeline,
         {},
-        s_raytracingDescriptorSetIndex);
+        s_rayTracingDescriptorSetIndex);
 
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
     const SizeType numPixels = imageExtent.Volume();
 
-    frame->renderQueue << TraceRays(m_raytracingPipeline, Vec3u { uint32(numPixels), 1, 1 });
+    frame->renderQueue << TraceRays(m_rayTracingPipeline, Vec3u { uint32(numPixels), 1, 1 });
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     // Create a new RenderSetup for temporal blending as it will need to bind View descriptors,
-    // which we don't have on RaytracingPassData
+    // which we don't have on RayTracingPassData
     RenderSetup newRenderSetup = renderSetup;
     newRenderSetup.passData = parentPass;
 
     m_temporalBlending->Render(frame, newRenderSetup);
 }
 
-void RaytracingReflections::CreateImages()
+void RayTracingReflections::CreateImages()
 {
     Assert(m_config.extent.Volume() != 0);
 
@@ -354,12 +354,12 @@ void RaytracingReflections::CreateImages()
         1,
         IU_SAMPLED | IU_STORAGE });
 
-    m_texture->SetName(NAME("RaytracingReflectionsTexture"));
+    m_texture->SetName(NAME("RayTracingReflectionsTexture"));
 
     InitObject(m_texture);
 }
 
-void RaytracingReflections::CreateTemporalBlending()
+void RayTracingReflections::CreateTemporalBlending()
 {
     m_temporalBlending = MakeUnique<TemporalBlending>(
         m_config.extent,

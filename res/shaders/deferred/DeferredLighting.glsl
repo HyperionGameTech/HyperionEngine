@@ -296,7 +296,7 @@ vec4 CalculatePathTracing(vec2 uv)
 #endif
 
 #ifdef RT_REFLECTIONS
-void CalculateRaytracingReflection(vec2 uv, inout vec4 reflections)
+void CalculateRayTracingReflection(vec2 uv, inout vec4 reflections)
 {
     vec4 rt_radiance = Texture2DLod(sampler_linear, rt_radiance_final, uv, 0.0);
 

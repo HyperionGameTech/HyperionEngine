@@ -32,7 +32,7 @@ class UIRenderer;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
 class ComputePipelineCache;
-class RaytracingPipelineCache;
+class RayTracingPipelineCache;
 class BindlessStorage;
 class RenderCollector;
 struct WorldShaderData;
@@ -201,7 +201,7 @@ public:
         {
             GraphicsPipeline* prevGraphicsPipeline = nullptr;
             ComputePipeline* prevComputePipeline;
-            RaytracingPipeline* prevRaytracingPipeline;
+            RayTracingPipeline* prevRayTracingPipeline;
         };
 
         PSOType prevPSOType = PSO_Graphics;
@@ -267,7 +267,7 @@ public:
 
     GraphicsPipelineCache* graphicsPipelineCache;
     ComputePipelineCache* computePipelineCache;
-    RaytracingPipelineCache* raytracingPipelineCache;
+    RayTracingPipelineCache* rayTracingPipelineCache;
 
     FinalPass* finalPass;
 

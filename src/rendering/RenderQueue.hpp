@@ -249,10 +249,10 @@ private:
     ComputePipeline* m_pipeline;
 };
 
-class BindRaytracingPipeline final : public CmdBase
+class BindRayTracingPipeline final : public CmdBase
 {
 public:
-    BindRaytracingPipeline(RaytracingPipeline* pipeline)
+    BindRayTracingPipeline(RayTracingPipeline* pipeline)
         : m_pipeline(pipeline)
     {
     }
@@ -260,7 +260,7 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RaytracingPipeline* m_pipeline;
+    RayTracingPipeline* m_pipeline;
 };
 
 class BindDescriptorSet final : public CmdBase
@@ -270,8 +270,8 @@ public:
     BindDescriptorSet(DescriptorSet* descriptorSet, GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
     BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
     BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
-    BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
-    BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
+    BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
+    BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
 
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
@@ -282,11 +282,11 @@ private:
     {
         GraphicsPipeline* m_graphicsPipeline;
         ComputePipeline* m_computePipeline;
-        RaytracingPipeline* m_raytracingPipeline;
+        RayTracingPipeline* m_rayTracingPipeline;
     };
     DescriptorSetOffsetMap m_offsets;
     uint32 m_bindIndex;
-    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = Raytracing
+    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = RayTracing
 };
 
 class BindDescriptorTable final : public CmdBase
@@ -294,7 +294,7 @@ class BindDescriptorTable final : public CmdBase
 public:
     BindDescriptorTable(DescriptorTable* descriptorTable, GraphicsPipeline* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
     BindDescriptorTable(DescriptorTable* descriptorTable, ComputePipeline* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
-    BindDescriptorTable(DescriptorTable* descriptorTable, RaytracingPipeline* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
+    BindDescriptorTable(DescriptorTable* descriptorTable, RayTracingPipeline* rayTracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
 
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
@@ -306,13 +306,13 @@ private:
     {
         GraphicsPipeline* m_graphicsPipeline;
         ComputePipeline* m_computePipeline;
-        RaytracingPipeline* m_raytracingPipeline;
+        RayTracingPipeline* m_rayTracingPipeline;
     };
 
     DescriptorTableOffsetMap m_offsets;
     uint32 m_frameIndex;
 
-    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = Raytracing
+    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = RayTracing
 };
 
 class InsertBarrier final : public CmdBase
@@ -666,7 +666,7 @@ private:
 class TraceRays final : public CmdBase
 {
 public:
-    TraceRays(RaytracingPipeline* pipeline, const Vec3u& workgroupCount)
+    TraceRays(RayTracingPipeline* pipeline, const Vec3u& workgroupCount)
         : m_pipeline(pipeline),
           m_workgroupCount(workgroupCount)
     {
@@ -675,7 +675,7 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RaytracingPipeline* m_pipeline;
+    RayTracingPipeline* m_pipeline;
     Vec3u m_workgroupCount;
 };
 

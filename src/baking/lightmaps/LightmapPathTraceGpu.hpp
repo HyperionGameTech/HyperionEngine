@@ -29,9 +29,9 @@ public:
     LightmapRenderer_GpuPathTracing& operator=(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
     virtual ~LightmapRenderer_GpuPathTracing() override;
 
-    HYP_FORCE_INLINE const RaytracingPipelineRef& GetPipeline() const
+    HYP_FORCE_INLINE const RayTracingPipelineRef& GetPipeline() const
     {
-        return m_raytracingPipeline;
+        return m_rayTracingPipeline;
     }
 
     virtual uint32 MaxTexelsPerFrame() const override
@@ -77,7 +77,7 @@ private:
 
     GpuTlasRef m_tlas;
 
-    RaytracingPipelineRef m_raytracingPipeline;
+    RayTracingPipelineRef m_rayTracingPipeline;
 };
 
 } // namespace Baking

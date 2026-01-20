@@ -139,7 +139,7 @@ public:
         const VulkanShaderRef& shader,
         const VulkanDescriptorTableRef& descriptorTable) override;
 
-    VulkanRaytracingPipelineRef MakeRaytracingPipeline(
+    VulkanRayTracingPipelineRef MakeRayTracingPipeline(
         const VulkanShaderRef& shader,
         const VulkanDescriptorTableRef& descriptorTable) override;
 

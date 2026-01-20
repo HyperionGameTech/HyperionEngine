@@ -184,7 +184,7 @@ void BakerBase::Initialize()
                 | ViewFlags::NO_FRUSTUM_CULLING
                 | ViewFlags::SKIP_ENV_GRIDS
                 | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
-                | ViewFlags::RAYTRACING
+                | ViewFlags::RAY_TRACING
                 | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::NOT_MULTI_BUFFERED,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
@@ -238,7 +238,7 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
         return nullptr;
     }
 
-    if (!g_renderBackend->GetRenderConfig().raytracing)
+    if (!g_renderBackend->GetRenderConfig().rayTracing)
     {
         HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
 

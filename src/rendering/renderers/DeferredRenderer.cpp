@@ -34,11 +34,11 @@
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
-#include <rendering/raytracing/MeshBlasBuilder.hpp>
-#include <rendering/raytracing/RaytracingReflections.hpp>
-#include <rendering/raytracing/DDGI.hpp>
+#include <rendering/AccelerationStructure.hpp>
+#include <rendering/RayTracingPipeline.hpp>
+#include <rendering/MeshBlasBuilder.hpp>
+#include <rendering/RTReflections.hpp>
+#include <rendering/DDGI.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -149,8 +149,8 @@ static void GetDeferredShaderProperties(
     static const ConfigurationValue& s_##name = s_globalConfig.Get(path); \
     const bool name = s_##name.ToBool()
 
-    DEF_STATIC_CONFIGURATION_VALUE(raytracingReflections, "Rendering.RayTracing.Reflections.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(raytracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(rayTracingReflections, "Rendering.RayTracing.Reflections.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(rayTracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(envGridGlobalIllumination, "Rendering.EnvGrid.GI.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(envGridReflections, "Rendering.EnvGrid.Reflections.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
@@ -167,15 +167,15 @@ static void GetDeferredShaderProperties(
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
-        outShaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.raytracing && raytracingReflections);
-        outShaderProperties.Set(NAME("RT_GI"), s_renderConfig.raytracing && raytracingGlobalIllumination);
+        outShaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.rayTracing && rayTracingReflections);
+        outShaderProperties.Set(NAME("RT_GI"), s_renderConfig.rayTracing && rayTracingGlobalIllumination);
         outShaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
         outShaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
         outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
         outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
     }
 
-    if (s_renderConfig.raytracing && pathTracing)
+    if (s_renderConfig.rayTracing && pathTracing)
     {
         outShaderProperties.Set(ShaderProperty(NAME("PATHTRACER")));
     }
@@ -458,8 +458,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         if (dpd->ssgi != nullptr)
             rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, dpd->hbao->GetFinalImageView());
 
-        if (dpd->raytracingReflections != nullptr)
-            rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->raytracingReflections->GetFinalImageView());
+        if (dpd->rayTracingReflections != nullptr)
+            rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
 
         if (dpd->ddgi)
         {
@@ -1311,9 +1311,9 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 bool ReflectionsPass::ShouldRenderSSR() const
 {
     static const ConfigurationValue& s_ssrEnabled = CoreApi::GetGlobalConfig().Get("Rendering.SSR.Enabled");
-    static const ConfigurationValue& s_raytracingReflectionsEnabled = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
+    static const ConfigurationValue& s_rayTracingReflectionsEnabled = CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Reflections.Enabled");
 
-    return s_ssrEnabled.ToBool(true) && !s_raytracingReflectionsEnabled.ToBool(false);
+    return s_ssrEnabled.ToBool(true) && !s_rayTracingReflectionsEnabled.ToBool(false);
 }
 
 void ReflectionsPass::CreateSSRRenderer()
@@ -1541,7 +1541,7 @@ DeferredRendererPassData::~DeferredRendererPassData()
     indirectPass.Reset();
     directPass.Reset();
 
-    raytracingReflections.Reset();
+    rayTracingReflections.Reset();
     ddgi.Reset();
 
     SafeDelete(std::move(finalPassDescriptorSet));
@@ -1549,17 +1549,17 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 #pragma endregion DeferredPassData
 
-#pragma region RaytracingPassData
+#pragma region RayTracingPassData
 
-RaytracingPassData::~RaytracingPassData()
+RayTracingPassData::~RayTracingPassData()
 {
-    SafeDelete(std::move(raytracingTlases));
-    SafeDelete(std::move(raytracingDescriptorSets));
+    SafeDelete(std::move(rayTracingTlases));
+    SafeDelete(std::move(rayTracingDescriptorSets));
     SafeDelete(std::move(constants));
     SafeDelete(std::move(lightsBuffer));
 }
 
-#pragma endregion RaytracingPassData
+#pragma endregion RayTracingPassData
 
 #pragma region DeferredRenderer
 
@@ -1708,16 +1708,16 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
         passData.temporalAa->Create();
         
-        CreateViewRaytracingPasses(view, passData);
+        CreateViewRayTracingPasses(view, passData);
         CreateViewDescriptorSets(view, passData);
         CreateViewFinalPassDescriptorSet(view, passData);
 
         return pd;
     }
-    else if (view->GetFlags() & ViewFlags::RAYTRACING)
+    else if (view->GetFlags() & ViewFlags::RAY_TRACING)
     {
-        Handle<RaytracingPassData> pd = CreateObject<RaytracingPassData>();
-        RaytracingPassData& passData = *pd;
+        Handle<RayTracingPassData> pd = CreateObject<RayTracingPassData>();
+        RayTracingPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
         passData.viewport = view->GetViewport();
@@ -1910,21 +1910,21 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
     passData.combinePass->Create();
 }
 
-void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredRendererPassData& passData)
+void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData)
 {
     AssertOnThread(g_renderThread);
 
-    if (!g_renderBackend->GetRenderConfig().raytracing)
+    if (!g_renderBackend->GetRenderConfig().rayTracing)
     {
         return;
     }
 
-    const bool shouldEnableRaytracingForView = view->GetRaytracingView().IsValid()
+    const bool shouldEnableRayTracingForView = view->GetRayTracingView().IsValid()
         && CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool();
 
-    if (!shouldEnableRaytracingForView)
+    if (!shouldEnableRayTracingForView)
     {
-        passData.raytracingReflections.Reset();
+        passData.rayTracingReflections.Reset();
         passData.ddgi.Reset();
 
         return;
@@ -1933,17 +1933,17 @@ void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredRendererPa
     GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
     AssertDebug(gbuffer != nullptr);
 
-    passData.raytracingReflections = MakeUnique<RaytracingReflections>(RaytracingReflectionsConfig::FromConfig(), gbuffer);
-    passData.raytracingReflections->Create();
+    passData.rayTracingReflections = MakeUnique<RayTracingReflections>(RayTracingReflectionsConfig::FromConfig(), gbuffer);
+    passData.rayTracingReflections->Create();
 
     /// FIXME: Proper AABB for DDGI
     passData.ddgi = MakeUnique<DDGI>(DDGIInfo { .aabb = { { -60.0f, -5.0f, -60.0f }, { 60.0f, 40.0f, 60.0f } } });
     passData.ddgi->Create();
 }
 
-void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RaytracingPassData& passData)
+void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData)
 {
-    SafeDelete(std::move(passData.raytracingTlases));
+    SafeDelete(std::move(passData.rayTracingTlases));
 
     // Hack to fix driver crash when building TLAS with no meshes
     Handle<Mesh> defaultMesh = MeshBuilder::Cube(true);
@@ -1955,7 +1955,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        GpuTlasRef& tlas = passData.raytracingTlases[frameIndex];
+        GpuTlasRef& tlas = passData.rayTracingTlases[frameIndex];
 
         tlas = g_renderBackend->MakeTLAS();
         tlas->AddGpuBlas(blas);
@@ -2028,7 +2028,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
     passData.depthPyramidRenderer->Create();
 
-    CreateViewRaytracingPasses(view, passData);
+    CreateViewRayTracingPasses(view, passData);
 
     SafeDelete(std::move(passData.descriptorSets));
     CreateViewDescriptorSets(view, passData);
@@ -2099,19 +2099,19 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
             pdCasted->priority = view->GetPriority();
         }
-        else if (view->GetFlags() & ViewFlags::RAYTRACING)
+        else if (view->GetFlags() & ViewFlags::RAY_TRACING)
         {
             const Handle<PassData>& pd = FetchViewPassData(view);
             Assert(pd != nullptr);
 
-            RaytracingPassData* pdCasted = ObjCast<RaytracingPassData>(pd.Get());
+            RayTracingPassData* pdCasted = ObjCast<RayTracingPassData>(pd.Get());
             Assert(pdCasted != nullptr);
 
             RenderSetup newRS = rs.Fork();
             newRS.passData = pd;
             newRS.view = view;
 
-            UpdateRaytracingView(frame, newRS);
+            UpdateRayTracingView(frame, newRS);
         }
 
         for (Light* light : rpl.GetLights())
@@ -2378,12 +2378,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     const bool doParticles = true;
     const bool doGaussianSplatting = false; // environment && environment->IsReady();
 
-    const bool useRaytracingReflections = (m_rendererConfig.pathTracer || m_rendererConfig.raytracingReflections)
-        && view->GetRaytracingView().IsValid()
-        && passData.raytracingReflections != nullptr;
+    const bool useRayTracingReflections = (m_rendererConfig.pathTracer || m_rendererConfig.rayTracingReflections)
+        && view->GetRayTracingView().IsValid()
+        && passData.rayTracingReflections != nullptr;
 
-    const bool useRaytracingGlobalIllumination = m_rendererConfig.raytracingGlobalIllumination
-        && view->GetRaytracingView().IsValid()
+    const bool useRayTracingGlobalIllumination = m_rendererConfig.rayTracingGlobalIllumination
+        && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 
     const bool useHbao = m_rendererConfig.hbaoEnabled;
@@ -2491,25 +2491,25 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     passData.reflectionsPass->Render(frame, rs);
 
-    if ((useRaytracingGlobalIllumination || useRaytracingReflections) && view->GetRaytracingView().IsValid())
+    if ((useRayTracingGlobalIllumination || useRayTracingReflections) && view->GetRayTracingView().IsValid())
     {
-        Handle<View> raytracingView = view->GetRaytracingView().Lock();
+        Handle<View> rayTracingView = view->GetRayTracingView().Lock();
 
-        if (raytracingView != nullptr)
+        if (rayTracingView != nullptr)
         {
-            const Handle<RaytracingPassData>& raytracingPassData = ObjCast<RaytracingPassData>(FetchViewPassData(raytracingView));
-            Assert(raytracingPassData != nullptr);
+            const Handle<RayTracingPassData>& rayTracingPassData = ObjCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
+            Assert(rayTracingPassData != nullptr);
 
-            const GpuTlasRef& tlas = raytracingPassData->raytracingTlases[frameIndex];
+            const GpuTlasRef& tlas = rayTracingPassData->rayTracingTlases[frameIndex];
 
             if (tlas && tlas->IsCreated())
             {
                 Assert(tlas->GetMeshDescriptionsBuffer() != nullptr);
 
-                raytracingPassData->parentPass = &passData;
+                rayTracingPassData->parentPass = &passData;
 
-                RenderSetup raytracingRS = rs.Fork();
-                raytracingRS.passData = raytracingPassData;
+                RenderSetup rayTracingRS = rs.Fork();
+                rayTracingRS.passData = rayTracingPassData;
 
                 // set sky as fallback
 
@@ -2517,23 +2517,23 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
                 auto& skyProbes = rpl.GetEnvProbes().GetElements<SkyProbe>();
                 if (skyProbes.Any())
                 {
-                    raytracingRS.envProbe = skyProbes.Front();
+                    rayTracingRS.envProbe = skyProbes.Front();
                 }
 
-                if (useRaytracingReflections)
+                if (useRayTracingReflections)
                 {
-                    AssertDebug(passData.raytracingReflections != nullptr);
-                    passData.raytracingReflections->Render(frame, raytracingRS);
+                    AssertDebug(passData.rayTracingReflections != nullptr);
+                    passData.rayTracingReflections->Render(frame, rayTracingRS);
                 }
 
-                if (useRaytracingGlobalIllumination)
+                if (useRayTracingGlobalIllumination)
                 {
                     AssertDebug(passData.ddgi != nullptr);
-                    passData.ddgi->Render(frame, raytracingRS);
+                    passData.ddgi->Render(frame, rayTracingRS);
                 }
 
                 // unset parent pass after using it
-                raytracingPassData->parentPass = nullptr;
+                rayTracingPassData->parentPass = nullptr;
             }
         }
     }
@@ -2716,29 +2716,29 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     m_lastFrameData.passData.Insert(lastFrameDataIt, Pair<View*, DeferredRendererPassData*> { view, &passData });
 }
 
-void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
+void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
 
     View* view = rs.view;
     AssertDebug(view != nullptr);
 
-    if (!(view->GetFlags() & ViewFlags::RAYTRACING))
+    if (!(view->GetFlags() & ViewFlags::RAY_TRACING))
     {
         return;
     }
 
     const uint32 currentFrameIndex = frame->GetFrameIndex();
 
-    RaytracingPassData* pd = ObjCast<RaytracingPassData>(rs.passData);
+    RayTracingPassData* pd = ObjCast<RayTracingPassData>(rs.passData);
 
     RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    if (!pd->raytracingTlases[currentFrameIndex])
+    if (!pd->rayTracingTlases[currentFrameIndex])
     {
-        for (GpuTlasRef& tlas : pd->raytracingTlases)
+        for (GpuTlasRef& tlas : pd->rayTracingTlases)
         {
             tlas = g_renderBackend->MakeTLAS();
         }
@@ -2773,7 +2773,7 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        GpuBlasRef& blas = meshProxy->raytracingData.blas;
+        GpuBlasRef& blas = meshProxy->rayTracingData.blas;
     
         if (blas != cachedBlas)
         {
@@ -2781,7 +2781,7 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
             {
                 for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
                 {
-                    pd->raytracingTlases[frameIndex]->RemoveGpuBlas(blas);
+                    pd->rayTracingTlases[frameIndex]->RemoveGpuBlas(blas);
                 }
             }
             
@@ -2805,22 +2805,22 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
         }
 
-        if (!pd->raytracingTlases[currentFrameIndex]->HasGpuBlas(blas))
+        if (!pd->rayTracingTlases[currentFrameIndex]->HasGpuBlas(blas))
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                pd->raytracingTlases[frameIndex]->AddGpuBlas(meshProxy->raytracingData.blas);
+                pd->rayTracingTlases[frameIndex]->AddGpuBlas(meshProxy->rayTracingData.blas);
             }
 
             hasBlas = true;
         }
     }
 
-    if (!pd->raytracingTlases[currentFrameIndex]->IsCreated())
+    if (!pd->rayTracingTlases[currentFrameIndex]->IsCreated())
     {
         if (hasBlas)
         {
-            for (GpuTlasRef& tlas : pd->raytracingTlases)
+            for (GpuTlasRef& tlas : pd->rayTracingTlases)
             {
                 CheckResult(tlas->Create());
             }
@@ -2830,7 +2830,7 @@ void DeferredRenderer::UpdateRaytracingView(Frame* frame, const RenderSetup& rs)
     }
 
     RTUpdateStateFlags updateStateFlags = RTUpdateStateFlagBits::RT_UPDATE_STATE_FLAGS_NONE;
-    pd->raytracingTlases[currentFrameIndex]->UpdateStructure(updateStateFlags);
+    pd->rayTracingTlases[currentFrameIndex]->UpdateStructure(updateStateFlags);
 }
 
 void DeferredRenderer::PerformOcclusionCulling(Frame* frame, const RenderSetup& rs, RenderCollector& renderCollector)

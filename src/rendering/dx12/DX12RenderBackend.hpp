@@ -85,7 +85,7 @@ public:
         const DX12ShaderRef& shader,
         const DX12DescriptorTableRef& descriptorTable) override;
 
-    DX12RaytracingPipelineRef MakeRaytracingPipeline(
+    DX12RayTracingPipelineRef MakeRayTracingPipeline(
         const DX12ShaderRef& shader,
         const DX12DescriptorTableRef& descriptorTable) override;
 

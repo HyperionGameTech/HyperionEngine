@@ -10,7 +10,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/GaussianSplatting.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <system/AppContext.hpp>
 

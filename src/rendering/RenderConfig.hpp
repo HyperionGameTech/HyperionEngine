@@ -15,8 +15,8 @@ public:
     // Whether or not the backend supports bindless textures.
     bool bindlessTextures : 1 = false;
 
-    // Raytracing support / enabled.
-    bool raytracing : 1 = false;
+    // RayTracing support / enabled.
+    bool rayTracing : 1 = false;
 
     // Indirect rendering allows us to issue many draw calls with a single API call, as well as perform occlusion culling on the GPU.
     bool indirectRendering : 1 = false;

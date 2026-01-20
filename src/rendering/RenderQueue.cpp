@@ -13,8 +13,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderGroup.hpp>
 
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/RayTracingPipeline.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 
@@ -118,11 +118,11 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeli
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
-      m_raytracingPipeline(pipeline),
+      m_rayTracingPipeline(pipeline),
       m_offsets(offsets),
-      m_pipelineType(2) // 2 = Raytracing
+      m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -133,12 +133,12 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPip
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
-      m_raytracingPipeline(pipeline),
+      m_rayTracingPipeline(pipeline),
       m_offsets(offsets),
       m_bindIndex(bindIndex),
-      m_pipelineType(2) // 2 = Raytracing
+      m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -166,8 +166,8 @@ void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     case 1: // Compute
         cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_computePipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
         break;
-    case 2: // Raytracing
-        cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
+    case 2: // RayTracing
+        cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_rayTracingPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
         break;
     default:
         HYP_UNREACHABLE();
@@ -201,12 +201,12 @@ BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, Compu
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
-BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, RaytracingPipeline* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
+BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, RayTracingPipeline* rayTracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
-      m_raytracingPipeline(raytracingPipeline),
+      m_rayTracingPipeline(rayTracingPipeline),
       m_offsets(offsets),
       m_frameIndex(frameIndex),
-      m_pipelineType(2) // 2 = Raytracing
+      m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
@@ -240,8 +240,8 @@ void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
     case 1: // Compute
         cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_computePipeline, cmdCasted->m_offsets);
         break;
-    case 2: // Raytracing
-        cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets);
+    case 2: // RayTracing
+        cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_rayTracingPipeline, cmdCasted->m_offsets);
         break;
     default:
         HYP_UNREACHABLE();
@@ -355,19 +355,19 @@ void BindComputePipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
 #pragma endregion BindComputePipeline
 
-#pragma region BindRaytracingPipeline
+#pragma region BindRayTracingPipeline
 
-void BindRaytracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+void BindRayTracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
-    BindRaytracingPipeline* cmdCasted = static_cast<BindRaytracingPipeline*>(cmd);
+    BindRayTracingPipeline* cmdCasted = static_cast<BindRayTracingPipeline*>(cmd);
 
     cmdCasted->m_pipeline->Bind(commandBuffer);
 
-    static_assert(std::is_trivially_destructible_v<BindRaytracingPipeline>);
-    // cmdCasted->~BindRaytracingPipeline();
+    static_assert(std::is_trivially_destructible_v<BindRayTracingPipeline>);
+    // cmdCasted->~BindRayTracingPipeline();
 }
 
-#pragma endregion BindRaytracingPipeline
+#pragma endregion BindRayTracingPipeline
 
 #pragma region DispatchCompute
 
@@ -379,10 +379,10 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
     if (pipeline == nullptr)
     {
+        g_renderInterface->CommitPipelineState(PSO_Compute);
+        
         pipeline = g_renderInterface->state.prevComputePipeline;
         AssertDebug(pipeline != nullptr, "No compute pipeline set, call SetCurrentShader before DispatchCompute() without pipeline passed");
-        
-        g_renderInterface->CommitPipelineState(PSO_Compute);
     }
 
     pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
@@ -398,10 +398,18 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     TraceRays* cmdCasted = static_cast<TraceRays*>(cmd);
-    
-    g_renderInterface->CommitPipelineState(PSO_RayTracing);
 
-    cmdCasted->m_pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
+    RayTracingPipeline* pipeline = cmdCasted->m_pipeline;
+    
+    if (pipeline == nullptr)
+    {
+        g_renderInterface->CommitPipelineState(PSO_RayTracing);
+
+        pipeline = g_renderInterface->state.prevRayTracingPipeline;
+        AssertDebug(pipeline != nullptr, "No rayTracing pipeline set, call SetCurrentShader before TraceRays() without pipeline passed");
+    }
+
+    pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
 
     static_assert(std::is_trivially_destructible_v<TraceRays>);
     // cmdCasted->~TraceRays();
@@ -485,9 +493,6 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
     shaderDefinition.properties = ShaderProperties {};
     MergeGlobalShaderProperties(shaderDefinition.properties);
 
-    // set required vertex attributes for the shader based on current vertexAttributes value
-    shaderDefinition.properties.SetRequiredVertexAttributes(state.attributes.GetMeshAttributes().vertexAttributes);
-
     for (uint32 propertyIndex = 0; propertyIndex < cmdCasted->shaderDesc.numProperties; propertyIndex++)
     {
         ShaderProperty property;
@@ -568,9 +573,6 @@ void SetVertexAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         return;
 
     state.attributes.GetMeshAttributes().vertexAttributes = cmdCasted->vertexAttributes;
-
-    // Update shader req'd vertex attributes based on this
-    state.attributes.GetMaterialAttributes().shaderDefinition.properties.SetRequiredVertexAttributes(cmdCasted->vertexAttributes);
 
     state.attributes.Invalidate();
     

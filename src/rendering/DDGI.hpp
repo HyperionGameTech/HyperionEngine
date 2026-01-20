@@ -4,7 +4,7 @@
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 
 #include <core/math/BoundingBox.hpp>
 
@@ -136,7 +136,7 @@ private:
     ComputePipelineRef m_copyBorderTexelsIrradiance;
     ComputePipelineRef m_copyBorderTexelsDepth;
 
-    RaytracingPipelineRef m_pipeline;
+    RayTracingPipelineRef m_pipeline;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_lightsBuffers;

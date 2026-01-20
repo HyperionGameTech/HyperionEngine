@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI
@@ -13,14 +13,14 @@
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
-class DX12RaytracingPipeline final : public RaytracingPipelineBase
+class DX12RayTracingPipeline final : public RayTracingPipelineBase
 {
-    HYP_OBJECT_BODY(DX12RaytracingPipeline);
+    HYP_OBJECT_BODY(DX12RayTracingPipeline);
 
 public:
-    DX12RaytracingPipeline();
-    DX12RaytracingPipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable);
-    ~DX12RaytracingPipeline() override;
+    DX12RayTracingPipeline();
+    DX12RayTracingPipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable);
+    ~DX12RayTracingPipeline() override;
 
     bool IsCreated() const override;
 

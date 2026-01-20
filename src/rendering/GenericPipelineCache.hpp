@@ -90,18 +90,18 @@ protected:
     ComputePipelineRef MakePipeline(const ShaderDefinition& shaderDefinition) override;
 };
 
-class RaytracingPipelineCache final : public GenericPipelineCache<RaytracingPipeline>
+class RayTracingPipelineCache final : public GenericPipelineCache<RayTracingPipeline>
 {
 public:
-    using Base = GenericPipelineCache<RaytracingPipeline>;
+    using Base = GenericPipelineCache<RayTracingPipeline>;
 
-    RaytracingPipelineCache()
+    RayTracingPipelineCache()
         : Base(100)
     {
     }
 
 protected:
-    RaytracingPipelineRef MakePipeline(const ShaderDefinition& shaderDefinition) override;
+    RayTracingPipelineRef MakePipeline(const ShaderDefinition& shaderDefinition) override;
 };
 
 } // namespace Hyperion

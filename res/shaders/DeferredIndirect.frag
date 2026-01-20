@@ -142,7 +142,7 @@ void main()
 #endif
 
 #if RT_REFLECTIONS
-    CalculateRaytracingReflection(texcoord, reflections);
+    CalculateRayTracingReflection(texcoord, reflections);
 #endif
 
 #if RT_GI

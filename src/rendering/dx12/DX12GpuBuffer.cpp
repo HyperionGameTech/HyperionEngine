@@ -74,7 +74,7 @@ RendererResult DX12GpuBuffer::Create()
     }
     else if (m_type == GpuBufferType::ACCELERATION_STRUCTURE_BUFFER)
     {
-        finalState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+        finalState = D3D12_RESOURCE_STATE_RAY_TRACING_ACCELERATION_STRUCTURE;
     }
 
     D3D12_RESOURCE_DESC bufferDesc {};

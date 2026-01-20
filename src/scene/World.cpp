@@ -78,7 +78,7 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
       m_name(name),
       m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
-      m_raytracingView(nullptr),
+      m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr)
 {
     if (m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS)
@@ -144,7 +144,7 @@ World::~World()
     }
     m_systemExecutionGroups.Clear();
 
-    m_raytracingView = nullptr;
+    m_rayTracingView = nullptr;
 
     SafeDelete(std::move(m_scenes));
     SafeDelete(std::move(m_views));
@@ -204,8 +204,8 @@ void World::Init()
         Handle<Camera> camera = CreateObject<Camera>();
         camera->SetName(NAME("RayTracingViewDummyCamera"));
 
-        const ViewDesc raytracingViewDesc {
-            .flags = ViewFlags::RAYTRACING | ViewFlags::NO_DRAW_CALLS
+        const ViewDesc rayTracingViewDesc {
+            .flags = ViewFlags::RAY_TRACING | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
@@ -213,12 +213,12 @@ void World::Init()
             .camera = camera
         };
 
-        Handle<View> raytracingView = CreateObject<View>(raytracingViewDesc);
-        InitObject(raytracingView);
+        Handle<View> rayTracingView = CreateObject<View>(rayTracingViewDesc);
+        InitObject(rayTracingView);
 
-        m_raytracingView = raytracingView;
+        m_rayTracingView = rayTracingView;
 
-        m_views.PushBack(std::move(raytracingView));
+        m_views.PushBack(std::move(rayTracingView));
     }
 
     for (const Handle<Scene>& scene : m_scenes)
@@ -307,20 +307,20 @@ void World::Init()
 
     for (const Handle<View>& view : m_views)
     {
-        if (view->m_raytracingView.GetUnsafe() != m_raytracingView)
+        if (view->m_rayTracingView.GetUnsafe() != m_rayTracingView)
         {
-            if (view->m_raytracingView)
+            if (view->m_rayTracingView)
             {
                 HYP_LOG(Scene, Warning,
-                    "View {} already has a raytracing View set! Was it added to multiple Worlds with raytracing enabled?",
+                    "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
                     view->Id());
 
-                view->m_raytracingView.Reset();
+                view->m_rayTracingView.Reset();
             }
 
-            if (m_raytracingView != nullptr)
+            if (m_rayTracingView != nullptr)
             {
-                view->m_raytracingView = m_raytracingView->WeakHandleFromThis();
+                view->m_rayTracingView = m_rayTracingView->WeakHandleFromThis();
             }
         }
 
@@ -962,20 +962,20 @@ void World::AddView(const Handle<View>& view)
 
     if (IsReady())
     {
-        if (view->m_raytracingView.GetUnsafe() != m_raytracingView)
+        if (view->m_rayTracingView.GetUnsafe() != m_rayTracingView)
         {
-            if (view->m_raytracingView)
+            if (view->m_rayTracingView)
             {
                 HYP_LOG(Scene, Warning,
-                    "View {} already has a raytracing View set! Was it added to multiple Worlds with raytracing enabled?",
+                    "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
                     view->Id());
 
-                view->m_raytracingView.Reset();
+                view->m_rayTracingView.Reset();
             }
 
-            if (m_raytracingView != nullptr)
+            if (m_rayTracingView != nullptr)
             {
-                view->m_raytracingView = m_raytracingView->WeakHandleFromThis();
+                view->m_rayTracingView = m_rayTracingView->WeakHandleFromThis();
             }
         }
 
@@ -1011,7 +1011,7 @@ void World::RemoveView(View* view)
 
     if (IsReady())
     {
-        view->m_raytracingView.Reset();
+        view->m_rayTracingView.Reset();
 
         // Remove all scenes from the view, if the view should collect all world scenes
         if (view->GetFlags() & ViewFlags::ALL_WORLD_SCENES)

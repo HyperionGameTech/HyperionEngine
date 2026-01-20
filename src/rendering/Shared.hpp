@@ -2496,7 +2496,7 @@ enum ShaderModuleType : uint8
     SMT_TESS_CONTROL,
     SMT_TESS_EVAL,
 
-    /* Raytracing hardware specific */
+    /* RayTracing hardware specific */
     SMT_RAY_GEN,
     SMT_RAY_INTERSECT,
     SMT_RAY_ANY_HIT,
@@ -2506,7 +2506,7 @@ enum ShaderModuleType : uint8
     SMT_MAX
 };
 
-static constexpr inline bool IsRaytracingShaderModule(ShaderModuleType type)
+static constexpr inline bool IsRayTracingShaderModule(ShaderModuleType type)
 {
     return type == SMT_RAY_GEN
         || type == SMT_RAY_INTERSECT
@@ -2526,7 +2526,7 @@ struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .in
     {
         return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
             {
-                return IsRaytracingShaderModule(item.first);
+                return IsRayTracingShaderModule(item.first);
             });
     }
 

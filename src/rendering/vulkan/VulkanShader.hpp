@@ -50,16 +50,16 @@ struct VulkanShaderModule
         return type < other.type;
     }
 
-    bool IsRaytracing() const
+    bool IsRayTracing() const
     {
-        return IsRaytracingShaderModule(type);
+        return IsRayTracingShaderModule(type);
     }
 };
 
 struct VulkanShaderGroup
 {
     ShaderModuleType type;
-    VkRayTracingShaderGroupCreateInfoKHR raytracingGroupCreateInfo;
+    VkRayTracingShaderGroupCreateInfoKHR rayTracingGroupCreateInfo;
 };
 
 HYP_CLASS(NoScriptBindings)

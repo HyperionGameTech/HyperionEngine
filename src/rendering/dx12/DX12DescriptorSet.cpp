@@ -470,7 +470,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Compute
     Bind(commandBuffer, pipeline, bindIndex);
 }
 
-void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RaytracingPipeline* pipeline, uint32 bindIndex) const
+void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, uint32 bindIndex) const
 {
     Assert(m_isCreated);
 
@@ -487,7 +487,7 @@ void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12Raytrac
     }
 }
 
-void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+void DX12DescriptorSet::Bind(DX12CommandBuffer* commandBuffer, const DX12RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     // @TODO: Support dynamic offsets
     Bind(commandBuffer, pipeline, bindIndex);

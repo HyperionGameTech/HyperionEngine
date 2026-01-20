@@ -10,7 +10,7 @@ DECLARE_GFX_TYPE(CommandBuffer);
 DECLARE_GFX_TYPE(Attachment);
 DECLARE_GFX_TYPE(ComputePipeline);
 DECLARE_GFX_TYPE(GraphicsPipeline);
-DECLARE_GFX_TYPE(RaytracingPipeline);
+DECLARE_GFX_TYPE(RayTracingPipeline);
 DECLARE_GFX_TYPE(Shader);
 DECLARE_GFX_TYPE(DescriptorSet);
 DECLARE_GFX_TYPE(DescriptorTable);
@@ -24,7 +24,7 @@ DECLARE_VULKAN_GFX_TYPE(Fence);
 DECLARE_VULKAN_GFX_TYPE(RenderPass);
 #elif HYP_DX12
 DECLARE_DX12_GFX_TYPE(Fence);
-DECLARE_DX12_GFX_TYPE(RaytracingPipeline);
+DECLARE_DX12_GFX_TYPE(RayTracingPipeline);
 DECLARE_DX12_GFX_TYPE(GpuBlas);
 DECLARE_DX12_GFX_TYPE(GpuTlas);
 #endif

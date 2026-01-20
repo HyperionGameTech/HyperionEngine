@@ -4,8 +4,8 @@
 
 #include <baking/LightmapTexel.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/AccelerationStructure.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -29,7 +29,7 @@
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
-#include <rendering/raytracing/MeshBlasBuilder.hpp>
+#include <rendering/MeshBlasBuilder.hpp>
 
 #include <rendering/asset/TextureAsset.hpp>
 
@@ -134,7 +134,7 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
 LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 {
     SafeDelete(std::move(m_tlas));
-    SafeDelete(std::move(m_raytracingPipeline));
+    SafeDelete(std::move(m_rayTracingPipeline));
 
     for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
@@ -315,10 +315,10 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
     }
 
     /// Pipeline
-    if (!m_raytracingPipeline)
+    if (!m_rayTracingPipeline)
     {
-        m_raytracingPipeline = g_renderBackend->MakeRaytracingPipeline(shader, DescriptorTableRef::Null());
-        Assert(m_raytracingPipeline->Create());
+        m_rayTracingPipeline = g_renderBackend->MakeRayTracingPipeline(shader, DescriptorTableRef::Null());
+        Assert(m_rayTracingPipeline->Create());
     }
 
     jd.IsCreated = true;
@@ -492,26 +492,26 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     constexpr StringHash GlobalSetName = "Global"_sh;
     constexpr StringHash GlobalBindlessSetName = "GlobalBindless"_sh;
 
-    const DescriptorTableDeclaration& decl = *m_raytracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& decl = *m_rayTracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    frame->renderQueue << BindRaytracingPipeline(m_raytracingPipeline);
+    frame->renderQueue << BindRayTracingPipeline(m_rayTracingPipeline);
 
     frame->renderQueue << BindDescriptorSet(
         g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
-        m_raytracingPipeline,
+        m_rayTracingPipeline,
         { { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
             { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
 
     frame->renderQueue << BindDescriptorSet(
         g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalBindlessSetName, frame->GetFrameIndex()),
-        m_raytracingPipeline);
+        m_rayTracingPipeline);
 
-    frame->renderQueue << BindDescriptorSet(jd.Sets[frame->GetFrameIndex()], m_raytracingPipeline);
+    frame->renderQueue << BindDescriptorSet(jd.Sets[frame->GetFrameIndex()], m_rayTracingPipeline);
 
     frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
 
     frame->renderQueue << TraceRays(
-        m_raytracingPipeline,
+        m_rayTracingPipeline,
         Vec3u { uint32(rays.Size()), 1, 1 });
 
     frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);

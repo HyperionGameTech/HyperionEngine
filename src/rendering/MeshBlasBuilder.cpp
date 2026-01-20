@@ -2,8 +2,8 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/raytracing/MeshBlasBuilder.hpp>
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/MeshBlasBuilder.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <rendering/RenderCommand.hpp>
 #include <rendering/Frame.hpp>
