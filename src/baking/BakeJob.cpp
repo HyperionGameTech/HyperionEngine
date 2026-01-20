@@ -59,12 +59,12 @@ struct LightmapRender : RenderCommand
           rays(std::move(rays)),
           rayOffset(rayOffset)
     {
-        job->NumConcurrentRenderingTasks.Increment(1, MemoryOrder::RELEASE);
+        job->tracingComplete.Set(false, MemoryOrder::RELEASE);
     }
 
     virtual ~LightmapRender() override
     {
-        job->NumConcurrentRenderingTasks.Decrement(1, MemoryOrder::RELEASE);
+        job->tracingComplete.Set(true, MemoryOrder::RELEASE);
     }
 
     virtual RendererResult operator()() override
@@ -135,12 +135,10 @@ struct LightmapRender : RenderCommand
 
 #pragma endregion Render command
 
-static constexpr uint32 MaxConcurrentRenderingTasksPerJob = 1;
-
 #pragma region BakeJobBase
 
 BakeJobBase::BakeJobBase(BakeJobParams&& params)
-    : NumConcurrentRenderingTasks(0),
+    : tracingComplete(true),
       m_lightmapper(nullptr),
       m_params(std::move(params)),
       m_texelIndex(0),
@@ -189,7 +187,7 @@ bool BakeJobBase::IsCompleted() const
 
 void BakeJobBase::AddTask(TaskBatch* taskBatch)
 {
-    Mutex::Guard guard(m_currentTasksMutex);
+    TUniqueLock lock(m_currentTasksMutex);
 
     m_currentTasks.PushBack(taskBatch);
 }
@@ -291,15 +289,15 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
         return 0;
     }
 
-    if (NumConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) >= MaxConcurrentRenderingTasksPerJob)
+    if (!tracingComplete.Get(MemoryOrder::ACQUIRE))
     {
         // Wait for current rendering tasks to complete before enqueueing new ones.
 
         return 0;
     }
 
-    { // cpu tracing only
-        Mutex::Guard guard(m_currentTasksMutex);
+    {
+        TSharedLock lock(m_currentTasksMutex);
 
         if (m_currentTasks.Any())
         {
@@ -314,6 +312,10 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
                     return 0;
                 }
             }
+
+            lock.Reset();
+
+            TUniqueLock uniqueLock(m_currentTasksMutex);
 
             for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
             {
@@ -331,7 +333,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
     bool isProcessingRemainingTexels = false;
 
     {
-        Mutex::Guard guard(m_previousFrameRaysMutex);
+        TSharedLock lock(m_previousFrameRaysMutex);
 
         if (m_previousFrameRays.Any())
         {
@@ -341,7 +343,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
 
     if (!isProcessingRemainingTexels
         && m_texelIndex >= m_texelIndices.Size() * m_lightmapper->NumTexelSamples()
-        && NumConcurrentRenderingTasks.Get(MemoryOrder::ACQUIRE) == 0)
+        && tracingComplete.Get(MemoryOrder::ACQUIRE))
     {
         HYP_LOG(Lightmap, Debug, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_lightmapper->NumTexelSamples());
 

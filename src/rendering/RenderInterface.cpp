@@ -2144,10 +2144,12 @@ void RenderInterface::CreateEnvProbesTexture()
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TT_CUBEMAP_ARRAY;
     textureDesc.numLayers = MaxBoundReflectionProbes;
-    textureDesc.filterModeMag = TFM_LINEAR_MIPMAP;
-    textureDesc.filterModeMin = TFM_LINEAR;
+    textureDesc.filterModeMin = TFM_LINEAR_MIPMAP;
+    textureDesc.filterModeMag = TFM_LINEAR;
 
     envProbesTexture = CreateObject<Texture>(textureDesc);
+    envProbesTexture->SetName(NAME("EnvProbesTexture"));
+    envProbesTexture->SetIsTransient(true);
     InitObject(envProbesTexture);
 }
 

@@ -494,6 +494,8 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
     const uint32 numMipLevels = desc.NumMips();
     const uint32 numArrayLayers = desc.NumArrayLayers();
 
+    AssertDebug(data.imageData.Size() == desc.GetByteSize());
+
     if (numMipLevels <= 1)
     {
         return;
@@ -522,6 +524,24 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
 
     uint32 srcBlockStart = 0;
     uint32 dstWriteOffset = baseMipSize;
+    
+    ubyte* intermediateBuffer = nullptr;
+
+    ubyte* scratchBuffer = nullptr; // used for converting f16 -> f32 and back
+
+    HYP_DEFER({
+        if (intermediateBuffer != nullptr)
+        {
+            Memory::Free(intermediateBuffer);
+            intermediateBuffer = nullptr;
+        }
+
+        if (scratchBuffer != nullptr)
+        {
+            Memory::Free(scratchBuffer);
+            scratchBuffer = nullptr;
+        }
+    });
 
     for (uint32 dstMipLevel = 1; dstMipLevel < numMipLevels; dstMipLevel++)
     {
@@ -532,6 +552,18 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
 
         const Vec3u srcExtent = desc.GetMipExtent(srcMipLevel);
         const Vec3u dstExtent = desc.GetMipExtent(dstMipLevel);
+
+        if (!intermediateBuffer)
+        {
+            SizeType intermediateBufferSize = dstMipSize;
+
+            if (desc.format >= TF_R16F && desc.format <= TF_RGBA16F)
+            {
+                intermediateBufferSize *= 2; // increase buffer size to convert between 16 and 32 bit float
+            }
+
+            intermediateBuffer = (ubyte*)Memory::Allocate(intermediateBufferSize);
+        }
 
         // mipOffsets stores the start of the block for given mip level but skips the first elem
         // so we can check if we have pregenerated mips by doing mipOffsets[0] != 0
@@ -545,36 +577,68 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
 
             ConstByteView srcView = data.imageData.ToByteView().Slice(readOffset, readOffset + srcMipSize);
 
-            ByteBuffer tempBuffer;
-            tempBuffer.SetSize(dstMipSize, false);
-
             int result = 0;
             const int numChannels = TextureUtils::NumComponents(desc.format);
 
-            if (desc.format >= TF_R16F && desc.format <= TF_RGBA32F)
+            if (desc.format >= TF_R32F && desc.format <= TF_RGBA32F)
             {
-                AssertDebug(srcView.Size() % sizeof(float) == 0 && tempBuffer.Size() % sizeof(float) == 0);
+                AssertDebug(srcView.Size() % sizeof(float32) == 0);
 
                 result = stbir_resize_float(
-                    reinterpret_cast<const float*>(srcView.Data()),
+                    reinterpret_cast<const float32*>(srcView.Data()),
                     srcExtent.x, srcExtent.y, 0,
-                    reinterpret_cast<float*>(tempBuffer.Data()),
+                    reinterpret_cast<float32*>(intermediateBuffer),
                     dstExtent.x, dstExtent.y, 0,
                     numChannels);
+            }
+            else if (desc.format >= TF_R16F && desc.format <= TF_RGBA16F)
+            {
+                if (!scratchBuffer)
+                {
+                    // allocate enough memory to be used by all proceeding mips
+                    scratchBuffer = (ubyte*)Memory::Allocate(srcMipSize * 2);
+                }
+
+                const Float16* float16Data = reinterpret_cast<const Float16*>(srcView.Data());
+
+                // initialize f32 data from f16
+                for (SizeType byteIndex = 0; byteIndex < srcMipSize; byteIndex += sizeof(Float16))
+                {
+                    *(reinterpret_cast<float32*>(scratchBuffer + (byteIndex * 2))) = *(float16Data + (byteIndex / sizeof(Float16)));
+                }
+
+                result = stbir_resize_float(
+                    reinterpret_cast<const float32*>(scratchBuffer),
+                    srcExtent.x, srcExtent.y, 0,
+                    reinterpret_cast<float32*>(intermediateBuffer),
+                    dstExtent.x, dstExtent.y, 0,
+                    numChannels);
+
+                // scratchData now used to store result converted to f16
+                for (SizeType byteIndex = 0; byteIndex < dstMipSize * 2; byteIndex += sizeof(float32))
+                {
+                    *reinterpret_cast<Float16*>(scratchBuffer + (byteIndex / 2)) = *(reinterpret_cast<const float32*>(intermediateBuffer + byteIndex));
+                }
+
+                Memory::MemCpy(intermediateBuffer, scratchBuffer, dstMipSize);
             }
             else if (desc.IsSrgb())
             {
                 result = stbir_resize_uint8_srgb(
                     srcView.Data(), srcExtent.x, srcExtent.y, 0,
-                    tempBuffer.Data(), dstExtent.x, dstExtent.y, 0,
+                    intermediateBuffer, dstExtent.x, dstExtent.y, 0,
                     numChannels, numChannels == 4 ? 3 : -1, 0);
             }
-            else
+            else if (desc.format >= TF_R8 && desc.format <= TF_RGBA8)
             {
                 result = stbir_resize_uint8(
                     srcView.Data(), srcExtent.x, srcExtent.y, 0,
-                    tempBuffer.Data(), dstExtent.x, dstExtent.y, 0,
+                    intermediateBuffer, dstExtent.x, dstExtent.y, 0,
                     numChannels);
+            }
+            else
+            {
+                Assert(false, "Unsupported texture format for mipmap generation: {}", desc.format);
             }
 
             if (result == 0)
@@ -583,7 +647,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
                 return;
             }
 
-            data.imageData.Write(dstMipSize, dstWriteOffset, tempBuffer.Data());
+            data.imageData.Write(dstMipSize, dstWriteOffset, intermediateBuffer);
 
             dstWriteOffset += dstMipSize;
         }

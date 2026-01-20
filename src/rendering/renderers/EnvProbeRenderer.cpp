@@ -468,8 +468,6 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         descriptorTables = std::move(descriptorTables),
         buffers = std::move(buffers)](...) mutable
         {
-            // Readback the texture and save it to image data
-
             SafeDelete(std::move(pipelines));
             SafeDelete(std::move(descriptorTables));
             SafeDelete(std::move(buffers));
