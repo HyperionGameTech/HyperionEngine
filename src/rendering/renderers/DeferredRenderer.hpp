@@ -365,9 +365,6 @@ private:
 
     UniquePtr<SSRRenderer> m_ssrRenderer;
 
-    Handle<FullScreenPass> m_renderSsrToScreenPass;
-    Texture* m_cachedSsrTexture;
-
     bool m_isFirstFrame;
 };
 
