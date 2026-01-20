@@ -23,7 +23,7 @@ namespace Hyperion {
 #pragma region GenericPipelineCache
 
 template <class PipelineType>
-auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& shaderDefinition) -> PipelineRefType
+auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& shaderDefinition) -> PipelineType*
 {
     HYP_SCOPE;
 
@@ -65,10 +65,8 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
 
     if (!pipeline.IsValid())
     {
-        return PipelineRefType::Null();
+        return nullptr;
     }
-
-    CheckResult(pipeline->Create());
 
     const uint32 index = m_idGenerator.Next() - 1;
     
@@ -100,13 +98,13 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
         }
     };
 
-    PUSH_RENDER_COMMAND(CreatePipelineCommand, pipeline.Get());
+    PUSH_RENDER_COMMAND(CreatePipelineCommand, pipeline);
 
     return pipeline;
 }
 
 template <class PipelineType>
-auto GenericPipelineCache<PipelineType>::Find(const ShaderDefinition& shaderDefinition) const -> PipelineRefType
+auto GenericPipelineCache<PipelineType>::Find(const ShaderDefinition& shaderDefinition) const -> PipelineType*
 {
     HYP_SCOPE;
 
@@ -125,7 +123,7 @@ auto GenericPipelineCache<PipelineType>::Find(const ShaderDefinition& shaderDefi
         }
     }
 
-    return PipelineRefType::Null();
+    return nullptr;
 }
 
 template <class PipelineType>
@@ -138,6 +136,11 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
     int numIterations = 0;
     const uint32 frameCounter = RenderApi::GetFrameCounter();
 
+    m_cleanupIterator = typename PipelineStorage::Iterator(
+        &m_pipelines,
+        m_cleanupIterator.page,
+        m_cleanupIterator.elem);
+
     if (m_cleanupIterator == m_pipelines.End())
     {
         m_cleanupIterator = m_pipelines.Begin();
@@ -145,10 +148,8 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
 
     while (numIterations < maxIter && m_cleanupIterator != m_pipelines.End())
     {
-        const SizeType index = m_pipelines.IndexOf(m_cleanupIterator);
         CachedPipeline& cached = *m_cleanupIterator;
 
-        ++m_cleanupIterator;
         ++numIterations;
 
         if (cached.pipeline->lastFrame == uint32(-1))
@@ -158,14 +159,21 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
 
         if (frameCounter - cached.pipeline->lastFrame > m_discardFrames)
         {
-            m_keyToIndex.Erase(cached.key);
+            auto keyToIndexIt = m_keyToIndex.Find(cached.key);
+            Assert(keyToIndexIt != m_keyToIndex.End());
+            
+            m_idGenerator.ReleaseId(keyToIndexIt->second + 1);
+
+            m_keyToIndex.Erase(keyToIndexIt);
             
             SafeDelete(std::move(cached.pipeline));
 
-            m_pipelines.EraseAt(index);
-            
-            m_idGenerator.ReleaseId(index + 1);
+            m_cleanupIterator = m_pipelines.Erase(m_cleanupIterator);
+
+            continue;
         }
+        
+        ++m_cleanupIterator;
     }
 
     return numIterations;
