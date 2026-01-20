@@ -8,12 +8,12 @@
 namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class RaytracingPipelineBase : public ObjectBase
+class RayTracingPipelineBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(RaytracingPipelineBase);
+    HYP_OBJECT_BODY(RayTracingPipelineBase);
 
 public:
-    virtual ~RaytracingPipelineBase() override = default;
+    virtual ~RayTracingPipelineBase() override = default;
 
     Name GetDebugName() const
     {
@@ -61,9 +61,9 @@ public:
     uint32 lastFrame = uint32(-1);
 
 protected:
-    RaytracingPipelineBase() = default;
+    RayTracingPipelineBase() = default;
 
-    RaytracingPipelineBase(const ShaderRef& shader, const DescriptorTableRef& descriptorTable)
+    RayTracingPipelineBase(const ShaderRef& shader, const DescriptorTableRef& descriptorTable)
         : m_shader(shader),
           m_descriptorTable(descriptorTable)
     {
@@ -81,9 +81,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <rendering/vulkan/rt/VulkanRaytracingPipeline.hpp>
+#include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
 #elif HYP_DX12
-#include <rendering/dx12/DX12RaytracingPipeline.hpp>
+#include <rendering/dx12/DX12RayTracingPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

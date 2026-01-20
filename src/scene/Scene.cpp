@@ -17,7 +17,7 @@
 
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <system/AppContext.hpp>
 

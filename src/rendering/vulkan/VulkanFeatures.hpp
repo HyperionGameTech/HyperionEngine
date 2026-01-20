@@ -79,14 +79,14 @@ public:
         return m_memoryProperties;
     }
 
-    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR& GetRaytracingPipelineFeatures() const
+    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR& GetRayTracingPipelineFeatures() const
     {
-        return m_raytracingPipelineFeatures;
+        return m_rayTracingPipelineFeatures;
     }
 
-    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRaytracingPipelineProperties() const
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRayTracingPipelineProperties() const
     {
-        return m_raytracingPipelineProperties;
+        return m_rayTracingPipelineProperties;
     }
 
     const VkPhysicalDeviceBufferDeviceAddressFeatures& GetBufferDeviceAddressFeatures() const
@@ -366,25 +366,25 @@ public:
         return m_features.geometryShader;
     }
 
-    bool IsRaytracingDisabled() const
+    bool IsRayTracingDisabled() const
     {
-        return !IsRaytracingSupported() || m_isRaytracingDisabled;
+        return !IsRayTracingSupported() || m_isRayTracingDisabled;
     }
 
-    void SetIsRaytracingDisabled(bool isRaytracingDisabled)
+    void SetIsRayTracingDisabled(bool isRayTracingDisabled)
     {
-        m_isRaytracingDisabled = isRaytracingDisabled;
+        m_isRayTracingDisabled = isRayTracingDisabled;
     }
 
-    bool IsRaytracingEnabled() const
+    bool IsRayTracingEnabled() const
     {
-        return IsRaytracingSupported() && !m_isRaytracingDisabled;
+        return IsRayTracingSupported() && !m_isRayTracingDisabled;
     }
 
-    bool IsRaytracingSupported() const
+    bool IsRayTracingSupported() const
     {
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
-        return m_raytracingPipelineFeatures.rayTracingPipeline
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+        return m_rayTracingPipelineFeatures.rayTracingPipeline
             && m_accelerationStructureFeatures.accelerationStructure
             && m_bufferDeviceAddressFeatures.bufferDeviceAddress;
 #else
@@ -398,8 +398,8 @@ private:
     VkPhysicalDeviceFeatures m_features;
 
     VkPhysicalDeviceBufferDeviceAddressFeatures m_bufferDeviceAddressFeatures;
-    VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_raytracingPipelineFeatures;
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_raytracingPipelineProperties;
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_rayTracingPipelineFeatures;
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rayTracingPipelineProperties;
     VkPhysicalDeviceRayQueryFeaturesKHR m_rayQueryFeatures;
     VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT m_samplerMinmaxProperties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures;
@@ -414,7 +414,7 @@ private:
 
     VkPhysicalDeviceMemoryProperties m_memoryProperties;
 
-    bool m_isRaytracingDisabled { false };
+    bool m_isRayTracingDisabled { false };
 };
 
 } // namespace Hyperion

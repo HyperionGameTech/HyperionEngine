@@ -329,7 +329,7 @@ RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
     createInfo.device = m_device;
     createInfo.instance = instance->GetInstance();
     createInfo.pVulkanFunctions = &vkfuncs;
-    createInfo.flags = 0 | (m_features->IsRaytracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
+    createInfo.flags = 0 | (m_features->IsRayTracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
 
     vmaCreateAllocator(&createInfo, &m_allocator);
 

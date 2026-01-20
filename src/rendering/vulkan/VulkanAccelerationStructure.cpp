@@ -2,7 +2,7 @@
 
 #include <VulkanPch.hpp>
 
-#include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
+#include <rendering/vulkan/VulkanAccelerationStructure.hpp>
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
@@ -80,9 +80,9 @@ RendererResult VulkanAccelerationGeometry::Create()
         return {};
     }
 
-    if (!g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (!g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
     {
-        return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
+        return HYP_MAKE_ERROR(RendererError, "Device does not support rayTracing");
     }
 
     if (!m_packedVerticesBuffer.IsValid())
@@ -178,9 +178,9 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         Assert(m_accelerationStructure == VK_NULL_HANDLE);
     }
 
-    if (!g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (!g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
     {
-        return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
+        return HYP_MAKE_ERROR(RendererError, "Device does not support rayTracing");
     }
 
     if (!geometries)

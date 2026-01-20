@@ -6,7 +6,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/ComputePipeline.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderInterface.hpp>
@@ -199,7 +199,7 @@ void GenericPipelineCache<PipelineType>::Clear()
 
 // explicit template instantiations
 template class GenericPipelineCache<ComputePipeline>;
-template class GenericPipelineCache<RaytracingPipeline>;
+template class GenericPipelineCache<RayTracingPipeline>;
 
 #pragma endregion GenericPipelineCache
 
@@ -219,20 +219,20 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(const ShaderDefinition& sh
 
 #pragma endregion ComputePipelineCache
 
-#pragma region RaytracingPipelineCache
+#pragma region RayTracingPipelineCache
 
-RaytracingPipelineRef RaytracingPipelineCache::MakePipeline(const ShaderDefinition& shaderDefinition)
+RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(const ShaderDefinition& shaderDefinition)
 {
     ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
     
     if (!shader.IsValid())
     {
-        return RaytracingPipelineRef::Null();
+        return RayTracingPipelineRef::Null();
     }
 
-    return g_renderBackend->MakeRaytracingPipeline(shader, DescriptorTableRef::Null());
+    return g_renderBackend->MakeRayTracingPipeline(shader, DescriptorTableRef::Null());
 }
 
-#pragma endregion RaytracingPipelineCache
+#pragma endregion RayTracingPipelineCache
 
 } // namespace Hyperion

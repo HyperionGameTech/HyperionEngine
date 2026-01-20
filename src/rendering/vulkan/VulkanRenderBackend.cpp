@@ -16,8 +16,8 @@
 #include <rendering/vulkan/VulkanShader.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanAsyncCompute.hpp>
-#include <rendering/vulkan/rt/VulkanRaytracingPipeline.hpp>
-#include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
+#include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
+#include <rendering/vulkan/VulkanAccelerationStructure.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -68,7 +68,7 @@ public:
         Assert(renderBackend != nullptr && renderBackend->GetDevice() != nullptr);
 
         bindlessTextures = renderBackend->GetDevice()->GetFeatures().SupportsBindlessTextures();
-        raytracing = renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported();
+        rayTracing = renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported();
         indirectRendering = CoreApi::GetGlobalConfig().Get("Rendering.IndirectRendering").ToBool(/* defaultValue */ true);
         parallelRendering = CoreApi::GetGlobalConfig().Get("Rendering.ParallelCollection").ToBool(/* defaultValue */ true);
         dynamicDescriptorIndexing = false; // renderBackend->GetDevice()->GetFeatures().SupportsDynamicDescriptorIndexing();
@@ -180,7 +180,7 @@ void VulkanDynamicFunctions::Load(VulkanDevice* device)
     }                                                                                                                \
     while (0)
 
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
     HYP_LOAD_FN(vkGetBufferDeviceAddressKHR); // currently only used for RT
 
     HYP_LOAD_FN(vkCmdBuildAccelerationStructuresKHR);
@@ -368,9 +368,9 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 }
     };
 
-    // only add acceleration structure descriptor type if raytracing is supported,
+    // only add acceleration structure descriptor type if rayTracing is supported,
     // otherwise we'll get an error when creating the descriptor pool
-    if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
     {
         descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 });
     }
@@ -861,11 +861,11 @@ VulkanComputePipelineRef VulkanRenderBackend::MakeComputePipeline(
     return CreateObject<VulkanComputePipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
 }
 
-VulkanRaytracingPipelineRef VulkanRenderBackend::MakeRaytracingPipeline(
+VulkanRayTracingPipelineRef VulkanRenderBackend::MakeRayTracingPipeline(
     const VulkanShaderRef& shader,
     const VulkanDescriptorTableRef& descriptorTable)
 {
-    return CreateObject<VulkanRaytracingPipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
+    return CreateObject<VulkanRayTracingPipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
 }
 
 VulkanGpuBufferRef VulkanRenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)

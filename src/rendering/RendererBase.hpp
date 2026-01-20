@@ -56,10 +56,10 @@ struct RendererConfig : public ConfigBase<RendererConfig>
     bool pathTracer = false;
 
     HYP_FIELD(JsonPath = "RayTracing.Reflections.Enabled")
-    bool raytracingReflections = false;
+    bool rayTracingReflections = false;
 
     HYP_FIELD(JsonPath = "RayTracing.GI.Enabled")
-    bool raytracingGlobalIllumination = false;
+    bool rayTracingGlobalIllumination = false;
 
     HYP_FIELD(JsonPath = "HBAO.Enabled")
     bool hbaoEnabled = false;

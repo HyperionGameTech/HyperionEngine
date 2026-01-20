@@ -37,7 +37,7 @@ public:
     DX12RenderConfig()
     {
         bindlessTextures = false;
-        raytracing = false;
+        rayTracing = false;
         indirectRendering = false;
         parallelRendering = false;
         dynamicDescriptorIndexing = false;
@@ -368,12 +368,12 @@ DX12ComputePipelineRef DX12RenderBackend::MakeComputePipeline(
     return ComputePipelineRef();
 }
 
-DX12RaytracingPipelineRef DX12RenderBackend::MakeRaytracingPipeline(
+DX12RayTracingPipelineRef DX12RenderBackend::MakeRayTracingPipeline(
     const DX12ShaderRef& shader,
     const DX12DescriptorTableRef& descriptorTable)
 {
-    // @TODO: Implement raytracing pipeline creation for DX12
-    return RaytracingPipelineRef();
+    // @TODO: Implement rayTracing pipeline creation for DX12
+    return RayTracingPipelineRef();
 }
 
 DX12GpuBufferRef DX12RenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)

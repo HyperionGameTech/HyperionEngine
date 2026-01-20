@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI
@@ -24,14 +24,14 @@ class VulkanShader;
 enum ShaderModuleType : uint8;
 
 HYP_CLASS(NoScriptBindings)
-class VulkanRaytracingPipeline final : public RaytracingPipelineBase, public VulkanPipelineBase
+class VulkanRayTracingPipeline final : public RayTracingPipelineBase, public VulkanPipelineBase
 {
-    HYP_OBJECT_BODY(VulkanRaytracingPipeline);
+    HYP_OBJECT_BODY(VulkanRayTracingPipeline);
 
 public:
-    VulkanRaytracingPipeline();
-    VulkanRaytracingPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
-    ~VulkanRaytracingPipeline() override;
+    VulkanRayTracingPipeline();
+    VulkanRayTracingPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
+    ~VulkanRayTracingPipeline() override;
 
     bool IsCreated() const override
     {

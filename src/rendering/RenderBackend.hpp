@@ -94,7 +94,7 @@ public:
         const ShaderRef& shader,
         const DescriptorTableRef& descriptorTable) = 0;
 
-    virtual RaytracingPipelineRef MakeRaytracingPipeline(
+    virtual RayTracingPipelineRef MakeRayTracingPipeline(
         const ShaderRef& shader,
         const DescriptorTableRef& descriptorTable) = 0;
 

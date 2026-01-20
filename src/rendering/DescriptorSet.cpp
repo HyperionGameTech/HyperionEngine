@@ -10,7 +10,7 @@
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <DescriptorSet.generated.inl>
 

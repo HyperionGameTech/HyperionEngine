@@ -11,7 +11,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/MeshRTData.hpp>
 
-#include <rendering/raytracing/RaytracingReflections.hpp>
+#include <rendering/RTReflections.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -39,7 +39,7 @@ class PostProcessing;
 class HBAO;
 class DOFBlur;
 class Texture;
-class RaytracingReflections;
+class RayTracingReflections;
 class DDGI;
 struct RenderSetup;
 class RenderGroup;
@@ -407,16 +407,16 @@ public:
     UniquePtr<DepthPyramidRenderer> depthPyramidRenderer;
     UniquePtr<DOFBlur> dofBlur;
 
-    UniquePtr<RaytracingReflections> raytracingReflections;
+    UniquePtr<RayTracingReflections> rayTracingReflections;
     UniquePtr<DDGI> ddgi;
 
     mutable Texture* cachedSsrTexture = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API RaytracingPassData : public PassData
+class HYP_API RayTracingPassData : public PassData
 {
-    HYP_OBJECT_BODY(RaytracingPassData);
+    HYP_OBJECT_BODY(RayTracingPassData);
 
 public:
     // Set only while rendering to this pass
@@ -424,10 +424,10 @@ public:
     
     GpuBufferRef constants;
     GpuBufferRef lightsBuffer;
-    FixedArray<DescriptorSetRef, NumFramesInFlight> raytracingDescriptorSets;
-    FixedArray<GpuTlasRef, NumFramesInFlight> raytracingTlases;
+    FixedArray<DescriptorSetRef, NumFramesInFlight> rayTracingDescriptorSets;
+    FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 
-    virtual ~RaytracingPassData() override;
+    virtual ~RayTracingPassData() override;
 };
 
 class DeferredRenderer final : public RendererBase
@@ -477,7 +477,7 @@ public:
 
 private:
     void RenderFrameForView(Frame* frame, const RenderSetup& rs);
-    void UpdateRaytracingView(Frame* frame, const RenderSetup& rs);
+    void UpdateRayTracingView(Frame* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
     virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
@@ -485,9 +485,9 @@ private:
     void CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData);
     void CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData);
     void CreateViewCombinePass(View* view, DeferredRendererPassData& passData);
-    void CreateViewRaytracingPasses(View* view, DeferredRendererPassData& passData);
+    void CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData);
 
-    void CreateViewTopLevelAccelerationStructures(View* view, RaytracingPassData& passData);
+    void CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData);
 
     void ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData);
 

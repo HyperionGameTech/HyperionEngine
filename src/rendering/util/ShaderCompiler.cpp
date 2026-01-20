@@ -1057,7 +1057,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     
     uint32 vulkanApiVersion = HYP_VULKAN_API_VERSION;
 
-    if (IsRaytracingShaderModule(type))
+    if (IsRayTracingShaderModule(type))
     {
         vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
 
@@ -1288,7 +1288,7 @@ static ByteBuffer CompileToSPIRV(
     uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
     uint32 spirvVersion = 450;
 
-    if (IsRaytracingShaderModule(type))
+    if (IsRayTracingShaderModule(type))
     {
         vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
 
@@ -2513,7 +2513,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
     HYP_LOG(ShaderCompiler, Info, "Precompiling shaders...");
 
-    const bool supportsRtShaders = g_renderBackend->GetRenderConfig().raytracing;
+    const bool supportsRtShaders = g_renderBackend->GetRenderConfig().rayTracing;
 
     HashMap<const ShaderBundleDecl*, bool> results;
     Mutex resultsMutex;
@@ -2524,8 +2524,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
             if (decl.HasRTShaders() && !supportsRtShaders)
             {
                 HYP_LOG(ShaderCompiler, Warning,
-                    "Not compiling shader {} because it contains raytracing "
-                    "shaders and raytracing is not supported on this device.",
+                    "Not compiling shader {} because it contains rayTracing "
+                    "shaders and rayTracing is not supported on this device.",
                     decl.name);
 
                 return;

@@ -34,14 +34,14 @@ class ShadowMap;
 enum LightmapTextureType : uint32;
 
 HYP_STRUCT()
-struct MeshRaytracingData
+struct MeshRayTracingData
 {
-    HYP_STRUCT_BODY(MeshRaytracingData);
+    HYP_STRUCT_BODY(MeshRayTracingData);
 
     HYP_FIELD(NoScriptBindings)
     GpuBlasRef blas;
 
-    ~MeshRaytracingData();
+    ~MeshRayTracingData();
 };
 
 class IRenderProxy
@@ -120,7 +120,7 @@ public:
 
     MeshInstanceData instanceData;
 
-    MeshRaytracingData raytracingData;
+    MeshRayTracingData rayTracingData;
 
     EntityShaderData bufferData {};
 

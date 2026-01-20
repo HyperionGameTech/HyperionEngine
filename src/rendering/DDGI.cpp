@@ -2,8 +2,8 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/raytracing/DDGI.hpp>
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/DDGI.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -174,7 +174,7 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
-    RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
+    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
 
     const auto SetDescriptorElements = [this, pd](DescriptorSet* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
@@ -197,7 +197,7 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         DescriptorSet* descriptorSet = m_pipeline->GetDescriptorTable()->GetDescriptorSet("DDGIDescriptorSet"_sh, frame->GetFrameIndex());
         Assert(descriptorSet != nullptr);
 
-        SetDescriptorElements(descriptorSet, pd->raytracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
+        SetDescriptorElements(descriptorSet, pd->rayTracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
 
         descriptorSet->UpdateDirtyState();
         descriptorSet->Update(true); //! temp
@@ -205,29 +205,29 @@ void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
         return;
     }
 
-    // Create raytracing pipeline
-    ShaderRef raytracingShader = g_shaderManager->GetOrCreate(
+    // Create ray tracing pipeline
+    ShaderRef rayTracingShader = g_shaderManager->GetOrCreate(
         NAME("DDGI"),
         ShaderProperties({
             { NAME("MAX_LIGHTS"), int(MaxBoundLights) }
         }));
 
-    Assert(raytracingShader != nullptr);
+    Assert(rayTracingShader != nullptr);
 
     DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        raytracingShader->GetCompiledShader()->GetDescriptorTableDeclaration());
+        rayTracingShader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         DescriptorSet* descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet"_sh, frameIndex);
         Assert(descriptorSet != nullptr);
 
-        SetDescriptorElements(descriptorSet, pd->raytracingTlases[frameIndex], frameIndex);
+        SetDescriptorElements(descriptorSet, pd->rayTracingTlases[frameIndex], frameIndex);
     }
 
     CheckResult(descriptorTable->Create());
 
-    m_pipeline = g_renderBackend->MakeRaytracingPipeline(raytracingShader, descriptorTable);
+    m_pipeline = g_renderBackend->MakeRayTracingPipeline(rayTracingShader, descriptorTable);
     CheckResult(m_pipeline->Create());
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -359,7 +359,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
-    frame->renderQueue << BindRaytracingPipeline(m_pipeline);
+    frame->renderQueue << BindRayTracingPipeline(m_pipeline);
 
     frame->renderQueue << BindDescriptorTable(
         m_pipeline->GetDescriptorTable(),

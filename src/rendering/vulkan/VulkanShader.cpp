@@ -223,16 +223,16 @@ RendererResult VulkanShader::Create()
 
     CheckResultOrReturn(AttachSubShaders());
 
-    bool isRaytracing = false;
+    bool isRayTracing = false;
 
     for (const VulkanShaderModule& shaderModule : m_shaderModules)
     {
-        isRaytracing |= shaderModule.IsRaytracing();
+        isRayTracing |= shaderModule.IsRayTracing();
 
         m_vkShaderStages.PushBack(CreateShaderStage(shaderModule));
     }
 
-    if (isRaytracing)
+    if (isRayTracing)
     {
         CheckResultOrReturn(CreateShaderGroups());
     }

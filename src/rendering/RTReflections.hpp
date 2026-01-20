@@ -8,7 +8,7 @@
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -18,9 +18,9 @@ class GBuffer;
 class PassData;
 
 HYP_STRUCT(ConfigName = "GlobalConfig", JsonPath = "Rendering.RayTracing")
-struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConfig>
+struct RayTracingReflectionsConfig : public ConfigBase<RayTracingReflectionsConfig>
 {
-    HYP_STRUCT_BODY(RaytracingReflectionsConfig);
+    HYP_STRUCT_BODY(RayTracingReflectionsConfig);
 
     HYP_FIELD(JsonIgnore)
     Vec2u extent = { 1280, 720 };
@@ -28,7 +28,7 @@ struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConf
     HYP_FIELD(JsonPath = "PathTracing.Enabled")
     bool pathTracing = false;
 
-    virtual ~RaytracingReflectionsConfig() override = default;
+    virtual ~RayTracingReflectionsConfig() override = default;
 
     bool Validate() const
     {
@@ -36,17 +36,17 @@ struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConf
     }
 };
 
-class RaytracingReflections
+class RayTracingReflections
 {
 public:
-    friend struct DestroyRaytracingReflections;
+    friend struct DestroyRayTracingReflections;
     friend struct CreateRTRadianceImageOutputs;
 
-    RaytracingReflections(
-        RaytracingReflectionsConfig&& config,
+    RayTracingReflections(
+        RayTracingReflectionsConfig&& config,
         GBuffer* gbuffer);
 
-    ~RaytracingReflections();
+    ~RayTracingReflections();
 
     HYP_FORCE_INLINE bool IsPathTracer() const
     {
@@ -65,14 +65,14 @@ private:
     void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
 
-    RaytracingReflectionsConfig m_config;
+    RayTracingReflectionsConfig m_config;
 
     GBuffer* m_gbuffer;
 
     Handle<Texture> m_texture;
     UniquePtr<TemporalBlending> m_temporalBlending;
 
-    RaytracingPipelineRef m_raytracingPipeline;
+    RayTracingPipelineRef m_rayTracingPipeline;
 
     Mat4f m_previousViewMatrix;
 };

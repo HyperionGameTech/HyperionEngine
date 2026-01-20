@@ -47,16 +47,16 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         };
         VulkanHelpers::ChainNext(m_features2, &m_indexingFeatures);
 
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
         m_bufferDeviceAddressFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES
         };
         VulkanHelpers::ChainNext(m_features2, &m_bufferDeviceAddressFeatures);
 
-        m_raytracingPipelineFeatures = {
+        m_rayTracingPipelineFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR
         };
-        VulkanHelpers::ChainNext(m_features2, &m_raytracingPipelineFeatures);
+        VulkanHelpers::ChainNext(m_features2, &m_rayTracingPipelineFeatures);
 
         m_accelerationStructureFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR
@@ -86,11 +86,11 @@ void VulkanFeatures::SetPhysicalDevice(VkPhysicalDevice physicalDevice)
         };
         VulkanHelpers::ChainNext(m_properties2, &m_samplerMinmaxProperties);
 
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
-        m_raytracingPipelineProperties = {
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+        m_rayTracingPipelineProperties = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR
         };
-        VulkanHelpers::ChainNext(m_properties2, &m_raytracingPipelineProperties);
+        VulkanHelpers::ChainNext(m_properties2, &m_rayTracingPipelineProperties);
 
         m_accelerationStructureProperties = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR

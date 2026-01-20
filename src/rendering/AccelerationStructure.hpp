@@ -159,7 +159,7 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
+#include <rendering/vulkan/VulkanAccelerationStructure.hpp>
 #elif HYP_DX12
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #endif

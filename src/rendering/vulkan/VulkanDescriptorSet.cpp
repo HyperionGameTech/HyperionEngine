@@ -13,8 +13,8 @@
 #include <rendering/vulkan/VulkanComputePipeline.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
-#include <rendering/vulkan/rt/VulkanRaytracingPipeline.hpp>
-#include <rendering/vulkan/rt/VulkanAccelerationStructure.hpp>
+#include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
+#include <rendering/vulkan/VulkanAccelerationStructure.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -717,7 +717,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRayTracingPipeline* pipeline, uint32 bindIndex) const
 {
     Assert(m_handle != VK_NULL_HANDLE);
 
@@ -762,7 +762,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     boundDescriptorSets[bindIndex] = cachedBinding;
 }
 
-void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
+void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanRayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const
 {
     Assert(m_handle != VK_NULL_HANDLE);
 

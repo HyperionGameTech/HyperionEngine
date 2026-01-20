@@ -318,13 +318,13 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
         case SMT_RAY_GEN:
         case SMT_RAY_INTERSECT:
         case SMT_RAY_MISS:
-            if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+            if (g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
             else
             {
-                HYP_FAIL("ERROR: Attempted to get raytracing shader stage mask on a device that does not support raytracing!");
+                HYP_FAIL("ERROR: Attempted to get rayTracing shader stage mask on a device that does not support rayTracing!");
             }
             break;
         case SMT_GEOMETRY:
@@ -342,7 +342,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
             VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            if (g_renderBackend->GetDevice()->GetFeatures().IsRaytracingSupported())
+            if (g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }

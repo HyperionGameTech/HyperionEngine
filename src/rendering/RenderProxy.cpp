@@ -1,7 +1,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderProxy.hpp>
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -9,7 +9,7 @@
 
 namespace Hyperion {
 
-MeshRaytracingData::~MeshRaytracingData()
+MeshRayTracingData::~MeshRayTracingData()
 {
     if (blas != nullptr)
     {

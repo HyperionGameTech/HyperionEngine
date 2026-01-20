@@ -5,7 +5,7 @@
 #include <core/memory/Pimpl.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 namespace Hyperion {
 

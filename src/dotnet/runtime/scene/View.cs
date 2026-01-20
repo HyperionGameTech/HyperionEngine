@@ -31,7 +31,7 @@ namespace Hyperion
 
         EnableReadback = 0x4000,
 
-        Raytracing = 0x100000,
+        RayTracing = 0x100000,
 
         MatchCameraDimensions = 0x200000,
 

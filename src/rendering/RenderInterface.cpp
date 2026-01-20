@@ -12,7 +12,7 @@
 #include <rendering/GenericPipelineCache.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -44,7 +44,7 @@
 #include <rendering/renderers/ShadowRenderer.hpp>
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
-#include <rendering/raytracing/DDGI.hpp>
+#include <rendering/DDGI.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
@@ -880,7 +880,7 @@ void Init()
         ConfigurationTable renderGlobalConfigOverrides;
 
         // if ray tracing is not supported, we need to update the configuration
-        if (!g_renderBackend->GetRenderConfig().raytracing)
+        if (!g_renderBackend->GetRenderConfig().rayTracing)
         {
             renderGlobalConfigOverrides.Set("Rendering.RayTracing.Enabled", false);
             renderGlobalConfigOverrides.Set("Rendering.RayTracing.Reflections.Enabled", false);
@@ -1458,7 +1458,7 @@ void EndFrameRender()
 
     numCleanupCycles -= g_renderInterface->graphicsPipelineCache->RunCleanupCycle(16);
     numCleanupCycles -= g_renderInterface->computePipelineCache->RunCleanupCycle(4);
-    numCleanupCycles -= g_renderInterface->raytracingPipelineCache->RunCleanupCycle(1);
+    numCleanupCycles -= g_renderInterface->rayTracingPipelineCache->RunCleanupCycle(1);
 
     for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
@@ -1529,7 +1529,7 @@ RenderInterface::RenderInterface()
       materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
       computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
-      raytracingPipelineCache(PoolNew<RaytracingPipelineCache>(*g_renderPool)),
+      rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
@@ -1654,8 +1654,8 @@ RenderInterface::~RenderInterface()
     PoolDelete(*g_renderPool, computePipelineCache);
     computePipelineCache = nullptr;
 
-    PoolDelete(*g_renderPool, raytracingPipelineCache);
-    raytracingPipelineCache = nullptr;
+    PoolDelete(*g_renderPool, rayTracingPipelineCache);
+    rayTracingPipelineCache = nullptr;
 
     PoolDelete(*g_renderPool, shaderPropertyCache);
     shaderPropertyCache = nullptr;
@@ -1708,6 +1708,17 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
     case PSO_Graphics:
         {
             GraphicsPipeline* pipeline = nullptr;
+            
+            // set required vertex attributes for the shader based on current vertexAttributes value
+
+            ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
+
+            if (state.attributes.GetMeshAttributes().vertexAttributes != shaderDefinition.properties.GetRequiredVertexAttributes())
+            {
+                shaderDefinition.GetProperties().SetRequiredVertexAttributes(state.attributes.GetMeshAttributes().vertexAttributes);
+
+                state.attributes.Invalidate();
+            }
 
             if (!state.prevGraphicsPipeline
                 || !state.prevGraphicsPipeline->MatchesSignature(
@@ -1744,12 +1755,16 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
         {
             ComputePipeline* pipeline = nullptr;
 
-            ShaderDefinition shaderDefinition = state.attributes.GetShaderDefinition();
-            shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
-            shaderDefinition.GetProperties().SetOptionalVertexAttributes(0);
+            ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
 
-            if (!state.prevComputePipeline
-                || state.prevComputePipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDefinition)
+            if (shaderDefinition.properties.GetRequiredVertexAttributes() != 0)
+            {
+                shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
+
+                state.attributes.Invalidate();
+            }
+
+            if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(shaderDefinition))
             {
                 pipeline = computePipelineCache->GetOrCreate(shaderDefinition);
                 AssertDebug(pipeline != nullptr);
@@ -1772,27 +1787,31 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
 
     case PSO_RayTracing:
         {
-            RaytracingPipeline* pipeline = nullptr;
+            RayTracingPipeline* pipeline = nullptr;
 
-            ShaderDefinition shaderDefinition = state.attributes.GetShaderDefinition();
-            shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
-            shaderDefinition.GetProperties().SetOptionalVertexAttributes(0);
+            ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
 
-            if (!state.prevRaytracingPipeline
-                || state.prevRaytracingPipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDefinition)
+            if (shaderDefinition.properties.GetRequiredVertexAttributes() != 0)
             {
-                pipeline = raytracingPipelineCache->GetOrCreate(shaderDefinition);
+                shaderDefinition.GetProperties().SetRequiredVertexAttributes(0);
+
+                state.attributes.Invalidate();
+            }
+
+            if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(shaderDefinition))
+            {
+                pipeline = rayTracingPipelineCache->GetOrCreate(shaderDefinition);
                 AssertDebug(pipeline != nullptr);
 
-                BindRaytracingPipeline bindCmd(pipeline);
-                BindRaytracingPipeline::InvokeStatic(&bindCmd, commandBuffer);
+                BindRayTracingPipeline bindCmd(pipeline);
+                BindRayTracingPipeline::InvokeStatic(&bindCmd, commandBuffer);
 
-                state.prevRaytracingPipeline = pipeline;
+                state.prevRayTracingPipeline = pipeline;
                 pipelineChanged = true;
             }
             else
             {
-                pipeline = state.prevRaytracingPipeline;
+                pipeline = state.prevRayTracingPipeline;
             }
 
             shader = pipeline->GetShader();
@@ -2147,7 +2166,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType)
             ds->Bind(commandBuffer, state.prevComputePipeline, offsets, setIndex);
             break;
         case PSO_RayTracing:
-            ds->Bind(commandBuffer, state.prevRaytracingPipeline, offsets, setIndex);
+            ds->Bind(commandBuffer, state.prevRayTracingPipeline, offsets, setIndex);
             break;
         default:
             HYP_UNREACHABLE();
