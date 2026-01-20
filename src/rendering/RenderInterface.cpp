@@ -9,7 +9,11 @@
 #include <rendering/GpuBufferHolderMap.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/GenericPipelineCache.hpp>
 #include <rendering/GraphicsPipeline.hpp>
+#include <rendering/ComputePipeline.hpp>
+#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RenderQueue.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -1453,6 +1457,8 @@ void EndFrameRender()
     }
 
     numCleanupCycles -= g_renderInterface->graphicsPipelineCache->RunCleanupCycle(16);
+    numCleanupCycles -= g_renderInterface->computePipelineCache->RunCleanupCycle(8);
+    numCleanupCycles -= g_renderInterface->raytracingPipelineCache->RunCleanupCycle(4);
 
     for (ResourceSubtypeData& subtypeData : s_resources->dataByType)
     {
@@ -1522,6 +1528,8 @@ RenderInterface::RenderInterface()
       placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
       materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
       graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
+      computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
+      raytracingPipelineCache(PoolNew<RaytracingPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
@@ -1643,6 +1651,12 @@ RenderInterface::~RenderInterface()
     PoolDelete(*g_renderPool, graphicsPipelineCache);
     graphicsPipelineCache = nullptr;
 
+    PoolDelete(*g_renderPool, computePipelineCache);
+    computePipelineCache = nullptr;
+
+    PoolDelete(*g_renderPool, raytracingPipelineCache);
+    raytracingPipelineCache = nullptr;
+
     PoolDelete(*g_renderPool, shaderPropertyCache);
     shaderPropertyCache = nullptr;
 }
@@ -1675,44 +1689,133 @@ void RenderInterface::RemoveRenderer(GlobalRendererType globalRendererType, Rend
     globalRenderers[globalRendererType].Erase(renderer);
 }
 
-void RenderInterface::CommitDrawState()
+void RenderInterface::CommitPipelineState(PSOType psoType)
 {
-    GraphicsPipeline* pipeline = nullptr;
-
     CommandBuffer* commandBuffer = g_renderBackend->GetCurrentCommandBuffer();
 
-    if (!state.prevGraphicsPipeline
-        || !state.prevGraphicsPipeline->MatchesSignature(
-                state.attributes,
-                state.renderTargetDesc
-            ))
+    Shader* shader = nullptr;
+    bool pipelineChanged = false;
+
+    // set prev pipeline to null if state changed,
+    // we cannot rely upon descriptors being valid between switches
+    if (psoType != state.prevPSOType)
     {
-        GraphicsPipelineCacheHandle cacheHandle;
-        
-        graphicsPipelineCache->GetOrCreate(
-            state.attributes,
-            state.renderTargetDesc,
-            cacheHandle);
+        state.prevGraphicsPipeline = nullptr;
+    }
 
-        pipeline = *cacheHandle;
+    switch (psoType)
+    {
+    case PSO_Graphics:
+        {
+            GraphicsPipeline* pipeline = nullptr;
 
-        BindGraphicsPipeline bindCmd(pipeline, state.viewport);
-        BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
+            if (!state.prevGraphicsPipeline
+                || !state.prevGraphicsPipeline->MatchesSignature(
+                        state.attributes,
+                        state.renderTargetDesc
+                    ))
+            {
+                GraphicsPipelineCacheHandle cacheHandle;
+                
+                graphicsPipelineCache->GetOrCreate(
+                    state.attributes,
+                    state.renderTargetDesc,
+                    cacheHandle);
 
-        state.prevGraphicsPipeline = pipeline;
-        
+                pipeline = *cacheHandle;
+
+                BindGraphicsPipeline bindCmd(pipeline, state.viewport);
+                BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
+
+                state.prevGraphicsPipeline = pipeline;
+                pipelineChanged = true;
+            }
+            else
+            {
+                pipeline = state.prevGraphicsPipeline;
+            }
+
+            shader = pipeline->GetShader();
+        }
+
+        break;
+
+    case PSO_Compute:
+        {
+            ComputePipeline* pipeline = nullptr;
+
+            const ShaderDefinition shaderDef = state.attributes.GetShaderDefinition();
+
+            if (!state.prevComputePipeline
+                || state.prevComputePipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDef)
+            {
+                ComputePipelineRef pipelineRef = computePipelineCache->GetOrCreate(shaderDef);
+                AssertDebug(pipelineRef.IsValid());
+
+                pipeline = pipelineRef.Get();
+
+                BindComputePipeline bindCmd(pipeline);
+                BindComputePipeline::InvokeStatic(&bindCmd, commandBuffer);
+
+                state.prevComputePipeline = pipeline;
+                pipelineChanged = true;
+            }
+            else
+            {
+                pipeline = state.prevComputePipeline;
+            }
+
+            shader = pipeline->GetShader();
+        }
+
+        break;
+
+    case PSO_RayTracing:
+        {
+            RaytracingPipeline* pipeline = nullptr;
+
+            const ShaderDefinition shaderDef = state.attributes.GetShaderDefinition();
+
+            if (!state.prevRaytracingPipeline
+                || state.prevRaytracingPipeline->GetShader()->GetCompiledShader()->GetDefinition() != shaderDef)
+            {
+                RaytracingPipelineRef pipelineRef = raytracingPipelineCache->GetOrCreate(shaderDef);
+                AssertDebug(pipelineRef.IsValid());
+
+                pipeline = pipelineRef.Get();
+
+                BindRaytracingPipeline bindCmd(pipeline);
+                BindRaytracingPipeline::InvokeStatic(&bindCmd, commandBuffer);
+
+                state.prevRaytracingPipeline = pipeline;
+                pipelineChanged = true;
+            }
+            else
+            {
+                pipeline = state.prevRaytracingPipeline;
+            }
+
+            shader = pipeline->GetShader();
+        }
+
+        break;
+
+    default:
+        HYP_UNREACHABLE();
+    }
+
+    state.prevPSOType = psoType;
+
+    AssertDebug(shader != nullptr);
+
+    if (pipelineChanged)
+    {
         // invalidate all uniforms on pipeline change
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;
         
         Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
     }
-    else
-    {
-        pipeline = state.prevGraphicsPipeline;
-    }
-
-    Shader* shader = pipeline->GetShader();
 
     const CompiledShader* compiledShader = shader->GetCompiledShader();
     AssertDebug(compiledShader != nullptr);
@@ -1803,12 +1906,9 @@ void RenderInterface::CommitDrawState()
 
         if (!decl)
         {
-            // HYP_LOG_TEMP("Warning: uniform {} not found for shader {}", uniform.name, shader->GetCompiledShader()->GetName());
-
             // not found; skip
             state.dirtyUniforms &= ~(1u << uniformIndex);
             state.dirtyBufferOffsets &= ~(1u << uniformIndex);
-            //state.validUniforms &= ~(1u << uniformIndex);
 
             bits.Set(currBit, false);
 
@@ -2038,11 +2138,23 @@ void RenderInterface::CommitDrawState()
             offsets.Add(uniform.name, bufferOffset);
         }
 
-        ds->Bind(commandBuffer, pipeline, offsets, setIndex);
+        switch (psoType)
+        {
+        case PSO_Graphics:
+            ds->Bind(commandBuffer, state.prevGraphicsPipeline, offsets, setIndex);
+            break;
+        case PSO_Compute:
+            ds->Bind(commandBuffer, state.prevComputePipeline, offsets, setIndex);
+            break;
+        case PSO_RayTracing:
+            ds->Bind(commandBuffer, state.prevRaytracingPipeline, offsets, setIndex);
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
 
         state.prevBoundDescriptorSets[setIndex] = ds;
     }
-                
 
     state.validUniforms |= state.dirtyUniforms;
     state.dirtyUniforms = 0;
