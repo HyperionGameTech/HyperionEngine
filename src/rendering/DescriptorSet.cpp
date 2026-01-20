@@ -311,11 +311,11 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         }
         else
         {
-            if (element->values[index] == ref)
-            {
-                // same object reference; skip marking dirty
-                return *element;
-            }
+            //if (element->values[index] == ref)
+            //{
+            //    // same object reference; skip marking dirty; unless TLAS (the tlas can change)
+            //    return *element;
+            //}
 
             element->values[index] = ref;
         }

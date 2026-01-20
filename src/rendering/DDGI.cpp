@@ -13,13 +13,13 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GpuBuffer.hpp>
-#include <rendering/ComputePipeline.hpp>
-#include <rendering/DescriptorSet.hpp>
 #include <rendering/GpuImage.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Shader.hpp>
+
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -57,11 +57,6 @@ DDGI::~DDGI()
     SafeDelete(std::move(m_irradianceImageView));
     SafeDelete(std::move(m_depthImage));
     SafeDelete(std::move(m_depthImageView));
-    SafeDelete(std::move(m_pipeline));
-    SafeDelete(std::move(m_updateIrradiance));
-    SafeDelete(std::move(m_updateDepth));
-    SafeDelete(std::move(m_copyBorderTexelsIrradiance));
-    SafeDelete(std::move(m_copyBorderTexelsDepth));
 }
 
 void DDGI::Create()
@@ -170,108 +165,6 @@ void DDGI::CreateStorageBuffers()
     }
 }
 
-void DDGI::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
-{
-    HYP_SCOPE;
-
-    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
-    Assert(pd != nullptr);
-
-    const auto SetDescriptorElements = [this, pd](DescriptorSet* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
-    {
-        Assert(tlas != nullptr);
-
-        const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
-        Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
-
-        descriptorSet->SetElement("TLAS"_sh, tlas);
-        descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
-        descriptorSet->SetElement("DDGIConstants"_sh, m_cBuffers[frameIndex]);
-        descriptorSet->SetElement("Lights"_sh, m_lightsBuffers[frameIndex]);
-        descriptorSet->SetElement("ProbeRayData"_sh, m_radianceBuffer);
-        descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    };
-
-    if (m_pipeline != nullptr)
-    {
-        DescriptorSet* descriptorSet = m_pipeline->GetDescriptorTable()->GetDescriptorSet("DDGIDescriptorSet"_sh, frame->GetFrameIndex());
-        Assert(descriptorSet != nullptr);
-
-        SetDescriptorElements(descriptorSet, pd->rayTracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
-
-        descriptorSet->UpdateDirtyState();
-        descriptorSet->Update(true); //! temp
-
-        return;
-    }
-
-    // Create ray tracing pipeline
-    ShaderRef rayTracingShader = g_shaderManager->GetOrCreate(
-        NAME("DDGI"),
-        ShaderProperties({
-            { NAME("MAX_LIGHTS"), int(MaxBoundLights) }
-        }));
-
-    Assert(rayTracingShader != nullptr);
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        rayTracingShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        DescriptorSet* descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        SetDescriptorElements(descriptorSet, pd->rayTracingTlases[frameIndex], frameIndex);
-    }
-
-    CheckResult(descriptorTable->Create());
-
-    m_pipeline = g_renderBackend->MakeRayTracingPipeline(rayTracingShader, descriptorTable);
-    CheckResult(m_pipeline->Create());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        descriptorTable->Update(frameIndex, /* force */ true);
-    }
-
-    // Create compute pipelines
-    ShaderRef updateIrradianceShader = g_shaderManager->GetOrCreate(NAME("RTProbeUpdateIrradiance"));
-    ShaderRef updateDepthShader = g_shaderManager->GetOrCreate(NAME("RTProbeUpdateDepth"));
-    ShaderRef copyBorderTexelsIrradianceShader = g_shaderManager->GetOrCreate(NAME("RTCopyBorderTexelsIrradiance"));
-    ShaderRef copyBorderTexelsDepthShader = g_shaderManager->GetOrCreate(NAME("RTCopyBorderTexelsDepth"));
-
-    Pair<ShaderRef, ComputePipelineRef&> computePipelines[] = {
-        { updateIrradianceShader, m_updateIrradiance },
-        { updateDepthShader, m_updateDepth },
-        { copyBorderTexelsIrradianceShader, m_copyBorderTexelsIrradiance },
-        { copyBorderTexelsDepthShader, m_copyBorderTexelsDepth }
-    };
-
-    for (auto& [shader, computePipeline] : computePipelines)
-    {
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DDGIDescriptorSet"_sh, frameIndex);
-            Assert(descriptorSet != nullptr);
-
-            descriptorSet->SetElement("DDGIConstants"_sh, m_cBuffers[frameIndex]);
-            descriptorSet->SetElement("ProbeRayData"_sh, m_radianceBuffer);
-
-            descriptorSet->SetElement("OutputIrradianceImage"_sh, m_irradianceImageView);
-            descriptorSet->SetElement("OutputDepthImage"_sh, m_depthImageView);
-        }
-
-        DeferCreate(descriptorTable);
-
-        computePipeline = g_renderBackend->MakeComputePipeline(shader, descriptorTable);
-        DeferCreate(computePipeline);
-    }
-}
-
 void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
 {
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -284,6 +177,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     const Vec3u numProbesPerDimension = m_gridInfo.NumProbesPerDimension();
 
     DDGIConstants uniforms {};
+    uniforms.rotationMatrix = m_randomGenerator.Next();
     uniforms.aabbMax = Vec4f(m_gridInfo.aabb.max, 1.0f);
     uniforms.aabbMin = Vec4f(m_gridInfo.aabb.min, 1.0f);
     uniforms.probeBorder = Vec4u(m_gridInfo.probeBorder, 0);
@@ -341,116 +235,104 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr);
 
-    UpdatePipelineState(frame, renderSetup);
     UpdateUniforms(frame, renderSetup);
 
-    m_randomGenerator.Next();
+    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
+    Assert(pd != nullptr);
 
-    struct
-    {
-        Mat4f matrix;
-        uint32 time;
-    } pushConstants;
+    const uint32 frameIndex = frame->GetFrameIndex();
+    const GpuTlasRef& tlas = pd->rayTracingTlases[frameIndex];
+    Assert(tlas != nullptr);
 
-    pushConstants.matrix = m_randomGenerator.matrix;
-    pushConstants.time = m_counter++;
-
-    m_pipeline->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
+    Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
 
     frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
-    frame->renderQueue << BindRayTracingPipeline(m_pipeline);
+    ShaderProperties shaderProperties;
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
 
-    frame->renderQueue << BindDescriptorTable(
-        m_pipeline->GetDescriptorTable(),
-        m_pipeline,
-        { { "Global"_sh,
-            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frame->GetFrameIndex());
+    if (renderSetup.envProbe != nullptr)
+        shaderProperties.Set(ShaderProperty(NAME("HAS_ENV_PROBE")));
 
-    frame->renderQueue << TraceRays(m_pipeline, Vec3u { m_gridInfo.NumProbes(), m_gridInfo.numRaysPerProbe, 1u });
+    frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("DDGI"), shaderProperties)));
+    
+    frame->renderQueue << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    frame->renderQueue << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    frame->renderQueue << SetShaderUniform(2, "TLAS"_sh, tlas);
+    frame->renderQueue << SetShaderUniform(3, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
+    frame->renderQueue << SetShaderUniform(4, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(5, "Lights"_sh, m_lightsBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(6, "ProbeRayData"_sh, m_radianceBuffer);
+    
+    frame->renderQueue << SetShaderUniform(7, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    frame->renderQueue << SetShaderUniform(8, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
+    frame->renderQueue << SetShaderUniform(9, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    frame->renderQueue << SetShaderUniform(10, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    frame->renderQueue << SetShaderUniform(11, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+
+    if (renderSetup.envProbe != nullptr)
+        frame->renderQueue << SetShaderUniform(12, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+
+    frame->renderQueue << TraceRays(Vec3u { m_gridInfo.NumProbes(), m_gridInfo.numRaysPerProbe, 1u });
 
     frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
     // Compute irradiance for ray traced probes
-
     const Vec3u probeCounts = m_gridInfo.NumProbesPerDimension();
 
     frame->renderQueue << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
     frame->renderQueue << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
-    frame->renderQueue << BindComputePipeline(m_updateIrradiance);
+    // Update irradiance
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTProbeUpdateIrradiance")));
+    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
+    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 
-    frame->renderQueue << BindDescriptorTable(
-        m_updateIrradiance->GetDescriptorTable(),
-        m_updateIrradiance,
-        {},
-        frame->GetFrameIndex());
+    frame->renderQueue << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
-    frame->renderQueue << DispatchCompute(m_updateIrradiance, Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+    // Update depth
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTProbeUpdateDepth")));
+    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
+    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 
-    frame->renderQueue << BindComputePipeline(m_updateDepth);
-
-    frame->renderQueue << BindDescriptorTable(
-        m_updateDepth->GetDescriptorTable(),
-        m_updateDepth,
-        { { "Global"_sh,
-            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frame->GetFrameIndex());
-
-    frame->renderQueue << DispatchCompute(m_updateDepth, Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
+    frame->renderQueue << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     frame->renderQueue << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
     frame->renderQueue << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
-    // now copy border texels
-    frame->renderQueue << BindComputePipeline(m_copyBorderTexelsIrradiance);
-    
-    frame->renderQueue << BindDescriptorTable(
-        m_copyBorderTexelsIrradiance->GetDescriptorTable(),
-        m_copyBorderTexelsIrradiance,
-        {
-            { "Global"_sh,
-                { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                    { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                    { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frame->GetFrameIndex());
+    // Copy border texels irradiance
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsIrradiance")));
+    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
+    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
 
-    
-    frame->renderQueue << DispatchCompute(
-        m_copyBorderTexelsIrradiance, 
-        Vec3u {
-            (probeCounts.x * probeCounts.y * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.x)) + 7 / 8,
-            (probeCounts.z * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.z)) + 7 / 8,
-            1u
-        });
-    
-    frame->renderQueue << BindComputePipeline(m_copyBorderTexelsIrradiance);
-    
-    frame->renderQueue << BindDescriptorTable(
-        m_copyBorderTexelsIrradiance->GetDescriptorTable(),
-        m_copyBorderTexelsIrradiance,
-        {
-            { "Global"_sh,
-                { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                    { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                    { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frame->GetFrameIndex());
+    frame->renderQueue << DispatchCompute(Vec3u {
+        (probeCounts.x * probeCounts.y * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.x)) + 7 / 8,
+        (probeCounts.z * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.z)) + 7 / 8,
+        1u
+    });
 
-    
-    frame->renderQueue << DispatchCompute(
-        m_copyBorderTexelsIrradiance, 
-        Vec3u {
-            (probeCounts.x * probeCounts.y * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.x)) + 15 / 16,
-            (probeCounts.z * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.z)) + 15 / 16,
-            1u
-        });
-    
+    // Copy border texels depth
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTCopyBorderTexelsDepth")));
+    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
+    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
+    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
+
+    frame->renderQueue << DispatchCompute(Vec3u {
+        (probeCounts.x * probeCounts.y * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.x)) + 15 / 16,
+        (probeCounts.z * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.z)) + 15 / 16,
+        1u
+    });
+
     frame->renderQueue << InsertBarrier(m_irradianceImage, RS_SHADER_RESOURCE);
     frame->renderQueue << InsertBarrier(m_depthImage, RS_SHADER_RESOURCE);
 #endif

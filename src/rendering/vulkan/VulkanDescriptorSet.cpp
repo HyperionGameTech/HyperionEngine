@@ -214,7 +214,8 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
 
             break;
         case DescriptorSetElementType::IMAGE_STORAGE:
-            PrefillElements<VulkanGpuImageView>(name, element.count, GetDefaultVulkanImageView());
+            // leave empty to avoid overwriting default image view or causing out of bounds access/write
+            PrefillElements<VulkanGpuImageView>(name, element.count);
 
             break;
         case DescriptorSetElementType::SAMPLER:
@@ -398,12 +399,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
 
-                descriptor.accelerationStructureInfo = VkWriteDescriptorSetAccelerationStructureKHR {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
-                    .pNext = nullptr,
-                    .accelerationStructureCount = 1,
-                    .pAccelerationStructures = &ref->GetVulkanHandle()
-                };
+                descriptor.accelerationStructure = ref->GetVulkanHandle();
             }
 
             break;
@@ -467,8 +463,10 @@ void VulkanDescriptorSet::Update(bool force)
         return;
     }
 
-    Array<VkWriteDescriptorSet> vkWriteDescriptorSets;
+    Array<VkWriteDescriptorSet, VulkanAllocator> vkWriteDescriptorSets;
     vkWriteDescriptorSets.Resize(m_pendingDescriptors.Size());
+
+    Array<VkWriteDescriptorSetAccelerationStructureKHR, VulkanAllocator> vkWriteDescriptorSetAccelerationStructures;
 
     for (SizeType i = 0; i < vkWriteDescriptorSets.Size(); i++)
     {
@@ -485,11 +483,29 @@ void VulkanDescriptorSet::Update(bool force)
 
         if (descriptor.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
         {
-            write.pNext = &descriptor.accelerationStructureInfo;
-        }
+            if (vkWriteDescriptorSetAccelerationStructures.Capacity() < vkWriteDescriptorSets.Size())
+            {
+                // on first encounter of an AS, we reserve the max size we could possibly need so as to not
+                // potentially invalidate any ptrs of prior writes.
+                // --
+                // note that this is extremely unlikely given we currently only support 1 TLAS per descriptor pool,
+                // but this sort of future proofing helps me sleep at night.
+                vkWriteDescriptorSetAccelerationStructures.Reserve(vkWriteDescriptorSets.Size());
+            }
 
-        write.pImageInfo = &descriptor.imageInfo;
-        write.pBufferInfo = &descriptor.bufferInfo;
+            VkWriteDescriptorSetAccelerationStructureKHR& writeAS = vkWriteDescriptorSetAccelerationStructures.EmplaceBack();
+            writeAS.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+            writeAS.pNext = nullptr;
+            writeAS.accelerationStructureCount = 1;
+            writeAS.pAccelerationStructures = &descriptor.accelerationStructure;
+
+            write.pNext = &writeAS;
+        }
+        else
+        {
+            write.pImageInfo = &descriptor.imageInfo;
+            write.pBufferInfo = &descriptor.bufferInfo;
+        }
     }
 
     vkUpdateDescriptorSets(

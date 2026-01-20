@@ -187,7 +187,7 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_handle;
 
-    VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence->GetVulkanHandle()));
+    VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence ? fence->GetVulkanHandle() : VK_NULL_HANDLE));
 
     return {};
 }

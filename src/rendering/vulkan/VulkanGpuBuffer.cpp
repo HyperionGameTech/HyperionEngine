@@ -98,6 +98,8 @@ void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
         Map();
     }
 
+    AssertDebug(offset + count <= m_size);
+
     Memory::MemCpy(reinterpret_cast<void*>(UIntPtr(m_mapping) + offset), ptr, count);
 }
 
@@ -110,6 +112,8 @@ void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
         HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
     }
 
+    AssertDebug(count <= m_size);
+
     Memory::MemCpy(outPtr, m_mapping, count);
 }
 
@@ -121,6 +125,8 @@ void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
 
         HYP_LOG(RenderingBackend, Warning, "Attempt to Read() from buffer but data has not been mapped previously");
     }
+
+    AssertDebug(offset + count <= m_size);
 
     Memory::MemCpy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
 }

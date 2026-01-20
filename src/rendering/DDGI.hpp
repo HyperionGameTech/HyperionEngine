@@ -4,7 +4,6 @@
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/RayTracingPipeline.hpp>
 
 #include <core/math/BoundingBox.hpp>
 
@@ -125,18 +124,10 @@ private:
     void CreateConstantBuffers();
     void CreateStorageBuffers();
 
-    void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
 
     DDGIInfo m_gridInfo;
     Array<DDGIProbeData, DynamicAllocator> m_probeData;
-
-    ComputePipelineRef m_updateIrradiance;
-    ComputePipelineRef m_updateDepth;
-    ComputePipelineRef m_copyBorderTexelsIrradiance;
-    ComputePipelineRef m_copyBorderTexelsDepth;
-
-    RayTracingPipelineRef m_pipeline;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
     FixedArray<GpuBufferRef, NumFramesInFlight> m_lightsBuffers;
