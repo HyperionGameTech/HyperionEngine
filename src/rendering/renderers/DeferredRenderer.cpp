@@ -386,6 +386,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         : NAME("DeferredIndirect");
 
     RenderQueue& rq = frame->renderQueue;
+
+    rq << SetCurrentView(
+        rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
+        rs.view->GetViewport());
     
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     rq << SetTopology(TOP_TRIANGLES);
@@ -401,12 +405,17 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         .compareOp = SCO_EQUAL
     });
 
-    rq << SetCurrentView(
-        rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        rs.view->GetViewport());
-
     // stencil state: only render where stencil == 0 (non-lightmapped geometry)
     rq << SetStencilState(0, LightmapStencilMask, 0x0);
+
+    HYP_DEFER({
+        // reset states
+        rq << SetCurrentBlendFunction(BlendFunction::None());
+        rq << SetStencilState(0, 0xFF, 0x0);
+        rq << SetDepthWrite(true);
+        rq << SetDepthTest(true);
+        rq << SetStencilTest(false);
+    });
 
     uint32 numShaderUniforms = 0;
 
@@ -459,14 +468,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             rq << SetShaderUniform(numShaderUniforms++, "DDGIDepthTexture"_sh, dpd->ddgi->GetDepthImageView());
         }
     }
-
-    HYP_DEFER({
-        // reset states
-        rq << SetStencilState(0, 0xFF, 0x0);
-        rq << SetDepthWrite(true);
-        rq << SetDepthTest(true);
-        rq << SetStencilTest(false);
-    });
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
@@ -925,9 +926,14 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     rq << CommitDrawState();
 
-    frame->renderQueue << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
-    frame->renderQueue << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
-    frame->renderQueue << DrawIndexed(36); // draw cube
+    rq << BindVertexBuffer(m_volumeMesh->GetVertexBuffer());
+    rq << BindIndexBuffer(m_volumeMesh->GetIndexBuffer());
+    rq << DrawIndexed(36); // draw cube
+
+    // reset states
+    rq << SetCurrentBlendFunction(BlendFunction::None());
+    rq << SetDepthTest(true);
+    rq << SetDepthWrite(true);
 
     m_isFirstFrame = false;
 }
@@ -1227,7 +1233,6 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
     : FullScreenPass(TF_R10G10B10A2, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_deferredResultImageView(deferredResultImageView),
-      m_cachedSsrTexture(nullptr),
       m_isFirstFrame(true)
 {
     SetBlendFunction(BlendFunction(
@@ -1375,6 +1380,12 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetFillMode(FM_FILL);
     rq << SetFaceCullMode(FCM_BACK);
 
+    HYP_DEFER({
+        rq << SetCurrentBlendFunction(BlendFunction::None());
+        rq << SetDepthTest(true);
+        rq << SetDepthWrite(true);
+    });
+
     FixedArray<Array<EnvProbe*, RenderTempAllocator>, CMT_MAX> probesPerCubemapType;
 
     for (uint32 cubemapType = 0; cubemapType < CMT_MAX; cubemapType++)
@@ -1458,60 +1469,24 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     {
         const Handle<Texture>& ssrTexture = m_ssrRenderer->GetFinalResultTexture();
 
-        // Create or update render-to-screen pass if needed
-        if (!m_renderSsrToScreenPass || !ssrTexture.IsValid() || m_cachedSsrTexture != ssrTexture)
-        {
-            SafeDelete(std::move(m_renderSsrToScreenPass));
+        // render SSR to screen
+        RenderTargetDesc renderTargetDesc = rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc();
+        renderTargetDesc.attachments[0].loadOp = LoadOperation::LOAD;
+        renderTargetDesc.attachments[0].blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
+    
+        rq << SetCurrentView(renderTargetDesc, rs.view->GetViewport());
 
-            if (ssrTexture.IsValid())
-            {
-                ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
-                Assert(renderTextureToScreenShader.IsValid());
+        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderProperties())));
 
-                DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-                    renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
+        rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+        rq << SetShaderUniform(2, "InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
 
-                for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-                {
-                    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet"_sh, frameIndex);
-                    Assert(descriptorSet != nullptr);
-
-                    descriptorSet->SetElement("InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
-                }
-
-                DeferCreate(descriptorTable);
-
-                // FramebufferRef renderSsrToScreenFramebuffer = g_renderBackend->MakeFramebuffer(m_extent);
-                // renderSsrToScreenFramebuffer->AddAttachment(
-                //     0,
-                //     GetFramebuffer()->GetAttachment(0)->GetImage(),
-                //     LoadOperation::LOAD,
-                //     StoreOperation::STORE);
-
-                // Assert(renderSsrToScreenFramebuffer->Create());
-
-                m_renderSsrToScreenPass = CreateObject<FullScreenPass>(
-                    renderTextureToScreenShader,
-                    std::move(descriptorTable),
-                    GetFramebuffer(),
-                    m_imageFormat,
-                    m_extent,
-                    m_gbuffer,
-                    FSP_EXTERNAL_RENDERTARGET);
-
-                // Use alpha blending to blend SSR into the reflection probes
-                m_renderSsrToScreenPass->SetBlendFunction(BlendFunction(
-                    BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-                    BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
-
-                InitObject(m_renderSsrToScreenPass);
-                m_renderSsrToScreenPass->Create();
-
-                m_cachedSsrTexture = ssrTexture;
-            }
-        }
-
-        m_renderSsrToScreenPass->RenderToFramebuffer(frame, rs, GetFramebuffer());
+        rq << CommitDrawState();
+        
+        rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        rq << DrawIndexed(6);
     }
 
     frame->renderQueue << EndFramebuffer(GetFramebuffer());
@@ -2612,7 +2587,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->renderQueue << BeginFramebuffer(passData.deferredShadingFramebuffer);
 
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
-
         passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
 
         // apply baked lighting over lightmapped objects
@@ -2649,19 +2623,37 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         frame->renderQueue << BeginFramebuffer(translucentPassFramebuffer);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
-            const GraphicsPipelineRef& pipeline = passData.combinePass->GetGraphicsPipeline();
-            AssertDebug(pipeline != nullptr);
 
-            frame->renderQueue << BindGraphicsPipeline(pipeline, viewport);
+            // We need some state struct we can set up one time and reuse + clone instead of this..
+            // And we should also have a RAII struct so we can apply these states to the render interface, and when destructed, will
+            // undo them!
+            // Id' like to not use the render queue for this at some point but keep that functionality around for deferred command recording
+            // (parallel) 
+            // but for stuff directly on the render thread we should just do g_renderInterface->SetTopology(...) etc. (and obv have something like g_renderInterface->SetDrawState(...) which sets in bulk)
 
-            frame->renderQueue << BindDescriptorTable(
-                passData.combinePass->GetDescriptorTable().GetUnchecked(),
-                pipeline,
-                {},
-                frameIndex);
+            frame->renderQueue << SetCurrentView(
+                rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
+                rs.view->GetViewport());
+            
+            frame->renderQueue << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+            frame->renderQueue << SetFaceCullMode(FCM_BACK);
+            frame->renderQueue << SetFillMode(FM_FILL);
+            frame->renderQueue << SetTopology(TOP_TRIANGLES);
+            frame->renderQueue << SetDepthTest(false);
+            frame->renderQueue << SetDepthWrite(false);
+            frame->renderQueue << SetStencilTest(false);
 
+            frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderProperties())));
+
+            frame->renderQueue << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+            frame->renderQueue << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+            frame->renderQueue << SetShaderUniform(2, "InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+
+            frame->renderQueue << CommitDrawState();
+        
             frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
             frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
+
             frame->renderQueue << DrawIndexed(6);
         }
 

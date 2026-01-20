@@ -1157,7 +1157,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         DrawCallCollectionMapping& mapping = it->second;
         AssertDebug(mapping.IsValid());
 
-        DrawCallCollection previousDrawState = std::move(mapping.drawCallCollection);
+        DrawCallCollection prevDrawCallCollection = std::move(mapping.drawCallCollection);
 
         DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
         drawCallCollection.batchAllocator = batchAllocator;
@@ -1187,10 +1187,10 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
             EntityInstanceBatch* batch = nullptr;
 
-            if (previousDrawState.IsValid())
+            if (prevDrawCallCollection.IsValid())
             {
                 // take a batch for reuse if a draw call was using one
-                if ((batch = previousDrawState.RecycleDrawBatch(drawCallId)) != nullptr)
+                if ((batch = prevDrawCallCollection.RecycleDrawBatch(drawCallId)) != nullptr)
                 {
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);
@@ -1203,10 +1203,10 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
             drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
         }
 
-        if (previousDrawState.IsValid())
+        if (prevDrawCallCollection.IsValid())
         {
             // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
-            previousDrawState.ResetDrawCalls();
+            prevDrawCallCollection.ResetDrawCalls();
         }
     }
 }
