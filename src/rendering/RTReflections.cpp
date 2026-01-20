@@ -13,15 +13,18 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/RenderHelpers.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/AccelerationStructure.hpp>
 #include <rendering/RTReflections.hpp>
 #include <rendering/DDGI.hpp>
+
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -70,8 +73,6 @@ RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& confi
 
 RayTracingReflections::~RayTracingReflections()
 {
-    SafeDelete(std::move(m_rayTracingPipeline));
-
     // remove result image from global descriptor set
     SafeDelete(std::move(m_texture));
 
@@ -92,76 +93,12 @@ void RayTracingReflections::Create()
 {
     CreateImages();
     CreateTemporalBlending();
-}
 
-void RayTracingReflections::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
-{
-    HYP_SCOPE;
-
-    RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
-    Assert(pd != nullptr);
-
-    const auto SetDescriptorElements = [this, pd](DescriptorSet* descriptorSet, const GpuTlasRef& tlas, uint32 frameIndex)
+    // Set result texture in global descriptor table
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        Assert(tlas != nullptr);
-
-        descriptorSet->SetElement("TLAS"_sh, tlas);
-        descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, tlas->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement("OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
-        descriptorSet->SetElement("RayTracingConstants"_sh, pd->constants);
-        descriptorSet->SetElement("Lights"_sh, pd->lightsBuffer);
-        descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    };
-
-    if (!m_rayTracingPipeline)
-    {
-        ShaderRef shader = g_shaderManager->GetOrCreate(
-            s_shaderNames[IsPathTracer()],
-            ShaderProperties({
-                { NAME("MAX_LIGHTS"), int(MaxLights) }
-            }));
-
-        Assert(shader != nullptr);
-
-        m_rayTracingPipeline = g_renderBackend->MakeRayTracingPipeline(shader, DescriptorTableRef::Null());
-        Assert(m_rayTracingPipeline->Create());
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture()));
-        }
-    }
-    
-    DescriptorSetRef& descriptorSet = pd->rayTracingDescriptorSets[frame->GetFrameIndex()];
-    bool needsCreate = false;
-
-    if (!descriptorSet)
-    {
-        const DescriptorTableDeclaration* tableDecl = m_rayTracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
-        AssertDebug(tableDecl != nullptr);
-
-        const DescriptorSetDeclaration* setDecl = tableDecl->FindDescriptorSetDeclaration("RTRadianceDescriptorSet"_sh);
-        AssertDebug(setDecl != nullptr);
-
-        DescriptorSetLayout setLayout { setDecl };
-
-        descriptorSet = g_renderBackend->MakeDescriptorSet(setLayout);
-        Assert(descriptorSet != nullptr);
-
-        needsCreate = true;
-    }
-    
-    SetDescriptorElements(descriptorSet, pd->rayTracingTlases[frame->GetFrameIndex()], frame->GetFrameIndex());
-
-    if (needsCreate)
-    {
-        Assert(descriptorSet->Create());
-    }
-    else
-    {
-        descriptorSet->UpdateDirtyState();
-        descriptorSet->Update(true); // temp
+        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+            ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture()));
     }
 }
 
@@ -268,7 +205,13 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(parentPass != nullptr);
     
     UpdateUniforms(frame, renderSetup);
-    UpdatePipelineState(frame, renderSetup);
+
+    const uint32 frameIndex = frame->GetFrameIndex();
+    const GpuTlasRef& tlas = pd->rayTracingTlases[frameIndex];
+    Assert(tlas != nullptr);
+
+    const GpuBufferRef& meshDescriptionsBuffer = tlas->GetMeshDescriptionsBuffer();
+    Assert(meshDescriptionsBuffer != nullptr && meshDescriptionsBuffer->IsCreated());
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
     if (IsPathTracer())
@@ -288,48 +231,51 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
         }
     }
 
-    const DescriptorTableDeclaration* tableDecl = m_rayTracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
-    AssertDebug(tableDecl != nullptr);
-
-    static const uint32 s_globalDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("Global"_sh);
-    static const uint32 s_viewDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("View"_sh);
-    static const uint32 s_bindlessDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("GlobalBindless"_sh);
-    static const uint32 s_rayTracingDescriptorSetIndex = tableDecl->GetDescriptorSetIndex("RTRadianceDescriptorSet"_sh);
-
-    frame->renderQueue << BindRayTracingPipeline(m_rayTracingPipeline);
-    
-    frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
-        m_rayTracingPipeline,
-        { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-            { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-            { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
-        s_globalDescriptorSetIndex);
-
-    frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frame->GetFrameIndex()),
-        m_rayTracingPipeline,
-        {},
-        s_bindlessDescriptorSetIndex);
-
-    frame->renderQueue << BindDescriptorSet(
-        parentPass->descriptorSets[frame->GetFrameIndex()],
-        m_rayTracingPipeline,
-        {},
-        s_viewDescriptorSetIndex);
-    
-    frame->renderQueue << BindDescriptorSet(
-        pd->rayTracingDescriptorSets[frame->GetFrameIndex()],
-        m_rayTracingPipeline,
-        {},
-        s_rayTracingDescriptorSetIndex);
-
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_UNORDERED_ACCESS);
+
+    // Set shader and uniforms
+    ShaderProperties shaderProperties;
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxLights)));
+
+    if (renderSetup.envProbe != nullptr)
+        shaderProperties.Set(ShaderProperty(NAME("HAS_ENV_PROBE")));
+
+    frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(s_shaderNames[IsPathTracer()], shaderProperties)));
+
+    AssertDebug(parentPass->view.IsValid());
+
+    Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    AssertDebug(viewFramebuffer != nullptr);
+    
+    frame->renderQueue << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
+    frame->renderQueue << SetShaderUniform(1, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(1)->GetImageView());
+    frame->renderQueue << SetShaderUniform(2, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(2)->GetImageView());
+    frame->renderQueue << SetShaderUniform(3, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(viewFramebuffer->NumAttachments() - 1)->GetImageView());
+
+    frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    frame->renderQueue << SetShaderUniform(5, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    frame->renderQueue << SetShaderUniform(6, "TLAS"_sh, tlas);
+    frame->renderQueue << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
+    frame->renderQueue << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
+    frame->renderQueue << SetShaderUniform(9, "RayTracingConstants"_sh, pd->constants);
+    frame->renderQueue << SetShaderUniform(10, "Lights"_sh, pd->lightsBuffer);
+    frame->renderQueue << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+
+    frame->renderQueue << SetShaderUniform(12, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    frame->renderQueue << SetShaderUniform(13, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
+    frame->renderQueue << SetShaderUniform(14, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    frame->renderQueue << SetShaderUniform(15, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    frame->renderQueue << SetShaderUniform(16, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    frame->renderQueue << SetShaderUniform(17, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(parentPass->view.GetUnsafe()->GetCamera()));
+
+    if (renderSetup.envProbe != nullptr)
+        frame->renderQueue << SetShaderUniform(18, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
     const SizeType numPixels = imageExtent.Volume();
 
-    frame->renderQueue << TraceRays(m_rayTracingPipeline, Vec3u { uint32(numPixels), 1, 1 });
+    frame->renderQueue << TraceRays(Vec3u { uint32(numPixels), 1, 1 });
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     // Create a new RenderSetup for temporal blending as it will need to bind View descriptors,

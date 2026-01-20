@@ -8,7 +8,6 @@
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/RayTracingPipeline.hpp>
 
 #include <core/config/Config.hpp>
 
@@ -62,7 +61,6 @@ private:
     void CreateImages();
     void CreateTemporalBlending();
 
-    void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup);
 
     RayTracingReflectionsConfig m_config;
@@ -71,8 +69,6 @@ private:
 
     Handle<Texture> m_texture;
     UniquePtr<TemporalBlending> m_temporalBlending;
-
-    RayTracingPipelineRef m_rayTracingPipeline;
 
     Mat4f m_previousViewMatrix;
 };

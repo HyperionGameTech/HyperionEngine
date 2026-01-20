@@ -21,6 +21,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/RenderHelpers.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
