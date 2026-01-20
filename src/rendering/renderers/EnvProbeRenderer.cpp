@@ -24,6 +24,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -293,14 +294,10 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     const Vec2u extent = prefilteredEnvMap->GetExtent().GetXY();
     const uint32 numMips = uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
 
-    Array<DescriptorTableRef> descriptorTables;
-    descriptorTables.Resize(numMips);
-
-    Array<ComputePipelineRef> pipelines;
-    pipelines.Resize(numMips);
-
     Array<GpuBufferRef> buffers;
     buffers.Resize(numMips);
+
+    frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
 
     for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
     {
@@ -310,13 +307,6 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         ShaderProperties shaderProperties;
         shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), perceptualRoughness));
         shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 2048));
-
-        ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ConvolveProbe"), shaderProperties);
-
-        if (!shader)
-        {
-            HYP_FAIL("Failed to create ConvolveProbe shader");
-        }
 
         const Vec2u mipExtent = mipIndex == 0
             ? extent
@@ -330,77 +320,30 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        DescriptorTableRef& descriptorTable = descriptorTables[mipIndex];
+        frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("ConvolveProbe"), shaderProperties)));
 
-        descriptorTable = g_renderBackend->MakeDescriptorTable(shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-        descriptorTable->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}_{}", envProbe->Id().Value(), mipIndex));
+        ImageSubResource subResource {};
+        subResource.baseMipLevel = mipIndex;
+        subResource.numLevels = 1;
+        subResource.baseArrayLayer = 0;
+        subResource.numLayers = 6;
+        
+        const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(prefilteredEnvMap, subResource);
+        Assert(imageView != nullptr);
 
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            ImageSubResource subResource {};
-            subResource.baseMipLevel = mipIndex;
-            subResource.numLevels = 1;
-            subResource.baseArrayLayer = 0;
-            subResource.numLayers = 6;
+        frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
 
-            const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(prefilteredEnvMap, subResource);
-            Assert(imageView != nullptr);
+        frame->renderQueue << SetShaderUniform(0, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+        frame->renderQueue << SetShaderUniform(1, "SphereSamplesBuffer"_sh, g_renderInterface->sphereSamplesBuffer);
+        frame->renderQueue << SetShaderUniform(2, "ColorTexture"_sh, colorAttachment->GetImageView());
+        frame->renderQueue << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        frame->renderQueue << SetShaderUniform(5, "OutImage"_sh, imageView);
+        frame->renderQueue << SetShaderUniform(6, "UniformBuffer"_sh, uniformBuffer);
 
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ConvolveProbeDescriptorSet"_sh, frameIndex);
-            AssertDebug(descriptorSet != nullptr);
+        frame->renderQueue << DispatchCompute(Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
 
-            descriptorSet->SetElement("UniformBuffer"_sh, uniformBuffer);
-            descriptorSet->SetElement("ColorTexture"_sh, colorAttachment->GetImageView());
-            descriptorSet->SetElement("SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-            descriptorSet->SetElement("SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-            descriptorSet->SetElement("OutImage"_sh, imageView);
-        }
-
-        Assert(descriptorTable->Create());
-
-        ComputePipelineRef& pipeline = pipelines[mipIndex];
-
-        pipeline = g_renderBackend->MakeComputePipeline(shader, descriptorTable);
-        Assert(pipeline->Create());
-    }
-
-    frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
-
-    for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
-    {
-        const Vec2u mipExtent = mipIndex == 0
-            ? extent
-            : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
-
-        frame->renderQueue << InsertBarrier(
-            prefilteredEnvMap->GetGpuImage(),
-            RS_UNORDERED_ACCESS,
-            ImageSubResource {
-                .baseArrayLayer = 0,
-                .baseMipLevel = mipIndex,
-                .numLayers = 6,
-                .numLevels = 1 });
-
-        frame->renderQueue << BindComputePipeline(pipelines[mipIndex]);
-
-        frame->renderQueue << BindDescriptorTable(
-            descriptorTables[mipIndex],
-            pipelines[mipIndex],
-            { { "Global"_sh, { { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-            frame->GetFrameIndex());
-
-        frame->renderQueue << DispatchCompute(
-            pipelines[mipIndex],
-            Vec3u { (mipExtent.x + 7) / 8, (mipExtent.y + 7) / 8, 6 });
-
-        frame->renderQueue << InsertBarrier(
-            prefilteredEnvMap->GetGpuImage(),
-            RS_SHADER_RESOURCE,
-            ImageSubResource {
-                .baseArrayLayer = 0,
-                .baseMipLevel = mipIndex,
-                .numLayers = 6,
-                .numLevels = 1 });
+        frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE, subResource);
     }
 
     // Update in env probes texture array if bound
@@ -435,7 +378,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
                 ImageSubResource dstSubResource {};
                 dstSubResource.baseMipLevel = mipIndex;
-                srcSubResource.numLevels = 1;
+                dstSubResource.numLevels = 1;
                 dstSubResource.baseArrayLayer = 6 * boundIndex;
                 dstSubResource.numLayers = 6;
 
@@ -465,14 +408,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = frame->OnFrameEnd.Bind([
         delegateHandle,
-        pipelines = std::move(pipelines),
-        descriptorTables = std::move(descriptorTables),
         buffers = std::move(buffers)](...) mutable
         {
-            SafeDelete(std::move(pipelines));
-            SafeDelete(std::move(descriptorTables));
-            SafeDelete(std::move(buffers));
-
             delete delegateHandle;
         });
 }
@@ -505,9 +442,6 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     Array<GpuBufferRef, FixedAllocator<ShNumLevels>> shTilesBuffers;
     shTilesBuffers.Resize(ShNumLevels);
 
-    Array<DescriptorTableRef, FixedAllocator<ShNumLevels>> shTilesDescriptorTables;
-    shTilesDescriptorTables.Resize(ShNumLevels);
-
     for (uint32 i = 0; i < ShNumLevels; i++)
     {
         const SizeType size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
@@ -522,76 +456,6 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     if (!envProbe->IsSkyProbe())
     {
         shaderProperties.Set(ShaderProperty(NAME("LIGHTING")));
-    }
-
-    enum
-    {
-        MODE_CLEAR,
-        MODE_BUILD_COEFFICIENTS,
-        MODE_REDUCE,
-        MODE_FINALIZE,
-
-        MODE_MAX
-    };
-
-    FixedArray<Pair<ShaderRef, ComputePipelineRef>, MODE_MAX> pipelines = {
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("CLEAR")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("BUILD_COEFFICIENTS")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("REDUCE")) } })), ComputePipelineRef::Null() },
-        Pair<ShaderRef, ComputePipelineRef> { g_shaderManager->GetOrCreate(NAME("ComputeSH"), ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), NAME("FINALIZE")) } })), ComputePipelineRef::Null() }
-    };
-
-    ShaderRef firstShader;
-
-    for (auto& it : pipelines)
-    {
-        if (!firstShader)
-        {
-            firstShader = it.first;
-        }
-    }
-
-    const DescriptorTableDeclaration* descriptorTableDecl = firstShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    Array<DescriptorTableRef, FixedAllocator<ShNumLevels>> computeShDescriptorTables;
-    computeShDescriptorTables.Resize(ShNumLevels);
-
-    for (uint32 i = 0; i < ShNumLevels; i++)
-    {
-        computeShDescriptorTables[i] = g_renderBackend->MakeDescriptorTable(descriptorTableDecl);
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& computeShDescriptorSet = computeShDescriptorTables[i]->GetDescriptorSet("ComputeSHDescriptorSet"_sh, frameIndex);
-            Assert(computeShDescriptorSet != nullptr);
-
-            computeShDescriptorSet->SetElement("InColorCubemap"_sh, colorAttachment->GetImageView());
-            computeShDescriptorSet->SetElement("InNormalsCubemap"_sh, normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
-            computeShDescriptorSet->SetElement("InDepthCubemap"_sh, depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
-            computeShDescriptorSet->SetElement("InputSHTilesBuffer"_sh, shTilesBuffers[i]);
-
-            if (i != ShNumLevels - 1)
-            {
-                computeShDescriptorSet->SetElement("OutputSHTilesBuffer"_sh, shTilesBuffers[i + 1]);
-            }
-            else
-            {
-                computeShDescriptorSet->SetElement("OutputSHTilesBuffer"_sh, shTilesBuffers[i]);
-            }
-        }
-
-        DeferCreate(computeShDescriptorTables[i]);
-    }
-
-    for (auto& it : pipelines)
-    {
-        ComputePipelineRef& pipeline = it.second;
-
-        pipeline = g_renderBackend->MakeComputePipeline(
-            it.first,
-            computeShDescriptorTables[0]);
-
-        Assert(pipeline->Create());
     }
 
     // Bind a directional light and sky envprobe if available
@@ -619,24 +483,23 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     const Vec2u cubemapDimensions = colorAttachment->GetImage()->GetExtent().GetXY();
 
-    struct
+    struct SHUniforms
     {
         Vec4u probeGridPosition;
         Vec4u cubemapDimensions;
         Vec4u levelDimensions;
         Vec4f worldPosition;
         uint32 envProbeIndex;
-    } pushConstants;
+    } uniforms;
 
-    pushConstants.envProbeIndex = RenderApi::RetrieveResourceBinding(envProbe);
-    pushConstants.probeGridPosition = { 0, 0, 0, 0 };
-    pushConstants.cubemapDimensions = Vec4u { cubemapDimensions, 0, 0 };
-    pushConstants.worldPosition = envProbeProxy->bufferData.worldPosition;
+    uniforms.envProbeIndex = RenderApi::RetrieveResourceBinding(envProbe);
+    uniforms.probeGridPosition = { 0, 0, 0, 0 };
+    uniforms.cubemapDimensions = Vec4u { cubemapDimensions, 0, 0 };
+    uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
 
-    AssertDebug(pushConstants.envProbeIndex != ~0u);
+    AssertDebug(uniforms.envProbeIndex != ~0u);
 
-    pipelines[MODE_CLEAR].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
-    pipelines[MODE_BUILD_COEFFICIENTS].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    Array<GpuBufferRef> uniformBuffers;
 
     RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported() && false // TEMP! debugging some editor stuff.
         ? &g_renderBackend->GetAsyncCompute()->renderQueue
@@ -647,29 +510,44 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    asyncRenderQueue << BindDescriptorTable(
-        computeShDescriptorTables[0],
-        pipelines[MODE_CLEAR].second,
-        { { "Global"_sh,
-            { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
-        frame->GetFrameIndex());
+    // Helper to run pass
+    auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const GpuBufferRef& inputBuffer, const GpuBufferRef& outputBuffer)
+    {
+        ShaderProperties passShaderProperties = ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), mode) } });
+        
+        ShaderDesc shaderDesc(ShaderDefinition(NAME("ComputeSH"), passShaderProperties));
+        asyncRenderQueue << SetCurrentShader(shaderDesc);
 
-    asyncRenderQueue << BindComputePipeline(pipelines[MODE_CLEAR].second);
-    asyncRenderQueue << DispatchCompute(pipelines[MODE_CLEAR].second, Vec3u { 1, 1, 1 });
+        GpuBufferRef ub = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(SHUniforms));
+        ub->Create();
+        ub->Copy(sizeof(SHUniforms), &passUniforms);
+        uniformBuffers.PushBack(ub);
+
+        asyncRenderQueue << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        asyncRenderQueue << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        asyncRenderQueue << SetShaderUniform(2, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        asyncRenderQueue << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
+        asyncRenderQueue << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), skyProbe ? ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) : 0);
+        asyncRenderQueue << SetShaderUniform(5, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+        asyncRenderQueue << SetShaderUniform(6, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+        asyncRenderQueue << SetShaderUniform(7, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frame->GetFrameIndex()), directionalLight ? ShaderDataOffset<LightShaderData>(directionalLight, 0) : 0);
+        asyncRenderQueue << SetShaderUniform(8, "InColorCubemap"_sh, colorAttachment->GetImageView());
+        asyncRenderQueue << SetShaderUniform(9, "InNormalsCubemap"_sh, normalsAttachment ? normalsAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+        asyncRenderQueue << SetShaderUniform(10, "InDepthCubemap"_sh, depthAttachment ? depthAttachment->GetImageView() : g_renderInterface->placeholderData->GetImageViewCube1x1R8());
+        asyncRenderQueue << SetShaderUniform(11, "InputSHTilesBuffer"_sh, inputBuffer);
+        asyncRenderQueue << SetShaderUniform(12, "OutputSHTilesBuffer"_sh, outputBuffer);
+        asyncRenderQueue << SetShaderUniform(13, "SHUniforms"_sh, ub);
+
+        asyncRenderQueue << DispatchCompute(dispatchGroupSize);
+    };
+
+    // MODE_CLEAR
+    RunPass(NAME("CLEAR"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
 
     asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    asyncRenderQueue << BindDescriptorTable(
-        computeShDescriptorTables[0],
-        pipelines[MODE_BUILD_COEFFICIENTS].second,
-        { { "Global"_sh,
-            { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
-        frame->GetFrameIndex());
-
-    asyncRenderQueue << BindComputePipeline(pipelines[MODE_BUILD_COEFFICIENTS].second);
-    asyncRenderQueue << DispatchCompute(pipelines[MODE_BUILD_COEFFICIENTS].second, Vec3u { 1, 1, 1 });
+    // MODE_BUILD_COEFFICIENTS
+    RunPass(NAME("BUILD_COEFFICIENTS"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
 
     // Parallel reduce
     if (ShParallelReduce)
@@ -695,25 +573,15 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
             Assert(prevDimensions.x > nextDimensions.x);
             Assert(prevDimensions.y > nextDimensions.y);
 
-            pushConstants.levelDimensions = {
+            SHUniforms reduceUniforms = uniforms;
+            reduceUniforms.levelDimensions = {
                 prevDimensions.x,
                 prevDimensions.y,
                 nextDimensions.x,
                 nextDimensions.y
             };
 
-            pipelines[MODE_REDUCE].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
-
-            asyncRenderQueue << BindDescriptorTable(
-                computeShDescriptorTables[i - 1],
-                pipelines[MODE_REDUCE].second,
-                { { "Global"_sh,
-                    { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                        { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
-                frame->GetFrameIndex());
-
-            asyncRenderQueue << BindComputePipeline(pipelines[MODE_REDUCE].second);
-            asyncRenderQueue << DispatchCompute(pipelines[MODE_REDUCE].second, Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 });
+            RunPass(NAME("REDUCE"), reduceUniforms, Vec3u { 1, (nextDimensions.x + 3) / 4, (nextDimensions.y + 3) / 4 }, shTilesBuffers[i - 1], shTilesBuffers[i]);
         }
     }
 
@@ -723,62 +591,20 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    pipelines[MODE_FINALIZE].second->SetPushConstants(&pushConstants, sizeof(pushConstants));
-
-    asyncRenderQueue << BindDescriptorTable(
-        computeShDescriptorTables[finalizeShBufferIndex],
-        pipelines[MODE_FINALIZE].second,
-        { { "Global"_sh,
-            { { "CurrentLight"_sh, ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
-        frame->GetFrameIndex());
-
-    asyncRenderQueue << BindComputePipeline(pipelines[MODE_FINALIZE].second);
-    asyncRenderQueue << DispatchCompute(pipelines[MODE_FINALIZE].second, Vec3u { 1, 1, 1 });
+    // MODE_FINALIZE
+    RunPass(NAME("FINALIZE"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[finalizeShBufferIndex], shTilesBuffers[finalizeShBufferIndex]);
 
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegateHandle = new DelegateHandler();
     *delegateHandle = frame->OnFrameEnd.Bind([
         envProbe = MakeStrongRef(envProbe),
-        pipelines = std::move(pipelines),
-        descriptorTables = std::move(computeShDescriptorTables),
         shTilesBuffers = std::move(shTilesBuffers),
+        uniformBuffers = std::move(uniformBuffers),
         delegateHandle](Frame* frame) mutable
         {
             const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
             Assert(boundIndex != ~0u);
-
-            EnvProbeShaderData readbackBuffer;
-
-            // g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
-
-            // // Enqueue on sim thread, not safe to write on render thread.
-            // GetThreadById(g_simThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]() mutable
-            //     {
-            //         HYP_LOG(Rendering, Debug, "EnvProbe {} SH data computed:", envProbe->Id());
-            //         for (uint32 i = 0; i < 9; i++)
-            //         {
-            //             HYP_LOG(Rendering, Debug, "\tSH[{}] = {}", i, shData.values[i]);
-            //         }
-
-            //         envProbe->SetSphericalHarmonicsData(shData);
-
-            //         SafeDelete(std::move(envProbe));
-            //     },
-            //     TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            for (auto& it : pipelines)
-            {
-                ShaderRef& shader = it.first;
-                ComputePipelineRef& pipeline = it.second;
-
-                SafeDelete(std::move(shader));
-                SafeDelete(std::move(pipeline));
-            }
-
-            SafeDelete(std::move(descriptorTables));
-            SafeDelete(std::move(shTilesBuffers));
 
             delete delegateHandle;
         });

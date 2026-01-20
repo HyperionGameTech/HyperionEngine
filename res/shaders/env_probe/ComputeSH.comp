@@ -26,8 +26,8 @@ layout(local_size_x = 1) in;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(ComputeSHDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(ComputeSHDescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
 
 #include "../include/defines.inc"
 #include "../include/shared.inc"
@@ -41,21 +41,21 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) writeonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SSBO(ComputeSHDescriptorSet, EnvProbesBuffer) writeonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SSBO_DYNAMIC(ComputeSHDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SSBO_DYNAMIC(ComputeSHDescriptorSet, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
@@ -76,7 +76,7 @@ HYP_DESCRIPTOR_SSBO(ComputeSHDescriptorSet, OutputSHTilesBuffer) buffer OutputSH
     SHTile sh_tiles_output[];
 };
 
-layout(push_constant) uniform PushConstant
+HYP_DESCRIPTOR_CBUFF(ComputeSHDescriptorSet, SHUniforms) uniform SHUniforms
 {
     uvec4 probe_grid_position;
     uvec4 cubemap_dimensions;

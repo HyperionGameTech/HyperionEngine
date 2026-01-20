@@ -23,12 +23,12 @@ layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
 
 #include "../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SSBO_DYNAMIC(ConvolveProbeDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, SphereSamplesBuffer) uniform SphereSamplesBuffer
+HYP_DESCRIPTOR_CBUFF(ConvolveProbeDescriptorSet, SphereSamplesBuffer) uniform SphereSamplesBuffer
 {
     vec4 sphere_samples[4096];
 };
