@@ -32,7 +32,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #include "include/scene.inc"
 
 #ifdef IMMEDIATE_MODE
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
+HYP_DESCRIPTOR_SSBO(DebugDrawerDescriptorSet, EnvProbesBuffer) readonly buffer EnvProbesBuffer
 {
     EnvProbe env_probes[];
 };
@@ -54,21 +54,23 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer, stan
 
 #define MODEL_MATRIX (immediateDraw.model_matrix)
 #define PREV_MODEL_MATRIX (immediateDraw.model_matrix)
-#else
+
+#else // !IMMEDIATE_MODE
+
 #include "include/Entity.glsl"
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(DebugDrawerDescriptorSet, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     EntityInstanceBatch entity_instance_batch;
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SSBO_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -80,7 +82,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer CurrentEntity
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };

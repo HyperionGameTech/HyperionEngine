@@ -27,22 +27,22 @@ layout(location = 3) out vec2 gbuffer_velocity;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(DebugDrawerDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
 
 #include "include/material.inc"
 #include "include/packing.inc"
 #include "include/scene.inc"
 #include "include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(DebugDrawerDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -55,14 +55,14 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 
 #elif defined(INSTANCING)
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(DebugDrawerDescriptorSet, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SSBO_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -72,12 +72,12 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer CurrentEntity
 #include "include/env_probe.inc"
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SSBO(DebugDrawerDescriptorSet, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #define HYP_DEFERRED_NO_REFRACTION
 
@@ -85,7 +85,7 @@ HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { E
 
 #undef HYP_DEFERRED_NO_REFRACTION
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(DebugDrawerDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
