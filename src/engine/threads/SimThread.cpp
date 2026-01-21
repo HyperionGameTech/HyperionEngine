@@ -177,12 +177,6 @@ void SimThread::Update()
 
 void SimThread::operator()()
 {
-    // we need to wait for g_renderInstance to be non-null
-    while (!RenderApi::IsInit())
-    {
-        ThreadSleep(1);
-    }
-
 #if HYP_SCRIPT
     HypScript::GetInstance().Initialize();
 #endif
@@ -191,6 +185,13 @@ void SimThread::operator()()
     Handle<World> defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
     InitObject(defaultWorld);
     g_engineDriver->SetDefaultWorld(defaultWorld);
+    
+    // we need to wait for g_renderInstance to be non-null
+    while (!RenderApi::IsInit())
+    {
+        ThreadSleep(1);
+    }
+
 
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)
