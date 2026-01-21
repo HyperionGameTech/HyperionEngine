@@ -1689,9 +1689,9 @@ void RenderInterface::RemoveRenderer(GlobalRendererType globalRendererType, Rend
     globalRenderers[globalRendererType].Erase(renderer);
 }
 
-void RenderInterface::CommitPipelineState(PSOType psoType)
+void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer)
 {
-    CommandBuffer* commandBuffer = g_renderBackend->GetCurrentCommandBuffer();
+    AssertDebug(commandBuffer != nullptr);
 
     Shader* shader = nullptr;
     bool pipelineChanged = false;

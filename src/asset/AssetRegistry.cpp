@@ -488,7 +488,7 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
         // we save the asset to the filesystem if:
         // the package is saved to the filesystem (not transient, has a package dir)
         // AND the asset's new filepath would differ from the current one it has (or it has never been saved)
-        bool doSaveAsset = false;
+        //bool doSaveAsset = false;
 
         {
             TUniqueLock guard(m_mutex);
@@ -503,18 +503,18 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
             assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
-            if (isPackageSavedInFilesystem)
-            {
-                // set a filepath for the asset object to be saved at, based on our package's filepath.
-                const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
+            //if (isPackageSavedInFilesystem)
+            //{
+            //    // set a filepath for the asset object to be saved at, based on our package's filepath.
+            //    const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
-                if (assetObject->m_manifestPath != newManifestFilepath)
-                {
-                    assetObject->m_manifestPath = newManifestFilepath;
+            //    if (assetObject->m_manifestPath != newManifestFilepath)
+            //    {
+            //        assetObject->m_manifestPath = newManifestFilepath;
 
-                    doSaveAsset = true; // asset path changed, we need to save
-                }
-            }
+            //        doSaveAsset = true; // asset path changed, we need to save
+            //    }
+            //}
 
             auto existingAssetObjectIt = m_assetObjects.Find(assetObject->GetName());
 
