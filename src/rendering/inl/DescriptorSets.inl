@@ -6,9 +6,6 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest, 1);
 HYP_DESCRIPTOR_SRV(Global, UITexture, 1);
 HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture, 1);
 HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer, 1, ~0u, false); // For instanced objects
-HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture, 1);
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture, 1);
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture, 1);
 HYP_DESCRIPTOR_SSBO(Global, CurrentLight, 1, sizeof(LightShaderData), true);
 HYP_DESCRIPTOR_SSBO(Global, LightsBuffer, 1, sizeof(LightShaderData), false);
 HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer, 1, ~0u, false);
@@ -43,8 +40,6 @@ HYP_DESCRIPTOR_SRV(View, SSAOResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, TAAResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, RTRadianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture, MaxBoundReflectionProbes);
-HYP_DESCRIPTOR_SRV(View, EnvGridIrradianceResultTexture, 1);
-HYP_DESCRIPTOR_SRV(View, EnvGridRadianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DeferredIndirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, DepthPyramidResult, 1);

@@ -39,7 +39,6 @@
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
-#include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/ShadowRenderer.hpp>
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
@@ -167,7 +166,6 @@ extern void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 extern void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next);
-extern void WriteBufferData_EnvGrid(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
 
 extern void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next);
 extern void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy);
@@ -1593,8 +1591,6 @@ RenderInterface::RenderInterface()
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
     globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer;
 
-    globalRenderers[GRT_ENV_GRID].PushBack(new EnvGridRenderer);
-
     globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
     globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer;
     globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer;
@@ -2293,14 +2289,6 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("CurrentEnvProbe"_sh, gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("VoxelGridTexture"_sh, placeholderData->GetImageView3D1x1x1R8());
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("LightFieldColorTexture"_sh, placeholderData->GetImageView2D1x1R8());
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("LightFieldDepthTexture"_sh, placeholderData->GetImageView2D1x1R8());
-
     /*globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
         ->SetElement("BlueNoiseBuffer"_sh, GpuBufferRef::Null());
     globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
@@ -2366,8 +2354,7 @@ DECLARE_RENDER_DATA_CONTAINER(Mesh, NullProxy, GRB_INVALID, nullptr, &s_meshBind
 
 DECLARE_RENDER_DATA_CONTAINER(Camera, RenderProxyCamera, GRB_CAMERAS, nullptr, &s_cameraBinder);
 
-DECLARE_RENDER_DATA_CONTAINER(EnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, &WriteBufferData_EnvGrid, &s_envGridBinder);
-DECLARE_RENDER_DATA_CONTAINER(LegacyEnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, &WriteBufferData_EnvGrid, &s_envGridBinder);
+DECLARE_RENDER_DATA_CONTAINER(EnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, nullptr, &s_envGridBinder);
 
 DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder);
 DECLARE_RENDER_DATA_CONTAINER(ReflectionProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &WriteBufferData_EnvProbe, &s_envProbeBinder, &s_reflectionProbeTextureBinder);

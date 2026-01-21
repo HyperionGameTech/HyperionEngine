@@ -23,14 +23,12 @@
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/EnvGrid.hpp>
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
 
@@ -273,11 +271,6 @@ static void RenderAll(
     rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView()); 
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
-    if (renderSetup.envGrid != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envGrid) * sizeof(EnvGridShaderData));
-    else
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
-
     if (renderSetup.light != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
     else
@@ -512,11 +505,6 @@ static void RenderAll_Parallel(
 
     rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView()); 
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
-
-    if (renderSetup.envGrid != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envGrid) * sizeof(EnvGridShaderData));
-    else
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
 
     if (renderSetup.light != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
