@@ -21,7 +21,7 @@ Mat3f::Mat3f()
 
 Mat3f::Mat3f(const float* v)
 {
-    Memory::MemCpy(&values[0], v, HYP_ARRAY_SIZE(values) * sizeof(values[0]));
+    Memory::Copy(&values[0], v, HYP_ARRAY_SIZE(values) * sizeof(values[0]));
 }
 
 float Mat3f::Determinant() const

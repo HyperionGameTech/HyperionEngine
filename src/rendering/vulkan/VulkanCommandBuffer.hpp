@@ -44,7 +44,7 @@ struct VulkanCachedDescriptorSetBinding
             && pipeline == other.pipeline
             && pipelineLayout == other.pipelineLayout
             && numDynamicOffsets == other.numDynamicOffsets
-            && Memory::MemCmp(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) == 0;
+            && Memory::Compare(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptorSetBinding& other) const
@@ -53,7 +53,7 @@ struct VulkanCachedDescriptorSetBinding
             || pipeline != other.pipeline
             || pipelineLayout != other.pipelineLayout
             || numDynamicOffsets != other.numDynamicOffsets
-            || Memory::MemCmp(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) != 0;
+            || Memory::Compare(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) != 0;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

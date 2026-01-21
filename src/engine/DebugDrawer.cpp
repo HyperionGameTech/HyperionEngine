@@ -577,7 +577,7 @@ void DebugDrawer::Update(float delta)
                     }
                     else
                     {
-                        Memory::MemCpy(newBuffer.Data() + currHeader.offset, buffer.Data() + currHeader.offset, currHeader.size);
+                        Memory::Copy(newBuffer.Data() + currHeader.offset, buffer.Data() + currHeader.offset, currHeader.size);
                     }
 
                     if (currHeader.destructFn)
@@ -595,7 +595,7 @@ void DebugDrawer::Update(float delta)
             }
             else
             {
-                Memory::MemCpy(buffer.Data() + newAlignedOffset, vp, header.size);
+                Memory::Copy(buffer.Data() + newAlignedOffset, vp, header.size);
             }
 
             if (header.destructFn)
@@ -939,7 +939,7 @@ void* DebugDrawCommandList::Alloc(uint32 size, uint32 alignment, DebugDrawComman
             }
             else
             {
-                Memory::MemCpy(newBuffer.Data() + currHeader.offset, m_buffer.Data() + currHeader.offset, currHeader.size);
+                Memory::Copy(newBuffer.Data() + currHeader.offset, m_buffer.Data() + currHeader.offset, currHeader.size);
             }
 
             if (currHeader.destructFn)

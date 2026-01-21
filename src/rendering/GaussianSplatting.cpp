@@ -291,7 +291,7 @@ void GaussianSplattingInstance::Record(Frame* frame, const RenderSetup& renderSe
             uint32 h;
         } sortSplatsPushConstants;
 
-        Memory::MemSet(&sortSplatsPushConstants, 0x0, sizeof(sortSplatsPushConstants));
+        Memory::Fill(&sortSplatsPushConstants, 0x0, sizeof(sortSplatsPushConstants));
 
         const uint32 numSortableElements = uint32(MathUtil::NextPowerOf2(numPoints)); // Values are stored in components of uvec4
 

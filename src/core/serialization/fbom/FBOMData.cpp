@@ -203,7 +203,7 @@ SizeType FBOMData::ReadBytes(SizeType n, void* out) const
     }
 
     SizeType toRead = MathUtil::Min(n, m_bytes.Size());
-    Memory::MemCpy(out, m_bytes.Data(), toRead);
+    Memory::Copy(out, m_bytes.Data(), toRead);
     return toRead;
 }
 

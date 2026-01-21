@@ -113,7 +113,7 @@ struct BoxedValue
 
         HYP_FORCE_INLINE bool operator==(const InlineData& other) const
         {
-            return Memory::MemCmp(this, &other, sizeof(InlineData)) == 0;
+            return Memory::Compare(this, &other, sizeof(InlineData)) == 0;
         }
 
         HYP_FORCE_INLINE bool operator!=(const InlineData& other) const
@@ -186,13 +186,13 @@ struct BoxedValue
             uint8 isStaticInit : 1; // static data pool / stack data - will be 1 if init
         };
     } extData;
-#else
-    char extData[1]; // preserved for backwards compatibility
 #endif
 
     BoxedValue()
     {
-        Memory::MemSet(&extData, 0, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = {};
+#endif
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, BoxedValue>>>
@@ -216,7 +216,9 @@ struct BoxedValue
     BoxedValue(const BoxedValue& other)
         : value(other.value)
     {
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+#endif
     }
 
     BoxedValue& operator=(const BoxedValue& other)
@@ -227,8 +229,9 @@ struct BoxedValue
         }
 
         value = other.value;
-
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+#endif
 
         return *this;
     }
@@ -236,8 +239,10 @@ struct BoxedValue
     BoxedValue(BoxedValue&& other) noexcept
         : value(std::move(other.value))
     {
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
-        Memory::MemSet(&other.extData, 0, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+        other.extData = {};
+#endif
     }
 
     BoxedValue& operator=(BoxedValue&& other) noexcept
@@ -248,9 +253,10 @@ struct BoxedValue
         }
 
         value = std::move(other.value);
-
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
-        Memory::MemSet(&other.extData, 0, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+        other.extData = {};
+#endif
 
         return *this;
     }

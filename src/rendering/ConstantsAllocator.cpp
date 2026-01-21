@@ -63,7 +63,7 @@ void ConstantsAllocator::Write(const void* src, SizeType size)
     AssertDebug(src != nullptr);
 
     void* dst = Allocate(size);
-    Memory::MemCpy(dst, src, size);
+    Memory::Copy(dst, src, size);
 }
 
 void* ConstantsAllocator::Allocate(SizeType size)

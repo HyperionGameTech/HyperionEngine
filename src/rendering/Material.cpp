@@ -457,7 +457,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     bufferData.textureUsage = 0;
 
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);
-    Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
+    Memory::Fill(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
     const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources : MaxBoundTextures);
     uint32 remainingTextureSlots = numTextureSlots;
@@ -465,7 +465,7 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     proxy->boundTextures.Clear();
 
     // unset all bound texture indices (~0u)
-    Memory::MemSet(&proxy->boundTextureIndices[0], 0xFF, sizeof(proxy->boundTextureIndices));
+    Memory::Fill(&proxy->boundTextureIndices[0], 0xFF, sizeof(proxy->boundTextureIndices));
 
     for (uint32 slot = 0; slot < uint32(m_textures.Size()); slot++)
     {

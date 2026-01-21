@@ -214,7 +214,7 @@ public:
             dirtyBufferOffsets = 0;
             renderTargetDesc = {};
             
-            Memory::MemSet(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
+            Memory::Fill(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
 
             stencilReference = 0;
             stencilCompareMask = 0xFF;

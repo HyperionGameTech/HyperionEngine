@@ -469,7 +469,7 @@ void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;
 
-        Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+        Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
     }
 
     static_assert(std::is_trivially_destructible_v<SetStencilState>);
@@ -771,24 +771,6 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 }
 
 #pragma endregion SetShaderUniform
-
-void SetShaderUniforms::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-{
-    SetShaderUniforms* cmdCasted = static_cast<SetShaderUniforms*>(cmd);
-    
-    for (uint32 i = 0; i < cmdCasted->count; i++)
-    {
-        SetShaderUniform setUniformCmd(cmdCasted->offset + i, cmdCasted->uniforms[i]);
-        SetShaderUniform::InvokeStatic(&setUniformCmd, commandBuffer);
-    }
-
-    static_assert(std::is_trivially_destructible_v<SetShaderUniforms>);
-    // cmdCasted->~SetShaderUniforms();
-}
-
-#pragma region SetShaderUniforms
-
-#pragma endregion SetShaderUniforms
 
 #pragma region CommitDrawState
 

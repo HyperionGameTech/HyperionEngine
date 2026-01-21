@@ -168,7 +168,7 @@ private:
             return err;
         }
 
-        Memory::MemCpy(static_cast<void*>(outPtr), static_cast<const void*>(byteBuffer.Data()), size);
+        Memory::Copy(static_cast<void*>(outPtr), static_cast<const void*>(byteBuffer.Data()), size);
 
         CheckEndianness(*outPtr);
 

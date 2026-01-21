@@ -448,7 +448,7 @@ Token Lexer::ReadNumberLiteral()
     }
 
     Token::Flags tokenFlags;
-    Memory::MemSet(tokenFlags, 0, sizeof(tokenFlags));
+    Memory::Fill(tokenFlags, 0, sizeof(tokenFlags));
 
     Char32 ch = m_sourceStream.Peek();
 
@@ -580,7 +580,7 @@ Token Lexer::ReadHexNumberLiteral()
     }
 
     Token::Flags tokenFlags;
-    Memory::MemSet(tokenFlags, 0, sizeof(tokenFlags));
+    Memory::Fill(tokenFlags, 0, sizeof(tokenFlags));
 
     Char32 ch = m_sourceStream.Peek();
 

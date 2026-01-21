@@ -51,7 +51,7 @@ struct MemoryPoolBlock final
 
     MemoryPoolBlock(void* ctx, uint32 blockIndex)
     {
-        Memory::MemSet(&buffer, 0, sizeof(buffer));
+        Memory::Fill(&buffer, 0, sizeof(buffer));
 
         // Allow overloading assignment of elements
         if (OnBlockAllocated != nullptr)

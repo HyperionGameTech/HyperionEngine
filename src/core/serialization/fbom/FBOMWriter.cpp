@@ -527,7 +527,7 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter* out)
     HYP_CORE_ASSERT(remainingBytes < 64);
 
     void* zeros = StackAlloc(remainingBytes);
-    Memory::MemSet(zeros, 0, remainingBytes);
+    Memory::Fill(zeros, 0, remainingBytes);
 
     out->Write(zeros, remainingBytes);
 

@@ -86,7 +86,7 @@ struct MaterialParameter
     MaterialParameter()
         : type(MPT_NONE)
     {
-        Memory::MemSet(&value, 0, sizeof(value));
+        Memory::Fill(&value, 0, sizeof(value));
     }
 
     template <SizeType Size>
@@ -100,11 +100,11 @@ struct MaterialParameter
     {
         Assert(count >= 1 && count <= 4);
 
-        Memory::MemCpy(value.floatValues, v, count * sizeof(float));
+        Memory::Copy(value.floatValues, v, count * sizeof(float));
 
         if (count < ArraySize(value.floatValues))
         {
-            Memory::MemSet(&value.floatValues[count], 0, (ArraySize(value.floatValues) - count) * sizeof(float));
+            Memory::Fill(&value.floatValues[count], 0, (ArraySize(value.floatValues) - count) * sizeof(float));
         }
     }
 
@@ -144,11 +144,11 @@ struct MaterialParameter
     {
         Assert(count >= 1 && count <= 4);
 
-        Memory::MemCpy(value.intValues, v, count * sizeof(int32));
+        Memory::Copy(value.intValues, v, count * sizeof(int32));
 
         if (count < ArraySize(value.intValues))
         {
-            Memory::MemSet(&value.intValues[count], 0, (ArraySize(value.intValues) - count) * sizeof(int32));
+            Memory::Fill(&value.intValues[count], 0, (ArraySize(value.intValues) - count) * sizeof(int32));
         }
     }
 
@@ -175,13 +175,13 @@ struct MaterialParameter
     MaterialParameter(const MaterialParameter& other)
         : type(other.type)
     {
-        Memory::MemCpy(&value, &other.value, sizeof(value));
+        value = other.value;
     }
 
     MaterialParameter& operator=(const MaterialParameter& other)
     {
         type = other.type;
-        Memory::MemCpy(&value, &other.value, sizeof(value));
+        value = other.value;
 
         return *this;
     }
@@ -215,17 +215,37 @@ struct MaterialParameter
 
     HYP_FORCE_INLINE void Copy(uint8* dst) const
     {
-        Memory::MemCpy(dst, &value, Size());
+        Memory::Copy(dst, value.floatValues, Size() * sizeof(float));
     }
 
     HYP_FORCE_INLINE bool operator==(const MaterialParameter& other) const
     {
-        return Memory::MemCmp(&value, &other.value, sizeof(value)) == 0;
+        if (type != other.type)
+            return false;
+
+        if (type >= MPT_INT)
+        {
+            for (uint8 i = 0; i < Size(); i++)
+            {
+                if (value.intValues[i] != other.value.intValues[i])
+                    return false;
+            }
+        }
+        else
+        {
+            for (uint8 i = 0; i < Size(); i++)
+            {
+                if (value.floatValues[i] != other.value.floatValues[i])
+                    return false;
+            }
+        }
+
+        return true;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MaterialParameter& other) const
     {
-        return Memory::MemCmp(&value, &other.value, sizeof(value)) != 0;
+        return !(*this == other);
     }
 
     HYP_FORCE_INLINE explicit operator int() const

@@ -130,7 +130,7 @@ struct DynamicAllocationBase : AllocationBase<T>
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
         {
-            Memory::MemCpy(buffer + offset, begin, count * sizeof(T));
+            Memory::Copy(buffer + offset, begin, count * sizeof(T));
         }
         else
         {
@@ -151,7 +151,7 @@ struct DynamicAllocationBase : AllocationBase<T>
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
         {
-            Memory::MemCpy(buffer + offset, begin, count * sizeof(T));
+            Memory::Copy(buffer + offset, begin, count * sizeof(T));
         }
         else
         {
@@ -166,7 +166,7 @@ struct DynamicAllocationBase : AllocationBase<T>
     {
         HYP_CORE_ASSERT(capacity >= count + offset);
 
-        Memory::MemSet(buffer + offset, 0, count * sizeof(T));
+        Memory::Zero(buffer + offset, count * sizeof(T));
     }
 
     HYP_FORCE_INLINE void DestructInRange(SizeType startIndex, SizeType lastIndex)
@@ -334,7 +334,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 
                 if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
                 {
-                    Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+                    Memory::Copy(storage.GetPointer() + offset, begin, count * sizeof(T));
                 }
                 else
                 {
@@ -365,7 +365,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 
                 if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
                 {
-                    Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+                    Memory::Copy(storage.GetPointer() + offset, begin, count * sizeof(T));
                 }
                 else
                 {
@@ -390,7 +390,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             {
                 HYP_CORE_ASSERT(offset + count <= Count);
 
-                Memory::MemSet(storage.GetPointer() + offset, 0, count * sizeof(T));
+                Memory::Fill(storage.GetPointer() + offset, 0, count * sizeof(T));
             }
 
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
@@ -509,7 +509,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
 
             if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
             {
-                Memory::MemCpy(storage.GetPointer(), begin, count * sizeof(T));
+                Memory::Copy(storage.GetPointer(), begin, count * sizeof(T));
             }
             else
             {
@@ -533,7 +533,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
 
             if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
             {
-                Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+                Memory::Copy(storage.GetPointer() + offset, begin, count * sizeof(T));
             }
             else
             {
@@ -557,7 +557,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
 
             if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
             {
-                Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+                Memory::Copy(storage.GetPointer() + offset, begin, count * sizeof(T));
             }
             else
             {
@@ -575,7 +575,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
         {
             HYP_CORE_ASSERT(offset + count <= Count);
 
-            Memory::MemSet(storage.GetPointer() + offset, 0, count * sizeof(T));
+            Memory::Fill(storage.GetPointer() + offset, 0, count * sizeof(T));
 
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }

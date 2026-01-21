@@ -948,7 +948,7 @@ struct StencilFunction
 
     HYP_FORCE_INLINE bool operator<(const StencilFunction& other) const
     {
-        return Memory::MemCmp(this, &other, sizeof(StencilFunction)) < 0;
+        return Memory::Compare(this, &other, sizeof(StencilFunction)) < 0;
     }
 
     HYP_FORCE_INLINE bool IsSet() const
@@ -987,7 +987,7 @@ struct PushConstantData
     {
         Assert(size <= 128, "Push constant data size exceeds 128 bytes");
 
-        Memory::MemCpy(&data[0], ptr, size);
+        Memory::Copy(&data[0], ptr, size);
     }
 
     template <class T>
@@ -998,7 +998,7 @@ struct PushConstantData
         static_assert(std::is_trivial_v<T>, "T must be a trivial type");
         static_assert(std::is_standard_layout_v<T>, "T must be a standard layout type");
 
-        Memory::MemCpy(&data[0], value, sizeof(T));
+        Memory::Copy(&data[0], value, sizeof(T));
     }
 
     PushConstantData(const PushConstantData& other) = default;
@@ -1257,7 +1257,7 @@ struct AttachmentDesc
             && loadOp == other.loadOp
             && storeOp == other.storeOp
             && blendFunction == other.blendFunction
-            && Memory::MemCmp(clearColor, other.clearColor, sizeof(clearColor)) == 0;
+            && Memory::Compare((void*)clearColor, (const void*)other.clearColor, sizeof(clearColor)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
@@ -1267,7 +1267,7 @@ struct AttachmentDesc
             || loadOp != other.loadOp
             || storeOp != other.storeOp
             || blendFunction != other.blendFunction
-            || Memory::MemCmp(clearColor, other.clearColor, sizeof(clearColor)) != 0;
+            || Memory::Compare((void*)clearColor, (const void*)other.clearColor, sizeof(clearColor)) != 0;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

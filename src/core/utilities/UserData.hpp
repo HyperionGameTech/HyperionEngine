@@ -17,7 +17,7 @@ struct UserData
     UserData()
     {
         // zero out the memory
-        Memory::MemSet(data.GetPointer(), 0, Size);
+        Memory::Fill(data.GetPointer(), 0, Size);
     }
 
     UserData(const UserData&) = default;
@@ -28,7 +28,7 @@ struct UserData
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
 
-        Memory::MemCpy(data.GetPointer(), other.data.GetPointer(), OtherSize);
+        Memory::Copy(data.GetPointer(), other.data.GetPointer(), OtherSize);
     }
 
     template <SizeType OtherSize, SizeType OtherAlignment>
@@ -36,7 +36,7 @@ struct UserData
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
 
-        Memory::MemCpy(data.GetPointer(), other.data.GetPointer(), OtherSize);
+        Memory::Copy(data.GetPointer(), other.data.GetPointer(), OtherSize);
 
         return *this;
     }
@@ -49,7 +49,7 @@ struct UserData
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
 
-        Memory::MemCpy(data.GetPointer(), other.data.GetPointer(), OtherSize);
+        Memory::Copy(data.GetPointer(), other.data.GetPointer(), OtherSize);
     }
 
     template <SizeType OtherSize, SizeType OtherAlignment>
@@ -57,7 +57,7 @@ struct UserData
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
 
-        Memory::MemCpy(data.GetPointer(), other.data.GetPointer(), OtherSize);
+        Memory::Copy(data.GetPointer(), other.data.GetPointer(), OtherSize);
 
         return *this;
     }
@@ -66,12 +66,12 @@ struct UserData
 
     HYP_FORCE_INLINE bool operator==(const UserData& other) const
     {
-        return Memory::MemCmp(data.GetPointer(), other.data.GetPointer(), Size) == 0;
+        return Memory::Compare(data.GetPointer(), other.data.GetPointer(), Size) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const UserData& other) const
     {
-        return Memory::MemCmp(data.GetPointer(), other.data.GetPointer(), Size) != 0;
+        return Memory::Compare(data.GetPointer(), other.data.GetPointer(), Size) != 0;
     }
 
     template <class T>
@@ -83,7 +83,7 @@ struct UserData
 
         static_assert(sizeof(T) <= Size, "Size of T must be less than or equal to Size");
 
-        Memory::MemCpy(data.GetPointer(), &value, sizeof(T));
+        Memory::Copy(data.GetPointer(), &value, sizeof(T));
     }
 
     template <class T>
@@ -115,7 +115,7 @@ struct UserData
     HYP_FORCE_INLINE static UserData<Size, Alignment> InternFromBytes(const ubyte* bytes)
     {
         UserData<Size, Alignment> result;
-        Memory::MemCpy(result.data.GetPointer(), bytes, Size);
+        Memory::Copy(result.data.GetPointer(), bytes, Size);
         return result;
     }
 };

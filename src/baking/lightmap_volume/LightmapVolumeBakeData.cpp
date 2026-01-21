@@ -74,13 +74,13 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
 
         if (indexSize == sizeof(uint32))
         {
-            Memory::MemCpy(m_meshIndices[i].Data(), meshData.indexData.Data(), meshData.indexData.Size());
+            Memory::Copy(m_meshIndices[i].Data(), meshData.indexData.Data(), meshData.indexData.Size());
         }
         else
         {
             for (SizeType j = 0; j < meshData.indexData.Size(); j += indexSize)
             {
-                Memory::MemCpy(&m_meshIndices[i][j / indexSize], meshData.indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
+                Memory::Copy(&m_meshIndices[i][j / indexSize], meshData.indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
             }
         }
 

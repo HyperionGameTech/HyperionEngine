@@ -358,7 +358,7 @@ static bool ReadMagic(BufferedByteReader& reader)
     uint8 bytes[sizeof(HeaderBytes)];
     reader.Read(bytes, sizeof(HeaderBytes));
 
-    if (Memory::MemCmp(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
+    if (Memory::Compare(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
     {
         return false;
     }

@@ -152,7 +152,7 @@ BoxedValue MakeValue(const Script_VMData& data)
     static_assert(alignof(Script_VMData) <= alignof(BoxedValue::InlineData), "Script_VMData must have alignment less than or equal to BoxedValue::InlineData");
 
     BoxedValue::InlineData resultData {};
-    Memory::MemCpy(&resultData, &data, sizeof(Script_VMData));
+    Memory::Copy(&resultData, &data, sizeof(Script_VMData));
 
     return BoxedValue(resultData);
 }
@@ -549,7 +549,7 @@ const uint16 Script_StaticMemory::staticSize = 2048;
 Script_StaticMemory::Script_StaticMemory()
     : m_data((BoxedValue*)ScriptAlloc(staticSize * sizeof(BoxedValue), alignof(BoxedValue)))
 {
-    Memory::MemSet(m_data, 0, staticSize * sizeof(BoxedValue));
+    Memory::Fill(m_data, 0, staticSize * sizeof(BoxedValue));
 }
 
 Script_StaticMemory::~Script_StaticMemory()
@@ -576,7 +576,7 @@ Script_StackMemory::Script_StackMemory()
     : m_data((BoxedValue*)ScriptAlloc(stackSize * sizeof(BoxedValue), alignof(BoxedValue))),
       m_sp(0)
 {
-    Memory::MemSet(m_data, 0, stackSize * sizeof(BoxedValue));
+    Memory::Fill(m_data, 0, stackSize * sizeof(BoxedValue));
 }
 
 Script_StackMemory::~Script_StackMemory()

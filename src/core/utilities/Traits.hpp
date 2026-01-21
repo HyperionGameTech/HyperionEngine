@@ -193,7 +193,17 @@ struct IsString : std::false_type
 {
 };
 
+/*! \brief Concept that checks if a type is bitwise comparable (e.g memcmp safe)
+ *  We consider a type to be bitwise comparable for our needs if
+ *    - it has unique object representations (non-padding bits)
+ *    - and is standard layout or a scalar type (or void, to allow void* in memcmp)
+ */
 template <class T>
-concept BitwiseComparable = std::has_unique_object_representations_v<T>;
+concept BitwiseComparable = (std::has_unique_object_representations_v<std::remove_cv_t<T>>
+        && (std::is_scalar_v<std::remove_cv_t<T>> || std::is_standard_layout_v<std::remove_cv_t<T>>))
+    || std::is_void_v<std::remove_cv_t<T>>;
+
+template <class T>
+concept BitwiseCopyable = std::is_void_v<std::remove_cv_t<T>> || std::is_trivially_copyable_v<std::remove_cv_t<T>>;
 
 } // namespace Hyperion

@@ -29,7 +29,7 @@ public:
 
     HYP_FORCE_INLINE void ReadBytes(ubyte* ptr, SizeType numBytes)
     {
-        Memory::MemCpy(ptr, m_byteBuffer.Data() + m_position, numBytes);
+        Memory::Copy(ptr, m_byteBuffer.Data() + m_position, numBytes);
         m_position += numBytes;
     }
 

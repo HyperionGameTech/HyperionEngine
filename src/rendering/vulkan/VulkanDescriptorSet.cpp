@@ -308,7 +308,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 AssertDebug(ref != nullptr);
                 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
                 descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
@@ -339,7 +339,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 AssertDebug(ref != nullptr);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
                 descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
@@ -367,7 +367,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 AssertDebug(ref != nullptr);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
                 descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
@@ -394,7 +394,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 AssertDebug(ref->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid TLAS for descriptor set element: {}.{}[{}]", m_layout.GetName(), name, index);
 
                 VulkanCachedDescriptor& descriptor = localDescriptors.EmplaceBack();
-                Memory::MemSet(&descriptor, 0, sizeof(VulkanCachedDescriptor));
+                Memory::Fill(&descriptor, 0, sizeof(VulkanCachedDescriptor));
                 descriptor.binding = layoutElement->binding;
                 descriptor.index = index;
                 descriptor.descriptorType = ToVkDescriptorType(layoutElement->type);
@@ -425,7 +425,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
             AssertDebug(localDirtyRange.GetEnd() <= localDescriptors.Size());
             
-            Memory::MemCpy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * SizeType(localDirtyRange.Distance()));
+            Memory::Copy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * SizeType(localDirtyRange.Distance()));
             // std::copy_n(
             //     std::begin(cachedValues) + localDirtyRange.GetStart(),
             //     localDirtyRange.Distance(),
@@ -589,7 +589,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
-    Memory::MemSet(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
+    Memory::Fill(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -670,7 +670,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
-    Memory::MemSet(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
+    Memory::Fill(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 
@@ -751,7 +751,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     cachedBinding.pipeline = pipeline->GetVulkanHandle();
     cachedBinding.pipelineLayout = pipeline->GetVulkanPipelineLayout();
     cachedBinding.numDynamicOffsets = uint32(m_layout.GetDynamicElements().Size());
-    Memory::MemSet(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
+    Memory::Fill(cachedBinding.dynamicOffsets, 0, cachedBinding.numDynamicOffsets * sizeof(uint32));
 
     auto& boundDescriptorSets = commandBuffer->m_boundDescriptorSets;
 

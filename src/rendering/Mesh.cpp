@@ -300,7 +300,7 @@ void Mesh::UploadGpuData()
 
     Array<uint32> indices;
     indices.Resize(asset->GetMeshData()->indexData.Size() / sizeof(uint32));
-    Memory::MemCpy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
+    Memory::Copy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
 
     AssertDebug(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
     AssertDebug(indices.Size() == asset->GetMeshDesc().numIndices);

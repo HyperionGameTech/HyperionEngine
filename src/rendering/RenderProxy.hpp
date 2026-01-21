@@ -46,9 +46,6 @@ struct MeshRayTracingData
 
 class IRenderProxy
 {
-protected:
-    virtual ~IRenderProxy() = default; /// \todo : Get rid of virtual dtor
-
 public:
     int version = 0;
     bool forceRebind = false;
@@ -134,8 +131,7 @@ public:
             && lightmapVolume == other.lightmapVolume
             && lightmapElementId == other.lightmapElementId
             && cachedAttributes == other.cachedAttributes
-            && instanceData == other.instanceData
-            && Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) == 0;
+            && instanceData == other.instanceData;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RenderProxyMesh& other) const
@@ -148,8 +144,7 @@ public:
             || lightmapVolume != other.lightmapVolume
             || lightmapElementId != other.lightmapElementId
             || cachedAttributes != other.cachedAttributes
-            || instanceData != other.instanceData
-            || Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) != 0;
+            || instanceData != other.instanceData;
     }
 };
 
