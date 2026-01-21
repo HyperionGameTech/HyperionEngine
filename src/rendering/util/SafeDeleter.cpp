@@ -220,7 +220,7 @@ int SafeDeleter::Iterate(int maxIter)
         const uint32 newSize = headers.Back().offset + headers.Back().size;
 
         // Move elements to the front of the buffer
-        Memory::MemMove(
+        Memory::Move(
             entryList.buffer.Data(),
             entryList.buffer.Data() + firstOffset,
             newSize);
@@ -349,7 +349,7 @@ void SafeDeleter::UpdateEntryListQueue()
             }
             else
             {
-                Memory::MemCpy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
+                Memory::Copy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
             }
 
             if (header.destructFn)

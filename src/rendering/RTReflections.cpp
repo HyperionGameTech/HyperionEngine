@@ -152,7 +152,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
             uint32 numBoundLights = 0;
     
             uint32* lightIndicesU32 = reinterpret_cast<uint32*>(constantData.lightIndices);
-            Memory::MemSet(lightIndicesU32, 0, sizeof(constantData.lightIndices));
+            Memory::Fill(lightIndicesU32, 0, sizeof(constantData.lightIndices));
 
             for (Light* light : rpl.GetLights())
             {

@@ -286,7 +286,7 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
                     "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
                     meshInstanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
 
-                Memory::MemCpy(dstPtr, srcPtr, bufferStructSize);
+                Memory::Copy(dstPtr, srcPtr, bufferStructSize);
 
                 fieldOffset += MaxEntitiesPerBatch * bufferStructSize;
             }

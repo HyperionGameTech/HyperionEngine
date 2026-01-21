@@ -342,7 +342,7 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* 
             HYP_DEFER({ rpl.EndRead(); });
 
             RayTracingConstants uniforms {};
-            Memory::MemSet(&uniforms, 0, sizeof(uniforms));
+            Memory::Fill(&uniforms, 0, sizeof(uniforms));
 
             uniforms.rayOffset = rayOffset;
 

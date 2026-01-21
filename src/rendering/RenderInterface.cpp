@@ -1815,7 +1815,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;
         
-        Memory::MemSet(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+        Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
     }
 
     const CompiledShader* compiledShader = shader->GetCompiledShader();
@@ -1868,7 +1868,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 #define IS_BIT_SET(bits, bitIdx) ((bits) & (1u << bitIdx))
 
     uint8 uniformIndexToSetIndex[RenderInterface::State::MaxShaderUniforms];
-    Memory::MemSet(uniformIndexToSetIndex, ubyte(-1), sizeof(uniformIndexToSetIndex));
+    Memory::Fill(uniformIndexToSetIndex, ubyte(-1), sizeof(uniformIndexToSetIndex));
 
     uint8 dsStates[MaxDescriptorSetsBound] = { };
     uint8 dsIndices = 0;

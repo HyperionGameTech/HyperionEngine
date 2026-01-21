@@ -341,7 +341,7 @@ public:
             return false;
         }
 
-        return Memory::MemCmp(
+        return Memory::Compare(
                    static_cast<const Container*>(this)->Begin(),
                    otherContainer.Begin(),
                    thisSizeBytes)

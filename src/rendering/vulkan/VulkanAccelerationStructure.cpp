@@ -713,7 +713,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         const VulkanGpuBlasRef& blas = m_blas[i];
 
         MeshDescription& meshDescription = meshDescriptions[i - first];
-        Memory::MemSet(&meshDescription, 0, sizeof(MeshDescription));
+        Memory::Fill(&meshDescription, 0, sizeof(MeshDescription));
 
         Assert(blas->GetGeometries().Any(), "No geometries added to GpuBlas node %u!", i);
 

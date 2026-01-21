@@ -552,7 +552,7 @@ void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
 
     /// \todo : Review
     SizeType toCopy = current < newSize ? current : newSize;
-    Memory::MemCpy(np, ptr, toCopy);
+    Memory::Copy(np, ptr, toCopy);
 
     Free(ptr);
 

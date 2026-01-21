@@ -57,7 +57,7 @@ struct VulkanCachedDescriptor
         }
 
         // For buffer and image info, we can do a memory comparison
-        return Memory::MemCmpSafe(&bufferInfo, &other.bufferInfo, sizeof(VkDescriptorBufferInfo)) == 0;
+        return Memory::Compare(&bufferInfo, &other.bufferInfo, sizeof(VkDescriptorBufferInfo)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptor& other) const

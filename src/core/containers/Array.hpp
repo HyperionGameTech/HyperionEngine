@@ -536,7 +536,7 @@ public:
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivially_copy_constructible_v<T>)
         {
-            Memory::MemCpy(buffer + m_size, span.Data(), spanSize * sizeof(T));
+            Memory::Copy(buffer + m_size, span.Data(), spanSize * sizeof(T));
 
             m_size += spanSize;
         }
@@ -606,7 +606,7 @@ public:
         if constexpr (std::is_fundamental_v<T> || std::is_enum_v<T>)
         {
             // if T is a fundamental type, we can compare the memory directly
-            return Memory::MemCmp(Data(), other.Data(), ByteSize()) == 0;
+            return Memory::Compare(Data(), other.Data(), ByteSize()) == 0;
         }
 
         auto it = Begin();
@@ -640,7 +640,7 @@ public:
         if constexpr (std::is_fundamental_v<T> || std::is_enum_v<T>)
         {
             // if T is a fundamental type, we can compare the memory directly
-            return Memory::MemCmp(Data(), other.Data(), ByteSize()) != 0;
+            return Memory::Compare(Data(), other.Data(), ByteSize()) != 0;
         }
 
         auto it = Begin();
@@ -973,7 +973,7 @@ void Array<T, AllocatorType>::Resize(SizeType newSize)
 
         if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>)
         {
-            Memory::MemSet(buffer + m_size, 0, sizeof(T) * diff);
+            Memory::Zero(buffer + m_size, sizeof(T) * diff);
 
             m_size += diff;
         }
@@ -1061,7 +1061,7 @@ void Array<T, AllocatorType>::ResizeZeroed(SizeType newSize)
 
     if (newSize > currentSize)
     {
-        Memory::MemSet(GetBuffer() + (currentSize + m_startOffset), 0, sizeof(T) * (newSize - currentSize));
+        Memory::Zero(GetBuffer() + (currentSize + m_startOffset), sizeof(T) * (newSize - currentSize));
     }
 }
 

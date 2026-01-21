@@ -129,13 +129,13 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const Color& other) const
     {
-        return Memory::MemCmp(bytes, other.bytes, size) < 0;
+        return Memory::Compare(bytes, other.bytes, size) < 0;
     }
 
     HYP_FORCE_INLINE explicit operator uint32() const
     {
         uint32 result;
-        Memory::MemCpy(&result, bytes, size);
+        Memory::Copy(&result, bytes, size);
         return result;
     }
 

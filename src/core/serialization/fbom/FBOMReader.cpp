@@ -223,7 +223,7 @@ FBOMResult FBOMReader::Deserialize(FBOMLoadContext& context, BufferedReader& rea
 
         // get version info
         FBOMVersion binaryVersion;
-        Memory::MemCpy(&binaryVersion.value, headerBytes + sizeof(FBOM::headerIdentifier) + sizeof(uint8), sizeof(uint32));
+        Memory::Copy(&binaryVersion.value, headerBytes + sizeof(FBOM::headerIdentifier) + sizeof(uint8), sizeof(uint32));
 
         const int compatibilityTestResult = FBOMVersion::TestCompatibility(binaryVersion, FBOM::version);
 

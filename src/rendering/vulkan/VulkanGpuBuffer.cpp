@@ -78,7 +78,7 @@ void VulkanGpuBuffer::Memset(SizeType count, ubyte value)
         Map();
     }
 
-    Memory::MemSet(m_mapping, value, count);
+    Memory::Fill(m_mapping, value, count);
 }
 
 void VulkanGpuBuffer::Copy(SizeType count, const void* ptr)
@@ -88,7 +88,7 @@ void VulkanGpuBuffer::Copy(SizeType count, const void* ptr)
         Map();
     }
 
-    Memory::MemCpy(m_mapping, ptr, count);
+    Memory::Copy(m_mapping, ptr, count);
 }
 
 void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
@@ -100,7 +100,7 @@ void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
 
     AssertDebug(offset + count <= m_size);
 
-    Memory::MemCpy(reinterpret_cast<void*>(UIntPtr(m_mapping) + offset), ptr, count);
+    Memory::Copy(reinterpret_cast<void*>(UIntPtr(m_mapping) + offset), ptr, count);
 }
 
 void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
@@ -114,7 +114,7 @@ void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
 
     AssertDebug(count <= m_size);
 
-    Memory::MemCpy(outPtr, m_mapping, count);
+    Memory::Copy(outPtr, m_mapping, count);
 }
 
 void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
@@ -128,7 +128,7 @@ void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
 
     AssertDebug(offset + count <= m_size);
 
-    Memory::MemCpy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
+    Memory::Copy(outPtr, reinterpret_cast<void*>(UIntPtr(m_mapping) + UIntPtr(offset)), count);
 }
 
 void* VulkanGpuBuffer::Map() const
@@ -394,7 +394,7 @@ RendererResult VulkanGpuBuffer::Create()
         Map();
 
         // Memset all to zero
-        Memory::MemSet(m_mapping, 0, m_size);
+        Memory::Fill(m_mapping, 0, m_size);
     }
 
 #ifdef HYP_DEBUG_MODE

@@ -286,7 +286,7 @@ public:
 
         HYP_CORE_ASSERT(offset + count <= m_size);
 
-        Memory::MemCpy(Data() + offset, data, count);
+        Memory::Copy(Data() + offset, data, count);
     }
 
     /*! \brief Returns a copy of the ByteBuffer's data as an Array of ubyte.
@@ -298,7 +298,7 @@ public:
         if (m_size != 0)
         {
             byteArray.Resize(m_size);
-            Memory::MemCpy(byteArray.Data(), Data(), m_size);
+            Memory::Copy(byteArray.Data(), Data(), m_size);
         }
 
         return byteArray;
@@ -456,7 +456,7 @@ public:
 
         const ubyte* data = Data();
 
-        Memory::MemCpy(outValues, data + offset, count);
+        Memory::Copy(outValues, data + offset, count);
 
         return true;
     }
@@ -485,7 +485,7 @@ public:
 
         const ubyte* data = Data();
 
-        Memory::MemCpy(out, data + offset, count);
+        Memory::Copy(out, data + offset, count);
 
         return true;
     }
@@ -536,7 +536,7 @@ public:
             return false;
         }
 
-        return Memory::MemCmp(Data(), other.Data(), m_size) == 0;
+        return Memory::Compare(Data(), other.Data(), m_size) == 0;
     }
 
     /*! \brief Compares this ByteBuffer with another ByteBuffer for inequality.
@@ -551,7 +551,7 @@ public:
             return true;
         }
 
-        return Memory::MemCmp(Data(), other.Data(), m_size) != 0;
+        return Memory::Compare(Data(), other.Data(), m_size) != 0;
     }
 
     /*! \brief Returns a copy of the ByteBuffer.

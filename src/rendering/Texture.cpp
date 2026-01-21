@@ -620,7 +620,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
                     *reinterpret_cast<Float16*>(scratchBuffer + (byteIndex / 2)) = *(reinterpret_cast<const float32*>(intermediateBuffer + byteIndex));
                 }
 
-                Memory::MemCpy(intermediateBuffer, scratchBuffer, dstMipSize);
+                Memory::Copy(intermediateBuffer, scratchBuffer, dstMipSize);
             }
             else if (desc.IsSrgb())
             {

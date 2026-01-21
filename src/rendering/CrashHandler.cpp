@@ -167,7 +167,7 @@ void CrashHandler::Initialize()
             std::vector<char> bytes;
             bytes.resize(size);
 
-            Memory::MemCpy(bytes.data(), dump, size);
+            Memory::Copy(bytes.data(), dump, size);
 
             FileByteWriter writer("./dump.nv-gpudmp");
             writer.Write(bytes.data(), bytes.size());
@@ -202,7 +202,7 @@ void CrashHandler::Initialize()
             std::vector<char> bytes;
             bytes.resize(size);
 
-            Memory::MemCpy(bytes.data(), info, size);
+            Memory::Copy(bytes.data(), info, size);
 
             FileByteWriter writer(FilePath::Current() / HYP_FORMAT("shader-{}.nvdbg", str.c_str()));
             writer.Write(bytes.data(), bytes.size());

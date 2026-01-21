@@ -188,7 +188,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
-    Memory::MemCpy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+    Memory::Copy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
 
     entry.residency = ComputeResidency(entry);
 

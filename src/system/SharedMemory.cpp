@@ -123,7 +123,7 @@ void SharedMemory::Write(const void* data, SizeType count)
     Assert(IsOpened(), "SharedMemory not opened!\n");
     Assert(count <= m_size);
 
-    Memory::MemCpy(m_address, data, count);
+    Memory::Copy(m_address, data, count);
 }
 
 } // namespace Hyperion

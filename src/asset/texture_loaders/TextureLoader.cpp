@@ -34,7 +34,7 @@ static const stbi_io_callbacks s_callbacks {
 
         return int(state->stream.Read(data, SizeType(size), [](void* ptr, const unsigned char* buffer, SizeType chunkSize)
             {
-                Memory::MemCpy(ptr, buffer, chunkSize);
+                Memory::Copy(ptr, buffer, chunkSize);
             }));
     },
     .skip = [](void* user, int n)

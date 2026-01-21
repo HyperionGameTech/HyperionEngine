@@ -1140,11 +1140,11 @@ static bool PreprocessShaderSource(ShaderModuleType type,
         glsl_include_result_t* result = new glsl_include_result_t;
 
         char* headerNameStr = new char[path.Size() + 1];
-        Memory::MemCpy(headerNameStr, path.Data(), path.Size() + 1);
+        Memory::Copy(headerNameStr, path.Data(), path.Size() + 1);
         result->header_name = headerNameStr;
 
         char* headerDataStr = new char[linesJoined.Size() + 1];
-        Memory::MemCpy(headerDataStr, linesJoined.Data(), linesJoined.Size() + 1);
+        Memory::Copy(headerDataStr, linesJoined.Data(), linesJoined.Size() + 1);
         result->header_data = headerDataStr;
 
         result->header_length = linesJoined.Size();
@@ -1672,7 +1672,7 @@ static ByteBuffer CompileToDXIL(
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
 
     ByteBuffer dxil(pBlob->GetBufferSize());
-    Memory::MemCpy(dxil.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+    Memory::Copy(dxil.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
 
     return dxil;
 }

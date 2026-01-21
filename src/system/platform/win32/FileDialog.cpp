@@ -259,7 +259,7 @@ void ShowSaveFileDialog(
 
     ByteBuffer fileNameBufferData;
     fileNameBufferData.SetSize(MAX_PATH * sizeof(wchar_t));
-    Memory::MemSet(fileNameBufferData.Data(), 0, fileNameBufferData.Size());
+    Memory::Fill(fileNameBufferData.Data(), 0, fileNameBufferData.Size());
 
     OPENFILENAMEW ofn {};
     ofn.lStructSize = sizeof(ofn);

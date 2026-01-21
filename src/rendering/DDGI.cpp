@@ -190,7 +190,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     uniforms.numBoundLights = 0;
 
     uint32* lightIndicesU32 = reinterpret_cast<uint32*>(uniforms.lightIndices);
-    Memory::MemSet(lightIndicesU32, 0, sizeof(uniforms.lightIndices));
+    Memory::Fill(lightIndicesU32, 0, sizeof(uniforms.lightIndices));
 
     for (Light* light : rpl.GetLights())
     {

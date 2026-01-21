@@ -418,7 +418,7 @@ static bool AreFileContentsSame(const FilePath& pathA, const FilePath& pathB)
             break; // reached end of both files
         }
 
-        if (Memory::MemCmp(bufferA.Data(), bufferB.Data(), bytesReadA) != 0)
+        if (Memory::Compare(bufferA.Data(), bufferB.Data(), bytesReadA) != 0)
         {
             return false;
         }

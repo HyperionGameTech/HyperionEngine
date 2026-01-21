@@ -31,7 +31,7 @@ BoundingBox MeshData::CalculateAABB() const
 #define PACKED_SET_ATTR(rawValues, argSize)                                                           \
     do                                                                                                \
     {                                                                                                 \
-        Memory::MemCpy((void*)(floatBuffer + currentOffset), (rawValues), (argSize) * sizeof(float)); \
+        Memory::Copy((void*)(floatBuffer + currentOffset), (rawValues), (argSize) * sizeof(float)); \
         currentOffset += (argSize);                                                                   \
     }                                                                                                 \
     while (0)
@@ -126,7 +126,7 @@ Array<uint32> MeshData::BuildPackedIndices() const
 
     Array<uint32> packedIndices;
     packedIndices.Resize(indexData.Size() / sizeof(uint32));
-    Memory::MemCpy(packedIndices.Data(), indexData.Data(), indexData.Size());
+    Memory::Copy(packedIndices.Data(), indexData.Data(), indexData.Size());
 
     // Ensure indices are a multiple of 3
     if (packedIndices.Size() % 3 != 0)

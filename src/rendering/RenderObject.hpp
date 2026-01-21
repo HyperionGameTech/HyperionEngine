@@ -159,7 +159,9 @@ struct ShaderUniform
 
     HYP_FORCE_INLINE bool operator==(const ShaderUniform& other) const
     {
-        return Memory::MemCmp(this, &other, 20) == 0;
+        return name == other.name
+            && type == other.type
+            && buffer == other.buffer;
     }
 
     HYP_FORCE_INLINE bool operator!=(const ShaderUniform& other) const

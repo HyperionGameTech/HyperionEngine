@@ -38,7 +38,7 @@ bool Struct::CreateStructInstance(dotnet::ObjectReference& outObjectReference, c
                 AssertDebug(objectSize == context.size, "Type size does not match managed struct size! Expected managed struct to have size of %zu but got %u",
                     context.size, objectSize);
 
-                Memory::MemCpy(objectPtr, context.ptr, context.size);
+                Memory::Copy(objectPtr, context.ptr, context.size);
             });
 
         return true;
@@ -99,7 +99,7 @@ bool DynamicStructInstance::GetManagedObject(const void* objectPtr, dotnet::Obje
 bool DynamicStructInstance::ToHypData(ByteView memory, BoxedValue& out) const
 {
     void* data = Memory::Allocate(m_size);
-    Memory::MemCpy(data, memory.Data(), m_size);
+    Memory::Copy(data, memory.Data(), m_size);
 
     const TypeInfo* pTypeInfo = GetTypeInfo();
     AssertDebug(pTypeInfo != nullptr);

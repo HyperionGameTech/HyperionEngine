@@ -78,7 +78,7 @@ struct MeshInstanceData
         bufferStructAlignments[bufferIndex] = alignof(StructType);
 
         buffers[bufferIndex].SetSize(sizeof(StructType) * count);
-        Memory::MemCpy(buffers[bufferIndex].Data(), ptr, sizeof(StructType) * count);
+        Memory::Copy(buffers[bufferIndex].Data(), ptr, sizeof(StructType) * count);
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

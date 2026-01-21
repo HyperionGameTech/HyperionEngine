@@ -144,7 +144,7 @@ TypeInfoEx::TypeInfoEx(const TypeInfoEx& other)
       next(other.next ? new TypeInfoEx(*other.next) : nullptr),
       handler(other.handler ? other.handler->Clone() : nullptr)
 {
-    Memory::MemCpy(&data, &other.data, sizeof(data));
+    Memory::Copy(&data, &other.data, sizeof(data));
 }
 
 TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
@@ -161,7 +161,7 @@ TypeInfoEx& TypeInfoEx::operator=(const TypeInfoEx& other)
             delete handler;
         }
 
-        Memory::MemCpy(&data, &other.data, sizeof(data));
+        Memory::Copy(&data, &other.data, sizeof(data));
 
         dataType = other.dataType;
         next = other.next ? new TypeInfoEx(*other.next) : nullptr;
@@ -176,8 +176,8 @@ TypeInfoEx::TypeInfoEx(TypeInfoEx&& other) noexcept
       next(other.next),
       handler(other.handler)
 {
-    Memory::MemCpy(&data, &other.data, sizeof(data));
-    Memory::MemSet(&other.data, 0, sizeof(data));
+    Memory::Copy(&data, &other.data, sizeof(data));
+    Memory::Fill(&other.data, 0, sizeof(data));
 
     other.dataType = DT_NONE;
     other.next = nullptr;
@@ -198,8 +198,8 @@ TypeInfoEx& TypeInfoEx::operator=(TypeInfoEx&& other) noexcept
             delete handler;
         }
 
-        Memory::MemCpy(&data, &other.data, sizeof(data));
-        Memory::MemSet(&other.data, 0, sizeof(data));
+        Memory::Copy(&data, &other.data, sizeof(data));
+        Memory::Fill(&other.data, 0, sizeof(data));
 
         dataType = other.dataType;
         next = other.next;
