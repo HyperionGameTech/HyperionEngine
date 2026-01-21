@@ -29,12 +29,12 @@ HYP_DESCRIPTOR_SSBO(ParticleDescriptorSet, ParticlesBuffer, standard = std430) b
     ParticleShaderData instances[MAX_PARTICLES];
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(ParticleDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(ParticleDescriptorSet, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };

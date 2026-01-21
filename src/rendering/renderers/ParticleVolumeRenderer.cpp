@@ -21,6 +21,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/GBuffer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -45,15 +46,10 @@ static constexpr uint32 DiscardFrames = 60;
 
 ParticleVolumeRenderer::VolumeState::~VolumeState()
 {
-    SafeDelete(std::move(updatePipeline));
     SafeDelete(std::move(particleBuffer));
     SafeDelete(std::move(indirectBuffer));
+    SafeDelete(std::move(uniformBuffers));
     SafeDelete(std::move(noiseMap));
-    SafeDelete(std::move(computeDescriptorTable));
-    SafeDelete(std::move(graphicsDescriptorTable));
-    SafeDelete(std::move(updateShader));
-    SafeDelete(std::move(particleShader));
-    SafeDelete(std::move(updatePipeline));
 }
 
 ParticleVolumeRenderer::ParticleVolumeRenderer() = default;
@@ -155,51 +151,11 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     CreateNoiseMap(state.noiseMap);
 
-    // compute pipeline
+    // compute shader properties
     ShaderProperties properties;
     state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
     properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
     properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
-
-    state.updateShader = g_shaderManager->GetOrCreate(NAME("UpdateParticles"), properties);
-    Assert(state.updateShader.IsValid());
-
-    state.computeDescriptorTable = g_renderBackend->MakeDescriptorTable(state.updateShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
-    {
-        const DescriptorSetRef& descriptorSet = state.computeDescriptorTable->GetDescriptorSet("UpdateParticlesDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("ParticlesBuffer"_sh, state.particleBuffer);
-        descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
-        descriptorSet->SetElement("NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(state.noiseMap));
-    }
-
-    DeferCreate(state.computeDescriptorTable);
-
-    state.updatePipeline = g_renderBackend->MakeComputePipeline(state.updateShader, state.computeDescriptorTable);
-    DeferCreate(state.updatePipeline);
-
-    // graphics pipeline
-    properties = ShaderProperties();
-    properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
-
-    state.particleShader = g_shaderManager->GetOrCreate(NAME("Particle"), properties);
-    Assert(state.particleShader.IsValid());
-
-    state.graphicsDescriptorTable = g_renderBackend->MakeDescriptorTable(state.particleShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
-    {
-        const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("ParticlesBuffer"_sh, state.particleBuffer);
-        descriptorSet->SetElement("ParticleTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-    }
-
-    DeferCreate(state.graphicsDescriptorTable);
 
     // set default particle graphics attributes (translucent)
     MaterialAttributes materialAttributes {};
@@ -241,24 +197,10 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     // Reset zero staging buffer state
     frame->preRenderQueue << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
 
-    const uint32 frameIndex = frame->GetFrameIndex();
-
     RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(RenderApi::GetRenderProxy(particleVolume));
     AssertDebug(proxy != nullptr);
 
     VolumeState& state = EnsureVolumeState(proxy);
-
-    // ensure particle texture bound
-    if (proxy->particleTexture)
-    {
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& descriptorSet = state.graphicsDescriptorTable->GetDescriptorSet("ParticleDescriptorSet"_sh, frameIndex);
-            AssertDebug(descriptorSet != nullptr);
-
-            descriptorSet->SetElement("ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->particleTexture));
-        }
-    }
 
     // zero indirect arguments (instance count)
     Assert(state.indirectBuffer->Size() == sizeof(IndirectDrawCommand));
@@ -272,7 +214,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     }
 
     // bind and dispatch compute
-    struct
+    struct ParticleSpawnerUniforms
     {
         Vec4f origin;
         float spawnRadius;
@@ -282,90 +224,112 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         float maxParticlesSqrt;
         float deltaTime;
         uint32 globalCounter;
-    } pushConstants;
+    };
 
-    pushConstants.origin = proxy->bufferData.originStartSize;
-    pushConstants.spawnRadius = proxy->bufferData.spawnRadius;
-    pushConstants.randomness = proxy->bufferData.randomness;
-    pushConstants.avgLifespan = proxy->bufferData.avgLifespan;
-    pushConstants.maxParticles = proxy->bufferData.maxParticles;
-    pushConstants.maxParticlesSqrt = proxy->bufferData.maxParticlesSqrt;
-    pushConstants.deltaTime = 0.016f; // TODO: real render delta
-    pushConstants.globalCounter = m_counter;
+    ParticleSpawnerUniforms uniforms {};
+    uniforms.origin = proxy->bufferData.originStartSize;
+    uniforms.spawnRadius = proxy->bufferData.spawnRadius;
+    uniforms.randomness = proxy->bufferData.randomness;
+    uniforms.avgLifespan = proxy->bufferData.avgLifespan;
+    uniforms.maxParticles = proxy->bufferData.maxParticles;
+    uniforms.maxParticlesSqrt = proxy->bufferData.maxParticlesSqrt;
+    uniforms.deltaTime = 0.016f; // TODO: real render delta
+    uniforms.globalCounter = m_counter++;
 
-    state.updatePipeline->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    GpuBufferRef& uniformBuffer = state.uniformBuffers[frame->GetFrameIndex()];
+    if (!uniformBuffer)
+    {
+        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        CheckResult(uniformBuffer->Create());
+    }
+
+    uniformBuffer->Copy(sizeof(uniforms), &uniforms);
+    uniformBuffer->Flush(0, sizeof(uniforms));
+
+    // this is rendered from translucent pass in DeferredRenderer
+    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    Assert(framebuffer != nullptr);
 
     { // update gpu particles pass (compute, done before frame is rendered)
         RenderQueue& rq = frame->preRenderQueue;
 
-        rq << BindComputePipeline(state.updatePipeline);
+        ShaderProperties properties;
+        properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
+        properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
 
-        rq << BindDescriptorTable(
-            state.computeDescriptorTable,
-            state.updatePipeline,
-            { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
-            frameIndex);
+        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("UpdateParticles"), properties)));
 
-        const uint32 viewDescriptorSetIndex = state.computeDescriptorTable->GetDescriptorSetIndex("View"_sh);
+        rq << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer); 
+        rq << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
+        rq << SetShaderUniform(2, "NoiseMap"_sh, g_renderInterface->textureViewCache->GetOrCreate(state.noiseMap));
 
-        if (viewDescriptorSetIndex != ~0u)
-        {
-            Assert(renderSetup.passData != nullptr);
-            rq << BindDescriptorSet(
-                renderSetup.passData->descriptorSets[frameIndex],
-                state.updatePipeline,
-                {},
-                viewDescriptorSetIndex);
-        }
+        rq << SetShaderUniform(3, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        rq << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+
+        rq << SetShaderUniform(5, "GBufferAlbedoTexture"_sh, framebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+        rq << SetShaderUniform(6, "GBufferNormalsTexture"_sh, framebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+        rq << SetShaderUniform(7, "GBufferMaterialTexture"_sh, framebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+        rq << SetShaderUniform(8, "GBufferVelocityTexture"_sh, framebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+        rq << SetShaderUniform(9, "GBufferDepthTexture"_sh, framebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+        
+        rq << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+        
+        rq << SetShaderUniform(11, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), ShaderDataOffset<CameraShaderData>(view->GetCamera()));
+        
+        rq << SetShaderUniform(12, "ParticleSpawnerData"_sh, uniformBuffer);
 
         const SizeType maxParticles = proxy->bufferData.maxParticles;
-        rq << DispatchCompute(state.updatePipeline, Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
+        rq << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
 
         rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
     state.fc = RenderApi::GetFrameCounter();
 
-    // this is rendered from translucent pass in DeferredRenderer
-    const FramebufferRef& framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-
-    const RenderTargetDesc& renderTargetDesc = framebuffer->GetRenderTargetDesc();
-
-    if (!state.graphicsPipelineHandle.IsAlive() || (*state.graphicsPipelineHandle)->GetRenderTargetDesc() != renderTargetDesc)
-    {
-        g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            state.renderableAttributes,
-            renderTargetDesc,
-            state.graphicsPipelineHandle);
-    }
-
     { // draw particles pass
         RenderQueue& rq = frame->renderQueue;
 
-        rq << BindGraphicsPipeline(*state.graphicsPipelineHandle, view->GetViewport());
+        rq << SetVertexAttributes(state.renderableAttributes.GetMeshAttributes().vertexAttributes);
+        rq << SetTopology(state.renderableAttributes.GetMeshAttributes().topology);
 
-        rq << BindDescriptorTable(
-            state.graphicsDescriptorTable,
-            *state.graphicsPipelineHandle,
-            { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(view->GetCamera()) } } } },
-            frameIndex);
+        rq << SetCurrentShader(ShaderDesc(state.renderableAttributes.GetMaterialAttributes().shaderDefinition));
 
-        const uint32 viewDescriptorSetIndex = state.graphicsDescriptorTable->GetDescriptorSetIndex("View"_sh);
+        rq << SetCurrentBlendFunction(state.renderableAttributes.GetMaterialAttributes().blendFunction);
+        rq << SetFaceCullMode(state.renderableAttributes.GetMaterialAttributes().cullFaces);
+        rq << SetFillMode(state.renderableAttributes.GetMaterialAttributes().fillMode);
+        rq << SetDepthTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+        rq << SetDepthWrite(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+        rq << SetStencilTest(bool(state.renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+        rq << SetStencilFunction(state.renderableAttributes.GetMaterialAttributes().stencilFunction);
 
-        if (viewDescriptorSetIndex != ~0u)
+        rq << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer);
+
+        if (proxy->particleTexture)
         {
-            Assert(renderSetup.passData != nullptr);
-
-            rq << BindDescriptorSet(
-                renderSetup.passData->descriptorSets[frameIndex],
-                *state.graphicsPipelineHandle,
-                {},
-                viewDescriptorSetIndex);
+            rq << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(proxy->particleTexture));
         }
+        else
+        {
+            rq << SetShaderUniform(1, "ParticleTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        }
+
+        rq << SetShaderUniform(2, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+        rq << SetShaderUniform(3, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
+        rq << SetShaderUniform(4, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), ShaderDataOffset<CameraShaderData>(view->GetCamera()));
+
+        rq << CommitDrawState();
 
         rq << BindVertexBuffer(m_staging.quadMesh->GetVertexBuffer());
         rq << BindIndexBuffer(m_staging.quadMesh->GetIndexBuffer());
         rq << DrawIndexedIndirect(state.indirectBuffer, 0);
+
+        // reset states
+        rq << SetCurrentBlendFunction(BlendFunction::None());
+        rq << SetDepthTest(true);
+        rq << SetDepthWrite(true);
+        rq << SetStencilTest(false);
+        rq << SetFillMode(FM_FILL);
+        rq << SetFaceCullMode(FCM_BACK);
     }
 }
 
