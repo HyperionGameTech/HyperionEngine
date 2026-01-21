@@ -12,15 +12,18 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/GraphicsPipeline.hpp>
+#include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GpuBuffer.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/Texture.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -507,10 +510,7 @@ DebugDrawer::~DebugDrawer()
         };
     }
 
-    m_shader.Reset();
-
     SafeDelete(std::move(m_instanceBuffers));
-    SafeDelete(std::move(m_descriptorTable));
 }
 
 void DebugDrawer::Init()
@@ -529,33 +529,6 @@ void DebugDrawer::Init()
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
         DeferCreate(m_instanceBuffers[frameIndex]);
     }
-
-    m_shader = g_shaderManager->GetOrCreate(
-        NAME("DebugAABB"),
-        ShaderProperties(
-            VertexAttributeSet::StaticMeshVertexAttributes,
-            { { NAME("IMMEDIATE_MODE") } }
-        ));
-
-    Assert(m_shader.IsValid());
-
-    m_descriptorTable = g_renderBackend->MakeDescriptorTable(
-        m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    Assert(m_descriptorTable != nullptr);
-
-    const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex("DebugDrawerDescriptorSet"_sh);
-    Assert(debugDrawerDescriptorSetIndex != ~0u);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& debugDrawerDescriptorSet = m_descriptorTable->GetDescriptorSet(debugDrawerDescriptorSetIndex, frameIndex);
-        Assert(debugDrawerDescriptorSet != nullptr);
-
-        debugDrawerDescriptorSet->SetElement("ImmediateDrawsBuffer"_sh, m_instanceBuffers[frameIndex]);
-    }
-
-    DeferCreate(m_descriptorTable);
 
     m_isInitialized.Set(true, MemoryOrder::RELEASE);
 }
@@ -666,10 +639,13 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Assert(renderSetup.HasView());
 
+    const RenderTargetDesc& renderTargetDesc = renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc();
     const Viewport& viewport = renderSetup.view->GetViewport();
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
+
+    RenderQueue& rq = frame->renderQueue;
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -678,21 +654,13 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (m_headers[idx].Size() * sizeof(ImmediateDrawShaderData) > instanceBuffer->Size())
     {
-        CheckResult(instanceBuffer->EnsureCapacity(
-            m_headers[idx].Size() * sizeof(ImmediateDrawShaderData),
-            &wasInstanceBufferRebuilt));
-    }
+        SafeDelete(std::move(instanceBuffer));
 
-    const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex("DebugDrawerDescriptorSet"_sh);
-    Assert(debugDrawerDescriptorSetIndex != ~0u);
+        instanceBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
+        instanceBuffer->SetRequireCpuAccessible(true);
+        CheckResult(instanceBuffer->Create());
 
-    const DescriptorSetRef& debugDrawerDescriptorSet = m_descriptorTable->GetDescriptorSet(debugDrawerDescriptorSetIndex, frameIndex);
-    Assert(debugDrawerDescriptorSet != nullptr);
-
-    // Update descriptor set if instance buffer was rebuilt
-    if (wasInstanceBufferRebuilt)
-    {
-        debugDrawerDescriptorSet->SetElement("ImmediateDrawsBuffer"_sh, instanceBuffer);
+        instanceBuffer->Memset(sizeof(ImmediateDrawShaderData) * m_headers[idx].Size(), 0);
     }
 
     auto& partitionedShaderData = m_cachedPartitionedShaderData;
@@ -739,16 +707,44 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
         shaderDataElement.idx = (uint32)drawCommandIdx;
     }
 
-    struct
-    {
-        HashCode attributesHashCode;
-        GraphicsPipelineRef graphicsPipeline;
-        uint32 layerIndex = ~0u;
-    } previousState;
+    RenderableAttributeSet attributes;
 
     SizeType shaderDataOffset = 0;
     SizeType totalDrawCalls = 0;
     SizeType totalInstancedDraws = 0;
+
+    ShaderDefinition shaderDefinition;
+    shaderDefinition.name = NAME("DebugAABB");
+    shaderDefinition.properties.Set(NAME("IMMEDIATE_MODE"));
+    
+    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
+    rq << SetCurrentView(renderTargetDesc, viewport);
+
+    HYP_DEFER({
+        // reset states
+        rq << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+        rq << SetTopology(TOP_TRIANGLES);
+        rq << SetCurrentBlendFunction(BlendFunction::None());
+        rq << SetDepthTest(true);
+        rq << SetDepthWrite(true);
+        rq << SetStencilTest(false);
+        rq << SetFillMode(FM_FILL);
+        rq << SetFaceCullMode(FCM_BACK);    
+    });
+    
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+    
+    rq << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
+    rq << SetShaderUniform(2, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    rq << SetShaderUniform(3, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+
+    rq << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    rq << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(12, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(13, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(14, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
@@ -777,14 +773,29 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                 {
                 case DebugDrawType::MESH:
                 {
+                    rq << SetTopology(attributes.GetMeshAttributes().topology);
+                    rq << SetVertexAttributes(attributes.GetMeshAttributes().vertexAttributes);
+
+                    rq << SetCurrentBlendFunction(attributes.GetMaterialAttributes().blendFunction);
+                    rq << SetFaceCullMode(attributes.GetMaterialAttributes().cullFaces);
+                    rq << SetFillMode(attributes.GetMaterialAttributes().fillMode);
+                    rq << SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+                    rq << SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+                    rq << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+                    rq << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
+    
+                    rq << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)));
+
+                    rq << CommitDrawState();
+                    
                     MeshDebugDrawShapeBase* meshShape = static_cast<MeshDebugDrawShapeBase*>(shape);
 
                     Mesh* mesh = meshShape->GetMesh();
                     AssertDebug(mesh && mesh->IsReady());
 
-                    frame->renderQueue << BindVertexBuffer(mesh->GetVertexBuffer());
-                    frame->renderQueue << BindIndexBuffer(mesh->GetIndexBuffer());
-                    frame->renderQueue << DrawIndexed(mesh->NumIndices(), uint32(numToDraw));
+                    rq << BindVertexBuffer(mesh->GetVertexBuffer());
+                    rq << BindIndexBuffer(mesh->GetIndexBuffer());
+                    rq << DrawIndexed(mesh->NumIndices(), uint32(numToDraw));
 
                     ++totalDrawCalls;
                     totalInstancedDraws += numToDraw;
@@ -795,6 +806,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     HYP_UNREACHABLE();
                 }
 
+                shaderDataOffset += numToDraw;
                 numToDraw = 0;
             }
         };
@@ -808,45 +820,26 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             uint32 offset = m_headers[idx][drawCommandIdx].offset;
             uint32 size = m_headers[idx][drawCommandIdx].size;
             AssertDebug(offset + size <= m_buffers[idx].Size());
+            
+            numToDraw++;
 
             DebugDrawCommand* drawCommand = reinterpret_cast<DebugDrawCommand*>(m_buffers[idx].Data() + offset);
 
-            bool isNewGraphicsPipeline = false;
-
-            GraphicsPipelineRef& graphicsPipeline = previousState.graphicsPipeline;
-
-            if (!graphicsPipeline.IsValid() || previousState.attributesHashCode != drawCommand->attributes.GetHashCode())
+            if (attributes != drawCommand->attributes)
             {
-                graphicsPipeline = FetchGraphicsPipeline(drawCommand->attributes, ++previousState.layerIndex, renderSetup.passData);
-                previousState.attributesHashCode = drawCommand->attributes.GetHashCode();
+                attributes = drawCommand->attributes;
 
-                isNewGraphicsPipeline = true;
+                if (i != 0)
+                {
+                    CommitCurrentDraws();
+                }
             }
-
-            if (isNewGraphicsPipeline)
-            {
-                // new graphics pipeline, commit current draws then bind new pipeline to keep adding draws
-                CommitCurrentDraws();
-
-                frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
-
-                frame->renderQueue << BindDescriptorTable(
-                    m_descriptorTable,
-                    graphicsPipeline,
-                    { { "DebugDrawerDescriptorSet"_sh,
-                          { { "ImmediateDrawsBuffer"_sh, ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)) } } },
-                        { "Global"_sh,
-                            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) } } },
-                        { "Entity"_sh, {} } },
-                    frameIndex);
-            }
-
-            shaderDataOffset++;
-            numToDraw++;
         }
 
-        CommitCurrentDraws();
+        if (numToDraw != 0)
+        {
+            CommitCurrentDraws();
+        }
     }
 
     ClearCommands(idx);
@@ -900,42 +893,6 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
     const uint32 idx = RenderApi::GetRingIndex();
 
     return m_commandLists[idx].EmplaceBack(this);
-}
-
-GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    AssertDebug(passData != nullptr);
-
-    attributes.SetShaderDefinition(m_shader->GetCompiledShader()->GetDefinition());
-    attributes.SetLayerIndex(layerIndex);
-
-    auto it = m_graphicsPipelines.Find(attributes);
-
-    if (it != m_graphicsPipelines.End() && it->second.IsAlive())
-    {
-        return *it->second;
-    }
-
-    Handle<View> view = passData->view.Lock();
-    Assert(view.IsValid());
-
-    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
-    Assert(framebuffer != nullptr);
-
-    GraphicsPipelineCacheHandle cacheHandle;
-    
-    g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        attributes,
-        framebuffer->GetRenderTargetDesc(),
-        cacheHandle);
-
-    const GraphicsPipelineRef& graphicsPipeline = *cacheHandle;
-    m_graphicsPipelines[attributes] = std::move(cacheHandle);
-
-    return graphicsPipeline;
 }
 
 #pragma endregion DebugDrawer
