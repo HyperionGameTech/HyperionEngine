@@ -501,7 +501,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     Array<GpuBufferRef> uniformBuffers;
 
-    RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported() && false // TEMP! debugging some editor stuff.
+    RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported()
         ? &g_renderBackend->GetAsyncCompute()->renderQueue
         : &frame->renderQueue;
 
@@ -605,6 +605,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         {
             const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
             Assert(boundIndex != ~0u);
+
+            // @TODO! Copy to cpu side data
 
             delete delegateHandle;
         });

@@ -237,12 +237,12 @@ public:
 
     void UpdateBuffers(Frame* frame);
 
-    void CommitDrawState()
+    void CommitDrawState(CommandBuffer* commandBuffer)
     {
-        CommitPipelineState(PSO_Graphics);
+        CommitPipelineState(PSO_Graphics, commandBuffer);
     }
     
-    void CommitPipelineState(PSOType psoType);
+    void CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer);
 
     BindlessStorage* bindlessStorage;
 

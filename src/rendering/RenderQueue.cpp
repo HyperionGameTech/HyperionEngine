@@ -379,7 +379,7 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
     if (pipeline == nullptr)
     {
-        g_renderInterface->CommitPipelineState(PSO_Compute);
+        g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
         
         pipeline = g_renderInterface->state.prevComputePipeline;
         AssertDebug(pipeline != nullptr, "No compute pipeline set, call SetCurrentShader before DispatchCompute() without pipeline passed");
@@ -403,7 +403,7 @@ void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     
     if (pipeline == nullptr)
     {
-        g_renderInterface->CommitPipelineState(PSO_RayTracing);
+        g_renderInterface->CommitPipelineState(PSO_RayTracing, commandBuffer);
 
         pipeline = g_renderInterface->state.prevRayTracingPipeline;
         AssertDebug(pipeline != nullptr, "No rayTracing pipeline set, call SetCurrentShader before TraceRays() without pipeline passed");
@@ -792,9 +792,9 @@ void SetShaderUniforms::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
 #pragma region CommitDrawState
 
-void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer*)
+void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
 {
-    g_renderInterface->CommitDrawState();
+    g_renderInterface->CommitDrawState(commandBuffer);
 
     static_assert(std::is_trivially_destructible_v<CommitDrawState>);
     // cmdCasted->~CommitDrawState();
