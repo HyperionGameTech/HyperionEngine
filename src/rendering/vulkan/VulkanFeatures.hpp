@@ -385,6 +385,7 @@ public:
     {
 #if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
         return m_rayTracingPipelineFeatures.rayTracingPipeline
+            && m_rayQueryFeatures.rayQuery
             && m_accelerationStructureFeatures.accelerationStructure
             && m_bufferDeviceAddressFeatures.bufferDeviceAddress;
 #else

@@ -410,6 +410,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         delegateHandle,
         buffers = std::move(buffers)](...) mutable
         {
+            SafeDelete(std::move(buffers));
+
             delete delegateHandle;
         });
 }
@@ -596,20 +598,21 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([
-        envProbe = MakeStrongRef(envProbe),
-        shTilesBuffers = std::move(shTilesBuffers),
-        uniformBuffers = std::move(uniformBuffers),
-        delegateHandle](Frame* frame) mutable
-        {
-            const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
-            Assert(boundIndex != ~0u);
+    frame->OnFrameEnd
+        .Bind([
+            envProbe = MakeStrongRef(envProbe),
+            shTilesBuffers = std::move(shTilesBuffers),
+            uniformBuffers = std::move(uniformBuffers)](Frame* frame) mutable
+            {
+                const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
+                Assert(boundIndex != ~0u);
 
-            // @TODO! Copy to cpu side data
+                // @TODO! Copy to cpu side data
 
-            delete delegateHandle;
-        });
+                SafeDelete(std::move(shTilesBuffers));
+                SafeDelete(std::move(uniformBuffers));
+            })
+        .Detach();
 }
 
 #pragma endregion ReflectionProbeRenderer

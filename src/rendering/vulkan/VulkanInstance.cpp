@@ -121,10 +121,10 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 #ifdef HYP_DEBUG_MODE
 
 // Returns supported vulkan debug layers
-static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& requestedLayers)
+static Array<const char*> CheckValidationLayerSupport(Span<const char*> requestLayers)
 {
     Array<const char*> supportedLayers;
-    supportedLayers.Reserve(requestedLayers.Size());
+    supportedLayers.Reserve(requestLayers.Size());
 
     uint32 layersCount;
     vkEnumerateInstanceLayerProperties(&layersCount, nullptr);
@@ -134,7 +134,7 @@ static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& 
 
     vkEnumerateInstanceLayerProperties(&layersCount, availableLayers.Data());
 
-    for (const char* request : requestedLayers)
+    for (const char* request : requestLayers)
     {
         bool layerFound = false;
 
@@ -238,6 +238,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
+    if (String(callbackData->pMessage).Contains("vkDestroyBuffer"))
+    {
+        HYP_BREAKPOINT;
+    }
+
     return VK_FALSE;
 }
 
@@ -271,15 +276,11 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> s_requestedLayers = {
+    static const const char* s_requestLayers[] = {
         "VK_LAYER_KHRONOS_validation"
-#if !defined(HYP_APPLE) || !HYP_APPLE
-        ,
-        "VK_LAYER_LUNARG_monitor"
-#endif
     };
 
-    m_validationLayers = CheckValidationLayerSupport(s_requestedLayers);
+    m_validationLayers = CheckValidationLayerSupport(s_requestLayers);
 
     return {};
 }
