@@ -10,12 +10,4 @@ namespace Hyperion
         {
         }
     }
-
-    [ClassBinding(Name = "LegacyEnvGrid")]
-    public class LegacyEnvGrid : EnvGrid
-    {
-        public LegacyEnvGrid()
-        {
-        }
-    }
 }

@@ -12,7 +12,6 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/DescriptorSet.hpp>
 
-#include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>
@@ -194,89 +193,7 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
 {
     AssertDebug(envGrid != nullptr);
 
-    if (!envGrid->IsA<LegacyEnvGrid>())
-    {
-        return;
-    }
-
-    LegacyEnvGrid* legacyEnvGrid = static_cast<LegacyEnvGrid*>(envGrid);
-
     RenderApi::AssignResourceBinding(envGrid, next);
-
-    switch (legacyEnvGrid->GetEnvGridType())
-    {
-    case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
-    {
-        AssertDebug(legacyEnvGrid->GetLightFieldIrradianceTexture().IsValid());
-        AssertDebug(legacyEnvGrid->GetLightFieldDepthTexture().IsValid());
-
-        /// \todo : Set based on binding index
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("LightFieldColorTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(legacyEnvGrid->GetLightFieldIrradianceTexture()));
-
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("LightFieldDepthTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(legacyEnvGrid->GetLightFieldDepthTexture()));
-        }
-
-        break;
-    }
-    default:
-        break;
-    }
-
-    if (legacyEnvGrid->GetOptions().flags & EnvGridFlags::USE_VOXEL_GRID)
-    {
-        AssertDebug(legacyEnvGrid->GetVoxelGridTexture().IsValid());
-
-        // Set our voxel grid texture in the global descriptor set so we can use it in shaders
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("VoxelGridTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(legacyEnvGrid->GetVoxelGridTexture()));
-        }
-    }
-}
-
-void WriteBufferData_EnvGrid(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
-{
-    AssertDebug(gpuBufferHolder != nullptr);
-    AssertDebug(idx != ~0u);
-
-    RenderProxyEnvGrid* proxyCasted = static_cast<RenderProxyEnvGrid*>(proxy);
-    AssertDebug(proxyCasted != nullptr);
-
-    EnvGrid* envGrid = proxyCasted->envGrid.GetUnsafe();
-    AssertDebug(envGrid != nullptr);
-
-    uint32 offset = 0;
-
-    for (auto it = std::begin(proxyCasted->envProbes); it != std::end(proxyCasted->envProbes); ++it)
-    {
-        EnvProbe* envProbe = *it;
-
-        // at first non-valid id, just set all remaining probe indices to -1
-        if (!envProbe)
-        {
-            std::fill(proxyCasted->bufferData.probeIndices + offset, std::end(proxyCasted->bufferData.probeIndices), ~0u);
-
-            break;
-        }
-
-        const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
-
-        if (boundIndex == ~0u)
-        {
-            HYP_LOG(Rendering, Warning, "EnvProbe {} not currently bound when writing buffer data for EnvGrid {}", envProbe->Id(), envGrid->Id());
-
-            continue;
-        }
-
-        proxyCasted->bufferData.probeIndices[offset++] = boundIndex;
-    }
-
-    gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
 }
 
 void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next)

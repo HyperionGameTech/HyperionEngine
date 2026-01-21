@@ -72,11 +72,6 @@ HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain
 HYP_DESCRIPTOR_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.glsl"
 #include "include/shadows.inc"
@@ -220,10 +215,6 @@ void main()
                 vec4(0.0),
                 gbuffer_albedo,
                 vec3(ao));
-
-            // #ifdef ENV_GRID_ENABLED
-            // CalculateEnvGridIrradiance(P, N, irradiance);
-            // #endif
 
             Fd = gbuffer_albedo.rgb * irradiance * (1.0 - E) * ao;
 

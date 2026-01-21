@@ -37,9 +37,6 @@ HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer
     EnvProbe env_probes[];
 };
 
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
-
 struct ImmediateDraw
 {
     mat4 model_matrix;

@@ -3,7 +3,6 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
-#include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <rendering/RenderGroup.hpp>
@@ -72,14 +71,6 @@
 namespace Hyperion {
 
 static constexpr float CameraJitterScale = 0.25f;
-
-static constexpr TextureFormat EnvGridRadianceFormat = TF_RGBA8;
-static constexpr TextureFormat EnvGridIrradianceFormat = TF_R11G11B10F;
-
-static constexpr TextureFormat EnvGridPassFormats[EGPM_MAX] = {
-    EnvGridRadianceFormat,  // EGPM_RADIANCE
-    EnvGridIrradianceFormat // EGPM_IRRADIANCE
-};
 
 static const Float16 s_ltcMatrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
@@ -151,8 +142,6 @@ static void GetDeferredShaderProperties(
 
     DEF_STATIC_CONFIGURATION_VALUE(rayTracingReflections, "Rendering.RayTracing.Reflections.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(rayTracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(envGridGlobalIllumination, "Rendering.EnvGrid.GI.Enabled");
-    DEF_STATIC_CONFIGURATION_VALUE(envGridReflections, "Rendering.EnvGrid.Reflections.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbao, "Rendering.HBAO.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(ssgi, "Rendering.SSGI.Enabled");
@@ -169,8 +158,6 @@ static void GetDeferredShaderProperties(
     {
         outShaderProperties.Set(NAME("RT_REFLECTIONS"), s_renderConfig.rayTracing && rayTracingReflections);
         outShaderProperties.Set(NAME("RT_GI"), s_renderConfig.rayTracing && rayTracingGlobalIllumination);
-        outShaderProperties.Set(NAME("ENV_GRID_GI"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridGlobalIllumination);
-        outShaderProperties.Set(NAME("ENV_GRID_REFLECTIONS"), rpl && rpl->GetEnvGrids().NumCurrent() > 0 && envGridReflections);
         outShaderProperties.Set(NAME("HBIL_ENABLED"), hbil);
         outShaderProperties.Set(NAME("SSGI_ENABLED"), ssgi);
     }
@@ -431,7 +418,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (rs.envGrid != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(rs.envGrid) * sizeof(EnvGridShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), ShaderDataOffset<EnvGridShaderData>(rs.envGrid));
     else
         rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
 
@@ -993,224 +980,6 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
 
 #pragma endregion FogVolumePass
 
-#pragma region EnvGridPass
-
-static inline EnvGridApplyMode EnvGridTypeToApplyMode(EnvGridType type)
-{
-    switch (type)
-    {
-    case EnvGridType::ENV_GRID_TYPE_SH:
-        return EGAM_SH;
-    case EnvGridType::ENV_GRID_TYPE_VOXEL:
-        return EGAM_VOXEL;
-    case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
-        return EGAM_LIGHT_FIELD;
-    default:
-        HYP_UNREACHABLE();
-    }
-}
-
-EnvGridPass::EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(EnvGridPassFormats[mode], extent, gbuffer),
-      m_mode(mode),
-      m_isFirstFrame(true)
-{
-    if (mode == EGPM_RADIANCE)
-    {
-        SetBlendFunction(BlendFunction(
-            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
-    }
-}
-
-EnvGridPass::~EnvGridPass()
-{
-}
-
-void EnvGridPass::Create()
-{
-    AssertOnThread(g_renderThread);
-
-    FullScreenPass::Create();
-}
-
-void EnvGridPass::CreatePipeline()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    const MeshAttributes meshAttributes {
-        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
-    };
-
-    const MaterialAttributes materialAttributes {
-        .fillMode = FM_FILL,
-        .blendFunction = BlendFunction(
-            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-        .flags = MAF_NONE
-    };
-
-    const RenderableAttributeSet renderableAttributes(
-        meshAttributes,
-        materialAttributes);
-
-    if (m_mode == EGPM_RADIANCE)
-    {
-        m_shader = g_shaderManager->GetOrCreate(NAME("ApplyEnvGrid"), ShaderProperties { { NAME("MODE_RADIANCE") } });
-
-        FullScreenPass::CreatePipeline(renderableAttributes);
-
-        return;
-    }
-
-    static const FixedArray<ShaderProperties, EGAM_MAX> s_applyEnvGridPasses = {
-        ShaderProperties { { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), NAME("SH")) } },         // EGAM_SH
-        ShaderProperties { { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), NAME("VOXEL")) } },      // EGAM_VOXEL
-        ShaderProperties { { ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")), ShaderProperty(NAME("IRRADIANCE_MODE"), NAME("LIGHT_FIELD")) } } // EGAM_LIGHT_FIELD
-    };
-
-    for (uint32 passMode = 0; passMode < EGAM_MAX; passMode++)
-    {
-        const ShaderProperties& passProperties = s_applyEnvGridPasses[passMode];
-
-        ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ApplyEnvGrid"), passProperties);
-        Assert(shader.IsValid());
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-            shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-        Assert(descriptorTable->Create());
-
-        GraphicsPipelineCacheHandle cacheHandle;
-        
-        
-        g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            renderableAttributes,
-            m_framebuffer->GetRenderTargetDesc(),
-            cacheHandle);
-
-        m_graphicsPipelines[passMode] = std::move(cacheHandle);
-    }
-
-    m_graphicsPipelineCacheHandle = m_graphicsPipelines[EGAM_SH];
-}
-
-void EnvGridPass::Resize_Internal(Vec2u newSize)
-{
-    FullScreenPass::Resize_Internal(newSize);
-
-    m_graphicsPipelines = {};
-}
-
-void EnvGridPass::Render(Frame* frame, const RenderSetup& rs)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    AssertDebug(rs.world && rs.view);
-    AssertDebug(rs.passData != nullptr);
-
-    const Viewport& viewport = rs.view->GetViewport();
-
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
-    rpl.BeginRead();
-
-    HYP_DEFER({ rpl.EndRead(); });
-
-    // shouldn't be called if no env grids are present
-    AssertDebug(rpl.GetEnvGrids().NumCurrent() != 0);
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    frame->renderQueue << BeginFramebuffer(m_framebuffer);
-
-    // render previous frame's result to screen
-    if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
-    {
-        RenderPreviousTextureToScreen(frame, rs);
-    }
-
-    auto selectPipeline = [this](LegacyEnvGrid* envGrid) -> GraphicsPipelineCacheHandle&
-    {
-        return m_mode == EGPM_RADIANCE
-            ? m_graphicsPipelineCacheHandle
-            : m_graphicsPipelines[EnvGridTypeToApplyMode(envGrid->GetEnvGridType())];
-    };
-
-    for (EnvGrid* envGrid : rpl.GetEnvGrids().GetElements<LegacyEnvGrid>())
-    {
-        LegacyEnvGrid* legacyEnvGrid = static_cast<LegacyEnvGrid*>(envGrid);
-
-        GraphicsPipelineCacheHandle& cacheHandle = selectPipeline(legacyEnvGrid);
-
-        if (!cacheHandle.IsAlive())
-        {
-            CreatePipeline();
-
-            cacheHandle = selectPipeline(legacyEnvGrid);
-            Assert(cacheHandle.IsAlive());
-        }
-
-        const GraphicsPipelineRef& graphicsPipeline = *cacheHandle;
-
-        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
-        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
-
-        graphicsPipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
-
-        if (ShouldRenderHalfRes())
-        {
-            const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
-            const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
-
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { viewportExtent, viewportOffset });
-        }
-        else
-        {
-            frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, viewport);
-        }
-
-        frame->renderQueue << BindDescriptorSet(
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
-            graphicsPipeline,
-            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
-            globalDescriptorSetIndex);
-
-        frame->renderQueue << BindDescriptorSet(
-            rs.passData->descriptorSets[frameIndex],
-            graphicsPipeline,
-            {},
-            viewDescriptorSetIndex);
-
-        frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        frame->renderQueue << DrawIndexed(6);
-    }
-
-    frame->renderQueue << EndFramebuffer(m_framebuffer);
-
-    if (ShouldRenderHalfRes())
-    {
-        MergeHalfResTextures(frame, rs);
-    }
-
-    if (UsesTemporalBlending())
-    {
-        if (!ShouldRenderHalfRes())
-        {
-            CopyResultToPreviousTexture(frame, rs);
-        }
-
-        m_temporalBlending->Render(frame, rs);
-    }
-
-    m_isFirstFrame = false;
-}
-
-#pragma endregion EnvGridPass
-
 #pragma region ReflectionsPass
 
 // Sky renders first
@@ -1530,9 +1299,6 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
     combinePass.Reset();
 
-    envGridRadiancePass.Reset();
-    envGridIrradiancePass.Reset();
-
     reflectionsPass.Reset();
 
     lightmapPass.Reset();
@@ -1647,12 +1413,6 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
         const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-
-        passData.envGridRadiancePass = CreateObject<EnvGridPass>(EGPM_RADIANCE, passData.viewport.extent, gbuffer);
-        passData.envGridRadiancePass->Create();
-
-        passData.envGridIrradiancePass = CreateObject<EnvGridPass>(EGPM_IRRADIANCE, passData.viewport.extent, gbuffer);
-        passData.envGridIrradiancePass->Create();
 
         passData.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
         passData.ssgi->Create();
@@ -1850,9 +1610,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
         descriptorSet->SetElement("ReflectionProbeResultTexture"_sh, passData.reflectionsPass->GetFinalImageView());
 
-        descriptorSet->SetElement("EnvGridRadianceResultTexture"_sh, passData.envGridRadiancePass->GetFinalImageView());
-        descriptorSet->SetElement("EnvGridIrradianceResultTexture"_sh, passData.envGridIrradiancePass->GetFinalImageView());
-
         if (passData.ddgi)
         {
             descriptorSet->SetElement("DDGIConstants"_sh, passData.ddgi->GetConstantBuffer(frameIndex));
@@ -2001,9 +1758,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.combinePass.Reset();
     CreateViewCombinePass(view, passData);
-
-    passData.envGridRadiancePass->Resize(newSize);
-    passData.envGridIrradiancePass->Resize(newSize);
 
     passData.reflectionsPass.Reset();
     passData.reflectionsPass = CreateObject<ReflectionsPass>(
@@ -2389,10 +2143,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     const bool useHbao = m_rendererConfig.hbaoEnabled;
     const bool useHbil = m_rendererConfig.hbilEnabled;
     const bool useSsgi = m_rendererConfig.ssgiEnabled;
-
-    const bool useEnvGridIrradiance = rpl.GetEnvGrids().NumCurrent() && m_rendererConfig.envGridGiEnabled;
-    const bool useEnvGridRadiance = rpl.GetEnvGrids().NumCurrent() && m_rendererConfig.envGridRadianceEnabled;
-
     const bool useTAA = passData.temporalAa != nullptr && m_rendererConfig.taaEnabled;
 
     if (useTAA)
@@ -2474,19 +2224,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
 
         frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
-    }
-
-    if (useEnvGridIrradiance || useEnvGridRadiance)
-    {
-        if (useEnvGridIrradiance)
-        {
-            passData.envGridIrradiancePass->Render(frame, rs);
-        }
-
-        if (useEnvGridRadiance)
-        {
-            passData.envGridRadiancePass->Render(frame, rs);
-        }
     }
 
     passData.reflectionsPass->Render(frame, rs);

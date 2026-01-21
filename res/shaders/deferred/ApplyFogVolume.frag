@@ -51,13 +51,11 @@ HYP_DESCRIPTOR_SRV(FogVolume, PointLightShadowMapsTextureArray) uniform textureC
 #include "../include/brdf.inc"
 
 #define HYP_DEFERRED_NO_REFRACTION
-#define HYP_DEFERRED_NO_ENV_GRID
 #define HYP_DEFERRED_NO_ENV_PROBE
 
 #include "DeferredLighting.glsl"
 
 #undef HYP_DEFERRED_NO_REFRACTION
-#undef HYP_DEFERRED_NO_ENV_GRID
 #undef HYP_DEFERRED_NO_ENV_PROBE
 
 #include "../include/shadows.inc"

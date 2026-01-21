@@ -70,12 +70,6 @@ struct RendererConfig : public ConfigBase<RendererConfig>
     HYP_FIELD(JsonPath = "SSGI.Enabled")
     bool ssgiEnabled = false;
 
-    HYP_FIELD(JsonPath = "EnvGrid.GI.Enabled")
-    bool envGridGiEnabled = false;
-
-    HYP_FIELD(JsonPath = "EnvGrid.Reflections.Enabled")
-    bool envGridRadianceEnabled = false;
-
     HYP_FIELD(JsonPath = "TAA.Enabled")
     bool taaEnabled = false;
 

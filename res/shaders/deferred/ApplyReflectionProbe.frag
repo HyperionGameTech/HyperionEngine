@@ -51,7 +51,6 @@ HYP_DESCRIPTOR_CBUFF(ReflectionsPass, SphereSamplesBuffer) uniform SphereSamples
 HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
 #define HYP_DEFERRED_NO_RT_RADIANCE
-#define HYP_DEFERRED_NO_ENV_GRID
 
 #include "../include/BlueNoise.glsl"
 

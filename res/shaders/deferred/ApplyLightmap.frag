@@ -51,9 +51,6 @@ HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCube
 
 HYP_DESCRIPTOR_SRV(View, ReflectionProbeResultTexture) uniform texture2D ReflectionProbeResultTexture;
 
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
-
 #include "../include/shadows.inc"
 
 HYP_DESCRIPTOR_SRV(LightmapVolume, IrradianceTexture) uniform texture2D IrradianceTexture;

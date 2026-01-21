@@ -47,9 +47,6 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
-
 #include "include/Entity.glsl"
 
 #ifdef IMMEDIATE_MODE
@@ -83,12 +80,10 @@ HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform texture2DArray envProbesTex
 HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #define HYP_DEFERRED_NO_REFRACTION
-#define HYP_DEFERRED_NO_ENV_GRID
 
 #include "deferred/DeferredLighting.glsl"
 
 #undef HYP_DEFERRED_NO_REFRACTION
-#undef HYP_DEFERRED_NO_ENV_GRID
 
 HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
 {

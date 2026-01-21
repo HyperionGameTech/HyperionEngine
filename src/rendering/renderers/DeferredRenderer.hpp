@@ -92,23 +92,6 @@ private:
     SamplerRef m_ltcSampler;
 };
 
-enum EnvGridPassMode : uint8
-{
-    EGPM_RADIANCE,
-    EGPM_IRRADIANCE,
-
-    EGPM_MAX
-};
-
-enum EnvGridApplyMode : uint8
-{
-    EGAM_SH,
-    EGAM_VOXEL,
-    EGAM_LIGHT_FIELD,
-
-    EGAM_MAX
-};
-
 HYP_CLASS(NoScriptBindings)
 class TonemapPass final : public FullScreenPass
 {
@@ -264,46 +247,6 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class EnvGridPass final : public FullScreenPass
-{
-    HYP_OBJECT_BODY(EnvGridPass);
-
-public:
-    EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer);
-    EnvGridPass(const EnvGridPass& other) = delete;
-    EnvGridPass& operator=(const EnvGridPass& other) = delete;
-    virtual ~EnvGridPass() override;
-
-    virtual void Create() override;
-    virtual void Render(Frame* frame, const RenderSetup& rs) override;
-
-protected:
-    virtual void CreatePipeline() override;
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
-private:
-    virtual bool UsesTemporalBlending() const override
-    {
-        return false;
-        // m_mode == EGPM_RADIANCE;
-    }
-
-    virtual bool ShouldRenderHalfRes() const override
-    {
-        return false;
-    }
-
-    virtual void Resize_Internal(Vec2u newSize) override;
-
-    const EnvGridPassMode m_mode;
-    FixedArray<GraphicsPipelineCacheHandle, EGAM_MAX> m_graphicsPipelines;
-    bool m_isFirstFrame;
-};
-
-HYP_CLASS(NoScriptBindings)
 class ReflectionsPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(ReflectionsPass);
@@ -387,9 +330,6 @@ public:
     Handle<DeferredPass> directPass;
 
     FramebufferRef deferredShadingFramebuffer;
-
-    Handle<EnvGridPass> envGridRadiancePass;
-    Handle<EnvGridPass> envGridIrradiancePass;
 
     Handle<ReflectionsPass> reflectionsPass;
 

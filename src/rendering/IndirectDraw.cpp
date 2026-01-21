@@ -17,7 +17,6 @@
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
 

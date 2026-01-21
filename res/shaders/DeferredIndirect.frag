@@ -30,8 +30,6 @@ HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerLinear) uniform sampler sampler_line
 HYP_DESCRIPTOR_SRV(DeferredPass, SSAOResultTexture) uniform texture2D ssao_gi_result;
 HYP_DESCRIPTOR_SRV(DeferredPass, SSGIResultTexture) uniform texture2D ssgi_result;
 HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
-HYP_DESCRIPTOR_SRV(DeferredPass, EnvGridRadianceResultTexture) uniform texture2D env_grid_radiance_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, EnvGridIrradianceResultTexture) uniform texture2D env_grid_irradiance_texture;
 HYP_DESCRIPTOR_SRV(DeferredPass, ReflectionProbeResultTexture) uniform texture2D reflections_texture;
 
 #include "include/gbuffer.inc"
@@ -126,15 +124,6 @@ void main()
     const float perceptual_roughness = sqrt(roughness);
 
     reflections = Texture2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
-
-#if ENV_GRID_REFLECTIONS
-    vec4 env_grid_radiance = Texture2D(HYP_SAMPLER_LINEAR, env_grid_radiance_texture, texcoord);
-    reflections = reflections * (1.0 - env_grid_radiance.a) + (vec4(env_grid_radiance.rgb, 1.0) * env_grid_radiance.a);
-#endif
-
-#if ENV_GRID_GI
-    irradiance += Texture2D(HYP_SAMPLER_LINEAR, env_grid_irradiance_texture, texcoord).rgb * ENV_GRID_MULTIPLIER;
-#endif
 
 #if SSGI_ENABLED
     const vec4 ssgi = Texture2D(HYP_SAMPLER_LINEAR, ssgi_result, v_texcoord0);

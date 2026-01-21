@@ -9,8 +9,6 @@ layout(location = 1) in vec2 v_texcoord0;
 
 layout(location = 0) out vec4 output_color;
 
-#define HYP_DEFERRED_NO_ENV_GRID
-
 HYP_DESCRIPTOR_SRV(DeferredPass, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
 HYP_DESCRIPTOR_SRV(DeferredPass, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
 HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
@@ -52,11 +50,11 @@ HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) uniform textu
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
-#define HYP_DEFERRED_NO_ENV_GRID
+
 #include "./deferred/DeferredLighting.glsl"
+
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE
-#undef HYP_DEFERRED_NO_ENV_GRID
 
 vec2 texcoord = v_texcoord0;
 

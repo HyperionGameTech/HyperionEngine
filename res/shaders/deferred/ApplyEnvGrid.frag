@@ -44,9 +44,6 @@ HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
 
 #define HYP_DEFERRED_NO_RT_RADIANCE // temp
 
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
-
 #include "../include/env_probe.inc"
 HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
 {
@@ -63,14 +60,12 @@ HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture) uniform texture3D voxel_image;
-
 #include "./EnvGridVoxelConeTracing.glsl"
 #endif
 
 void main()
 {
-#if 1
+#if 0 // Will be repalced with new env grid system after implementing it fully
     uvec2 screen_resolution = uvec2(deferred_params.screen_width, deferred_params.screen_height);
     vec2 pixel_size = 1.0 / vec2(screen_resolution);
     vec2 texcoord = v_texcoord;

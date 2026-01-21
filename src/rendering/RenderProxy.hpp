@@ -183,20 +183,9 @@ public:
 
 struct alignas(16) EnvGridShaderData
 {
-    uint32 probeIndices[MaxBoundAmbientProbes];
+    // Nothing for now until we add the new env grid (baked)
 
-    Vec4f center;
-    Vec4f extent;
-    Vec4f aabbMax;
-    Vec4f aabbMin;
-
-    Vec4u density;
-
-    Vec4f voxelGridAabbMax;
-    Vec4f voxelGridAabbMin;
-
-    Vec2i lightFieldImageDimensions;
-    Vec2i irradianceOctahedronSize;
+    Vec4f dummy;
 };
 
 class RenderProxyEnvGrid final : public IRenderProxy
@@ -204,7 +193,6 @@ class RenderProxyEnvGrid final : public IRenderProxy
 public:
     WeakHandle<EnvGrid> envGrid;
     EnvGridShaderData bufferData {};
-    EnvProbe* envProbes[MaxBoundAmbientProbes];
 };
 
 struct alignas(16) LightShaderData
