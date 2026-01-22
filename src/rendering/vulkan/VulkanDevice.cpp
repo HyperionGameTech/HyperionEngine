@@ -543,22 +543,34 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
     Array<VulkanDeviceQueue, InlineAllocator<4>> queues;
     Array<VulkanDeviceQueue**, InlineAllocator<4>> queueMembers;
 
-    queues.PushBack({ .type = VulkanDeviceQueueType::GRAPHICS,
-        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get() });
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::GRAPHICS,
+        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
+    });
+
     queueMembers.PushBack(&m_queueGraphics);
 
-    queues.PushBack({ .type = VulkanDeviceQueueType::TRANSFER,
-        .familyIndex = m_queueFamilyIndices.transferFamily.Get() });
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::TRANSFER,
+        .familyIndex = m_queueFamilyIndices.transferFamily.Get()
+    });
+
     queueMembers.PushBack(&m_queueTransfer);
 
-    queues.PushBack({ .type = VulkanDeviceQueueType::COMPUTE,
-        .familyIndex = m_queueFamilyIndices.computeFamily.Get() });
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::COMPUTE,
+        .familyIndex = m_queueFamilyIndices.computeFamily.Get()
+    });
+
     queueMembers.PushBack(&m_queueCompute);
 
     if (needPresentation)
     {
-        queues.PushBack({ .type = VulkanDeviceQueueType::PRESENT,
-            .familyIndex = m_queueFamilyIndices.presentFamily.Get() });
+        queues.PushBack({
+            .type = VulkanDeviceQueueType::PRESENT,
+            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
+        });
+
         queueMembers.PushBack(&m_queuePresent);
     }
 

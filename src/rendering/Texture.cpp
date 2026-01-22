@@ -299,13 +299,13 @@ Texture::Texture()
 
 Texture::Texture(const TextureDesc& textureDesc)
     : AssetObject(s_nameTextureDefault),
-      m_assetReference(CreateObject<TextureAsset>(s_nameTextureDefault, textureDesc))
+      m_assetReference(MakeHandle<TextureAsset>(s_nameTextureDefault, textureDesc))
 {
 }
 
 Texture::Texture(const TextureDesc& textureDesc, const TextureData& textureData)
     : AssetObject(s_nameTextureDefault),
-      m_assetReference(CreateObject<TextureAsset>(s_nameTextureDefault, textureDesc, textureData))
+      m_assetReference(MakeHandle<TextureAsset>(s_nameTextureDefault, textureDesc, textureData))
 {
 }
 
@@ -463,7 +463,7 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
         // @NOTE: Don't use std::move with prev data, the texture may be in use elsewhere (e.g uploading in render command)
         TextureData newTextureData = *prevAsset->GetTextureData();
 
-        asset = CreateObject<TextureAsset>(prevAsset->GetName(), textureDesc, newTextureData);
+        asset = MakeHandle<TextureAsset>(prevAsset->GetName(), textureDesc, newTextureData);
 
         if (package.IsValid())
         {
@@ -473,7 +473,7 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
     }
     else
     {
-        asset = CreateObject<TextureAsset>(GetName(), textureDesc);
+        asset = MakeHandle<TextureAsset>(GetName(), textureDesc);
     }
 
     if (IsInitCalled())

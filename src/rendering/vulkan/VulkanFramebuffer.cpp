@@ -17,6 +17,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <new>
+
 #include <VulkanFramebuffer.generated.inl>
 
 namespace Hyperion {
@@ -77,7 +79,7 @@ RendererResult VulkanAttachmentMap::Create()
 
         attachmentDefs.PushBack(&def);
 
-        Assert(def.attachment.IsValid());
+        Assert(def.attachment != nullptr);
 
         if (!def.attachment->IsCreated())
         {
@@ -131,7 +133,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
             TextureDesc textureDesc = def.image->GetTextureDesc();
             textureDesc.extent = Vec3u { newSize.x, newSize.y, 1 };
 
-            newImage = CreateObject<VulkanGpuImage>(textureDesc);
+            newImage = MakeHandle<VulkanGpuImage>(textureDesc);
             newImage->SetDebugName(def.image->GetDebugName());
             Assert(newImage->Create());
 
@@ -149,7 +151,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
             }
         }
 
-        VulkanAttachmentRef newAttachment = CreateObject<VulkanAttachment>(
+        VulkanAttachment* newAttachment = new VulkanAttachment(
             newImage,
             framebufferWeak,
             framebuffer->GetRenderPassMode(),
@@ -159,14 +161,14 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
         Assert(newAttachment->Create());
 
-        if (def.attachment.IsValid())
+        if (def.attachment != nullptr)
         {
-            SafeDelete(std::move(def.attachment));
+            delete def.attachment;
         }
 
         def = VulkanAttachmentDef {
             std::move(newImage),
-            std::move(newAttachment)
+            newAttachment
         };
 
         attachmentDefs.PushBack(&def);
@@ -246,11 +248,11 @@ RendererResult VulkanFramebuffer::Create()
     {
         const VulkanAttachmentDef& def = it.second;
 
-        Assert(def.attachment.IsValid());
+        Assert(def.attachment != nullptr);
         m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
     }
     
-    m_renderPass = CreateObject<VulkanRenderPass>(m_renderTargetDesc, m_renderPassMode);
+    m_renderPass = MakeHandle<VulkanRenderPass>(m_renderTargetDesc, m_renderPassMode);
     CheckResultOrReturn(m_renderPass->Create());
 
     Array<VkImageView> attachmentImageViews;
@@ -261,7 +263,7 @@ RendererResult VulkanFramebuffer::Create()
 
     for (const auto& it : m_attachmentMap.attachments)
     {
-        VulkanAttachment* attachment = it.second.attachment.Get();
+        VulkanAttachment* attachment = it.second.attachment;
         Assert(attachment != nullptr);
 
         if (attachment->GetLoadOperation() == LoadOperation::LOAD)
@@ -377,21 +379,29 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
     return {};
 }
 
-VulkanAttachmentRef VulkanFramebuffer::AddAttachment(const VulkanAttachmentRef& attachment)
+VulkanAttachment* VulkanFramebuffer::AddAttachment(VulkanAttachment* attachment)
 {
+    if (!attachment)
+    {
+        return nullptr;
+    }
+
     Assert(attachment->GetFramebuffer().GetUnsafe() == this,
         "Attachment framebuffer does not match framebuffer");
+
+    // external attachment so we need to add a reference
+    attachment->AddRef();
 
     return m_attachmentMap.AddAttachment(attachment);
 }
 
-VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
+VulkanAttachment* VulkanFramebuffer::AddAttachment(
     uint32 binding,
     const VulkanGpuImageRef& image,
     LoadOperation loadOp,
     StoreOperation storeOp)
 {
-    VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
+    VulkanAttachment* attachment = new VulkanAttachment(
         image,
         WeakHandleFromThis(),
         GetRenderPassMode(),
@@ -406,10 +416,10 @@ VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
 
     attachment->SetBinding(binding);
 
-    return AddAttachment(attachment);
+    return m_attachmentMap.AddAttachment(attachment);
 }
 
-VulkanAttachmentRef VulkanFramebuffer::AddAttachment(
+VulkanAttachment* VulkanFramebuffer::AddAttachment(
     uint32 binding,
     TextureFormat format,
     TextureType type,
@@ -435,7 +445,10 @@ bool VulkanFramebuffer::RemoveAttachment(uint32 binding)
         return false;
     }
 
-    SafeDelete(std::move(it->second.attachment));
+    Attachment* attachment = it->second.attachment;
+    AssertDebug(attachment != nullptr);
+
+    attachment->Release();
 
     m_attachmentMap.attachments.Erase(it);
 
@@ -444,7 +457,7 @@ bool VulkanFramebuffer::RemoveAttachment(uint32 binding)
 
 VulkanAttachment* VulkanFramebuffer::GetAttachment(uint32 binding) const
 {
-    return m_attachmentMap.GetAttachment(binding).Get();
+    return m_attachmentMap.GetAttachment(binding);
 }
 
 void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
@@ -484,8 +497,8 @@ void VulkanFramebuffer::Clear(VulkanCommandBuffer* commandBuffer)
 
     for (const auto& it : m_attachmentMap.attachments)
     {
-        const VulkanAttachmentRef& attachment = it.second.attachment;
-        Assert(attachment.IsValid() && attachment->IsCreated());
+        VulkanAttachment* attachment = it.second.attachment;
+        Assert(attachment != nullptr && attachment->IsCreated());
 
         Assert(attachment->GetImage().IsValid());
 

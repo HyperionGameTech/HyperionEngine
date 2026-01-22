@@ -127,7 +127,7 @@ struct SetFinalPassImageView : RenderCommand
 #pragma endregion Render commands
 
 UISubsystem::UISubsystem()
-    : UISubsystem(CreateObject<UIStage>())
+    : UISubsystem(MakeHandle<UIStage>())
 {
 }
 
@@ -225,7 +225,7 @@ void UISubsystem::Init()
         .entityBatchClass = UIEntityInstanceBatch::StaticClass()
     };
 
-    m_view = CreateObject<View>(viewDesc);
+    m_view = MakeHandle<View>(viewDesc);
     InitObject(m_view);
 
     CreateFramebuffer();

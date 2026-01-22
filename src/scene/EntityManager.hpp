@@ -203,7 +203,7 @@ public:
     {
         static_assert(std::is_base_of_v<Entity, T>, "T must be a subclass of Entity");
 
-        Handle<T> entity = CreateObject<T>(std::forward<Args>(args)...);
+        Handle<T> entity = MakeHandle<T>(std::forward<Args>(args)...);
         Assert(entity.IsValid(), "Failed to create instance of Entity subclass {}", TypeNameWithoutNamespace<T>().Data());
 
         AddExistingEntity(entity);

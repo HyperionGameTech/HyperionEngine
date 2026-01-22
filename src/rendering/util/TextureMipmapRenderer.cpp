@@ -157,7 +157,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         mipImageViews[mipLevel] = std::move(mipImageView);
 
         {
-            Handle<FullScreenPass> pass = CreateObject<FullScreenPass>(
+            Handle<FullScreenPass> pass = MakeHandle<FullScreenPass>(
                 shader,
                 descriptorTable,
                 texture->GetFormat(),

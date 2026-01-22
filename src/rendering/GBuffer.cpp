@@ -188,7 +188,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
 
-    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> AttachmentRef
+    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
     {
         TextureDesc textureDesc;
         textureDesc.type = TT_TEX2D;
@@ -209,7 +209,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             StoreOperation::STORE);
     };
 
-    auto AddSharedAttachment = [&](uint32 binding) -> AttachmentRef
+    auto AddSharedAttachment = [&](uint32 binding) -> Attachment*
     {
         Assert(parentFramebuffer != nullptr);
 

@@ -34,7 +34,7 @@ VulkanAttachment::VulkanAttachment(
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
 {
-    m_imageView = CreateObject<VulkanGpuImageView>(image);
+    m_imageView = MakeHandle<VulkanGpuImageView>(image);
 }
 
 VulkanAttachment::~VulkanAttachment()

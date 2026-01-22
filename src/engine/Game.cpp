@@ -57,7 +57,7 @@ void Game::Init()
 
     if (!m_world)
     {
-        m_world = CreateObject<World>(s_nameMainWorld, WorldFlags::DEFAULT);
+        m_world = MakeHandle<World>(s_nameMainWorld, WorldFlags::DEFAULT);
     }
 
     AssertDebug(m_world->m_gameInstance == nullptr || m_world->m_gameInstance == this);
@@ -66,9 +66,9 @@ void Game::Init()
     InitObject(m_world);
     g_engineDriver->AddWorld(m_world);
 
-    // Handle<UIStage> uiStage = CreateObject<UIStage>(g_simThread);
+    // Handle<UIStage> uiStage = MakeHandle<UIStage>(g_simThread);
 
-    // m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
+    // m_uiSubsystem = m_world->AddSubsystem(MakeHandle<UISubsystem>(uiStage));
 }
 
 void Game::HandleEvent(Event&& event)

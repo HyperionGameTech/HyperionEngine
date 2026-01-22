@@ -54,7 +54,7 @@ void DynamicSkySystem::Init()
     SystemBase::Init();
 
     { // atmospheric scattering capture setup
-        m_renderScene = CreateObject<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
+        m_renderScene = MakeHandle<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
         m_renderScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
         m_renderScene->SetOwnerThreadId(g_simThread);
         InitObject(m_renderScene);
@@ -86,7 +86,7 @@ void DynamicSkySystem::Init()
     }
 
     { // skybox entity setup (renders the captured texture to a box)
-        m_skyboxEntity = CreateObject<Entity>();
+        m_skyboxEntity = MakeHandle<Entity>();
         m_skyboxEntity->SetName(NAME("Skybox"));
         m_skyboxEntity->Scale(150.0f);
         InitObject(m_skyboxEntity);
@@ -117,7 +117,7 @@ void DynamicSkySystem::Init()
         // enable depth test but not write. we want skybox to be behind everything else, but rendered last to avoid overdraw.
         materialAttributes.flags = MAF_DEPTH_TEST;
 
-        m_visScene = CreateObject<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND);
+        m_visScene = MakeHandle<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND);
         m_visScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
@@ -130,7 +130,7 @@ void DynamicSkySystem::Init()
 
         m_envProbe->GetView()->AddScene(m_renderScene);
 
-        Handle<Material> material = CreateObject<Material>(NAME("SkyboxMaterial"), materialAttributes);
+        Handle<Material> material = MakeHandle<Material>(NAME("SkyboxMaterial"), materialAttributes);
         material->SetTexture(MaterialTextureKey::ALBEDO_MAP, m_envProbe->GetPrefilteredEnvMap());
         InitObject(material);
 

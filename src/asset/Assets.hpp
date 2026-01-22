@@ -226,7 +226,7 @@ public:
         assetLoaderDefinition.resultTypeId = TypeId::ForType<ResultType>();
         assetLoaderDefinition.resultClass = GetClass(TypeId::ForType<ResultType>());
         assetLoaderDefinition.extensions = FlatSet<String>(formatStrings.Begin(), formatStrings.End());
-        assetLoaderDefinition.loader = CreateObject<Loader>();
+        assetLoaderDefinition.loader = MakeHandle<Loader>();
 
         m_functorFactories.Set<Loader>([](const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr) -> UniquePtr<ProcessAssetFunctorBase>
             {

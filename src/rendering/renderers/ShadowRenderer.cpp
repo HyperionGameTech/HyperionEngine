@@ -70,7 +70,7 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
 
     DeferCreate(descriptorTable);
 
-    Handle<FullScreenPass> combineShadowMapsPass = CreateObject<FullScreenPass>(
+    Handle<FullScreenPass> combineShadowMapsPass = MakeHandle<FullScreenPass>(
         shader,
         descriptorTable,
         format,
@@ -435,7 +435,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
 Handle<PassData> ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    Handle<ShadowRendererPassData> pd = CreateObject<ShadowRendererPassData>();
+    Handle<ShadowRendererPassData> pd = MakeHandle<ShadowRendererPassData>();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 

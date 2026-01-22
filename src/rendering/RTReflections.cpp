@@ -290,7 +290,7 @@ void RayTracingReflections::CreateImages()
 {
     Assert(m_config.extent.Volume() != 0);
 
-    m_texture = CreateObject<Texture>(TextureDesc {
+    m_texture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         TF_RGBA8,
         Vec3u { m_config.extent, 1 },

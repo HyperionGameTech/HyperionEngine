@@ -249,7 +249,7 @@ RendererResult VulkanSwapchain::Create()
         RenderTargetDesc renderTargetDesc {};
         renderTargetDesc.extent = m_extent;
 
-        VulkanFramebufferRef framebuffer = CreateObject<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
+        VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
         CheckResultOrReturn(framebuffer->Create());
         
@@ -260,7 +260,7 @@ RendererResult VulkanSwapchain::Create()
     m_presentSemaphores.Resize(m_images.Size());
     for (uint32 i = 0; i < m_presentSemaphores.Size(); i++)
     {
-        m_presentSemaphores[i] = CreateObject<VulkanSemaphore>();
+        m_presentSemaphores[i] = MakeHandle<VulkanSemaphore>();
         CheckResultOrReturn(m_presentSemaphores[i]->Create());
     }
 
@@ -427,7 +427,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
             Vec3u { m_extent.x, m_extent.y, 1 }
         };
 
-        VulkanGpuImageRef image = CreateObject<VulkanGpuImage>(desc);
+        VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(desc);
 
 #ifdef HYP_DEBUG_MODE
         image->SetDebugName(NAME_FMT("SwapchainImage_{}", i));

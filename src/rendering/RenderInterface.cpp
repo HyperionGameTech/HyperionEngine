@@ -2261,7 +2261,7 @@ void RenderInterface::CreateEnvProbesTexture()
     textureDesc.filterModeMin = TFM_LINEAR_MIPMAP;
     textureDesc.filterModeMag = TFM_LINEAR;
 
-    envProbesTexture = CreateObject<Texture>(textureDesc);
+    envProbesTexture = MakeHandle<Texture>(textureDesc);
     envProbesTexture->SetName(NAME("EnvProbesTexture"));
     envProbesTexture->SetIsTransient(true);
     InitObject(envProbesTexture);

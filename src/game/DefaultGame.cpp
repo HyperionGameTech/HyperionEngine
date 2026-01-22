@@ -71,13 +71,13 @@ DefaultGame::~DefaultGame()
 
 void DefaultGame::OnLaunch_Impl()
 {
-    // m_editorSubsystem = CreateObject<EditorSubsystem>();
+    // m_editorSubsystem = MakeHandle<EditorSubsystem>();
 
     // GetWorld()->AddSubsystem(m_editorSubsystem);
 
-    GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
+    GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
-    m_camera = CreateObject<Camera>();
+    m_camera = MakeHandle<Camera>();
     m_camera->SetFOV(85.0f);
     m_camera->SetFar(10000.0f);
     m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
@@ -95,11 +95,11 @@ void DefaultGame::OnLaunch_Impl()
         .readbackTextureFormat = TF_R10G10B10A2
     };
 
-    Handle<View> view = CreateObject<View>(viewDesc);
+    Handle<View> view = MakeHandle<View>(viewDesc);
 
     GetWorld()->AddView(view);
 
-    Handle<Scene> scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
+    Handle<Scene> scene = MakeHandle<Scene>(SceneFlags::FOREGROUND);
     scene->SetName(NAME("defaultScene"));
 
     scene->GetRoot()->AddChild(m_camera);
@@ -124,11 +124,11 @@ void DefaultGame::OnLaunch_Impl()
 
     // Fps controller
 
-    Handle<FirstPersonCameraController> cameraController = CreateObject<FirstPersonCameraController>();
+    Handle<FirstPersonCameraController> cameraController = MakeHandle<FirstPersonCameraController>();
     m_camera->AddCameraController(cameraController);
 
     // temp: add test script component
-    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
+    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptData());
 
     // register the package
     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();

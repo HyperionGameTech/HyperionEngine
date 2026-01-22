@@ -2034,7 +2034,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
             if (createIfNotExist && packageIt == m_packages.End())
             {
-                pkg = CreateObject<AssetPackage>(subpackageName);
+                pkg = MakeHandle<AssetPackage>(subpackageName);
                 pkg->m_registry = WeakHandleFromThis();
 
                 m_packages.Insert(pkg);
@@ -2066,7 +2066,7 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
         if (createIfNotExist && packageIt == parentPackage->m_subpackages.End())
         {
-            pkg = CreateObject<AssetPackage>(subpackageName);
+            pkg = MakeHandle<AssetPackage>(subpackageName);
             pkg->m_registry = WeakHandleFromThis();
             pkg->m_parentPackage = parentPackage;
             pkg->m_flags |= parentPackage->m_flags;
@@ -2272,7 +2272,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 }
             }
 
-            outPackage = CreateObject<AssetPackage>(CreateNameFromDynamicString(packageName));
+            outPackage = MakeHandle<AssetPackage>(CreateNameFromDynamicString(packageName));
             outPackage->m_registry = WeakHandleFromThis();
             outPackage->m_packageDir = dir;
             outPackage->m_parentPackage = parentPackage;

@@ -178,7 +178,7 @@ void AssetManager::SetBasePath(const FilePath& basePath)
     }
     else
     {
-        assetCollector = CreateObject<AssetCollector>(basePath);
+        assetCollector = MakeHandle<AssetCollector>(basePath);
         InitObject(assetCollector);
 
         m_assetCollectors.PushBack(assetCollector);
@@ -349,7 +349,7 @@ void AssetManager::Init()
 
     RegisterDefaultLoaders();
 
-    m_assetRegistry = CreateObject<AssetRegistry>();
+    m_assetRegistry = MakeHandle<AssetRegistry>();
     InitObject(m_assetRegistry);
 
     m_threadPool->Start();

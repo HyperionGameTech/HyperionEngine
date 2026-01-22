@@ -267,7 +267,7 @@ EditorCameraController::EditorCameraController()
     : FirstPersonCameraController(),
       m_mode(EditorCameraControllerMode::INACTIVE)
 {
-    m_inputHandler = CreateObject<EditorCameraInputHandler>(this);
+    m_inputHandler = MakeHandle<EditorCameraInputHandler>(this);
     InitObject(m_inputHandler);
 }
 

@@ -69,9 +69,9 @@ public:
 
     virtual RendererResult Resize(Vec2u newSize) = 0;
 
-    virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) = 0;
-    virtual AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) = 0;
-    virtual AttachmentRef AddAttachment(
+    virtual Attachment* AddAttachment(Attachment* attachment) = 0;
+    virtual Attachment* AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) = 0;
+    virtual Attachment* AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,
@@ -79,7 +79,7 @@ public:
         StoreOperation storeOp) = 0;
 
     virtual bool RemoveAttachment(uint32 binding) = 0;
-    virtual AttachmentBase* GetAttachment(uint32 binding) const = 0;
+    virtual Attachment* GetAttachment(uint32 binding) const = 0;
     virtual int NumAttachments() const = 0;
 
     virtual void BeginCapture(CommandBuffer* commandBuffer) = 0;

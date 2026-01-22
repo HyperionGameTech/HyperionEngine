@@ -308,7 +308,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 {
     Assert(state.assetManager != nullptr);
 
-    Handle<Node> top = CreateObject<Node>(CreateNameFromDynamicString(model.name));
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
 
     Handle<MaterialGroup> materialLibrary;
 
@@ -426,7 +426,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         meshData.CalculateNormals();
 
-        Handle<Mesh> mesh = CreateObject<Mesh>();
+        Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
         mesh->SetMeshData(meshDesc, meshData);
 

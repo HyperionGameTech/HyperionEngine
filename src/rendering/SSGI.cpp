@@ -114,7 +114,7 @@ SSGI::~SSGI()
 
 void SSGI::Create()
 {
-    m_resultTexture = CreateObject<Texture>(TextureDesc {
+    m_resultTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         SsgiFormat,
         Vec3u(m_config.extent, 1),

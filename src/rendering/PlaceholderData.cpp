@@ -248,7 +248,7 @@ void PlaceholderData::Create()
         {
             InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
 
-            texture = CreateObject<Texture>(textureDesc, TextureData { bufferData.first });
+            texture = MakeHandle<Texture>(textureDesc, TextureData { bufferData.first });
             texture->SetName(CreateNameFromDynamicString(*name));
 
             g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());

@@ -42,7 +42,7 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
-        Handle<AssetRegistry> assetRegistry = CreateObject<AssetRegistry>();
+        Handle<AssetRegistry> assetRegistry = MakeHandle<AssetRegistry>();
         out = BoxedValue(assetRegistry);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, AssetRegistry::StaticClass(), out))

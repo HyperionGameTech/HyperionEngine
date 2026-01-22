@@ -203,7 +203,7 @@ public:
         }
 #endif
 
-        Handle<Material> material = CreateObject<Material>();
+        Handle<Material> material = MakeHandle<Material>();
         BoxedValue materialData = BoxedValue(material);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Material::StaticClass(), materialData))

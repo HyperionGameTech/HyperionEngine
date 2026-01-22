@@ -23,8 +23,8 @@ VulkanAsyncCompute::VulkanAsyncCompute()
 {
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
     {
-        m_commandBuffers[frameIndex] = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        m_fences[frameIndex] = CreateObject<VulkanFence>();
+        m_commandBuffers[frameIndex] = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        m_fences[frameIndex] = MakeHandle<VulkanFence>();
     }
 }
 

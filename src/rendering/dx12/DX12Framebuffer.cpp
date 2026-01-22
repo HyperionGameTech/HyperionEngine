@@ -173,11 +173,11 @@ RendererResult DX12Framebuffer::Resize(Vec2u newSize)
             1
         };
 
-        DX12GpuImageRef newImage = CreateObject<DX12GpuImage>(textureDesc);
+        DX12GpuImageRef newImage = MakeHandle<DX12GpuImage>(textureDesc);
         newImage->SetDebugName(image->GetDebugName());
         CheckResultOrReturn(newImage->Create());
 
-        DX12AttachmentRef newAttachment = CreateObject<DX12Attachment>(
+        DX12AttachmentRef newAttachment = MakeHandle<DX12Attachment>(
             newImage,
             MakeWeakRef(this),
             AttachmentDesc {
@@ -213,7 +213,7 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
     LoadOperation loadOp,
     StoreOperation storeOp)
 {
-    DX12AttachmentRef attachment = CreateObject<DX12Attachment>(
+    DX12AttachmentRef attachment = MakeHandle<DX12Attachment>(
         image,
         MakeWeakRef(this),
         AttachmentDesc {
@@ -247,9 +247,9 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
     };
     textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
-    DX12GpuImageRef image = CreateObject<DX12GpuImage>(textureDesc);
+    DX12GpuImageRef image = MakeHandle<DX12GpuImage>(textureDesc);
 
-    DX12AttachmentRef attachment = CreateObject<DX12Attachment>(
+    DX12AttachmentRef attachment = MakeHandle<DX12Attachment>(
         image,
         MakeWeakRef(this),
         AttachmentDesc {

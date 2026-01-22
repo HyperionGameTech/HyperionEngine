@@ -782,7 +782,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     const Name assetName = MakePrimitiveName(gltfMesh, meshIndex, primitiveIndex);
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(assetName);
     mesh->SetMeshData(meshDesc, meshData);
 
@@ -827,7 +827,7 @@ Handle<Node> BuildNodeRecursive(GltfLoadContext& ctx, const cgltf_node& node)
 {
     const Name nodeName = MakeNodeName(ctx, node);
 
-    Handle<Node> nodeHandle = CreateObject<Node>(nodeName);
+    Handle<Node> nodeHandle = MakeHandle<Node>(nodeName);
     nodeHandle->SetLocalTransform(BuildTransformFromNode(node));
 
     if (node.skin != nullptr && !ctx.loggedSkinningWarning)
@@ -955,7 +955,7 @@ LoadedAsset BuildModel(LoaderState& state, cgltf_data& data)
     }
 
     const Name rootName = DetermineRootName(state, data);
-    Handle<Node> root = CreateObject<Node>(rootName);
+    Handle<Node> root = MakeHandle<Node>(rootName);
 
     for (const cgltf_node* rootNode : rootNodes)
     {

@@ -355,7 +355,7 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     }
 
     // Create RenderGroup
-    Handle<RenderGroup> rg = CreateObject<RenderGroup>(shader, attributes, renderGroupFlags);
+    Handle<RenderGroup> rg = MakeHandle<RenderGroup>(shader, attributes, renderGroupFlags);
 
     if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {

@@ -616,6 +616,6 @@ struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
     static ::Hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
     {                                                                                    \
         []() -> Handle<UIElementFactoryBase> {                                           \
-            return CreateObject<Factory>();                                              \
+            return MakeHandle<Factory>();                                              \
         }                                                                                \
     }

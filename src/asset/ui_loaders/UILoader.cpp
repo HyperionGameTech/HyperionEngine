@@ -793,7 +793,7 @@ public:
                 Memory::StrCpy(scriptData.assemblyPath.Data(), assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
                 Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
 
-                Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
+                Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
                 InitObject(scriptAsset);
 
                 Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
@@ -935,7 +935,7 @@ AssetLoadResult UILoader::LoadAsset(LoaderState& state) const
 {
     Assert(state.assetManager != nullptr);
 
-    Handle<UIObject> uiStage = CreateObject<UIStage>(ThreadId::Current());
+    Handle<UIObject> uiStage = MakeHandle<UIStage>(ThreadId::Current());
     InitObject(uiStage);
 
     UISAXHandler handler(&state, static_cast<UIStage*>(uiStage.Get()));

@@ -276,7 +276,7 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const const char* s_requestLayers[] = {
+    static const char* s_requestLayers[] = {
         "VK_LAYER_KHRONOS_validation"
     };
 
@@ -472,7 +472,7 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice, VkS
 {
     Assert(physicalDevice != VK_NULL_HANDLE && surface != VK_NULL_HANDLE);
 
-    m_device = CreateObject<VulkanDevice>(physicalDevice);
+    m_device = MakeHandle<VulkanDevice>(physicalDevice);
     m_device->SetWantedExtensions(GetExtensionMap());
 
     CheckResultOrReturn(m_device->Create(surface));

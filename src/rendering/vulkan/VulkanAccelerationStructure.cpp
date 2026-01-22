@@ -327,7 +327,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         rangeInfoPtrs[i] = &rangeInfos[i];
     }
 
-    VulkanCommandBufferRef commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    VulkanCommandBufferRef commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     CheckResultOrReturn(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     CheckResultOrReturn(commandBuffer->Begin());
@@ -833,7 +833,7 @@ VulkanGpuBlas::VulkanGpuBlas(
 {
     m_material = material;
 
-    m_geometries.PushBack(CreateObject<VulkanAccelerationGeometry>(
+    m_geometries.PushBack(MakeHandle<VulkanAccelerationGeometry>(
         m_packedVerticesBuffer,
         m_packedIndicesBuffer,
         numVertices,

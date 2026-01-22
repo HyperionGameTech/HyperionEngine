@@ -431,7 +431,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
-    Handle<Entity> entity = CreateObject<Entity>();
+    Handle<Entity> entity = MakeHandle<Entity>();
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 

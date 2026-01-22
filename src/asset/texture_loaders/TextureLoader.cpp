@@ -142,7 +142,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
     Texture::GenerateMipmaps(textureDesc, textureData);
 
-    Handle<Texture> texture = CreateObject<Texture>(textureDesc, textureData);
+    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, textureData);
 
     stbi_image_free(imageBytes);
 

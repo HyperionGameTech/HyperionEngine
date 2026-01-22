@@ -291,7 +291,7 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
         return HYP_MAKE_ERROR(RendererError, "Creating shader binding table entry with zero shader count");
     }
 
-    out.buffer = CreateObject<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * numShaders);
+    out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * numShaders);
     out.buffer->SetDebugName(NAME("SBTBuffer"));
 
     CheckResultOrReturn(out.buffer->Create());

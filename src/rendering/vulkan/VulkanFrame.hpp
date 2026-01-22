@@ -29,11 +29,12 @@ class VulkanFrame final : public FrameBase
 public:
     VulkanFrame();
     explicit VulkanFrame(uint32 frameIndex);
+
     ~VulkanFrame() override;
 
     bool IsCreated() const override
     {
-        return m_queueSubmitFence.IsValid();
+        return m_queueSubmitFence != nullptr;
     }
 
     RendererResult Create() override;
@@ -51,7 +52,7 @@ public:
         VulkanCommandBuffer* commandBuffer,
         VulkanSwapchain* swapchain = nullptr);
 
-    HYP_FORCE_INLINE const VulkanFenceRef& GetFence() const
+    HYP_FORCE_INLINE VulkanFence* GetFence() const
     {
         return m_queueSubmitFence;
     }
@@ -72,12 +73,12 @@ private:
     struct VulkanSwapchainData
     {
         VulkanSwapchainWeakRef swapchainWeak; // always keep a weak ref so we can check validatity when iterating
-        VulkanSemaphoreRef imageAvailableSemaphore;
+        VulkanSemaphore* imageAvailableSemaphore = nullptr;
     };
 
     static void InitVulkanSwapchainData(VulkanSwapchainData& swapchainData);
 
-    VulkanFenceRef m_queueSubmitFence;
+    VulkanFence* m_queueSubmitFence;
     VulkanRenderPassesSet m_renderPasses;
 
     HashMap<const VulkanSwapchain*, VulkanSwapchainData> m_swapchainData;

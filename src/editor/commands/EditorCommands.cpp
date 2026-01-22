@@ -196,7 +196,7 @@ public:
         {
             if (!project->IsSaved())
             {
-                Handle<EditorCommandSaveProjectAs> saveAs = CreateObject<EditorCommandSaveProjectAs>();
+                Handle<EditorCommandSaveProjectAs> saveAs = MakeHandle<EditorCommandSaveProjectAs>();
                 reinterpret_cast<EditorCommandBase&>(*saveAs).Execute(subsystem);
 
                 return;
@@ -322,13 +322,13 @@ public:
         /// \todo : Allow building a bounding box in editor before starting the task.
         BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
-        Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);
+        Handle<LightmapVolume> lightmapVolume = MakeHandle<LightmapVolume>(lightmapVolumeAabb);
         lightmapVolume->SetName(Name::Unique("LightmapVolume"));
         InitObject(lightmapVolume);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
-        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             StaticClass()->GetName(),
             Proc<EditorActionFunctions()>([lightmapVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
@@ -362,7 +362,7 @@ public:
         currentProject->GetActionStack()->Push(action);
 
         // kickoff lightmap generation for the new volume
-        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(lightmapVolume);
+        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(lightmapVolume);
         InitObject(generateLightmapsTask);
 
         generateLightmapsTask->SetScene(activeScene);
@@ -405,13 +405,13 @@ public:
             return;
         }
 
-        Handle<ReflectionProbe> reflectionProbe = CreateObject<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128));
+        Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128));
         reflectionProbe->SetIsBaked(true);
         InitObject(reflectionProbe);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
-        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             StaticClass()->GetName(),
             Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
@@ -445,7 +445,7 @@ public:
         currentProject->GetActionStack()->Push(action);
 
         // kickoff task to generate reflection cubemap
-        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(reflectionProbe);
+        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
         InitObject(generateLightmapsTask);
 
         generateLightmapsTask->SetScene(activeScene);
@@ -496,7 +496,7 @@ public:
         params.hasPhysics = true;
         params.lifespan = 10.0f;
 
-        Handle<ParticleVolume> particleVolume = CreateObject<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
+        Handle<ParticleVolume> particleVolume = MakeHandle<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
         InitObject(particleVolume);
 
         const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
@@ -504,7 +504,7 @@ public:
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
-        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             StaticClass()->GetName(),
             Proc<EditorActionFunctions()>([particleVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
@@ -569,12 +569,12 @@ public:
             return;
         }
 
-        Handle<FogVolume> fogVolume = CreateObject<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
+        Handle<FogVolume> fogVolume = MakeHandle<FogVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 30.0f, 20.0f)));
         InitObject(fogVolume);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
 
-        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
             StaticClass()->GetName(),
             Proc<EditorActionFunctions()>([fogVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
                 {
@@ -608,7 +608,7 @@ public:
 
         // start baking fog volume
 
-        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(
+        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(
             Array<Handle<ObjectBase>> { fogVolume });
 
         InitObject(generateLightmapsTask);
@@ -647,7 +647,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 
     WeakHandle<Node> currentFocusedNode = subsystem->GetFocusedNode();
 
-    Handle<T> n = CreateObject<T>();
+    Handle<T> n = MakeHandle<T>();
     n->SetName(defaultNodeName);
     InitObject(n);
 
@@ -655,7 +655,7 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
     const Vec3f insertionPoint = subsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
     n->SetWorldTranslation(insertionPoint);
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         EditorCommandType::StaticClass()->GetName(),
         Proc<EditorActionFunctions()>([n, currentFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -691,8 +691,6 @@ static void AddNodeOfTypeImpl(EditorSubsystem* subsystem, Name defaultNodeName)
 template <class Derived>
 class HYP_API EditorCommandAddNodeBase : public EditorCommandBase
 {
-    HYP_OBJECT_BODY(EditorCommandAddNodeBase);
-
 public:
     virtual ~EditorCommandAddNodeBase() override = default;
 

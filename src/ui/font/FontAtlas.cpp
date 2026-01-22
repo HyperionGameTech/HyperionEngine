@@ -220,7 +220,7 @@ Result FontAtlas::RenderAtlasTextures()
             atlasBitmap->GetUnpackedBytes(4)
         };
 
-        Handle<Texture> atlasTexture = CreateObject<Texture>(atlasTextureDesc, std::move(atlasTextureData));
+        Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, std::move(atlasTextureData));
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
         InitObject(atlasTexture);
 

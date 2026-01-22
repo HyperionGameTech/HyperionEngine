@@ -268,20 +268,20 @@ void Light::CreateShadowViews()
 
     if (!shadowMapCamera)
     {
-        shadowMapCamera = CreateObject<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
+        shadowMapCamera = MakeHandle<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
         shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", GetName()));
 
         switch (m_type)
         {
         case LT_DIRECTIONAL:
-            shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+            shadowMapCamera->AddCameraController(MakeHandle<OrthoCameraController>());
             break;
         case LT_POINT:
             shadowMapCamera->SetFOV(90.0f);
             shadowMapCamera->SetNear(0.01f);
             shadowMapCamera->SetFar(m_radius);
 
-            shadowMapCamera->AddCameraController(CreateObject<PerspectiveCameraController>());
+            shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
 
             shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
             break;
@@ -313,7 +313,7 @@ void Light::CreateShadowViews()
             .overrideAttributes = overrideAttributes
         };
 
-        m_shadowViews[i] = CreateObject<View>(viewDesc);
+        m_shadowViews[i] = MakeHandle<View>(viewDesc);
 
         if (Scene* scene = GetScene())
         {

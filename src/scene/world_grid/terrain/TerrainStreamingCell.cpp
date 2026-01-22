@@ -239,7 +239,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 
     meshData.CalculateNormals();
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetMeshData(meshDesc, meshData);
 
     return mesh;

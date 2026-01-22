@@ -980,7 +980,7 @@ public:
                     Handle<AssetPackage> scriptsPackage = assetRegistry->GetPackageFromPath("Scripts", true);
                     Assert(scriptsPackage.IsValid());
 
-                    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
+                    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptData());
 
                     /// \todo : better name for script asset
                     Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset).Await();

@@ -616,8 +616,8 @@ RendererResult VulkanRenderBackend::Initialize()
         VkCommandPool pool = deviceQueue->commandPools[0];
         Assert(pool != VK_NULL_HANDLE);
 
-        commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        frame = CreateObject<VulkanFrame>(frameIndex);
+        commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        frame = MakeHandle<VulkanFrame>(frameIndex);
 
         CheckResultOrReturn(commandBuffer->Create(pool));
         CheckResultOrReturn(frame->Create());
@@ -736,7 +736,7 @@ VulkanSwapchainRef VulkanRenderBackend::CreateSwapchain(ApplicationWindow* windo
     VkSurfaceKHR surface = window->GetVkSurface();
     Assert(surface != VK_NULL_HANDLE);
 
-    VulkanSwapchainRef swapchain = CreateObject<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
+    VulkanSwapchainRef swapchain = MakeHandle<VulkanSwapchain>(surface, Vec2u(window->GetSize()));
     RendererResult result = swapchain->Create();
 
     if (!result)
@@ -803,7 +803,7 @@ VulkanDescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSe
     newLayout.SetIsTemplate(false);
     newLayout.SetIsReference(false);
 
-    VulkanDescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(newLayout);
+    VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(newLayout);
     descriptorSet->SetDebugName(layout.GetName());
 
     return descriptorSet;
@@ -811,7 +811,7 @@ VulkanDescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSe
 
 VulkanDescriptorTableRef VulkanRenderBackend::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
 {
-    return CreateObject<VulkanDescriptorTable>(decl);
+    return MakeHandle<VulkanDescriptorTable>(decl);
 }
 
 VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
@@ -819,7 +819,7 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
-    VulkanGraphicsPipelineRef graphicsPipeline = CreateObject<VulkanGraphicsPipeline>();
+    VulkanGraphicsPipelineRef graphicsPipeline = MakeHandle<VulkanGraphicsPipeline>();
 
     if (shader.IsValid())
     {
@@ -858,54 +858,54 @@ VulkanComputePipelineRef VulkanRenderBackend::MakeComputePipeline(
     const VulkanShaderRef& shader,
     const VulkanDescriptorTableRef& descriptorTable)
 {
-    return CreateObject<VulkanComputePipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
+    return MakeHandle<VulkanComputePipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
 }
 
 VulkanRayTracingPipelineRef VulkanRenderBackend::MakeRayTracingPipeline(
     const VulkanShaderRef& shader,
     const VulkanDescriptorTableRef& descriptorTable)
 {
-    return CreateObject<VulkanRayTracingPipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
+    return MakeHandle<VulkanRayTracingPipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
 }
 
 VulkanGpuBufferRef VulkanRenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
 {
-    return CreateObject<VulkanGpuBuffer>(bufferType, size, alignment);
+    return MakeHandle<VulkanGpuBuffer>(bufferType, size, alignment);
 }
 
 VulkanGpuImageRef VulkanRenderBackend::MakeImage(const TextureDesc& textureDesc)
 {
-    return CreateObject<VulkanGpuImage>(textureDesc);
+    return MakeHandle<VulkanGpuImage>(textureDesc);
 }
 
 VulkanGpuImageViewRef VulkanRenderBackend::MakeImageView(const VulkanGpuImageRef& image)
 {
-    return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image));
+    return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image));
 }
 
 VulkanGpuImageViewRef VulkanRenderBackend::MakeImageView(const VulkanGpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
-    return CreateObject<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, layerIndex, numLayers);
+    return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, layerIndex, numLayers);
 }
 
 VulkanSamplerRef VulkanRenderBackend::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
 {
-    return CreateObject<VulkanSampler>(filterModeMin, filterModeMag, wrapMode);
+    return MakeHandle<VulkanSampler>(filterModeMin, filterModeMag, wrapMode);
 }
 
 VulkanFramebufferRef VulkanRenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
-    return CreateObject<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::RenderTarget);
+    return MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::RenderTarget);
 }
 
 VulkanFrameRef VulkanRenderBackend::MakeFrame(uint32 frameIndex)
 {
-    return CreateObject<VulkanFrame>(frameIndex);
+    return MakeHandle<VulkanFrame>(frameIndex);
 }
 
 VulkanShaderRef VulkanRenderBackend::MakeShader(const CompiledShader* compiledShader)
 {
-    return CreateObject<VulkanShader>(compiledShader);
+    return MakeHandle<VulkanShader>(compiledShader);
 }
 
 VulkanGpuBlasRef VulkanRenderBackend::MakeGpuBlas(
@@ -916,7 +916,7 @@ VulkanGpuBlasRef VulkanRenderBackend::MakeGpuBlas(
     const Handle<Material>& material,
     const Mat4f& transform)
 {
-    return CreateObject<VulkanGpuBlas>(
+    return MakeHandle<VulkanGpuBlas>(
         VulkanGpuBufferRef(packedVerticesBuffer),
         VulkanGpuBufferRef(packedIndicesBuffer),
         numVertices,
@@ -927,7 +927,7 @@ VulkanGpuBlasRef VulkanRenderBackend::MakeGpuBlas(
 
 VulkanGpuTlasRef VulkanRenderBackend::MakeTLAS()
 {
-    return CreateObject<VulkanGpuTlas>();
+    return MakeHandle<VulkanGpuTlas>();
 }
 
 void VulkanRenderBackend::PopulateIndirectDrawCommandsBuffer(

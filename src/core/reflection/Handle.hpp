@@ -946,12 +946,12 @@ template <class T>
 const WeakHandle<T> WeakHandle<T>::empty = {};
 
 template <class T, class... Args>
-inline Handle<T> CreateObject(Args&&... args)
+inline Handle<T> MakeHandle(Args&&... args)
 {
     auto* container = reinterpret_cast<ObjectContainer<typename T::ClassInfo::Type>*>(GetObjectContainerForClass(T::StaticClass()));
     HYP_CORE_ASSERT(container != nullptr, "Container for type not initialized!");
 
-    ObjectHeader* header = container->Allocate(sizeof(T));
+    ObjectHeader* header = container->AllocateObject(sizeof(T));
 
     ObjectBase* ptr = ObjectHeader::GetObjectPointer(header);
 
