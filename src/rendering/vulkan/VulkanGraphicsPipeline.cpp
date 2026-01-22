@@ -175,7 +175,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    VulkanRenderPassRef renderPass = CreateObject<VulkanRenderPass>(
+    VulkanRenderPassRef renderPass = MakeHandle<VulkanRenderPass>(
         m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
 
     CheckResultOrReturn(renderPass->Create());

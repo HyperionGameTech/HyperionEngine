@@ -74,7 +74,7 @@ void ParticleVolumeRenderer::Shutdown()
 
 Handle<PassData> ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    Handle<PassData> pd = CreateObject<PassData>();
+    Handle<PassData> pd = MakeHandle<PassData>();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 
@@ -126,7 +126,7 @@ static void CreateNoiseMap(Handle<Texture>& tex)
         SafeDelete(std::move(tex));
     }
 
-    tex = CreateObject<Texture>(textureDesc, textureData);
+    tex = MakeHandle<Texture>(textureDesc, textureData);
     InitObject(tex);
 }
 

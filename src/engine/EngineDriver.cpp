@@ -167,7 +167,7 @@ HYP_API void EngineDriver::Init()
             /* enabled */ true });
     }
 
-    m_debugDrawer = CreateObject<DebugDrawer>();
+    m_debugDrawer = MakeHandle<DebugDrawer>();
 
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);

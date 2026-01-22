@@ -47,7 +47,7 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
-        Handle<AssetPackage> assetPackage = CreateObject<AssetPackage>();
+        Handle<AssetPackage> assetPackage = MakeHandle<AssetPackage>();
         out = BoxedValue(assetPackage);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, AssetPackage::StaticClass(), out))

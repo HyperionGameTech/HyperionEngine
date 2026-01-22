@@ -21,14 +21,15 @@ namespace Hyperion {
 extern VulkanRenderBackend* g_renderBackend;
 
 VulkanFrame::VulkanFrame()
-    : FrameBase(0)
+    : FrameBase(0),
+      m_queueSubmitFence(nullptr)
 {
 }
 
 VulkanFrame::VulkanFrame(uint32 frameIndex)
-    : FrameBase(frameIndex)
+    : FrameBase(frameIndex),
+      m_queueSubmitFence(nullptr)
 {
-    FrameBase::m_frameIndex = frameIndex;
 }
 
 VulkanFrame::~VulkanFrame()
@@ -36,10 +37,10 @@ VulkanFrame::~VulkanFrame()
     for (auto& it : m_swapchainData)
     {
         VulkanSwapchainData& data = it.second;
-        SafeDelete(std::move(data.imageAvailableSemaphore));
+        delete data.imageAvailableSemaphore;
     }
 
-    SafeDelete(std::move(m_queueSubmitFence));
+    delete m_queueSubmitFence;
 }
 
 RendererResult VulkanFrame::Create()
@@ -49,7 +50,7 @@ RendererResult VulkanFrame::Create()
         return {};
     }
 
-    m_queueSubmitFence = CreateObject<VulkanFence>();
+    m_queueSubmitFence = new VulkanFence();
     CheckResultOrReturn(m_queueSubmitFence->Create());
 
     return {};
@@ -128,12 +129,12 @@ RendererResult VulkanFrame::Submit(
 
 void VulkanFrame::RecreateFence()
 {
-    if (m_queueSubmitFence.IsValid())
+    if (m_queueSubmitFence != nullptr)
     {
-        SafeDelete(std::move(m_queueSubmitFence));
+        SafeDelete(m_queueSubmitFence);
     }
 
-    m_queueSubmitFence = CreateObject<VulkanFence>();
+    m_queueSubmitFence = new VulkanFence();
 
     RendererResult res = m_queueSubmitFence->Create();
     Assert(res, "Failed to recreate frame fence: {}", res.GetError().GetMessage());
@@ -153,10 +154,12 @@ void VulkanFrame::RecreateSemaphores(const VulkanSwapchain* swapchain)
         it = m_swapchainData.Find(swapchain);
     }
 
-    VulkanSemaphoreRef& imageAvailableSemaphore = it->second.imageAvailableSemaphore;
+    VulkanSemaphore*& imageAvailableSemaphore = it->second.imageAvailableSemaphore;
 
     // reset immediately
-    imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
+    delete imageAvailableSemaphore;
+
+    imageAvailableSemaphore = new VulkanSemaphore();
 
     RendererResult res = imageAvailableSemaphore->Create();
     Assert(res, "Failed to recreate image available semaphore: {}", res.GetError().GetMessage());
@@ -181,7 +184,7 @@ VulkanSemaphore* VulkanFrame::GetImageAvailableSemaphore(const VulkanSwapchain* 
 
 void VulkanFrame::InitVulkanSwapchainData(VulkanSwapchainData& swapchainData)
 {
-    swapchainData.imageAvailableSemaphore = CreateObject<VulkanSemaphore>();
+    swapchainData.imageAvailableSemaphore = new VulkanSemaphore();
 
     RendererResult res = swapchainData.imageAvailableSemaphore->Create();
     Assert(res, "Failed to create image available semaphore: {}", res.GetError().GetMessage());
@@ -217,7 +220,9 @@ void VulkanFrame::ResetTransientStates()
         if (swapchain->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
         {
             // swapchain is destroyed, remove semaphores
-            SafeDelete(std::move(it->second.imageAvailableSemaphore));
+            SafeDelete(it->second.imageAvailableSemaphore);
+
+            it->second.imageAvailableSemaphore = nullptr;
 
             it = m_swapchainData.Erase(it);
         }

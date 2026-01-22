@@ -64,7 +64,7 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(const Handle<Textur
 
     if (it == textureImageViews.End())
     {
-        DX12GpuImageViewRef imageView = CreateObject<DX12GpuImageView>(
+        DX12GpuImageViewRef imageView = MakeHandle<DX12GpuImageView>(
             texture->GetGpuImage(),
             subResource.baseMipLevel,
             subResource.numLevels,

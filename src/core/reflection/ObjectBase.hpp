@@ -52,7 +52,7 @@ class HYP_API ObjectBase
     friend struct AnyHandle;
 
     template <class T, class... Args>
-    friend Handle<T> CreateObject(Args&&...);
+    friend Handle<T> MakeHandle(Args&&...);
 
     template <class T>
     friend bool InitObject(const Handle<T>&);
@@ -74,29 +74,18 @@ public:
     const Class* InstanceClass() const;
 
     template <class TOther>
-    HYP_FORCE_INLINE bool IsA() const
-    {
-        if constexpr (std::is_same_v<ObjectBase, TOther>)
-        {
-            return true;
-        }
-        else
-        {
-            static const Class* otherClass = TOther::StaticClass();
+    bool IsA() const;
+    bool IsA(const Class* cls) const;
 
-            if (!otherClass)
-            {
-                return false;
-            }
+    /*! \brief Manually call to add a new strong reference to this object. Do not use this method
+     *  if using Handle<T> wrapper object as ref counts are managed automatically with it.
+     *  \returns The strong reference count after being incremented */
+    int32 AddRef();
 
-            return Hyperion::IsA(otherClass, InstanceClass());
-        }
-    }
-
-    HYP_FORCE_INLINE bool IsA(const Class* cls) const
-    {
-        return Hyperion::IsA(cls, InstanceClass());
-    }
+    /*! \brief Manually call to release a strong reference to this object.
+     *   Don't use this if using Handle wrappers as they manage ref counts automatically.
+     *  \returns The strong reference count of the object after decrement */
+    int32 Release();
 
     HYP_FORCE_INLINE ObjectHeader* GetObjectHeader_Internal() const
     {
@@ -203,5 +192,30 @@ private:
 
     AtomicVar<uint16> m_initState;
 };
+
+template <class TOther>
+inline bool ObjectBase::IsA() const
+{
+    if constexpr (std::is_same_v<ObjectBase, TOther>)
+    {
+        return true;
+    }
+    else
+    {
+        static const Class* otherClass = TOther::StaticClass();
+
+        if (!otherClass)
+        {
+            return false;
+        }
+
+        return Hyperion::IsA(otherClass, InstanceClass());
+    }
+}
+
+inline bool ObjectBase::IsA(const Class* cls) const
+{
+    return Hyperion::IsA(cls, InstanceClass());
+}
 
 } // namespace Hyperion

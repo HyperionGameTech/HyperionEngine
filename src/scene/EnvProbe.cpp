@@ -141,7 +141,7 @@ void EnvProbe::Init()
     {
         const BoundingBox worldBounds = GetWorldBounds();
 
-        Handle<Camera> camera = CreateObject<Camera>(
+        Handle<Camera> camera = MakeHandle<Camera>(
             90.0f,
             -int(m_dimensions.x), int(m_dimensions.y),
             m_cameraNear, m_cameraFar);
@@ -160,7 +160,7 @@ void EnvProbe::Init()
         {
             if (!m_texture)
             {
-                m_texture = CreateObject<Texture>(TextureDesc {
+                m_texture = MakeHandle<Texture>(TextureDesc {
                     TT_TEX2D,
                     TF_RGBA8,
                     Vec3u { m_dimensions, 1 },
@@ -318,7 +318,7 @@ void EnvProbe::CreateView()
             })
     };
 
-    Handle<View> view = CreateObject<View>(viewDesc);
+    Handle<View> view = MakeHandle<View>(viewDesc);
     InitObject(view);
     m_view = view;
 }
@@ -564,7 +564,7 @@ void ReflectionProbe::BakeCubemap()
 
 void SkyProbe::Init()
 {
-    m_texture = CreateObject<Texture>(TextureDesc {
+    m_texture = MakeHandle<Texture>(TextureDesc {
         TT_CUBEMAP,
         TF_RGBA16F, /// \todo smaller format
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },

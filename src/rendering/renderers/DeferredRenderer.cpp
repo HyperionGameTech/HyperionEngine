@@ -248,7 +248,7 @@ void DeferredPass::Create()
 
         ByteBuffer ltcMatrixData(sizeof(s_ltcMatrix), s_ltcMatrix);
 
-        m_ltcMatrixTexture = CreateObject<Texture>(
+        m_ltcMatrixTexture = MakeHandle<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 TF_RGBA16F,
@@ -264,7 +264,7 @@ void DeferredPass::Create()
 
         ByteBuffer ltcBrdfData(sizeof(s_ltcBrdf), s_ltcBrdf);
 
-        m_ltcBrdfTexture = CreateObject<Texture>(
+        m_ltcBrdfTexture = MakeHandle<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 TF_RGBA16F,
@@ -667,6 +667,8 @@ const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* frameb
 
     MaterialAttributes materialAttributes;
     materialAttributes.shaderDefinition.name = NAME("ApplyLightmap");
+    materialAttributes.shaderDefinition.properties.SetRequiredVertexAttributes(meshAttributes.vertexAttributes);
+    MergeGlobalShaderProperties(materialAttributes.shaderDefinition.properties);
 
     materialAttributes.fillMode = FM_FILL;
     materialAttributes.blendFunction = BlendFunction(
@@ -1345,20 +1347,20 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
     textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-    AttachmentRef colorAttachment = framebuffer->AddAttachment(
+    Attachment* colorAttachment = framebuffer->AddAttachment(
         0,
         g_renderBackend->MakeImage(textureDesc),
         LoadOperation::CLEAR,
         StoreOperation::STORE);
 
     // depth for stencil testing
-    AttachmentRef depthAttachment = framebuffer->AddAttachment(
+    Attachment* depthAttachment = framebuffer->AddAttachment(
         1,
         gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage(),
         LoadOperation::LOAD,
         StoreOperation::STORE);
 
-    Assert(framebuffer->Create());
+    CheckResult(framebuffer->Create());
 
     colorAttachment->GetImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
 
@@ -1391,7 +1393,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
     if (view->GetFlags() & ViewFlags::GBUFFER)
     {
-        Handle<DeferredRendererPassData> pd = CreateObject<DeferredRendererPassData>();
+        Handle<DeferredRendererPassData> pd = MakeHandle<DeferredRendererPassData>();
         DeferredRendererPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
@@ -1422,10 +1424,10 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
 
-        passData.indirectPass = CreateObject<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
+        passData.indirectPass = MakeHandle<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
         passData.indirectPass->Create();
 
-        passData.directPass = CreateObject<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
+        passData.directPass = MakeHandle<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
         passData.directPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -1434,7 +1436,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.cullData.depthPyramidImageView = passData.depthPyramidRenderer->GetResultImageView();
         passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
 
-        passData.mipChain = CreateObject<Texture>(TextureDesc {
+        passData.mipChain = MakeHandle<Texture>(TextureDesc {
             TT_TEX2D,
             opaquePassFramebuffer->GetAttachment(0)->GetFormat(),
             Vec3u(opaquePassFramebuffer->GetExtent(), 1),
@@ -1444,7 +1446,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         InitObject(passData.mipChain);
 
-        passData.hbao = CreateObject<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+        passData.hbao = MakeHandle<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
         passData.hbao->Create();
 
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
@@ -1452,17 +1454,17 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         CreateViewCombinePass(view, passData);
 
-        passData.reflectionsPass = CreateObject<ReflectionsPass>(passData.viewport.extent, gbuffer, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain), passData.combinePass->GetFinalImageView());
+        passData.reflectionsPass = MakeHandle<ReflectionsPass>(passData.viewport.extent, gbuffer, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain), passData.combinePass->GetFinalImageView());
         passData.reflectionsPass->Create();
 
-        passData.tonemapPass = CreateObject<TonemapPass>(passData.viewport.extent, gbuffer);
+        passData.tonemapPass = MakeHandle<TonemapPass>(passData.viewport.extent, gbuffer);
         passData.tonemapPass->Create();
 
         // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-        passData.lightmapPass = CreateObject<LightmapPass>();
+        passData.lightmapPass = MakeHandle<LightmapPass>();
         passData.lightmapPass->Create();
 
-        passData.fogVolumePass = CreateObject<FogVolumePass>();
+        passData.fogVolumePass = MakeHandle<FogVolumePass>();
         passData.fogVolumePass->Create();
 
         passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
@@ -1476,7 +1478,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
     }
     else if (view->GetFlags() & ViewFlags::RAY_TRACING)
     {
-        Handle<RayTracingPassData> pd = CreateObject<RayTracingPassData>();
+        Handle<RayTracingPassData> pd = MakeHandle<RayTracingPassData>();
         RayTracingPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
@@ -1656,7 +1658,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassDat
 
     Assert(descriptorTable->Create());
 
-    passData.combinePass = CreateObject<FullScreenPass>(
+    passData.combinePass = MakeHandle<FullScreenPass>(
         renderTextureToScreenShader,
         std::move(descriptorTable),
         srcFramebuffer,
@@ -1760,20 +1762,20 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     CreateViewCombinePass(view, passData);
 
     passData.reflectionsPass.Reset();
-    passData.reflectionsPass = CreateObject<ReflectionsPass>(
+    passData.reflectionsPass = MakeHandle<ReflectionsPass>(
         newSize,
         gbuffer,
         g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain),
         passData.combinePass->GetFinalImageView());
     passData.reflectionsPass->Create();
 
-    passData.tonemapPass = CreateObject<TonemapPass>(passData.viewport.extent, gbuffer);
+    passData.tonemapPass = MakeHandle<TonemapPass>(passData.viewport.extent, gbuffer);
     passData.tonemapPass->Create();
 
-    passData.lightmapPass = CreateObject<LightmapPass>();
+    passData.lightmapPass = MakeHandle<LightmapPass>();
     passData.lightmapPass->Create();
 
-    passData.fogVolumePass = CreateObject<FogVolumePass>();
+    passData.fogVolumePass = MakeHandle<FogVolumePass>();
     passData.fogVolumePass->Create();
 
     passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);

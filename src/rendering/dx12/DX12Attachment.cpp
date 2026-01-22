@@ -23,7 +23,7 @@ DX12Attachment::DX12Attachment(
     const AttachmentDesc& attachmentDesc)
     : AttachmentBase(image, framebuffer, attachmentDesc)
 {
-    m_imageView = CreateObject<DX12GpuImageView>(image);
+    m_imageView = MakeHandle<DX12GpuImageView>(image);
 }
 
 DX12Attachment::~DX12Attachment()

@@ -234,7 +234,7 @@ static void InitThreads()
 
 static void InitLogger()
 {
-    g_logger = CreateObject<Logger>();
+    g_logger = MakeHandle<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
 
     InitObject(g_logger);
@@ -283,23 +283,23 @@ extern "C"
         ConsoleCommandManager::GetInstance().Initialize();
         TaskSystem::GetInstance().Start();
 
-        g_engineDriver = CreateObject<EngineDriver>();
+        g_engineDriver = MakeHandle<EngineDriver>();
 
-        g_engineStats = CreateObject<EngineStats>();
+        g_engineStats = MakeHandle<EngineStats>();
         InitObject(g_engineStats);
 
-        g_streamingManager = CreateObject<StreamingManager>();
+        g_streamingManager = MakeHandle<StreamingManager>();
         InitObject(g_streamingManager);
         g_streamingManager->Start();
 
-        g_assetManager = CreateObject<AssetManager>();
+        g_assetManager = MakeHandle<AssetManager>();
         InitObject(g_assetManager);
 
-        g_audioManager = CreateObject<AudioManager>();
+        g_audioManager = MakeHandle<AudioManager>();
         InitObject(g_audioManager);
 
 #if HYP_EDITOR
-        g_editorState = CreateObject<EditorState>();
+        g_editorState = MakeHandle<EditorState>();
         InitObject(g_editorState);
 #endif
 
@@ -318,11 +318,11 @@ extern "C"
         const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
 #if HYP_WINDOWS
-        g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);
 #elif HYP_MACOS
-        g_appContext = CreateObject<CocoaAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<CocoaAppContext>("Hyperion", cliArgs);
 #elif HYP_SDL
-        g_appContext = CreateObject<SDLAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<SDLAppContext>("Hyperion", cliArgs);
 #else
         HYP_FAIL("AppContext not implemented for this platform");
 #endif

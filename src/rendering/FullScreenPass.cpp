@@ -353,7 +353,7 @@ void FullScreenPass::CreateFramebuffer()
         if (m_framebuffer->GetExtent() == m_extent)
         {
             // already set with correct extent, just create if not already
-            DeferCreate(m_framebuffer);
+            CheckResult(m_framebuffer->Create());
 
             return;
         }
@@ -395,17 +395,16 @@ void FullScreenPass::CreateFramebuffer()
 
     GpuImageRef attachmentImage = g_renderBackend->MakeImage(textureDesc);
     attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", InstanceClass()->GetName()));
-    DeferCreate(attachmentImage);
+    CheckResult(attachmentImage->Create());
 
-    AttachmentRef attachment = m_framebuffer->AddAttachment(
+    Attachment* attachment = m_framebuffer->AddAttachment(
         0,
         attachmentImage,
         ShouldRenderHalfRes() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
         StoreOperation::STORE);
 
-    DeferCreate(attachment);
-
-    DeferCreate(m_framebuffer);
+    CheckResult(attachment->Create());
+    CheckResult(m_framebuffer->Create());
 }
 
 void FullScreenPass::CreatePipeline()
@@ -468,7 +467,7 @@ void FullScreenPass::CreatePreviousTexture()
     Assert(m_imageFormat != TF_NONE);
 
     // Create previous image
-    m_previousTexture = CreateObject<Texture>(TextureDesc {
+    m_previousTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         m_imageFormat,
         Vec3u { m_extent.x, m_extent.y, 1 },
@@ -523,7 +522,7 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
 
     DeferCreate(descriptorTable);
 
-    m_renderTextureToScreenPass = CreateObject<FullScreenPass>(
+    m_renderTextureToScreenPass = MakeHandle<FullScreenPass>(
         renderTextureToScreenShader,
         std::move(descriptorTable),
         m_imageFormat,
@@ -570,7 +569,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
 
     DeferCreate(descriptorTable);
 
-    m_mergeHalfResTexturesPass = CreateObject<FullScreenPass>(
+    m_mergeHalfResTexturesPass = MakeHandle<FullScreenPass>(
         mergeHalfResTexturesShader,
         std::move(descriptorTable),
         m_imageFormat,

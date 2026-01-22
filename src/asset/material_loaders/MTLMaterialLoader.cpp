@@ -260,7 +260,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             }
         });
 
-    Handle<MaterialGroup> materialGroupHandle = CreateObject<MaterialGroup>();
+    Handle<MaterialGroup> materialGroupHandle = MakeHandle<MaterialGroup>();
 
     HashMap<String, String> textureNamesToPath;
 

@@ -168,9 +168,9 @@ void BakerBase::Initialize()
 {
     if (PerformsRayTracing())
     {
-        Handle<Camera> camera = CreateObject<Camera>();
+        Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
-        camera->AddCameraController(CreateObject<OrthoCameraController>());
+        camera->AddCameraController(MakeHandle<OrthoCameraController>());
         InitObject(camera);
 
         // dummy output target
@@ -193,7 +193,7 @@ void BakerBase::Initialize()
             .camera = camera
         };
 
-        m_view = CreateObject<View>(viewDesc);
+        m_view = MakeHandle<View>(viewDesc);
         InitObject(m_view);
 
         m_view->UpdateViewport();

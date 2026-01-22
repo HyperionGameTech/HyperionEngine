@@ -38,13 +38,13 @@ class Camera;
 
 static const Handle<NullInputHandler>& GetNullInputHandler()
 {
-    static const Handle<NullInputHandler> s_nullInputHandler = CreateObject<NullInputHandler>();
+    static const Handle<NullInputHandler> s_nullInputHandler = MakeHandle<NullInputHandler>();
     return s_nullInputHandler;
 }
 
 static const Handle<NullCameraController>& GetNullCameraController()
 {
-    static const Handle<NullCameraController> s_nullCameraController = CreateObject<NullCameraController>();
+    static const Handle<NullCameraController> s_nullCameraController = MakeHandle<NullCameraController>();
     return s_nullCameraController;
 }
 
@@ -227,7 +227,7 @@ void Camera::Init()
 
     Entity::Init();
 
-    m_streamingVolume = CreateObject<CameraStreamingVolume>();
+    m_streamingVolume = MakeHandle<CameraStreamingVolume>();
     m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
     InitObject(m_streamingVolume);
 

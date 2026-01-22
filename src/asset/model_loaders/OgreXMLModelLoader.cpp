@@ -263,7 +263,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     BuildVertices(model);
 
-    Handle<Node> top = CreateObject<Node>();
+    Handle<Node> top = MakeHandle<Node>();
 
     Handle<Skeleton> skeleton;
 
@@ -317,7 +317,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         meshData.CalculateNormals();
 
-        Handle<Mesh> mesh = CreateObject<Mesh>();
+        Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
         mesh->SetMeshData(meshDesc, meshData);
 
@@ -334,7 +334,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             ShaderProperties(mesh->GetVertexAttributes())
         };
 
-        Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
+        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.8f);
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.01f);
@@ -343,7 +343,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
-        Handle<Node> node = CreateObject<Node>();
+        Handle<Node> node = MakeHandle<Node>();
         node->SetName(CreateNameFromDynamicString(subMesh.name));
         node->AddChild(entity);
 

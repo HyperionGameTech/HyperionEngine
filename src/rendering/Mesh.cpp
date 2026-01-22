@@ -189,7 +189,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 
     m_aabb = meshData.CalculateAABB();
 
-    m_meshAsset = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
+    m_meshAsset = TAssetReference<MeshAsset>(MakeHandle<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
 }
 
 Mesh::~Mesh()
@@ -503,7 +503,7 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
 
     m_aabb = meshData.CalculateAABB();
 
-    Handle<MeshAsset> asset = CreateObject<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, meshData);
+    Handle<MeshAsset> asset = MakeHandle<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, meshData);
     m_meshAsset = TAssetReference<MeshAsset>(asset);
 
     if (IsInitCalled())

@@ -212,7 +212,7 @@ void View::Init()
         AssertDebug(m_viewDesc.renderTargetDesc.numAttachments == 0,
             "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
-        m_outputTarget = ViewOutputTarget(CreateObject<GBuffer>(extent));
+        m_outputTarget = ViewOutputTarget(MakeHandle<GBuffer>(extent));
     }
     else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
     {
@@ -223,7 +223,7 @@ void View::Init()
             const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
             AssertDebug(attachmentDesc.format != TF_NONE);
 
-            AttachmentRef attachment = framebuffer->AddAttachment(
+            Attachment* attachment = framebuffer->AddAttachment(
                 attachmentIndex,
                 attachmentDesc.format,
                 attachmentDesc.imageType,
@@ -454,7 +454,7 @@ void View::CreateReadbackTexture()
     AssertOnThread(g_simThread);
 
     m_readbackTexture.Reset();
-    m_readbackTexture = CreateObject<Texture>(TextureDesc {
+    m_readbackTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         m_viewDesc.readbackTextureFormat,
         Vec3u { m_viewport.extent, 1 },

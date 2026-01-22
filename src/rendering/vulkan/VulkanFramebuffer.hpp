@@ -29,7 +29,7 @@ enum class VulkanRenderPassMode : uint8;
 struct VulkanAttachmentDef
 {
     VulkanGpuImageRef image;
-    VulkanAttachmentRef attachment;
+    VulkanAttachment* attachment = nullptr;
 };
 
 struct VulkanAttachmentMap
@@ -52,7 +52,11 @@ struct VulkanAttachmentMap
     {
         for (auto& it : attachments)
         {
-            SafeDelete(std::move(it.second.attachment));
+            Attachment* attachment = it.second.attachment;
+            if (!attachment)
+                continue;
+
+            attachment->Release();
         }
 
         attachments.Clear();
@@ -63,21 +67,21 @@ struct VulkanAttachmentMap
         return attachments.Size();
     }
 
-    const VulkanAttachmentRef& GetAttachment(uint32 binding) const
+    VulkanAttachment* GetAttachment(uint32 binding) const
     {
         const auto it = attachments.Find(binding);
 
         if (it == attachments.End())
         {
-            return VulkanAttachmentRef::Null();
+            return nullptr;
         }
 
         return it->second.attachment;
     }
 
-     VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment)
+    VulkanAttachment* AddAttachment(VulkanAttachment* attachment)
     {
-        Assert(attachment.IsValid());
+        Assert(attachment != nullptr);
         Assert(attachment->GetImage().IsValid());
 
         Assert(attachment->HasBinding(), "Attachment must have a binding");
@@ -95,7 +99,7 @@ struct VulkanAttachmentMap
         return attachment;
     }
 
-    VulkanAttachmentRef AddAttachment(
+    VulkanAttachment* AddAttachment(
         uint32 binding,
         Vec2u extent,
         TextureFormat format,
@@ -110,9 +114,9 @@ struct VulkanAttachmentMap
         textureDesc.extent = Vec3u { extent.x, extent.y, 1 };
         textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
-        VulkanGpuImageRef image = CreateObject<VulkanGpuImage>(textureDesc);
+        VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(textureDesc);
 
-        VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
+        VulkanAttachment* attachment = new VulkanAttachment(
             image,
             framebufferWeak,
             renderPassMode,
@@ -169,10 +173,10 @@ public:
         return m_attachmentMap;
     }
 
-    VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment) override;
-    VulkanAttachmentRef AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+    VulkanAttachment* AddAttachment(VulkanAttachment* attachment) override;
+    VulkanAttachment* AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
 
-    VulkanAttachmentRef AddAttachment(
+    VulkanAttachment* AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,

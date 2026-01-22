@@ -201,12 +201,12 @@ RendererResult DX12RenderBackend::Initialize()
     {
         DX12FrameRef& frame = m_frames[frameIndex];
 
-        frame = CreateObject<DX12Frame>(frameIndex);
+        frame = MakeHandle<DX12Frame>(frameIndex);
         CheckResultOrReturn(frame->Create());
     }
 
     // create main commandlist
-    m_commandBuffer = CreateObject<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    m_commandBuffer = MakeHandle<DX12CommandBuffer>(D3D12_COMMAND_LIST_TYPE_DIRECT);
     CheckResultOrReturn(m_commandBuffer->Create());
 
     descriptorHeapManager->Initialize();
@@ -274,7 +274,7 @@ DX12SwapchainRef DX12RenderBackend::CreateSwapchain(ApplicationWindow* window)
 {
     Assert(window != nullptr);
     
-    return CreateObject<DX12Swapchain>(window->GetHWND(), Vec2u(window->GetSize()));
+    return MakeHandle<DX12Swapchain>(window->GetHWND(), Vec2u(window->GetSize()));
 }
 
 void DX12RenderBackend::PrepareSwapchain(DX12Swapchain* swapchain)
@@ -311,12 +311,12 @@ DX12CommandBuffer* DX12RenderBackend::GetCurrentCommandBuffer() const
 
 DX12DescriptorSetRef DX12RenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)
 {
-    return CreateObject<DX12DescriptorSet>(layout);
+    return MakeHandle<DX12DescriptorSet>(layout);
 }
 
 DX12DescriptorTableRef DX12RenderBackend::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
 {
-    return CreateObject<DX12DescriptorTable>(decl);
+    return MakeHandle<DX12DescriptorTable>(decl);
 }
 
 DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
@@ -324,7 +324,7 @@ DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
-    DX12GraphicsPipelineRef graphicsPipeline = CreateObject<DX12GraphicsPipeline>();
+    DX12GraphicsPipelineRef graphicsPipeline = MakeHandle<DX12GraphicsPipeline>();
 
     if (shader.IsValid())
     {
@@ -378,42 +378,42 @@ DX12RayTracingPipelineRef DX12RenderBackend::MakeRayTracingPipeline(
 
 DX12GpuBufferRef DX12RenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
 {
-    return CreateObject<DX12GpuBuffer>(bufferType, size, alignment);
+    return MakeHandle<DX12GpuBuffer>(bufferType, size, alignment);
 }
 
 DX12GpuImageRef DX12RenderBackend::MakeImage(const TextureDesc& textureDesc)
 {
-    return CreateObject<DX12GpuImage>(textureDesc);
+    return MakeHandle<DX12GpuImage>(textureDesc);
 }
 
 DX12GpuImageViewRef DX12RenderBackend::MakeImageView(const DX12GpuImageRef& image)
 {
-    return CreateObject<DX12GpuImageView>(image);
+    return MakeHandle<DX12GpuImageView>(image);
 }
 
 DX12GpuImageViewRef DX12RenderBackend::MakeImageView(const DX12GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
-    return CreateObject<DX12GpuImageView>(image, mipIndex, numMips, layerIndex, numLayers);
+    return MakeHandle<DX12GpuImageView>(image, mipIndex, numMips, layerIndex, numLayers);
 }
 
 DX12SamplerRef DX12RenderBackend::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
 {
-    return CreateObject<DX12Sampler>(filterModeMin, filterModeMag, wrapMode);
+    return MakeHandle<DX12Sampler>(filterModeMin, filterModeMag, wrapMode);
 }
 
 DX12FramebufferRef DX12RenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
-    return CreateObject<DX12Framebuffer>(renderTargetDesc);
+    return MakeHandle<DX12Framebuffer>(renderTargetDesc);
 }
 
 DX12FrameRef DX12RenderBackend::MakeFrame(uint32 frameIndex)
 {
-    return CreateObject<DX12Frame>(frameIndex);
+    return MakeHandle<DX12Frame>(frameIndex);
 }
 
 DX12ShaderRef DX12RenderBackend::MakeShader(const CompiledShader* compiledShader)
 {
-    return CreateObject<DX12Shader>(compiledShader);
+    return MakeHandle<DX12Shader>(compiledShader);
 }
 
 DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
@@ -424,7 +424,7 @@ DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
     const Handle<Material>& material,
     const Mat4f& transform)
 {
-    return CreateObject<DX12GpuBlas>(
+    return MakeHandle<DX12GpuBlas>(
         packedVerticesBuffer,
         packedIndicesBuffer,
         numVertices,
@@ -435,7 +435,7 @@ DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
 
 DX12GpuTlasRef DX12RenderBackend::MakeTLAS()
 {
-    return CreateObject<DX12GpuTlas>();
+    return MakeHandle<DX12GpuTlas>();
 }
 
 void DX12RenderBackend::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)

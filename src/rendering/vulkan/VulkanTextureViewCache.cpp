@@ -75,7 +75,7 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(Texture* textur
 
     if (it == textureImageViews.End())
     {
-        VulkanGpuImageViewRef imageView = CreateObject<VulkanGpuImageView>(
+        VulkanGpuImageViewRef imageView = MakeHandle<VulkanGpuImageView>(
             texture->GetGpuImage(),
             subResource.baseMipLevel,
             subResource.numLevels,

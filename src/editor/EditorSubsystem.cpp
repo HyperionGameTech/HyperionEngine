@@ -266,7 +266,7 @@ void EditorGizmoBase::Init()
         HYP_LOG(Editor, Warning, "Failed to create manipulation widget node for \"{}\"!", InstanceClass()->GetName());
 
         // Create default node so we don't crash trying to use it
-        m_node = CreateObject<Node>();
+        m_node = MakeHandle<Node>();
         m_node->SetName(NAME_FMT("{}_FallbackGizmoNode", InstanceClass()->GetName()));
     }
 
@@ -432,7 +432,7 @@ void TranslateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEv
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
-            project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
+            project->GetActionStack()->Push(MakeHandle<FunctionalEditorAction>(
                 NAME("Translate"),
                 [manipulationMode = GetManipulationMode(), focusedNode, node = m_node, finalPosition = focusedNode->GetWorldTranslation(), origin = m_dragData->nodeOrigin]() -> EditorActionFunctions
                 {
@@ -967,7 +967,7 @@ void RotateEditorGizmo::OnDragEnd(const Handle<Camera>& camera, const MouseEvent
             const Quaternion finalRotation = m_dragData->currentRotation;
             const Quaternion originRotation = m_dragData->startRotation;
 
-            project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
+            project->GetActionStack()->Push(MakeHandle<FunctionalEditorAction>(
                 NAME("Rotate"),
                 [manipulationMode = GetManipulationMode(), focusedNode, finalRotation, originRotation]() -> EditorActionFunctions
                 {
@@ -1232,9 +1232,9 @@ EditorSubsystem::EditorSubsystem()
       m_editorCameraEnabled(false),
       m_shouldCancelNextClick(false)
 {
-    m_gizmos.Insert(CreateObject<NullEditorGizmo>());
-    m_gizmos.Insert(CreateObject<TranslateEditorGizmo>());
-    m_gizmos.Insert(CreateObject<RotateEditorGizmo>());
+    m_gizmos.Insert(MakeHandle<NullEditorGizmo>());
+    m_gizmos.Insert(MakeHandle<TranslateEditorGizmo>());
+    m_gizmos.Insert(MakeHandle<RotateEditorGizmo>());
 
     m_editorDelegates = new EditorDelegates();
 
@@ -1555,7 +1555,7 @@ void EditorSubsystem::OnAddedToWorld()
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
     }
 
-    m_editorScene = CreateObject<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
+    m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     GetWorld()->AddScene(m_editorScene);
 
     LoadEditorUIDefinitions();
@@ -1713,7 +1713,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 
 void EditorSubsystem::CreateHighlightNode()
 {
-    // m_highlightNode = Handle<Node>(CreateObject<Node>("Editor_Highlight"));
+    // m_highlightNode = Handle<Node>(MakeHandle<Node>("Editor_Highlight"));
     // m_highlightNode->SetFlags(m_highlightNode->GetNodeFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
 
     // const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
@@ -2147,7 +2147,7 @@ void EditorSubsystem::InitSceneOutline()
     AssertDebug(listView.IsValid());
 
     listView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    listView->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
+    listView->SetDataSource(MakeHandle<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
 
     if (ShowOnlyActiveScene)
     {
@@ -2471,7 +2471,7 @@ void EditorSubsystem::InitDetailView()
                 return;
             }
 
-            detailsListView->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<EditorNodePropertyRef> {}));
+            detailsListView->SetDataSource(MakeHandle<UIDataSource>(TypeWrapper<EditorNodePropertyRef> {}));
 
             UIDataSourceBase* dataSource = detailsListView->GetDataSource();
 
@@ -2847,7 +2847,7 @@ void EditorSubsystem::InitContentBrowser()
     m_contentBrowserDirectoryList = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List"_sh));
     Assert(m_contentBrowserDirectoryList != nullptr);
 
-    m_contentBrowserDirectoryList->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetPackage> {}));
+    m_contentBrowserDirectoryList->SetDataSource(MakeHandle<UIDataSource>(TypeWrapper<AssetPackage> {}));
 
     m_delegateHandlers.Remove(NAME("SelectContentDirectory"));
     m_delegateHandlers.Add(
@@ -2879,7 +2879,7 @@ void EditorSubsystem::InitContentBrowser()
     Assert(m_contentBrowserContents != nullptr);
 
     // create data source that handles AssetObject and AssetPackage (so we display as subfolders)
-    m_contentBrowserContents->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetObject> {}, TypeWrapper<AssetPackage> {}));
+    m_contentBrowserContents->SetDataSource(MakeHandle<UIDataSource>(TypeWrapper<AssetObject> {}, TypeWrapper<AssetPackage> {}));
     m_contentBrowserContents->SetIsVisible(false);
 
     m_contentBrowserContentsEmpty = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty"_sh);
@@ -3008,7 +3008,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
     Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Media/Fonts/Roboto", /* createIfNotExist */ true);
     Assert(package.IsValid());
 
-    Handle<FontAtlas> atlas = CreateObject<FontAtlas>(std::move(fontFaceAsset->Result()));
+    Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));
 
     if (Result renderAtlasResult = atlas->RenderAtlasTextures(); renderAtlasResult.HasError())
     {
@@ -3103,15 +3103,15 @@ bool EditorSubsystem::ExecuteCommandByName(Name name)
 
 void EditorSubsystem::NewProject()
 {
-    Handle<EditorProject> project = CreateObject<EditorProject>();
+    Handle<EditorProject> project = MakeHandle<EditorProject>();
     InitObject(project);
 
-    Handle<Scene> defaultScene = CreateObject<Scene>();
+    Handle<Scene> defaultScene = MakeHandle<Scene>();
     defaultScene->SetName(NAME("DefaultScene"));
     defaultScene->SetSceneFlags(SceneFlags::DEFAULT);
     project->AddScene(defaultScene);
 
-    Handle<DirectionalLight> sun = CreateObject<DirectionalLight>();
+    Handle<DirectionalLight> sun = MakeHandle<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetColor(Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)));

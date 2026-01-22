@@ -123,7 +123,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), CreateObject<T>()));
+        return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), MakeHandle<T>()));
     }
 
     template <class T>
@@ -219,7 +219,7 @@ public:
             return existingSystem;
         }
 
-        return AddSystem(CreateObject<SystemType>(std::forward<Args>(args)...));
+        return AddSystem(MakeHandle<SystemType>(std::forward<Args>(args)...));
     }
 
     /*! \brief Remove a system from this world.

@@ -42,7 +42,7 @@ HYP_API extern void Object_IncScriptObjectRef(class ObjectBase* ptr);
 HYP_API extern void Object_DecScriptObjectRef(class ObjectBase* ptr);
 #endif
 
-class ObjectContainerBase
+class HYP_API ObjectContainerBase
 {
     friend class ObjectPool;
 
@@ -77,8 +77,8 @@ protected:
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
-    HYP_API Pool* GetPool() const;
-    HYP_API static void LockPoolOrThreadAssert(Pool* pool, TLockGuard<AtomicFlag>& outGuard, int flags);
+    Pool* GetPool() const;
+    static void LockPoolOrThreadAssert(Pool* pool, TLockGuard<AtomicFlag>& outGuard, int flags);
 
     TypeId m_typeId;
     const Class* m_class;
@@ -93,27 +93,20 @@ struct ObjectHeader
     volatile int32 refCountStrong;
     volatile int32 refCountWeak;
 
-    union
-    {
-#ifdef HYP_DEBUG_MODE
-        bool wasSafeDeleted;
-#endif
-        uint32 flags;
-    };
-
     ObjectHeader()
         : cls(nullptr),
           index(~0u),
           refCountStrong(0),
-          refCountWeak(0),
-          flags(0)
+          refCountWeak(0)
     {
     }
 
     ObjectHeader(const ObjectHeader&) = delete;
     ObjectHeader& operator=(const ObjectHeader&) = delete;
+
     ObjectHeader(ObjectHeader&&) noexcept = delete;
     ObjectHeader& operator=(ObjectHeader&&) noexcept = delete;
+
     ~ObjectHeader() = default;
 
     HYP_FORCE_INLINE bool IsNull() const
@@ -121,12 +114,12 @@ struct ObjectHeader
         return index == ~0u;
     }
 
-    HYP_FORCE_INLINE uint32 GetRefCountStrong() const
+    HYP_FORCE_INLINE int32 GetRefCountStrong() const
     {
         return AtomicAdd(const_cast<volatile int32*>(&refCountStrong), 0);
     }
 
-    HYP_FORCE_INLINE uint32 GetRefCountWeak() const
+    HYP_FORCE_INLINE int32 GetRefCountWeak() const
     {
         return AtomicAdd(const_cast<volatile int32*>(&refCountWeak), 0);
     }
@@ -152,7 +145,7 @@ struct ObjectHeader
         return false;
     }
 
-    uint32 IncRefStrong()
+    int32 IncRefStrong()
     {
         const int32 count = AtomicIncrement(&refCountStrong);
 
@@ -166,12 +159,12 @@ struct ObjectHeader
         return count;
     }
 
-    uint32 IncRefWeak()
+    int32 IncRefWeak()
     {
-        return (uint32)AtomicIncrement(&refCountWeak);
+        return AtomicIncrement(&refCountWeak);
     }
 
-    uint32 DecRefStrong()
+    int32 DecRefStrong()
     {
         int32 count;
 
@@ -192,7 +185,7 @@ struct ObjectHeader
             return 0;
         }
 
-        HYP_CORE_ASSERT(count > 0, "RefCount bug! strong count went negative");
+        AssertDebug(count > 0, "RefCount bug! strong count went negative");
 
 #ifdef HYP_DOTNET
         if (count > 1)
@@ -201,10 +194,10 @@ struct ObjectHeader
         }
 #endif
 
-        return (uint32)count;
+        return count;
     }
 
-    uint32 DecRefWeak()
+    int32 DecRefWeak()
     {
         int32 count;
 
@@ -219,9 +212,9 @@ struct ObjectHeader
             return 0;
         }
 
-        HYP_CORE_ASSERT(count > 0, "RefCount bug! weak count went negative");
+        AssertDebug(count > 0, "RefCount bug! weak count went negative");
 
-        return (uint32)count;
+        return count;
     }
 
     //! Get the pointer to the actual object that this header is for. Header must be non-null
@@ -230,7 +223,7 @@ struct ObjectHeader
 };
 
 template <class T>
-class ObjectContainer final : public ObjectContainerBase
+class HYP_API ObjectContainer final : public ObjectContainerBase
 {
 public:
     ObjectContainer(const Class* cls)
@@ -246,10 +239,10 @@ public:
 
     virtual ~ObjectContainer() override
     {
-        HYP_CORE_ASSERT(m_headers.Empty(), "Destroying ObjectContainer with live objects!");
+        AssertDebug(m_headers.Empty(), "Destroying ObjectContainer with live objects!");
     }
 
-    HYP_NODISCARD ObjectHeader* Allocate(SizeType size)
+    HYP_NODISCARD ObjectHeader* AllocateObject(SizeType size)
     {
         static constexpr uint32 MaxObjectAlignment = 16;
 
@@ -276,7 +269,6 @@ public:
         header->cls = m_class;
         header->refCountStrong = 1;
         header->refCountWeak = 0;
-        header->flags = 0;
 
         m_headers.Emplace(header->index, header);
 
@@ -303,7 +295,7 @@ public:
 
     virtual void Release(ObjectHeader* header) override
     {
-        HYP_CORE_ASSERT(header != nullptr);
+        AssertDebug(header != nullptr);
 
         Pool* pool = GetPool();
 
@@ -311,7 +303,9 @@ public:
         LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;
-        HYP_CORE_ASSERT(index != ~0u, "Invalid index");
+        AssertDebug(index != ~0u, "Invalid index");
+
+        AssertDebug(header->refCountStrong == 0 && header->refCountWeak == 0);
 
         m_idGenerator.ReleaseId(index + 1);
 
@@ -322,12 +316,43 @@ public:
 
         m_headers.EraseAt(index);
     }
+    
+    // To match allocator interface
+    HYP_NODISCARD void* Allocate(SizeType size)
+    {
+        return reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(AllocateObject(size)) + sizeof(ObjectHeader));
+    }
+
+    // To match allocator interface
+    HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment)
+    {
+        AssertDebug(alignment <= 16, "ObjectContainer does not support alignments greater than 16!");
+
+        return Allocate(size);
+    }
+
+    // To match allocator interface
+    void Free(void* ptr)
+    {
+        if (!ptr)
+        {
+            return;
+        }
+
+        ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(ptr) - sizeof(ObjectHeader));
+        
+        // expected to be called from operator delete, so we release the strong reference we set in Allocate()
+        int32 refCount = AtomicDecrement(&header->refCountStrong);
+        Assert(refCount == 0, "Ref count mismatch! Got {} but expected 0!", refCount);
+
+        Release(header);
+    }
 
 private:
     SparsePagedArray<ObjectHeader*, 1024> m_headers;
 };
 
-class ObjectPool
+class HYP_API ObjectPool
 {
 public:
     class ContainerMap
@@ -343,10 +368,10 @@ public:
         ContainerMap& operator=(const ContainerMap&) = delete;
         ContainerMap(ContainerMap&&) noexcept = delete;
         ContainerMap& operator=(ContainerMap&&) noexcept = delete;
-        HYP_API ~ContainerMap();
+        ~ContainerMap();
 
-        HYP_API ObjectContainerBase& Get(TypeId typeId);
-        HYP_API ObjectContainerBase* TryGet(TypeId typeId);
+        ObjectContainerBase& Get(TypeId typeId);
+        ObjectContainerBase* TryGet(TypeId typeId);
 
         HYP_API ObjectContainerBase& GetOrCreate(
             TypeId typeId,
@@ -367,7 +392,14 @@ public:
         }
     };
 
-    HYP_API static ContainerMap& GetObjectContainerMap();
+    static ContainerMap& GetObjectContainerMap();
 };
+
+template <class T>
+static inline ObjectContainer<T>& GetObjectContainer()
+{
+    static ObjectContainer<T>& s_container = ObjectPool::GetObjectContainerMap().GetOrCreate<T>(GetClass<T>());
+    return s_container;
+}
 
 } // namespace Hyperion

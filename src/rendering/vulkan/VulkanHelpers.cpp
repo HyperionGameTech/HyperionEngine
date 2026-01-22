@@ -636,7 +636,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     tempFrame->UpdateUsedDescriptorSets();
 
-    commandBuffer = CreateObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     CheckResultOrReturn(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     CheckResultOrReturn(commandBuffer->Begin());
@@ -647,7 +647,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     CheckResultOrReturn(commandBuffer->End());
 
     /// \todo Refactor to use frame's fence instead, just need to make Frame able to not be presentable
-    fence = CreateObject<VulkanFence>();
+    fence = MakeHandle<VulkanFence>();
     CheckResultOrReturn(fence->Create());
     CheckResultOrReturn(fence->Reset());
 

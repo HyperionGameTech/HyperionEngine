@@ -178,7 +178,7 @@ void UIStage::UpdateCameraControllerStack()
         m_camera->RemoveCameraController(currentController);
     }
 
-    Handle<UICameraController> newController = CreateObject<UICameraController>(
+    Handle<UICameraController> newController = MakeHandle<UICameraController>(
         0.0f, -float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y),
         float(MinDepth), float(MaxDepth));
@@ -224,8 +224,8 @@ void UIStage::SetScene(const Handle<Scene>& scene)
     {
         const ThreadId ownerThreadId = m_scene.IsValid() ? m_scene->GetOwnerThreadId() : ThreadId::Current();
 
-        newScene = CreateObject<Scene>(NAME_FMT("UIStage_{}_Scene", GetName()), ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
-        newScene->SetRoot(CreateObject<Entity>());
+        newScene = MakeHandle<Scene>(NAME_FMT("UIStage_{}_Scene", GetName()), ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
+        newScene->SetRoot(MakeHandle<Entity>());
     }
 
     if (newScene == m_scene)
@@ -297,9 +297,9 @@ void UIStage::Init()
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    m_camera = CreateObject<Camera>();
+    m_camera = MakeHandle<Camera>();
     m_camera->SetName(NAME_FMT("{}_UIStage_Camera", GetName()));
-    m_camera->AddCameraController(CreateObject<UICameraController>(
+    m_camera->AddCameraController(MakeHandle<UICameraController>(
         0.0f, -float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y),
         float(MinDepth), float(MaxDepth)));

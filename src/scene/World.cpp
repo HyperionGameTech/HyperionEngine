@@ -174,7 +174,7 @@ void World::Init()
     {
         if (!m_worldGrid)
         {
-            m_worldGrid = CreateObject<WorldGrid>(this);
+            m_worldGrid = MakeHandle<WorldGrid>(this);
         }
 
         InitObject(m_worldGrid);
@@ -201,7 +201,7 @@ void World::Init()
         renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
         renderTargetDesc.numAttachments = 1;
 
-        Handle<Camera> camera = CreateObject<Camera>();
+        Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME("RayTracingViewDummyCamera"));
 
         const ViewDesc rayTracingViewDesc {
@@ -213,7 +213,7 @@ void World::Init()
             .camera = camera
         };
 
-        Handle<View> rayTracingView = CreateObject<View>(rayTracingViewDesc);
+        Handle<View> rayTracingView = MakeHandle<View>(rayTracingViewDesc);
         InitObject(rayTracingView);
 
         m_rayTracingView = rayTracingView;
@@ -288,22 +288,22 @@ void World::Init()
     }
 
     if (!HasSystem<VisibilityStateUpdaterSystem>())
-        AddSystem(CreateObject<VisibilityStateUpdaterSystem>());
+        AddSystem(MakeHandle<VisibilityStateUpdaterSystem>());
     
     if (!HasSystem<LightmapSystem>())
-        AddSystem(CreateObject<LightmapSystem>());
+        AddSystem(MakeHandle<LightmapSystem>());
     
     if (!HasSystem<AnimationSystem>())
-        AddSystem(CreateObject<AnimationSystem>());
+        AddSystem(MakeHandle<AnimationSystem>());
     
     if (!HasSystem<AudioSystem>())
-        AddSystem(CreateObject<AudioSystem>());
+        AddSystem(MakeHandle<AudioSystem>());
     
     if (!HasSystem<PhysicsSystem>())
-        AddSystem(CreateObject<PhysicsSystem>());
+        AddSystem(MakeHandle<PhysicsSystem>());
 
     if (!HasSystem<ScriptSystem>())
-        AddSystem(CreateObject<ScriptSystem>());
+        AddSystem(MakeHandle<ScriptSystem>());
 
     for (const Handle<View>& view : m_views)
     {
@@ -329,7 +329,7 @@ void World::Init()
 
     if (m_worldFlags & WorldFlags::HAS_PHYSICS)
     {
-        m_physicsWorld = CreateObject<PhysicsWorld>();
+        m_physicsWorld = MakeHandle<PhysicsWorld>();
         InitObject(m_physicsWorld);
     }
 
@@ -357,7 +357,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
         {
             if (m_worldFlags & WorldFlags::HAS_PHYSICS)
             {
-                m_physicsWorld = CreateObject<PhysicsWorld>();
+                m_physicsWorld = MakeHandle<PhysicsWorld>();
                 InitObject(m_physicsWorld);
             }
             else
@@ -378,7 +378,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
             {
                 if (!m_worldGrid)
                 {
-                    m_worldGrid = CreateObject<WorldGrid>(this);
+                    m_worldGrid = MakeHandle<WorldGrid>(this);
                     InitObject(m_worldGrid);
                 }
             }
@@ -1210,7 +1210,7 @@ Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
         return *it;
     }
 
-    Handle<WorldGridLayer> layer = CreateObject<WorldGridLayer>(streamingLayerName);
+    Handle<WorldGridLayer> layer = MakeHandle<WorldGridLayer>(streamingLayerName);
     BindStreamingDelegates(m_delegateHandlers, this, layer);
 
     m_worldGrid->AddLayer(layer);
@@ -1241,7 +1241,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
             return;
         }
 
-        m_worldGrid = CreateObject<WorldGrid>(this);
+        m_worldGrid = MakeHandle<WorldGrid>(this);
     }
 
     m_worldGrid->SetStreamingLayersFromDescs(streamingLayers.ToSpan());

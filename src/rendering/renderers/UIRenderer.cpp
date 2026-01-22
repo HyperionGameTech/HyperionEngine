@@ -136,7 +136,7 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
             ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
             Assert(shader.IsValid());
 
-            rg = CreateObject<RenderGroup>(shader, attributes, RenderGroupFlags::NONE);
+            rg = MakeHandle<RenderGroup>(shader, attributes, RenderGroupFlags::NONE);
 
 #ifdef HYP_DEBUG_MODE
             if (!rg.IsValid())
@@ -279,7 +279,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
 Handle<PassData> UIRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    Handle<UIRendererPassData> pd = CreateObject<UIRendererPassData>();
+    Handle<UIRendererPassData> pd = MakeHandle<UIRendererPassData>();
 
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();

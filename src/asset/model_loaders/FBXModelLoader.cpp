@@ -247,7 +247,7 @@ struct FBXMesh
             //     vertex.SetPosition(vertex.GetPosition() - boundsCenter);
             // }
 
-            Handle<Mesh> mesh = CreateObject<Mesh>();
+            Handle<Mesh> mesh = MakeHandle<Mesh>();
             mesh->SetName(CreateNameFromDynamicString(name));
             mesh->SetMeshData(meshDesc, meshData);
 
@@ -741,8 +741,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     InitFBXLoaderMemory();
 
-    Handle<Node> top = CreateObject<Node>();
-    Handle<Skeleton> rootSkeleton = CreateObject<Skeleton>();
+    Handle<Node> top = MakeHandle<Node>();
+    Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
 
     // Include our root dir as part of the path
     const String path = state.filepath;
@@ -1573,7 +1573,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 #undef INVALID_NODE_CONNECTION
     }
 
-    Handle<Bone> rootBone = CreateObject<Bone>();
+    Handle<Bone> rootBone = MakeHandle<Bone>();
     rootSkeleton->SetRootBone(rootBone);
 
     bool foundFirstBone = false;
@@ -1594,14 +1594,14 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             bindingTransform.SetRotation(fbxNode.localBindMatrix.ExtractRotation());
             bindingTransform.SetScale(fbxNode.localBindMatrix.ExtractScale());
 
-            Handle<Bone> bone = CreateObject<Bone>();
+            Handle<Bone> bone = MakeHandle<Bone>();
             bone->SetBindingTransform(bindingTransform);
 
             node = bone;
         }
         else
         {
-            node = CreateObject<Node>();
+            node = MakeHandle<Node>();
         }
 
         parentNode->AddChild(node);

@@ -418,7 +418,7 @@ const Handle<Texture>& Material::GetTextureAtIndex(uint32 index) const
 
 Handle<Material> Material::Clone() const
 {
-    Handle<Material> material = CreateObject<Material>(
+    Handle<Material> material = MakeHandle<Material>(
         Name::Unique(ANSIString(*m_name) + "_dynamic"),
         m_attributes,
         m_parameters,
@@ -610,7 +610,7 @@ Handle<Material> MaterialCache::CreateMaterial(
         attributesPtr = &tmpAttributes;
     }
 
-    Handle<Material> handle = CreateObject<Material>(
+    Handle<Material> handle = MakeHandle<Material>(
         name,
         *attributesPtr,
         parameters,
@@ -662,7 +662,7 @@ Handle<Material> MaterialCache::GetOrCreate(
             name = Name::Unique(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
         }
 
-        strongRef = CreateObject<Material>(
+        strongRef = MakeHandle<Material>(
             name,
             *attributesPtr,
             parameters,

@@ -32,7 +32,7 @@ RenderEnvironment::~RenderEnvironment()
 
 void RenderEnvironment::Initialize()
 {
-    m_gaussianSplatting = CreateObject<GaussianSplatting>();
+    m_gaussianSplatting = MakeHandle<GaussianSplatting>();
     InitObject(m_gaussianSplatting);
 }
 

@@ -153,7 +153,7 @@ FinalPassData* FinalPass::GetOrCreatePassData(Swapchain* swapchain)
         passData.descriptorSets[frameIndex] = std::move(descriptorSet);
     }
 
-    passData.renderTextureToScreenPass = CreateObject<FullScreenPass>(
+    passData.renderTextureToScreenPass = MakeHandle<FullScreenPass>(
         renderTextureToScreenShader,
         swapchain->GetImageFormat(),
         swapchain->GetExtent(),

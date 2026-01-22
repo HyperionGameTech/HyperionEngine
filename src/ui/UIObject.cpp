@@ -1897,7 +1897,7 @@ Handle<Material> UIObject::CreateMaterial() const
 
     if (AllowMaterialUpdate())
     {
-        Handle<Material> material = CreateObject<Material>(
+        Handle<Material> material = MakeHandle<Material>(
             m_name,
             GetMaterialAttributes(),
             GetMaterialParameters(),
@@ -3082,7 +3082,7 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
         name = cls->GetName();
     }
 
-    Handle<Entity> entity = CreateObject<Entity>();
+    Handle<Entity> entity = MakeHandle<Entity>();
     entity->SetName(name);
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
     entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);

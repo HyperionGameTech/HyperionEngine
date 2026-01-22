@@ -62,11 +62,11 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_ownerThreadId(ownerThreadId),
       m_world(nullptr),
       m_isAudioListener(false),
-      m_entityManager(CreateObject<EntityManager>(ownerThreadId, this)),
+      m_entityManager(MakeHandle<EntityManager>(ownerThreadId, this)),
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previousDelta(0.01667f)
 {
-    m_root = CreateObject<Node>(s_nameSceneRoot, Transform::identity, this);
+    m_root = MakeHandle<Node>(s_nameSceneRoot, Transform::identity, this);
     m_root->SetIsStatic(false);
 }
 

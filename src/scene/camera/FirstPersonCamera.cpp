@@ -133,7 +133,7 @@ FirstPersonCameraController::FirstPersonCameraController(FirstPersonCameraContro
       m_prevMouseX(0.0f),
       m_prevMouseY(0.0f)
 {
-    m_inputHandler = CreateObject<FirstPersonCameraInputHandler>(this);
+    m_inputHandler = MakeHandle<FirstPersonCameraInputHandler>(this);
 }
 
 void FirstPersonCameraController::OnActivated()

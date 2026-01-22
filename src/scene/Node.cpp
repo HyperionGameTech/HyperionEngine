@@ -322,7 +322,7 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
 
     if (!node.IsValid())
     {
-        return AddChild(Handle<Node>(CreateObject<Node>()));
+        return AddChild(Handle<Node>(MakeHandle<Node>()));
     }
 
     if (node.Get() == this || node->GetParent() == this)

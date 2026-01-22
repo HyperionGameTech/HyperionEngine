@@ -37,10 +37,10 @@ void EditorViewport::Init()
 
     if (!m_camera)
     {
-        m_camera = CreateObject<Camera>();
+        m_camera = MakeHandle<Camera>();
         m_camera->SetWindow(m_window);
         m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
-        m_camera->AddCameraController(CreateObject<EditorCameraController>());
+        m_camera->AddCameraController(MakeHandle<EditorCameraController>());
         m_camera->SetName(NAME("EditorViewportCamera"));
         m_camera->SetFOV(60.0f);
         m_camera->SetNear(0.1f);
@@ -63,7 +63,7 @@ void EditorViewport::Init()
         .camera = m_camera
     };
 
-    m_view = CreateObject<View>(viewDesc);
+    m_view = MakeHandle<View>(viewDesc);
     InitObject(m_view);
 
     SetReady(true);

@@ -177,21 +177,20 @@ void SimThread::Update()
 
 void SimThread::operator()()
 {
-#if HYP_SCRIPT
-    HypScript::GetInstance().Initialize();
-#endif
-
-    // create fallback world
-    Handle<World> defaultWorld = CreateObject<World>(NAME("DefaultWorld"), WorldFlags::NONE);
-    InitObject(defaultWorld);
-    g_engineDriver->SetDefaultWorld(defaultWorld);
-    
     // we need to wait for g_renderInstance to be non-null
     while (!RenderApi::IsInit())
     {
         ThreadSleep(1);
     }
 
+#if HYP_SCRIPT
+    HypScript::GetInstance().Initialize();
+#endif
+
+    // create fallback world
+    Handle<World> defaultWorld = MakeHandle<World>(NAME("DefaultWorld"), WorldFlags::NONE);
+    InitObject(defaultWorld);
+    g_engineDriver->SetDefaultWorld(defaultWorld);
 
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)

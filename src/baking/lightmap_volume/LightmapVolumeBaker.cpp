@@ -183,7 +183,7 @@ struct BlitAtlasElements : RenderCommand
 
                                 TextureData textureData { std::move(byteBuffer) };
 
-                                Handle<TextureAsset> newTextureAsset = CreateObject<TextureAsset>(
+                                Handle<TextureAsset> newTextureAsset = MakeHandle<TextureAsset>(
                                     atlasTexture->GetName(),
                                     textureDesc,
                                     std::move(textureData));
@@ -255,7 +255,7 @@ static void UpdateAtlasTextures(
     Handle<Texture> radianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapTextureType::LTT_RADIANCE);
     if (!radianceTexture)
     {
-        radianceTexture = CreateObject<Texture>(
+        radianceTexture = MakeHandle<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 AtlasTextureFormats[LTT_RADIANCE],
@@ -279,7 +279,7 @@ static void UpdateAtlasTextures(
     Handle<Texture> irradianceTexture = lmv->GetAtlasTexture(atlasIndex, LightmapTextureType::LTT_IRRADIANCE);
     if (!irradianceTexture)
     {
-        irradianceTexture = CreateObject<Texture>(
+        irradianceTexture = MakeHandle<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 AtlasTextureFormats[LTT_IRRADIANCE],
@@ -378,7 +378,7 @@ static bool BuildElementTextures(
 
         Handle<Texture>& texture = elementTextures[i];
 
-        texture = CreateObject<Texture>(
+        texture = MakeHandle<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 pBitmap->GetFormat(),
@@ -556,7 +556,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         }
         else
         {
-            bakeEntity.material = CreateObject<Material>();
+            bakeEntity.material = MakeHandle<Material>();
         }
 
         isNewMaterial = true;

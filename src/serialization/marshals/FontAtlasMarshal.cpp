@@ -215,7 +215,7 @@ public:
             return err;
         }
 
-        Handle<FontAtlas> result = CreateObject<FontAtlas>(atlasTextures, Vec2i(cellDimensions), std::move(glyphMetrics), std::move(symbolList));
+        Handle<FontAtlas> result = MakeHandle<FontAtlas>(atlasTextures, Vec2i(cellDimensions), std::move(glyphMetrics), std::move(symbolList));
 
         out = BoxedValue(std::move(result));
 

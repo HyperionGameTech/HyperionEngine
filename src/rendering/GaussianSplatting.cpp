@@ -597,7 +597,7 @@ void GaussianSplatting::Init()
     meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
     meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
-    m_quadMesh = CreateObject<Mesh>();
+    m_quadMesh = MakeHandle<Mesh>();
     m_quadMesh->SetMeshData(meshDesc, meshData);
 
     InitObject(m_quadMesh);

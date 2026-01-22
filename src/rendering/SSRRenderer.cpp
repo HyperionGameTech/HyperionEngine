@@ -165,7 +165,7 @@ void SSRRenderer::CreatePasses()
         renderTargetDesc.numLayers = 1;
 
         FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
-        AttachmentRef attachment = writeUvsFramebuffer->AddAttachment(
+        Attachment* attachment = writeUvsFramebuffer->AddAttachment(
             0,
             m_uvsTexture->GetGpuImage(),
             LoadOperation::CLEAR,
@@ -178,7 +178,7 @@ void SSRRenderer::CreatePasses()
             SafeDelete(std::move(m_writeUvs));
         }
 
-        m_writeUvs = CreateObject<FullScreenPass>(
+        m_writeUvs = MakeHandle<FullScreenPass>(
             writeUvsShader,
             writeUvsShaderDescriptorTable,
             writeUvsFramebuffer,
@@ -235,7 +235,7 @@ void SSRRenderer::CreatePasses()
             SafeDelete(std::move(m_sampleGbuffer));
         }
 
-        m_sampleGbuffer = CreateObject<FullScreenPass>(
+        m_sampleGbuffer = MakeHandle<FullScreenPass>(
             sampleGbufferShader,
             sampleGbufferShaderDescriptorTable,
             sampleGbufferFramebuffer,
@@ -294,7 +294,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);
 
         // Create textures
-        m_uvsTexture = CreateObject<Texture>(TextureDesc {
+        m_uvsTexture = MakeHandle<Texture>(TextureDesc {
             TT_TEX2D,
             SsrUVsFormat,
             Vec3u {
@@ -310,7 +310,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         m_uvsTexture->SetName(NAME("SSRTexture_UVs"));
         InitObject(m_uvsTexture);
 
-        m_sampledResultTexture = CreateObject<Texture>(TextureDesc {
+        m_sampledResultTexture = MakeHandle<Texture>(TextureDesc {
             TT_TEX2D,
             SsrFormat,
             Vec3u(m_currentExtent, 1),

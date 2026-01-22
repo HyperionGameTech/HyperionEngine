@@ -154,10 +154,10 @@ static const VulkanGpuImageViewRef& GetDefaultVulkanImageView()
         TextureDesc textureDesc {};
         textureDesc.imageUsage = IU_SAMPLED | IU_STORAGE;
 
-        VulkanGpuImageRef placeholderImage = CreateObject<VulkanGpuImage>(textureDesc);
+        VulkanGpuImageRef placeholderImage = MakeHandle<VulkanGpuImage>(textureDesc);
         Assert(placeholderImage->Create());
 
-        s_imageView = CreateObject<VulkanGpuImageView>(placeholderImage);
+        s_imageView = MakeHandle<VulkanGpuImageView>(placeholderImage);
         Assert(s_imageView->Create());
     }
 
@@ -181,7 +181,7 @@ static const VulkanSamplerRef& GetDefaultVulkanSampler()
             return s_sampler;
         }
 
-        s_sampler = CreateObject<VulkanSampler>(TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE);
+        s_sampler = MakeHandle<VulkanSampler>(TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE);
         Assert(s_sampler->Create());
     }
 
@@ -816,7 +816,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 
 VulkanDescriptorSetRef VulkanDescriptorSet::Clone() const
 {
-    VulkanDescriptorSetRef descriptorSet = CreateObject<VulkanDescriptorSet>(GetLayout());
+    VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(GetLayout());
     descriptorSet->SetDebugName(GetDebugName());
 
     return descriptorSet;

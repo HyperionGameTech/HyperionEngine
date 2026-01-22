@@ -21,7 +21,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    Handle<game::DefaultGame> defaultGame = CreateObject<game::DefaultGame>();
+    Handle<game::DefaultGame> defaultGame = MakeHandle<game::DefaultGame>();
 
     Hyp_SetGame(defaultGame);
 

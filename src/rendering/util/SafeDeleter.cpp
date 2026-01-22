@@ -21,8 +21,9 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
     return g_safeDeleter;
 }
 
-#pragma region SafeDeleterEntry < ObjectBase*>
-SafeDeleterEntry<ObjectBase*>::SafeDeleterEntry(ObjectBase* ptr, ConstructFromHandleTag)
+#pragma region SafeDeleterEntry<Handle<ObjectBase>>
+
+SafeDeleterEntry<Handle<ObjectBase>>::SafeDeleterEntry(ObjectBase* ptr)
     : ptr(ptr)
 {
     if (ptr)
@@ -56,7 +57,7 @@ SafeDeleterEntry<ObjectBase*>::SafeDeleterEntry(ObjectBase* ptr, ConstructFromHa
     }
 }
 
-SafeDeleterEntry<ObjectBase*>::~SafeDeleterEntry()
+SafeDeleterEntry<Handle<ObjectBase>>::~SafeDeleterEntry()
 {
     // call destructor if no more strong references
     if (ptr)
@@ -74,16 +75,13 @@ SafeDeleterEntry<ObjectBase*>::~SafeDeleterEntry()
 
             ptr->~ObjectBase();
 
-#ifdef HYP_DEBUG_MODE
-            header->wasSafeDeleted = true;
-#endif
             // this will free the slot if no other weak references remain
             header->DecRefWeak();
         }
     }
 }
 
-#pragma region SafeDeleterEntry < ObjectBase*>
+#pragma region SafeDeleterEntry<Handle<ObjectBase>>
 
 #pragma region SafeDeleter
 

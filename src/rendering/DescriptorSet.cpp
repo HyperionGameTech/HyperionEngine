@@ -408,7 +408,7 @@ DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
-            DescriptorSetRef descriptorSet = CreateObject<DescriptorSet>(layout);
+            DescriptorSetRef descriptorSet = MakeHandle<DescriptorSet>(layout);
             descriptorSet->SetDebugName(layout.GetName());
 
             m_sets[frameIndex].PushBack(std::move(descriptorSet));

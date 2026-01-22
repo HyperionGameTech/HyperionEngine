@@ -95,7 +95,7 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
       m_size(size),
       m_hwnd(nullptr),
-      m_inputManager(CreateObject<InputManager>(this))
+      m_inputManager(MakeHandle<InputManager>(this))
 {
 }
 
@@ -467,7 +467,7 @@ SDLAppContext::~SDLAppContext()
 
 Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
-    Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
+    Handle<SDLApplicationWindow> window = MakeHandle<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
     m_windows.PushBack(window);
 
     window->Initialize(windowOptions);
@@ -1325,7 +1325,7 @@ Win32AppContext::~Win32AppContext() = default;
 
 Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
-    Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
+    Handle<Win32ApplicationWindow> window = MakeHandle<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
 
     window->Initialize(windowOptions);
