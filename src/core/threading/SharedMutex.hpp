@@ -14,12 +14,10 @@ HYP_API extern void ThreadSleep(uint32 milliseconds);
 
 /*! \brief Single producer, multiple consumer spinlock.
  *  Writer has exclusive access, readers have shared access.
- *
- *  Intrusive, meaning the user must provide a pointer to volatile int64  to use as the lock state.
  */
 class SharedMutex final
 {
-    static constexpr uint32 MaxSpins = 1024; // before we yield
+    static constexpr uint32 MaxSpinsBeforeYield = 16; // spin until we yield
 
 public:
     SharedMutex()
@@ -45,16 +43,14 @@ public:
             // volatile read
             while (m_value != 0)
             {
-                for (int i = 0; i < 32; i++)
+                if (numSpins++ < MaxSpinsBeforeYield)
                 {
                     HYP_WAIT_IDLE();
                 }
-
-                if (numSpins++ >= MaxSpins)
+                else
                 {
                     // yield to other threads
                     ThreadSleep(0);
-                    numSpins = 0;
                 }
             }
         }
@@ -74,8 +70,9 @@ public:
             int64 state;
             uint64 ustate;
         };
-
-        while (true)
+        
+        // first pass: optimistic read
+        if ((m_value & 0x1) == 0)
         {
             state = AtomicAdd(&m_value, 2);
 
@@ -86,21 +83,34 @@ public:
             }
 
             AtomicSub(&m_value, 2);
+        }
 
-            // volatile read
-            while (m_value & 0x1)
+        while (true)
+        {
+            // failed, wait for writer to release
+            if (m_value & 0x1)
             {
-                for (int i = 0; i < 32; i++)
+                if (numSpins++ < MaxSpinsBeforeYield)
                 {
                     HYP_WAIT_IDLE();
                 }
-
-                if (numSpins++ >= MaxSpins)
+                else
                 {
                     ThreadSleep(0);
-                    numSpins = 0;
                 }
+
+                continue;
             }
+
+            state = AtomicAdd(&m_value, 2);
+
+            if ((state & 0x1) == 0)
+            {
+                // successfully acquired read lock
+                return;
+            }
+
+            AtomicSub(&m_value, 2);
         }
     }
 
