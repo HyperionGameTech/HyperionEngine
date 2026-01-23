@@ -626,7 +626,7 @@ LightmapPass::~LightmapPass()
 {
     for (auto& data : m_lightmapVolumePassData)
     {
-        SafeDelete(std::move(data.descriptorSets));
+        SafeDelete(std::move(data.uniformBuffers));
     }
 }
 
@@ -638,96 +638,6 @@ void LightmapPass::Create()
     Assert(m_shader != nullptr);
 
     FullScreenPass::Create();
-}
-
-const GraphicsPipelineRef& LightmapPass::GetGraphicsPipeline(Framebuffer* framebuffer, LightmapVolumePassData& data)
-{
-    LightmapVolume* volume = data.volume;
-    AssertDebug(volume != nullptr);
-
-    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(volume));
-    Assert(proxy != nullptr);
-
-    if (data.graphicsPipeline.IsAlive())
-    {
-        const GraphicsPipelineRef& graphicsPipeline = *data.graphicsPipeline;
-        AssertDebug(graphicsPipeline != nullptr);
-
-        if (graphicsPipeline->GetRenderTargetDesc() == framebuffer->GetRenderTargetDesc()
-            && proxy->atlasIrradianceTextures.CompareBitwise(data.atlasIrradianceTextures)
-            && proxy->atlasRadianceTextures.CompareBitwise(data.atlasRadianceTextures))
-        {
-            return graphicsPipeline;
-        }
-    }
-
-    const MeshAttributes meshAttributes {
-        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
-    };
-
-    MaterialAttributes materialAttributes;
-    materialAttributes.shaderDefinition.name = NAME("ApplyLightmap");
-    materialAttributes.shaderDefinition.properties.SetRequiredVertexAttributes(meshAttributes.vertexAttributes);
-    MergeGlobalShaderProperties(materialAttributes.shaderDefinition.properties);
-
-    materialAttributes.fillMode = FM_FILL;
-    materialAttributes.blendFunction = BlendFunction(
-        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
-    materialAttributes.flags = MAF_STENCIL_TEST;
-    materialAttributes.stencilFunction = StencilFunction {
-        .passOp = SO_KEEP,
-        .failOp = SO_KEEP,
-        .depthFailOp = SO_KEEP,
-        .compareOp = SCO_EQUAL // match values with equal atlas index when we render
-    };
-
-    SafeDelete(std::move(data.descriptorSets));
-    SafeDelete(std::move(data.uniformBuffers));
-
-    data.uniformBuffers.Resize(proxy->numAtlases);
-
-    for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
-    {
-        const DescriptorSetDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("LightmapVolume"_sh);
-        Assert(decl != nullptr);
-
-        const DescriptorSetLayout layout { decl };
-
-        DescriptorSetRef& descriptorSet = data.descriptorSets.PushBack(g_renderBackend->MakeDescriptorSet(layout));
-
-        Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
-        Texture* radianceTexture = proxy->atlasRadianceTextures[atlasIndex];
-
-        LightmapVolumeUniforms uniforms {};
-        uniforms.numAtlases = proxy->numAtlases;
-        uniforms.irradianceWeight = irradianceTexture ? 1.0f : 0.0f;
-        uniforms.radianceWeight = radianceTexture ? 1.0f : 0.0f;
-
-        GpuBufferRef uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
-        Assert(uniformBuffer->Create());
-        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-
-        descriptorSet->SetElement("IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
-        descriptorSet->SetElement("Sampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement("GBufferSampler"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-        descriptorSet->SetElement("LightmapVolumeUniforms"_sh, uniformBuffer);
-
-        Assert(descriptorSet->Create());
-
-        data.uniformBuffers[atlasIndex] = std::move(uniformBuffer);
-    }
-
-    g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        RenderableAttributeSet(meshAttributes, materialAttributes),
-        framebuffer->GetRenderTargetDesc(),
-        data.graphicsPipeline);
-
-    data.atlasIrradianceTextures = proxy->atlasIrradianceTextures;
-    data.atlasRadianceTextures = proxy->atlasRadianceTextures;
-
-    return *data.graphicsPipeline;
 }
 
 void LightmapPass::Resize_Internal(Vec2u newSize)
@@ -742,6 +652,8 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     AssertDebug(renderSetup.world && renderSetup.volume && renderSetup.view);
 
+    const uint32 frameIndex = frame->GetFrameIndex();
+
     LightmapVolume* volume = ObjCast<LightmapVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
 
@@ -752,53 +664,147 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     {
         return; // nothing to do
     }
+    
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+    
+    Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    AssertDebug(viewFramebuffer != nullptr);
+
+    const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
+
+    RenderQueue& rq = frame->renderQueue;
+    
+    ShaderDefinition shaderDefinition;
+    shaderDefinition.name = NAME("ApplyLightmap");
+    shaderDefinition.properties.SetRequiredVertexAttributes(vertexAttributes);
+    
+    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
+    
+    rq << SetCurrentView(
+        viewFramebuffer->GetRenderTargetDesc(),
+        renderSetup.view->GetViewport());
+            
+    rq << SetVertexAttributes(vertexAttributes);
+
+    rq << SetFaceCullMode(FCM_BACK);
+    rq << SetFillMode(FM_FILL);
+    rq << SetTopology(TOP_TRIANGLES);
+
+    rq << SetDepthTest(false);
+    rq << SetDepthWrite(false);
+
+    rq << SetStencilTest(true);
+    rq << SetStencilFunction(StencilFunction {
+        .passOp = SO_KEEP,
+        .failOp = SO_KEEP,
+        .depthFailOp = SO_KEEP,
+        .compareOp = SCO_EQUAL // match values with equal atlas index when we render
+    });
+
+    HYP_DEFER({
+        // reset states
+        rq << SetCurrentBlendFunction(BlendFunction::None());
+        rq << SetStencilState(0, 0xFF, 0x0);
+        rq << SetDepthWrite(true);
+        rq << SetDepthTest(true);
+        rq << SetStencilTest(false);
+    });
 
     LightmapVolumePassData& data = GetLightmapVolumePassData(volume);
-    //// \todo : Add clean up of data after lightmap volume has been removed
+    
+    uint32 numShaderUniforms = 0;
 
-    const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline(framebuffer, data);
+    // GBuffer textures
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, viewFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, viewFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, viewFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
 
-    const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
-    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
-    const uint32 lightmapVolumeDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("LightmapVolume"_sh);
+    // Samplers
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+
+    // Shadows
+    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
+    // Cameras and Worlds buffers
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+
+    // Env probes
+    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+
+    if (renderSetup.envProbe != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
+
+    if (renderSetup.envGrid != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid));
+    else
+        rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
+    
+    if (dpd->reflectionsPass != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetDeferredResultImageView());
+
+    if (dpd->ssgi != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+
+    if (dpd->hbao != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+
+    if (dpd->rayTracingReflections != nullptr)
+        rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
+
+    if (data.uniformBuffers.Size() < proxy->numAtlases)
+    {
+        data.uniformBuffers.Resize(proxy->numAtlases);
+    }
 
     for (uint32 atlasIndex = 0; atlasIndex < proxy->numAtlases; atlasIndex++)
     {
-        // only draw elems in the volume with a stencil reference of the atlas index (+1)
-        frame->renderQueue << SetStencilState(atlasIndex + 1, LightmapStencilMask, 0x0);
+        Texture* irradianceTexture = proxy->atlasIrradianceTextures[atlasIndex];
+        Texture* radianceTexture = proxy->atlasRadianceTextures[atlasIndex];
 
-        frame->renderQueue << BindGraphicsPipeline(graphicsPipeline, Viewport { framebuffer->GetExtent() });
+        LightmapVolumeUniforms uniforms {};
+        uniforms.numAtlases = proxy->numAtlases;
+        uniforms.irradianceWeight = irradianceTexture ? 1.0f : 0.0f;
+        uniforms.radianceWeight = radianceTexture ? 1.0f : 0.0f;
 
-        frame->renderQueue << BindDescriptorSet(
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frame->GetFrameIndex()),
-            graphicsPipeline,
-            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
-            globalDescriptorSetIndex);
+        GpuBufferRef& uniformBuffer = data.uniformBuffers[atlasIndex];
 
-        if (viewDescriptorSetIndex != ~0u)
+        if (!uniformBuffer)
         {
-            AssertDebug(renderSetup.passData != nullptr);
-
-            frame->renderQueue << BindDescriptorSet(
-                renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-                graphicsPipeline,
-                {},
-                viewDescriptorSetIndex);
+            uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
+            CheckResult(uniformBuffer->Create());
         }
 
-        frame->renderQueue << BindDescriptorSet(
-            data.descriptorSets[atlasIndex],
-            graphicsPipeline,
-            {},
-            lightmapVolumeDescriptorSetIndex);
+        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        frame->renderQueue << DrawIndexed(6); /// \todo : Draw a box transformed to the size of the lightmap volume
+        // only draw elems in the volume with a stencil reference of the atlas index (+1)
+        rq << SetStencilState(atlasIndex + 1, LightmapStencilMask, 0x0);
+
+        uint32 localNumShaderUniforms = numShaderUniforms;
+
+        rq << SetShaderUniform(localNumShaderUniforms++, "IrradianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(irradianceTexture != nullptr ? irradianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
+        rq << SetShaderUniform(localNumShaderUniforms++, "RadianceTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(radianceTexture != nullptr ? radianceTexture : g_renderInterface->placeholderData->defaultTexture2d));
+        rq << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        rq << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
+
+        rq << CommitDrawState();
+
+        rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        rq << DrawIndexed(6); /// \todo : Draw a box transformed to the size of the lightmap volume
     }
 
     // reset stencil state back to default
-    frame->renderQueue << SetStencilState(0, 0xFF, 0x0);
+    rq << SetStencilState(0, 0xFF, 0x0);
 
     m_isFirstFrame = false;
 }

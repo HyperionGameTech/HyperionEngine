@@ -142,14 +142,10 @@ protected:
         class LightmapVolume* volume = nullptr;
         Array<Texture*> atlasIrradianceTextures;
         Array<Texture*> atlasRadianceTextures;
-        GraphicsPipelineCacheHandle graphicsPipeline;
-        Array<DescriptorSetRef> descriptorSets;
         Array<GpuBufferRef> uniformBuffers;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
-
-    const GraphicsPipelineRef& GetGraphicsPipeline(Framebuffer* framebuffer, LightmapVolumePassData& data);
 
     LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
     {
