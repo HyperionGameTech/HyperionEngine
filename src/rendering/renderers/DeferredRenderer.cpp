@@ -189,30 +189,6 @@ static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
 
 #pragma region DeferredPass
 
-static inline bool ShouldRecreatePipeline(
-    const GraphicsPipelineCacheHandle& handle,
-    const ShaderProperties& shaderProperties)
-{
-    if (!handle.IsAlive())
-    {
-        return true;
-    }
-
-    const GraphicsPipelineRef& pipeline = *handle;
-    Assert(pipeline.IsValid());
-
-    if (pipeline->GetShader()->GetCompiledShader()->GetProperties().GetHashCode() != shaderProperties.GetHashCode())
-    {
-        HYP_LOG(Rendering, Debug, "Recreating graphics pipeline due to shader property mismatch:\n\nGot:\n{}\n\nExpected:\n{}\n",
-            pipeline->GetShader()->GetCompiledShader()->GetProperties().ToString(),
-            shaderProperties.ToString());
-
-        return true;
-    }
-
-    return false;
-}
-
 DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
     : FullScreenPass(ShaderDefinition(), framebuffer, TF_RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
       m_mode(mode)
