@@ -103,11 +103,7 @@ public:
     TonemapPass& operator=(const TonemapPass& other) = delete;
     virtual ~TonemapPass() override;
 
-    virtual void Create() override;
     virtual void Render(Frame* frame, const RenderSetup& rs) override;
-
-protected:
-    virtual void CreatePipeline() override;
 
 private:
     virtual bool UsesTemporalBlending() const override
@@ -283,9 +279,6 @@ private:
     {
         return false;
     }
-
-    virtual void CreatePipeline() override;
-    virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes) override;
 
     void CreateSSRRenderer();
 

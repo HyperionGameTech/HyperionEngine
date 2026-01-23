@@ -214,7 +214,7 @@ static inline bool ShouldRecreatePipeline(
 }
 
 DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
-    : FullScreenPass(nullptr, nullptr, framebuffer, TF_RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
+    : FullScreenPass(ShaderDefinition(), framebuffer, TF_RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
       m_mode(mode)
 {
     Assert(m_framebuffer.IsValid());
@@ -278,63 +278,6 @@ void DeferredPass::Create()
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
         InitObject(m_ltcBrdfTexture);
     }
-}
-
-GraphicsPipelineCacheHandle DeferredPass::CreatePipeline(const ShaderProperties& shaderProperties)
-{
-    HYP_SCOPE;
-
-    AssertDebug(m_framebuffer.IsValid());
-
-    const MeshAttributes meshAttributes {
-        .vertexAttributes = shaderProperties.GetRequiredVertexAttributes()
-    };
-
-    MaterialAttributes materialAttributes;
-    materialAttributes.shaderDefinition = ShaderDefinition {
-        m_mode == DPM_INDIRECT_LIGHTING
-            ? NAME("DeferredIndirect")
-            : NAME("DeferredDirect"),
-        shaderProperties
-    };
-    materialAttributes.fillMode = FM_FILL,
-    materialAttributes.blendFunction = m_blendFunction,
-    materialAttributes.flags = MAF_STENCIL_TEST,
-    materialAttributes.stencilFunction = StencilFunction {
-        .passOp = SO_KEEP,
-        .failOp = SO_KEEP,
-        .depthFailOp = SO_KEEP,
-        .compareOp = SCO_EQUAL
-    };
-
-    const RenderableAttributeSet renderableAttributes { meshAttributes, materialAttributes };
-    
-    const RenderTargetDesc& renderTargetDesc = m_framebuffer->GetRenderTargetDesc();
-
-    GraphicsPipelineCacheHandle cacheHandle;
-
-    if (m_mode == DPM_INDIRECT_LIGHTING)
-    {
-        m_shader = g_shaderManager->GetOrCreate(NAME("DeferredIndirect"), shaderProperties);
-        Assert(m_shader.IsValid());
-
-        g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            renderableAttributes,
-            renderTargetDesc,
-            cacheHandle);
-
-        return cacheHandle;
-    }
-
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("DeferredDirect"), shaderProperties);
-    Assert(shader != nullptr);
-
-    g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        renderableAttributes,
-        renderTargetDesc,
-        cacheHandle);
-
-    return cacheHandle;
 }
 
 void DeferredPass::Resize_Internal(Vec2u newSize)
@@ -542,24 +485,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TF_R11G11B10F, extent, gbuffer)
 {
-}
-
-TonemapPass::~TonemapPass()
-{
-}
-
-void TonemapPass::Create()
-{
-    AssertOnThread(g_renderThread);
-
-    FullScreenPass::Create();
-}
-
-void TonemapPass::CreatePipeline()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
     const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
     ShaderProperties shaderProperties;
@@ -567,32 +492,13 @@ void TonemapPass::CreatePipeline()
 
     MergeGlobalShaderProperties(shaderProperties);
 
-    /*if (g_renderBackend->GetSwapchain()->IsPqHdr())
-    {
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("PQ_HDR")));
-    }
-    else
-    {*/
     shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
-    //}
 
+    m_shaderDefinition = ShaderDefinition(NAME("Tonemap"), shaderProperties);
+}
 
-    const MeshAttributes meshAttributes {
-        vertexAttributes
-    };
-
-    const MaterialAttributes materialAttributes {
-        .shaderDefinition = ShaderDefinition(NAME("Tonemap"), shaderProperties),
-        .fillMode = FM_FILL,
-        .blendFunction = BlendFunction::None(),
-        .flags = MAF_NONE
-    };
-
-    const RenderableAttributeSet renderableAttributes(meshAttributes, materialAttributes);
-
-    m_shader = g_shaderManager->GetOrCreate(NAME("Tonemap"), shaderProperties);
-
-    FullScreenPass::CreatePipeline(renderableAttributes);
+TonemapPass::~TonemapPass()
+{
 }
 
 void TonemapPass::Resize_Internal(Vec2u newSize)
@@ -620,6 +526,7 @@ struct LightmapVolumeUniforms
 LightmapPass::LightmapPass()
     : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
+    m_shaderDefinition = ShaderDefinition(NAME("ApplyLightmap"));
 }
 
 LightmapPass::~LightmapPass()
@@ -633,9 +540,6 @@ LightmapPass::~LightmapPass()
 void LightmapPass::Create()
 {
     AssertOnThread(g_renderThread);
-
-    m_shader = g_shaderManager->GetOrCreate(NAME("ApplyLightmap"));
-    Assert(m_shader != nullptr);
 
     FullScreenPass::Create();
 }
@@ -675,11 +579,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     RenderQueue& rq = frame->renderQueue;
     
-    ShaderDefinition shaderDefinition;
-    shaderDefinition.name = NAME("ApplyLightmap");
-    shaderDefinition.properties.SetRequiredVertexAttributes(vertexAttributes);
-    
-    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
+    rq << SetCurrentShader(ShaderDesc(m_shaderDefinition));
     
     rq << SetCurrentView(
         viewFramebuffer->GetRenderTargetDesc(),
@@ -818,6 +718,10 @@ static constexpr uint32 MaxBoundLightsPerFogVolume = 16;
 FogVolumePass::FogVolumePass()
     : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
+    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
+
+    m_shaderDefinition = ShaderDefinition(NAME("ApplyFogVolume"), shaderProperties);
 }
 
 FogVolumePass::~FogVolumePass()
@@ -836,12 +740,6 @@ void FogVolumePass::Create()
     m_volumeMesh->SetFlags(MF_VIEW_INDEPENDENT);
     m_volumeMesh->SetName(NAME("FogVolumeMesh"));
     InitObject(m_volumeMesh);
-
-    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
-    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
-
-    m_shader = g_shaderManager->GetOrCreate(NAME("ApplyFogVolume"), shaderProperties);
-    Assert(m_shader != nullptr);
 
     FullScreenPass::Create();
 }
@@ -1034,57 +932,6 @@ void ReflectionsPass::Create()
     CreateSSRRenderer();
 }
 
-void ReflectionsPass::CreatePipeline()
-{
-    HYP_SCOPE;
-
-    const MeshAttributes meshAttributes {
-        VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0
-    };
-
-    const MaterialAttributes materialAttributes {
-        .shaderDefinition = m_shader ? m_shader->GetCompiledShader()->GetDefinition() : ShaderDefinition(),
-        .fillMode = FM_FILL,
-        .blendFunction = BlendFunction(
-            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
-            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
-        .flags = MAF_NONE
-    };
-
-    CreatePipeline(RenderableAttributeSet(meshAttributes, materialAttributes));
-}
-
-void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    for (const auto& it : s_cubemapPasses)
-    {
-        ShaderRef shader = g_shaderManager->GetOrCreate(NAME("ApplyReflectionProbe"), it.second);
-        Assert(shader.IsValid());
-
-        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-        Assert(descriptorTable->Create());
-        m_cubemapDescriptorTables[it.first] = std::move(descriptorTable);
-
-        GraphicsPipelineCacheHandle cacheHandle;
-
-        RenderableAttributeSet newAttributes = renderableAttributes;
-        newAttributes.SetShaderDefinition(shader->GetCompiledShader()->GetDefinition());
-
-        g_renderInterface->graphicsPipelineCache->GetOrCreate(
-            newAttributes,
-            m_framebuffer->GetRenderTargetDesc(),
-            cacheHandle);
-
-        m_cubemapGraphicsPipelines[it.first] = std::move(cacheHandle);
-    }
-
-    m_graphicsPipelineCacheHandle = m_cubemapGraphicsPipelines[CMT_DEFAULT];
-}
-
 bool ReflectionsPass::ShouldRenderSSR() const
 {
     static const ConfigurationValue& s_ssrEnabled = CoreApi::GetGlobalConfig().Get("Rendering.SSR.Enabled");
@@ -1178,7 +1025,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     rq << BeginFramebuffer(GetFramebuffer());
 
     // render previous frame's result to screen
-    if (!m_isFirstFrame && m_renderTextureToScreenPass != nullptr)
+    if (!m_isFirstFrame && ShouldRenderHalfRes())
     {
         RenderPreviousTextureToScreen(frame, rs);
     }

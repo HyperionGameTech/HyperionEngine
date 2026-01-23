@@ -967,7 +967,7 @@ inline Handle<T> MakeHandle(Args&&... args)
 }
 
 template <class T>
-inline bool InitObject(const Handle<T>& handle)
+inline bool InitObject(T* ptr)
 {
     // provide a better error message for attempting to initialize incomplete types.
     if constexpr (!ImplementationExistsV<T>)
@@ -979,12 +979,12 @@ inline bool InitObject(const Handle<T>& handle)
         static_assert(std::is_base_of_v<ObjectBase, T>, "Cannot initialize a type that does not derive from ObjectBase.");
     }
 
-    if (!handle)
+    if (!ptr)
     {
         return false;
     }
 
-    ObjectBase* basePtr = static_cast<ObjectBase*>(handle.Get());
+    ObjectBase* basePtr = static_cast<ObjectBase*>(ptr);
 
     if (basePtr->m_initState.BitOr(ObjectBase::INIT_STATE_INIT_CALLED, MemoryOrder::ACQUIRE_RELEASE) & ObjectBase::INIT_STATE_INIT_CALLED)
     {
@@ -997,6 +997,12 @@ inline bool InitObject(const Handle<T>& handle)
     basePtr->Init_Internal();
 
     return true;
+}
+
+template <class T>
+inline bool InitObject(const Handle<T>& handle)
+{
+    return InitObject(handle.Get());
 }
 
 template <class T, typename = std::enable_if_t<!std::is_const_v<T> && std::is_base_of_v<ObjectBase, T>>>

@@ -18,17 +18,25 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 PostFXPass::PostFXPass(TextureFormat imageFormat, GBuffer* gbuffer)
-    : PostFXPass(nullptr, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
+    : PostFXPass(ShaderDefinition(), POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
 {
 }
 
-PostFXPass::PostFXPass(const ShaderRef& shader, TextureFormat imageFormat, GBuffer* gbuffer)
-    : PostFXPass(shader, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
+PostFXPass::PostFXPass(
+    const ShaderDefinition& shaderDefinition,
+    TextureFormat imageFormat,
+    GBuffer* gbuffer)
+    : PostFXPass(shaderDefinition, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
 {
 }
 
-PostFXPass::PostFXPass(const ShaderRef& shader, PostProcessingStage stage, uint32 effectIndex, TextureFormat imageFormat, GBuffer* gbuffer)
-    : FullScreenPass(shader, imageFormat, Vec2u::Zero(), gbuffer),
+PostFXPass::PostFXPass(
+    const ShaderDefinition& shaderDefinition,
+    PostProcessingStage stage,
+    uint32 effectIndex,
+    TextureFormat imageFormat,
+    GBuffer* gbuffer)
+    : FullScreenPass(shaderDefinition, imageFormat, Vec2u::Zero(), gbuffer),
       m_stage(stage),
       m_effectIndex(effectIndex)
 {
@@ -38,38 +46,8 @@ PostFXPass::~PostFXPass()
 {
 }
 
-void PostFXPass::CreateDescriptors()
-{
-    AssertOnThread(g_renderThread);
-
-    if (m_effectIndex == ~0u)
-    {
-        HYP_LOG(Rendering, Warning, "Effect index not set, skipping descriptor creation");
-
-        return;
-    }
-
-    if (!g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
-    {
-        HYP_LOG(Rendering, Warning, "Creating post processing pass on a device that does not support dynamic descriptor indexing");
-
-        return;
-    }
-
-    /// \todo Reimplement
-
-    // const Name descriptorName = m_stage == POST_PROCESSING_STAGE_PRE_SHADING
-    //     ? NAME("PostFXPreStack")
-    //     : NAME("PostFXPostStack");
-
-    // for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++) {
-    //     g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
-    //         ->SetElement(descriptorName, m_effectIndex, m_framebuffer->GetAttachment(0)->GetImageView());
-    // }
-}
-
 PostProcessingEffect::PostProcessingEffect(PostProcessingStage stage, uint32 effectIndex, TextureFormat imageFormat, GBuffer* gbuffer)
-    : m_pass(nullptr, stage, effectIndex, imageFormat, gbuffer),
+    : m_pass(ShaderDefinition(), stage, effectIndex, imageFormat, gbuffer),
       m_isEnabled(true)
 {
 }
@@ -78,22 +56,22 @@ PostProcessingEffect::~PostProcessingEffect() = default;
 
 void PostProcessingEffect::Init()
 {
-    m_shader = CreateShader();
+    m_shaderDefinition = GetShaderDefinition();
 
-    m_pass.SetShader(m_shader);
+    m_pass.SetShaderDefinition(m_shaderDefinition);
     m_pass.Create();
 }
 
 void PostProcessingEffect::RenderEffect(Frame* frame, const RenderSetup& renderSetup, uint32 slot)
 {
-    struct
-    {
-        uint32 currentEffectIndexStage; // 31bits for index, 1 bit for stage
-    } pushConstants;
+    //struct
+    //{
+    //    uint32 currentEffectIndexStage; // 31bits for index, 1 bit for stage
+    //} pushConstants;
 
-    pushConstants.currentEffectIndexStage = (slot << 1) | uint32(m_pass.GetStage());
+    //pushConstants.currentEffectIndexStage = (slot << 1) | uint32(m_pass.GetStage());
 
-    m_pass.SetPushConstants(&pushConstants, sizeof(pushConstants));
+    //m_pass.SetPushConstants(&pushConstants, sizeof(pushConstants));
     m_pass.Render(frame, renderSetup);
 }
 

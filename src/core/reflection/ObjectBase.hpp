@@ -55,7 +55,7 @@ class HYP_API ObjectBase
     friend Handle<T> MakeHandle(Args&&...);
 
     template <class T>
-    friend bool InitObject(const Handle<T>&);
+    friend bool InitObject(T*);
 
 public:
     struct ClassInfo

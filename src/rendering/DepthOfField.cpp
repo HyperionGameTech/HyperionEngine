@@ -62,11 +62,9 @@ void DOFBlur::Render(Frame* frame, const RenderSetup& renderSetup)
 
     for (FullScreenPass* pass : directionalPasses)
     {
-        pass->SetPushConstants(&pushConstants, sizeof(pushConstants));
         pass->Render(frame, renderSetup);
     }
 
-    m_blurMixPass->SetPushConstants(&pushConstants, sizeof(pushConstants));
     m_blurMixPass->Render(frame, renderSetup);
 }
 

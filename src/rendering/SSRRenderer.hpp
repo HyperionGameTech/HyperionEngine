@@ -128,8 +128,8 @@ private:
 
     Vec2u m_currentExtent;
 
-    Handle<FullScreenPass> m_writeUvs;
-    Handle<FullScreenPass> m_sampleGbuffer;
+    FullScreenPass* m_writeUvs;
+    FullScreenPass* m_sampleGbuffer;
 
     UniquePtr<TemporalBlending> m_temporalBlending;
 
