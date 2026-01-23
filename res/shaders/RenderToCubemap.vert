@@ -32,7 +32,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #include "include/Skeleton.glsl"
 #endif
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(GenerateMipmap, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -41,7 +41,7 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(GenerateMipmap, CamerasBuffer) uniform CamerasBuffe
 
 #include "include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(GenerateMipmap, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
@@ -52,19 +52,19 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(GenerateMipmap, CurrentEnvProbe) readonly buffer Cur
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(GenerateMipmap, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(GenerateMipmap, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     EntityInstanceBatch entity_instance_batch;
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(GenerateMipmap, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -87,7 +87,7 @@ mat4 LookAt(vec3 pos, vec3 target, vec3 up)
 
 #ifdef SKINNING
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };
