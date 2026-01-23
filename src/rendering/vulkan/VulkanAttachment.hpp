@@ -34,6 +34,7 @@ public:
         const VulkanFramebufferWeakRef& framebuffer,
         VulkanRenderPassMode renderPassMode,
         const AttachmentDesc& attachmentDesc);
+
     ~VulkanAttachment() override;
 
     HYP_FORCE_INLINE const VkAttachmentReference& GetVulkanHandle() const

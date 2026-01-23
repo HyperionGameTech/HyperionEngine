@@ -18,10 +18,14 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/RenderHelpers.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/View.hpp>
+#include <scene/EnvProbe.hpp>
+
+#include <scene/camera/Camera.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -299,10 +303,26 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     UpdatePipelineState(frame, renderSetup);
 
+    const uint32 frameIndex = frame->GetFrameIndex();
+    RenderQueue& rq = frame->renderQueue;
+
     { // PASS 1 -- write UVs
         m_writeUvs->Begin(frame, renderSetup);
 
-        // @TODO set all uniforms
+        uint32 uniformIndex = 0;
+
+        rq << SetShaderUniform(uniformIndex++, "UniformBuffer"_sh, m_uniformBuffer);
+        rq << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        rq << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "DeferredResult"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        rq << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        rq << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        rq << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+        rq << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+        rq << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
         m_writeUvs->RenderFullScreenQuad(frame, renderSetup);
 
@@ -312,7 +332,21 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
     { // PASS 2 -- fill color buffer using mip chain to sample based on roughness
         m_sampleGbuffer->Begin(frame, renderSetup);
 
-        // @TODO set all uniforms here.
+        uint32 uniformIndex = 0;
+
+        rq << SetShaderUniform(uniformIndex++, "UVImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_uvsTexture));
+        rq << SetShaderUniform(uniformIndex++, "UniformBuffer"_sh, m_uniformBuffer);
+        rq << SetShaderUniform(uniformIndex++, "GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        rq << SetShaderUniform(uniformIndex++, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        rq << SetShaderUniform(uniformIndex++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+        rq << SetShaderUniform(uniformIndex++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        rq << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+        rq << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+        rq << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+        rq << SetShaderUniform(uniformIndex++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
 
         m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
 

@@ -289,7 +289,7 @@ DX12Attachment* DX12Framebuffer::GetAttachment(uint32 binding) const
         return nullptr;
     }
 
-    return it->second.Get();
+    return it->second;
 }
 
 int DX12Framebuffer::NumAttachments() const
