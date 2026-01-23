@@ -29,11 +29,6 @@ public:
     LightmapRenderer_GpuPathTracing& operator=(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
     virtual ~LightmapRenderer_GpuPathTracing() override;
 
-    HYP_FORCE_INLINE const RayTracingPipelineRef& GetPipeline() const
-    {
-        return m_rayTracingPipeline;
-    }
-
     virtual uint32 MaxTexelsPerFrame() const override
     {
         return uint32(-1);
@@ -57,7 +52,6 @@ private:
         GpuBufferRef cBuffer;
         GpuBufferRef raysBuffer;
         GpuBufferRef lightsBuffer;
-        FixedArray<DescriptorSetRef, NumFramesInFlight> Sets;
         GpuBufferRef HitsBufferGpu;
         bool IsCreated = false;
     };
@@ -76,8 +70,6 @@ private:
     RC<GpuLightmapperReadyNotification> m_readyNotification;
 
     GpuTlasRef m_tlas;
-
-    RayTracingPipelineRef m_rayTracingPipeline;
 };
 
 } // namespace Baking

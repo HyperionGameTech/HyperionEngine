@@ -8,14 +8,14 @@
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(RTRadianceDescriptorSet, TLAS) uniform accelerationStructureEXT tlas;
+HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(LightmapPathTracer, TLAS) uniform accelerationStructureEXT tlas;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -28,7 +28,7 @@ HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(RTRadianceDescriptorSet, TLAS) uniform acc
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 /// Blue noise
-HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_SSBO(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -38,27 +38,22 @@ HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 #include "../../include/BlueNoise.glsl"
 #include "../../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SSBO_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(Global, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SSBO(LightmapPathTracer, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
-};
-
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
 };
 
 #include "../../include/Octahedron.glsl"
@@ -70,12 +65,12 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, HitsBuffer, standard = scalar) buffer HitsBuffer
+HYP_DESCRIPTOR_SSBO(LightmapPathTracer, HitsBuffer, standard = scalar) buffer HitsBuffer
 {
     vec4 hits[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -86,12 +81,12 @@ struct LightmapRay
     vec3 direction;
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
+HYP_DESCRIPTOR_SSBO(LightmapPathTracer, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
 {
     vec4 ray_data[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
