@@ -53,26 +53,8 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
         properties.Set(ShaderProperty(NAME("VSM")));
     }
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("CombineShadowMaps"), properties);
-    Assert(shader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("CombineShadowMapsDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("Src0"_sh, views[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-        descriptorSet->SetElement("Src1"_sh, views[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-    }
-
-    DeferCreate(descriptorTable);
-
     Handle<FullScreenPass> combineShadowMapsPass = MakeHandle<FullScreenPass>(
-        shader,
-        descriptorTable,
+        ShaderDefinition(NAME("CombineShadowMaps"), properties),
         format,
         dimensions,
         nullptr);
@@ -363,7 +345,14 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         rs.view = lightProxy->shadowViews[0];
 
         // Combine passes into one
-        combineShadowMapsPass->Render(frame, rs);
+        combineShadowMapsPass->Begin(frame, rs);
+
+        frame->renderQueue << SetShaderUniform(5, "Src0"_sh, lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+        frame->renderQueue << SetShaderUniform(6, "Src1"_sh, lightProxy->shadowViews[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+
+        combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
+        
+        combineShadowMapsPass->End(frame, rs);
 
         AttachmentBase* attachment = combineShadowMapsPass->GetFramebuffer()->GetAttachment(0);
         Assert(attachment != nullptr);

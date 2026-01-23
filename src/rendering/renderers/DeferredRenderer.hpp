@@ -244,7 +244,7 @@ class ReflectionsPass final : public FullScreenPass
     HYP_OBJECT_BODY(ReflectionsPass);
 
 public:
-    ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView);
+    ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView);
     ReflectionsPass(const ReflectionsPass& other) = delete;
     ReflectionsPass& operator=(const ReflectionsPass& other) = delete;
     virtual ~ReflectionsPass() override;
@@ -252,11 +252,6 @@ public:
     HYP_FORCE_INLINE const GpuImageViewRef& GetMipChainImageView() const
     {
         return m_mipChainImageView;
-    }
-
-    HYP_FORCE_INLINE const GpuImageViewRef& GetDeferredResultImageView() const
-    {
-        return m_deferredResultImageView;
     }
 
     HYP_FORCE_INLINE SSRRenderer* GetSSRRenderer() const
@@ -290,7 +285,6 @@ private:
     virtual void Resize_Internal(Vec2u newSize) override;
 
     GpuImageViewRef m_mipChainImageView;
-    GpuImageViewRef m_deferredResultImageView;
 
     FixedArray<GraphicsPipelineCacheHandle, CMT_MAX> m_cubemapGraphicsPipelines;
     FixedArray<DescriptorTableRef, CMT_MAX> m_cubemapDescriptorTables;
@@ -413,7 +407,6 @@ private:
 
     void CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData);
     void CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData);
-    void CreateViewCombinePass(View* view, DeferredRendererPassData& passData);
     void CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData);
 
     void CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData);

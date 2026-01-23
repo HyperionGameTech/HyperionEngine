@@ -97,11 +97,6 @@ public:
         return m_pass;
     }
 
-    const ShaderDefinition& GetShaderDefinition() const
-    {
-        return m_shaderDefinition;
-    }
-
     PostProcessingStage GetStage() const
     {
         return m_pass.GetStage();
@@ -130,7 +125,7 @@ public:
     virtual void RenderEffect(Frame* frame, const RenderSetup& renderSetup, uint32 slot);
 
 protected:
-    virtual ShaderDefinition CreateShaderDefinition() = 0;
+    virtual ShaderDefinition GetShaderDefinition() = 0;
 
     PostFXPass m_pass;
 
