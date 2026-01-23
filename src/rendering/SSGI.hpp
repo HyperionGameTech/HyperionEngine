@@ -73,7 +73,6 @@ private:
 
     void CreateUniformBuffers();
     void CreateBlueNoiseBuffer();
-    void CreateComputePipelines();
 
     void FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const;
 
@@ -84,8 +83,6 @@ private:
     Handle<Texture> m_resultTexture;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
-
-    ComputePipelineRef m_computePipeline;
 
     UniquePtr<TemporalBlending> m_temporalBlending;
 

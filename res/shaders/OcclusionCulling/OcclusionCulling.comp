@@ -11,25 +11,25 @@ layout(local_size_x = 256) in;
 #include "../include/aabb.inc"
 #include "./Shared.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler depth_pyramid_sampler;
-HYP_DESCRIPTOR_SRV(View, DepthPyramidResult) uniform texture2D depth_pyramid;
+HYP_DESCRIPTOR_SAMPLER(ObjectVisibility, SamplerNearest) uniform sampler depth_pyramid_sampler;
+HYP_DESCRIPTOR_SRV(ObjectVisibility, DepthPyramidResult) uniform texture2D depth_pyramid;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/Entity.glsl"
 #include "../include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF(ObjectVisibility, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SSBO(ObjectVisibility, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(ObjectVisibility, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -52,22 +52,22 @@ struct ObjectInstance
     uint _pad;
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibilityDescriptorSet, ObjectInstancesBuffer) readonly buffer InstancesBuffer
+HYP_DESCRIPTOR_SSBO(ObjectVisibility, ObjectInstancesBuffer) readonly buffer InstancesBuffer
 {
     ObjectInstance instances[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibilityDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+HYP_DESCRIPTOR_SSBO(ObjectVisibility, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_commands[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibilityDescriptorSet, EntityInstanceBatchesBuffer) buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SSBO(ObjectVisibility, EntityInstanceBatchesBuffer) buffer EntityInstanceBatchesBuffer
 {
     uvec4 entityInstanceBatchDataRaw[];
 };
 
-layout(push_constant) uniform ObjectVisibilityData
+HYP_DESCRIPTOR_CBUFF(ObjectVisibility, ObjectVisibilityUniforms) uniform ObjectVisibilityUniforms
 {
     uvec2 depth_pyramid_dimensions;
     uint batch_offset;

@@ -57,16 +57,15 @@ VulkanComputePipeline::VulkanComputePipeline()
 {
 }
 
-VulkanComputePipeline::VulkanComputePipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable)
+VulkanComputePipeline::VulkanComputePipeline(const VulkanShaderRef& shader)
     : VulkanPipelineBase(),
-      ComputePipelineBase(shader, descriptorTable)
+      ComputePipelineBase(shader)
 {
 }
 
 VulkanComputePipeline::~VulkanComputePipeline()
 {
     SafeDelete(std::move(m_shader));
-    SafeDelete(std::move(m_descriptorTable));
 }
 
 void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)
@@ -128,22 +127,6 @@ RendererResult VulkanComputePipeline::Create()
 
     const Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
     const uint32 maxSetLayouts = g_renderBackend->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
-
-#if 0
-    HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", usedLayouts.Size());
-
-    for (const VulkanDescriptorSetRef& descriptorSet : m_descriptorTable->GetSets()[0])
-    {
-        HYP_LOG(RenderingBackend, Debug, "\tDescriptor set layout: {} ({})",
-            descriptorSet->GetLayout().GetName(), descriptorSet->GetLayout().GetDeclaration()->setIndex);
-
-        for (const auto& it : descriptorSet->GetLayout().GetElements())
-        {
-            HYP_LOG(RenderingBackend, Debug, "\t\tDescriptor: {}  binding: {}",
-                it.first, it.second.binding);
-        }
-    }
-#endif
 
     if (usedLayouts.Size() > maxSetLayouts)
     {

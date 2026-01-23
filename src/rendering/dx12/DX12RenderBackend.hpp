@@ -81,9 +81,7 @@ public:
         const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) override;
 
-    DX12ComputePipelineRef MakeComputePipeline(
-        const DX12ShaderRef& shader,
-        const DX12DescriptorTableRef& descriptorTable) override;
+    DX12ComputePipelineRef MakeComputePipeline(const DX12ShaderRef& shader) override;
 
     DX12RayTracingPipelineRef MakeRayTracingPipeline(
         const DX12ShaderRef& shader,

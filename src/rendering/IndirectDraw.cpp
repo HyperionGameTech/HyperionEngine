@@ -16,6 +16,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -27,6 +28,14 @@
 #include <core/math/MathUtil.hpp>
 
 namespace Hyperion {
+
+struct alignas(16) ObjectVisibilityUniforms
+{
+    Vec2u depthPyramidDimensions;
+    uint32 batchOffset;
+    uint32 numInstances;
+    uint32 entityInstanceBatchStride;
+};
 
 static inline bool ResizeBuffer(
     Frame* frame,
@@ -58,6 +67,8 @@ static bool ResizeIndirectDrawCommandsBuffer(
     GpuBuffer* indirectBuffer,
     GpuBuffer* stagingBuffer)
 {
+    RenderQueue& rq = frame->renderQueue;
+
     const bool wasCreatedOrResized = ResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
 
     if (!wasCreatedOrResized)
@@ -76,12 +87,12 @@ static bool ResizeIndirectDrawCommandsBuffer(
     // set all to zero
     stagingBuffer->Memset(stagingBuffer->Size(), 0);
 
-    frame->renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-    frame->renderQueue << InsertBarrier(indirectBuffer, RS_COPY_DST);
+    rq << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+    rq << InsertBarrier(indirectBuffer, RS_COPY_DST);
 
-    frame->renderQueue << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
+    rq << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
 
-    frame->renderQueue << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
+    rq << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
 
     return true;
 }
@@ -254,6 +265,8 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
+    RenderQueue& rq = frame->renderQueue;
+
     if ((*outWasResized = ResizeIfNeeded(
              frame,
              m_indirectBuffers,
@@ -282,12 +295,12 @@ void IndirectDrawState::UpdateBufferData(Frame* frame, bool* outWasResized)
 
         stagingBuffer->Copy(m_drawCommandsBuffer.Size(), m_drawCommandsBuffer.Data());
 
-        frame->renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-        frame->renderQueue << InsertBarrier(indirectBuffer, RS_COPY_DST);
+        rq << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+        rq << InsertBarrier(indirectBuffer, RS_COPY_DST);
 
-        frame->renderQueue << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
+        rq << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
 
-        frame->renderQueue << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
+        rq << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
     }
 
     Assert(instanceBuffer->Size() >= m_objectInstances.Size() * sizeof(ObjectInstance));
@@ -310,7 +323,7 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer()
 {
-    SafeDelete(std::move(m_objectVisibility));
+    SafeDelete(std::move(m_uniformBuffers));
 }
 
 void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
@@ -320,55 +333,12 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     m_indirectDrawState.Create();
 
-    ShaderRef objectVisibilityShader = g_shaderManager->GetOrCreate(NAME("ObjectVisibility"));
-    Assert(objectVisibilityShader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        objectVisibilityShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    Assert(batchAllocator != nullptr);
-
-    GpuBufferHolderBase* entityInstanceBatches = batchAllocator->GetGpuBufferHolder();
-    const SizeType batchStructSize = batchAllocator->GetStructSize();
-
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ObjectVisibilityDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        auto* shaderBufferElement = descriptorSet->GetLayout().GetElement(NAME("EntityInstanceBatchesBuffer"));
-        Assert(shaderBufferElement != nullptr);
-
-        if (shaderBufferElement->size != ~0u)
-        {
-            // case 1: the EntityInstanceBatchesBuffer is an array of EntityInstanceBatch structs
-
-            const SizeType shaderBufferSize = shaderBufferElement->size;
-
-            if (shaderBufferSize >= batchStructSize)
-            {
-                const SizeType sizeMod = shaderBufferSize % batchStructSize;
-
-                Assert(sizeMod == 0, "EntityInstanceBatchesBuffer descriptor has size {} but DrawCallCollection has batch struct size of {}",
-                    shaderBufferSize, batchStructSize);
-            }
-            else
-            {
-                // case 2: packing the EntityInstanceBatch buffer data into scalar data
-                AssertDebug(shaderBufferSize == 16, "Expected EntityInstanceBatchesBuffer descriptor to have size 16 (uvec4), but got {}", shaderBufferSize);
-                AssertDebug(batchStructSize % 16 == 0, "Expected batch struct size to be divisible by 16!");
-            }
-        }
-
-        descriptorSet->SetElement("ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
-        descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
-        descriptorSet->SetElement("EntityInstanceBatchesBuffer"_sh, entityInstanceBatches->GetBuffer(frameIndex));
+        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec2u) + sizeof(uint32) * 3);
+        m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
+        CheckResult(m_uniformBuffers[frameIndex]->Create());
     }
-
-    DeferCreate(descriptorTable);
-
-    m_objectVisibility = g_renderBackend->MakeComputePipeline(objectVisibilityShader, descriptorTable);
-    DeferCreate(m_objectVisibility);
 }
 
 void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& drawCallCollection)
@@ -403,12 +373,14 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     AssertDebug(m_batchAllocator != nullptr);
 
-    Assert(renderSetup.passData->cullData.depthPyramidImageView != nullptr);
+    AssertDebug(renderSetup.passData->cullData.depthPyramidImageView != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    Assert(m_indirectDrawState.GetIndirectBuffer(frameIndex).IsValid());
-    Assert(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
+    RenderQueue& rq = frame->renderQueue;
+
+    AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex).IsValid());
+    AssertDebug(m_indirectDrawState.GetIndirectBuffer(frameIndex)->Size() != 0);
 
     const SizeType numInstances = m_indirectDrawState.GetInstances().Size();
     const uint32 numBatches = (uint32(numInstances) / IndirectDrawState::BatchSize) + 1;
@@ -434,75 +406,42 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
         m_cachedCullDataUpdatedBits = 0xFF;
     }
 
-    // if (m_cachedCullDataUpdatedBits & (1u << frameIndex)) {
-    //     m_descriptorSets[frameIndex]->GetDescriptor(6)
-    //         ->SetElementSRV(0, m_cachedCullData.depthPyramidImageView);
-
-    //     m_descriptorSets[frameIndex]->ApplyUpdates();
-
-    //     m_cachedCullDataUpdatedBits &= ~(1u << frameIndex);
-    // }
-
-    frame->renderQueue << BindDescriptorTable(
-        m_objectVisibility->GetDescriptorTable(),
-        m_objectVisibility,
-        { { "Global"_sh, { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
-        frameIndex);
-
-    const uint32 viewDescriptorSetIndex = m_objectVisibility->GetDescriptorTable()->GetDescriptorSetIndex("View"_sh);
-
-    if (viewDescriptorSetIndex != ~0u)
-    {
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frameIndex],
-            m_objectVisibility,
-            {},
-            viewDescriptorSetIndex);
-    }
-
-    frame->renderQueue << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
-
-    struct
-    {
-        Vec2u depthPyramidDimensions;
-        uint32 batchOffset;
-        uint32 numInstances;
-        uint32 entityInstanceBatchStride;
-    } pushConstants;
-
-    AssertDebug(m_batchAllocator->GetStructSize() % 4 == 0);
-
     DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
-    Assert(pd != nullptr);
+    AssertDebug(pd != nullptr);
 
-    pushConstants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
-    pushConstants.batchOffset = 0;
-    pushConstants.numInstances = numInstances;
-    pushConstants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
+    uint32 numShaderUniforms = 0;
 
-    m_objectVisibility->SetPushConstants(&pushConstants, sizeof(pushConstants));
+    rq << SetCurrentShader(ShaderDesc(NAME("ObjectVisibility")));
 
-    frame->renderQueue << BindComputePipeline(m_objectVisibility);
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(numShaderUniforms++, "DepthPyramidResult"_sh, renderSetup.passData->cullData.depthPyramidImageView);
 
-    frame->renderQueue << DispatchCompute(m_objectVisibility, Vec3u { numBatches, 1, 1 });
-    frame->renderQueue << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+    rq << SetShaderUniform(numShaderUniforms++, "ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
+    rq << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
+    rq << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex));
+
+    ObjectVisibilityUniforms uniforms {};
+    uniforms.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
+    uniforms.batchOffset = 0;
+    uniforms.numInstances = numInstances;
+    uniforms.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
+
+    m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
+
+    rq << SetShaderUniform(numShaderUniforms++, "ObjectVisibilityUniforms"_sh, m_uniformBuffers[frameIndex]);
+
+    rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
+
+    rq << DispatchCompute(Vec3u { numBatches, 1, 1 });
+    rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }
 
 void IndirectRenderer::RebuildDescriptors(Frame* frame)
 {
-    HYP_SCOPE;
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    const DescriptorTableRef& descriptorTable = m_objectVisibility->GetDescriptorTable();
-
-    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ObjectVisibilityDescriptorSet"_sh, frameIndex);
-    Assert(descriptorSet != nullptr);
-
-    descriptorSet->SetElement("ObjectInstancesBuffer"_sh, m_indirectDrawState.GetInstanceBuffer(frameIndex));
-    descriptorSet->SetElement("IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
-
-    descriptorSet->Update(/* force */ true);
 }
 
 #pragma endregion IndirectRenderer

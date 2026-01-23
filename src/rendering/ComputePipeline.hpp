@@ -19,16 +19,6 @@ class ComputePipelineBase : public ObjectBase
 public:
     virtual ~ComputePipelineBase() override = default;
 
-    HYP_FORCE_INLINE const DescriptorTableRef& GetDescriptorTable() const
-    {
-        return m_descriptorTable;
-    }
-
-    HYP_FORCE_INLINE void SetDescriptorTable(const DescriptorTableRef& descriptorTable)
-    {
-        m_descriptorTable = descriptorTable;
-    }
-
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -71,14 +61,12 @@ public:
 protected:
     ComputePipelineBase() = default;
 
-    ComputePipelineBase(const ShaderRef& shader, const DescriptorTableRef& descriptorTable)
-        : m_shader(shader),
-          m_descriptorTable(descriptorTable)
+    explicit ComputePipelineBase(const ShaderRef& shader)
+        : m_shader(shader)
     {
     }
 
     ShaderRef m_shader;
-    DescriptorTableRef m_descriptorTable;
 
     Name m_debugName;
 };

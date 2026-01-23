@@ -854,11 +854,9 @@ VulkanGraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     return graphicsPipeline;
 }
 
-VulkanComputePipelineRef VulkanRenderBackend::MakeComputePipeline(
-    const VulkanShaderRef& shader,
-    const VulkanDescriptorTableRef& descriptorTable)
+VulkanComputePipelineRef VulkanRenderBackend::MakeComputePipeline(const VulkanShaderRef& shader)
 {
-    return MakeHandle<VulkanComputePipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
+    return MakeHandle<VulkanComputePipeline>(VulkanShaderRef(shader));
 }
 
 VulkanRayTracingPipelineRef VulkanRenderBackend::MakeRayTracingPipeline(

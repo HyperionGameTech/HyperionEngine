@@ -28,7 +28,6 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Scene);
 
-class RenderEnvironment;
 class World;
 class Scene;
 class EntityManager;
