@@ -37,46 +37,20 @@ struct alignas(16) ObjectVisibilityUniforms
     uint32 entityInstanceBatchStride;
 };
 
-static inline bool ResizeBuffer(
-    Frame* frame,
-    GpuBuffer* buffer,
-    SizeType newBufferSize)
+static void ZeroizeBuffer(Frame* frame, GpuBuffer* stagingBuffer, GpuBuffer* dstBuffer)
 {
-    if constexpr (IndirectDrawState::UseNextPow2Size)
+    if (dstBuffer->IsCpuAccessible())
     {
-        newBufferSize = MathUtil::NextPowerOf2(newBufferSize);
+        Assert(dstBuffer != nullptr);
+
+        dstBuffer->Memset(dstBuffer->Size(), 0);
+
+        return;
     }
+    
+    Assert(stagingBuffer != nullptr && dstBuffer != nullptr);
 
-    bool sizeChanged = false;
-
-    CheckResult(buffer->EnsureCapacity(newBufferSize, &sizeChanged));
-
-    if (!buffer->IsCreated())
-    {
-        CheckResult(buffer->Create());
-
-        sizeChanged = true;
-    }
-
-    return sizeChanged;
-}
-
-static bool ResizeIndirectDrawCommandsBuffer(
-    Frame* frame,
-    const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
-    GpuBuffer* indirectBuffer,
-    GpuBuffer* stagingBuffer)
-{
-    RenderQueue& rq = frame->renderQueue;
-
-    const bool wasCreatedOrResized = ResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
-
-    if (!wasCreatedOrResized)
-    {
-        return false;
-    }
-
-    CheckResult(stagingBuffer->EnsureCapacity(indirectBuffer->Size()));
+    CheckResult(stagingBuffer->EnsureCapacity(dstBuffer->Size()));
 
     // upload zeros to the buffer using a staging buffer.
     if (!stagingBuffer->IsCreated())
@@ -87,12 +61,70 @@ static bool ResizeIndirectDrawCommandsBuffer(
     // set all to zero
     stagingBuffer->Memset(stagingBuffer->Size(), 0);
 
+    RenderQueue& rq = frame->renderQueue;
+
     rq << InsertBarrier(stagingBuffer, RS_COPY_SRC);
-    rq << InsertBarrier(indirectBuffer, RS_COPY_DST);
+    rq << InsertBarrier(dstBuffer, RS_COPY_DST);
 
-    rq << CopyBuffer(stagingBuffer, indirectBuffer, stagingBuffer->Size());
+    rq << CopyBuffer(stagingBuffer, dstBuffer, dstBuffer->Size());
 
-    rq << InsertBarrier(indirectBuffer, RS_INDIRECT_ARG);
+    rq << InsertBarrier(dstBuffer, RS_INDIRECT_ARG);
+}
+
+static inline bool CreateOrResizeBuffer(
+    Frame* frame,
+    GpuBufferRef& buffer,
+    SizeType newBufferSize)
+{
+    if constexpr (IndirectDrawState::UseNextPow2Size)
+    {
+        newBufferSize = MathUtil::NextPowerOf2(newBufferSize);
+    }
+
+    if (buffer && buffer->Size() < newBufferSize)
+    {
+        const GpuBufferType prevBufferType = buffer->GetBufferType();
+        const bool prevWasCpuAccessible = buffer->IsCpuAccessible();
+
+        SafeDelete(std::move(buffer));
+        buffer = g_renderBackend->MakeGpuBuffer(prevBufferType, newBufferSize);
+
+        if (prevWasCpuAccessible)
+        {
+            buffer->SetRequireCpuAccessible(true);
+        }
+
+        CheckResult(buffer->Create());
+
+        return true;
+    }
+
+    if (!buffer->IsCreated())
+    {
+        CheckResult(buffer->Create());
+
+        return true;
+    }
+
+    return false;
+}
+
+static bool ResizeIndirectDrawCommandsBuffer(
+    Frame* frame,
+    const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
+    GpuBufferRef& indirectBuffer,
+    GpuBuffer* stagingBuffer)
+{
+    RenderQueue& rq = frame->renderQueue;
+
+    const bool wasCreatedOrResized = CreateOrResizeBuffer(frame, indirectBuffer, drawCommandsBuffer.Size());
+
+    if (!wasCreatedOrResized)
+    {
+        return false;
+    }
+
+    ZeroizeBuffer(frame, stagingBuffer, indirectBuffer);
 
     return true;
 }
@@ -100,17 +132,17 @@ static bool ResizeIndirectDrawCommandsBuffer(
 static bool ResizeInstancesBuffer(
     Frame* frame,
     uint32 numObjectInstances,
-    GpuBuffer* instanceBuffer,
+    GpuBufferRef& instanceBuffer,
     GpuBuffer* stagingBuffer)
 {
-    const bool wasCreatedOrResized = ResizeBuffer(
+    const bool wasCreatedOrResized = CreateOrResizeBuffer(
         frame,
         instanceBuffer,
         numObjectInstances * sizeof(ObjectInstance));
 
     if (wasCreatedOrResized)
     {
-        instanceBuffer->Memset(instanceBuffer->Size(), 0);
+        ZeroizeBuffer(frame, stagingBuffer, instanceBuffer);
     }
 
     return wasCreatedOrResized;
@@ -118,18 +150,18 @@ static bool ResizeInstancesBuffer(
 
 static bool ResizeIfNeeded(
     Frame* frame,
-    const FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
-    const FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
-    const FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
+    FixedArray<GpuBufferRef, NumFramesInFlight>& indirectBuffers,
+    FixedArray<GpuBufferRef, NumFramesInFlight>& instanceBuffers,
+    FixedArray<GpuBufferRef, NumFramesInFlight>& stagingBuffers,
     uint32 numObjectInstances,
     const TByteBuffer<RenderAllocator>& drawCommandsBuffer,
     uint8 dirtyBits)
 {
     bool resizeHappened = false;
 
-    GpuBuffer* indirectBuffer = indirectBuffers[frame->GetFrameIndex()];
-    GpuBuffer* instanceBuffer = instanceBuffers[frame->GetFrameIndex()];
-    GpuBuffer* stagingBuffer = stagingBuffers[frame->GetFrameIndex()];
+    GpuBufferRef& indirectBuffer = indirectBuffers[frame->GetFrameIndex()];
+    GpuBufferRef& instanceBuffer = instanceBuffers[frame->GetFrameIndex()];
+    GpuBufferRef& stagingBuffer = stagingBuffers[frame->GetFrameIndex()];
 
     if ((dirtyBits & (1u << frame->GetFrameIndex())) || !indirectBuffer)
     {
@@ -335,7 +367,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec2u) + sizeof(uint32) * 3);
+        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(ObjectVisibilityUniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }
@@ -429,7 +461,6 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     uniforms.batchOffset = 0;
     uniforms.numInstances = numInstances;
     uniforms.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
-
     m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
 
     rq << SetShaderUniform(numShaderUniforms++, "ObjectVisibilityUniforms"_sh, m_uniformBuffers[frameIndex]);

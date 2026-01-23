@@ -19,7 +19,7 @@ HYP_DESCRIPTOR_SRV(ObjectVisibility, DepthPyramidResult) uniform texture2D depth
 #include "../include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF(ObjectVisibility, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(ObjectVisibility, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -52,7 +52,7 @@ struct ObjectInstance
     uint _pad;
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibility, ObjectInstancesBuffer) readonly buffer InstancesBuffer
+HYP_DESCRIPTOR_SSBO(ObjectVisibility, ObjectInstancesBuffer, standard = scalar) readonly buffer InstancesBuffer
 {
     ObjectInstance instances[];
 };
@@ -62,18 +62,18 @@ HYP_DESCRIPTOR_SSBO(ObjectVisibility, IndirectDrawCommandsBuffer, standard = sca
     IndirectDrawCommand indirect_draw_commands[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibility, EntityInstanceBatchesBuffer) buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SSBO(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) buffer EntityInstanceBatchesBuffer
 {
     uvec4 entityInstanceBatchDataRaw[];
 };
 
-HYP_DESCRIPTOR_CBUFF(ObjectVisibility, ObjectVisibilityUniforms) uniform ObjectVisibilityUniforms
+HYP_DESCRIPTOR_CBUFF(ObjectVisibility, ObjectVisibilityUniforms, standard = scalar) uniform ObjectVisibilityUniforms
 {
     uvec2 depth_pyramid_dimensions;
     uint batch_offset;
     uint num_instances;
     uint batch_stride;
-} push_constants;
+};
 
 // uint GetObjectBucket(ObjectInstance object_instance)
 // {
@@ -82,7 +82,7 @@ HYP_DESCRIPTOR_CBUFF(ObjectVisibility, ObjectVisibilityUniforms) uniform ObjectV
 
 bool IsPixelVisible(vec3 clip_min, vec3 clip_max)
 {
-    vec2 dim = (clip_max.xy - clip_min.xy) * 0.5 * vec2(push_constants.depth_pyramid_dimensions);
+    vec2 dim = (clip_max.xy - clip_min.xy) * 0.5 * vec2(depth_pyramid_dimensions);
 
     return max(dim.x, dim.y) < 16.0;
 }
@@ -98,9 +98,9 @@ float GetDepthAtTexel(vec2 texcoord, int mip)
 void main()
 {
     const uint id = gl_GlobalInvocationID.x;
-    const uint index = id; // push_constants.batch_offset + id;
+    const uint index = id; // batch_offset + id;
 
-    if (id >= push_constants.num_instances)
+    if (id >= num_instances)
     {
         return;
     }
@@ -159,7 +159,7 @@ void main()
             clip_min.xy = clip_min.xy * vec2(0.5) + vec2(0.5);
             clip_max.xy = clip_max.xy * vec2(0.5) + vec2(0.5);
 
-            vec2 dimensions = vec2(push_constants.depth_pyramid_dimensions);
+            vec2 dimensions = vec2(depth_pyramid_dimensions);
 
             // Calculate hi-Z buffer mip
             vec2 size = (clip_max.xy - clip_min.xy) * max(dimensions.x, dimensions.y);
@@ -186,7 +186,7 @@ void main()
 
         if (object_instance.batch_index != ~0u && instance_index < MAX_ENTITIES_PER_INSTANCE_BATCH)
         {
-            uint bufferOffsetWords = object_instance.batch_index * push_constants.batch_stride / 4;
+            uint bufferOffsetWords = object_instance.batch_index * batch_stride / 4;
             // `indices` member of EntityInstanceBatch has offset of 16 bytes (4 words)
             uint indicesOffsetWords = bufferOffsetWords + 4 + instance_index;
 

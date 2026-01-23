@@ -103,6 +103,10 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetDepthTest(false);
     rq << SetDepthWrite(false);
     rq << SetStencilTest(false);
+
+    rq << SetFaceCullMode(FCM_BACK);
+    rq << SetFillMode(FM_FILL);
+    rq << SetTopology(TOP_TRIANGLES);
     
     rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));

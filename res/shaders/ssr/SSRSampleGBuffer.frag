@@ -60,14 +60,8 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(RenderSSR, CamerasBuffer) uniform CamerasBuffer
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 #include "../include/env_probe.inc"
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(RenderSSR, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 float IsoscelesTriangleOpposite(float adjacent_length, float cone_theta)
 {

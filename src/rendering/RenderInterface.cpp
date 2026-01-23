@@ -2133,7 +2133,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             const uint8 shaderUniformIndex = bufferOffsets[setIndex][bufferOffsetIndex];
 
             const ShaderUniform& uniform = state.shaderUniforms[shaderUniformIndex];
-            AssertDebug(uniform.type == ShaderUniform::UT_Buffer);
+            AssertDebug(uniform.type == ShaderUniform::UT_Buffer,
+                "Uniform {} is not a buffer, cannot use buffer offset", uniform.name);
 
             const uint32 bufferOffset = state.shaderUniformBufferOffsets[shaderUniformIndex];
 
