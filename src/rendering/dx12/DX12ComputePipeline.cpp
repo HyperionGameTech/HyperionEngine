@@ -18,8 +18,8 @@ DX12ComputePipeline::DX12ComputePipeline()
 {
 }
 
-DX12ComputePipeline::DX12ComputePipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable)
-    : ComputePipelineBase(shader, descriptorTable)
+DX12ComputePipeline::DX12ComputePipeline(const DX12ShaderRef& shader)
+    : ComputePipelineBase(shader)
 {
 }
 

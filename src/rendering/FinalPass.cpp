@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "RenderQueue.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/FinalPass.hpp>
@@ -93,10 +94,18 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
     rq << SetCurrentShader(ShaderDesc(NAME("RenderTextureToScreen")));
+
+    // Need blending to composite passes and ui
+    rq << SetCurrentBlendFunction(BlendFunction(
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
+
+    rq << SetDepthTest(false);
+    rq << SetDepthWrite(false);
+    rq << SetStencilTest(false);
     
     rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(2, "InTexture"_sh, m_uiLayerImageView);
 
     // Render each sub-view
     DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_renderInterface->globalRenderers[GRT_MAIN][0]);
@@ -141,6 +150,11 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 #endif
 
     rq << EndFramebuffer(framebuffer);
+
+    // reset
+    rq << SetCurrentBlendFunction(BlendFunction::None());
+    rq << SetDepthTest(true);
+    rq << SetDepthWrite(true);
 }
 
 #pragma endregion FinalPass

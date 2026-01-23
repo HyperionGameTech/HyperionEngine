@@ -64,36 +64,6 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
     return combineShadowMapsPass;
 }
 
-static ComputePipelineRef CreateBlurShadowMapPipeline(const GpuImageViewRef& input, const GpuImageViewRef& output)
-{
-    Assert(input.IsValid());
-    Assert(output.IsValid());
-
-    ShaderRef blurShadowMapShader = g_shaderManager->GetOrCreate(NAME("BlurShadowMap"));
-    Assert(blurShadowMapShader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        blurShadowMapShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    // have to create descriptor sets specifically for compute shader,
-    // holding framebuffer attachment image (src), and our final shadowmap image (dst)
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("BlurShadowMapDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("InputTexture"_sh, input);
-        descriptorSet->SetElement("OutputTexture"_sh, output);
-    }
-
-    DeferCreate(descriptorTable);
-
-    ComputePipelineRef blurShadowMapPipeline = g_renderBackend->MakeComputePipeline(blurShadowMapShader, descriptorTable);
-    DeferCreate(blurShadowMapPipeline);
-
-    return blurShadowMapPipeline;
-}
-
 ShadowRendererBase::ShadowRendererBase() = default;
 
 void ShadowRendererBase::Initialize()
@@ -207,18 +177,15 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
         if (shadowMap->GetFilterMode() == SMF_VSM)
         {
-            const GpuImageViewRef& inputImageView = cacheIt->second.combineShadowMapsPass != nullptr
-                ? cacheIt->second.combineShadowMapsPass->GetFinalImageView()
-                : lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                cacheIt->second.blurUniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec2u) * 3);
+                cacheIt->second.blurUniformBuffers[frameIndex]->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));
+                DeferCreate(cacheIt->second.blurUniformBuffers[frameIndex]);
+            }
 
-            Assert(inputImageView.IsValid());
-
-            /// TODO: Blur into separate texture before blitting to final shadow map,
-            /// or we'll end up blurring other maps in the atlas multiple times!
-            cacheIt->second.csBlurShadowMap = CreateBlurShadowMapPipeline(inputImageView, shadowMap->GetImageView());
+            /// TODO: Add re-alloc of shadow maps if parameters have changed
         }
-
-        /// TODO: Add re-alloc of shadow maps if parameters have changed
     }
     else
     {
@@ -243,7 +210,6 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     Assert(atlasElement.layerIndex < shadowMapImage->NumLayers());
 
     FullScreenPass* combineShadowMapsPass = cacheIt->second.combineShadowMapsPass.Get();
-    const ComputePipelineRef& csBlurShadowMap = cacheIt->second.csBlurShadowMap;
 
     const bool useVsm = shadowMap->GetFilterMode() == SMF_VSM;
 
@@ -393,33 +359,43 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
     if (useVsm)
     {
-        AssertDebug(csBlurShadowMap.IsValid());
+        const GpuImageViewRef& inputImageView = cacheIt->second.combineShadowMapsPass != nullptr
+            ? cacheIt->second.combineShadowMapsPass->GetFinalImageView()
+            : lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
 
-        struct
+        Assert(inputImageView.IsValid());
+
+        struct alignas(16)
         {
             Vec2u imageDimensions;
             Vec2u dimensions;
             Vec2u offset;
-        } pushConstants;
+        } uniformData;
 
-        pushConstants.imageDimensions = shadowMapImage->GetExtent().GetXY();
-        pushConstants.dimensions = atlasElement.dimensions;
-        pushConstants.offset = atlasElement.offsetCoords;
+        uniformData.imageDimensions = shadowMapImage->GetExtent().GetXY();
+        uniformData.dimensions = atlasElement.dimensions;
+        uniformData.offset = atlasElement.offsetCoords;
 
-        csBlurShadowMap->SetPushConstants(&pushConstants, sizeof(pushConstants));
+        const uint32 frameIndex = frame->GetFrameIndex();
+        cacheIt->second.blurUniformBuffers[frameIndex]->Copy(sizeof(uniformData), &uniformData);
 
-        // blur the image using compute shader
-        frame->renderQueue << BindComputePipeline(csBlurShadowMap);
+        RenderQueue& rq = frame->renderQueue;
 
-        // bind descriptor set containing info needed to blur
-        frame->renderQueue << BindDescriptorTable(csBlurShadowMap->GetDescriptorTable(), csBlurShadowMap, {}, frame->GetFrameIndex());
+        rq << SetCurrentShader(ShaderDesc(NAME("BlurShadowMap")));
+
+        uint32 numShaderUniforms = 0;
+
+        rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        rq << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, inputImageView);
+        rq << SetShaderUniform(numShaderUniforms++, "OutputTexture"_sh, shadowMap->GetImageView());
+        rq << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cacheIt->second.blurUniformBuffers[frameIndex]);
 
         // put our shadow map in a state for writing
-        frame->renderQueue << InsertBarrier(shadowMapImage, RS_UNORDERED_ACCESS, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
-        frame->renderQueue << DispatchCompute(csBlurShadowMap, Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
+        rq << InsertBarrier(shadowMapImage, RS_UNORDERED_ACCESS, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        rq << DispatchCompute(Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
 
         // put shadow map back into readable state
-        frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        rq << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
     }
 }
 

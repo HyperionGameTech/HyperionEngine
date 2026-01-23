@@ -19,7 +19,7 @@ class DX12ComputePipeline final : public ComputePipelineBase
 
 public:
     DX12ComputePipeline();
-    DX12ComputePipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable);
+    explicit DX12ComputePipeline(const DX12ShaderRef& shader);
     ~DX12ComputePipeline() override;
 
     bool IsCreated() const override;

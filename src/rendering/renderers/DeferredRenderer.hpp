@@ -21,7 +21,6 @@
 namespace Hyperion {
 
 class IndirectDrawState;
-class RenderEnvironment;
 class GBuffer;
 class Texture;
 class DepthPyramidRenderer;

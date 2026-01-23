@@ -2022,7 +2022,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
 
     const bool doParticles = true;
-    const bool doGaussianSplatting = false; // environment && environment->IsReady();
 
     const bool useRayTracingReflections = (m_rendererConfig.pathTracer || m_rendererConfig.rayTracingReflections)
         && view->GetRayTracingView().IsValid()
@@ -2082,11 +2081,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     PerformOcclusionCulling(frame, rs, renderCollector);
-
-    // if (doGaussianSplatting)
-    // {
-    //     environment->GetGaussianSplatting()->UpdateSplats(frame, rs);
-    // }
 
     { // render opaque objects into separate framebuffer
         frame->renderQueue << BeginFramebuffer(opaquePassFramebuffer);

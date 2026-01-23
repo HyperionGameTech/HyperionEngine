@@ -21,7 +21,7 @@ class VulkanComputePipeline final : public ComputePipelineBase, public VulkanPip
 
 public:
     VulkanComputePipeline();
-    VulkanComputePipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
+    explicit VulkanComputePipeline(const VulkanShaderRef& shader);
     ~VulkanComputePipeline() override;
 
     bool IsCreated() const override

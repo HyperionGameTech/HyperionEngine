@@ -90,9 +90,7 @@ public:
         const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) = 0;
 
-    virtual ComputePipelineRef MakeComputePipeline(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable) = 0;
+    virtual ComputePipelineRef MakeComputePipeline(const ShaderRef& shader) = 0;
 
     virtual RayTracingPipelineRef MakeRayTracingPipeline(
         const ShaderRef& shader,

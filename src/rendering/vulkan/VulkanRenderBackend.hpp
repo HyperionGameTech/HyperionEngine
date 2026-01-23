@@ -135,9 +135,7 @@ public:
         const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) override;
 
-    VulkanComputePipelineRef MakeComputePipeline(
-        const VulkanShaderRef& shader,
-        const VulkanDescriptorTableRef& descriptorTable) override;
+    VulkanComputePipelineRef MakeComputePipeline(const VulkanShaderRef& shader) override;
 
     VulkanRayTracingPipelineRef MakeRayTracingPipeline(
         const VulkanShaderRef& shader,

@@ -214,7 +214,7 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(const ShaderDefinition& sh
         return ComputePipelineRef::Null();
     }
 
-    return g_renderBackend->MakeComputePipeline(shader, DescriptorTableRef::Null());
+    return g_renderBackend->MakeComputePipeline(shader);
 }
 
 #pragma endregion ComputePipelineCache
