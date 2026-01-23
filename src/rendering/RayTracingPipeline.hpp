@@ -25,16 +25,6 @@ public:
         m_debugName = name;
     }
 
-    HYP_FORCE_INLINE const DescriptorTableRef& GetDescriptorTable() const
-    {
-        return m_descriptorTable;
-    }
-
-    HYP_FORCE_INLINE void SetDescriptorTable(const DescriptorTableRef& descriptorTable)
-    {
-        m_descriptorTable = descriptorTable;
-    }
-
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -65,14 +55,12 @@ public:
 protected:
     RayTracingPipelineBase() = default;
 
-    RayTracingPipelineBase(const ShaderRef& shader, const DescriptorTableRef& descriptorTable)
-        : m_shader(shader),
-          m_descriptorTable(descriptorTable)
+    explicit RayTracingPipelineBase(const ShaderRef& shader)
+        : m_shader(shader)
     {
     }
 
     ShaderRef m_shader;
-    DescriptorTableRef m_descriptorTable;
 
     Name m_debugName;
 };

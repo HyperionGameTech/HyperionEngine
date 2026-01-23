@@ -62,9 +62,9 @@ VulkanRayTracingPipeline::VulkanRayTracingPipeline()
 {
 }
 
-VulkanRayTracingPipeline::VulkanRayTracingPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable)
+VulkanRayTracingPipeline::VulkanRayTracingPipeline(const VulkanShaderRef& shader)
     : VulkanPipelineBase(),
-      RayTracingPipelineBase(shader, descriptorTable)
+      RayTracingPipelineBase(shader)
 {
 }
 
@@ -76,21 +76,8 @@ VulkanRayTracingPipeline::~VulkanRayTracingPipeline()
     }
 
     SafeDelete(std::move(m_shader));
-    SafeDelete(std::move(m_descriptorTable));
 
     m_shaderBindingTableBuffers.Clear();
-
-    if (m_handle != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(g_renderBackend->GetDevice()->GetDevice(), m_handle, VK_NULL_HANDLE);
-        m_handle = VK_NULL_HANDLE;
-    }
-
-    if (m_layout != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineLayout(g_renderBackend->GetDevice()->GetDevice(), m_layout, VK_NULL_HANDLE);
-        m_layout = VK_NULL_HANDLE;
-    }
 }
 
 RendererResult VulkanRayTracingPipeline::Create()

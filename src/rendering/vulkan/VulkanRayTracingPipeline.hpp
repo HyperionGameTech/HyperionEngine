@@ -30,7 +30,7 @@ class VulkanRayTracingPipeline final : public RayTracingPipelineBase, public Vul
 
 public:
     VulkanRayTracingPipeline();
-    VulkanRayTracingPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
+    explicit VulkanRayTracingPipeline(const VulkanShaderRef& shader);
     ~VulkanRayTracingPipeline() override;
 
     bool IsCreated() const override

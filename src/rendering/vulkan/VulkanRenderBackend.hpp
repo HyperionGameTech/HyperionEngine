@@ -137,9 +137,7 @@ public:
 
     VulkanComputePipelineRef MakeComputePipeline(const VulkanShaderRef& shader) override;
 
-    VulkanRayTracingPipelineRef MakeRayTracingPipeline(
-        const VulkanShaderRef& shader,
-        const VulkanDescriptorTableRef& descriptorTable) override;
+    VulkanRayTracingPipelineRef MakeRayTracingPipeline(const VulkanShaderRef& shader) override;
 
     VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
 

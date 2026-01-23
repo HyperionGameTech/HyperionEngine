@@ -230,7 +230,7 @@ RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(const ShaderDefiniti
         return RayTracingPipelineRef::Null();
     }
 
-    return g_renderBackend->MakeRayTracingPipeline(shader, DescriptorTableRef::Null());
+    return g_renderBackend->MakeRayTracingPipeline(shader);
 }
 
 #pragma endregion RayTracingPipelineCache
