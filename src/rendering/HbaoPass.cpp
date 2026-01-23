@@ -90,51 +90,6 @@ HBAO::~HBAO()
     SafeDelete(std::move(m_descriptorSet));
 }
 
-void HBAO::Create()
-{
-    HYP_SCOPE;
-
-    ShaderProperties shaderProperties;
-    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
-
-    if (ShouldRenderHalfRes())
-    {
-        shaderProperties.Set(NAME("HALFRES"));
-    }
-
-    m_shader = g_shaderManager->GetOrCreate(NAME("HBAO"), shaderProperties);
-
-    FullScreenPass::Create();
-}
-
-void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
-{
-    HYP_SCOPE;
-
-    const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    Assert(descriptorTableDecl != nullptr);
-
-    const DescriptorSetDeclaration* descriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("HBAODescriptorSet"_sh);
-    Assert(descriptorSetDecl != nullptr);
-
-    m_descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(descriptorSetDecl));
-    Assert(m_descriptorSet != nullptr);
-
-    m_descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
-
-    Assert(m_descriptorSet->Create());
-
-    g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        renderableAttributes,
-        m_framebuffer->GetRenderTargetDesc(),
-        m_graphicsPipelineCacheHandle);
-}
-
-void HBAO::CreateDescriptors()
-{
-    CreateUniformBuffers();
-}
-
 void HBAO::CreateUniformBuffers()
 {
     HBAOUniforms uniforms {};
@@ -167,35 +122,22 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
+    RenderQueue& rq = frame->renderQueue;
+
     Begin(frame, renderSetup);
+    
+    ShaderProperties shaderProperties;
+    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
-    const GraphicsPipelineRef& graphicsPipeline = GetGraphicsPipeline();
+    if (ShouldRenderHalfRes())
+    {
+        shaderProperties.Set(NAME("HALFRES"));
+    }
 
-    const uint32 descriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("HBAODescriptorSet"_sh);
-    AssertDebug(descriptorSetIndex != ~0u);
+    rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("HBAO"), shaderProperties)));
 
-    const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("Global"_sh);
-    AssertDebug(globalDescriptorSetIndex != ~0u);
-
-    const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorSetIndex("View"_sh);
-
-    frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex),
-        graphicsPipeline,
-        { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } },
-        globalDescriptorSetIndex);
-
-    frame->renderQueue << BindDescriptorSet(
-        m_descriptorSet,
-        graphicsPipeline,
-        {},
-        descriptorSetIndex);
-
-    frame->renderQueue << BindDescriptorSet(
-        renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-        graphicsPipeline,
-        {},
-        viewDescriptorSetIndex);
+    rq << SetShaderUniform(6, "UniformBuffer"_sh, m_uniformBuffer);
+    rq << CommitDrawState();
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());

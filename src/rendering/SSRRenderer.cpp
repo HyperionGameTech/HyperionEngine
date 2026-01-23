@@ -91,14 +91,17 @@ SSRRenderer::SSRRenderer(
       m_gbuffer(gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_deferredResultImageView(deferredResultImageView),
+      m_writeUvs(nullptr),
+      m_sampleGbuffer(nullptr),
       m_isRendered(false)
 {
 }
 
 SSRRenderer::~SSRRenderer()
 {
-    SafeDelete(std::move(m_writeUvs));
-    SafeDelete(std::move(m_sampleGbuffer));
+    delete m_writeUvs;
+    delete m_sampleGbuffer;
+
     SafeDelete(std::move(m_uvsTexture));
     SafeDelete(std::move(m_sampledResultTexture));
 
@@ -136,29 +139,6 @@ void SSRRenderer::CreatePasses()
 
     // Write UVs pass - renders to m_uvsTexture
     {
-        ShaderRef writeUvsShader = g_shaderManager->GetOrCreate(NAME("SSRWriteUVs"), shaderProperties);
-        Assert(writeUvsShader.IsValid());
-
-        DescriptorTableRef writeUvsShaderDescriptorTable = g_renderBackend->MakeDescriptorTable(
-            writeUvsShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& descriptorSet = writeUvsShaderDescriptorTable->GetDescriptorSet("SSRDescriptorSet"_sh, frameIndex);
-            Assert(descriptorSet != nullptr);
-
-            descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
-
-            descriptorSet->SetElement("GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
-            descriptorSet->SetElement("GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
-            descriptorSet->SetElement("GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-            descriptorSet->SetElement("GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-            descriptorSet->SetElement("GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
-            descriptorSet->SetElement("DeferredResult"_sh, m_deferredResultImageView ? m_deferredResultImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-
-        DeferCreate(writeUvsShaderDescriptorTable);
-
         // Create framebuffer for UVs texture
         RenderTargetDesc renderTargetDesc {};
         renderTargetDesc.extent = m_uvsTexture->GetExtent().GetXY();
@@ -171,16 +151,12 @@ void SSRRenderer::CreatePasses()
             LoadOperation::CLEAR,
             StoreOperation::STORE);
 
-        DeferCreate(writeUvsFramebuffer);
+        CheckResult(writeUvsFramebuffer->Create());
 
-        if (m_writeUvs)
-        {
-            SafeDelete(std::move(m_writeUvs));
-        }
+        delete m_writeUvs;
 
-        m_writeUvs = MakeHandle<FullScreenPass>(
-            writeUvsShader,
-            writeUvsShaderDescriptorTable,
+        m_writeUvs = new FullScreenPass(
+            ShaderDefinition(NAME("SSRWriteUVs"), shaderProperties),
             writeUvsFramebuffer,
             m_uvsTexture->GetFormat(),
             m_uvsTexture->GetExtent().GetXY(),
@@ -192,30 +168,6 @@ void SSRRenderer::CreatePasses()
 
     // Sample pass - renders to m_sampledResultTexture
     {
-        ShaderRef sampleGbufferShader = g_shaderManager->GetOrCreate(NAME("SSRSampleGBuffer"), shaderProperties);
-        Assert(sampleGbufferShader.IsValid());
-
-        DescriptorTableRef sampleGbufferShaderDescriptorTable = g_renderBackend->MakeDescriptorTable(
-            sampleGbufferShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const DescriptorSetRef& descriptorSet = sampleGbufferShaderDescriptorTable->GetDescriptorSet("SSRDescriptorSet"_sh, frameIndex);
-            Assert(descriptorSet != nullptr);
-
-            descriptorSet->SetElement("UVImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_uvsTexture));
-            descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffer);
-
-            descriptorSet->SetElement("GBufferNormalsTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
-            descriptorSet->SetElement("GBufferMaterialTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
-            descriptorSet->SetElement("GBufferVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-            descriptorSet->SetElement("GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-            descriptorSet->SetElement("GBufferMipChain"_sh, m_mipChainImageView ? m_mipChainImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
-            descriptorSet->SetElement("DeferredResult"_sh, m_deferredResultImageView ? m_deferredResultImageView : g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-
-        DeferCreate(sampleGbufferShaderDescriptorTable);
-
         // Create framebuffer for sampled result texture
         RenderTargetDesc renderTargetDesc {};
         renderTargetDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
@@ -228,22 +180,17 @@ void SSRRenderer::CreatePasses()
             LoadOperation::CLEAR,
             StoreOperation::STORE);
 
-        DeferCreate(sampleGbufferFramebuffer);
+        CheckResult(sampleGbufferFramebuffer->Create());
 
-        if (m_writeUvs)
-        {
-            SafeDelete(std::move(m_sampleGbuffer));
-        }
+        delete m_sampleGbuffer;
 
-        m_sampleGbuffer = MakeHandle<FullScreenPass>(
-            sampleGbufferShader,
-            sampleGbufferShaderDescriptorTable,
+        m_sampleGbuffer = new FullScreenPass(
+            ShaderDefinition(NAME("SSRSampleGBuffer"), shaderProperties),
             sampleGbufferFramebuffer,
             SsrFormat,
             m_sampledResultTexture->GetExtent().GetXY(),
             nullptr);
 
-        InitObject(m_sampleGbuffer);
         m_sampleGbuffer->Create();
     }
 }
@@ -266,8 +213,12 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         m_currentExtent = renderTargetExtent;
 
         // Clean up old resources
-        SafeDelete(std::move(m_writeUvs));
-        SafeDelete(std::move(m_sampleGbuffer));
+        delete m_writeUvs;
+        m_writeUvs = nullptr;
+
+        delete m_sampleGbuffer;
+        m_sampleGbuffer = nullptr;
+
         SafeDelete(std::move(m_uniformBuffer));
 
         if (m_temporalBlending)

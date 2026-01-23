@@ -56,23 +56,14 @@ public:
         EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
-        const ShaderRef& shader,
+        const ShaderDefinition& shaderDefinition,
         TextureFormat imageFormat,
         Vec2u extent,
         GBuffer* gbuffer,
         EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable,
-        TextureFormat imageFormat,
-        Vec2u extent,
-        GBuffer* gbuffer,
-        EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
-
-    FullScreenPass(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable,
+        const ShaderDefinition& shaderDefinition,
         const FramebufferRef& framebuffer,
         TextureFormat imageFormat,
         Vec2u extent,
@@ -100,26 +91,16 @@ public:
         return m_framebuffer;
     }
 
-    HYP_FORCE_INLINE const ShaderRef& GetShader() const
+    HYP_FORCE_INLINE const ShaderDefinition& GetShaderDefinition() const
     {
-        return m_shader;
+        return m_shaderDefinition;
     }
 
-    void SetShader(const ShaderRef& shader);
+    void SetShaderDefinition(const ShaderDefinition& shaderDefinition);
 
     HYP_FORCE_INLINE const Handle<Mesh>& GetQuadMesh() const
     {
         return m_fullScreenQuad;
-    }
-
-    HYP_FORCE_INLINE void SetPushConstants(const PushConstantData& pc)
-    {
-        m_pushConstantData = pc;
-    }
-
-    HYP_FORCE_INLINE void SetPushConstants(const void* ptr, SizeType size)
-    {
-        SetPushConstants(PushConstantData(ptr, size));
     }
 
     HYP_FORCE_INLINE const BlendFunction& GetBlendFunction() const
@@ -131,13 +112,6 @@ public:
         Must be set before Create() is called. */
     void SetBlendFunction(const BlendFunction& blendFunction);
 
-    HYP_FORCE_INLINE const Optional<DescriptorTableRef>& GetDescriptorTable() const
-    {
-        return m_descriptorTable;
-    }
-
-    const GraphicsPipelineRef& GetGraphicsPipeline();
-
     virtual const GpuImageViewRef& GetFinalImageView() const;
     virtual const GpuImageViewRef& GetPreviousFrameColorImageView() const;
 
@@ -146,9 +120,6 @@ public:
     void Resize(Vec2u newSize);
 
     virtual void CreateFramebuffer();
-    virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes);
-    virtual void CreatePipeline();
-    virtual void CreateDescriptors();
 
     /*! \brief Create the full screen pass */
     virtual void Create();
@@ -172,7 +143,7 @@ protected:
 
     virtual void Resize_Internal(Vec2u newSize);
 
-    virtual void Render_Internal(Frame* frame, const RenderSetup& renderSetup, GraphicsPipeline* graphicsPipeline)
+    virtual void Render_Internal(Frame* frame, const RenderSetup& renderSetup)
     {
     }
 
@@ -185,26 +156,20 @@ protected:
     void MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup);
 
     FramebufferRef m_framebuffer;
-    ShaderRef m_shader;
-    GraphicsPipelineCacheHandle m_graphicsPipelineCacheHandle;
     Handle<Mesh> m_fullScreenQuad;
     Vec2u m_extent;
     GBuffer* m_gbuffer;
 
     EnumFlags<FullScreenPassFlags> m_flags;
 
-    PushConstantData m_pushConstantData;
-
     TextureFormat m_imageFormat;
 
     BlendFunction m_blendFunction;
 
-    Optional<DescriptorTableRef> m_descriptorTable;
-
     UniquePtr<TemporalBlending> m_temporalBlending;
     Handle<Texture> m_previousTexture;
 
-    Handle<FullScreenPass> m_renderTextureToScreenPass;
+    ShaderDefinition m_shaderDefinition;
 
     bool m_isFirstFrame;
 

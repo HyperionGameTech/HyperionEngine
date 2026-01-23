@@ -44,12 +44,12 @@ public:
         GBuffer* gbuffer);
 
     PostFXPass(
-        const ShaderRef& shader,
+        const ShaderDefinition& shaderDefinition,
         TextureFormat imageFormat,
         GBuffer* gbuffer);
 
     PostFXPass(
-        const ShaderRef& shader,
+        const ShaderDefinition& shaderDefinition,
         PostProcessingStage stage,
         uint32 effectIndex,
         TextureFormat imageFormat,
@@ -59,8 +59,6 @@ public:
     PostFXPass& operator=(const PostFXPass&) = delete;
 
     virtual ~PostFXPass() override;
-
-    virtual void CreateDescriptors() override;
 
     HYP_FORCE_INLINE PostProcessingStage GetStage() const
     {
@@ -99,9 +97,9 @@ public:
         return m_pass;
     }
 
-    const ShaderRef& GetShader() const
+    const ShaderDefinition& GetShaderDefinition() const
     {
-        return m_shader;
+        return m_shaderDefinition;
     }
 
     PostProcessingStage GetStage() const
@@ -132,12 +130,12 @@ public:
     virtual void RenderEffect(Frame* frame, const RenderSetup& renderSetup, uint32 slot);
 
 protected:
-    virtual ShaderRef CreateShader() = 0;
+    virtual ShaderDefinition CreateShaderDefinition() = 0;
 
     PostFXPass m_pass;
 
 private:
-    ShaderRef m_shader;
+    ShaderDefinition m_shaderDefinition;
     bool m_isEnabled;
 };
 

@@ -15,17 +15,17 @@ layout(location = 0) out vec4 color_output;
 
 #include "include/scene.inc"
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(MergeHalfResTexture, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SAMPLER(MergeHalfResTexture, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(MergeHalfResTexture, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_SRV(MergeHalfResTexturesDescriptorSet, InTexture) uniform texture2D src_image;
+HYP_DESCRIPTOR_SRV(MergeHalfResTexture, InTexture) uniform texture2D src_image;
 
-HYP_DESCRIPTOR_CBUFF(MergeHalfResTexturesDescriptorSet, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_CBUFF(MergeHalfResTexture, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimensions;
 };
