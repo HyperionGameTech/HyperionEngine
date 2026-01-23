@@ -15,9 +15,9 @@ layout(location = 0) out vec4 combinedDepths;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(CombineShadowMapsDescriptorSet, Src0) uniform texture2D src0;
-HYP_DESCRIPTOR_SRV(CombineShadowMapsDescriptorSet, Src1) uniform texture2D src1;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SRV(CombineShadowMaps, Src0) uniform texture2D src0;
+HYP_DESCRIPTOR_SRV(CombineShadowMaps, Src1) uniform texture2D src1;
+HYP_DESCRIPTOR_SAMPLER(CombineShadowMaps, SamplerNearest) uniform sampler sampler_nearest;
 
 void main()
 {

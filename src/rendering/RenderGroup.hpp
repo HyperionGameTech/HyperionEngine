@@ -95,10 +95,6 @@ public:
 private:
     void Init() override;
 
-    GraphicsPipelineCacheHandle CreateGraphicsPipeline(
-        PassData* pd,
-        EntityBatchAllocatorBase* batchAllocator) const;
-
     EnumFlags<RenderGroupFlags> m_flags;
     ShaderRef m_shader;
     DescriptorTableRef m_descriptorTable;

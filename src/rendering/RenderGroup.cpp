@@ -123,45 +123,6 @@ void RenderGroup::Init()
     SetReady(true);
 }
 
-GraphicsPipelineCacheHandle RenderGroup::CreateGraphicsPipeline(
-    PassData* pd,
-    EntityBatchAllocatorBase* batchAllocator) const
-{
-    HYP_SCOPE;
-
-    Assert(pd != nullptr);
-    Assert(batchAllocator != nullptr);
-
-#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
-    PerformanceClock clock;
-    clock.Start();
-#endif
-
-    Handle<View> view = pd->view.Lock();
-    Assert(view.IsValid());
-    Assert(view->GetOutputTarget().IsValid());
-
-    Assert(m_shader.IsValid());
-
-    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(m_renderableAttributes.GetMaterialAttributes().bucket);
-    Assert(framebuffer != nullptr);
-
-    GraphicsPipelineCacheHandle cacheHandle;
-    
-    g_renderInterface->graphicsPipelineCache->GetOrCreate(
-        m_renderableAttributes,
-        framebuffer->GetRenderTargetDesc(),
-        cacheHandle);
-
-#if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
-    clock.Stop();
-
-    HYP_LOG(Rendering, Debug, "Created graphics pipeline ({} ms)", clock.ElapsedMs());
-#endif
-
-    return cacheHandle;
-}
-
 template <class OutArray>
 static void DivideDrawCalls(SizeType numDrawCalls, uint32 numBatches, OutArray& outDividedDrawCalls)
 {

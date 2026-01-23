@@ -13,7 +13,7 @@ layout(location = 0) out vec4 color_output;
 #include "../include/gbuffer.inc"
 #include "../include/scene.inc"
 
-layout(set = HYP_DESCRIPTOR_SET_GLOBAL, binding = 78) uniform texture2D dof_blur_vert;
+layout(set = DepthOfField, binding = 78) uniform texture2D dof_blur_vert;
 
 void main()
 {
