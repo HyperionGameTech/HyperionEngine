@@ -311,10 +311,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         return; // nothing to do for direct pass if no lights active
     }
 
-    const Name shaderName = m_mode == DPM_DIRECT_LIGHTING
-        ? NAME("DeferredDirect")
-        : NAME("DeferredIndirect");
-
     RenderQueue& rq = frame->renderQueue;
 
     rq << SetCurrentView(
@@ -404,7 +400,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         ShaderProperties shaderProperties;
         GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 
-        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(shaderName, shaderProperties)));
+        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("DeferredIndirect"), shaderProperties)));
         
         RenderFullScreenQuad(frame, rs);
 
@@ -431,7 +427,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                 ShaderProperties shaderProperties;
                 GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, lightType);
 
-                rq << SetCurrentShader(ShaderDesc(ShaderDefinition(shaderName, shaderProperties)));
+                rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("DeferredDirect"), shaderProperties)));
             }
 
             uint32 localNumShaderUniforms = numShaderUniforms;
@@ -1168,12 +1164,21 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         rq << SetCurrentView(renderTargetDesc, rs.view->GetViewport());
 
         rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderProperties())));
+        
+        // reset
+        rq << SetDepthTest(false);
+        rq << SetDepthWrite(false);
+        rq << SetCurrentBlendFunction(BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
         rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
         rq << SetShaderUniform(2, "InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
 
         RenderFullScreenQuad(frame, rs);
+        
+        rq << SetDepthTest(true);
+        rq << SetDepthWrite(true);
+        rq << SetCurrentBlendFunction(BlendFunction::None());
     }
 
     frame->renderQueue << EndFramebuffer(GetFramebuffer());
@@ -1358,7 +1363,8 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
             Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,
             TFM_LINEAR_MIPMAP,
-            TWM_CLAMP_TO_EDGE });
+            TWM_CLAMP_TO_EDGE
+        });
 
         InitObject(passData.mipChain);
 
@@ -2056,29 +2062,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             RenderApi::UpdateGpuData(view->GetCamera());
         }
     }
-    
-    // Update SSR texture descriptor if it has changed
-    if (passData.reflectionsPass->ShouldRenderSSR() && passData.reflectionsPass->GetSSRRenderer())
-    {
-        Texture* currentSsrTexture = passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture();
-
-        if (passData.cachedSsrTexture != currentSsrTexture)
-        {
-            // SSR texture has changed - update all frame descriptors
-            for (uint32 i = 0; i < NumFramesInFlight; i++)
-            {
-                if (!currentSsrTexture)
-                {
-                    passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-                    continue;
-                }
-
-                passData.descriptorSets[i]->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(currentSsrTexture));
-            }
-
-            passData.cachedSsrTexture = currentSsrTexture;
-        }
-    }
 
     PerformOcclusionCulling(frame, rs, renderCollector);
 
@@ -2256,6 +2239,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << BindIndexBuffer(GetQuadMesh()->GetIndexBuffer());
 
             frame->renderQueue << DrawIndexed(6);
+            
+            // reset
+            frame->renderQueue << SetDepthTest(true);
+            frame->renderQueue << SetDepthWrite(true);
         }
 
         // begin translucent with forward rendering

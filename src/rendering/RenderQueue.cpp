@@ -765,6 +765,11 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
         state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->bufferOffset;
         state.dirtyBufferOffsets |= (1u << cmdCasted->uniformIndex);
     }
+    else
+    {
+        // unset dirty buffer offset bit if it is not a buffer
+        state.dirtyBufferOffsets &= ~(1u << cmdCasted->uniformIndex);
+    }
 
     static_assert(std::is_trivially_destructible_v<SetShaderUniform>);
     // cmdCasted->~SetShaderUniform();

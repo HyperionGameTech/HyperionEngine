@@ -346,7 +346,6 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
         rq << SetShaderUniform(uniformIndex++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
         rq << SetShaderUniform(uniformIndex++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
         rq << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
-        rq << SetShaderUniform(uniformIndex++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
 
         m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
 
