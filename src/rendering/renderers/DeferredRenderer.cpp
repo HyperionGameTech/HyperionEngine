@@ -480,10 +480,6 @@ TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
     const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
     ShaderProperties shaderProperties;
-    shaderProperties.SetRequiredVertexAttributes(vertexAttributes);
-
-    MergeGlobalShaderProperties(shaderProperties);
-
     shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
 
     m_shaderDefinition = ShaderDefinition(NAME("Tonemap"), shaderProperties);
@@ -500,7 +496,95 @@ void TonemapPass::Resize_Internal(Vec2u newSize)
 
 void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 {
-    FullScreenPass::Render(frame, rs);
+    Begin(frame, rs);
+
+    RenderQueue& rq = frame->renderQueue;
+
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
+    AssertDebug(dpd != nullptr);
+    
+    const uint32 frameIndex = frame->GetFrameIndex();
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+
+    uint32 numShaderUniforms = 0;
+
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    
+    Framebuffer* translucentPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    AssertDebug(translucentPassFramebuffer != nullptr);
+
+    rq << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+
+    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+
+    if (dpd->rayTracingReflections)
+    {
+         rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
+    }
+    else
+    {
+         rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    }
+
+    if (dpd->ssgi)
+    {
+        rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
+    }
+    else
+    {
+         rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    }
+
+    if (dpd->temporalAa)
+    {
+        rq << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->temporalAa->GetResultTexture()));
+    }
+    else
+    {
+        rq << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    }
+
+    Texture* ssrTexture = dpd->reflectionsPass->ShouldRenderSSR()
+        ? dpd->reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()
+        : nullptr;
+     
+    if (ssrTexture)
+    {
+        rq << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
+    }
+    else
+    {
+        rq << SetShaderUniform(numShaderUniforms++, "SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    }
+
+    if (dpd->hbao)
+    {
+         rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, dpd->hbao->GetFinalImageView());
+    }
+    else
+    {
+         rq << SetShaderUniform(numShaderUniforms++, "SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    }
+
+    rq << SetShaderUniform(numShaderUniforms++, "DeferredIndirectResultTexture"_sh, dpd->deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+
+    rq << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
+
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+
+    RenderFullScreenQuad(frame, rs);
+    
+    End(frame, rs);
 }
 
 #pragma endregion TonemapPass
@@ -706,10 +790,6 @@ static constexpr uint32 MaxBoundLightsPerFogVolume = 16;
 FogVolumePass::FogVolumePass()
     : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
-    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
-    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
-
-    m_shaderDefinition = ShaderDefinition(NAME("ApplyFogVolume"), shaderProperties);
 }
 
 FogVolumePass::~FogVolumePass()
@@ -728,6 +808,11 @@ void FogVolumePass::Create()
     m_volumeMesh->SetFlags(MF_VIEW_INDEPENDENT);
     m_volumeMesh->SetName(NAME("FogVolumeMesh"));
     InitObject(m_volumeMesh);
+    
+    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
+
+    m_shaderDefinition = ShaderDefinition(NAME("ApplyFogVolume"), shaderProperties);
 
     FullScreenPass::Create();
 }
@@ -1283,7 +1368,11 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
 
-        passData.reflectionsPass = MakeHandle<ReflectionsPass>(passData.viewport.extent, gbuffer, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain), passData.combinePass->GetFinalImageView());
+        passData.reflectionsPass = MakeHandle<ReflectionsPass>(
+            passData.viewport.extent,
+            gbuffer,
+            g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
+
         passData.reflectionsPass->Create();
 
         passData.tonemapPass = MakeHandle<TonemapPass>(passData.viewport.extent, gbuffer);
@@ -1300,8 +1389,6 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.temporalAa->Create();
         
         CreateViewRayTracingPasses(view, passData);
-        CreateViewDescriptorSets(view, passData);
-        CreateViewFinalPassDescriptorSet(view, passData);
 
         return pd;
     }
@@ -1436,7 +1523,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
             descriptorSet->SetElement("SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
         }
 
-        descriptorSet->SetElement("DeferredResult"_sh, passData.combinePass->GetFinalImageView());
         descriptorSet->SetElement("DeferredIndirectResultTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
         descriptorSet->SetElement("ReflectionProbeResultTexture"_sh, passData.reflectionsPass->GetFinalImageView());
@@ -1576,12 +1662,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.depthPyramidRenderer->Create();
 
     CreateViewRayTracingPasses(view, passData);
-
-    SafeDelete(std::move(passData.descriptorSets));
-    CreateViewDescriptorSets(view, passData);
-
-    SafeDelete(std::move(passData.finalPassDescriptorSet));
-    CreateViewFinalPassDescriptorSet(view, passData);
 
     passData.view = MakeWeakRef(view);
 }
@@ -1885,6 +1965,25 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     }
 }
 
+static Handle<Mesh> s_quadMesh;
+
+static Mesh* GetQuadMesh()
+{
+    if (HYP_UNLIKELY(!s_quadMesh))
+    {
+        s_quadMesh = MeshBuilder::Quad();
+        s_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
+        InitObject(s_quadMesh);
+
+        CurrentThreadObject()->AtExit([]()
+            {
+                s_quadMesh.Reset();
+            });
+    }
+
+    return s_quadMesh;
+}
+
 void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
@@ -2159,8 +2258,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->renderQueue << CommitDrawState();
         
-            frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
-            frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
+            frame->renderQueue << BindVertexBuffer(GetQuadMesh()->GetVertexBuffer());
+            frame->renderQueue << BindIndexBuffer(GetQuadMesh()->GetIndexBuffer());
 
             frame->renderQueue << DrawIndexed(6);
         }

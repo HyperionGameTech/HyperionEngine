@@ -344,15 +344,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         // FullScreenPass::Render needs a View set
         rs.view = lightProxy->shadowViews[0];
 
-        // Combine passes into one
-        combineShadowMapsPass->Begin(frame, rs);
+        { // Combine passes into one
+            combineShadowMapsPass->Begin(frame, rs);
 
-        frame->renderQueue << SetShaderUniform(5, "Src0"_sh, lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-        frame->renderQueue << SetShaderUniform(6, "Src1"_sh, lightProxy->shadowViews[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+            frame->renderQueue << SetShaderUniform(5, "Src0"_sh, lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+            frame->renderQueue << SetShaderUniform(6, "Src1"_sh, lightProxy->shadowViews[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
 
-        combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
-        
-        combineShadowMapsPass->End(frame, rs);
+            combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
+
+            combineShadowMapsPass->End(frame, rs);
+        }
 
         AttachmentBase* attachment = combineShadowMapsPass->GetFramebuffer()->GetAttachment(0);
         Assert(attachment != nullptr);

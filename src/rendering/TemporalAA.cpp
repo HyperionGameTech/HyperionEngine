@@ -142,6 +142,8 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
                                              ->GetImage()
                                              ->GetExtent();
 
+    frame->renderQueue << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+
     frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("TemporalAA")));
 
     frame->renderQueue << SetShaderUniform(0, "InColorTexture"_sh, m_inputImageView);

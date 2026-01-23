@@ -631,13 +631,6 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         RenderPreviousTextureToScreen(frame, renderSetup);
         /// @FIXME: Needs to insert barrier and end render pass before continuing!
     }
-    
-    ShaderDefinition shaderDefinition;
-    shaderDefinition.name = NAME("RenderTextureToScreen");
-
-    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
-
-    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
 
     if (ShouldRenderHalfRes())
     {
@@ -653,6 +646,12 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         // render previous frame's result to screen
         rq << SetCurrentView(framebuffer->GetRenderTargetDesc(), Viewport { framebuffer->GetExtent() });
     }
+
+    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+    
+    ShaderDefinition shaderDefinition;
+    shaderDefinition.name = NAME("RenderTextureToScreen");
+    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
 
     rq << SetDepthTest(false);
     rq << SetDepthWrite(false);
@@ -711,6 +710,8 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
         // render previous frame's result to screen
         rq << SetCurrentView(m_framebuffer->GetRenderTargetDesc(), Viewport { m_framebuffer->GetExtent() });
     }
+
+    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
     rq << SetCurrentShader(ShaderDesc(m_shaderDefinition));
 

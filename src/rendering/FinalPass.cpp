@@ -81,8 +81,6 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     RenderQueue& rq = frame->renderQueue;
 
-    // Check UI updates
-    const uint32 frameIndex = frame->GetFrameIndex();
     const uint32 acquiredImageIndex = rs.swapchain->GetAcquiredImageIndex();
 
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
@@ -91,6 +89,10 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     rq << BeginFramebuffer(framebuffer);
 
     rq << SetCurrentView(framebuffer->GetRenderTargetDesc(), Viewport { rs.swapchain->GetExtent() });
+
+    rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
+
+    rq << SetCurrentShader(ShaderDesc(NAME("RenderTextureToScreen")));
     
     rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));

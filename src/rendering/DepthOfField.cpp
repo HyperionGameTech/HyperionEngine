@@ -18,22 +18,28 @@ DOFBlur::~DOFBlur() = default;
 
 void DOFBlur::Create()
 {
-    ShaderRef blurHorizontalShader = g_shaderManager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL")) }));
-    Assert(blurHorizontalShader.IsValid());
+    m_blurHorizontalPass = MakeHandle<FullScreenPass>(
+        ShaderDefinition(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL")) })),
+        TF_RGBA8,
+        m_extent,
+        m_gbuffer);
 
-    m_blurHorizontalPass = MakeHandle<FullScreenPass>(blurHorizontalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurHorizontalPass->Create();
 
-    ShaderRef blurVerticalShader = g_shaderManager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL")) }));
-    Assert(blurVerticalShader.IsValid());
+    m_blurVerticalPass = MakeHandle<FullScreenPass>(
+        ShaderDefinition(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL")) })),
+        TF_RGBA8,
+        m_extent,
+        m_gbuffer);
 
-    m_blurVerticalPass = MakeHandle<FullScreenPass>(blurVerticalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurVerticalPass->Create();
 
-    ShaderRef blurMixShader = g_shaderManager->GetOrCreate(NAME("DOFBlurMix"));
-    Assert(blurMixShader.IsValid());
+    m_blurMixPass = MakeHandle<FullScreenPass>(
+        ShaderDefinition(NAME("DOFBlurMix")),
+        TF_RGBA8,
+        m_extent,
+        m_gbuffer);
 
-    m_blurMixPass = MakeHandle<FullScreenPass>(blurMixShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurMixPass->Create();
 }
 

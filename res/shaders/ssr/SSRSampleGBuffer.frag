@@ -9,9 +9,9 @@ layout(location=1) in vec2 v_texcoord;
 
 layout(location=0) out vec4 out_color;
 
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, UVImage) uniform texture2D ssr_uv_image;
+HYP_DESCRIPTOR_SRV(RenderSSR, UVImage) uniform texture2D ssr_uv_image;
 
-HYP_DESCRIPTOR_CBUFF(SSRDescriptorSet, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_CBUFF(RenderSSR, UniformBuffer) uniform UniformBuffer
 {
     uvec4 dimension;
     float ray_step;
@@ -30,27 +30,27 @@ HYP_DESCRIPTOR_CBUFF(SSRDescriptorSet, UniformBuffer) uniform UniformBuffer
 }
 ssr_params;
 
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+HYP_DESCRIPTOR_SRV(RenderSSR, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+HYP_DESCRIPTOR_SRV(RenderSSR, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+HYP_DESCRIPTOR_SRV(RenderSSR, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
+HYP_DESCRIPTOR_SRV(RenderSSR, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+HYP_DESCRIPTOR_SRV(RenderSSR, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerNearest) uniform sampler sampler_nearest;
+HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerLinear) uniform sampler sampler_linear;
+HYP_DESCRIPTOR_SSBO(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_CBUFF(RenderSSR, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_CBUFF_DYNAMIC(RenderSSR, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -64,7 +64,7 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
 
 #include "../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SSBO_DYNAMIC(RenderSSR, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
