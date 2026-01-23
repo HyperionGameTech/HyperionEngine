@@ -137,11 +137,8 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("HBAO"), shaderProperties)));
 
     rq << SetShaderUniform(6, "UniformBuffer"_sh, m_uniformBuffer);
-    rq << CommitDrawState();
-
-    frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-    frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-    frame->renderQueue << DrawIndexed(6);
+    
+    RenderFullScreenQuad(frame, renderSetup);
 
     End(frame, renderSetup);
 }

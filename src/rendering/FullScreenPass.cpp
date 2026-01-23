@@ -194,7 +194,7 @@ void FullScreenPass::Create()
 
     Assert(!m_isInitialized);
 
-    CreateQuad();
+    CreateFullScreenQuad();
     CreateFramebuffer();
     CreateMergeHalfResTexturesPass();
     CreateRenderTextureToScreenPass();
@@ -273,7 +273,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
     CreateTemporalBlending();
 }
 
-void FullScreenPass::CreateQuad()
+void FullScreenPass::CreateFullScreenQuad()
 {
     HYP_SCOPE;
 
@@ -431,11 +431,8 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
 
     m_mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-    ShaderRef mergeHalfResTexturesShader = g_shaderManager->GetOrCreate(NAME("MergeHalfResTextures"));
-    Assert(mergeHalfResTexturesShader.IsValid());
-
     m_mergeHalfResTexturesPass = MakeHandle<FullScreenPass>(
-        mergeHalfResTexturesShader,
+        ShaderDefinition(NAME("MergeHalfResTextures")),
         m_imageFormat,
         m_extent,
         nullptr);
@@ -483,11 +480,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame* frame, const RenderSet
     rq << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     rq << SetShaderUniform(3, "InTexture"_sh, GetPreviousFrameColorImageView());
 
-    rq << CommitDrawState();
-
-    rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-    rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-    rq << DrawIndexed(m_fullScreenQuad->NumIndices());
+    RenderFullScreenQuad(frame, renderSetup);
 
     rq << SetDepthTest(true);
     rq << SetDepthWrite(true);
@@ -535,7 +528,7 @@ void FullScreenPass::MergeHalfResTextures(Frame* frame, const RenderSetup& rende
     rq << SetShaderUniform(3, "InTexture"_sh, GetAttachment(0)->GetImageView());
     rq << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeHalfResTexturesUniformBuffer);
 
-    rq << CommitDrawState();
+    m_mergeHalfResTexturesPass->RenderFullScreenQuad(frame, renderSetup);
 
     m_mergeHalfResTexturesPass->End(frame, renderSetup);
 }
@@ -668,17 +661,20 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
     rq << SetTopology(TOP_TRIANGLES);
     rq << SetCurrentBlendFunction(m_blendFunction);
 
-    rq << CommitDrawState();
-
-    Render_Internal(frame, renderSetup);
-
-    rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-    rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-    rq << DrawIndexed(6);
+    RenderFullScreenQuad(frame, renderSetup);
 
     rq << SetDepthTest(true);
     rq << SetDepthWrite(true);
     rq << SetCurrentBlendFunction(BlendFunction::None());
+}
+
+void FullScreenPass::RenderFullScreenQuad(Frame* frame, const RenderSetup& renderSetup)
+{
+    frame->renderQueue << CommitDrawState();
+
+    frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+    frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+    frame->renderQueue << DrawIndexed(6);
 }
 
 void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
@@ -724,8 +720,6 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
     rq << SetFillMode(FM_FILL);
     rq << SetTopology(TOP_TRIANGLES);
     rq << SetCurrentBlendFunction(m_blendFunction);
-
-    Render_Internal(frame, renderSetup);
 }
 
 void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)

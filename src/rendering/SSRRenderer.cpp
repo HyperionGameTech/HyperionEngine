@@ -85,12 +85,10 @@ struct CreateSSRUniformBuffer : RenderCommand
 SSRRenderer::SSRRenderer(
     SSRRendererConfig&& config,
     GBuffer* gbuffer,
-    const GpuImageViewRef& mipChainImageView,
-    const GpuImageViewRef& deferredResultImageView)
+    const GpuImageViewRef& mipChainImageView)
     : m_config(std::move(config)),
       m_gbuffer(gbuffer),
       m_mipChainImageView(mipChainImageView),
-      m_deferredResultImageView(deferredResultImageView),
       m_writeUvs(nullptr),
       m_sampleGbuffer(nullptr),
       m_isRendered(false)
@@ -301,19 +299,25 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     UpdatePipelineState(frame, renderSetup);
 
-    // PASS 1 -- write UVs
-    m_writeUvs->Render(frame, renderSetup);
+    { // PASS 1 -- write UVs
+        m_writeUvs->Begin(frame, renderSetup);
 
-    // frame->renderQueue << InsertBarrier(
-    //     m_uvsTexture->GetGpuImage(),
-    //     RS_SHADER_RESOURCE);
+        // @TODO set all uniforms
 
-    // PASS 2 -- fill color buffer using mip chain to sample based on roughness
-    m_sampleGbuffer->Render(frame, renderSetup);
+        m_writeUvs->RenderFullScreenQuad(frame, renderSetup);
 
-    // frame->renderQueue << InsertBarrier(
-    //     m_sampledResultTexture->GetGpuImage(),
-    //     RS_SHADER_RESOURCE);
+        m_writeUvs->End(frame, renderSetup);
+    }
+
+    { // PASS 2 -- fill color buffer using mip chain to sample based on roughness
+        m_sampleGbuffer->Begin(frame, renderSetup);
+
+        // @TODO set all uniforms here.
+
+        m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
+
+        m_sampleGbuffer->End(frame, renderSetup);
+    }
 
     if (UseTemporalBlending && m_temporalBlending != nullptr)
     {

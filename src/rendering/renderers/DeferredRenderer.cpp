@@ -405,12 +405,8 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 
         rq << SetCurrentShader(ShaderDesc(ShaderDefinition(shaderName, shaderProperties)));
-
-        rq << CommitDrawState();
-
-        rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        rq << DrawIndexed(6);
+        
+        RenderFullScreenQuad(frame, rs);
 
         return;
     }
@@ -452,11 +448,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     rq << SetShaderUniform(localNumShaderUniforms++, "LTCBRDFTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_ltcBrdfTexture));
             }
 
-            rq << CommitDrawState();
-
-            rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-            rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-            rq << DrawIndexed(6);
+            RenderFullScreenQuad(frame, rs);
 
             // Bind material descriptor set (for area lights)
 
@@ -650,7 +642,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         rq << SetShaderUniform(numShaderUniforms++, "EnvGridsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex), 0);
     
     if (dpd->reflectionsPass != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetDeferredResultImageView());
+        rq << SetShaderUniform(numShaderUniforms++, "ReflectionProbeResultTexture"_sh, dpd->reflectionsPass->GetFinalImageView());
 
     if (dpd->ssgi != nullptr)
         rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
@@ -696,11 +688,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
         rq << SetShaderUniform(localNumShaderUniforms++, "LightmapSampler"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
         rq << SetShaderUniform(localNumShaderUniforms++, "LightmapVolumeUniforms"_sh, uniformBuffer);
 
-        rq << CommitDrawState();
-
-        rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        rq << DrawIndexed(6); /// \todo : Draw a box transformed to the size of the lightmap volume
+        RenderFullScreenQuad(frame, renderSetup);
     }
 
     // reset stencil state back to default
@@ -904,10 +892,9 @@ static const FixedArray<Pair<CubemapType, ShaderProperties>, CMT_MAX> s_cubemapP
     Pair<CubemapType, ShaderProperties> { CMT_PARALLAX_CORRECTED, ShaderProperties { { NAME("ENV_PROBE_PARALLAX_CORRECTED") } } }
 };
 
-ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView)
+ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
     : FullScreenPass(TF_R10G10B10A2, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
-      m_deferredResultImageView(deferredResultImageView),
       m_isFirstFrame(true)
 {
     SetBlendFunction(BlendFunction(
@@ -918,7 +905,6 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
 ReflectionsPass::~ReflectionsPass()
 {
     SafeDelete(std::move(m_mipChainImageView));
-    SafeDelete(std::move(m_deferredResultImageView));
 
     m_ssrRenderer.Reset();
 }
@@ -942,7 +928,7 @@ bool ReflectionsPass::ShouldRenderSSR() const
 
 void ReflectionsPass::CreateSSRRenderer()
 {
-    m_ssrRenderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView, m_deferredResultImageView);
+    m_ssrRenderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView);
     m_ssrRenderer->Create();
 }
 
@@ -1079,11 +1065,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
             rq << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RenderApi::RetrieveResourceBinding(envProbe) * sizeof(EnvProbeShaderData));
 
-            rq << CommitDrawState();
-
-            rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-            rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-            rq << DrawIndexed(6);
+            RenderFullScreenQuad(frame, rs);
 
             ++numRenderedEnvProbes;
         }
@@ -1106,11 +1088,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         rq << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
         rq << SetShaderUniform(2, "InTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
 
-        rq << CommitDrawState();
-        
-        rq << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        rq << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        rq << DrawIndexed(6);
+        RenderFullScreenQuad(frame, rs);
     }
 
     frame->renderQueue << EndFramebuffer(GetFramebuffer());
@@ -1305,8 +1283,6 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
 
-        CreateViewCombinePass(view, passData);
-
         passData.reflectionsPass = MakeHandle<ReflectionsPass>(passData.viewport.extent, gbuffer, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain), passData.combinePass->GetFinalImageView());
         passData.reflectionsPass->Create();
 
@@ -1487,41 +1463,6 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
     passData.descriptorSets = std::move(descriptorSets);
 }
 
-void DeferredRenderer::CreateViewCombinePass(View* view, DeferredRendererPassData& passData)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    const FramebufferRef& srcFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-    Assert(srcFramebuffer != nullptr);
-
-    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
-    Assert(renderTextureToScreenShader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("InTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
-    }
-
-    Assert(descriptorTable->Create());
-
-    passData.combinePass = MakeHandle<FullScreenPass>(
-        renderTextureToScreenShader,
-        std::move(descriptorTable),
-        srcFramebuffer,
-        srcFramebuffer->GetAttachment(0)->GetFormat(),
-        srcFramebuffer->GetExtent(),
-        nullptr);
-
-    passData.combinePass->Create();
-}
-
 void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData)
 {
     AssertOnThread(g_renderThread);
@@ -1611,15 +1552,12 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.hbao->Resize(newSize);
 
-    passData.combinePass.Reset();
-    CreateViewCombinePass(view, passData);
-
     passData.reflectionsPass.Reset();
     passData.reflectionsPass = MakeHandle<ReflectionsPass>(
         newSize,
         gbuffer,
-        g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain),
-        passData.combinePass->GetFinalImageView());
+        g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
+
     passData.reflectionsPass->Create();
 
     passData.tonemapPass = MakeHandle<TonemapPass>(passData.viewport.extent, gbuffer);

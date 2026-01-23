@@ -93,11 +93,7 @@ struct RenderTextureMipmapLevelsTask
                 rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
                 rq << SetShaderUniform(1, "InTexture"_sh, mipLevel == 0 ? imageView : mipImageViews[mipLevel - 1]);
 
-                rq << CommitDrawState();
-
-                rq << BindVertexBuffer(pass->GetQuadMesh()->GetVertexBuffer());
-                rq << BindIndexBuffer(pass->GetQuadMesh()->GetIndexBuffer());
-                rq << DrawIndexed(6);
+                pass->RenderFullScreenQuad(frame, NullRenderSetup());
 
                 pass->End(frame, NullRenderSetup());
             }

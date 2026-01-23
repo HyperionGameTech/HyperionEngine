@@ -126,6 +126,7 @@ public:
 
     virtual void Render(Frame* frame, const RenderSetup& renderSetup);
     void RenderToFramebuffer(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer);
+    void RenderFullScreenQuad(Frame* frame, const RenderSetup& renderSetup);
 
     void Begin(Frame* frame, const RenderSetup& renderSetup);
     void End(Frame* frame, const RenderSetup& renderSetup);
@@ -141,19 +142,15 @@ protected:
         return false;
     }
 
-    virtual void Resize_Internal(Vec2u newSize);
-
-    virtual void Render_Internal(Frame* frame, const RenderSetup& renderSetup)
-    {
-    }
-
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer);
-
-    void CreateQuad();
+    void CreateFullScreenQuad();
 
     void RenderPreviousTextureToScreen(Frame* frame, const RenderSetup& renderSetup);
     void CopyResultToPreviousTexture(Frame* frame, const RenderSetup& renderSetup);
     void MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup);
+
+    virtual void Resize_Internal(Vec2u newSize);
+
+    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer);
 
     FramebufferRef m_framebuffer;
     Handle<Mesh> m_fullScreenQuad;

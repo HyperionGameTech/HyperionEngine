@@ -35,7 +35,6 @@ HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferMaterialTexture) uniform utexture2D 
 HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 HYP_DESCRIPTOR_SRV(SSRDescriptorSet, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SRV(SSRDescriptorSet, DeferredResult) uniform texture2D gbuffer_deferred_result;
 
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
@@ -167,7 +166,7 @@ void main(void)
         const float current_radius = length((hit_uv - texcoord) * vec2(ssr_params.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
 
-        vec4 current_reflection_sample = Texture2DLod(sampler_linear, gbuffer_deferred_result, clamp(hit_uv - velocity, vec2(0.0), vec2(1.0)), mip_level);
+        vec4 current_reflection_sample = Texture2DLod(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, vec2(0.0), vec2(1.0)), mip_level);
 #endif
 
 #ifdef CONE_TRACING
