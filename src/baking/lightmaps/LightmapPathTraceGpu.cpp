@@ -25,6 +25,8 @@
 #include <rendering/RendererBase.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/PlaceholderData.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
@@ -118,6 +120,29 @@ namespace Baking {
 
 #pragma region LightmapRenderer_GpuPathTracing
 
+static ShaderDefinition GetShaderDefinition(LightmapShadingType shadingType)
+{
+    ShaderProperties shaderProperties;
+    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
+
+    switch (shadingType)
+    {
+    case LightmapShadingType::RADIANCE:
+        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("RADIANCE")));
+        break;
+    case LightmapShadingType::IRRADIANCE:
+        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
+        break;
+    case LightmapShadingType::FULL:
+        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("FULL")));
+        break;
+    default:
+        HYP_UNREACHABLE();
+    }
+
+    return ShaderDefinition(NAME("LightmapPathTracer"), shaderProperties);
+}
+
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
     BakerBase* lightmapper,
     const Handle<Scene>& scene,
@@ -134,7 +159,6 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
 LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 {
     SafeDelete(std::move(m_tlas));
-    SafeDelete(std::move(m_rayTracingPipeline));
 
     for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
@@ -270,56 +294,6 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
 
     /// Buffers
     CreateBuffers(job);
-
-    /// Shader
-    ShaderProperties shaderProperties;
-    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
-
-    switch (m_shadingType)
-    {
-    case LightmapShadingType::RADIANCE:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("RADIANCE")));
-        break;
-    case LightmapShadingType::IRRADIANCE:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
-        break;
-    case LightmapShadingType::FULL:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("FULL")));
-        break;
-    default:
-        HYP_UNREACHABLE();
-    }
-
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("LightmapPathTracer"), shaderProperties);
-    Assert(shader);
-
-    const DescriptorSetDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration()->FindDescriptorSetDeclaration("RTRadianceDescriptorSet"_sh);
-    Assert(decl != nullptr);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        DescriptorSetRef& descriptorSet = jd.Sets[frameIndex];
-        descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(decl));
-
-        descriptorSet->SetElement("TLAS"_sh, m_tlas);
-        descriptorSet->SetElement("MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement("HitsBuffer"_sh, jd.HitsBufferGpu);
-        descriptorSet->SetElement("RaysBuffer"_sh, jd.raysBuffer);
-
-        descriptorSet->SetElement("Lights"_sh, jd.lightsBuffer);
-        descriptorSet->SetElement("MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-
-        descriptorSet->SetElement("RayTracingConstants"_sh, jd.cBuffer);
-
-        Assert(descriptorSet->Create());
-    }
-
-    /// Pipeline
-    if (!m_rayTracingPipeline)
-    {
-        m_rayTracingPipeline = g_renderBackend->MakeRayTracingPipeline(shader);
-        Assert(m_rayTracingPipeline->Create());
-    }
 
     jd.IsCreated = true;
 }
@@ -489,31 +463,36 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
         frame->OnFrameEnd.Bind(UpdateRaysBuffer { raysBuffer, std::move(rayData) }).Detach();
     }
 
-    constexpr StringHash GlobalSetName = "Global"_sh;
-    constexpr StringHash GlobalBindlessSetName = "GlobalBindless"_sh;
+    RenderQueue& rq = frame->renderQueue;
 
-    const DescriptorTableDeclaration& decl = *m_rayTracingPipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration();
+    rq << SetCurrentShader(ShaderDesc(GetShaderDefinition(m_shadingType)));
 
-    frame->renderQueue << BindRayTracingPipeline(m_rayTracingPipeline);
+    rq << SetShaderUniform(0, "TLAS"_sh, m_tlas);
+    rq << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
+    rq << SetShaderUniform(2, "HitsBuffer"_sh, jd.HitsBufferGpu);
+    rq << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
+    rq << SetShaderUniform(4, "Lights"_sh, jd.lightsBuffer);
+    rq << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(6, "RayTracingConstants"_sh, jd.cBuffer);
+    
+    rq << SetShaderUniform(7, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(8, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
-    frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalSetName, frame->GetFrameIndex()),
-        m_rayTracingPipeline,
-        { { "EnvGridsBuffer"_sh, ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-            { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } });
+    rq << SetShaderUniform(9, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 
-    frame->renderQueue << BindDescriptorSet(
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet(GlobalBindlessSetName, frame->GetFrameIndex()),
-        m_rayTracingPipeline);
+    rq << SetShaderUniform(10, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
+    
+    rq << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    rq << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
-    frame->renderQueue << BindDescriptorSet(jd.Sets[frame->GetFrameIndex()], m_rayTracingPipeline);
+    if (renderSetup.envProbe)
+        rq << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+    else
+        rq << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
 
     frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
-
-    frame->renderQueue << TraceRays(
-        m_rayTracingPipeline,
-        Vec3u { uint32(rays.Size()), 1, 1 });
-
+    frame->renderQueue << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
     frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
 }
 
