@@ -859,11 +859,9 @@ VulkanComputePipelineRef VulkanRenderBackend::MakeComputePipeline(const VulkanSh
     return MakeHandle<VulkanComputePipeline>(VulkanShaderRef(shader));
 }
 
-VulkanRayTracingPipelineRef VulkanRenderBackend::MakeRayTracingPipeline(
-    const VulkanShaderRef& shader,
-    const VulkanDescriptorTableRef& descriptorTable)
+VulkanRayTracingPipelineRef VulkanRenderBackend::MakeRayTracingPipeline(const VulkanShaderRef& shader)
 {
-    return MakeHandle<VulkanRayTracingPipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptorTable));
+    return MakeHandle<VulkanRayTracingPipeline>(VulkanShaderRef(shader));
 }
 
 VulkanGpuBufferRef VulkanRenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)

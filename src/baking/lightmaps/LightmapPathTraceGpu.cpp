@@ -317,7 +317,7 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
     /// Pipeline
     if (!m_rayTracingPipeline)
     {
-        m_rayTracingPipeline = g_renderBackend->MakeRayTracingPipeline(shader, DescriptorTableRef::Null());
+        m_rayTracingPipeline = g_renderBackend->MakeRayTracingPipeline(shader);
         Assert(m_rayTracingPipeline->Create());
     }
 

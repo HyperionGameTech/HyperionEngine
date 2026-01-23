@@ -92,9 +92,7 @@ public:
 
     virtual ComputePipelineRef MakeComputePipeline(const ShaderRef& shader) = 0;
 
-    virtual RayTracingPipelineRef MakeRayTracingPipeline(
-        const ShaderRef& shader,
-        const DescriptorTableRef& descriptorTable) = 0;
+    virtual RayTracingPipelineRef MakeRayTracingPipeline(const ShaderRef& shader) = 0;
 
     virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) = 0;
 
