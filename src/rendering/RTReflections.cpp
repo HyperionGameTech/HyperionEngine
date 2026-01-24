@@ -134,7 +134,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
         {
             AssertDebug(view && passData);
 
-            RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+            RenderProxyList& rpl = GetConsumerProxyList(view);
             rpl.BeginRead();
             HYP_DEFER({ rpl.EndRead(); });
             
@@ -167,12 +167,12 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
                     break;
                 }
 
-                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
                 Assert(lightProxy != nullptr);
                 
                 lightsBuffer->Copy(numBoundLights * sizeof(LightShaderData), sizeof(LightShaderData), &lightProxy->bufferData);
 
-                lightIndicesU32[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+                lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
             }
 
             constantData.numBoundLights = numBoundLights;
@@ -215,7 +215,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
     if (IsPathTracer())
     {
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
         if (cameraProxy->bufferData.viewMat != m_previousViewMatrix)

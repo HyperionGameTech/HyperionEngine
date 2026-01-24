@@ -157,7 +157,7 @@ int SafeDeleter::Iterate(int maxIter)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    uint32 bufferIndex = RenderApi::GetRingIndex();
+    uint32 bufferIndex = GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     auto& entryList = *m_entryLists[bufferIndex];
@@ -165,7 +165,7 @@ int SafeDeleter::Iterate(int maxIter)
     Array<EntryHeader>& headers = *entryList.currHeaders;
     entryList.SwapHeaderBuffers();
 
-    const uint32 frameCounter = RenderApi::GetFrameCounter();
+    const uint32 frameCounter = GetFrameCounter();
 
     int iterCount = 0;
     for (auto it = headers.Begin(); iterCount < maxIter && it != headers.End(); ++iterCount)
@@ -288,7 +288,7 @@ void SafeDeleter::UpdateEntryListQueue()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    uint32 bufferIndex = RenderApi::GetRingIndex();
+    uint32 bufferIndex = GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     auto& currentEntryList = *m_entryLists[bufferIndex];
@@ -389,7 +389,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
 
     if (IsOnThread(g_simThread | g_renderThread))
     {
-        uint32 bufferIndex = RenderApi::GetRingIndex();
+        uint32 bufferIndex = GetRingIndex();
         AssertDebug(bufferIndex < m_entryLists.Size());
 
         return *m_entryLists[bufferIndex];
@@ -409,7 +409,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
     //  - desiredIdx == ~0u (not specified) OR
     //  - On render thread and desiredIdx == CURRENT idx
     // we use the CURRENT entry list
-    if (desiredIdx == ~0u || (IsOnThread(g_renderThread) && desiredIdx == RenderApi::GetRingIndex()))
+    if (desiredIdx == ~0u || (IsOnThread(g_renderThread) && desiredIdx == GetRingIndex()))
     {
         return GetCurrentEntryList(ppGuard);
     }

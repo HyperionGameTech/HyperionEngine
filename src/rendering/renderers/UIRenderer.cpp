@@ -127,19 +127,19 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
         attributes.SetLayerIndex(pair.second);
 
         DrawCallCollectionMapping& mapping = renderCollector.mappingsByBucket[rb][attributes];
-        Handle<RenderGroup>& rg = mapping.renderGroup;
+        RenderGroup*& rg = mapping.renderGroup;
 
-        if (!rg.IsValid())
+        if (!rg)
         {
             ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
 
             ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
             Assert(shader.IsValid());
 
-            rg = MakeHandle<RenderGroup>(shader, attributes, RenderGroupFlags::NONE);
+            rg = new RenderGroup(shader, attributes, RenderGroupFlags::NONE);
 
 #ifdef HYP_DEBUG_MODE
-            if (!rg.IsValid())
+            if (!rg)
             {
                 HYP_LOG(UI, Error, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
 
@@ -147,7 +147,16 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
             }
 #endif
 
-            InitObject(rg);
+            // If parallel rendering is globally disabled, disable it for this RenderGroup
+            if (!g_renderInterface->GetRenderConfig().parallelRendering)
+            {
+                rg->flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
+            }
+
+            if (!g_renderInterface->GetRenderConfig().indirectRendering)
+            {
+                rg->flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+            }
         }
 
         mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
@@ -162,7 +171,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     AssertDebug(renderSetup.HasWorld() && renderSetup.HasView());
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -202,8 +211,8 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         DrawCallCollectionMapping& mapping = it.second;
         Assert(mapping.IsValid());
 
-        const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
-        Assert(renderGroup.IsValid());
+        RenderGroup* renderGroup = mapping.renderGroup;
+        Assert(renderGroup != nullptr);
 
         DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 
@@ -263,7 +272,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     rs.view = m_view.Get();
     rs.passData = pd;
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(m_view);
+    RenderProxyList& rpl = GetConsumerProxyList(m_view);
     rpl.BeginRead();
 
     const ViewOutputTarget& outputTarget = m_view->GetOutputTarget();

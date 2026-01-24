@@ -277,7 +277,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const Viewport& viewport = rs.view->GetViewport();
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -323,7 +323,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));
     rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     rq << SetShaderUniform(numShaderUniforms++, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
@@ -406,7 +406,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             }
 
             uint32 localNumShaderUniforms = numShaderUniforms;
-            rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(light) * sizeof(LightShaderData));
+            rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RetrieveResourceBinding(light) * sizeof(LightShaderData));
 
             if (lightType == LT_AREA_RECT)
             {
@@ -550,7 +550,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
 
     rq << SetShaderUniform(numShaderUniforms++, "PostProcessingUniforms"_sh, dpd->postProcessing->GetUniformBuffer());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));
     rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
 
     RenderFullScreenQuad(frame, rs);
@@ -608,7 +608,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     LightmapVolume* volume = ObjCast<LightmapVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
 
-    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(RenderApi::GetRenderProxy(volume));
+    RenderProxyLightmapVolume* proxy = static_cast<RenderProxyLightmapVolume*>(GetRenderProxy(volume));
     Assert(proxy != nullptr);
 
     if (proxy->numAtlases == 0)
@@ -803,7 +803,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     FogVolume* volume = ObjCast<FogVolume>(renderSetup.volume);
     AssertDebug(volume != nullptr);
 
-    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(RenderApi::GetRenderProxy(volume));
+    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(volume));
     Assert(proxy != nullptr);
 
     FogVolumePassData& data = GetFogVolumePassData(volume);
@@ -848,7 +848,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
         rq << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
 
     rq << SetShaderUniform(3 + GTN_MAX, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
     rq << SetShaderUniform(4 + GTN_MAX, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
@@ -881,7 +881,7 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
 
     AssertDebug(renderSetup.world && renderSetup.view);
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     
     if (!data.cBuffer)
     {
@@ -892,7 +892,7 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     GpuBufferBase* cBuffer = data.cBuffer;
     AssertDebug(cBuffer != nullptr);
 
-    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(RenderApi::GetRenderProxy(data.volume));
+    RenderProxyFogVolume* proxy = static_cast<RenderProxyFogVolume*>(GetRenderProxy(data.volume));
     Assert(proxy != nullptr);
 
     FogVolumeShaderData shaderData = proxy->bufferData;
@@ -916,12 +916,12 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
             break;
         }
 
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
         Assert(lightProxy != nullptr);
 
         cBuffer->Copy(sizeof(FogVolumeShaderData) + (numBoundLights * sizeof(LightShaderData)), sizeof(LightShaderData), &lightProxy->bufferData);
 
-        lightIndicesU32[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+        lightIndicesU32[numBoundLights++] = RetrieveResourceBinding(light);
     }
 
     cBuffer->Copy(sizeof(FogVolumeShaderData), &shaderData);
@@ -1007,7 +1007,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -1015,7 +1015,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     
     if (ShouldRenderHalfRes())
     {
-        const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (RenderApi::GetWorldBufferData()->frameCounter & 1);
+        const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         viewport = Viewport { viewportExtent, viewportOffset };
@@ -1085,7 +1085,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         rq << SetShaderUniform(2 + attachmentIndex, GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
     }
 
-    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), RenderApi::RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));    
+    rq << SetShaderUniform(2 + GTN_MAX, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), RetrieveResourceBinding(rs.view->GetCamera()) * sizeof(CameraShaderData));    
     rq << SetShaderUniform(3 + GTN_MAX, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
     rq << SetShaderUniform(4 + GTN_MAX, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
 
@@ -1119,7 +1119,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
                 break;
             }
 
-            rq << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RenderApi::RetrieveResourceBinding(envProbe) * sizeof(EnvProbeShaderData));
+            rq << SetShaderUniform(5 + GTN_MAX, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RetrieveResourceBinding(envProbe) * sizeof(EnvProbeShaderData));
 
             RenderFullScreenQuad(frame, rs);
 
@@ -1685,7 +1685,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     {
         AssertDebug(view != nullptr);
 
-        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+        RenderProxyList& rpl = GetConsumerProxyList(view);
         rpl.BeginRead();
 
         renderProxyLists.PushBack(&rpl);
@@ -1922,7 +1922,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             }
         }
 
-        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+        RenderProxyList& rpl = GetConsumerProxyList(view);
 
         g_statViews++;
         g_statTextures += rpl.GetTextures().NumCurrent();
@@ -1971,7 +1971,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     AssertDebug(rs.world && rs.view);
 
-    uint32 slot = RenderApi::GetRingIndex();
+    uint32 slot = GetRingIndex();
     if (m_lastFrameData.frameId != slot)
     {
         m_lastFrameData.frameId = slot;
@@ -1984,11 +1984,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     Assert(view->GetFlags() & ViewFlags::GBUFFER);
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+    RenderProxyList& rpl = GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    RenderCollector& renderCollector = RenderApi::GetRenderCollector(view);
+    RenderCollector& renderCollector = GetRenderCollector(view);
 
     DeferredRendererPassData* passDataCasted = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(passDataCasted != nullptr);
@@ -2020,21 +2020,21 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     if (useTAA)
     {
         // apply jitter to camera for TAA
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(view->GetCamera()));
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
         Assert(cameraProxy != nullptr);
 
         CameraShaderData& cameraBufferData = cameraProxy->bufferData;
 
         if (MathUtil::ApproxEqual(cameraBufferData.projMat[3][3], 0.0f))
         {
-            const uint32 frameCounter = RenderApi::GetWorldBufferData()->frameCounter + 1;
+            const uint32 frameCounter = GetWorldBufferData()->frameCounter + 1;
 
             Vec4f jitter = Vec4f::Zero();
             Mat4f::Jitter(frameCounter, viewport.extent.x, viewport.extent.y, jitter);
 
             cameraBufferData.jitter = jitter * CameraJitterScale;
 
-            RenderApi::UpdateGpuData(view->GetCamera());
+            UpdateGpuData(view->GetCamera());
         }
     }
 
@@ -2317,7 +2317,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
     RayTracingPassData* pd = ObjCast<RayTracingPassData>(rs.passData);
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(rs.view);
+    RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -2377,14 +2377,14 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
         {
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
 
-            const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
+            const uint32 materialBinding = RetrieveResourceBinding(meshProxy->material);
             blas->SetMaterialBinding(materialBinding);
 
             CheckResult(blas->Create());
         }
         else
         {
-            const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
+            const uint32 materialBinding = RetrieveResourceBinding(meshProxy->material);
 
             blas->SetMaterialBinding(materialBinding);
             blas->SetTransform(meshProxy->bufferData.modelMatrix);

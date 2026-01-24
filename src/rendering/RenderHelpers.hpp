@@ -13,9 +13,7 @@
 
 namespace Hyperion {
 
-namespace RenderApi {
 uint32 RetrieveResourceBinding(const ObjectBase* resource);
-} // namespace RenderApi
 
 template <class AllocatorType>
 class TRenderQueue;
@@ -59,7 +57,7 @@ struct ShaderDataOffset
     explicit ShaderDataOffset(const ObjectBase* resource, uint32 indexIfNull = InvalidIndex)
         : index(indexIfNull)
     {
-        if (uint32 idx = RenderApi::RetrieveResourceBinding(resource); idx != ~0u)
+        if (uint32 idx = RetrieveResourceBinding(resource); idx != ~0u)
         {
             index = idx;
         }

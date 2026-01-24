@@ -312,7 +312,7 @@ void GraphicsPipelineCache::GetOrCreate(
 
     if (cacheHandle.IsAlive())
     {
-        (*cacheHandle)->lastFrame = RenderApi::GetFrameCounter();
+        (*cacheHandle)->lastFrame = GetFrameCounter();
 
         outCacheHandle = std::move(cacheHandle);
         return;
@@ -377,7 +377,7 @@ void GraphicsPipelineCache::GetOrCreate(
             if (callback.IsValid())
             {
                 // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
-                graphicsPipeline->lastFrame = RenderApi::GetFrameCounter();
+                graphicsPipeline->lastFrame = GetFrameCounter();
 
                 callback(graphicsPipeline, slot);
             }
@@ -444,7 +444,7 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 currFrame = RenderApi::GetFrameCounter();
+    const uint32 currFrame = GetFrameCounter();
 
     TUniqueLock guard(m_mutex);
 

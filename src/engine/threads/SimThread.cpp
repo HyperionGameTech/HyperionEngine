@@ -53,14 +53,7 @@ struct LaunchGameAsync
 
     void operator()()
     {
-        if (!RenderApi::IsInit())
-        {
-            HYP_LOG(SimThread, Info, "Delaying game launch until Render API is initialized...");
-
-            g_simThreadInstance->GetScheduler().Enqueue(*this, TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            return;
-        }
+        Assert(g_renderInterface != nullptr);
 
         InitObject(gameInstance);
 
@@ -121,7 +114,7 @@ void SimThread::Update()
 
     m_counter.NextTick();
 
-    RenderApi::BeginFrameSim();
+    BeginFrameSim();
 
     // execute posted tasks
     Array<Scheduler::ScheduledTask, SceneTempAllocator> tasks;
@@ -172,17 +165,13 @@ void SimThread::Update()
 
     g_engineDriver->GetDebugDrawer()->Update(m_counter.delta);
 
-    RenderApi::EndFrameSim();
+    EndFrameSim();
 }
 
 void SimThread::operator()()
 {
-    // we need to wait for g_renderInstance to be non-null
-    while (!RenderApi::IsInit())
-    {
-        ThreadSleep(1);
-    }
-
+    Assert(g_renderInterface != nullptr);
+    
 #if HYP_SCRIPT
     HypScript::GetInstance().Initialize();
 #endif

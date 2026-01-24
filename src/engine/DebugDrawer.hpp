@@ -249,7 +249,7 @@ public:
 
     HYP_FORCE_INLINE uint32 NumEnqueuedDrawCommands() const
     {
-        return uint32(m_headers[RenderApi::GetRingIndex()].Size());
+        return uint32(m_headers[GetRingIndex()].Size());
     }
 
     void Update(float delta);
@@ -261,8 +261,6 @@ private:
     void Init() override;
 
     DebugDrawerConfig m_config;
-
-    AtomicVar<bool> m_isInitialized;
 
 private:
     GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData);

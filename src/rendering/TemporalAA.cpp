@@ -110,7 +110,7 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }
 
-    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
     TaaUniforms uniforms {};

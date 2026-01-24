@@ -169,7 +169,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
 {
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -205,7 +205,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
             break;
         }
         
-        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+        RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
         Assert(lightProxy != nullptr);
                 
 
@@ -214,7 +214,7 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
             sizeof(LightShaderData),
             &lightProxy->bufferData);
 
-        lightIndicesU32[uniforms.numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+        lightIndicesU32[uniforms.numBoundLights++] = RetrieveResourceBinding(light);
     }
 
     m_cBuffers[frameIndex]->Copy(sizeof(DDGIConstants), &uniforms);

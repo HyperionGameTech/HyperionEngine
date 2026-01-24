@@ -59,7 +59,6 @@ struct CompiledShader;
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
 
-namespace RenderApi {
 
 extern ResourceBinderBase* g_meshEntityBinder;
 extern ResourceBinderBase* g_meshBinder;
@@ -73,9 +72,6 @@ extern ResourceBinderBase* g_particleVolumeBinder;
 extern ResourceBinderBase* g_materialBinder;
 extern ResourceBinderBase* g_textureBinder;
 extern ResourceBinderBase* g_skeletonBinder;
-
-/*! \brief Check if rendering subsystem has been initialized. Thread safe. */
-bool IsInit();
 
 /*! \brief Get the current ring buffer index for the current thread (can be called from the game or render threads).
  *  \note This is thread-safe only if called from the game or render thread. Other threads should not call this function. */
@@ -120,8 +116,6 @@ void SetForceRebind(ObjectBase* resource, bool forceRebind = true);
 WorldShaderData* GetWorldBufferData();
 
 Viewport& GetViewport(View* view);
-
-} // namespace RenderApi
 
 HYP_ENUM()
 enum GlobalRenderBuffer : uint8
@@ -359,6 +353,8 @@ public:
     State state;
     
     DescriptorSetCache* descriptorSetCache;
+
+    struct ResourceContainer* resources;
 
 private:
     void CreateBlueNoiseBuffer();

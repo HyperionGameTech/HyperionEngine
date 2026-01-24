@@ -37,7 +37,7 @@ void DescriptorSetCache::OnFrameStart()
 {
     AssertOnThread(g_renderThread);
 
-    const uint32 frameCounter = RenderApi::GetFrameCounter();
+    const uint32 frameCounter = GetFrameCounter();
 
     SizeType chompIndexStart = SizeType(-1);
 
@@ -94,7 +94,7 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
         DescriptorSetRef& ds = *it;
 
         auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
-        inUseElem.frameCounter = RenderApi::GetFrameCounter();
+        inUseElem.frameCounter = GetFrameCounter();
         inUseElem.descriptorSet = std::move(ds);
 
         mapIt->second.Erase(it);
@@ -108,7 +108,7 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
     //Assert(!createResult.HasError(), "Failed to create new descriptor set! Error: {}", createResult.GetError().GetMessage());
     
     auto& inUseElem = m_descriptorSetsInUse.EmplaceBack();
-    inUseElem.frameCounter = RenderApi::GetFrameCounter();
+    inUseElem.frameCounter = GetFrameCounter();
     inUseElem.descriptorSet = std::move(newDescriptorSet);
 
     return inUseElem.descriptorSet;
