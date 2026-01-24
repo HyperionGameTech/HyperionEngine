@@ -165,7 +165,7 @@ LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
         SafeDelete(std::move(it.second.cBuffer));
         SafeDelete(std::move(it.second.raysBuffer));
         SafeDelete(std::move(it.second.lightsBuffer));
-        SafeDelete(std::move(it.second.HitsBufferGpu));
+        SafeDelete(std::move(it.second.hitsBufferGpu));
     }
 }
 
@@ -182,9 +182,9 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
     jd.lightsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
 
     // ATOMIC_COUNTER type allows readback to cpu.
-    jd.HitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
-    DeferCreate(jd.HitsBufferGpu);
+    DeferCreate(jd.hitsBufferGpu);
     DeferCreate(jd.raysBuffer);
     DeferCreate(jd.lightsBuffer);
 }
@@ -287,15 +287,14 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(Frame* frame, BakeJobB
 
     JobData& jd = m_jobData[job];
 
-    if (jd.IsCreated)
+    if (jd.isCreated)
     {
         return;
     }
 
-    /// Buffers
     CreateBuffers(job);
 
-    jd.IsCreated = true;
+    jd.isCreated = true;
 }
 
 void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* job, uint32 rayOffset)
@@ -369,7 +368,7 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     JobData& jd = m_jobData[job];
 
-    const GpuBufferRef& hitsBuffer = jd.HitsBufferGpu;
+    const GpuBufferRef& hitsBuffer = jd.hitsBufferGpu;
 
     if (!hitsBuffer || !hitsBuffer->IsCreated())
     {
@@ -469,7 +468,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
     rq << SetShaderUniform(0, "TLAS"_sh, m_tlas);
     rq << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());
-    rq << SetShaderUniform(2, "HitsBuffer"_sh, jd.HitsBufferGpu);
+    rq << SetShaderUniform(2, "HitsBuffer"_sh, jd.hitsBufferGpu);
     rq << SetShaderUniform(3, "RaysBuffer"_sh, jd.raysBuffer);
     rq << SetShaderUniform(4, "Lights"_sh, jd.lightsBuffer);
     rq << SetShaderUniform(5, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
@@ -491,9 +490,9 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
     else
         rq << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
 
-    frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->renderQueue << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
     frame->renderQueue << TraceRays(Vec3u { uint32(rays.Size()), 1, 1 });
-    frame->renderQueue << InsertBarrier(jd.HitsBufferGpu, RS_UNORDERED_ACCESS);
+    frame->renderQueue << InsertBarrier(jd.hitsBufferGpu, RS_UNORDERED_ACCESS);
 }
 
 #pragma endregion LightmapRenderer_GpuPathTracing
