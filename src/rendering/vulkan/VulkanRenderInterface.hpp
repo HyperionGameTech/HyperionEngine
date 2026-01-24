@@ -190,6 +190,8 @@ public:
 
     RendererResult GetVkExtensions(Array<const char*>& outExtensions);
 
+    VulkanDescriptorSet* bindlessDescriptorSets[NumFramesInFlight];
+
 private:
     VulkanInstance* m_instance;
 

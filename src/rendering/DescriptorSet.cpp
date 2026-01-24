@@ -389,7 +389,7 @@ DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
     {
         if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
-            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
+            /*const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
             Assert(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: {}", descriptorSetDeclaration.name);
 
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
@@ -398,7 +398,7 @@ DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
                 Assert(descriptorSet.IsValid(), "Invalid global descriptor set reference: {}", referencedDescriptorSetDeclaration->name);
 
                 m_sets[frameIndex].PushBack(std::move(descriptorSet));
-            }
+            }*/
 
             continue;
         }

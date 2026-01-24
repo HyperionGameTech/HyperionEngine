@@ -325,8 +325,6 @@ public:
     GpuBufferHolderMap* gpuBufferHolders;
     ConstantsAllocator* constantsAllocator;
 
-    DescriptorTableRef globalDescriptorTable;
-
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
     GlobalGpuBuffers gpuBuffers;
@@ -360,8 +358,6 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
     void CreateEnvProbesTexture();
-
-    void SetDefaultDescriptorSetElements(uint32 frameIndex);
 };
 
 } // namespace Hyperion

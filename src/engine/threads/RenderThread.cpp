@@ -168,12 +168,6 @@ void RenderThread::Update()
         g_renderInterface->finalPass->Render(frame, rs);
     }
 
-    if (g_renderInterface->GetRenderConfig().bindlessTextures)
-    {
-        DescriptorSet* bindlessDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frame->GetFrameIndex());
-        frame->MarkDescriptorSetUsed(bindlessDescriptorSet);
-    }
-
     g_renderInterface->UpdateBuffers(frame);
 
     g_renderInterface->SubmitCommandBuffers(swapchain);

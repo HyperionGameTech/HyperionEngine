@@ -98,12 +98,12 @@ struct RayTracingConstants
 class StagingBufferPool
 {
 public:
-    HYP_API static StagingBufferPool& GetInstance();
+    static StagingBufferPool& GetInstance();
 
-    HYP_API StagingBufferPool();
+    StagingBufferPool();
 
-    HYP_API void Cleanup(uint32 frameIndex);
-    HYP_API GpuBuffer* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
+    void OnFrameEnd();
+    GpuBuffer* AcquireStagingBuffer(uint32 offset, uint32 bufferSize);
 
 private:
     Pimpl<struct StagingBufferPoolImpl> m_impl;
@@ -169,8 +169,9 @@ public:
 
 protected:
     void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
+
     void CopyStagingToGpu(
-        uint32 frameIndex, RenderQueue& renderQueue,
+        RenderQueue& renderQueue,
         Span<GpuBuffer* const> stagingBuffers,
         Span<const uint32> chunkStarts,
         Span<const uint32> chunkEnds);
@@ -317,7 +318,7 @@ public:
 
         for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
         {
-            GpuBuffer* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, 0, dirtyBlock.bufferSize);
+            GpuBuffer* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(0, dirtyBlock.bufferSize);
             Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
 
             stagingBuffer->Copy(0, dirtyBlock.bufferSize, dirtyBlock.dataPtr);
@@ -403,7 +404,7 @@ public:
         }
 
         GpuBufferHolderBase::CopyStagingToGpu(
-            frameIndex, renderQueue,
+            renderQueue,
             stagingBuffers.ToSpan(),
             chunkStarts.ToSpan(),
             chunkEnds.ToSpan());

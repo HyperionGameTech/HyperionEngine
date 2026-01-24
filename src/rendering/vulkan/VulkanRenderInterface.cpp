@@ -18,12 +18,14 @@
 #include <rendering/vulkan/VulkanAsyncCompute.hpp>
 #include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
 #include <rendering/vulkan/VulkanAccelerationStructure.hpp>
+#include <rendering/vulkan/VulkanTextureViewCache.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 
@@ -550,7 +552,8 @@ VkDescriptorSetLayout VulkanDescriptorSetManager::GetOrCreateVkDescriptorSetLayo
 #pragma region VulkanRenderInterface
 
 VulkanRenderInterface::VulkanRenderInterface()
-    : m_instance(nullptr),
+    : bindlessDescriptorSets{},
+      m_instance(nullptr),
       m_renderConfig(MakePimpl<VulkanRenderConfig>()),
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_asyncCompute(new VulkanAsyncCompute()),
@@ -637,20 +640,57 @@ RendererResult VulkanRenderInterface::Initialize()
         
     CheckResultOrReturn(RenderInterface::Initialize());
 
+    if (GetRenderConfig().bindlessTextures)
+    {
+        DescriptorSetDeclaration decl;
+
+        DescriptorDeclaration declTextures {};
+        declTextures.name = NAME("Textures");
+        declTextures.slot = DESCRIPTOR_SLOT_SRV;
+        declTextures.count = ~0u;
+        declTextures.size = ~0u;
+        declTextures.index = 0;
+
+        decl.AddDescriptorDeclaration(declTextures);
+
+        DescriptorSetLayout layout(&decl);
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            VulkanDescriptorSet* bindlessDescriptorSet = new VulkanDescriptorSet(layout);
+            Assert(bindlessDescriptorSet != nullptr);
+
+            for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
+            {
+                bindlessDescriptorSet->SetElement("Textures"_sh, textureIndex, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
+            }
+
+            CheckResultOrReturn(bindlessDescriptorSet->Create());
+
+            bindlessDescriptorSets[frameIndex] = bindlessDescriptorSet;
+        }
+    }
+
     return {};
 }
 
 RendererResult VulkanRenderInterface::Shutdown()
 {
-    SafeDelete(std::move(m_frames));
-    SafeDelete(std::move(m_commandBuffers));
+    CheckResultOrReturn(m_instance->GetDevice()->WaitIdle());
+
+    m_frames = {};
+    m_commandBuffers = {};
+
+    for (VulkanDescriptorSet*& descriptorSet : bindlessDescriptorSets)
+    {
+        delete descriptorSet;
+        descriptorSet = nullptr;
+    }
 
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
 
     delete m_asyncCompute;
     m_asyncCompute = nullptr;
-
-    CheckResultOrReturn(m_instance->GetDevice()->WaitIdle());
 
     PoolDelete(*g_renderPool, m_instance);
     m_instance = nullptr;
@@ -716,6 +756,7 @@ void VulkanRenderInterface::PrepareSwapchain(VulkanSwapchain* swapchain)
 
 void VulkanRenderInterface::SubmitCommandBuffers(VulkanSwapchain* swapchain)
 {
+
     VulkanDeviceQueue* presentQueue = m_instance->GetDevice()->GetPresentQueue();
 
     if (!presentQueue)
@@ -727,6 +768,15 @@ void VulkanRenderInterface::SubmitCommandBuffers(VulkanSwapchain* swapchain)
     VulkanDevice* vulkanDevice = m_instance->GetDevice();
     VulkanFrame* vulkanFrame = GetCurrentFrame();
     VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
+    
+    if (GetRenderConfig().bindlessTextures)
+    {
+        // Need to update bindless texture descriptor sets here before submission,
+        // since the descriptor set is shared across multiple rendering stages.
+        VulkanDescriptorSet* bindlessDescriptorSet = bindlessDescriptorSets[vulkanFrame->GetFrameIndex()];
+        bindlessDescriptorSet->UpdateDirtyState();
+        bindlessDescriptorSet->Update();
+    }
 
     CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer, swapchain));
 

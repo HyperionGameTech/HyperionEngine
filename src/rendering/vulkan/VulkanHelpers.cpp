@@ -631,8 +631,6 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     renderQueue.Prepare(tempFrame);
 
-    tempFrame->UpdateUsedDescriptorSets();
-
     commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     CheckResultOrReturn(commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 

@@ -911,21 +911,12 @@ RendererResult RenderInterface::Initialize()
 
     registry.funcs.Clear();
 
-    globalDescriptorTable = MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
-
     placeholderData->Create();
     shadowMapAllocator->Initialize();
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        SetDefaultDescriptorSetElements(frameIndex);
-    }
 
     CreateSphereSamplesBuffer();
     CreateBlueNoiseBuffer();
     CreateEnvProbesTexture();
-
-    globalDescriptorTable->Create();
 
     for (uint32 i = 0; i < GRT_MAX; i++)
     {
@@ -997,8 +988,6 @@ RendererResult RenderInterface::Shutdown()
 
     shadowMapAllocator->Destroy();
     placeholderData->Destroy();
-
-    globalDescriptorTable.Reset();
 
     PoolDelete(*g_renderPool, textureViewCache);
     textureViewCache = nullptr;
@@ -1337,9 +1326,9 @@ void RenderInterface::EndFrame()
         }
     }
 
-    numCleanupCycles -= g_renderInterface->graphicsPipelineCache->RunCleanupCycle(16);
-    numCleanupCycles -= g_renderInterface->computePipelineCache->RunCleanupCycle(4);
-    numCleanupCycles -= g_renderInterface->rayTracingPipelineCache->RunCleanupCycle(1);
+    numCleanupCycles -= graphicsPipelineCache->RunCleanupCycle(16);
+    numCleanupCycles -= computePipelineCache->RunCleanupCycle(4);
+    numCleanupCycles -= rayTracingPipelineCache->RunCleanupCycle(1);
 
     for (ResourceSubtypeData& subtypeData : resources->dataByType)
     {
@@ -1384,11 +1373,14 @@ void RenderInterface::EndFrame()
     ReleaseTransientMemory();
     NextFrame();
 
-    g_renderInterface->state.Reset();
-    g_renderInterface->constantsAllocator->OnFrameEnd();
-    g_renderInterface->descriptorSetCache->OnFrameEnd();
+    state.Reset();
 
-    g_renderInterface->textureViewCache->CleanupUnusedTextures();
+    constantsAllocator->OnFrameEnd();
+    descriptorSetCache->OnFrameEnd();
+
+    textureViewCache->CleanupUnusedTextures();
+
+    StagingBufferPool::GetInstance().OnFrameEnd();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
@@ -1574,21 +1566,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     const auto FetchDescriptorSet = [frameIndex = GetCurrentFrame()->GetFrameIndex()](const DescriptorSetDeclaration& dsDecl, uint8& outStateFlags) -> DescriptorSet*
     {
-        // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
-        if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
+        // global reference to bindless descriptor set
+        if (dsDecl.name == "GlobalBindless"_sh)
         {
-            if (dsDecl.flags & DescriptorSetDeclarationFlags::TEMPLATE)
-            {
-                const DescriptorSetDeclaration* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(dsDecl.name);
-                AssertDebug(refDsDecl != nullptr);
-                    
-                DescriptorSetLayout layout { refDsDecl };
-                return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
-            }
-
             outStateFlags |= DSS_GlobalReference;
 
-            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, frameIndex);
+            // @TODO DX12 implementation for this
+            return g_renderInterface->bindlessDescriptorSets[frameIndex];
         }
         else
         {
@@ -1628,13 +1612,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         for (const DescriptorSetDeclaration& setDecl : tableDecl->elements)
         {
             const DescriptorSetDeclaration* pSetDecl = &setDecl;
-
-            if (setDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
-            {
-                pSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
-                AssertDebug(pSetDecl != nullptr);
-            }
-
             decl = pSetDecl->FindDescriptorDeclaration(uniform.name);
 
             if (decl)
@@ -1918,7 +1895,6 @@ void RenderInterface::UpdateBuffers(Frame* frame)
         it.second->UpdateBufferData(frameIndex, frame->preRenderQueue);
     }
 
-    StagingBufferPool::GetInstance().Cleanup(frameIndex);
 }
 
 void RenderInterface::CreateBlueNoiseBuffer()
@@ -1951,12 +1927,6 @@ void RenderInterface::CreateBlueNoiseBuffer()
     blueNoiseBuffer->Copy(sobol256spp256dOffset, sobol256spp256dSize, &BlueNoise::sobol256spp256d[0]);
     blueNoiseBuffer->Copy(scramblingTileOffset, scramblingTileSize, &BlueNoise::scramblingTile[0]);
     blueNoiseBuffer->Copy(rankingTileOffset, rankingTileSize, &BlueNoise::rankingTile[0]);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("BlueNoiseBuffer"_sh, blueNoiseBuffer);
-    }
 }
 
 void RenderInterface::CreateSphereSamplesBuffer()
@@ -1982,12 +1952,6 @@ void RenderInterface::CreateSphereSamplesBuffer()
     sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
 
     delete[] sphereSamples;
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("SphereSamplesBuffer"_sh, sphereSamplesBuffer);
-    }
 }
 
 void RenderInterface::CreateEnvProbesTexture()
@@ -2005,84 +1969,6 @@ void RenderInterface::CreateEnvProbesTexture()
     envProbesTexture->SetName(NAME("EnvProbesTexture"));
     envProbesTexture->SetIsTransient(true);
     InitObject(envProbesTexture);
-}
-
-void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    // Global
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("WorldsBuffer"_sh, gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("LightsBuffer"_sh, gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("CurrentLight"_sh, gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("EntitiesBuffer"_sh, gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("CamerasBuffer"_sh, gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("EnvGridsBuffer"_sh, gpuBuffers[GRB_ENV_GRIDS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("EnvProbesBuffer"_sh, gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("CurrentEnvProbe"_sh, gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
-
-    /*globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("BlueNoiseBuffer"_sh, GpuBufferRef::Null());
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("SphereSamplesBuffer"_sh, GpuBufferRef::Null());*/
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("LightmapVolumesBuffer"_sh, gpuBuffers[GRB_LIGHTMAP_VOLUMES]->GetBuffer(frameIndex));
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement(NAME("EnvProbesTexture"), textureViewCache->GetOrCreate(placeholderData->defaultCubemapArray));
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("RTRadianceResultTexture"_sh, placeholderData->GetImageView2D1x1R8());
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("SamplerNearest"_sh, placeholderData->GetSamplerNearest());
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("SamplerLinear"_sh, placeholderData->GetSamplerLinearMipmap());
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("UITexture"_sh, placeholderData->GetImageView2D1x1R8());
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("FinalOutputTexture"_sh, placeholderData->GetImageView2D1x1R8());
-
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("ShadowMapsTextureArray"_sh, shadowMapAllocator->GetAtlasImageView());
-    globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-        ->SetElement("PointLightShadowMapsTextureArray"_sh, shadowMapAllocator->GetPointLightShadowMapImageView());
-
-    // Entity
-    globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
-        ->SetElement("CurrentEntity"_sh, gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
-        ->SetElement("MaterialsBuffer"_sh, gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
-        ->SetElement("SkeletonsBuffer"_sh, gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex));
-    globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
-        ->SetElement("LightmapVolumeIrradianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
-    globalDescriptorTable->GetDescriptorSet("Entity"_sh, frameIndex)
-        ->SetElement("LightmapVolumeRadianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
-
-    // Bindless
-    if (GetRenderConfig().bindlessTextures)
-    {
-        DescriptorSet* bindlessDescriptorSet = globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frameIndex);
-        Assert(bindlessDescriptorSet != nullptr);
-
-        for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
-        {
-            bindlessDescriptorSet->SetElement("Textures"_sh, textureIndex, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
-        }
-    }
 }
 
 #pragma endregion RenderInterface

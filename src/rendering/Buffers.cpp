@@ -48,24 +48,21 @@ struct StagingBufferPoolImpl
         }
     };
 
-    FlatSet<CachedStagingBuffer> cachedBuffers[NumFramesInFlight];
+    FlatSet<CachedStagingBuffer> cachedBuffers;
 
     ~StagingBufferPoolImpl()
     {
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        for (CachedStagingBuffer& cachedBuffer : cachedBuffers)
         {
-            for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
-            {
-                SafeDelete(std::move(cachedBuffer.buffer));
-            }
+            SafeDelete(std::move(cachedBuffer.buffer));
         }
     }
 
-    void Cleanup(uint32 frameIndex)
+    void Cleanup()
     {
         const uint32 currFrame = GetFrameCounter();
 
-        for (auto it = cachedBuffers[frameIndex].Begin(); it != cachedBuffers[frameIndex].End();)
+        for (auto it = cachedBuffers.Begin(); it != cachedBuffers.End();)
         {
             const int64 frameDiff = int64(currFrame) - int64(it->lastUsedFrame);
 
@@ -74,7 +71,7 @@ struct StagingBufferPoolImpl
                 GpuBufferRef& gpuBuffer = it->buffer;
                 SafeDelete(std::move(gpuBuffer));
 
-                it = cachedBuffers[frameIndex].Erase(it);
+                it = cachedBuffers.Erase(it);
 
                 continue;
             }
@@ -83,12 +80,12 @@ struct StagingBufferPoolImpl
         }
     }
 
-    GpuBuffer* GetOrCreateBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
+    GpuBuffer* GetOrCreateBuffer(uint32 offset, uint32 bufferSize)
     {
         const uint32 currFrame = GetFrameCounter();
 
         // unused one (different frame)
-        for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
+        for (CachedStagingBuffer& cachedBuffer : cachedBuffers)
         {
             // find first that fits to reuse
             if (cachedBuffer.size >= bufferSize && (int64(currFrame) - int64(cachedBuffer.lastUsedFrame)) >= NumFramesInFlight)
@@ -118,7 +115,7 @@ struct StagingBufferPoolImpl
 
         Assert(newBuffer.buffer->Create());
 
-        auto insertResult = cachedBuffers[frameIndex].Insert(std::move(newBuffer));
+        auto insertResult = cachedBuffers.Insert(std::move(newBuffer));
         AssertDebug(insertResult.second); // must be inserted
 
         return insertResult.first->buffer;
@@ -145,14 +142,14 @@ StagingBufferPool& StagingBufferPool::GetInstance()
     return *s_stagingBufferPool;
 }
 
-void StagingBufferPool::Cleanup(uint32 frameIndex)
+void StagingBufferPool::OnFrameEnd()
 {
-    m_impl->Cleanup(frameIndex);
+    m_impl->Cleanup();
 }
 
-GpuBuffer* StagingBufferPool::AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
+GpuBuffer* StagingBufferPool::AcquireStagingBuffer(uint32 offset, uint32 bufferSize)
 {
-    return m_impl->GetOrCreateBuffer(frameIndex, offset, bufferSize);
+    return m_impl->GetOrCreateBuffer(offset, bufferSize);
 }
 
 #pragma endregion StagingBufferPool
@@ -186,7 +183,7 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
 }
 
 void GpuBufferHolderBase::CopyStagingToGpu(
-    uint32 frameIndex, RenderQueue& renderQueue,
+    RenderQueue& renderQueue,
     Span<GpuBuffer* const> stagingBuffers,
     Span<const uint32> chunkStarts,
     Span<const uint32> chunkEnds)

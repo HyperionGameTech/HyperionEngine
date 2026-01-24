@@ -51,12 +51,12 @@ struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
     {
         RendererResult result;
 
-        // remove result image from global descriptor set
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
+        //// remove result image from global descriptor set
+        //for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        //{
+        //    g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+        //        ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+        //}
 
         return result;
     }
@@ -93,12 +93,12 @@ void RayTracingReflections::Create()
     CreateImages();
     CreateTemporalBlending();
 
-    // Set result texture in global descriptor table
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture()));
-    }
+    //// Set result texture in global descriptor table
+    //for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    //{
+    //    g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
+    //        ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture()));
+    //}
 }
 
 void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)

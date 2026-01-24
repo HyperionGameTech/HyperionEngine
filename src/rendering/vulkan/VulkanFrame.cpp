@@ -95,8 +95,6 @@ RendererResult VulkanFrame::Submit(
     renderQueue.Prepare(this);
     postRenderQueue.Prepare(this);
 
-    UpdateUsedDescriptorSets();
-
     if (OnPresent.AnyBound())
     {
         OnPresent(this);

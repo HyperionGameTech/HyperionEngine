@@ -1428,106 +1428,106 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View"_sh);
-    Assert(decl != nullptr);
+    //const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View"_sh);
+    //Assert(decl != nullptr);
 
-    const DescriptorSetLayout layout { decl };
+    //const DescriptorSetLayout layout { decl };
 
-    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
+    //FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
-    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    //const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
 
-    // depth attachment goes into separate slot
-    AttachmentBase* depthAttachment = opaquePassFramebuffer->GetAttachment(GTN_MAX - 1);
-    Assert(depthAttachment != nullptr);
+    //// depth attachment goes into separate slot
+    //AttachmentBase* depthAttachment = opaquePassFramebuffer->GetAttachment(GTN_MAX - 1);
+    //Assert(depthAttachment != nullptr);
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        DescriptorSetRef descriptorSet = g_renderInterface->MakeDescriptorSet(layout);
-        descriptorSet->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frameIndex));
+    //for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    //{
+    //    DescriptorSetRef descriptorSet = g_renderInterface->MakeDescriptorSet(layout);
+    //    descriptorSet->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frameIndex));
 
-        if (g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing)
-        {
-            uint32 gbufferElementIndex = 0;
+    //    if (g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing)
+    //    {
+    //        uint32 gbufferElementIndex = 0;
 
-            // not including depth texture here (hence the - 1)
-            for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
-            {
-                descriptorSet->SetElement("GBufferTextures"_sh, gbufferElementIndex++, opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
-            }
-        }
-        else
-        {
-            for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
-            {
-                descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
-            }
-        }
+    //        // not including depth texture here (hence the - 1)
+    //        for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
+    //        {
+    //            descriptorSet->SetElement("GBufferTextures"_sh, gbufferElementIndex++, opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+    //        }
+    //    }
+    //    else
+    //    {
+    //        for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
+    //        {
+    //            descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
+    //        }
+    //    }
 
-        descriptorSet->SetElement("GBufferDepthTexture"_sh, depthAttachment->GetImageView());
-        descriptorSet->SetElement("GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
-        descriptorSet->SetElement("PostProcessingUniforms"_sh, passData.postProcessing->GetUniformBuffer());
-        descriptorSet->SetElement("DepthPyramidResult"_sh, passData.depthPyramidRenderer->GetResultImageView());
-        descriptorSet->SetElement("TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.temporalAa->GetResultTexture()));
+    //    descriptorSet->SetElement("GBufferDepthTexture"_sh, depthAttachment->GetImageView());
+    //    descriptorSet->SetElement("GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
+    //    descriptorSet->SetElement("PostProcessingUniforms"_sh, passData.postProcessing->GetUniformBuffer());
+    //    descriptorSet->SetElement("DepthPyramidResult"_sh, passData.depthPyramidRenderer->GetResultImageView());
+    //    descriptorSet->SetElement("TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.temporalAa->GetResultTexture()));
 
-        // Set SSR texture - use placeholder if not available yet
-        Texture* ssrTexture = passData.reflectionsPass->ShouldRenderSSR()
-            ? passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()
-            : nullptr;
+    //    // Set SSR texture - use placeholder if not available yet
+    //    Texture* ssrTexture = passData.reflectionsPass->ShouldRenderSSR()
+    //        ? passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()
+    //        : nullptr;
 
-        if (ssrTexture)
-        {
-            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
-            passData.cachedSsrTexture = ssrTexture;
-        }
-        else
-        {
-            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-            passData.cachedSsrTexture = nullptr;
-        }
+    //    if (ssrTexture)
+    //    {
+    //        descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
+    //        passData.cachedSsrTexture = ssrTexture;
+    //    }
+    //    else
+    //    {
+    //        descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    //        passData.cachedSsrTexture = nullptr;
+    //    }
 
-        if (passData.ssgi)
-        {
-            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.ssgi->GetFinalResultTexture()));
-        }
-        else
-        {
-            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
+    //    if (passData.ssgi)
+    //    {
+    //        descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.ssgi->GetFinalResultTexture()));
+    //    }
+    //    else
+    //    {
+    //        descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    //    }
 
-        if (passData.hbao)
-        {
-            descriptorSet->SetElement("SSAOResultTexture"_sh, passData.hbao->GetFinalImageView());
-        }
-        else
-        {
-            descriptorSet->SetElement("SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
+    //    if (passData.hbao)
+    //    {
+    //        descriptorSet->SetElement("SSAOResultTexture"_sh, passData.hbao->GetFinalImageView());
+    //    }
+    //    else
+    //    {
+    //        descriptorSet->SetElement("SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    //    }
 
-        descriptorSet->SetElement("DeferredIndirectResultTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
+    //    descriptorSet->SetElement("DeferredIndirectResultTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
 
-        descriptorSet->SetElement("ReflectionProbeResultTexture"_sh, passData.reflectionsPass->GetFinalImageView());
+    //    descriptorSet->SetElement("ReflectionProbeResultTexture"_sh, passData.reflectionsPass->GetFinalImageView());
 
-        if (passData.ddgi)
-        {
-            descriptorSet->SetElement("DDGIConstants"_sh, passData.ddgi->GetConstantBuffer(frameIndex));
-            descriptorSet->SetElement("DDGIIrradianceTexture"_sh, passData.ddgi->GetIrradianceImageView());
-            descriptorSet->SetElement("DDGIDepthTexture"_sh, passData.ddgi->GetDepthImageView());
-        }
-        else
-        {
-            descriptorSet->SetElement("DDGIConstants"_sh, g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants), /* exactSize */ true));
-            descriptorSet->SetElement("DDGIIrradianceTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-            descriptorSet->SetElement("DDGIDepthTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-        
+    //    if (passData.ddgi)
+    //    {
+    //        descriptorSet->SetElement("DDGIConstants"_sh, passData.ddgi->GetConstantBuffer(frameIndex));
+    //        descriptorSet->SetElement("DDGIIrradianceTexture"_sh, passData.ddgi->GetIrradianceImageView());
+    //        descriptorSet->SetElement("DDGIDepthTexture"_sh, passData.ddgi->GetDepthImageView());
+    //    }
+    //    else
+    //    {
+    //        descriptorSet->SetElement("DDGIConstants"_sh, g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants), /* exactSize */ true));
+    //        descriptorSet->SetElement("DDGIIrradianceTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    //        descriptorSet->SetElement("DDGIDepthTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
+    //    }
+    //    
 
-        CheckResult(descriptorSet->Create());
+    //    CheckResult(descriptorSet->Create());
 
-        descriptorSets[frameIndex] = std::move(descriptorSet);
-    }
+    //    descriptorSets[frameIndex] = std::move(descriptorSet);
+    //}
 
-    passData.descriptorSets = std::move(descriptorSets);
+    //passData.descriptorSets = std::move(descriptorSets);
 }
 
 void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData)
