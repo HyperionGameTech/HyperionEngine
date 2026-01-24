@@ -71,6 +71,8 @@ HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 static constexpr bool ShouldCompileMissingVariants = false;
 static constexpr bool ShouldCompileEntireBundle = false; // aggressively compile all permutations defined
 
+static constexpr uint32 ShaderRevisionNumber = 1;
+
 namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
@@ -143,14 +145,6 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
         Assert(setIndex != -1);
 
         descriptorTableDefines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptorSetDeclaration.name.LookupString()) + " " + String::ToString(setIndex) + "\n";
-
-        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
-        {
-            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
-            Assert(referencedDescriptorSetDeclaration != nullptr);
-
-            descriptorSetDeclarationPtr = referencedDescriptorSetDeclaration;
-        }
 
         for (const Array<DescriptorDeclaration>& descriptorDeclarations : descriptorSetDeclarationPtr->slots)
         {
@@ -727,7 +721,8 @@ CompiledShader::CompiledShader(const CompiledShader& other)
     : definition(other.definition),
       descriptorTableDeclaration(other.descriptorTableDeclaration),
       entryPointName(other.entryPointName),
-      modules(other.modules)
+      modules(other.modules),
+      revision(ShaderRevisionNumber)
 {
 }
 
@@ -739,6 +734,7 @@ CompiledShader& CompiledShader::operator=(const CompiledShader& other)
         entryPointName = other.entryPointName;
         modules = other.modules;
         descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
+        revision = other.revision;
     }
 
     return *this;
@@ -748,7 +744,8 @@ CompiledShader::CompiledShader(CompiledShader&& other) noexcept
     : definition(std::move(other.definition)),
       descriptorTableDeclaration(std::move(other.descriptorTableDeclaration)),
       entryPointName(std::move(other.entryPointName)),
-      modules(std::move(other.modules))
+      modules(std::move(other.modules)),
+      revision(other.revision)
 {
 }
 
@@ -760,7 +757,9 @@ CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
         entryPointName = std::move(other.entryPointName);
         modules = std::move(other.modules);
         descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
+        revision = other.revision;
     }
+
     return *this;
 }
 
@@ -768,9 +767,9 @@ CompiledShader::~CompiledShader()
 {
 }
 
-uint64 CompiledShader::GetRevisionNumber() const
+uint32 CompiledShader::CurrentRevision()
 {
-    return GetStaticDescriptorTableDeclaration().GetHashCode().Value();
+    return ShaderRevisionNumber;
 }
 
 #pragma endregion CompiledShader
@@ -786,31 +785,6 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclarat
             descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
 
         DescriptorSetDeclaration* descriptorSetDeclaration = table.FindDescriptorSetDeclaration(descriptorUsage.setName);
-
-        // check if this descriptor set is defined in the static descriptor table
-        // if it is, we can use those definitions
-        // otherwise, it is a 'custom' descriptor set
-        DescriptorSetDeclaration* staticDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorUsage.setName);
-
-        if (staticDescriptorSetDeclaration != nullptr)
-        {
-            Assert(staticDescriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName) != nullptr,
-                "Descriptor set {} is defined in the static descriptor table, but "
-                "the descriptor {} is not",
-                descriptorUsage.setName, descriptorUsage.descriptorName);
-
-            if (!descriptorSetDeclaration)
-            {
-                const uint32 setIndex = uint32(table.elements.Size());
-
-                DescriptorSetDeclaration newDescriptorSetDeclaration(setIndex, staticDescriptorSetDeclaration->name);
-                newDescriptorSetDeclaration.flags = staticDescriptorSetDeclaration->flags | DescriptorSetDeclarationFlags::REFERENCE;
-
-                table.AddDescriptorSetDeclaration(std::move(newDescriptorSetDeclaration));
-            }
-
-            continue;
-        }
 
         if (!descriptorSetDeclaration)
         {
@@ -3148,7 +3122,7 @@ bool ShaderCompiler::CompileBundle(
         finalProperties.SetOptionalVertexAttributes(optionalVertexAttributeSet);
     }
 
-    HYP_LOG(ShaderCompiler, Info, "Compiling shader {}", shaderBundleDecl.name);
+    HYP_LOG(ShaderCompiler, Info, "Compiling shader {} on thread {}", shaderBundleDecl.name, CurrentThreadId().GetName());
 
     // INFO ON MERGING ADDITIONAL SHADER VERSIONS (on requesting a shader)
     // ============================================
@@ -3275,6 +3249,7 @@ bool ShaderCompiler::CompileBundle(
         [&](const ShaderProperties& properties)
         {
             CompiledShader compiledShader;
+            compiledShader.revision = CompiledShader::CurrentRevision();
             compiledShader.definition = ShaderDefinition { shaderBundleDecl.name, properties };
             compiledShader.entryPointName = shaderBundleDecl.entryPointName;
 

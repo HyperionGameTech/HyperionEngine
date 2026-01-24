@@ -57,9 +57,7 @@ enum DescriptorSlot : uint32
 HYP_ENUM()
 enum class DescriptorSetDeclarationFlags : uint8
 {
-    NONE = 0x0,
-    REFERENCE = 0x1, // is this a reference to a global descriptor set declaration?
-    TEMPLATE = 0x2   // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
+    NONE = 0x0
 };
 
 HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
@@ -211,66 +209,6 @@ struct DescriptorTableDeclaration
 
         return hc;
     }
-
-    struct DeclareSet
-    {
-        DeclareSet(DescriptorTableDeclaration* table, uint32 setIndex, Name name, bool isTemplate = false)
-        {
-            AssertDebug(table != nullptr);
-
-            if (table->elements.Size() <= setIndex)
-            {
-                table->elements.Resize(setIndex + 1);
-            }
-
-            DescriptorSetDeclaration& decl = table->elements[setIndex];
-            decl.setIndex = setIndex;
-            decl.name = name;
-
-            if (isTemplate)
-            {
-                decl.flags |= DescriptorSetDeclarationFlags::TEMPLATE;
-            }
-        }
-    };
-
-    struct DeclareDescriptor
-    {
-        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
-        {
-            AssertDebug(table != nullptr);
-
-            uint32 setIndex = ~0u;
-
-            for (SizeType i = 0; i < table->elements.Size(); ++i)
-            {
-                if (table->elements[i].name == setName)
-                {
-                    setIndex = uint32(i);
-                    break;
-                }
-            }
-
-            AssertDebug(setIndex != ~0u, "Descriptor set {} not found", setName);
-
-            DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
-            AssertDebug(descriptorSetDecl.setIndex == setIndex);
-            AssertDebug(slotType > 0 && slotType < descriptorSetDecl.slots.Size());
-
-            const uint32 slotTypeIndex = uint32(slotType) - 1;
-
-            const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
-
-            DescriptorDeclaration& descriptorDecl = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
-            descriptorDecl.index = slotIndex;
-            descriptorDecl.slot = slotType;
-            descriptorDecl.name = descriptorName;
-            descriptorDecl.cond = cond;
-            descriptorDecl.size = size;
-            descriptorDecl.count = count;
-            descriptorDecl.isDynamic = isDynamic;
-        }
-    };
 };
 
 HYP_STRUCT()
@@ -290,10 +228,10 @@ struct HYP_API CompiledShader
     HYP_FIELD(Property = "Modules", Compressed)
     FixedArray<ByteBuffer, SMT_MAX> modules;
 
-    /// ===== Serialization only =====
-    HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
-    uint64 GetRevisionNumber() const;
-    /// ==============================
+    HYP_FIELD(Property = "Revision")
+    uint32 revision = 0;
+
+    static uint32 CurrentRevision();
 
     CompiledShader() = default;
 
