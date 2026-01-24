@@ -151,15 +151,7 @@ public:
     BeginFramebuffer(Framebuffer* framebuffer);
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        BeginFramebuffer* cmdCasted = static_cast<BeginFramebuffer*>(cmd);
-
-        cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<BeginFramebuffer>);
-        // cmdCasted->~BeginFramebuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     Framebuffer* m_framebuffer;
@@ -171,15 +163,7 @@ public:
     EndFramebuffer(Framebuffer* framebuffer);
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        EndFramebuffer* cmdCasted = static_cast<EndFramebuffer*>(cmd);
-
-        cmdCasted->m_framebuffer->EndCapture(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<EndFramebuffer>);
-        // cmdCasted->~EndFramebuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     Framebuffer* m_framebuffer;
@@ -193,15 +177,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        ClearFramebuffer* cmdCasted = static_cast<ClearFramebuffer*>(cmd);
-
-        cmdCasted->m_framebuffer->Clear(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<ClearFramebuffer>);
-        // cmdCasted->~ClearFramebuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     Framebuffer* m_framebuffer;

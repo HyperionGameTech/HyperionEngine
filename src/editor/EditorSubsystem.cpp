@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "threading/Threads.hpp"
 #include <EditorPch.hpp>
 
 #include <editor/EditorSubsystem.hpp>
@@ -38,7 +37,6 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetBatch.hpp>
-#include <rendering/asset/TextureAsset.hpp>
 
 #include <ui/UISubsystem.hpp>
 #include <ui/UIObject.hpp>
@@ -71,6 +69,8 @@
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+
+#include <rendering/asset/TextureAsset.hpp>
 
 #include <ui/font/FontAtlas.hpp>
 

@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 DX12TextureViewCache::~DX12TextureViewCache()
 {

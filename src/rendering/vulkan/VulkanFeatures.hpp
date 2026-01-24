@@ -235,9 +235,7 @@ public:
         return details;
     }
 
-    bool IsSupportedFormat(
-        TextureFormat format,
-        ImageSupport supportType) const
+    bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
     {
         if (m_physicalDevice == nullptr)
         {
@@ -250,14 +248,22 @@ public:
 
         switch (supportType)
         {
-        case IS_SRV:
-            featureFlags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+        case ImageSupport::Attachment:
+            if (TextureUtils::IsDepthFormat(format))
+            {
+                featureFlags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+            else
+            {
+                featureFlags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+            }
+            
             break;
-        case IS_UAV:
+        case ImageSupport::ShaderResource:
+            featureFlags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+            break;
+        case ImageSupport::UnorderedAccess:
             featureFlags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-            break;
-        case IS_DEPTH:
-            featureFlags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
             break;
         default:
             HYP_UNREACHABLE();

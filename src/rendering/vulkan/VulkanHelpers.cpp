@@ -7,7 +7,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
 #include <rendering/RenderQueue.hpp>
@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 VkIndexType ToVkIndexType(GpuElemType elemType)
 {
@@ -61,14 +61,12 @@ VkFormat ToVkFormat(TextureFormat fmt)
         return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
     case TF_R16:
         return VK_FORMAT_R16_UINT;
-    case TF_RG16_: // fallthrough
     case TF_RG16:
         return VK_FORMAT_R16G16_UINT;
     case TF_RGB16:
         return VK_FORMAT_R16G16B16_UINT;
     case TF_RGBA16:
         return VK_FORMAT_R16G16B16A16_UINT;
-    case TF_R32_: // fallthrough
     case TF_R32:
         return VK_FORMAT_R32_UINT;
     case TF_RG32:
@@ -93,7 +91,6 @@ VkFormat ToVkFormat(TextureFormat fmt)
         return VK_FORMAT_R32G32B32_SFLOAT;
     case TF_RGBA32F:
         return VK_FORMAT_R32G32B32A32_SFLOAT;
-
     case TF_BGRA8:
         return VK_FORMAT_B8G8R8A8_UNORM;
     case TF_BGR8_SRGB:
@@ -318,7 +315,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
         case SMT_RAY_GEN:
         case SMT_RAY_INTERSECT:
         case SMT_RAY_MISS:
-            if (g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
+            if (g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
@@ -342,7 +339,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
             VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-            if (g_renderBackend->GetDevice()->GetFeatures().IsRayTracingSupported())
+            if (g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 bits |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
             }
@@ -629,7 +626,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     m_functions.Clear();
 
-    tempFrame = g_renderBackend->MakeFrame(0);
+    tempFrame = g_renderInterface->MakeFrame(0);
     CheckResultOrReturn(tempFrame->Create());
 
     renderQueue.Prepare(tempFrame);
@@ -637,7 +634,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     tempFrame->UpdateUsedDescriptorSets();
 
     commandBuffer = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-    CheckResultOrReturn(commandBuffer->Create(g_renderBackend->GetDevice()->GetGraphicsQueue()->commandPools[0]));
+    CheckResultOrReturn(commandBuffer->Create(g_renderInterface->GetDevice()->GetGraphicsQueue()->commandPools[0]));
 
     CheckResultOrReturn(commandBuffer->Begin());
 
@@ -652,7 +649,7 @@ RendererResult VulkanSingleTimeCommands::Execute()
     CheckResultOrReturn(fence->Reset());
 
     // Submit to the queue
-    VulkanDeviceQueue* queueGraphics = g_renderBackend->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue* queueGraphics = g_renderInterface->GetDevice()->GetGraphicsQueue();
 
     CheckResultOrReturn(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
 

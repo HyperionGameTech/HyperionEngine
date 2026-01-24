@@ -9,7 +9,6 @@
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/GraphicsPipeline.hpp>
@@ -330,7 +329,7 @@ void FullScreenPass::CreateFramebuffer()
     renderTargetDesc.extent = framebufferExtent;
     renderTargetDesc.numLayers = 1;
 
-    m_framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
+    m_framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;
@@ -341,7 +340,7 @@ void FullScreenPass::CreateFramebuffer()
     textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
     textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-    GpuImageRef attachmentImage = g_renderBackend->MakeImage(textureDesc);
+    GpuImageRef attachmentImage = g_renderInterface->MakeImage(textureDesc);
     attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", InstanceClass()->GetName()));
     CheckResult(attachmentImage->Create());
 
@@ -425,7 +424,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
 
     if (!m_mergeHalfResTexturesUniformBuffer)
     {
-        m_mergeHalfResTexturesUniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_mergeHalfResTexturesUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
         CheckResult(m_mergeHalfResTexturesUniformBuffer->Create());
     }
 

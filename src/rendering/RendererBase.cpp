@@ -4,7 +4,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderGroup.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>

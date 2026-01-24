@@ -4,7 +4,7 @@
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 
 #include <core/memory/Memory.hpp>
 
@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 #pragma region VulkanPipelineBase
 
@@ -26,13 +26,13 @@ VulkanPipelineBase::~VulkanPipelineBase()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyPipeline(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
     if (m_layout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(g_renderBackend->GetDevice()->GetDevice(), m_layout, nullptr);
+        vkDestroyPipelineLayout(g_renderInterface->GetDevice()->GetDevice(), m_layout, nullptr);
         m_layout = VK_NULL_HANDLE;
     }
 }
@@ -65,7 +65,7 @@ void VulkanPipelineBase::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

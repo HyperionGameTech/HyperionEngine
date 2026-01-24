@@ -29,11 +29,11 @@ struct DX12QueueData
     FixedArray<ComPtr<ID3D12CommandAllocator>, NumFramesInFlight> commandAllocators;
 };
 
-class DX12RenderBackend final : public IRenderBackend
+class DX12RenderInterface final : public RenderInterface
 {
 public:
-    DX12RenderBackend();
-    ~DX12RenderBackend() override;
+    DX12RenderInterface();
+    ~DX12RenderInterface() override;
 
     HYP_FORCE_INLINE ID3D12Device* GetDevice() const
     {
@@ -117,8 +117,6 @@ public:
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
-
-    QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc& textureDesc) const override;
 
     UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 

@@ -2,7 +2,6 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderConfig.hpp>

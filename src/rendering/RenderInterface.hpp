@@ -10,6 +10,7 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/GpuBuffer.hpp>
+#include <rendering/RenderConfig.hpp>
 
 namespace Hyperion {
 
@@ -20,6 +21,7 @@ class PlaceholderData;
 class RenderProxyList;
 class View;
 class DrawCallCollection;
+class DescriptorSetLayout;
 class RendererBase;
 class IRenderProxy;
 class EnvProbeRenderer;
@@ -29,6 +31,8 @@ class SkyProbe;
 class RenderGlobalState;
 class RenderResourceLock;
 class UIRenderer;
+class AsyncComputeBase;
+class Material;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
 class ComputePipelineCache;
@@ -46,7 +50,14 @@ class World;
 class ConstantsAllocator;
 class RenderGroup;
 class DescriptorSetCache;
+struct DescriptorTableDeclaration;
 class Texture;
+class ApplicationWindow;
+class SingleTimeCommands;
+struct CompiledShader;
+
+enum class GpuBufferType : uint8;
+enum RenderTargetType : uint8;
 
 namespace RenderApi {
 
@@ -63,11 +74,6 @@ extern ResourceBinderBase* g_materialBinder;
 extern ResourceBinderBase* g_textureBinder;
 extern ResourceBinderBase* g_skeletonBinder;
 
-// Call at start of engine before render / sim thread start ticking.
-// Allocates containers declared in RenderGlobalState.cpp via DECLARE_RENDER_DATA_CONTAINER
-void Init();
-void Shutdown();
-
 /*! \brief Check if rendering subsystem has been initialized. Thread safe. */
 bool IsInit();
 
@@ -82,9 +88,6 @@ HYP_API uint32 GetFrameCounter();
 
 void BeginFrameSim();
 void EndFrameSim();
-
-void BeginFrameRender();
-void EndFrameRender();
 
 /*! \brief Get the RenderProxyList for the Sim thread to write to for the current frame, for the given view.
  *  The sim thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will
@@ -230,7 +233,10 @@ public:
     RenderInterface(const RenderInterface& other) = delete;
     RenderInterface& operator=(const RenderInterface& other) = delete;
 
-    ~RenderInterface();
+    virtual ~RenderInterface();
+    
+    virtual RendererResult Initialize();
+    virtual RendererResult Shutdown();
 
     void AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
     void RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
@@ -243,6 +249,79 @@ public:
     }
     
     void CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer);
+
+    virtual const IRenderConfig& GetRenderConfig() const = 0;
+
+    virtual AsyncComputeBase* GetAsyncCompute() const = 0;
+
+    virtual Frame* GetCurrentFrame() const = 0;
+
+    virtual Frame* PrepareNextFrame() = 0;
+
+    virtual void BeginFrame();
+    virtual void EndFrame();
+
+    virtual SwapchainRef CreateSwapchain(ApplicationWindow* window) = 0;
+
+    virtual void PrepareSwapchain(Swapchain* swapchain) = 0;
+    virtual void SubmitCommandBuffers(Swapchain* swapchain) = 0;
+    virtual void PresentToSwapchain(Swapchain* swapchain) = 0;
+
+    virtual CommandBuffer* GetCurrentCommandBuffer() const = 0;
+
+    virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) = 0;
+
+    virtual DescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) = 0;
+
+    virtual GraphicsPipelineRef MakeGraphicsPipeline(
+        const ShaderRef& shader,
+        const RenderTargetDesc& renderTargetDesc,
+        const RenderableAttributeSet& attributes) = 0;
+
+    virtual ComputePipelineRef MakeComputePipeline(const ShaderRef& shader) = 0;
+
+    virtual RayTracingPipelineRef MakeRayTracingPipeline(const ShaderRef& shader) = 0;
+
+    virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) = 0;
+
+    virtual GpuImageRef MakeImage(const TextureDesc& textureDesc) = 0;
+
+    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image) = 0;
+    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) = 0;
+
+    virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) = 0;
+
+    virtual FramebufferRef MakeFramebuffer(const RenderTargetDesc& renderTargetDesc) = 0;
+
+    virtual FrameRef MakeFrame(uint32 frameIndex) = 0;
+
+    virtual ShaderRef MakeShader(const CompiledShader* compiledShader) = 0;
+
+    virtual GpuBlasRef MakeGpuBlas(
+        const GpuBufferRef& packedVerticesBuffer,
+        const GpuBufferRef& packedIndicesBuffer,
+        uint32 numVertices,
+        uint32 numIndices,
+        const Handle<Material>& material,
+        const Mat4f& transform) = 0;
+
+    virtual GpuTlasRef MakeTLAS() = 0;
+
+    virtual void PopulateIndirectDrawCommandsBuffer(
+        const GpuBufferRef& vertexBuffer,
+        const GpuBufferRef& indexBuffer,
+        uint32 instanceOffset,
+        TByteBuffer<RenderAllocator>& outByteBuffer) = 0;
+
+    virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const = 0;
+
+    virtual bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const = 0;
+    virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const = 0;
+
+    virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() = 0;
+
+    virtual void ReleaseTransientMemory() = 0;
+    virtual void NextFrame() = 0;
 
     BindlessStorage* bindlessStorage;
 
@@ -290,3 +369,17 @@ private:
 };
 
 } // namespace Hyperion
+
+#ifndef INCLUDE_FROM_RHI
+#define INCLUDE_FROM_RHI_BASE
+
+#if HYP_VULKAN
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12RenderInterface.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI_BASE
+#else
+#undef INCLUDE_FROM_RHI
+#endif

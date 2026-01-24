@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
@@ -71,14 +71,14 @@ void DepthPyramidRenderer::Create()
         HYP_NAMED_SCOPE("Create depth pyramid resources");
         AssertOnThread(g_renderThread);
 
-        m_depthPyramidSampler = g_renderBackend->MakeSampler(TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE);
+        m_depthPyramidSampler = g_renderInterface->MakeSampler(TFM_NEAREST_MIPMAP, TFM_NEAREST, TWM_CLAMP_TO_EDGE);
         CheckResult(m_depthPyramidSampler->Create());
 
         const GpuImageRef& depthImage = m_depthImageView->GetImage();
         Assert(depthImage.IsValid());
 
         // create depth pyramid image
-        m_depthPyramid = g_renderBackend->MakeImage(TextureDesc {
+        m_depthPyramid = g_renderInterface->MakeImage(TextureDesc {
             TT_TEX2D,
             TF_R32F,
             Vec3u {
@@ -93,7 +93,7 @@ void DepthPyramidRenderer::Create()
 
         m_depthPyramid->Create();
 
-        m_depthPyramidView = g_renderBackend->MakeImageView(m_depthPyramid);
+        m_depthPyramidView = g_renderInterface->MakeImageView(m_depthPyramid);
         m_depthPyramidView->Create();
 
         const Vec3u& imageExtent = m_depthImageView->GetImage()->GetExtent();
@@ -123,12 +123,12 @@ void DepthPyramidRenderer::Create()
             uniforms.prevMipDimensions = { prevMipWidth, prevMipHeight };
             uniforms.mipLevel = mipLevel;
 
-            GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DepthPyramidUniforms)));
+            GpuBufferRef& mipUniformBuffer = m_mipUniformBuffers.PushBack(g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DepthPyramidUniforms)));
             mipUniformBuffer->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_UniformBuffer", mipLevel));
             CheckResult(mipUniformBuffer->Create());
             mipUniformBuffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 
-            GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(g_renderBackend->MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
+            GpuImageViewRef& mipImageView = m_mipImageViews.PushBack(g_renderInterface->MakeImageView(m_depthPyramid, mipLevel, 1, 0, m_depthPyramid->NumArrayLayers()));
             mipImageView->SetDebugName(NAME_FMT("DepthPyramid_Mip{}_ImageView", mipLevel));
             CheckResult(mipImageView->Create());
         }

@@ -2,7 +2,7 @@
 
 #include <DX12Pch.hpp>
 
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
@@ -66,9 +66,9 @@ public:
 
 #pragma endregion DX12SingleTimeCommands
 
-#pragma region DX12RenderBackend
+#pragma region DX12RenderInterface
 
-DX12RenderBackend::DX12RenderBackend()
+DX12RenderInterface::DX12RenderInterface()
     : descriptorHeapManager(PoolNew<DX12DescriptorHeapManager>(*g_renderPool)),
       m_renderConfig(MakePimpl<DX12RenderConfig>()),
       m_currentFrameIndex(0),
@@ -76,13 +76,15 @@ DX12RenderBackend::DX12RenderBackend()
 {
 }
 
-DX12RenderBackend::~DX12RenderBackend()
+DX12RenderInterface::~DX12RenderInterface()
 {
     PoolDelete(*g_renderPool, descriptorHeapManager);
 }
 
-RendererResult DX12RenderBackend::Initialize()
+RendererResult DX12RenderInterface::Initialize()
 {
+    CheckResultOrReturn(RenderInterface::Initialize());
+
     HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend...");
 
     uint32 createFactoryFlags = 0;
@@ -214,7 +216,7 @@ RendererResult DX12RenderBackend::Initialize()
     return {};
 }
 
-RendererResult DX12RenderBackend::Destroy()
+RendererResult DX12RenderInterface::Destroy()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
 
@@ -240,23 +242,23 @@ RendererResult DX12RenderBackend::Destroy()
     return {};
 }
 
-const IRenderConfig& DX12RenderBackend::GetRenderConfig() const
+const IRenderConfig& DX12RenderInterface::GetRenderConfig() const
 {
     return *m_renderConfig;
 }
 
-AsyncComputeBase* DX12RenderBackend::GetAsyncCompute() const
+AsyncComputeBase* DX12RenderInterface::GetAsyncCompute() const
 {
     // @TODO: Implement async compute for DX12
     return nullptr;
 }
 
-DX12Frame* DX12RenderBackend::GetCurrentFrame() const
+DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
     return m_frames[m_currentFrameIndex].Get();
 }
 
-DX12Frame* DX12RenderBackend::PrepareNextFrame()
+DX12Frame* DX12RenderInterface::PrepareNextFrame()
 {
     DX12Frame* frame = GetCurrentFrame();
 
@@ -270,19 +272,19 @@ DX12Frame* DX12RenderBackend::PrepareNextFrame()
     return frame;
 }
 
-DX12SwapchainRef DX12RenderBackend::CreateSwapchain(ApplicationWindow* window)
+DX12SwapchainRef DX12RenderInterface::CreateSwapchain(ApplicationWindow* window)
 {
     Assert(window != nullptr);
     
     return MakeHandle<DX12Swapchain>(window->GetHWND(), Vec2u(window->GetSize()));
 }
 
-void DX12RenderBackend::PrepareSwapchain(DX12Swapchain* swapchain)
+void DX12RenderInterface::PrepareSwapchain(DX12Swapchain* swapchain)
 {
     swapchain->PrepareForFrame(GetCurrentFrame());
 }
 
-void DX12RenderBackend::SubmitCommandBuffers(DX12Swapchain* swapchain)
+void DX12RenderInterface::SubmitCommandBuffers(DX12Swapchain* swapchain)
 {
     DX12Frame* currentFrame = GetCurrentFrame();
     const uint32 frameIndex = currentFrame->GetFrameIndex();
@@ -299,27 +301,27 @@ void DX12RenderBackend::SubmitCommandBuffers(DX12Swapchain* swapchain)
     queueData.commandQueue->ExecuteCommandLists(ArraySize(commandLists), commandLists);
 }
 
-void DX12RenderBackend::PresentToSwapchain(DX12Swapchain* swapchain)
+void DX12RenderInterface::PresentToSwapchain(DX12Swapchain* swapchain)
 {
     swapchain->PresentFrame(GetCurrentFrame());
 }
 
-DX12CommandBuffer* DX12RenderBackend::GetCurrentCommandBuffer() const
+DX12CommandBuffer* DX12RenderInterface::GetCurrentCommandBuffer() const
 {
     return m_commandBuffer.Get();
 }
 
-DX12DescriptorSetRef DX12RenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)
+DX12DescriptorSetRef DX12RenderInterface::MakeDescriptorSet(const DescriptorSetLayout& layout)
 {
     return MakeHandle<DX12DescriptorSet>(layout);
 }
 
-DX12DescriptorTableRef DX12RenderBackend::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
+DX12DescriptorTableRef DX12RenderInterface::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
 {
     return MakeHandle<DX12DescriptorTable>(decl);
 }
 
-DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
+DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     const DX12ShaderRef& shader,
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
@@ -360,7 +362,7 @@ DX12GraphicsPipelineRef DX12RenderBackend::MakeGraphicsPipeline(
     return graphicsPipeline;
 }
 
-DX12ComputePipelineRef DX12RenderBackend::MakeComputePipeline(
+DX12ComputePipelineRef DX12RenderInterface::MakeComputePipeline(
     const DX12ShaderRef& shader,
     const DX12DescriptorTableRef& descriptorTable)
 {
@@ -368,7 +370,7 @@ DX12ComputePipelineRef DX12RenderBackend::MakeComputePipeline(
     return ComputePipelineRef();
 }
 
-DX12RayTracingPipelineRef DX12RenderBackend::MakeRayTracingPipeline(
+DX12RayTracingPipelineRef DX12RenderInterface::MakeRayTracingPipeline(
     const DX12ShaderRef& shader,
     const DX12DescriptorTableRef& descriptorTable)
 {
@@ -376,47 +378,47 @@ DX12RayTracingPipelineRef DX12RenderBackend::MakeRayTracingPipeline(
     return RayTracingPipelineRef();
 }
 
-DX12GpuBufferRef DX12RenderBackend::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
+DX12GpuBufferRef DX12RenderInterface::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
 {
     return MakeHandle<DX12GpuBuffer>(bufferType, size, alignment);
 }
 
-DX12GpuImageRef DX12RenderBackend::MakeImage(const TextureDesc& textureDesc)
+DX12GpuImageRef DX12RenderInterface::MakeImage(const TextureDesc& textureDesc)
 {
     return MakeHandle<DX12GpuImage>(textureDesc);
 }
 
-DX12GpuImageViewRef DX12RenderBackend::MakeImageView(const DX12GpuImageRef& image)
+DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& image)
 {
     return MakeHandle<DX12GpuImageView>(image);
 }
 
-DX12GpuImageViewRef DX12RenderBackend::MakeImageView(const DX12GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
+DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
 {
     return MakeHandle<DX12GpuImageView>(image, mipIndex, numMips, layerIndex, numLayers);
 }
 
-DX12SamplerRef DX12RenderBackend::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
+DX12SamplerRef DX12RenderInterface::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
 {
     return MakeHandle<DX12Sampler>(filterModeMin, filterModeMag, wrapMode);
 }
 
-DX12FramebufferRef DX12RenderBackend::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
+DX12FramebufferRef DX12RenderInterface::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
     return MakeHandle<DX12Framebuffer>(renderTargetDesc);
 }
 
-DX12FrameRef DX12RenderBackend::MakeFrame(uint32 frameIndex)
+DX12FrameRef DX12RenderInterface::MakeFrame(uint32 frameIndex)
 {
     return MakeHandle<DX12Frame>(frameIndex);
 }
 
-DX12ShaderRef DX12RenderBackend::MakeShader(const CompiledShader* compiledShader)
+DX12ShaderRef DX12RenderInterface::MakeShader(const CompiledShader* compiledShader)
 {
     return MakeHandle<DX12Shader>(compiledShader);
 }
 
-DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
+DX12GpuBlasRef DX12RenderInterface::MakeGpuBlas(
     const DX12GpuBufferRef& packedVerticesBuffer,
     const DX12GpuBufferRef& packedIndicesBuffer,
     uint32 numVertices,
@@ -433,36 +435,36 @@ DX12GpuBlasRef DX12RenderBackend::MakeGpuBlas(
         transform);
 }
 
-DX12GpuTlasRef DX12RenderBackend::MakeTLAS()
+DX12GpuTlasRef DX12RenderInterface::MakeTLAS()
 {
     return MakeHandle<DX12GpuTlas>();
 }
 
-void DX12RenderBackend::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)
+void DX12RenderInterface::PopulateIndirectDrawCommandsBuffer(const DX12GpuBufferRef& vertexBuffer, const DX12GpuBufferRef& indexBuffer, uint32 instanceOffset, TByteBuffer<RenderAllocator>& outByteBuffer)
 {
     // @TODO: Implement indirect draw command buffer population for DX12
 }
 
-TextureFormat DX12RenderBackend::GetDefaultFormat(DefaultImageFormat type) const
+TextureFormat DX12RenderInterface::GetDefaultFormat(DefaultImageFormat type) const
 {
     switch (type)
     {
     case DefaultImageFormat::DIF_COLOR:
         return TextureFormat::TF_RGBA8;
     case DefaultImageFormat::DIF_DEPTH:
-        return TextureFormat::TF_DEPTH_32F;
+        return TextureFormat::TF_DEPTH_24;
     default:
         return TextureFormat::TF_NONE;
     }
 }
 
-bool DX12RenderBackend::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
+bool DX12RenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
 {
     // @TODO: Implement format support checking for DX12
     return false;
 }
 
-TextureFormat DX12RenderBackend::FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const
+TextureFormat DX12RenderInterface::FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const
 {
     // @TODO: Implement supported format finding for DX12
     if (possibleFormats.Size() == 0)
@@ -473,35 +475,21 @@ TextureFormat DX12RenderBackend::FindSupportedFormat(Span<TextureFormat> possibl
     return possibleFormats[0];
 }
 
-QueryImageCapabilitiesResult DX12RenderBackend::QueryImageCapabilities(const TextureDesc& textureDesc) const
-{
-    // @TODO: Implement image capabilities query for DX12
-    QueryImageCapabilitiesResult result;
-    result.supports2d = true;
-    result.supports3d = true;
-    result.supportsCubemap = true;
-    result.supportsArray = true;
-    result.supportsMipmaps = true;
-    result.supportsStorage = true;
-
-    return result;
-}
-
-UniquePtr<SingleTimeCommands> DX12RenderBackend::GetSingleTimeCommands()
+UniquePtr<SingleTimeCommands> DX12RenderInterface::GetSingleTimeCommands()
 {
     return MakeUnique<DX12SingleTimeCommands>();
 }
 
-void DX12RenderBackend::ReleaseTransientMemory()
+void DX12RenderInterface::ReleaseTransientMemory()
 {
     // @TODO: Implement transient memory release for DX12
 }
 
-void DX12RenderBackend::NextFrame()
+void DX12RenderInterface::NextFrame()
 {
     m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
 }
 
-#pragma endregion DX12RenderBackend
+#pragma endregion DX12RenderInterface
 
 } // namespace Hyperion

@@ -7,7 +7,6 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
@@ -87,7 +86,7 @@ static inline bool CreateOrResizeBuffer(
         const bool prevWasCpuAccessible = buffer->IsCpuAccessible();
 
         SafeDelete(std::move(buffer));
-        buffer = g_renderBackend->MakeGpuBuffer(prevBufferType, newBufferSize);
+        buffer = g_renderInterface->MakeGpuBuffer(prevBufferType, newBufferSize);
 
         if (prevWasCpuAccessible)
         {
@@ -203,20 +202,20 @@ void IndirectDrawState::Create()
     AssertOnThread(g_renderThread);
 
     TByteBuffer<RenderAllocator> drawCommandsBuffer;
-    g_renderBackend->PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
+    g_renderInterface->PopulateIndirectDrawCommandsBuffer(GpuBufferRef::Null(), GpuBufferRef::Null(), 0, drawCommandsBuffer);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_instanceBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ObjectInstance));
+        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ObjectInstance));
         m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
         DeferCreate(m_instanceBuffers[frameIndex]);
 
-        m_indirectBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, drawCommandsBuffer.Size());
+        m_indirectBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, drawCommandsBuffer.Size());
         m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_IndirectBuffer_Frame{}", frameIndex));
         DeferCreate(m_indirectBuffers[frameIndex]);
 
-        m_stagingBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
+        m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
         m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
         DeferCreate(m_stagingBuffers[frameIndex]);
     }
@@ -237,7 +236,7 @@ void IndirectDrawState::PushDrawCall(SizeType drawCallIndex, const DrawCallStora
 
     out.drawCommandIndex = drawCommandIndex;
 
-    g_renderBackend->PopulateIndirectDrawCommandsBuffer(
+    g_renderInterface->PopulateIndirectDrawCommandsBuffer(
         drawCalls.meshes[drawCallIndex]->GetVertexBuffer(),
         drawCalls.meshes[drawCallIndex]->GetIndexBuffer(),
         drawCommandIndex,
@@ -266,7 +265,7 @@ void IndirectDrawState::PushInstancedDrawCall(SizeType drawCallIndex, const Inst
 
     out.drawCommandIndex = drawCommandIndex;
 
-    g_renderBackend->PopulateIndirectDrawCommandsBuffer(
+    g_renderInterface->PopulateIndirectDrawCommandsBuffer(
         drawCalls.meshes[drawCallIndex]->GetVertexBuffer(),
         drawCalls.meshes[drawCallIndex]->GetIndexBuffer(),
         drawCommandIndex,
@@ -367,7 +366,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(ObjectVisibilityUniforms));
+        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(ObjectVisibilityUniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }

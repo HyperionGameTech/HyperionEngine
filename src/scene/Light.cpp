@@ -19,7 +19,6 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/renderers/ShadowRenderer.hpp>

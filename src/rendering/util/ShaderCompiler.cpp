@@ -26,7 +26,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
@@ -254,7 +254,7 @@ void MergeGlobalShaderProperties(ShaderProperties& properties)
 
     properties.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGBufferTargets))));
 
-    if (g_renderBackend->GetRenderConfig().bindlessTextures)
+    if (g_renderInterface->GetRenderConfig().bindlessTextures)
     {
         properties.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
     }
@@ -2513,7 +2513,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
     HYP_LOG(ShaderCompiler, Info, "Precompiling shaders...");
 
-    const bool supportsRtShaders = g_renderBackend->GetRenderConfig().rayTracing;
+    const bool supportsRtShaders = g_renderInterface->GetRenderConfig().rayTracing;
 
     HashMap<const ShaderBundleDecl*, bool> results;
     Mutex resultsMutex;

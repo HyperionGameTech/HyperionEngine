@@ -21,8 +21,6 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
-extern RenderInterface* g_renderInterface;
-
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
@@ -355,6 +353,11 @@ EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHo
 
     m_structSize = structTypeInfo->size;
     m_structAlignment = structTypeInfo->alignment;
+}
+
+void EntityBatchAllocatorBase::ReleaseBatch(EntityInstanceBatch* batch) const
+{
+    m_bufferHolder->ReleaseIndex(batch->batchIndex);
 }
 
 EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)

@@ -12,7 +12,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCommand.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderQueue.hpp>
 
@@ -77,7 +77,7 @@ struct BlitAtlasElements : RenderCommand
         // Ensure the array of atlas textures are resized to the correct count
         Assert(atlasTextures.Size() == uint32(LTT_MAX));
 
-        Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+        Frame* currentFrame = g_renderInterface->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
         RenderQueue& renderQueue = currentFrame->postRenderQueue;

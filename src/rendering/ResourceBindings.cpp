@@ -2,7 +2,6 @@
 
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/MaterialTextureCache.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
@@ -114,7 +113,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
         Assert(dstImage.IsValid());
 
-        Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+        Frame* currentFrame = g_renderInterface->GetCurrentFrame();
         Assert(currentFrame != nullptr);
 
         RenderQueue& rq = currentFrame->preRenderQueue;
@@ -233,7 +232,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 {
     AssertOnThread(g_renderThread);
 
-    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
 
     AssertDebug(material != nullptr);
 
@@ -289,7 +288,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
 void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
 {
-    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
     static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
     if (s_isBindlessSupported)

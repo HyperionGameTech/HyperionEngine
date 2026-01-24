@@ -3,16 +3,16 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderGroup.hpp>
+#include <rendering/RenderInterface.hpp>
+#include <rendering/RenderConfig.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/RenderConfig.hpp>
-#include <rendering/RenderProxyList.hpp>
-#include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>

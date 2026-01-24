@@ -13,7 +13,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Shared.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderProxy.hpp>
 

@@ -4,7 +4,7 @@
 
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderObject.hpp>
@@ -12,7 +12,6 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -93,12 +92,12 @@ void ParticleVolumeRenderer::EnsureStaging()
     if (!m_staging.zeroIndirectArgs)
     {
         TByteBuffer<RenderAllocator> indirectDrawCommandsBuffer;
-        g_renderBackend->PopulateIndirectDrawCommandsBuffer(
+        g_renderInterface->PopulateIndirectDrawCommandsBuffer(
             m_staging.quadMesh->GetVertexBuffer(),
             m_staging.quadMesh->GetIndexBuffer(),
             0, indirectDrawCommandsBuffer);
 
-        m_staging.zeroIndirectArgs = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, indirectDrawCommandsBuffer.Size());
+        m_staging.zeroIndirectArgs = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, indirectDrawCommandsBuffer.Size());
         DeferCreate(m_staging.zeroIndirectArgs);
 
         m_staging.zeroIndirectArgs->Copy(indirectDrawCommandsBuffer.Size(), indirectDrawCommandsBuffer.Data());
@@ -143,10 +142,10 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
-    state.particleBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, state.maxParticles * sizeof(ParticleShaderData));
+    state.particleBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, state.maxParticles * sizeof(ParticleShaderData));
     DeferCreate(state.particleBuffer);
 
-    state.indirectBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+    state.indirectBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
     DeferCreate(state.indirectBuffer);
 
     CreateNoiseMap(state.noiseMap);
@@ -239,7 +238,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     GpuBufferRef& uniformBuffer = state.uniformBuffers[frame->GetFrameIndex()];
     if (!uniformBuffer)
     {
-        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
         CheckResult(uniformBuffer->Create());
     }
 

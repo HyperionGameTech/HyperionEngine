@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Texture.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -86,7 +86,7 @@ template HYP_API void FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u dimensions, 
 #pragma region PlaceholderData
 
 PlaceholderData::PlaceholderData()
-    : m_image2d1x1R8(g_renderBackend->MakeImage(TextureDesc {
+    : m_image2d1x1R8(g_renderInterface->MakeImage(TextureDesc {
           TT_TEX2D,
           TF_R8,
           Vec3u::One(),
@@ -95,8 +95,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageView2d1x1R8(g_renderBackend->MakeImageView(m_image2d1x1R8)),
-      m_image2d1x1R8Storage(g_renderBackend->MakeImage(TextureDesc {
+      m_imageView2d1x1R8(g_renderInterface->MakeImageView(m_image2d1x1R8)),
+      m_image2d1x1R8Storage(g_renderInterface->MakeImage(TextureDesc {
           TT_TEX2D,
           TF_R8,
           Vec3u::One(),
@@ -105,8 +105,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_STORAGE | IU_SAMPLED })),
-      m_imageView2d1x1R8Storage(g_renderBackend->MakeImageView(m_image2d1x1R8Storage)),
-      m_image3d1x1x1R8(g_renderBackend->MakeImage(TextureDesc {
+      m_imageView2d1x1R8Storage(g_renderInterface->MakeImageView(m_image2d1x1R8Storage)),
+      m_image3d1x1x1R8(g_renderInterface->MakeImage(TextureDesc {
           TT_TEX3D,
           TF_R8,
           Vec3u::One(),
@@ -115,8 +115,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageView3d1x1x1R8(g_renderBackend->MakeImageView(m_image3d1x1x1R8)),
-      m_image3d1x1x1R8Storage(g_renderBackend->MakeImage(TextureDesc {
+      m_imageView3d1x1x1R8(g_renderInterface->MakeImageView(m_image3d1x1x1R8)),
+      m_image3d1x1x1R8Storage(g_renderInterface->MakeImage(TextureDesc {
           TT_TEX3D,
           TF_R8,
           Vec3u::One(),
@@ -125,8 +125,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_STORAGE | IU_SAMPLED })),
-      m_imageView3d1x1x1R8Storage(g_renderBackend->MakeImageView(m_image3d1x1x1R8Storage)),
-      m_imageCube1x1R8(g_renderBackend->MakeImage(TextureDesc {
+      m_imageView3d1x1x1R8Storage(g_renderInterface->MakeImageView(m_image3d1x1x1R8Storage)),
+      m_imageCube1x1R8(g_renderInterface->MakeImage(TextureDesc {
           TT_CUBEMAP,
           TF_RGBA8,
           Vec3u::One(),
@@ -135,8 +135,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageViewCube1x1R8(g_renderBackend->MakeImageView(m_imageCube1x1R8)),
-      m_image2d1x1R8Array(g_renderBackend->MakeImage(TextureDesc {
+      m_imageViewCube1x1R8(g_renderInterface->MakeImageView(m_imageCube1x1R8)),
+      m_image2d1x1R8Array(g_renderInterface->MakeImage(TextureDesc {
           TT_TEX2D_ARRAY,
           TF_R8,
           Vec3u::One(),
@@ -145,8 +145,8 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageView2d1x1R8Array(g_renderBackend->MakeImageView(m_image2d1x1R8Array)),
-      m_imageCube1x1R8Array(g_renderBackend->MakeImage(TextureDesc {
+      m_imageView2d1x1R8Array(g_renderInterface->MakeImageView(m_image2d1x1R8Array)),
+      m_imageCube1x1R8Array(g_renderInterface->MakeImage(TextureDesc {
           TT_CUBEMAP_ARRAY,
           TF_RGBA8,
           Vec3u::One(),
@@ -155,16 +155,16 @@ PlaceholderData::PlaceholderData()
           TWM_CLAMP_TO_EDGE,
           1,
           IU_SAMPLED })),
-      m_imageViewCube1x1R8Array(g_renderBackend->MakeImageView(m_imageCube1x1R8Array)),
-      m_samplerLinear(g_renderBackend->MakeSampler(
+      m_imageViewCube1x1R8Array(g_renderInterface->MakeImageView(m_imageCube1x1R8Array)),
+      m_samplerLinear(g_renderInterface->MakeSampler(
           TFM_LINEAR,
           TFM_LINEAR,
           TWM_REPEAT)),
-      m_samplerLinearMipmap(g_renderBackend->MakeSampler(
+      m_samplerLinearMipmap(g_renderInterface->MakeSampler(
           TFM_LINEAR_MIPMAP,
           TFM_LINEAR,
           TWM_REPEAT)),
-      m_samplerNearest(g_renderBackend->MakeSampler(
+      m_samplerNearest(g_renderInterface->MakeSampler(
           TFM_NEAREST,
           TFM_NEAREST,
           TWM_CLAMP_TO_EDGE))
@@ -392,7 +392,7 @@ void PlaceholderData::Destroy()
 
 GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType size)
 {
-    GpuBufferRef gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, size);
+    GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, size);
     gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
     CheckResult(gpuBuffer->Create());
 

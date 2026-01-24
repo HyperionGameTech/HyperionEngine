@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderCommand.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <core/threading/Threads.hpp>
 

@@ -7,7 +7,6 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Frame.hpp>

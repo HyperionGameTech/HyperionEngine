@@ -2,7 +2,6 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/Mesh.hpp>
@@ -330,8 +329,8 @@ void Mesh::UploadGpuData()
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
     if (IsReady() && !IsOnThread(g_renderThread))
     {
-        vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
-        indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
+        vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
+        indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
 #ifdef HYP_DEBUG_MODE
         vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -347,7 +346,7 @@ void Mesh::UploadGpuData()
         {
             SafeDelete(std::move(m_vertexBuffer));
 
-            m_vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
+            m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
 
 #ifdef HYP_DEBUG_MODE
             m_vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -360,7 +359,7 @@ void Mesh::UploadGpuData()
         {
             SafeDelete(std::move(m_indexBuffer));
 
-            m_indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
+            m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
 #ifdef HYP_DEBUG_MODE
             m_indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
@@ -412,15 +411,15 @@ void Mesh::UploadGpuData()
             const SizeType packedBufferSize = vertices.ByteSize();
             const SizeType packedIndicesSize = indices.ByteSize();
 
-            GpuBufferRef stagingBufferVertices = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedBufferSize);
+            GpuBufferRef stagingBufferVertices = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedBufferSize);
             CheckResult(stagingBufferVertices->Create());
             stagingBufferVertices->Copy(packedBufferSize, vertices.Data());
 
-            GpuBufferRef stagingBufferIndices = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
+            GpuBufferRef stagingBufferIndices = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
             CheckResult(stagingBufferIndices->Create());
             stagingBufferIndices->Copy(packedIndicesSize, indices.Data());
 
-            Frame* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderInterface->GetCurrentFrame();
 
             // use prerender queue to copy from staging buffers to gpu buffers
             RenderQueue& renderQueue = frame->preRenderQueue;

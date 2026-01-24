@@ -8,7 +8,6 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GpuImage.hpp>
 #include <rendering/GpuImageView.hpp>
@@ -313,7 +312,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
             : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
 
         GpuBufferRef& uniformBuffer = buffers[mipIndex];
-        uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
         Assert(uniformBuffer->Create());
 
         uniforms.outImageDimensions = mipExtent;
@@ -448,7 +447,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     {
         const SizeType size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
 
-        shTilesBuffers[i] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, size);
+        shTilesBuffers[i] = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, size);
         shTilesBuffers[i]->SetRequireCpuAccessible(true);
         Assert(shTilesBuffers[i]->Create());
     }
@@ -503,8 +502,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     Array<GpuBufferRef> uniformBuffers;
 
-    RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported()
-        ? &g_renderBackend->GetAsyncCompute()->renderQueue
+    RenderQueue* asyncRenderQueuePtr = g_renderInterface->GetAsyncCompute()->IsSupported()
+        ? &g_renderInterface->GetAsyncCompute()->renderQueue
         : &frame->renderQueue;
 
     RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
@@ -520,7 +519,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         ShaderDesc shaderDesc(ShaderDefinition(NAME("ComputeSH"), passShaderProperties));
         asyncRenderQueue << SetCurrentShader(shaderDesc);
 
-        GpuBufferRef ub = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(SHUniforms));
+        GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(SHUniforms));
         ub->Create();
         ub->Copy(sizeof(SHUniforms), &passUniforms);
         uniformBuffers.PushBack(ub);

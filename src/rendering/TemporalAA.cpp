@@ -2,7 +2,6 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/TemporalAA.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -106,7 +105,7 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (!m_uniformBuffers[frameIndex])
     {
-        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));
+        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME("TAA_UniformBuffer"));
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }

@@ -12,7 +12,6 @@
 
 #include <core/config/Config.hpp>
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Device.hpp>
 
@@ -104,7 +103,7 @@ ApplicationWindow::~ApplicationWindow()
 #if HYP_VULKAN
     if (m_vkSurface)
     {
-        VulkanInstance* vkInstance = g_renderBackend->GetInstance();
+        VulkanInstance* vkInstance = g_renderInterface->GetInstance();
         Assert(vkInstance != nullptr);
 
         vkDestroySurfaceKHR(vkInstance->GetInstance(), m_vkSurface, nullptr);
@@ -167,13 +166,13 @@ void ApplicationWindow::CreateSwapchain()
         return; // already created. swapchain is set on render thread
     }
 
-    m_vkSurface = g_renderBackend->CreateSurface(this, nullptr);
+    m_vkSurface = g_renderInterface->CreateSurface(this, nullptr);
     Assert(m_vkSurface != VK_NULL_HANDLE);
 #endif
 
     if (IsOnThread(g_renderThread)) // if -RenderOnMainThread is set this will be the case
     {
-        SwapchainRef swapchain = g_renderBackend->CreateSwapchain(this);
+        SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
         Assert(swapchain.IsValid());
 
         m_swapchain = swapchain;
@@ -189,7 +188,7 @@ void ApplicationWindow::CreateSwapchain()
                     return;
                 }
 
-                SwapchainRef swapchain = g_renderBackend->CreateSwapchain(this);
+                SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
                 Assert(swapchain.IsValid());
 
                 m_swapchain = swapchain;
@@ -1466,7 +1465,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     }
 
     VkResult vkResult = vkCreateWin32SurfaceKHR(
-        g_renderBackend->GetInstance()->GetInstance(),
+        g_renderInterface->GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

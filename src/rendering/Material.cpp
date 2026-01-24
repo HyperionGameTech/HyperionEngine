@@ -5,7 +5,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderConfig.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -432,7 +432,7 @@ Handle<Material> Material::Clone() const
 
 void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {    
-    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
+    const bool useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
 
     if (proxy->material.GetUnsafe() != this)
     {

@@ -13,7 +13,6 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/ShaderManager.hpp>
@@ -77,7 +76,7 @@ void RenderThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_renderTimer);
 
-    RenderApi::BeginFrameRender();
+    g_renderInterface->BeginFrame();
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -90,7 +89,7 @@ void RenderThread::Update()
         }
     }
 
-    Frame* frame = g_renderBackend->PrepareNextFrame();
+    Frame* frame = g_renderInterface->PrepareNextFrame();
     Assert(frame != nullptr);
 
     // Check if any swapchains need to be recreated
@@ -106,7 +105,7 @@ void RenderThread::Update()
 
     for (Swapchain* swapchain : swapchains)
     {
-        g_renderBackend->PrepareSwapchain(swapchain);
+        g_renderInterface->PrepareSwapchain(swapchain);
     }
 
     g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
@@ -165,7 +164,7 @@ void RenderThread::Update()
         g_renderInterface->finalPass->Render(frame, rs);
     }
 
-    if (g_renderBackend->GetRenderConfig().bindlessTextures)
+    if (g_renderInterface->GetRenderConfig().bindlessTextures)
     {
         DescriptorSet* bindlessDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frame->GetFrameIndex());
         frame->MarkDescriptorSetUsed(bindlessDescriptorSet);
@@ -173,14 +172,14 @@ void RenderThread::Update()
 
     g_renderInterface->UpdateBuffers(frame);
 
-    g_renderBackend->SubmitCommandBuffers(swapchain);
+    g_renderInterface->SubmitCommandBuffers(swapchain);
 
     if (swapchain != nullptr)
     {
-        g_renderBackend->PresentToSwapchain(swapchain);
+        g_renderInterface->PresentToSwapchain(swapchain);
     }
 
-    RenderApi::EndFrameRender();
+    g_renderInterface->EndFrame();
  
     g_renderArena->Reset();
 }
@@ -195,8 +194,16 @@ void RenderThread::operator()()
             delete g_renderArena;
             g_renderArena = nullptr;
         });
+    
+#if HYP_VULKAN
+    g_renderInterface = new VulkanRenderInterface();
+#elif HYP_DX12
+    g_renderInterface = new DX12RenderInterface();
+#else
+    HYP_FAIL("Not compiled with any rendering backend - cannot initialize renderer!");
+#endif
 
-    RenderApi::Init();
+    CheckResult(g_renderInterface->Initialize());
 
     /// HAX !!! We should only upload gpu resources on first use for debug draer
     InitObject(g_engineDriver->GetDebugDrawer());

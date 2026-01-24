@@ -6,7 +6,7 @@
 #include <rendering/vulkan/VulkanFramebuffer.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
@@ -55,7 +55,7 @@ VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, Vul
 
 VulkanRenderPass::~VulkanRenderPass()
 {
-    vkDestroyRenderPass(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+    vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
 }
 
@@ -257,7 +257,7 @@ RendererResult VulkanRenderPass::Create()
         renderPassInfo.pNext = &multiviewInfo;
     }
 
-    VULKAN_CHECK(vkCreateRenderPass(g_renderBackend->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
+    VULKAN_CHECK(vkCreateRenderPass(g_renderInterface->GetDevice()->GetDevice(), &renderPassInfo, nullptr, &m_handle));
 
     return {};
 }
@@ -279,7 +279,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     renderPassInfo.clearValueCount = uint32(m_vkClearValues.Size());
     renderPassInfo.pClearValues = m_vkClearValues.Data();
 
-    VulkanFrame* currentFrame = g_renderBackend->GetCurrentFrame();
+    VulkanFrame* currentFrame = g_renderInterface->GetCurrentFrame();
     if (currentFrame != nullptr)
     {
         currentFrame->AddRenderPass(this);

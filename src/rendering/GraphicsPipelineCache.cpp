@@ -4,12 +4,11 @@
 
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderResult.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
 
@@ -336,7 +335,7 @@ void GraphicsPipelineCache::GetOrCreate(
     ShaderRef shader = g_shaderManager->GetOrCreate(attributes.GetShaderDefinition());
     Assert(shader.IsValid());
 
-    GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(
+    GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(
         shader,
         renderTargetDesc,
         attributes);

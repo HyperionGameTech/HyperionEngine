@@ -4,7 +4,7 @@
 
 #include <rendering/PostFX.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -216,7 +216,7 @@ void PostProcessing::CreateUniformBuffer()
 
     const PostProcessingUniforms postProcessingUniforms = GetUniforms();
 
-    m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(postProcessingUniforms));
+    m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(postProcessingUniforms));
     CheckResult(m_uniformBuffer->Create());
     m_uniformBuffer->Copy(sizeof(PostProcessingUniforms), &postProcessingUniforms);
 }

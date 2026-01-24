@@ -17,7 +17,6 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/ShaderManager.hpp>

@@ -4,8 +4,8 @@
 
 #include <rendering/ShaderManager.hpp>
 #include <rendering/ComputePipeline.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderBackend.hpp>
 
 #include <core/reflection/Handle.hpp>
 
@@ -178,7 +178,7 @@ public:
                 definition.GetName().LookupString(),
                 definition.GetProperties().GetHashCode().Value());
 
-            shader = g_renderBackend->MakeShader(entry->compiledShader);
+            shader = g_renderInterface->MakeShader(entry->compiledShader);
 
 #ifdef HYP_DEBUG_MODE
             Assert(EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));

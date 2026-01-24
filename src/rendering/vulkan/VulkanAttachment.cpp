@@ -10,7 +10,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <VulkanAttachment.generated.inl>
 

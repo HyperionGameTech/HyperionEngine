@@ -12,7 +12,6 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -173,16 +172,16 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
 
-    jd.cBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
+    jd.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
     PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.cBuffer);
 
-    jd.raysBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetRequireCpuAccessible(true);
 
-    jd.lightsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
+    jd.lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
 
     // ATOMIC_COUNTER type allows readback to cpu.
-    jd.hitsBufferGpu = g_renderBackend->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
 
     DeferCreate(jd.hitsBufferGpu);
     DeferCreate(jd.raysBuffer);
@@ -222,7 +221,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     if (!m_tlas)
     {
         /// Create acceleration structure
-        m_tlas = g_renderBackend->MakeTLAS();
+        m_tlas = g_renderInterface->MakeTLAS();
     }
     else if (m_tlas->IsCreated())
     {
@@ -377,11 +376,11 @@ void LightmapRenderer_GpuPathTracing::ReadHitsBuffer(Frame* frame, BakeJobBase* 
 
     Assert(hitsBuffer->Size() >= outHits.Size() * sizeof(LightmapHit));
 
-    GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, outHits.Size() * sizeof(LightmapHit), alignof(Vec4f));
+    GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, outHits.Size() * sizeof(LightmapHit), alignof(Vec4f));
     Assert(stagingBuffer->Create());
     stagingBuffer->Memset(outHits.Size() * sizeof(LightmapHit), 0);
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue)
         {

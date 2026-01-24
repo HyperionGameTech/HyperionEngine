@@ -8,7 +8,6 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
@@ -93,11 +92,11 @@ void DDGI::CreateConstantBuffers()
 {
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants));
+        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants));
         Assert(m_cBuffers[frameIndex]->Create());
         m_cBuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
         
-        m_lightsBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
+        m_lightsBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
         Assert(m_lightsBuffers[frameIndex]->Create());
         m_lightsBuffers[frameIndex]->Memset(sizeof(LightShaderData) * MaxBoundLights, 0);
     }
@@ -107,7 +106,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probeCounts = m_gridInfo.NumProbesPerDimension();
 
-    m_radianceBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, m_gridInfo.GetImageDimensions().x * m_gridInfo.GetImageDimensions().y * sizeof(ProbeRayData));
+    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, m_gridInfo.GetImageDimensions().x * m_gridInfo.GetImageDimensions().y * sizeof(ProbeRayData));
     m_radianceBuffer->SetRequireCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
     m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);
@@ -119,7 +118,7 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_irradianceImage = g_renderBackend->MakeImage(TextureDesc {
+        m_irradianceImage = g_renderInterface->MakeImage(TextureDesc {
             TT_TEX2D,
             DdgiIrradianceFormat,
             extent,
@@ -134,7 +133,7 @@ void DDGI::CreateStorageBuffers()
     }
 
     { // irradiance image view
-        m_irradianceImageView = g_renderBackend->MakeImageView(m_irradianceImage);
+        m_irradianceImageView = g_renderInterface->MakeImageView(m_irradianceImage);
         Assert(m_irradianceImageView->Create());
     }
 
@@ -145,7 +144,7 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_depthImage = g_renderBackend->MakeImage(TextureDesc {
+        m_depthImage = g_renderInterface->MakeImage(TextureDesc {
             TT_TEX2D,
             DdgiDepthFormat,
             extent,
@@ -160,7 +159,7 @@ void DDGI::CreateStorageBuffers()
     }
 
     { // depth image view
-        m_depthImageView = g_renderBackend->MakeImageView(m_depthImage);
+        m_depthImageView = g_renderInterface->MakeImageView(m_depthImage);
 
         Assert(m_depthImageView->Create());
     }

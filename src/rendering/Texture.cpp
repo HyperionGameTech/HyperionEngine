@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderObject.hpp>
@@ -11,7 +11,6 @@
 #include <rendering/Frame.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/RenderBackend.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/TextureMipmapRenderer.hpp>
@@ -191,14 +190,14 @@ struct CreateTextureGpuImage : RenderCommand
                 }
             }
 
-            GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
+            GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
             stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", textureAsset->GetName().IsValid() ? textureAsset->GetName() : NAME("Invalid")));
             CheckResultOrReturn(stagingBuffer->Create());
             stagingBuffer->Copy(imageData->Size(), imageData->Data());
 
             HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
 
-            Frame* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderInterface->GetCurrentFrame();
 
             RenderQueue& renderQueue = frame->preRenderQueue;
 
@@ -269,7 +268,7 @@ struct CreateTextureGpuImage : RenderCommand
         }
         else if (initialState != RS_UNDEFINED)
         {
-            Frame* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderInterface->GetCurrentFrame();
             RenderQueue& renderQueue = frame->preRenderQueue;
 
             // Transition to initial state
@@ -340,7 +339,7 @@ void Texture::Init()
         m_assetReference = TAssetReference(asset);
     }
 
-    m_gpuImage = g_renderBackend->MakeImage(GetTextureDesc());
+    m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
 
     if (m_name.IsValid())
     {
@@ -663,12 +662,12 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
 
     AssertReady();
 
-    GpuBufferRef gpuBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
     gpuBuffer->SetDebugName(NAME_FMT("Texture_Readback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
     CheckResult(gpuBuffer->Create());
     gpuBuffer->Map();
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
     singleTimeCommands->Push([this, &gpuBuffer](RenderQueue& renderQueue)
         {
@@ -710,7 +709,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     AssertReady();
 
-    Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+    Frame* currentFrame = g_renderInterface->GetCurrentFrame();
 
     // No current frame, fallback to blocking Readback() call.
     if (!currentFrame)
@@ -727,7 +726,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
-    GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
     stagingBuffer->SetDebugName(NAME_FMT("Texture_EnqueueReadback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
     CheckResult(stagingBuffer->Create());
     stagingBuffer->Map();
