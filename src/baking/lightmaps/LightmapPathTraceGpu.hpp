@@ -52,8 +52,8 @@ private:
         GpuBufferRef cBuffer;
         GpuBufferRef raysBuffer;
         GpuBufferRef lightsBuffer;
-        GpuBufferRef HitsBufferGpu;
-        bool IsCreated = false;
+        GpuBufferRef hitsBufferGpu;
+        bool isCreated = false;
     };
 
     void UpdatePipelineState(Frame* frame, BakeJobBase* job);
