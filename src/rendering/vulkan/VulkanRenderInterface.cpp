@@ -269,7 +269,7 @@ VulkanDescriptorSetManager::~VulkanDescriptorSetManager() = default;
 
 void VulkanDescriptorSetManager::OnFrameStart()
 {
-    const uint32 frameCounter = RenderApi::GetFrameCounter();
+    const uint32 frameCounter = GetFrameCounter();
 
     if (!UseResetDescriptorPool)
         return;
@@ -378,7 +378,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
     outDescriptorPool = VK_NULL_HANDLE;
 
     VulkanDescriptorPool& dp = m_pools.EmplaceBack();
-    dp.frameCounter = RenderApi::GetFrameCounter();
+    dp.frameCounter = GetFrameCounter();
 
     VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
@@ -412,7 +412,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
 
     int poolIndex = -1;
 
-    outVkDescriptorPool = GetDescriptorPool(RenderApi::GetFrameCounter(), poolIndex);
+    outVkDescriptorPool = GetDescriptorPool(GetFrameCounter(), poolIndex);
 
     bool shouldRetry = false;
 

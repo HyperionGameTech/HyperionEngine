@@ -63,7 +63,7 @@ struct StagingBufferPoolImpl
 
     void Cleanup(uint32 frameIndex)
     {
-        const uint32 currFrame = RenderApi::GetFrameCounter();
+        const uint32 currFrame = GetFrameCounter();
 
         for (auto it = cachedBuffers[frameIndex].Begin(); it != cachedBuffers[frameIndex].End();)
         {
@@ -85,7 +85,7 @@ struct StagingBufferPoolImpl
 
     GpuBuffer* GetOrCreateBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
     {
-        const uint32 currFrame = RenderApi::GetFrameCounter();
+        const uint32 currFrame = GetFrameCounter();
 
         // unused one (different frame)
         for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])

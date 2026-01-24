@@ -75,7 +75,7 @@ struct SetupWindowSwapchainAsync
         // ensure window is still valid, otherwise, cancel the task
         if (Handle<ApplicationWindow> window = windowWeak.Lock(); window.IsValid())
         {
-            if (RenderApi::IsInit())
+            if (g_renderInterface != nullptr)
             {
                 window->CreateSwapchain();
                 success = true;

@@ -39,7 +39,7 @@ void ConstantsAllocator::OnFrameStart()
 {
     m_transactionOffset = 0;
 
-    RecycleBlocks(RenderApi::GetFrameCounter());
+    RecycleBlocks(GetFrameCounter());
 }
 
 void ConstantsAllocator::OnFrameEnd()
@@ -102,7 +102,7 @@ ConstantsAllocator::Block* ConstantsAllocator::NewBlock()
     Assert(buffer->Create());
 
     newBlock->buffer = std::move(buffer);
-    newBlock->frameCounter = RenderApi::GetFrameCounter();
+    newBlock->frameCounter = GetFrameCounter();
     newBlock->size = BlockSize;
     newBlock->offset = 0;
 

@@ -191,7 +191,7 @@ void AmbientProbeDebugDrawShape::UpdateBufferData(DebugDrawCommand* cmd, Immedia
 {
     IDebugDrawShape::UpdateBufferData(cmd, bufferData);
 
-    const uint32 envProbeIndex = RenderApi::RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
+    const uint32 envProbeIndex = RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
 
     bufferData->envProbeType = EPT_AMBIENT;
     bufferData->envProbeIndex = envProbeIndex;
@@ -240,7 +240,7 @@ void ReflectionProbeDebugDrawShape::UpdateBufferData(DebugDrawCommand* cmd, Imme
 {
     IDebugDrawShape::UpdateBufferData(cmd, bufferData);
 
-    const uint32 envProbeIndex = RenderApi::RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
+    const uint32 envProbeIndex = RetrieveResourceBinding(static_cast<DebugDrawCommand_Probe*>(cmd)->envProbe);
 
     bufferData->envProbeType = EPT_REFLECTION;
     bufferData->envProbeIndex = envProbeIndex;
@@ -443,8 +443,7 @@ DebugDrawer::DebugDrawer()
     : m_config(DebugDrawerConfig::FromConfig()),
       m_buffers(CreateDebugDrawBuffers()),
       m_bufferOffsets {},
-      m_bufferSizeHistory {},
-      m_isInitialized(false)
+      m_bufferSizeHistory {}
 {
 }
 
@@ -483,7 +482,7 @@ DebugDrawer::~DebugDrawer()
                 AssertOnThread(g_renderThread);
 
                 DebugDrawBufferDeleter* del = reinterpret_cast<DebugDrawBufferDeleter*>(ptr);
-                AssertDebug(del->idx == RenderApi::GetRingIndex());
+                AssertDebug(del->idx == GetRingIndex());
 
                 DebugDrawBufferDeleterPayload* payload = del->payload;
                 AssertDebug(payload != nullptr);
@@ -518,18 +517,6 @@ void DebugDrawer::Init()
 
     ObjectBase::Init();
     SetReady(true);
-
-    Assert(!m_isInitialized.Get(MemoryOrder::ACQUIRE));
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData));
-        m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("DebugDrawer_InstanceBuffer_Frame{}", frameIndex));
-        m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
-        DeferCreate(m_instanceBuffers[frameIndex]);
-    }
-
-    m_isInitialized.Set(true, MemoryOrder::RELEASE);
 }
 
 void DebugDrawer::Update(float delta)
@@ -537,7 +524,7 @@ void DebugDrawer::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    const uint32 idx = RenderApi::GetRingIndex();
+    const uint32 idx = GetRingIndex();
 
     if (m_commandLists[idx].Empty())
     {
@@ -620,13 +607,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    // wait for initialization on the sim thread
-    if (!m_isInitialized.Get(MemoryOrder::RELAXED))
-    {
-        return;
-    }
-
-    const uint32 idx = RenderApi::GetRingIndex();
+    const uint32 idx = GetRingIndex();
 
     if (!IsEnabled() || m_headers[idx].Empty())
     {
@@ -641,7 +622,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     const RenderTargetDesc& renderTargetDesc = renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc();
     const Viewport& viewport = renderSetup.view->GetViewport();
 
-    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi::GetRenderProxy(renderSetup.view->GetCamera()));
+    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
     RenderQueue& rq = frame->renderQueue;
@@ -651,9 +632,12 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     GpuBufferRef& instanceBuffer = m_instanceBuffers[frameIndex];
     bool wasInstanceBufferRebuilt = false;
 
-    if (m_headers[idx].Size() * sizeof(ImmediateDrawShaderData) > instanceBuffer->Size())
+    if (!instanceBuffer || m_headers[idx].Size() * sizeof(ImmediateDrawShaderData) > instanceBuffer->Size())
     {
-        SafeDelete(std::move(instanceBuffer));
+        if (instanceBuffer)
+        {
+            SafeDelete(std::move(instanceBuffer));
+        }
 
         instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
         instanceBuffer->SetRequireCpuAccessible(true);
@@ -850,7 +834,7 @@ void DebugDrawer::ClearCommands(uint32 idx)
     AssertDebug(idx < m_commandLists.Size());
 
     // would cause issues if we try to free from pool being used by wrong thread..
-    Assert(idx == RenderApi::GetRingIndex());
+    Assert(idx == GetRingIndex());
 
     for (DebugDrawCommandHeader& header : m_headers[idx])
     {
@@ -889,7 +873,7 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
-    const uint32 idx = RenderApi::GetRingIndex();
+    const uint32 idx = GetRingIndex();
 
     return m_commandLists[idx].EmplaceBack(this);
 }

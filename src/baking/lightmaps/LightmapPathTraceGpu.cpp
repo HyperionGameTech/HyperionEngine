@@ -233,7 +233,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
     const Handle<View>& view = m_lightmapper->GetView();
     Assert(view != nullptr);
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+    RenderProxyList& rpl = GetConsumerProxyList(view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -253,7 +253,7 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
 
         if (meshProxy->material != nullptr)
         {
-            const uint32 materialBinding = RenderApi::RetrieveResourceBinding(meshProxy->material);
+            const uint32 materialBinding = RetrieveResourceBinding(meshProxy->material);
             blas->SetMaterialBinding(materialBinding);
         }
 
@@ -309,7 +309,7 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* 
         {
             AssertDebug(view && cBuffer && lightsBuffer);
 
-            RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+            RenderProxyList& rpl = GetConsumerProxyList(view);
             rpl.BeginRead();
             HYP_DEFER({ rpl.EndRead(); });
 
@@ -334,12 +334,12 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* 
                     break;
                 }
                 
-                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+                RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
                 Assert(lightProxy != nullptr);
 
                 lightsBuffer->Copy(numBoundLights * sizeof(LightShaderData), sizeof(LightShaderData), &lightProxy->bufferData);
 
-                uniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+                uniforms.lightIndices[numBoundLights++] = RetrieveResourceBinding(light);
             }
 
             uniforms.numBoundLights = numBoundLights;

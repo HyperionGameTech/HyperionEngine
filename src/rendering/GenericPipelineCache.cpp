@@ -39,7 +39,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
             
             if (cached.pipeline.IsValid())
             {
-                cached.pipeline->lastFrame = RenderApi::GetFrameCounter();
+                cached.pipeline->lastFrame = GetFrameCounter();
                 return cached.pipeline;
             }
         }
@@ -55,7 +55,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
         
         if (cached.pipeline.IsValid())
         {
-            cached.pipeline->lastFrame = RenderApi::GetFrameCounter();
+            cached.pipeline->lastFrame = GetFrameCounter();
             return cached.pipeline;
         }
     }
@@ -91,7 +91,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
         {
             CheckResultOrReturn(pipeline->Create());
             
-            pipeline->lastFrame = RenderApi::GetFrameCounter();
+            pipeline->lastFrame = GetFrameCounter();
 
             return RendererResult {};
         }
@@ -133,7 +133,7 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
     TUniqueLock guard(m_mutex);
 
     int numIterations = 0;
-    const uint32 frameCounter = RenderApi::GetFrameCounter();
+    const uint32 frameCounter = GetFrameCounter();
 
     m_cleanupIterator = typename PipelineStorage::Iterator(
         &m_pipelines,

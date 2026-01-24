@@ -36,7 +36,6 @@ HYP_REGISTER_DRAW_BATCH_TYPE(EntityInstanceBatch);
 DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
     : batchAllocator(other.batchAllocator),
       renderGroup(other.renderGroup),
-      instancingDescriptorSets(std::move(other.instancingDescriptorSets)),
       drawCalls(std::move(other.drawCalls)),
       instancedDrawCalls(std::move(other.instancedDrawCalls)),
       indexMap(std::move(other.indexMap))
@@ -54,7 +53,6 @@ DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) no
 
     batchAllocator = other.batchAllocator;
     renderGroup = other.renderGroup;
-    instancingDescriptorSets = std::move(other.instancingDescriptorSets);
     drawCalls = std::move(other.drawCalls);
     instancedDrawCalls = std::move(other.instancedDrawCalls);
     indexMap = std::move(other.indexMap);
@@ -68,8 +66,6 @@ DrawCallCollection::~DrawCallCollection()
     {
         ResetDrawCalls();
     }
-
-    SafeDelete(std::move(instancingDescriptorSets));
 }
 
 void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy)

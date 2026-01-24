@@ -24,9 +24,7 @@
 
 namespace Hyperion {
 
-namespace RenderApi {
 extern ResourceBinderBase* g_reflectionProbeTextureBinder;
-} // namespace RenderApi
 
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
@@ -35,7 +33,7 @@ void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
         entity->InstanceClass()->GetName());
 
     // For now, use Entity ID as index.
-    RenderApi::AssignResourceBinding(entity, entity->Id().ToIndex());
+    AssignResourceBinding(entity, entity->Id().ToIndex());
 }
 
 void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -52,8 +50,8 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
         LookupTypeName(proxyCasted->entity.Id().GetTypeId()));
 
     proxyCasted->bufferData.entityIndex = proxyCasted->entity.Id().ToIndex();
-    proxyCasted->bufferData.materialIndex = RenderApi::RetrieveResourceBinding(proxyCasted->material);
-    proxyCasted->bufferData.skeletonIndex = RenderApi::RetrieveResourceBinding(proxyCasted->skeleton);
+    proxyCasted->bufferData.materialIndex = RetrieveResourceBinding(proxyCasted->material);
+    proxyCasted->bufferData.skeletonIndex = RetrieveResourceBinding(proxyCasted->skeleton);
 
     gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
 }
@@ -88,7 +86,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
     if (next != ~0u)
     {
-        IRenderProxy* proxy = RenderApi::GetRenderProxy(envProbe);
+        IRenderProxy* proxy = GetRenderProxy(envProbe);
         AssertDebug(proxy != nullptr);
 
         if (!proxy)
@@ -166,7 +164,7 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
     AssertDebug(envProbe != nullptr);
     AssertDebug(envProbe->IsReady());
 
-    RenderApi::AssignResourceBinding(envProbe, next);
+    AssignResourceBinding(envProbe, next);
 }
 
 void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -179,7 +177,7 @@ void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, 
 
     if (proxyCasted->envProbe.GetUnsafe()->IsA<SkyProbe>() || proxyCasted->envProbe.GetUnsafe()->IsA<ReflectionProbe>())
     {
-        const uint32 textureBinding = RenderApi::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
+        const uint32 textureBinding = g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
         Assert(textureBinding != ~0u);
 
         proxyCasted->bufferData.textureIndex = textureBinding;
@@ -192,14 +190,14 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
 {
     AssertDebug(envGrid != nullptr);
 
-    RenderApi::AssignResourceBinding(envGrid, next);
+    AssignResourceBinding(envGrid, next);
 }
 
 void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next)
 {
     AssertDebug(light != nullptr);
 
-    RenderApi::AssignResourceBinding(light, next);
+    AssignResourceBinding(light, next);
 }
 
 void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -215,7 +213,7 @@ void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRe
     // textured area lights can have a material attached
     if (proxyCasted->lightMaterial != nullptr)
     {
-        const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(proxyCasted->lightMaterial);
+        const uint32 materialBoundIndex = RetrieveResourceBinding(proxyCasted->lightMaterial);
         AssertDebug(materialBoundIndex != ~0u, "Light uses Material {} but it is not bound", proxyCasted->lightMaterial->Id());
 
         bufferData.materialIndex = materialBoundIndex;
@@ -236,7 +234,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
     AssertDebug(material != nullptr);
 
-    RenderApi::AssignResourceBinding(material, next);
+    AssignResourceBinding(material, next);
 
     //// \todo : Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
 
@@ -255,7 +253,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
     
     if (next != ~0u)
     {
-        IRenderProxy* proxy = RenderApi::GetRenderProxy(material);
+        IRenderProxy* proxy = GetRenderProxy(material);
         Assert(proxy != nullptr);
 
         RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
@@ -303,7 +301,7 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
         }
     }
 
-    RenderApi::AssignResourceBinding(texture, next);
+    AssignResourceBinding(texture, next);
 }
 
 } // namespace Hyperion

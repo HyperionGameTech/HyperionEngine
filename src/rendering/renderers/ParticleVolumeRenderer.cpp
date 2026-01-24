@@ -188,7 +188,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     EnsureStaging();
 
     View* view = renderSetup.view;
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+    RenderProxyList& rpl = GetConsumerProxyList(view);
 
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
@@ -196,7 +196,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     // Reset zero staging buffer state
     frame->preRenderQueue << InsertBarrier(m_staging.zeroIndirectArgs, RS_COPY_SRC);
 
-    RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(RenderApi::GetRenderProxy(particleVolume));
+    RenderProxyParticleVolume* proxy = static_cast<RenderProxyParticleVolume*>(GetRenderProxy(particleVolume));
     AssertDebug(proxy != nullptr);
 
     VolumeState& state = EnsureVolumeState(proxy);
@@ -283,7 +283,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);
     }
 
-    state.fc = RenderApi::GetFrameCounter();
+    state.fc = GetFrameCounter();
 
     { // draw particles pass
         RenderQueue& rq = frame->renderQueue;
@@ -337,7 +337,7 @@ int ParticleVolumeRenderer::RunCleanupCycle(int maxIter)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 currFrame = RenderApi::GetFrameCounter();
+    const uint32 currFrame = GetFrameCounter();
 
     int numCycles = 0;
 

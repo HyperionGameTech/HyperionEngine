@@ -61,65 +61,35 @@ extern EngineStatCounter<uint32> g_statRenderGroups;
 
 RenderGroup::RenderGroup()
     : ObjectBase(),
-      m_flags(RenderGroupFlags::NONE)
+      flags(RenderGroupFlags::NONE)
 {
 }
 
 RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderableAttributes, EnumFlags<RenderGroupFlags> flags)
     : ObjectBase(),
-      m_flags(flags),
-      m_shader(shader),
-      m_renderableAttributes(renderableAttributes)
-{
-}
-
-RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderableAttributes, const DescriptorTableRef& descriptorTable, EnumFlags<RenderGroupFlags> flags)
-    : ObjectBase(),
-      m_flags(flags),
-      m_shader(shader),
-      m_descriptorTable(descriptorTable),
-      m_renderableAttributes(renderableAttributes)
+      flags(flags),
+      shader(shader),
+      renderableAttributes(renderableAttributes)
 {
 }
 
 RenderGroup::~RenderGroup()
 {
-    SafeDelete(std::move(m_shader));
-    SafeDelete(std::move(m_descriptorTable));
+    SafeDelete(std::move(shader));
 }
 
 void RenderGroup::SetShader(const ShaderRef& shader)
 {
     HYP_SCOPE;
 
-    SafeDelete(std::move(m_shader));
+    SafeDelete(std::move(this->shader));
 
-    m_shader = shader;
+    this->shader = shader;
 }
 
 void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet& renderableAttributes)
 {
-    m_renderableAttributes = renderableAttributes;
-}
-
-void RenderGroup::Init()
-{
-    HYP_SCOPE;
-
-    ObjectBase::Init();
-
-    // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!g_renderInterface->GetRenderConfig().parallelRendering)
-    {
-        m_flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
-    }
-
-    if (!g_renderInterface->GetRenderConfig().indirectRendering)
-    {
-        m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
-    }
-
-    SetReady(true);
+    this->renderableAttributes = renderableAttributes;
 }
 
 template <class OutArray>
@@ -222,7 +192,7 @@ static void RenderAll(
     rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
     
     rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
 
@@ -232,12 +202,12 @@ static void RenderAll(
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (renderSetup.light != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
     else
         rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
     
     if (renderSetup.envProbe != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
     else
         rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
 
@@ -256,7 +226,7 @@ static void RenderAll(
     {
         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
-        const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(drawCalls.materials[i]);
+        const uint32 materialBoundIndex = RetrieveResourceBinding(drawCalls.materials[i]);
         AssertDebug(materialBoundIndex != ~0u);
 
         uint32 numDrawCallUniforms = numShaderUniforms;
@@ -273,7 +243,7 @@ static void RenderAll(
         {
             rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                 g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                RenderApi::RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
         }
         
         if (!s_useBindlessTextures)
@@ -282,7 +252,7 @@ static void RenderAll(
 
             if (textureMask != 0)
             {
-                RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
+                RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(drawCalls.materials[i]));
                 AssertDebug(materialProxy != nullptr);
 
                 Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
@@ -345,7 +315,7 @@ static void RenderAll(
             drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex),
             entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize());
 
-        const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(instancedDrawCalls.materials[i]);
+        const uint32 materialBoundIndex = RetrieveResourceBinding(instancedDrawCalls.materials[i]);
         AssertDebug(materialBoundIndex != ~0u);
 
         rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
@@ -356,7 +326,7 @@ static void RenderAll(
         {
             rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                 g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                RenderApi::RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
         }
         
         if (!s_useBindlessTextures)
@@ -365,7 +335,7 @@ static void RenderAll(
 
             if (textureMask != 0)
             {
-                RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
+                RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(instancedDrawCalls.materials[i]));
                 AssertDebug(materialProxy != nullptr);
 
                 Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
@@ -457,7 +427,7 @@ static void RenderAll_Parallel(
     rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
 
     rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
 
@@ -467,12 +437,12 @@ static void RenderAll_Parallel(
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (renderSetup.light != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
     else
         rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
     
     if (renderSetup.envProbe != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RenderApi::RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
     else
         rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
     
@@ -508,7 +478,7 @@ static void RenderAll_Parallel(
 
                     uint32 numDrawCallUniforms = numShaderUniforms;
 
-                    const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(drawCalls.materials[i]);
+                    const uint32 materialBoundIndex = RetrieveResourceBinding(drawCalls.materials[i]);
                     AssertDebug(materialBoundIndex != ~0u);
 
                     rq << SetShaderUniform(numDrawCallUniforms++, "CurrentEntity"_sh,
@@ -523,7 +493,7 @@ static void RenderAll_Parallel(
                     {
                         rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                             g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                            RenderApi::RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                            RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
                     }
 
                     if (!s_useBindlessTextures)
@@ -532,7 +502,7 @@ static void RenderAll_Parallel(
 
                         if (textureMask != 0)
                         {
-                            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(drawCalls.materials[i]));
+                            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(drawCalls.materials[i]));
                             AssertDebug(materialProxy != nullptr);
 
                             Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
@@ -618,7 +588,7 @@ static void RenderAll_Parallel(
                         drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex),
                         entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize());
 
-                    const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(instancedDrawCalls.materials[i]);
+                    const uint32 materialBoundIndex = RetrieveResourceBinding(instancedDrawCalls.materials[i]);
                     AssertDebug(materialBoundIndex != ~0u);
 
                     rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
@@ -629,7 +599,7 @@ static void RenderAll_Parallel(
                     {
                         rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                             g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                            RenderApi::RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                            RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
                     }
                     
                     if (!s_useBindlessTextures)
@@ -638,7 +608,7 @@ static void RenderAll_Parallel(
 
                         if (textureMask != 0)
                         {
-                            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(RenderApi::GetRenderProxy(instancedDrawCalls.materials[i]));
+                            RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(instancedDrawCalls.materials[i]));
                             AssertDebug(materialProxy != nullptr);
 
                             Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
@@ -707,7 +677,6 @@ void RenderGroup::PerformRendering(
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
-    AssertReady();
 
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
@@ -718,7 +687,7 @@ void RenderGroup::PerformRendering(
     static const bool isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = isIndirectRenderingEnabled
-        && m_flags[RenderGroupFlags::INDIRECT_RENDERING]
+        && flags[RenderGroupFlags::INDIRECT_RENDERING]
         && (renderSetup.passData && renderSetup.passData->cullData.depthPyramidImageView);
 
     if (drawCallCollection.drawCalls.Empty() && drawCallCollection.instancedDrawCalls.Empty())
@@ -730,7 +699,7 @@ void RenderGroup::PerformRendering(
     //// Setup instancing descriptor set if "Instancing" descriptor set exists in the shader.
     //if (drawCallCollection.instancedDrawCalls.Any() && !drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()])
     //{
-    //    const DescriptorTableDeclaration* descriptorTableDecl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    //    const DescriptorTableDeclaration* descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     //    Assert(descriptorTableDecl != nullptr);
 
     //    const DescriptorSetDeclaration* instancingDescriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("Instancing"_sh);
@@ -745,11 +714,11 @@ void RenderGroup::PerformRendering(
     //    Assert(descriptorSet->Create());
     //}
 
-    const uint8 stencilReference = m_renderableAttributes.GetMaterialAttributes().stencilReference;
+    const uint8 stencilReference = renderableAttributes.GetMaterialAttributes().stencilReference;
 
     RenderQueue* pRenderQueue = &frame->renderQueue;
 
-    if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
+    if (flags & RenderGroupFlags::PARALLEL_RENDERING)
     {
         AssertDebug(parallelRenderingState != nullptr);
 
@@ -758,22 +727,22 @@ void RenderGroup::PerformRendering(
 
     RenderQueue& rq = *pRenderQueue;
     
-    rq << SetTopology(m_renderableAttributes.GetMeshAttributes().topology);
-    rq << SetVertexAttributes(m_renderableAttributes.GetMeshAttributes().vertexAttributes);
+    rq << SetTopology(renderableAttributes.GetMeshAttributes().topology);
+    rq << SetVertexAttributes(renderableAttributes.GetMeshAttributes().vertexAttributes);
     
     rq << SetCurrentView(
         renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
         renderSetup.view->GetViewport());
     
-    rq << SetCurrentShader(ShaderDesc(m_renderableAttributes.GetMaterialAttributes().shaderDefinition));
+    rq << SetCurrentShader(ShaderDesc(renderableAttributes.GetMaterialAttributes().shaderDefinition));
 
-    rq << SetDepthTest(bool(m_renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
-    rq << SetDepthWrite(bool(m_renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
-    rq << SetStencilTest(bool(m_renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
-    rq << SetCurrentBlendFunction(m_renderableAttributes.GetMaterialAttributes().blendFunction);
-    rq << SetStencilFunction(m_renderableAttributes.GetMaterialAttributes().stencilFunction);
-    rq << SetFillMode(m_renderableAttributes.GetMaterialAttributes().fillMode);
-    rq << SetFaceCullMode(m_renderableAttributes.GetMaterialAttributes().cullFaces);
+    rq << SetDepthTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+    rq << SetDepthWrite(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    rq << SetStencilTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+    rq << SetCurrentBlendFunction(renderableAttributes.GetMaterialAttributes().blendFunction);
+    rq << SetStencilFunction(renderableAttributes.GetMaterialAttributes().stencilFunction);
+    rq << SetFillMode(renderableAttributes.GetMaterialAttributes().fillMode);
+    rq << SetFaceCullMode(renderableAttributes.GetMaterialAttributes().cullFaces);
 
     if (stencilReference != 0)
     {
@@ -783,7 +752,7 @@ void RenderGroup::PerformRendering(
 
     if (useIndirectRendering)
     {
-        if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
+        if (flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
             RenderAll_Parallel<true>(
                 frame,
@@ -803,7 +772,7 @@ void RenderGroup::PerformRendering(
     }
     else
     {
-        if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
+        if (flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
             RenderAll_Parallel<false>(
                 frame,

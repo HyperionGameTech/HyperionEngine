@@ -13,7 +13,7 @@ namespace Hyperion {
 
 void FrameBase::OnFrameStart()
 {
-    m_frameCounter = RenderApi::GetFrameCounter();
+    m_frameCounter = GetFrameCounter();
 }
 
 void FrameBase::MarkDescriptorSetUsed(DescriptorSet* descriptorSet)

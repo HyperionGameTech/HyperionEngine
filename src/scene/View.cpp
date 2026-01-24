@@ -282,7 +282,7 @@ void View::UpdateViewport()
     AssertOnThread(g_simThread);
     AssertReady();
 
-    const uint32 slot = RenderApi::GetRingIndex();
+    const uint32 slot = GetRingIndex();
 
     if ((m_flags & ViewFlags::MATCH_CAMERA_DIMENSIONS))
     {
@@ -346,7 +346,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
     AssertDebug(m_collectionTaskBatch == nullptr, "m_collectionTaskBatch is not nullptr, already collecting?");
     m_collectionTaskBatch = &batch;
 
-    RenderProxyList& rpl = RenderApi::GetProducerProxyList(this);
+    RenderProxyList& rpl = GetProducerProxyList(this);
 
     batch.AddTask([this, &rpl]()
         {
@@ -406,7 +406,7 @@ const Viewport& View::GetViewport() const
 
     AssertReady();
 
-    return m_viewportBuffered[RenderApi::GetRingIndex()];
+    return m_viewportBuffered[GetRingIndex()];
 }
 
 void View::SetViewport(const Viewport& viewport)
@@ -435,7 +435,7 @@ void View::SetViewport(const Viewport& viewport)
             CreateReadbackTexture();
         }
 
-        m_viewportBuffered[RenderApi::GetRingIndex()] = viewport;
+        m_viewportBuffered[GetRingIndex()] = viewport;
     }
 }
 
@@ -444,7 +444,7 @@ GpuImage* View::GetReadbackTextureGpuImage() const
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
-    return m_readbackTextureGpuImages[RenderApi::GetRingIndex()];
+    return m_readbackTextureGpuImages[GetRingIndex()];
 }
 
 void View::CreateReadbackTexture()

@@ -76,7 +76,7 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 
 HYP_EXPORT Pool* GetCurrentFramePool()
 {
-    return g_framePools[RenderApi::GetRingIndex()];
+    return g_framePools[GetRingIndex()];
 }
 
 #pragma endregion Memory Pools

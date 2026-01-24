@@ -98,20 +98,63 @@ struct ParallelRenderingState
 // Utility struct that maps attribute sets -> draw call collections that have been written to already and had render groups created.
 struct DrawCallCollectionMapping
 {
-    Handle<RenderGroup> renderGroup;
+    RenderGroup* renderGroup = nullptr;
     // map entity id to mesh proxy
+    IndirectRenderer* indirectRenderer = nullptr;
     SparsePagedArray<RenderProxyMesh*, 128, RenderAllocator> meshProxies;
     DrawCallCollection drawCallCollection;
-    IndirectRenderer* indirectRenderer = nullptr;
+
+    DrawCallCollectionMapping() = default;
+
+    DrawCallCollectionMapping(const DrawCallCollectionMapping& other) = delete;
+    DrawCallCollectionMapping& operator=(const DrawCallCollectionMapping& other) = delete;
+
+    DrawCallCollectionMapping(DrawCallCollectionMapping&& other) noexcept
+        : renderGroup(other.renderGroup),
+          indirectRenderer(other.indirectRenderer),
+          meshProxies(std::move(other.meshProxies)),
+          drawCallCollection(std::move(other.drawCallCollection))
+    {
+        other.renderGroup = nullptr;
+        other.indirectRenderer = nullptr;
+    }
+
+    DrawCallCollectionMapping& operator=(DrawCallCollectionMapping&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if (renderGroup != nullptr && renderGroup != other.renderGroup)
+        {
+            delete renderGroup;
+        }
+
+        renderGroup = other.renderGroup;
+        indirectRenderer = other.indirectRenderer;
+        meshProxies = std::move(other.meshProxies);
+        drawCallCollection = std::move(other.drawCallCollection);
+
+        other.renderGroup = nullptr;
+        other.indirectRenderer = nullptr;
+
+        return *this;
+    }
+
+    ~DrawCallCollectionMapping()
+    {
+        delete renderGroup;
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return renderGroup.IsValid();
+        return renderGroup != nullptr;
     }
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return renderGroup.IsValid();
+        return renderGroup != nullptr;
     }
 };
 
@@ -141,7 +184,7 @@ public:
     // map entity id to previous attribute set (for draw call collection)
     SparsePagedArray<RenderableAttributeSet, 128, RenderAllocator> previousAttributes;
 
-    FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, RB_MAX> mappingsByBucket;
+    FixedArray<HashMap<RenderableAttributeSet, DrawCallCollectionMapping, NodeAllocator<RenderAllocator>>, RB_MAX> mappingsByBucket;
 
     EntityBatchAllocatorBase* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;

@@ -37,11 +37,15 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <semaphore>
+
 namespace Hyperion {
 
 extern void HandleSignal(int signum);
 
 extern EngineStatTimer g_renderTimer;
+
+extern std::binary_semaphore g_renderThreadInit;
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
@@ -108,7 +112,7 @@ void RenderThread::Update()
         g_renderInterface->PrepareSwapchain(swapchain);
     }
 
-    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
+    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
 
     Swapchain* swapchain = nullptr;
 
@@ -117,7 +121,7 @@ void RenderThread::Update()
         swapchain = mainWindow->GetSwapchain();
     }
 
-    Array<World*>& worldsToRender = g_renderInterface->renderWorlds[RenderApi::GetRingIndex()];
+    Array<World*>& worldsToRender = g_renderInterface->renderWorlds[GetRingIndex()];
 
     if (worldsToRender.Any())
     {
@@ -205,8 +209,7 @@ void RenderThread::operator()()
 
     CheckResult(g_renderInterface->Initialize());
 
-    /// HAX !!! We should only upload gpu resources on first use for debug draer
-    InitObject(g_engineDriver->GetDebugDrawer());
+    g_renderThreadInit.release();
 
     if (m_id != g_mainThread) // !RenderOnMainThread
     {

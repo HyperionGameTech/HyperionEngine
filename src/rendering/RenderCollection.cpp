@@ -330,7 +330,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
 #pragma endregion GeometryPass
 
-static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, DrawCallCollectionMapping& mapping, const RenderableAttributeSet& attributes)
+static RenderGroup* CreateRenderGroup(
+    RenderCollector* renderCollector,
+    DrawCallCollectionMapping& mapping,
+    const RenderableAttributeSet& attributes)
 {
     EnumFlags<RenderGroupFlags> renderGroupFlags = RenderGroupFlags::DEFAULT;
 
@@ -350,11 +353,11 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     {
         HYP_LOG(Rendering, Error, "Failed to create shader for RenderProxy");
 
-        return Handle<RenderGroup>::empty;
+        return nullptr;
     }
 
     // Create RenderGroup
-    Handle<RenderGroup> rg = MakeHandle<RenderGroup>(shader, attributes, renderGroupFlags);
+    RenderGroup* rg = new RenderGroup(shader, attributes, renderGroupFlags);
 
     if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {
@@ -365,8 +368,17 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     }
 
     mapping.drawCallCollection.batchAllocator = renderCollector->batchAllocator;
+    
+    // If parallel rendering is globally disabled, disable it for this RenderGroup
+    if (!g_renderInterface->GetRenderConfig().parallelRendering)
+    {
+        rg->flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
+    }
 
-    InitObject(rg);
+    if (!g_renderInterface->GetRenderConfig().indirectRendering)
+    {
+        rg->flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+    }
 
     return rg;
 }
@@ -731,7 +743,8 @@ RenderCollector::~RenderCollector()
                         mapping.indirectRenderer = nullptr;
                     }
 
-                    SafeDelete(std::move(mapping.renderGroup));
+                    delete mapping.renderGroup;
+                    mapping.renderGroup = nullptr;
                 }
 
                 mappings.Clear();
@@ -782,7 +795,8 @@ void RenderCollector::Clear(bool freeMemory)
                     mapping.indirectRenderer = nullptr;
                 }
 
-                SafeDelete(std::move(mapping.renderGroup));
+                delete mapping.renderGroup;
+                mapping.renderGroup = nullptr;
             }
         }
 
@@ -940,15 +954,15 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
                 DrawCallCollectionMapping& mapping = it.second;
                 AssertDebug(mapping.IsValid());
 
-                const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
-                AssertDebug(renderGroup.IsValid());
+                RenderGroup* renderGroup = mapping.renderGroup;
+                AssertDebug(renderGroup != nullptr);
 
                 DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
                 IndirectRenderer* indirectRenderer = mapping.indirectRenderer;
 
-                if (renderGroup->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING)
+                if (renderGroup->flags & RenderGroupFlags::OCCLUSION_CULLING)
                 {
-                    AssertDebug((renderGroup->GetFlags() & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                    AssertDebug((renderGroup->flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
                     AssertDebug(indirectRenderer != nullptr);
 
                     indirectRenderer->GetDrawState().ResetDrawState();
@@ -996,7 +1010,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    Span<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>> groupsView;
+    Span<HashMap<RenderableAttributeSet, DrawCallCollectionMapping, NodeAllocator<RenderAllocator>>> groupsView;
 
     if (bucketBits == 0)
     {
@@ -1066,7 +1080,7 @@ void RenderCollector::ExecuteDrawCalls(
                 continue;
             }
 
-            const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
+            RenderGroup* renderGroup = mapping.renderGroup;
             AssertDebug(renderGroup != nullptr);
 
             DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
@@ -1075,7 +1089,7 @@ void RenderCollector::ExecuteDrawCalls(
 
             ParallelRenderingState* parallelRenderingState = nullptr;
 
-            if (renderGroup->GetFlags() & RenderGroupFlags::PARALLEL_RENDERING)
+            if (renderGroup->flags & RenderGroupFlags::PARALLEL_RENDERING)
             {
                 parallelRenderingState = AcquireNextParallelRenderingState();
             }
@@ -1234,7 +1248,8 @@ void RenderCollector::RemoveEmptyRenderGroups()
                 mapping.indirectRenderer = nullptr;
             }
 
-            SafeDelete(std::move(mapping.renderGroup));
+            delete mapping.renderGroup;
+            mapping.renderGroup = nullptr;
 
             it = mappings.Erase(it);
         }
@@ -1326,9 +1341,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             // Add proxy to group
             DrawCallCollectionMapping& newMapping = mappingsByBucket[newAttributes.GetMaterialAttributes().bucket][newAttributes];
 
-            Handle<RenderGroup>& rg = newMapping.renderGroup;
+            RenderGroup*& rg = newMapping.renderGroup;
 
-            if (!rg.IsValid())
+            if (!rg)
             {
                 rg = CreateRenderGroup(this, newMapping, newAttributes);
             }
@@ -1401,11 +1416,14 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             RenderableAttributeSet attributes;
             GeometryPass::BuildAttributes(*meshProxy, attributes, overrideAttributes);
 
-            // Add proxy to group
-            DrawCallCollectionMapping& mapping = mappingsByBucket[attributes.GetMaterialAttributes().bucket][attributes];
-            Handle<RenderGroup>& rg = mapping.renderGroup;
+            const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
+            AssertDebug(bucket < mappingsByBucket.Size());
 
-            if (!rg.IsValid())
+            // Add proxy to group
+            DrawCallCollectionMapping& mapping = mappingsByBucket[bucket][attributes];
+            RenderGroup*& rg = mapping.renderGroup;
+
+            if (!rg)
             {
                 rg = CreateRenderGroup(this, mapping, attributes);
             }

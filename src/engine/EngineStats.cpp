@@ -292,13 +292,13 @@ double EngineStats::QueryStatValue(UTF8StringView path, double valueIfNotFound) 
 EngineStatsSnapshot& EngineStats::GetCurrentSnapshot()
 {
     AssertOnThread(g_renderThread | g_simThread);
-    return m_impl->snapshots[RenderApi::GetRingIndex()];
+    return m_impl->snapshots[GetRingIndex()];
 }
 
 const EngineStatsSnapshot& EngineStats::GetCurrentSnapshot() const
 {
     AssertOnThread(g_renderThread | g_simThread);
-    return m_impl->snapshots[RenderApi::GetRingIndex()];
+    return m_impl->snapshots[GetRingIndex()];
 }
 
 void EngineStats::SetSampleData(int statId, uint32 sampleIdx, double value)
@@ -403,7 +403,7 @@ void EngineStats::Advance()
         m_impl->deltaAccum = 0.0;
     }
 
-    EngineStatsSnapshot& snapshot = m_impl->snapshots[RenderApi::GetRingIndex()];
+    EngineStatsSnapshot& snapshot = m_impl->snapshots[GetRingIndex()];
 
     const double msPerFrame = m_impl->counter.delta * 1000.0;
 

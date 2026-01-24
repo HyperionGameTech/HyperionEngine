@@ -604,7 +604,7 @@ void World::CollectScenes(Array<Scene*, SceneAllocator>& outScenes)
 
 void World::CollectViews(Array<View*, SceneAllocator>& outViews)
 {
-    const uint32 slot = RenderApi::GetRingIndex();
+    const uint32 slot = GetRingIndex();
 
     m_viewsPerFrame[slot].Resize(m_views.Size() + m_processViews.Size());
 
@@ -1046,7 +1046,7 @@ Span<View* const> World::GetViews() const
     HYP_SCOPE;
     AssertOnThread(g_renderThread | g_simThread);
 
-    return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
+    return m_viewsPerFrame[GetRingIndex()].ToSpan();
 }
 
 void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)

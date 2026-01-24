@@ -304,12 +304,16 @@ struct DrawCallCollection
     /*! \brief Push \p numInstances instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset);
+    uint32 PushEntityToBatch(
+        SizeType drawCallIndex,
+        Entity* entity,
+        const MeshInstanceData& meshInstanceData,
+        uint32 numInstances,
+        uint32 instanceOffset);
 
     EntityBatchAllocatorBase* batchAllocator;
 
     RenderGroup* renderGroup;
-    FixedArray<DescriptorSetRef, NumFramesInFlight> instancingDescriptorSets;
 
     DrawCallStorage drawCalls;
     InstancedDrawCallStorage instancedDrawCalls;

@@ -354,7 +354,7 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
 {
     BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
     
-    cmdCasted->m_pipeline->lastFrame = RenderApi::GetFrameCounter();
+    cmdCasted->m_pipeline->lastFrame = GetFrameCounter();
 
     if (cmdCasted->m_viewport.position != Vec2i(0, 0) || cmdCasted->m_viewport.extent != Vec2u(0, 0))
     {
