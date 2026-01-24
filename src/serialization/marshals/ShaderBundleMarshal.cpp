@@ -34,7 +34,7 @@ public:
             return err;
         }
 
-        if (compiledShader.GetRevisionNumber() != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
+        if (compiledShader.revision != CompiledShader::CurrentRevision())
         {
             // force recompile
             return { FBOMResult::FBOM_ERR, "Shader out of date" };
