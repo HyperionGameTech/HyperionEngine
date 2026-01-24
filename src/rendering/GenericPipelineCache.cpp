@@ -3,13 +3,12 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/GenericPipelineCache.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderResult.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Shader.hpp>
@@ -214,7 +213,7 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(const ShaderDefinition& sh
         return ComputePipelineRef::Null();
     }
 
-    return g_renderBackend->MakeComputePipeline(shader);
+    return g_renderInterface->MakeComputePipeline(shader);
 }
 
 #pragma endregion ComputePipelineCache
@@ -230,7 +229,7 @@ RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(const ShaderDefiniti
         return RayTracingPipelineRef::Null();
     }
 
-    return g_renderBackend->MakeRayTracingPipeline(shader);
+    return g_renderInterface->MakeRayTracingPipeline(shader);
 }
 
 #pragma endregion RayTracingPipelineCache

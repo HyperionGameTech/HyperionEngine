@@ -3,7 +3,7 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12DescriptorSet.hpp>
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12GpuImageView.hpp>
@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 #pragma region DX12DescriptorSet
 

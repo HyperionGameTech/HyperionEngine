@@ -40,7 +40,6 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/ShaderManager.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -51,7 +50,7 @@
 #include <audio/AudioManager.hpp>
 
 #if HYP_VULKAN
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #endif
 
 #if HYP_EDITOR
@@ -95,7 +94,6 @@ Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialCache;
 SafeDeleter* g_safeDeleter;
-RenderInterface* g_renderInterface;
 ShaderCompiler* g_shaderCompiler;
 
 #ifdef HYP_EDITOR
@@ -110,9 +108,9 @@ VisThread* g_visThreadInstance;
 Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
 
 #if HYP_VULKAN
-VulkanRenderBackend* g_renderBackend;
+VulkanRenderInterface* g_renderInterface;
 #elif HYP_DX12
-DX12RenderBackend* g_renderBackend;
+DX12RenderInterface* g_renderInterface;
 #endif
 
 static void HandleFatalError(const char* message)
@@ -382,7 +380,7 @@ extern "C"
 
         g_engineDriver->FinalizeStop();
 
-        RenderApi::Shutdown();
+        CheckResult(g_renderInterface->Shutdown());
 
 #if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
@@ -421,9 +419,6 @@ extern "C"
         g_materialCache = nullptr;
 
         g_engineDriver.Reset();
-
-        delete g_renderBackend;
-        g_renderBackend = nullptr;
 
         delete g_sceneArena;
         g_sceneArena = nullptr;

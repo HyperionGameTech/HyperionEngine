@@ -3,7 +3,7 @@
 #include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 #ifdef HYP_DEBUG_MODE
 
@@ -41,7 +41,7 @@ static inline void ValidateDynamicOffset(
 {
     AssertDebug(layoutElement != nullptr, "Invalid dynamic element: {}", Name(dynamicElementName));
 
-    const VkPhysicalDeviceLimits& limits = g_renderBackend->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
+    const VkPhysicalDeviceLimits& limits = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
 
     // Validate alignment based on buffer type
     if (layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC)
@@ -236,7 +236,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        g_renderBackend->DestroyDescriptorSet(m_handle, m_vkDescriptorPool);
+        g_renderInterface->DestroyDescriptorSet(m_handle, m_vkDescriptorPool);
 
         m_handle = VK_NULL_HANDLE;
         m_vkDescriptorSetLayout = VK_NULL_HANDLE;
@@ -509,7 +509,7 @@ void VulkanDescriptorSet::Update(bool force)
     }
 
     vkUpdateDescriptorSets(
-        g_renderBackend->GetDevice()->GetDevice(),
+        g_renderInterface->GetDevice()->GetDevice(),
         uint32(vkWriteDescriptorSets.Size()),
         vkWriteDescriptorSets.Data(),
         0,
@@ -534,14 +534,14 @@ RendererResult VulkanDescriptorSet::Create()
         return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName());
     }
 
-    CheckResultOrReturn(g_renderBackend->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
+    CheckResultOrReturn(g_renderInterface->GetOrCreateVkDescriptorSetLayout(m_layout, m_vkDescriptorSetLayout));
 
     if (m_layout.IsTemplate())
     {
         return {};
     }
 
-    CheckResultOrReturn(g_renderBackend->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool));
+    CheckResultOrReturn(g_renderInterface->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool));
 
     AssertDebug(m_vkDescriptorPool != VK_NULL_HANDLE);
 
@@ -840,7 +840,7 @@ void VulkanDescriptorSet::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

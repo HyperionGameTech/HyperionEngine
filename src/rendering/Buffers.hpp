@@ -139,7 +139,7 @@ public:
     virtual void MarkDirty(uint32 index) = 0;
 
     virtual void UpdateBufferSize(uint32 frameIndex) = 0;
-    virtual void UpdateBufferData(Frame* frame) = 0;
+    virtual void UpdateBufferData(uint32 frameIndex, RenderQueue& renderQueue) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -170,7 +170,7 @@ public:
 protected:
     void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
     void CopyStagingToGpu(
-        Frame* frame,
+        uint32 frameIndex, RenderQueue& renderQueue,
         Span<GpuBuffer* const> stagingBuffers,
         Span<const uint32> chunkStarts,
         Span<const uint32> chunkEnds);
@@ -369,10 +369,8 @@ public:
         m_pool.EnsureGpuBufferCapacity(m_gpuBuffer, frameIndex);
     }
 
-    virtual void UpdateBufferData(Frame* frame) override
+    virtual void UpdateBufferData(uint32 frameIndex, RenderQueue& renderQueue) override
     {
-        const uint32 frameIndex = frame->GetFrameIndex();
-
         Array<uint32, RenderAllocator> chunkStarts;
         Array<uint32, RenderAllocator> chunkEnds;
         Array<GpuBuffer*, RenderAllocator> stagingBuffers;
@@ -405,7 +403,7 @@ public:
         }
 
         GpuBufferHolderBase::CopyStagingToGpu(
-            frame,
+            frameIndex, renderQueue,
             stagingBuffers.ToSpan(),
             chunkStarts.ToSpan(),
             chunkEnds.ToSpan());

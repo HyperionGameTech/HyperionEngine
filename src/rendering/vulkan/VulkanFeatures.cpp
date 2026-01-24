@@ -4,7 +4,7 @@
 
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 
 namespace Hyperion {
 

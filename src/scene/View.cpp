@@ -27,7 +27,6 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
@@ -216,7 +215,7 @@ void View::Init()
     }
     else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
     {
-        FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(m_viewDesc.renderTargetDesc);
+        FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.renderTargetDesc);
 
         for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
         {

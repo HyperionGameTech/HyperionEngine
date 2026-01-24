@@ -10,7 +10,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Device.hpp>
@@ -69,7 +68,7 @@ struct LightmapRender : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        Frame* frame = g_renderBackend->GetCurrentFrame();
+        Frame* frame = g_renderInterface->GetCurrentFrame();
 
         RenderSetup renderSetup { world, view };
 

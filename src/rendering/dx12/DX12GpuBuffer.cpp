@@ -3,7 +3,7 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12GpuBuffer.hpp>
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
 #include <DX12GpuBuffer.generated.inl>
@@ -12,7 +12,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 static D3D12_HEAP_TYPE GetHeapType(GpuBufferType bufferType, bool requireCpuAccessible)
 {

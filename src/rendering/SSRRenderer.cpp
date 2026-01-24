@@ -10,7 +10,6 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Texture.hpp>
@@ -146,7 +145,7 @@ void SSRRenderer::CreatePasses()
         renderTargetDesc.extent = m_uvsTexture->GetExtent().GetXY();
         renderTargetDesc.numLayers = 1;
 
-        FramebufferRef writeUvsFramebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
+        FramebufferRef writeUvsFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
         Attachment* attachment = writeUvsFramebuffer->AddAttachment(
             0,
             m_uvsTexture->GetGpuImage(),
@@ -175,7 +174,7 @@ void SSRRenderer::CreatePasses()
         renderTargetDesc.extent = m_sampledResultTexture->GetExtent().GetXY();
         renderTargetDesc.numLayers = 1;
 
-        FramebufferRef sampleGbufferFramebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
+        FramebufferRef sampleGbufferFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
         sampleGbufferFramebuffer->AddAttachment(
             0,
             m_sampledResultTexture->GetGpuImage(),
@@ -241,7 +240,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         uniforms.screenEdgeFadeStart = m_config.screenEdgeFade.x;
         uniforms.screenEdgeFadeEnd = m_config.screenEdgeFade.y;
 
-        m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
         m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
 
         PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);

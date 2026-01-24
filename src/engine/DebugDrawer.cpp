@@ -13,7 +13,6 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GpuBuffer.hpp>
@@ -524,7 +523,7 @@ void DebugDrawer::Init()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_instanceBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData));
+        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData));
         m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("DebugDrawer_InstanceBuffer_Frame{}", frameIndex));
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
         DeferCreate(m_instanceBuffers[frameIndex]);
@@ -656,7 +655,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     {
         SafeDelete(std::move(instanceBuffer));
 
-        instanceBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
+        instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
         instanceBuffer->SetRequireCpuAccessible(true);
         CheckResult(instanceBuffer->Create());
 

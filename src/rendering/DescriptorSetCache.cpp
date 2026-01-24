@@ -4,7 +4,6 @@
 
 #include <rendering/DescriptorSetCache.hpp>
 #include <rendering/DescriptorSet.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -104,7 +103,7 @@ DescriptorSet* DescriptorSetCache::GetOrCreate(const DescriptorSetLayout& layout
     }
 
     // need to allocate new descriptor set
-    DescriptorSetRef newDescriptorSet = g_renderBackend->MakeDescriptorSet(layout);
+    DescriptorSetRef newDescriptorSet = g_renderInterface->MakeDescriptorSet(layout);
     //RendererResult createResult = newDescriptorSet->Create();
     //Assert(!createResult.HasError(), "Failed to create new descriptor set! Error: {}", createResult.GetError().GetMessage());
     

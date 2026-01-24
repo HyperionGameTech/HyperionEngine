@@ -24,11 +24,11 @@ enum ImageUsage : uint8
 HYP_MAKE_ENUM_FLAGS(ImageUsage);
 
 HYP_ENUM()
-enum ImageSupport : uint8
+enum class ImageSupport : uint8
 {
-    IS_SRV,
-    IS_UAV,
-    IS_DEPTH
+    Attachment,
+    ShaderResource,
+    UnorderedAccess
 };
 
 HYP_ENUM()
@@ -36,9 +36,7 @@ enum DefaultImageFormat : uint8
 {
     DIF_NONE,
     DIF_COLOR,
-    DIF_DEPTH,
-    DIF_NORMALS,
-    DIF_STORAGE
+    DIF_DEPTH
 };
 
 HYP_ENUM()
@@ -93,8 +91,6 @@ enum TextureFormat : uint8
     TF_RGB32,
     TF_RGBA32,
 
-    TF_R32_,
-    TF_RG16_,
     TF_R11G11B10F,
     TF_R10G10B10A2,
 
@@ -178,7 +174,6 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
     {
     case TF_R8:
     case TF_R8_SRGB:
-    case TF_R32_:
     case TF_R16:
     case TF_R32:
     case TF_R16F:
@@ -186,7 +181,6 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
         return TFB_R;
     case TF_RG8:
     case TF_RG8_SRGB:
-    case TF_RG16_:
     case TF_RG16:
     case TF_RG32:
     case TF_RG16F:
@@ -202,7 +196,7 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
     case TF_RGBA8:
     case TF_RGBA8_SRGB:
     case TF_R11G11B10F: // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
-    case TF_R10G10B10A2:
+    case TF_R10G10B10A2:  // same as above
     case TF_RGBA16:
     case TF_RGBA32:
     case TF_RGBA16F:
@@ -266,7 +260,6 @@ static inline constexpr uint32 BytesPerComponent(TextureFormat format)
     case TF_BGR8_SRGB:
     case TF_RGBA8:
     case TF_RGBA8_SRGB:
-    case TF_R10G10B10A2:
     case TF_BGRA8:
     case TF_BGRA8_SRGB:
         return 1;
@@ -280,12 +273,11 @@ static inline constexpr uint32 BytesPerComponent(TextureFormat format)
     case TF_RG32:
     case TF_RGB32:
     case TF_RGBA32:
-    case TF_R32_:
-    case TF_RG16_:
     case TF_DEPTH_24:
     case TF_DEPTH_32F:
         return 4;
     case TF_R11G11B10F:
+    case TF_R10G10B10A2:
         return 1; // packed; treat as 1 component (1x4)
     case TF_R16F:
     case TF_RG16F:
@@ -403,8 +395,6 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
     case TF_RG32:
     case TF_RGB32:
     case TF_RGBA32:
-    case TF_R32_:
-    case TF_RG16_:
     case TF_DEPTH_16:
     case TF_DEPTH_24:
     case TF_DEPTH_32F:

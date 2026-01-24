@@ -24,7 +24,6 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
@@ -85,6 +84,8 @@
 #include <RenderInterface.generated.inl>
 
 namespace Hyperion {
+
+using namespace RenderApi;
 
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
@@ -845,108 +846,6 @@ static HYP_FORCE_INLINE void CopyDependencies(RenderProxyList& dst, RenderProxyL
     }
 }
 
-void Init()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    HYP_LOG(Rendering, Debug, "RenderApi::Init() called");
-
-    AssertDebug(!AtomicAdd(&s_isInit, 0), "Init() called while rendering subsystem is already initialized!");
-
-    s_threadFrameIndex = &s_frameIndex[CONSUMER];
-
-    s_resources = PoolNew<ResourceContainer>(*g_renderPool);
-
-#if HYP_VULKAN
-    g_renderBackend = new VulkanRenderBackend();
-#elif HYP_DX12
-    g_renderBackend = new DX12RenderBackend();
-#else
-    HYP_FAIL("Not compiled with any rendering backend - cannot initialize renderer!");
-#endif
-
-    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
-    {
-        resourceBinder->Initialize();
-    }
-
-    RendererResult result = g_renderBackend->Initialize();
-    Assert(result, "Failed to initialize rendering backend: {}", result.GetError().GetMessage());
-
-    { // override global config after renderer initialize
-        ConfigurationTable renderGlobalConfigOverrides;
-
-        // if ray tracing is not supported, we need to update the configuration
-        if (!g_renderBackend->GetRenderConfig().rayTracing)
-        {
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Enabled", false);
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Reflections.Enabled", false);
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.GI.Enabled", false);
-            renderGlobalConfigOverrides.Set("Rendering.RayTracing.PathTracing.Enabled", false);
-
-            CoreApi::UpdateGlobalConfig(renderGlobalConfigOverrides);
-        }
-    }
-
-    g_renderInterface = PoolNew<RenderInterface>(*g_renderPool);
-
-    g_renderInterface->finalPass = PoolNew<FinalPass>(*g_renderPool);
-    g_renderInterface->finalPass->Create();
-
-    ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
-    registry.InvokeAll(*s_resources);
-
-    registry.funcs.Clear();
-
-    int32 prevValue = AtomicExchange(&s_isInit, 1);
-    AssertDebug(prevValue == 0);
-
-    HYP_LOG(Rendering, Debug, "RenderApi::Init() completed successfully");
-}
-
-void Shutdown()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    AssertDebug(AtomicAdd(&s_isInit, 0), "Shutdown() called while rendering subsystem is not initialized!");
-
-    for (uint32 i = 0; i < RingBufferDepth; i++)
-    {
-        for (auto& it : s_frameData[i].viewFrameData)
-        {
-            PoolDelete(*g_framePools[i], it.second);
-        }
-
-        s_frameData[i].viewFrameData.Clear();
-    }
-
-    for (auto& it : s_viewData)
-    {
-        ViewData* vd = it.second;
-
-        if (!vd)
-        {
-            continue;
-        }
-
-        PoolDelete(*g_renderPool, vd);
-    }
-
-    s_viewData.Clear();
-
-    PoolDelete(*g_renderPool, s_resources);
-    s_resources = nullptr;
-
-    PoolDelete(*g_renderPool, g_renderInterface);
-    g_renderInterface = nullptr;
-
-    Assert(g_renderBackend->Destroy());
-
-    AtomicExchange(&s_isInit, 0);
-}
-
 bool IsInit()
 {
     return AtomicAdd(&s_isInit, 0) != 0;
@@ -1153,7 +1052,210 @@ void EndFrameSim()
     s_fullSemaphore.release();
 }
 
-void BeginFrameRender()
+} // namespace RenderApi
+
+#pragma region RenderInterface
+
+RenderInterface::RenderInterface()
+    : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
+      gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
+      constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
+      descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
+      placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
+      materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
+      graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
+      computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
+      rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
+      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
+      finalPass(nullptr),
+      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
+      shaderPropertyCache(PoolNew<ShaderPropertyCache>(*g_renderPool))
+{
+}
+
+RenderInterface::~RenderInterface()
+{
+}
+
+RendererResult RenderInterface::Initialize()
+{
+    HYP_LOG(Rendering, Debug, "RenderApi::Init() called");
+
+    AssertDebug(!AtomicAdd(&s_isInit, 0), "Init() called while rendering subsystem is already initialized!");
+
+    s_threadFrameIndex = &s_frameIndex[CONSUMER];
+    
+    gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CBUFF>(16, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CBUFF>(1024, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::SSBO>(1024, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::SSBO>(1 << 15, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::SSBO>(1 << 10, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::SSBO>(1 << 6, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::SSBO>(1 << 3, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CBUFF>(1 << 3, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::SSBO>(1 << 3, /* cpuAccessible */ false);
+
+    s_resources = PoolNew<RenderApi::ResourceContainer>(*g_renderPool);
+
+    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
+    {
+        resourceBinder->Initialize();
+    }
+
+    { // override global config after renderer initialize
+        ConfigurationTable renderGlobalConfigOverrides;
+
+        // if ray tracing is not supported, we need to update the configuration
+        if (!GetRenderConfig().rayTracing)
+        {
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.Reflections.Enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.GI.Enabled", false);
+            renderGlobalConfigOverrides.Set("Rendering.RayTracing.PathTracing.Enabled", false);
+
+            CoreApi::UpdateGlobalConfig(renderGlobalConfigOverrides);
+        }
+    }
+
+    finalPass = PoolNew<FinalPass>(*g_renderPool);
+    finalPass->Create();
+
+    RenderApi::ResourceContainerFactoryRegistry& registry = RenderApi::ResourceContainerFactoryRegistry::GetInstance();
+    registry.InvokeAll(*s_resources);
+
+    registry.funcs.Clear();
+
+    globalDescriptorTable = MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
+
+    placeholderData->Create();
+    shadowMapAllocator->Initialize();
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        SetDefaultDescriptorSetElements(frameIndex);
+    }
+
+    CreateSphereSamplesBuffer();
+    CreateBlueNoiseBuffer();
+    CreateEnvProbesTexture();
+
+    globalDescriptorTable->Create();
+
+    for (uint32 i = 0; i < GRT_MAX; i++)
+    {
+        globalRenderers[i] = Array<RendererBase*>();
+    }
+
+    globalRenderers[GRT_MAIN].PushBack(new DeferredRenderer);
+    globalRenderers[GRT_MAIN][0]->Initialize();
+
+    globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
+    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
+    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer;
+
+    globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
+    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer;
+    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer;
+
+    // one global particle volume renderer
+    globalRenderers[GRT_PARTICLE_VOLUME].ResizeZeroed(1);
+    globalRenderers[GRT_PARTICLE_VOLUME][0] = new ParticleVolumeRenderer;
+
+    int32 prevValue = AtomicExchange(&s_isInit, 1);
+    AssertDebug(prevValue == 0);
+
+    return {};
+}
+
+RendererResult RenderInterface::Shutdown()
+{
+    AssertDebug(AtomicAdd(&s_isInit, 0), "Shutdown() called while rendering subsystem is not initialized!");
+
+    for (uint32 i = 0; i < RingBufferDepth; i++)
+    {
+        for (auto& it : s_frameData[i].viewFrameData)
+        {
+            PoolDelete(*g_framePools[i], it.second);
+        }
+
+        s_frameData[i].viewFrameData.Clear();
+    }
+
+    for (auto& it : s_viewData)
+    {
+        ViewData* vd = it.second;
+
+        if (!vd)
+        {
+            continue;
+        }
+
+        PoolDelete(*g_renderPool, vd);
+    }
+
+    s_viewData.Clear();
+
+    PoolDelete(*g_renderPool, s_resources);
+    s_resources = nullptr;
+
+    bindlessStorage->UnsetAllResources();
+    PoolDelete(*g_renderPool, bindlessStorage);
+    bindlessStorage = nullptr;
+
+    for (uint32 i = 0; i < GRT_MAX; i++)
+    {
+        for (uint32 j = 0; j < globalRenderers[i].Size(); j++)
+        {
+            if (globalRenderers[i][j])
+            {
+                globalRenderers[i][j]->Shutdown();
+                delete globalRenderers[i][j];
+            }
+        }
+    }
+
+    shadowMapAllocator->Destroy();
+    placeholderData->Destroy();
+
+    globalDescriptorTable.Reset();
+
+    PoolDelete(*g_renderPool, textureViewCache);
+    textureViewCache = nullptr;
+
+    PoolDelete(*g_renderPool, finalPass);
+    finalPass = nullptr;
+
+    PoolDelete(*g_renderPool, shadowMapAllocator);
+    shadowMapAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, constantsAllocator);
+    constantsAllocator = nullptr;
+
+    PoolDelete(*g_renderPool, gpuBufferHolders);
+    gpuBufferHolders = nullptr;
+
+    PoolDelete(*g_renderPool, placeholderData);
+    placeholderData = nullptr;
+
+    PoolDelete(*g_renderPool, materialTextureCache);
+    materialTextureCache = nullptr;
+
+    PoolDelete(*g_renderPool, graphicsPipelineCache);
+    graphicsPipelineCache = nullptr;
+
+    PoolDelete(*g_renderPool, computePipelineCache);
+    computePipelineCache = nullptr;
+
+    PoolDelete(*g_renderPool, rayTracingPipelineCache);
+    rayTracingPipelineCache = nullptr;
+
+    PoolDelete(*g_renderPool, shaderPropertyCache);
+    shaderPropertyCache = nullptr;
+
+    return {};
+}
+
+void RenderInterface::BeginFrame()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1376,7 +1478,7 @@ void BeginFrameRender()
     }
 }
 
-void EndFrameRender()
+void RenderInterface::EndFrame()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1498,8 +1600,8 @@ void EndFrameRender()
 
     g_safeDeleter->Iterate();
 
-    g_renderBackend->ReleaseTransientMemory();
-    g_renderBackend->NextFrame();
+    ReleaseTransientMemory();
+    NextFrame();
 
     g_renderInterface->state.Reset();
     g_renderInterface->constantsAllocator->OnFrameEnd();
@@ -1512,150 +1614,6 @@ void EndFrameRender()
     AtomicIncrement(&s_frameCounter);
 
     s_freeSemaphore.release();
-}
-
-} // namespace RenderApi
-
-#pragma region RenderInterface
-
-RenderInterface::RenderInterface()
-    : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
-      gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
-      constantsAllocator(PoolNew<ConstantsAllocator>(*g_renderPool)),
-      descriptorSetCache(PoolNew<DescriptorSetCache>(*g_renderPool)),
-      placeholderData(PoolNew<PlaceholderData>(*g_renderPool)),
-      materialTextureCache(PoolNew<MaterialTextureCache>(*g_renderPool)),
-      graphicsPipelineCache(PoolNew<GraphicsPipelineCache>(*g_renderPool)),
-      computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
-      rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
-      bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
-      finalPass(nullptr),
-      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      shaderPropertyCache(PoolNew<ShaderPropertyCache>(*g_renderPool))
-{
-    AssertOnThread(g_renderThread);
-
-    // TEMP
-    gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CBUFF>(16, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CBUFF>(1024, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::SSBO>(1024, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::SSBO>(1 << 15, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::SSBO>(1 << 10, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::SSBO>(1 << 6, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::SSBO>(1 << 3, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CBUFF>(1 << 3, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::SSBO>(1 << 3, /* cpuAccessible */ false);
-
-#if HYP_DEBUG_MODE
-    for (int i = 0; i < HYP_ARRAY_SIZE(gpuBuffers.buffers); i++)
-    {
-        if (!gpuBuffers.buffers[i])
-        {
-            continue;
-        }
-
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            const GpuBufferRef& buffer = gpuBuffers.buffers[i]->GetBuffer(frameIndex);
-            AssertDebug(buffer.IsValid());
-
-            buffer->SetDebugName(CreateNameFromDynamicString(EnumToString(GlobalRenderBuffer(i))));
-        }
-    }
-#endif
-
-    globalDescriptorTable = g_renderBackend->MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
-
-    placeholderData->Create();
-    shadowMapAllocator->Initialize();
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        SetDefaultDescriptorSetElements(frameIndex);
-    }
-
-    CreateSphereSamplesBuffer();
-    CreateBlueNoiseBuffer();
-    CreateEnvProbesTexture();
-
-    globalDescriptorTable->Create();
-
-    for (uint32 i = 0; i < GRT_MAX; i++)
-    {
-        globalRenderers[i] = Array<RendererBase*>();
-    }
-
-    globalRenderers[GRT_MAIN].PushBack(new DeferredRenderer);
-    globalRenderers[GRT_MAIN][0]->Initialize();
-
-    globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
-    globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
-    globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer;
-
-    globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
-    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer;
-    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer;
-
-    // one global particle volume renderer
-    globalRenderers[GRT_PARTICLE_VOLUME].ResizeZeroed(1);
-    globalRenderers[GRT_PARTICLE_VOLUME][0] = new ParticleVolumeRenderer;
-}
-
-RenderInterface::~RenderInterface()
-{
-    bindlessStorage->UnsetAllResources();
-    PoolDelete(*g_renderPool, bindlessStorage);
-    bindlessStorage = nullptr;
-
-    for (uint32 i = 0; i < GRT_MAX; i++)
-    {
-        for (uint32 j = 0; j < globalRenderers[i].Size(); j++)
-        {
-            if (globalRenderers[i][j])
-            {
-                globalRenderers[i][j]->Shutdown();
-                delete globalRenderers[i][j];
-            }
-        }
-    }
-
-    shadowMapAllocator->Destroy();
-    placeholderData->Destroy();
-
-    globalDescriptorTable.Reset();
-
-    PoolDelete(*g_renderPool, textureViewCache);
-    textureViewCache = nullptr;
-
-    PoolDelete(*g_renderPool, finalPass);
-    finalPass = nullptr;
-
-    PoolDelete(*g_renderPool, shadowMapAllocator);
-    shadowMapAllocator = nullptr;
-
-    PoolDelete(*g_renderPool, constantsAllocator);
-    constantsAllocator = nullptr;
-
-    PoolDelete(*g_renderPool, gpuBufferHolders);
-    gpuBufferHolders = nullptr;
-
-    PoolDelete(*g_renderPool, placeholderData);
-    placeholderData = nullptr;
-
-    PoolDelete(*g_renderPool, materialTextureCache);
-    materialTextureCache = nullptr;
-
-    PoolDelete(*g_renderPool, graphicsPipelineCache);
-    graphicsPipelineCache = nullptr;
-
-    PoolDelete(*g_renderPool, computePipelineCache);
-    computePipelineCache = nullptr;
-
-    PoolDelete(*g_renderPool, rayTracingPipelineCache);
-    rayTracingPipelineCache = nullptr;
-
-    PoolDelete(*g_renderPool, shaderPropertyCache);
-    shaderPropertyCache = nullptr;
 }
 
 void RenderInterface::AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer)
@@ -1833,7 +1791,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         DSS_GlobalReference = 0x4
     };
 
-    static const auto FetchDescriptorSet = [](const DescriptorSetDeclaration& dsDecl, uint8& outStateFlags) -> DescriptorSet*
+    const auto FetchDescriptorSet = [frameIndex = GetCurrentFrame()->GetFrameIndex()](const DescriptorSetDeclaration& dsDecl, uint8& outStateFlags) -> DescriptorSet*
     {
         // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
         if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
@@ -1849,7 +1807,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             outStateFlags |= DSS_GlobalReference;
 
-            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, g_renderBackend->GetCurrentFrame()->GetFrameIndex());
+            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, frameIndex);
         }
         else
         {
@@ -2176,7 +2134,7 @@ void RenderInterface::UpdateBuffers(Frame* frame)
     for (auto& it : gpuBufferHolders->GetItems())
     {
         it.second->UpdateBufferSize(frameIndex);
-        it.second->UpdateBufferData(frame);
+        it.second->UpdateBufferData(frameIndex, frame->preRenderQueue);
     }
 
     StagingBufferPool::GetInstance().Cleanup(frameIndex);
@@ -2204,7 +2162,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
             + ((scramblingTileOffset - (sobol256spp256dOffset + sobol256spp256dSize)) + scramblingTileSize)
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
-    blueNoiseBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    blueNoiseBuffer = MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
     blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(blueNoiseBuffer->Create());
@@ -2224,7 +2182,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    sphereSamplesBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
+    sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
     sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
     CheckResult(sphereSamplesBuffer->Create());
 
@@ -2334,7 +2292,7 @@ void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
         ->SetElement("LightmapVolumeRadianceTexture"_sh, placeholderData->GetImageView2D1x1R8());
 
     // Bindless
-    if (g_renderBackend->GetRenderConfig().bindlessTextures)
+    if (GetRenderConfig().bindlessTextures)
     {
         DescriptorSet* bindlessDescriptorSet = globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frameIndex);
         Assert(bindlessDescriptorSet != nullptr);

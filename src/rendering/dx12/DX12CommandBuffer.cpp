@@ -3,7 +3,7 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12CommandBuffer.hpp>
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 
 #include <DX12CommandBuffer.generated.inl>
 
@@ -11,7 +11,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 DX12CommandBuffer::DX12CommandBuffer(D3D12_COMMAND_LIST_TYPE type)
     : m_type(type)

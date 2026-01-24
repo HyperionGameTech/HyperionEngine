@@ -5,7 +5,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderResult.hpp>
@@ -110,7 +109,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     GpuBufferRef& constants = pd->constants;
     if (!constants)
     {
-        constants = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
+        constants = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
         constants->SetRequireCpuAccessible(true);
         constants->SetDebugName(NAME("RayTracingConstants"));
         Assert(constants->Create());
@@ -119,7 +118,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     GpuBufferRef& lightsBuffer = pd->lightsBuffer;
     if (!lightsBuffer)
     {
-        lightsBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxLights);
+        lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxLights);
         lightsBuffer->SetRequireCpuAccessible(true);
         lightsBuffer->SetDebugName(NAME("RayTracingLightsBuffer"));
         Assert(lightsBuffer->Create());
@@ -185,7 +184,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
         }
     };
 
-    g_renderBackend->GetCurrentFrame()->OnFrameEnd.Bind(UpdateRayTracingBuffers {
+    g_renderInterface->GetCurrentFrame()->OnFrameEnd.Bind(UpdateRayTracingBuffers {
         Vec2i(m_config.extent),
         renderSetup.view,
         pd

@@ -7,7 +7,7 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 

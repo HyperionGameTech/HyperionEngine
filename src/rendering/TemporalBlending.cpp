@@ -2,7 +2,6 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/TemporalBlending.hpp>
 #include <rendering/GBuffer.hpp>
@@ -246,7 +245,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     // Copy uniform data to gpu buffer
     if (!m_uniformBuffers[frame->GetFrameIndex()])
     {
-         m_uniformBuffers[frame->GetFrameIndex()] = g_renderBackend->MakeGpuBuffer(
+         m_uniformBuffers[frame->GetFrameIndex()] = g_renderInterface->MakeGpuBuffer(
                 GpuBufferType::CBUFF,
                 sizeof(TemporalBlendingUniforms));
          m_uniformBuffers[frame->GetFrameIndex()]->Create();

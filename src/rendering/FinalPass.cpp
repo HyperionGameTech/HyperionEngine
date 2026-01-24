@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "RenderQueue.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/FinalPass.hpp>
@@ -10,7 +9,6 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/GraphicsPipeline.hpp>

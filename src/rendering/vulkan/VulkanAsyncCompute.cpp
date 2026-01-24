@@ -9,13 +9,13 @@
 #include <rendering/vulkan/VulkanComputePipeline.hpp>
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 VulkanAsyncCompute::VulkanAsyncCompute()
     : m_isSupported(false),
@@ -38,17 +38,17 @@ RendererResult VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    Assert(g_renderBackend->GetDevice()->GetQueueFamilyIndices().IsComplete());
+    Assert(g_renderInterface->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
-    VulkanDeviceQueue* queue = g_renderBackend->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* queue = g_renderInterface->GetDevice()->GetComputeQueue();
 
-    m_isSupported = g_renderBackend->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
+    m_isSupported = g_renderInterface->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
 
     if (!m_isSupported)
     {
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
-        queue = g_renderBackend->GetDevice()->GetGraphicsQueue();
+        queue = g_renderInterface->GetDevice()->GetGraphicsQueue();
     }
 
     for (const VulkanCommandBufferRef& commandBuffer : m_commandBuffers)
@@ -78,7 +78,7 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
     renderQueue.Execute(m_commandBuffers[frameIndex]);
     CheckResultOrReturn(m_commandBuffers[frameIndex]->End());
 
-    VulkanDeviceQueue* computeQueue = g_renderBackend->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* computeQueue = g_renderInterface->GetDevice()->GetComputeQueue();
 
     return m_commandBuffers[frameIndex]->SubmitPrimary(computeQueue, m_fences[frameIndex], nullptr, nullptr);
 }

@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI
@@ -94,11 +94,11 @@ public:
     virtual ~IDummyVulkanSurfaceContext() = default;
 };
 
-class VulkanRenderBackend final : public IRenderBackend
+class VulkanRenderInterface final : public RenderInterface
 {
 public:
-    VulkanRenderBackend();
-    ~VulkanRenderBackend() override;
+    VulkanRenderInterface();
+    ~VulkanRenderInterface() override;
 
     HYP_FORCE_INLINE VulkanInstance* GetInstance() const
     {
@@ -108,7 +108,7 @@ public:
     const VulkanDeviceRef& GetDevice() const;
 
     RendererResult Initialize() override;
-    RendererResult Destroy() override;
+    RendererResult Shutdown() override;
 
     const IRenderConfig& GetRenderConfig() const override;
 
@@ -169,8 +169,6 @@ public:
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
-
-    QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc& textureDesc) const override;
 
     UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 

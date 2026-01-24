@@ -17,7 +17,6 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/DescriptorSet.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/PlaceholderData.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
@@ -110,12 +109,12 @@ void RenderGroup::Init()
     ObjectBase::Init();
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!g_renderBackend->GetRenderConfig().parallelRendering)
+    if (!g_renderInterface->GetRenderConfig().parallelRendering)
     {
         m_flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
-    if (!g_renderBackend->GetRenderConfig().indirectRendering)
+    if (!g_renderInterface->GetRenderConfig().indirectRendering)
     {
         m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
@@ -200,7 +199,7 @@ static void RenderAll(
         AssertDebug(indirectRenderer != nullptr);
     }
 
-    static const bool s_useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
+    static const bool s_useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
@@ -435,7 +434,7 @@ static void RenderAll_Parallel(
 
     AssertDebug(parallelRenderingState != nullptr);
 
-    static const bool s_useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
+    static const bool s_useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
 
     if (drawCallCollection.instancedDrawCalls.Empty() && drawCallCollection.drawCalls.Empty())
     {
@@ -716,7 +715,7 @@ void RenderGroup::PerformRendering(
     Framebuffer* framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
     AssertDebug(framebuffer != nullptr);
 
-    static const bool isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
+    static const bool isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
 
     const bool useIndirectRendering = isIndirectRenderingEnabled
         && m_flags[RenderGroupFlags::INDIRECT_RENDERING]
@@ -741,7 +740,7 @@ void RenderGroup::PerformRendering(
     //    Assert(gpuBuffer.IsValid());
 
     //    DescriptorSetRef& descriptorSet = drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()];
-    //    descriptorSet = g_renderBackend->MakeDescriptorSet(DescriptorSetLayout(instancingDescriptorSetDecl));
+    //    descriptorSet = g_renderInterface->MakeDescriptorSet(DescriptorSetLayout(instancingDescriptorSetDecl));
     //    descriptorSet->SetElement("EntityInstanceBatchesBuffer"_sh, gpuBuffer);
     //    Assert(descriptorSet->Create());
     //}

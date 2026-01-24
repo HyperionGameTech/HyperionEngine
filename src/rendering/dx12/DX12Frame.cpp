@@ -4,13 +4,13 @@
 
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 
 #include <DX12Frame.generated.inl>
 
 namespace Hyperion {
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 #pragma region DX12Frame
 

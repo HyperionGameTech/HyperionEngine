@@ -20,6 +20,8 @@ namespace Hyperion {
 class VulkanAsyncCompute final : public AsyncComputeBase
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     VulkanAsyncCompute();
     ~VulkanAsyncCompute() override;
 

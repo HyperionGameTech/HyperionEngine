@@ -4,7 +4,6 @@
 
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -97,7 +96,7 @@ ConstantsAllocator::Block* ConstantsAllocator::NewBlock()
 {
     Block* newBlock = new Block;
 
-    GpuBufferRef buffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, BlockSize, 256);
+    GpuBufferRef buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, BlockSize, 256);
     Assert(buffer != nullptr);
 
     Assert(buffer->Create());

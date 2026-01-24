@@ -9,7 +9,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -920,7 +919,7 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
-    static const bool s_isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
+    static const bool s_isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
     const bool performOcclusionCulling = s_isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
 
     if (performOcclusionCulling)

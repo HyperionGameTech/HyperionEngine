@@ -3,13 +3,13 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12Sampler.hpp>
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 
 #include <DX12Sampler.generated.inl>
 
 namespace Hyperion {
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 #pragma region DX12Sampler
 

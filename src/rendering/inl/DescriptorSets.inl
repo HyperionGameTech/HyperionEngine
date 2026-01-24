@@ -16,7 +16,7 @@ HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), false);
 
 // Bindless descriptors
-HYP_DESCRIPTOR_SRV_COND(GlobalBindless, Textures, MaxBindlessResources, g_renderBackend->GetRenderConfig().bindlessTextures);
+HYP_DESCRIPTOR_SRV_COND(GlobalBindless, Textures, MaxBindlessResources, g_renderInterface->GetRenderConfig().bindlessTextures);
 
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Entity, LightmapVolumeRadianceTexture, 1);
@@ -24,16 +24,16 @@ HYP_DESCRIPTOR_SSBO(Entity, CurrentEntity, 1, sizeof(EntityShaderData), true); /
 HYP_DESCRIPTOR_SSBO(Entity, SkeletonsBuffer, 1, sizeof(SkeletonShaderData), true);
 HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer, 1, sizeof(MaterialShaderData), true);
 
-HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGBufferTargets, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, GBufferNormalsTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, GBufferMaterialTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, GBufferVelocityTexture, 1, !g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferTextures, NumGBufferTargets, g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferAlbedoTexture, 1, !g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferNormalsTexture, 1, !g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferMaterialTexture, 1, !g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, GBufferVelocityTexture, 1, !g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture, 1);
 HYP_DESCRIPTOR_SRV(View, GBufferMipChain, 1);
 HYP_DESCRIPTOR_SRV(View, DeferredResult, 1);
-HYP_DESCRIPTOR_SRV_COND(View, PostFXPreStack, 4, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
-HYP_DESCRIPTOR_SRV_COND(View, PostFXPostStack, 4, g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, PostFXPreStack, 4, g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
+HYP_DESCRIPTOR_SRV_COND(View, PostFXPostStack, 4, g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing);
 HYP_DESCRIPTOR_SRV(View, SSRResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, SSGIResultTexture, 1);
 HYP_DESCRIPTOR_SRV(View, SSAOResultTexture, 1);

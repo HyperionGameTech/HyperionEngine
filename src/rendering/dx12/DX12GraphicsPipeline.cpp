@@ -4,7 +4,7 @@
 
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
 #include <rendering/dx12/DX12Shader.hpp>
-#include <rendering/dx12/DX12RenderBackend.hpp>
+#include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12Framebuffer.hpp>
 #include <rendering/dx12/DX12Attachment.hpp>
@@ -18,7 +18,7 @@
 
 namespace Hyperion {
 
-extern DX12RenderBackend* g_renderBackend;
+extern DX12RenderInterface* g_renderInterface;
 
 static D3D12_RASTERIZER_DESC GetDefaultRasterizerDesc()
 {

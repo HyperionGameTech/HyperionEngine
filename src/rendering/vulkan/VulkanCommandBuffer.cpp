@@ -6,7 +6,7 @@
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 #include <rendering/vulkan/VulkanSemaphore.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
@@ -17,7 +17,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderingBackend);
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 VulkanCommandBuffer::VulkanCommandBuffer(VkCommandBufferLevel type)
     : m_type(type),
@@ -33,7 +33,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
     {
         Assert(m_commandPool != VK_NULL_HANDLE);
 
-        vkFreeCommandBuffers(g_renderBackend->GetDevice()->GetDevice(), m_commandPool, 1, &m_handle);
+        vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), m_commandPool, 1, &m_handle);
 
         m_handle = VK_NULL_HANDLE;
         m_commandPool = VK_NULL_HANDLE;
@@ -69,7 +69,7 @@ RendererResult VulkanCommandBuffer::Create()
     allocInfo.commandBufferCount = 1;
 
     VULKAN_CHECK_MSG(
-        vkAllocateCommandBuffers(g_renderBackend->GetDevice()->GetDevice(), &allocInfo, &m_handle),
+        vkAllocateCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), &allocInfo, &m_handle),
         "Failed to allocate command buffer");
 
     return {};

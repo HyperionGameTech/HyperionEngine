@@ -36,14 +36,12 @@ DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType)
         return DXGI_FORMAT_R10G10B10A2_UNORM;
     case TF_R16:
         return DXGI_FORMAT_R16_UINT;
-    case TF_RG16_: // fallthrough
     case TF_RG16:
         return DXGI_FORMAT_R16G16_UINT;
     case TF_RGB16:
         return DXGI_FORMAT_R16G16B16A16_UINT;
     case TF_RGBA16:
         return DXGI_FORMAT_R16G16B16A16_UINT;
-    case TF_R32_: // fallthrough
     case TF_R32:
         return DXGI_FORMAT_R32_UINT;
     case TF_RG32:

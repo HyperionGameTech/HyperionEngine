@@ -11,7 +11,6 @@
 #include <core/memory/UniquePtr.hpp>
 
 #include <rendering/GpuBufferHolderMap.hpp>
-#include <rendering/Buffers.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 
@@ -251,10 +250,7 @@ public:
         return m_structAlignment;
     }
 
-    HYP_FORCE_INLINE void ReleaseBatch(EntityInstanceBatch* batch) const
-    {
-        m_bufferHolder->ReleaseIndex(batch->batchIndex);
-    }
+    void ReleaseBatch(EntityInstanceBatch* batch) const;
 
     HYP_FORCE_INLINE GpuBufferHolderBase* GetGpuBufferHolder() const
     {

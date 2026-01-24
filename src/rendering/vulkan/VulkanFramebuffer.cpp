@@ -3,7 +3,7 @@
 #include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanFramebuffer.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 #include <rendering/vulkan/VulkanInstance.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
@@ -23,7 +23,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFramebuffer* framebuffer, Span<VulkanAttachmentDef*> attachmentDefs)
 {
@@ -87,7 +87,7 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
-    VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
+    VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
 
     if (frame != nullptr)
     {
@@ -98,7 +98,7 @@ RendererResult VulkanAttachmentMap::Create()
         return {};
     }
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
         {
@@ -174,7 +174,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         attachmentDefs.PushBack(&def);
     }
 
-    VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
+    VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
 
     // frame may be nullptr if we are creating a swapchain
     if (frame != nullptr)
@@ -186,7 +186,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
         return {};
     }
 
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
         {
@@ -219,7 +219,7 @@ VulkanFramebuffer::~VulkanFramebuffer()
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyFramebuffer(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
@@ -287,12 +287,12 @@ RendererResult VulkanFramebuffer::Create()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        VULKAN_CHECK(vkCreateFramebuffer(g_renderBackend->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
+        VULKAN_CHECK(vkCreateFramebuffer(g_renderInterface->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
     }
 
     if (shouldClearFramebuffer)
     {
-        VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
+        VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
 
         // clear in current frame
         if (frame != nullptr)
@@ -303,7 +303,7 @@ RendererResult VulkanFramebuffer::Create()
             return {};
         }
 
-        UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+        UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
         singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
             {
@@ -341,7 +341,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyFramebuffer(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
@@ -368,12 +368,12 @@ RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
     framebufferCreateInfo.layers = numLayers;
 
     VULKAN_CHECK(vkCreateFramebuffer(
-        g_renderBackend->GetDevice()->GetDevice(),
+        g_renderInterface->GetDevice()->GetDevice(),
         &framebufferCreateInfo,
         nullptr,
         &m_handle));
 
-    RenderQueue& renderQueue = g_renderBackend->GetCurrentFrame()->preRenderQueue;
+    RenderQueue& renderQueue = g_renderInterface->GetCurrentFrame()->preRenderQueue;
     renderQueue << ClearFramebuffer(this);
 
     return {};

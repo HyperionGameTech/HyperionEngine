@@ -24,7 +24,6 @@
 #include <rendering/Device.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
@@ -130,7 +129,7 @@ static void GetDeferredShaderProperties(
     LightType lightType = LT_INVALID)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
-    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
 
     outShaderProperties.SetRequiredVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
@@ -215,7 +214,7 @@ void DeferredPass::Create()
     // linear transform cosines texture data
     if (m_mode == DPM_DIRECT_LIGHTING && !m_ltcSampler)
     {
-        m_ltcSampler = g_renderBackend->MakeSampler(
+        m_ltcSampler = g_renderInterface->MakeSampler(
             TFM_NEAREST,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE);
@@ -728,7 +727,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         if (!uniformBuffer)
         {
-            uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
+            uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
             CheckResult(uniformBuffer->Create());
         }
 
@@ -886,7 +885,7 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     
     if (!data.cBuffer)
     {
-        data.cBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
+        data.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
         Assert(data.cBuffer->Create());
     }
 
@@ -1233,7 +1232,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     RenderTargetDesc renderTargetDesc {};
     renderTargetDesc.extent = gbuffer->GetExtent();
 
-    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
+    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
     TextureDesc textureDesc;
     textureDesc.type = TT_TEX2D;
@@ -1246,7 +1245,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 
     Attachment* colorAttachment = framebuffer->AddAttachment(
         0,
-        g_renderBackend->MakeImage(textureDesc),
+        g_renderInterface->MakeImage(textureDesc),
         LoadOperation::CLEAR,
         StoreOperation::STORE);
 
@@ -1413,7 +1412,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRend
 
     const DescriptorSetLayout layout { decl };
 
-    DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
+    DescriptorSetRef descriptorSet = g_renderInterface->MakeDescriptorSet(layout);
     descriptorSet->SetDebugName(NAME("FinalPassDescriptorSet"));
     descriptorSet->SetElement("InTexture"_sh, inputImageView);
 
@@ -1444,10 +1443,10 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPass
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
+        DescriptorSetRef descriptorSet = g_renderInterface->MakeDescriptorSet(layout);
         descriptorSet->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frameIndex));
 
-        if (g_renderBackend->GetRenderConfig().dynamicDescriptorIndexing)
+        if (g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing)
         {
             uint32 gbufferElementIndex = 0;
 
@@ -1535,7 +1534,7 @@ void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPa
 {
     AssertOnThread(g_renderThread);
 
-    if (!g_renderBackend->GetRenderConfig().rayTracing)
+    if (!g_renderInterface->GetRenderConfig().rayTracing)
     {
         return;
     }
@@ -1578,7 +1577,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
     {
         GpuTlasRef& tlas = passData.rayTracingTlases[frameIndex];
 
-        tlas = g_renderBackend->MakeTLAS();
+        tlas = g_renderInterface->MakeTLAS();
         tlas->AddGpuBlas(blas);
 
         CheckResult(tlas->Create());
@@ -2326,7 +2325,7 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
     {
         for (GpuTlasRef& tlas : pd->rayTracingTlases)
         {
-            tlas = g_renderBackend->MakeTLAS();
+            tlas = g_renderInterface->MakeTLAS();
         }
     }
 

@@ -12,7 +12,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 VulkanTextureViewCache::~VulkanTextureViewCache()
 {

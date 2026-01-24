@@ -12,7 +12,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Device.hpp>
@@ -238,7 +237,7 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
         return nullptr;
     }
 
-    if (!g_renderBackend->GetRenderConfig().rayTracing)
+    if (!g_renderInterface->GetRenderConfig().rayTracing)
     {
         HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
 

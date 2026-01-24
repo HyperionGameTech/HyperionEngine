@@ -9,7 +9,6 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/Mesh.hpp>
@@ -66,7 +65,7 @@ struct RenderTextureMipmapLevelsTask
     void operator()()
     {
         // draw a quad for each level
-        Frame* frame = g_renderBackend->GetCurrentFrame();
+        Frame* frame = g_renderInterface->GetCurrentFrame();
         RenderQueue& rq = frame->renderQueue;
 
         const Vec3u extent = image->GetExtent();
@@ -144,7 +143,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         const uint32 mipWidth = MathUtil::Max(1u, extent.x >> mipLevel);
         const uint32 mipHeight = MathUtil::Max(1u, extent.y >> mipLevel);
 
-        GpuImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumArrayLayers());
+        GpuImageViewRef mipImageView = g_renderInterface->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumArrayLayers());
         DeferCreate(mipImageView);
 
         mipImageViews[mipLevel] = std::move(mipImageView);

@@ -10,9 +10,9 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -381,7 +381,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
 
-    if (RendererResult result = g_renderBackend->GetVkExtensions(extensionNames); result.HasError())
+    if (RendererResult result = g_renderInterface->GetVkExtensions(extensionNames); result.HasError())
     {
         return result;
     }
@@ -445,7 +445,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
     IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
-    VkSurfaceKHR surface = g_renderBackend->CreateSurface(nullptr, &dummySurfaceContext);
+    VkSurfaceKHR surface = g_renderInterface->CreateSurface(nullptr, &dummySurfaceContext);
 
     Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));

@@ -4,7 +4,7 @@
 
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Swapchain.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -47,13 +47,13 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
     }
     else if (const DefaultImageFormat* defaultFormat = s_targetDescs[targetName].format.TryGet<DefaultImageFormat>())
     {
-        colorFormat = g_renderBackend->GetDefaultFormat(*defaultFormat);
+        colorFormat = g_renderInterface->GetDefaultFormat(*defaultFormat);
     }
     else if (const Array<TextureFormat>* defaultFormats = s_targetDescs[targetName].format.TryGet<Array<TextureFormat>>())
     {
         for (const TextureFormat format : *defaultFormats)
         {
-            if (g_renderBackend->IsSupportedFormat(format, IS_SRV))
+            if (g_renderInterface->IsSupportedFormat(format, ImageSupport::Attachment))
             {
                 colorFormat = format;
 
@@ -186,7 +186,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     renderTargetDesc.extent = resolution;
     renderTargetDesc.numLayers = 1;
 
-    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(renderTargetDesc);
+    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
     auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
     {
@@ -199,7 +199,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
         textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-        GpuImageRef gpuImage = g_renderBackend->MakeImage(textureDesc);
+        GpuImageRef gpuImage = g_renderInterface->MakeImage(textureDesc);
         gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
 
         return framebuffer->AddAttachment(
