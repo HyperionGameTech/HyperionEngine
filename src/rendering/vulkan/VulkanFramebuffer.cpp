@@ -163,7 +163,8 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
         if (def.attachment != nullptr)
         {
-            delete def.attachment;
+            def.attachment->Release();
+            def.attachment = nullptr;
         }
 
         def = VulkanAttachmentDef {

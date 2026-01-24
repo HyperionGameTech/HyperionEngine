@@ -253,6 +253,4 @@ void PostProcessing::RenderPost(Frame* frame, const RenderSetup& renderSetup) co
     }
 }
 
-HYP_DESCRIPTOR_CBUFF(View, PostProcessingUniforms, 1, sizeof(PostProcessingUniforms), false);
-
 } // namespace Hyperion

@@ -249,7 +249,6 @@ public:
     BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
     BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
 
-    static void PrepareStatic(CmdBase* cmd, Frame* frame);
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
@@ -272,7 +271,6 @@ public:
     BindDescriptorTable(DescriptorTable* descriptorTable, ComputePipeline* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
     BindDescriptorTable(DescriptorTable* descriptorTable, RayTracingPipeline* rayTracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
 
-    static void PrepareStatic(CmdBase* cmd, Frame* frame);
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:

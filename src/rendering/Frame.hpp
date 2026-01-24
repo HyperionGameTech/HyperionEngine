@@ -15,8 +15,6 @@
 
 #include <core/Types.hpp>
 
-// #define HYP_DEBUG_USED_DESCRIPTOR_SETS
-
 namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
@@ -32,14 +30,10 @@ public:
 
     virtual void OnFrameStart();
 
-    void UpdateUsedDescriptorSets();
-
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
     {
         return m_frameIndex;
     }
-
-    void MarkDescriptorSetUsed(DescriptorSet* descriptorSet);
 
     Delegate<void, Frame*> OnPresent;
     Delegate<void, Frame*> OnFrameEnd;
@@ -57,7 +51,6 @@ protected:
 
     uint32 m_frameIndex;
     uint32 m_frameCounter;
-    Array<DescriptorSet*, RenderAllocator> m_usedDescriptorSets;
 };
 
 } // namespace Hyperion

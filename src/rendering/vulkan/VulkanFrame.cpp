@@ -62,21 +62,6 @@ void VulkanFrame::OnFrameStart()
 
     CheckResult(m_queueSubmitFence->Reset());
 
-#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
-    for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
-    {
-        auto it = descriptorSet->GetCurrentFrames().FindAs(this);
-        if (it != descriptorSet->GetCurrentFrames().End())
-        {
-            // Remove the current frame from the descriptor set's current frames
-            // This is necessary to ensure that the descriptor set is not used in the next frame
-            descriptorSet->GetCurrentFrames().Erase(it);
-        }
-    }
-#endif
-
-    m_usedDescriptorSets.Clear();
-
     if (OnFrameEnd.AnyBound())
     {
         OnFrameEnd(this);

@@ -145,15 +145,6 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPip
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
 }
 
-void BindDescriptorSet::PrepareStatic(CmdBase* cmd, Frame* frame)
-{
-    BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
-
-    Assert(cmdCasted->m_descriptorSet->IsCreated());
-
-    frame->MarkDescriptorSetUsed(cmdCasted->m_descriptorSet);
-}
-
 void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
@@ -209,23 +200,6 @@ BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, RayTr
       m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
-}
-
-void BindDescriptorTable::PrepareStatic(CmdBase* cmd, Frame* frame)
-{
-    BindDescriptorTable* cmdCasted = static_cast<BindDescriptorTable*>(cmd);
-
-    for (const DescriptorSetRef& descriptorSet : cmdCasted->m_descriptorTable->GetSets()[frame->GetFrameIndex()])
-    {
-        if (descriptorSet->GetLayout().IsTemplate())
-        {
-            continue;
-        }
-
-        Assert(descriptorSet->IsCreated());
-
-        frame->MarkDescriptorSetUsed(descriptorSet);
-    }
 }
 
 void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)

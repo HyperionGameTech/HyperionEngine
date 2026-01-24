@@ -434,7 +434,4 @@ ShadowMap* DirectionalShadowRenderer::AllocateShadowMap(Light* light)
 
 #pragma endregion DirectionalShadowRenderer
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray, 1);
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray, 1);
-
 } // namespace Hyperion
