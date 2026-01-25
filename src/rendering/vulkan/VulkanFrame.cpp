@@ -75,8 +75,6 @@ void VulkanFrame::OnFrameStart()
     }
 #endif
 
-    m_usedDescriptorSets.Clear();
-
     if (OnFrameEnd.AnyBound())
     {
         OnFrameEnd(this);
@@ -94,8 +92,6 @@ RendererResult VulkanFrame::Submit(
     preRenderQueue.Prepare(this);
     renderQueue.Prepare(this);
     postRenderQueue.Prepare(this);
-
-    UpdateUsedDescriptorSets();
 
     if (OnPresent.AnyBound())
     {

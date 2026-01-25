@@ -150,8 +150,6 @@ void BindDescriptorSet::PrepareStatic(CmdBase* cmd, Frame* frame)
     BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
 
     Assert(cmdCasted->m_descriptorSet->IsCreated());
-
-    frame->MarkDescriptorSetUsed(cmdCasted->m_descriptorSet);
 }
 
 void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -223,8 +221,6 @@ void BindDescriptorTable::PrepareStatic(CmdBase* cmd, Frame* frame)
         }
 
         Assert(descriptorSet->IsCreated());
-
-        frame->MarkDescriptorSetUsed(descriptorSet);
     }
 }
 
