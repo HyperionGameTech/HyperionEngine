@@ -25,7 +25,24 @@ namespace Hyperion {
 
 struct DescriptorTableDeclaration;
 
-enum DescriptorSlot : uint32;
+static constexpr const char* DefaultEntryPointNames[] = {
+    "VSMain",               // SMT_VERTEX
+    "PSMain",               // SMT_FRAGMENT
+    "CSMain",               // SMT_COMPUTE
+    "GSMain",               // SMT_GEOMETRY
+
+    "TaskMain",             // SMT_TASK
+    "MeshMain",             // SMT_MESH
+
+    "TessControlMain",      // SMT_TESS_CONTROL
+    "TessEvalMain",         // SMT_TESS_EVAL
+
+    "RayGenMain",           // SMT_RAY_GEN
+    "RayIntersectMain",     // SMT_RAY_INTERSECT
+    "RayAnyHitMain",        // SMT_RAY_ANY_HIT
+    "RayClosestHitMain",    // SMT_RAY_CLOSEST_HIT
+    "RayMissMain"           // SMT_RAY_MISS
+};
 
 HYP_ENUM()
 enum class ShaderLanguage : uint32
@@ -42,17 +59,17 @@ enum class ProcessShaderSourcePhase : uint32
 };
 
 HYP_ENUM()
-enum DescriptorSlot : uint32
+enum class DescriptorSlot : uint8
 {
-    DESCRIPTOR_SLOT_NONE = 0,
-    DESCRIPTOR_SLOT_SRV,
-    DESCRIPTOR_SLOT_UAV,
-    DESCRIPTOR_SLOT_CBUFF,
-    DESCRIPTOR_SLOT_SSBO,
-    DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE,
-    DESCRIPTOR_SLOT_SAMPLER,
-    DESCRIPTOR_SLOT_MAX
+    NONE = 0,
+    SRV,
+    UAV,
+    BUFFER,
+    SAMPLER,
+    MAX
 };
+
+static constexpr uint8 NumDescriptorSlots = uint8(DescriptorSlot::MAX);
 
 HYP_ENUM()
 enum class DescriptorSetDeclarationFlags : uint8
@@ -72,7 +89,10 @@ struct DescriptorDeclaration
     using ConditionFunction = bool (*)();
 
     HYP_FIELD(Property = "Slot", Serialize = true)
-    DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
+    DescriptorSlot slot = DescriptorSlot::NONE;
+
+    HYP_FIELD(Property = "ElementType", Serialize = true)
+    DescriptorType type = DescriptorType::UNSET;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
@@ -96,6 +116,7 @@ struct DescriptorDeclaration
         HashCode hc;
 
         hc.Add(slot);
+        hc.Add(type);
         hc.Add(name);
         hc.Add(count);
         hc.Add(size);
@@ -120,7 +141,7 @@ struct DescriptorSetDeclaration
     Name name = Name::Invalid();
 
     HYP_FIELD(Property = "Slots", Serialize = true)
-    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, DESCRIPTOR_SLOT_MAX> slots = {};
+    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, NumDescriptorSlots> slots = {};
 
     HYP_FIELD(Property = "Flags", Serialize = true)
     EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
@@ -141,10 +162,10 @@ struct DescriptorSetDeclaration
 
     HYP_FORCE_INLINE void AddDescriptorDeclaration(DescriptorDeclaration decl)
     {
-        AssertDebug(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
+        AssertDebug(decl.slot != DescriptorSlot::NONE && uint8(decl.slot) < NumDescriptorSlots);
 
-        decl.index = uint32(slots[uint32(decl.slot) - 1].Size());
-        slots[uint32(decl.slot) - 1].PushBack(std::move(decl));
+        decl.index = uint32(slots[uint8(decl.slot) - 1].Size());
+        slots[uint8(decl.slot) - 1].PushBack(std::move(decl));
     }
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
@@ -236,7 +257,7 @@ struct DescriptorTableDeclaration
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorType type, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
         {
             AssertDebug(table != nullptr);
 
@@ -255,14 +276,15 @@ struct DescriptorTableDeclaration
 
             DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
             AssertDebug(descriptorSetDecl.setIndex == setIndex);
-            AssertDebug(slotType > 0 && slotType < descriptorSetDecl.slots.Size());
 
-            const uint32 slotTypeIndex = uint32(slotType) - 1;
+            const uint32 slotTypeIndex = uint8(slotType) - 1;
+            AssertDebug(slotTypeIndex < descriptorSetDecl.slots.Size());
 
             const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
 
             DescriptorDeclaration& descriptorDecl = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
             descriptorDecl.index = slotIndex;
+            descriptorDecl.type = type;
             descriptorDecl.slot = slotType;
             descriptorDecl.name = descriptorName;
             descriptorDecl.cond = cond;
@@ -284,11 +306,17 @@ struct HYP_API CompiledShader
     HYP_FIELD(Property = "DescriptorTableDeclaration")
     DescriptorTableDeclaration descriptorTableDeclaration;
 
-    HYP_FIELD(Property = "EntryPointName")
-    String entryPointName = "main";
+    HYP_FIELD(Property = "ShaderModuleTypes")
+    Array<ShaderModuleType> moduleTypes;
 
-    HYP_FIELD(Property = "Modules", Compressed)
-    FixedArray<ByteBuffer, SMT_MAX> modules;
+    HYP_FIELD(Property = "ShaderModuleNames")
+    Array<String> moduleNames;
+
+    HYP_FIELD(Property = "EntryPointNames")
+    Array<String> entryPointNames;
+
+    HYP_FIELD(Property = "ShaderBlobs", Compressed)
+    Array<ByteBuffer> shaderBlobs;
 
     /// ===== Serialization only =====
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
@@ -313,7 +341,10 @@ struct HYP_API CompiledShader
     HYP_FORCE_INLINE bool IsValid() const
     {
         return definition.IsValid()
-            && AnyOf(modules, &ByteBuffer::Any);
+            && shaderBlobs.Any()
+            && moduleTypes.Size() == shaderBlobs.Size()
+            && moduleNames.Size() == shaderBlobs.Size()
+            && entryPointNames.Size() == shaderBlobs.Size();
     }
 
     HYP_FORCE_INLINE Name GetName() const
@@ -337,21 +368,53 @@ struct HYP_API CompiledShader
         return &descriptorTableDeclaration;
     }
 
-    HYP_FORCE_INLINE const String& GetEntryPointName() const
-    {
-        return entryPointName;
-    }
-
     HYP_FORCE_INLINE const ShaderProperties& GetProperties() const
     {
         return definition.properties;
+    }
+
+    void AddShaderModule(
+        ShaderModuleType moduleType,
+        UTF8StringView moduleName,
+        UTF8StringView entryPointName,
+        ByteBuffer&& shaderBlob);
+
+    void AddShaderModule(
+        ShaderModuleType moduleType,
+        UTF8StringView moduleName,
+        ByteBuffer&& shaderBlob)
+    {
+        AddShaderModule(moduleType, moduleName, DefaultEntryPointNames[moduleType], std::move(shaderBlob));
+    }
+
+    bool GetShaderModuleInfo(
+        uint32 index,
+        ShaderModuleType& outModuleType,
+        String& outModuleName,
+        String& outEntryPointName,
+        ConstByteView& outShaderBlob) const
+    {
+        if (!IsValid() || index < 0 || index >= moduleTypes.Size())
+        {
+            return false;
+        }
+
+        outModuleType = moduleTypes[index];
+        outModuleName = moduleNames[index];
+        outEntryPointName = entryPointNames[index];
+        outShaderBlob = shaderBlobs[index].ToByteView();
+
+        return true;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(definition.GetHashCode());
-        hc.Add(modules.GetHashCode());
+        hc.Add(moduleTypes.GetHashCode());
+        hc.Add(moduleNames.GetHashCode());
+        hc.Add(entryPointNames.GetHashCode());
+        hc.Add(shaderBlobs.GetHashCode());
 
         return hc;
     }

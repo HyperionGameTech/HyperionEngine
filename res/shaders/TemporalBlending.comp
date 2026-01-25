@@ -49,19 +49,19 @@ HYP_DESCRIPTOR_UAV(TemporalBlending, OutImage, format = OUTPUT_FORMAT) uniform w
 #include "./include/Temporal.glsl"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF(TemporalBlending, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(TemporalBlending, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(TemporalBlending, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(TemporalBlending, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
 HYP_DESCRIPTOR_SRV(TemporalBlending, GBufferDepthTexture) uniform texture2D depth_texture;
 
-HYP_DESCRIPTOR_CBUFF(TemporalBlending, TemporalBlendingUniforms) uniform TemporalBlendingUniforms
+HYP_DESCRIPTOR_BUFFER(TemporalBlending, TemporalBlendingUniforms) uniform TemporalBlendingUniforms
 {
     uvec2 output_dimensions;
     uvec2 depth_texture_dimensions;
@@ -96,10 +96,10 @@ void main(void)
         view_space_depth);
 
 #ifdef PASSTHROUGH
-    color = Texture2D(sampler_nearest, input_texture, uv);
+    color = SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv);
 #elif TEMPORAL_BLEND_TECHNIQUE == 0
-    color = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(Texture2D(sampler_nearest, input_texture, uv)));
-    vec4 previous_color = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(Texture2D(sampler_linear, prev_input_texture, uv - velocity)));
+    color = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv)));
+    vec4 previous_color = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, prev_input_texture, uv - velocity)));
 
     const float _SubpixelThreshold = 0.5;
     const float _GatherBase = 0.5;
@@ -107,7 +107,7 @@ void main(void)
 
     const vec2 texel_vel = velocity / max(vec2(HYP_FMATH_EPSILON), texel_size);
     const float texel_vel_mag = length(texel_vel) * view_space_depth;
-    const float subpixel_motion = Saturate(_SubpixelThreshold / max(HYP_FMATH_EPSILON, texel_vel_mag));
+    const float subpixel_motion = saturate(_SubpixelThreshold / max(HYP_FMATH_EPSILON, texel_vel_mag));
     const float min_max_support = _GatherBase + _GatherSubpixelMotion * subpixel_motion;
 
     vec4 mean = color;
@@ -125,7 +125,7 @@ void main(void)
 
     for (int i = 0; i < 4; i++)
     {
-        vec4 c = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(Texture2D(sampler_linear, input_texture, uv + offsets[i])));
+        vec4 c = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv + offsets[i])));
 
         mean += c;
         stddev += c * c;
@@ -152,8 +152,8 @@ void main(void)
 #elif TEMPORAL_BLEND_TECHNIQUE == 3
     color = TemporalBlendVarying(input_texture, prev_input_texture, uv, velocity, texel_size, view_space_depth);
 #elif TEMPORAL_BLEND_TECHNIQUE == 4
-    color = Texture2D(sampler_nearest, input_texture, uv);
-    vec4 previous_color = Texture2D(sampler_linear, prev_input_texture, uv);
+    color = SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv);
+    vec4 previous_color = SAMPLE_TEXTURE_2D(sampler_linear, prev_input_texture, uv);
 
     // Moving average over number of frames
     if (blending_frame_counter > 0)

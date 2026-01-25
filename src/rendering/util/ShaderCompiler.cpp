@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "ShaderCompiler.hpp"
 #include <RenderingPch.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
@@ -130,7 +131,7 @@ String GetShaderVersionFromSource(const String& source, String& outSourceWithout
     return "#version 450\n";
 }
 
-static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& descriptorTableDeclaration)
+static String BuildDescriptorTableDefines(ShaderLanguage language, const DescriptorTableDeclaration& descriptorTableDeclaration)
 {
     String descriptorTableDefines;
 
@@ -142,7 +143,14 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
         const uint32 setIndex = descriptorTableDeclaration.GetDescriptorSetIndex(descriptorSetDeclaration.name);
         Assert(setIndex != -1);
 
-        descriptorTableDefines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptorSetDeclaration.name.LookupString()) + " " + String::ToString(setIndex) + "\n";
+        if (language == ShaderLanguage::GLSL)
+        {
+            descriptorTableDefines += "#define _" + String(*descriptorSetDeclaration.name) + "_SET" + " " + String::ToString(setIndex) + "\n";
+        }
+        else if (language == ShaderLanguage::HLSL)
+        {
+            descriptorTableDefines += "#define _" + String(*descriptorSetDeclaration.name) + "_SPACE" + " " + ("space" + String::ToString(setIndex)) + "\n";
+        }
 
         if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
@@ -156,10 +164,55 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
         {
             for (const DescriptorDeclaration& descriptorDeclaration : descriptorDeclarations)
             {
-                const uint32 flatIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(descriptorDeclaration.slot, descriptorDeclaration.name);
-                Assert(flatIndex != uint32(-1));
+                descriptorTableDefines += '\t';
 
-                descriptorTableDefines += "\t#define HYP_DESCRIPTOR_INDEX_" + String(descriptorSetDeclarationPtr->name.LookupString()) + "_" + descriptorDeclaration.name.LookupString() + " " + String::ToString(flatIndex) + "\n";
+                switch (language)
+                {
+                case ShaderLanguage::GLSL:
+                {
+                    const uint32 flatIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(descriptorDeclaration.slot, descriptorDeclaration.name);
+                    Assert(flatIndex != uint32(-1));
+
+                    descriptorTableDefines += HYP_FORMAT("#define _{}_{}_BINDING {}",
+                        descriptorSetDeclarationPtr->name, descriptorDeclaration.name,
+                        flatIndex);
+
+                    break;
+                }
+                case ShaderLanguage::HLSL:
+                {
+                    char registerKey = 0;
+
+                    switch (descriptorDeclaration.slot)
+                    {
+                    case DescriptorSlot::SRV:
+                        registerKey = 't';
+                        break;
+                    case DescriptorSlot::UAV:
+                        registerKey = 'u';
+                        break;
+                    case DescriptorSlot::BUFFER:
+                        registerKey = 'b';
+                        break;
+                    case DescriptorSlot::SAMPLER:
+                        registerKey = 's';
+                        break;
+                    default:
+                        HYP_UNREACHABLE();
+                    }
+
+                    descriptorTableDefines += HYP_FORMAT("#define _{}_{}_REGISTER {}{}",
+                        descriptorSetDeclarationPtr->name, descriptorDeclaration.name,
+                        registerKey,
+                        descriptorDeclaration.index);
+
+                    break;
+                }
+                default:
+                    HYP_UNREACHABLE();
+                }
+
+                descriptorTableDefines += '\n';
             }
         }
     }
@@ -167,9 +220,12 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
     return descriptorTableDefines;
 }
 
-static String BuildPreamble(const ShaderProperties& properties)
+static String BuildPreamble(ShaderLanguage language, const ShaderProperties& properties)
 {
     String preamble;
+
+    // define shader language
+    preamble += String("#define LANG_") + (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL") + " 1\n\n";
 
     for (const VertexAttribute* attr : properties.GetRequiredVertexAttributes().BuildAttributes())
     {
@@ -227,10 +283,11 @@ static String BuildPreamble(const ShaderProperties& properties)
 }
 
 static String BuildPreamble(
+    ShaderLanguage language,
     const ShaderProperties& properties,
     const DescriptorTableDeclaration& descriptorTableDeclaration)
 {
-    return BuildDescriptorTableDefines(descriptorTableDeclaration) + "\n\n" + BuildPreamble(properties);
+    return BuildDescriptorTableDefines(language, descriptorTableDeclaration) + "\n\n" + BuildPreamble(language, properties);
 }
 
 void MergeGlobalShaderProperties(ShaderProperties& properties)
@@ -317,25 +374,25 @@ enum class DescriptorUsageFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
 
-struct DescriptorUsageType
+struct StructureType
 {
     Name name;
     uint32 size = ~0u;
     Array<Name> fieldNames;
-    Array<DescriptorUsageType, DynamicAllocator> fieldTypes;
+    Array<StructureType, DynamicAllocator> fieldTypes;
 
-    DescriptorUsageType() = default;
+    StructureType() = default;
 
-    DescriptorUsageType(Name name, uint32 size = ~0u)
+    StructureType(Name name, uint32 size = ~0u)
         : name(name),
           size(size)
     {
     }
 
-    DescriptorUsageType(const DescriptorUsageType& other) = default;
-    DescriptorUsageType& operator=(const DescriptorUsageType& other) = default;
-    DescriptorUsageType(DescriptorUsageType&& other) noexcept = default;
-    DescriptorUsageType& operator=(DescriptorUsageType&& other) noexcept = default;
+    StructureType(const StructureType& other) = default;
+    StructureType& operator=(const StructureType& other) = default;
+    StructureType(StructureType&& other) noexcept = default;
+    StructureType& operator=(StructureType&& other) noexcept = default;
 
     HYP_FORCE_INLINE bool IsValid() const
     {
@@ -357,48 +414,48 @@ struct DescriptorUsageType
         return size;
     }
 
-    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> AddField(Name fieldName, const DescriptorUsageType& type)
+    HYP_FORCE_INLINE Pair<Name, StructureType&> AddField(Name fieldName, const StructureType& type)
     {
-        return Pair<Name, DescriptorUsageType&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
+        return Pair<Name, StructureType&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
     }
 
-    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> GetField(SizeType index)
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE const Pair<Name, const DescriptorUsageType&> GetField(SizeType index) const
+    HYP_FORCE_INLINE Pair<Name, StructureType&> GetField(SizeType index)
     {
         return { fieldNames[index], fieldTypes[index] };
     }
 
-    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType&>> FindField(StringHash fieldName)
+    HYP_FORCE_INLINE const Pair<Name, const StructureType&> GetField(SizeType index) const
+    {
+        return { fieldNames[index], fieldTypes[index] };
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, StructureType&>> FindField(StringHash fieldName)
     {
         for (SizeType i = 0; i < fieldNames.Size(); i++)
         {
             if (fieldNames[i] == fieldName)
             {
-                return Pair<Name, DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
+                return Pair<Name, StructureType&> { fieldNames[i], fieldTypes[i] };
             }
         }
 
         return {};
     }
 
-    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType&>> FindField(StringHash fieldName) const
+    HYP_FORCE_INLINE Optional<Pair<Name, const StructureType&>> FindField(StringHash fieldName) const
     {
         for (SizeType i = 0; i < fieldNames.Size(); i++)
         {
             if (fieldNames[i] == fieldName)
             {
-                return Pair<Name, const DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
+                return Pair<Name, const StructureType&> { fieldNames[i], fieldTypes[i] };
             }
         }
 
         return {};
     }
 
-    HYP_FORCE_INLINE bool operator<(const DescriptorUsageType& other) const
+    HYP_FORCE_INLINE bool operator<(const StructureType& other) const
     {
         if (size != other.size)
         {
@@ -421,7 +478,7 @@ struct DescriptorUsageType
         return false;
     }
 
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsageType& other) const
+    HYP_FORCE_INLINE bool operator==(const StructureType& other) const
     {
         return name == other.name
             && size == other.size
@@ -429,7 +486,7 @@ struct DescriptorUsageType
             && fieldTypes == other.fieldTypes;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageType& other) const
+    HYP_FORCE_INLINE bool operator!=(const StructureType& other) const
     {
         return name != other.name
             || size != other.size
@@ -452,21 +509,24 @@ struct DescriptorUsageType
 struct DescriptorUsage
 {
     DescriptorSlot slot;
+    DescriptorType type;
     Name setName;
     Name descriptorName;
-    DescriptorUsageType type;
+    StructureType structureType;
     EnumFlags<DescriptorUsageFlags> flags;
     HashMap<String, String> params;
 
     DescriptorUsage()
-        : slot((DescriptorSlot)0),
+        : slot(DescriptorSlot::NONE),
+          type(DescriptorType::UNSET),
           setName(Name::Invalid()),
           flags(DescriptorUsageFlags::NONE)
     {
     }
 
-    DescriptorUsage(DescriptorSlot slot, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
+    DescriptorUsage(DescriptorSlot slot, DescriptorType type, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
         : slot(slot),
+          type(type),
           setName(setName),
           descriptorName(descriptorName),
           flags(flags),
@@ -476,9 +536,10 @@ struct DescriptorUsage
 
     DescriptorUsage(const DescriptorUsage& other)
         : slot(other.slot),
+          type(other.type),
           setName(other.setName),
           descriptorName(other.descriptorName),
-          type(other.type),
+          structureType(other.structureType),
           flags(other.flags),
           params(other.params)
     {
@@ -492,9 +553,10 @@ struct DescriptorUsage
         }
 
         slot = other.slot;
+        type = other.type;
         setName = other.setName;
         descriptorName = other.descriptorName;
-        type = other.type;
+        structureType = other.structureType;
         flags = other.flags;
         params = other.params;
 
@@ -503,9 +565,10 @@ struct DescriptorUsage
 
     DescriptorUsage(DescriptorUsage&& other) noexcept
         : slot(other.slot),
+          type(other.type),
           setName(std::move(other.setName)),
           descriptorName(std::move(other.descriptorName)),
-          type(std::move(other.type)),
+          structureType(std::move(other.structureType)),
           flags(other.flags),
           params(std::move(other.params))
     {
@@ -519,9 +582,10 @@ struct DescriptorUsage
         }
 
         slot = other.slot;
+        type = other.type;
         setName = std::move(other.setName);
         descriptorName = std::move(other.descriptorName);
-        type = std::move(other.type);
+        structureType = std::move(other.structureType);
         flags = other.flags;
         params = std::move(other.params);
 
@@ -533,9 +597,10 @@ struct DescriptorUsage
     HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
     {
         return slot == other.slot
+            && type == other.type
             && setName == other.setName
             && descriptorName == other.descriptorName
-            && type == other.type
+            && structureType == other.structureType
             && flags == other.flags
             && params == other.params;
     }
@@ -543,9 +608,10 @@ struct DescriptorUsage
     HYP_FORCE_INLINE bool operator!=(const DescriptorUsage& other) const
     {
         return slot != other.slot
+            || type != other.type
             || setName != other.setName
             || descriptorName != other.descriptorName
-            || type != other.type
+            || structureType != other.structureType
             || flags != other.flags
             || params != other.params;
     }
@@ -555,6 +621,11 @@ struct DescriptorUsage
         if (slot != other.slot)
         {
             return slot < other.slot;
+        }
+
+        if (type != other.type)
+        {
+            return type < other.type;
         }
 
         if (setName != other.setName)
@@ -567,9 +638,9 @@ struct DescriptorUsage
             return descriptorName < other.descriptorName;
         }
 
-        if (type != other.type)
+        if (structureType != other.structureType)
         {
-            return type < other.type;
+            return structureType < other.structureType;
         }
 
         if (flags != other.flags)
@@ -601,9 +672,9 @@ struct DescriptorUsage
 
     HYP_FORCE_INLINE uint32 GetSize() const
     {
-        if (type.HasExplicitSize())
+        if (structureType.HasExplicitSize())
         {
-            return type.size;
+            return structureType.size;
         }
 
         uint32 value = ~0u;
@@ -627,9 +698,10 @@ struct DescriptorUsage
     {
         HashCode hc;
         hc.Add(slot);
+        hc.Add(type);
         hc.Add(setName.GetHashCode());
         hc.Add(descriptorName.GetHashCode());
-        hc.Add(type);
+        hc.Add(structureType);
         hc.Add(flags);
         hc.Add(params.GetHashCode());
 
@@ -726,8 +798,10 @@ struct DescriptorUsageSet
 CompiledShader::CompiledShader(const CompiledShader& other)
     : definition(other.definition),
       descriptorTableDeclaration(other.descriptorTableDeclaration),
-      entryPointName(other.entryPointName),
-      modules(other.modules)
+      moduleTypes(other.moduleTypes),
+      moduleNames(other.moduleNames),
+      entryPointNames(other.entryPointNames),
+      shaderBlobs(other.shaderBlobs)
 {
 }
 
@@ -736,9 +810,11 @@ CompiledShader& CompiledShader::operator=(const CompiledShader& other)
     if (this != &other)
     {
         definition = other.definition;
-        entryPointName = other.entryPointName;
-        modules = other.modules;
-        descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
+        descriptorTableDeclaration = other.descriptorTableDeclaration;
+        moduleTypes = other.moduleTypes;
+        moduleNames = other.moduleNames;
+        entryPointNames = other.entryPointNames;
+        shaderBlobs = other.shaderBlobs;
     }
 
     return *this;
@@ -747,8 +823,10 @@ CompiledShader& CompiledShader::operator=(const CompiledShader& other)
 CompiledShader::CompiledShader(CompiledShader&& other) noexcept
     : definition(std::move(other.definition)),
       descriptorTableDeclaration(std::move(other.descriptorTableDeclaration)),
-      entryPointName(std::move(other.entryPointName)),
-      modules(std::move(other.modules))
+      moduleTypes(std::move(other.moduleTypes)),
+      moduleNames(std::move(other.moduleNames)),
+      entryPointNames(std::move(other.entryPointNames)),
+      shaderBlobs(std::move(other.shaderBlobs))
 {
 }
 
@@ -757,8 +835,10 @@ CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
     if (this != &other)
     {
         definition = std::move(other.definition);
-        entryPointName = std::move(other.entryPointName);
-        modules = std::move(other.modules);
+        moduleTypes = std::move(other.moduleTypes);
+        moduleNames = std::move(other.moduleNames);
+        entryPointNames = std::move(other.entryPointNames);
+        shaderBlobs = std::move(other.shaderBlobs);
         descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
     }
     return *this;
@@ -766,6 +846,38 @@ CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
 
 CompiledShader::~CompiledShader()
 {
+}
+
+void CompiledShader::AddShaderModule(
+    ShaderModuleType moduleType,
+    UTF8StringView moduleName,
+    UTF8StringView entryPointName,
+    ByteBuffer&& shaderBlob)
+{
+    auto it = moduleTypes.Find(moduleType);
+
+    // if we already have this module type, replace the blob and entry point name
+    if (it != moduleTypes.End())
+    {
+        const SizeType index = it - moduleTypes.Begin();
+
+        Assert(index < shaderBlobs.Size() && index < entryPointNames.Size());
+        
+        moduleNames[index] = moduleName;
+        shaderBlobs[index] = std::move(shaderBlob);
+        entryPointNames[index] = entryPointName;
+
+        return;
+    }
+
+    Assert(moduleTypes.Size() == shaderBlobs.Size()
+        && moduleTypes.Size() == moduleNames.Size()
+        && moduleTypes.Size() == entryPointNames.Size());
+
+    moduleTypes.PushBack(moduleType);
+    moduleNames.PushBack(moduleName);
+    entryPointNames.PushBack(entryPointName);
+    shaderBlobs.PushBack(std::move(shaderBlob));
 }
 
 uint64 CompiledShader::GetRevisionNumber() const
@@ -781,7 +893,7 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclarat
 {
     for (const DescriptorUsage& descriptorUsage : elements)
     {
-        Assert(descriptorUsage.slot != DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptorUsage.slot < DescriptorSlot::DESCRIPTOR_SLOT_MAX,
+        Assert(descriptorUsage.slot != DescriptorSlot::NONE && descriptorUsage.slot < DescriptorSlot::MAX,
             "Descriptor usage {} has invalid slot {}",
             descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
 
@@ -819,11 +931,13 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclarat
             descriptorSetDeclaration = table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(setIndex, descriptorUsage.setName));
         }
 
-        DescriptorDeclaration desc {
-            descriptorUsage.slot, descriptorUsage.descriptorName,
-            descriptorUsage.GetCount(), descriptorUsage.GetSize(),
-            bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC)
-        };
+        DescriptorDeclaration desc {};
+        desc.slot = descriptorUsage.slot;
+        desc.type = descriptorUsage.type;
+        desc.name = descriptorUsage.descriptorName;
+        desc.count = descriptorUsage.GetCount();
+        desc.size = descriptorUsage.GetSize();
+        desc.isDynamic = bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC);
 
         if (auto* existingDecl = descriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName))
         {
@@ -988,7 +1102,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
         break;
     case SMT_FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
-        stageString = "FRAGMENT_SHADER";
+        stageString = "PIXEL_SHADER";
         break;
     case SMT_GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
@@ -1220,7 +1334,7 @@ static ByteBuffer CompileToSPIRV(
         break;
     case SMT_FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
-        stageString = "FRAGMENT_SHADER";
+        stageString = "PIXEL_SHADER";
         break;
     case SMT_GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
@@ -1320,7 +1434,7 @@ static ByteBuffer CompileToSPIRV(
     DescriptorTableDeclaration table;
     descriptorUsages.BuildDescriptorTableDeclaration(table);
 
-    String preamble = BuildDescriptorTableDefines(table);
+    String preamble = BuildDescriptorTableDefines(language, table);
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -1380,9 +1494,9 @@ static ByteBuffer CompileToSPIRV(
     glslang_program_SPIRV_generate_with_options(program, stage, &spvOptions);
 
 #ifdef HYP_SHADER_REFLECTION
-    Proc<void(const glslang::TType*, DescriptorUsageType&)> HandleShaderStruct;
+    Proc<void(const glslang::TType*, StructureType&)> HandleShaderStruct;
 
-    HandleShaderStruct = [&HandleShaderStruct](const glslang::TType* type, DescriptorUsageType& outDescriptorUsageType)
+    HandleShaderStruct = [&HandleShaderStruct](const glslang::TType* type, StructureType& outStructureType)
     {
         if (type->isStruct())
         {
@@ -1399,9 +1513,9 @@ static ByteBuffer CompileToSPIRV(
                     fieldTypeName = it->type->getCompleteString(true, false, false, true).data();
                 }
 
-                auto& field = outDescriptorUsageType.AddField(
+                auto& field = outStructureType.AddField(
                     CreateNameFromDynamicString(it->type->getFieldName().data()),
-                    DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName))).second;
+                    StructureType(CreateNameFromDynamicString(fieldTypeName))).second;
 
                 HandleShaderStruct(it->type, field);
             }
@@ -1411,63 +1525,38 @@ static ByteBuffer CompileToSPIRV(
     // inject reflection info for shader inputs
     for (DescriptorUsage& du : descriptorUsages.elements)
     {
-        if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_CBUFF
-            || du.slot == DescriptorSlot::DESCRIPTOR_SLOT_SSBO)
+        const char* duNameString = du.descriptorName.LookupString();
+        const int reflectionIndex = cppProgram->getReflectionIndex(duNameString);
+
+        if (reflectionIndex == -1)
         {
-            const char* duNameString = du.descriptorName.LookupString();
-            const int reflectionIndex = cppProgram->getReflectionIndex(duNameString);
-
-            if (reflectionIndex == -1)
-            {
-                continue;
-            }
+            continue;
+        }
             
-            const glslang::TObjectReflection* refl = nullptr;
+        const glslang::TObjectReflection* refl = nullptr;
 
-            if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_CBUFF)
-            {
-                refl = &cppProgram->getUniformBlock(reflectionIndex);
+        if (du.slot == DescriptorSlot::BUFFER)
+        {
+            refl = &cppProgram->getUniformBlock(reflectionIndex);
 
-                if (!refl)
-                {
-                    refl = &cppProgram->getBufferBlock(reflectionIndex);
-                }
-                
-                if (!refl->getType())
-                {
-                    continue;
-                }
-
-                AssertDebug(refl->getType()->getTypeName() == duNameString);
-            }
-
-            if (du.slot == DescriptorSlot::DESCRIPTOR_SLOT_SSBO)
+            if (!refl)
             {
                 refl = &cppProgram->getBufferBlock(reflectionIndex);
-
-                if (!refl)
-                {
-                    refl = &cppProgram->getUniformBlock(reflectionIndex);
-                }
-
-                if (!refl->getType())
-                {
-                    continue;
-                }
-                
-                AssertDebug(refl->getType()->getTypeName() == duNameString);
             }
-
-            if (refl != nullptr)
+                
+            if (!refl->getType())
             {
-                HandleShaderStruct(refl->getType(), du.type);
-                du.type.size = refl->size;
-
                 continue;
             }
+
+            AssertDebug(refl->getType()->getTypeName() == duNameString);
         }
-        else
+
+        if (refl != nullptr)
         {
+            HandleShaderStruct(refl->getType(), du.structureType);
+            du.structureType.size = refl->size;
+
             continue;
         }
     }
@@ -1516,7 +1605,7 @@ static void ReflectResources(ID3D12ShaderReflection* pReflection, DescriptorUsag
                 D3D12_SHADER_BUFFER_DESC bufferDesc;
                 pCB->GetDesc(&bufferDesc);
                 
-                descriptorUsage->type.size = (SizeType)bufferDesc.Size;
+                descriptorUsage->structureType.size = (SizeType)bufferDesc.Size;
                 
                 for (UINT j = 0; j < bufferDesc.Variables; j++)
                 {
@@ -1595,7 +1684,6 @@ static bool PreprocessShaderSource(
 
 static ByteBuffer CompileToDXIL(
     ShaderModuleType type,
-    ShaderLanguage language,
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
     const ShaderProperties& properties,
@@ -1606,7 +1694,7 @@ static ByteBuffer CompileToDXIL(
     DescriptorTableDeclaration table;
     descriptorUsages.BuildDescriptorTableDeclaration(table);
 
-    String preamble = BuildDescriptorTableDefines(table) + "\n" + BuildPreamble(properties);
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, table) + "\n" + BuildPreamble(ShaderLanguage::HLSL, properties);
     String fullSource = preamble + "\n" + source;
 
     ComPtr<IDxcBlobEncoding> pSource;
@@ -1725,12 +1813,15 @@ struct LoadedSourceFile
 };
 
 static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
-    { "vert", SMT_VERTEX }, { "frag", SMT_FRAGMENT },
-    { "geom", SMT_GEOMETRY }, { "comp", SMT_COMPUTE },
-    { "rgen", SMT_RAY_GEN }, { "rchit", SMT_RAY_CLOSEST_HIT },
-    { "rahit", SMT_RAY_ANY_HIT }, { "rmiss", SMT_RAY_MISS },
-    { "rint", SMT_RAY_INTERSECT }, { "tesc", SMT_TESS_CONTROL },
-    { "mesh", SMT_MESH }, { "task", SMT_TASK }
+    { "vs", SMT_VERTEX },
+    { "ps", SMT_FRAGMENT },
+    { "gs", SMT_GEOMETRY },
+    { "cs", SMT_COMPUTE },
+    { "raygen", SMT_RAY_GEN },
+    { "rayclosesthit", SMT_RAY_CLOSEST_HIT },
+    { "rayanyhit", SMT_RAY_ANY_HIT },
+    { "raymiss", SMT_RAY_MISS },
+    { "rayintersect", SMT_RAY_INTERSECT }
 };
 
 static bool FindVertexAttributeForDefinition(const String& name, const VertexAttribute*& outAttribute)
@@ -2223,21 +2314,22 @@ void ShaderCompiler::ParseDefinitionSection(
                     outShaderBundleDecl.versions.AddPermutation(CreateNameFromDynamicString(*element.name));
                 }
             }
+
+            continue;
         }
-        else if (sectionIt.first == "entry_point")
+
+        auto shaderTypeNameIt = s_shaderTypeNames.Find(sectionIt.first.ToLower());
+
+        if (shaderTypeNameIt != s_shaderTypeNames.End())
         {
-            outShaderBundleDecl.entryPointName = sectionIt.second.GetValue().name;
+            outShaderBundleDecl.sources[shaderTypeNameIt->second] = GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name;
+
+            continue;
         }
-        else if (s_shaderTypeNames.Contains(sectionIt.first))
-        {
-            outShaderBundleDecl.sources[s_shaderTypeNames.At(sectionIt.first)] = GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name;
-        }
-        else
-        {
-            HYP_LOG(ShaderCompiler, Warning,
-                "Unknown property in shader definition file: {}\n",
-                sectionIt.first);
-        }
+            
+        HYP_LOG(ShaderCompiler, Warning,
+            "Unknown property in shader definition file: {}\n",
+            sectionIt.first);
     }
 }
 
@@ -2574,6 +2666,237 @@ bool ShaderCompiler::CanCompileShaders() const
 
 // Hyperion-specific custom preprocessor directives
 
+static String ExtractFirstToken(const String& str)
+{
+    String result;
+
+    for (SizeType i = 0; i < str.Size(); i++)
+    {
+        const char ch = str.Data()[i];
+
+        if (std::isalnum(ch) || ch == '_')
+        {
+            result.Append(ch);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+static bool MatchesAnyToken(const String& token, std::initializer_list<const char*> keywords)
+{
+    for (const char* keyword : keywords)
+    {
+        if (token == keyword)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
+{
+    const String trimmed = declaration.TrimmedLeft();
+    const String firstToken = ExtractFirstToken(trimmed);
+
+    auto MakeUniformBufferType = [flags]() -> DescriptorType
+    {
+        return (flags & DescriptorUsageFlags::DYNAMIC)
+            ? DescriptorType::UNIFORM_BUFFER_DYNAMIC
+            : DescriptorType::UNIFORM_BUFFER;
+    };
+
+    auto MakeStorageBufferType = [flags]() -> DescriptorType
+    {
+        return (flags & DescriptorUsageFlags::DYNAMIC)
+            ? DescriptorType::STORAGE_BUFFER_DYNAMIC
+            : DescriptorType::SSBO;
+    };
+
+    if (language == ShaderLanguage::HLSL)
+    {
+        if (MatchesAnyToken(firstToken, { "cbuffer" }))
+        {
+            return MakeUniformBufferType();
+        }
+
+        if (MatchesAnyToken(firstToken, {
+            "StructuredBuffer", "RWStructuredBuffer",
+            "ByteAddressBuffer", "RWByteAddressBuffer",
+            "AppendStructuredBuffer", "ConsumeStructuredBuffer",
+            "Buffer", "RWBuffer" }))
+        {
+            return MakeStorageBufferType();
+        }
+
+        if (MatchesAnyToken(firstToken, {
+            "RWTexture1D", "RWTexture2D", "RWTexture3D",
+            "RWTexture1DArray", "RWTexture2DArray" }))
+        {
+            return DescriptorType::IMAGE_STORAGE;
+        }
+
+        if (MatchesAnyToken(firstToken, {
+            "Texture1D", "Texture2D", "Texture3D",
+            "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
+        {
+            return DescriptorType::IMAGE;
+        }
+
+        if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
+        {
+            return DescriptorType::SAMPLER;
+        }
+
+        if (firstToken == "RaytracingAccelerationStructure")
+        {
+            return DescriptorType::TLAS;
+        }
+
+        return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from HLSL declaration: '{}'", trimmed);
+    }
+    else // GLSL
+    {
+        // buffer with explicit r/w semantics
+        if (MatchesAnyToken(firstToken, { "readonly", "writeonly", "coherent", "volatile" }))
+        {
+            const String remaining = String(trimmed.Substr(firstToken.Length())).TrimmedLeft();
+            const String secondToken = ExtractFirstToken(remaining);
+
+            if (secondToken == "buffer")
+            {
+                return MakeStorageBufferType();
+            }
+
+            return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
+        }
+
+        // r/w buffer
+        if (firstToken == "buffer")
+        {
+            return MakeStorageBufferType();
+        }
+        
+        if (firstToken == "uniform")
+        {
+            const String remaining = String(trimmed.Substr(firstToken.Length())).TrimmedLeft();
+            const String secondToken = ExtractFirstToken(remaining);
+
+            // uniform sampler
+            if (secondToken.StartsWith("sampler"))
+            {
+                return DescriptorType::SAMPLER;
+            }
+            
+            // uniform texture (sampled image)
+            if (MatchesAnyToken(secondToken, {
+                "texture1D", "texture2D", "texture3D", "textureCube",
+                "texture1DArray", "texture2DArray", "textureCubeArray",
+                "textureBuffer",
+                "itexture1D", "itexture2D", "itexture3D", "itextureCube",
+                "itextureBuffer",
+                "utexture1D", "utexture2D", "utexture3D", "utextureCube",
+                "utextureBuffer" }))
+            {
+                return DescriptorType::IMAGE;
+            }
+            
+            // uniform (write/read)only image (storage image)
+            if (MatchesAnyToken(secondToken, { "readonly", "writeonly" }))
+            {
+                const String thirdToken = ExtractFirstToken(String(remaining.Substr(secondToken.Length())).TrimmedLeft());
+
+                if (thirdToken.StartsWith("image")
+                    || thirdToken.StartsWith("iimage")
+                    || thirdToken.StartsWith("uimage"))
+                {
+                    return DescriptorType::IMAGE_STORAGE;
+                }
+
+                return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
+            }
+            
+            // uniform image
+            if (MatchesAnyToken(secondToken, {
+                "image1D", "image2D", "image3D",
+                "imageCube", "image1DArray", "image2DArray", "imageCubeArray",
+                "imageBuffer",
+                "iimage1D", "iimage2D", "iimage3D",
+                "iimageBuffer", "iimageCube",
+                "uimage1D", "uimage2D", "uimage3D",
+                "uimageBuffer", "uimageCube" }))
+            {
+                return DescriptorType::IMAGE_STORAGE;
+            }
+
+            // uniform accelerationStructureEXT
+            if (secondToken == "accelerationStructureEXT")
+            {
+                return DescriptorType::TLAS;
+            }
+
+            // uniform [StructName] - contant buffer
+            return MakeUniformBufferType();
+        }
+
+        return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
+    }
+}
+
+static String FormatDescriptorDeclaration(
+    ShaderLanguage language,
+    const DescriptorUsage& usage,
+    const String& setName,
+    const String& descriptorName,
+    const String& stdVersion,
+    const Array<String>& additionalParams,
+    const String& declarationBody)
+{
+    if (language == ShaderLanguage::HLSL)
+    {
+        String remaining = declarationBody.Trimmed();
+        SizeType insertPos = remaining.FindFirstIndex(";");
+        
+        if (insertPos == String::NotFound)
+        {
+            insertPos = remaining.FindFirstIndex("{");
+        }
+        
+        String declaration = (insertPos == String::NotFound) ? remaining : String(remaining.Substr(0, insertPos));
+        String suffix = (insertPos == String::NotFound) ? String::empty : String(remaining.Substr(insertPos));
+
+        return HYP_FORMAT("{} : register(_{}_{}_REGISTER, _{}_SPACE) {}\n",
+             declaration,
+             setName, descriptorName,
+             setName,
+             suffix);
+    }
+    else
+    {
+        String decl = "layout(";
+        
+        if (usage.slot == DescriptorSlot::BUFFER)
+        {
+             decl += stdVersion + ", ";
+        }
+
+        decl += "set=_" + setName + "_SET" + ", binding=_" + setName + "_" + descriptorName + "_BINDING";
+
+        if (additionalParams.Any())
+        {
+            decl += ", " + String::Join(additionalParams, ", ");
+        }
+
+        return decl + ") " + declarationBody + "\n";
+    }
+}
+
 ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
     ProcessShaderSourcePhase phase, ShaderModuleType type,
     ShaderLanguage language, const String& source, const String& filename,
@@ -2588,7 +2911,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
         Array<String> preprocessErrorMessages;
         const bool preprocessResult = PreprocessShaderSource(
-            type, language, BuildPreamble(properties), source, filename,
+            type, language, BuildPreamble(language, properties), source, filename,
             preprocessedSource, preprocessErrorMessages);
 
         result.errors.Concat(
@@ -2615,7 +2938,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         String remaining;
     };
 
-    auto parseCustomStatement = [](const String& start, const String& line) -> ParseCustomStatementResult
+    auto ParseCustomStatement = [](const String& start, const String& line) -> ParseCustomStatementResult
     {
         const String substr = line.Substr(start.Length());
 
@@ -2684,19 +3007,17 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 char ch;
 
                 String attributeKeyword;
-                String attributeType;
                 String attributeLocation;
-                String attributeName;
 
                 Optional<String> attributeCondition;
+                
+                SizeType attrStringIndex = 0;
 
                 {
-                    SizeType index = 0;
-
-                    while (index != parts.Front().Size() && (std::isalpha(ch = parts.Front()[index]) || ch == '_'))
+                    while (attrStringIndex != parts.Front().Size() && (std::isalpha(ch = parts.Front()[attrStringIndex]) || ch == '_'))
                     {
                         attributeKeyword.Append(ch);
-                        ++index;
+                        ++attrStringIndex;
                     }
 
                     if (attributeKeyword == "HYP_ATTRIBUTE_OPTIONAL")
@@ -2714,35 +3035,35 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         break;
                     }
 
-                    if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == '('))
+                    if (attrStringIndex != parts.Front().Size() && ((ch = parts.Front()[attrStringIndex]) == '('))
                     {
-                        ++index;
+                        ++attrStringIndex;
 
                         // read integer string
-                        while (index != parts.Front().Size() && std::isdigit(ch = parts.Front()[index]))
+                        while (attrStringIndex != parts.Front().Size() && std::isdigit(ch = parts.Front()[attrStringIndex]))
                         {
                             attributeLocation.Append(ch);
-                            ++index;
+                            ++attrStringIndex;
                         }
 
                         // if there is a comma, read the conditional define that we will use
-                        if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == ','))
+                        if (attrStringIndex != parts.Front().Size() && ((ch = parts.Front()[attrStringIndex]) == ','))
                         {
-                            ++index;
+                            ++attrStringIndex;
 
                             String condition;
-                            while (index != parts.Front().Size() && (std::isalpha(ch = parts.Front()[index]) || ch == '_'))
+                            while (attrStringIndex != parts.Front().Size() && (std::isalpha(ch = parts.Front()[attrStringIndex]) || ch == '_'))
                             {
                                 condition.Append(ch);
-                                ++index;
+                                ++attrStringIndex;
                             }
 
                             attributeCondition = condition;
                         }
 
-                        if (index != parts.Front().Size() && ((ch = parts.Front()[index]) == ')'))
+                        if (attrStringIndex != parts.Front().Size() && ((ch = parts.Front()[attrStringIndex]) == ')'))
                         {
-                            ++index;
+                            ++attrStringIndex;
                         }
                         else
                         {
@@ -2760,19 +3081,16 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                 }
 
-                for (SizeType index = 0; index < parts[1].Size() && (std::isalnum(ch = parts[1][index]) || ch == '_'); index++)
-                {
-                    attributeType.Append(ch);
-                }
+                const String remaining = line.Substr(attrStringIndex);
 
-                for (SizeType index = 0; index < parts[2].Size() && (std::isalnum(ch = parts[2][index]) || ch == '_'); index++)
+                auto IsIdentiferChar = [](utf::Char32 ch)
                 {
-                    attributeName.Append(ch);
-                }
+                    return std::isalnum(utf::Char32(ch)) || ch == utf::Char32('_');
+                };
 
                 VertexAttributeDefinition attributeDefinition {};
-                attributeDefinition.name = attributeName;
-                attributeDefinition.typeClass = attributeType;
+                attributeDefinition.name = StringUtil::TakeWhile(parts[2], IsIdentiferChar);
+                attributeDefinition.typeClass = StringUtil::TakeWhile(parts[1], IsIdentiferChar);
                 attributeDefinition.location = attributeLocation.Any()
                     ? std::atoi(attributeLocation.Data())
                     : lastAttributeLocation + 1;
@@ -2799,7 +3117,16 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     result.requiredAttributes.PushBack(attributeDefinition);
                 }
 
-                result.processedSource += "layout(location=" + String::ToString(attributeDefinition.location) + ") in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
+                if (language == ShaderLanguage::GLSL)
+                {
+                    result.processedSource += "layout(location=" + String::ToString(attributeDefinition.location) + ") in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
+                }
+                else if (language == ShaderLanguage::HLSL)
+                {
+                    // For hlsl we just paste have the rest of the line after the macro invocation, e.g:
+                    // HYP_ATTRIBUTE(5) float3 bitangent : BINORMAL;
+                    result.processedSource += remaining + '\n';
+                }
 
                 if (optional)
                 {
@@ -2829,42 +3156,33 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                 }
 
-                DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
+                DescriptorSlot slot = DescriptorSlot::NONE;
                 EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE;
 
                 if (commandStr == "HYP_DESCRIPTOR_SRV")
                 {
-                    slot = DESCRIPTOR_SLOT_SRV;
+                    slot = DescriptorSlot::SRV;
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_UAV")
                 {
-                    slot = DESCRIPTOR_SLOT_UAV;
+                    slot = DescriptorSlot::UAV;
                 }
-                else if (commandStr == "HYP_DESCRIPTOR_CBUFF" || commandStr == "HYP_DESCRIPTOR_CBUFF_DYNAMIC")
+                else if (commandStr == "HYP_DESCRIPTOR_BUFFER" || commandStr == "HYP_DESCRIPTOR_BUFFER_DYNAMIC")
                 {
-                    slot = DESCRIPTOR_SLOT_CBUFF;
+                    slot = DescriptorSlot::BUFFER;
 
-                    if (commandStr == "HYP_DESCRIPTOR_CBUFF_DYNAMIC")
-                    {
-                        flags |= DescriptorUsageFlags::DYNAMIC;
-                    }
-                }
-                else if (commandStr == "HYP_DESCRIPTOR_SSBO" || commandStr == "HYP_DESCRIPTOR_SSBO_DYNAMIC")
-                {
-                    slot = DESCRIPTOR_SLOT_SSBO;
-
-                    if (commandStr == "HYP_DESCRIPTOR_SSBO_DYNAMIC")
+                    if (commandStr == "HYP_DESCRIPTOR_BUFFER_DYNAMIC")
                     {
                         flags |= DescriptorUsageFlags::DYNAMIC;
                     }
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE")
                 {
-                    slot = DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE;
+                    slot = DescriptorSlot::SRV;
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_SAMPLER")
                 {
-                    slot = DESCRIPTOR_SLOT_SAMPLER;
+                    slot = DescriptorSlot::SAMPLER;
                 }
                 else
                 {
@@ -2880,13 +3198,13 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 HashMap<String, String> params;
 
-                auto parseResult = parseCustomStatement(commandStr, line);
+                auto parseResult = ParseCustomStatement(commandStr, line);
 
                 if (parseResult.args.Size() < 2)
                 {
                     result.errors.PushBack(ProcessError {
                         "Invalid descriptor: Requires format "
-                        "HYP_DESCRIPTOR_<TYPE>(set, name)" });
+                        "HYP_DESCRIPTOR_<SLOT>(set, name)" });
 
                     break;
                 }
@@ -2919,49 +3237,57 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         params[key] = value;
                     }
                 }
+                
+                TResult<DescriptorType> descriptorTypeResult = ParseDescriptorTypeFromDeclaration(language, parseResult.remaining, flags);
 
-                const DescriptorUsage usage {
-                    slot, CreateNameFromDynamicString(ANSIString(setName)),
-                    CreateNameFromDynamicString(ANSIString(descriptorName)), flags,
-                    std::move(params)
-                };
-
-                String stdVersion = "std140";
-
-                if (usage.params.Contains("standard"))
+                if (!descriptorTypeResult)
                 {
-                    stdVersion = usage.params.At("standard");
+                    result.errors.PushBack(ProcessError { descriptorTypeResult.GetError().GetMessage() });
+
+                    continue;
                 }
+
+                DescriptorUsage usage {};
+                usage.slot = slot;
+                usage.type = descriptorTypeResult.GetValue();
+                usage.setName = CreateNameFromDynamicString(ANSIString(setName));
+                usage.descriptorName = CreateNameFromDynamicString(ANSIString(descriptorName));
+                usage.flags = flags;
+                usage.params = std::move(params);
 
                 Array<String> additionalParams;
-
-                if (usage.params.Contains("format"))
+                String stdVersion;
+                
+                if (language == ShaderLanguage::GLSL)
                 {
-                    additionalParams.PushBack(usage.params.At("format"));
-                }
+                    stdVersion = "std140";
 
-                // add std140, std430 etc. for buffer types.
-                switch (usage.slot)
-                {
-                case DESCRIPTOR_SLOT_CBUFF: // fallthrough
-                case DESCRIPTOR_SLOT_SSBO:  // fallthrough
-                    if (usage.params.Contains("matrix_mode"))
+                    if (usage.params.Contains("standard"))
                     {
-                        additionalParams.PushBack(usage.params.At("matrix_mode"));
-                    }
-                    else
-                    {
-                        additionalParams.PushBack("row_major");
+                        stdVersion = usage.params.At("standard");
                     }
 
-                    result.processedSource +=
-                        "layout(" + stdVersion + ", set=HYP_DESCRIPTOR_SET_INDEX_" + setName + ", binding=HYP_DESCRIPTOR_INDEX_" + setName + "_" + descriptorName + (additionalParams.Any() ? (", " + String::Join(additionalParams, ", ")) : String::empty) + ") " + parseResult.remaining + "\n";
-                    break;
-                default:
-                    result.processedSource +=
-                        "layout(set=HYP_DESCRIPTOR_SET_INDEX_" + setName + ", binding=HYP_DESCRIPTOR_INDEX_" + setName + "_" + descriptorName + (additionalParams.Any() ? (", " + String::Join(additionalParams, ", ")) : String::empty) + ") " + parseResult.remaining + "\n";
-                    break;
+                    if (usage.params.Contains("format"))
+                    {
+                        additionalParams.PushBack(usage.params.At("format"));
+                    }
+
+                    if (usage.slot == DescriptorSlot::BUFFER)
+                    {
+                        if (usage.params.Contains("matrix_mode"))
+                        {
+                            additionalParams.PushBack(usage.params.At("matrix_mode"));
+                        }
+                        else
+                        {
+                            additionalParams.PushBack("row_major");
+                        }
+                    }
                 }
+                
+                result.processedSource += FormatDescriptorDeclaration(
+                    language, usage, setName, descriptorName, stdVersion,
+                    additionalParams, parseResult.remaining);
 
                 result.descriptorUsages.PushBack(usage);
 
@@ -2973,6 +3299,14 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         }
 
         result.processedSource += line + '\n';
+    }
+
+    if (phase == ProcessShaderSourcePhase::AFTER_PREPROCESS && filename.EndsWith(".hlsl"))
+    {
+        
+        HYP_LOG(ShaderCompiler, Info, "Processed source for {}:\n\n{}\n\n",
+            filename,
+            result.processedSource);
     }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
@@ -3276,7 +3610,6 @@ bool ShaderCompiler::CompileBundle(
         {
             CompiledShader compiledShader;
             compiledShader.definition = ShaderDefinition { shaderBundleDecl.name, properties };
-            compiledShader.entryPointName = shaderBundleDecl.entryPointName;
 
             Assert(compiledShader.definition.IsValid());
 
@@ -3422,7 +3755,6 @@ bool ShaderCompiler::CompileBundle(
 #elif HYP_DXC
                 byteBuffer = CompileToDXIL(
                     item.type,
-                    item.language,
                     descriptorUsageSetsMerged,
                     processedSources[index],
                     item.file,
@@ -3462,7 +3794,16 @@ bool ShaderCompiler::CompileBundle(
 
                 anyFilesCompiled.Set(true, MemoryOrder::RELAXED);
 
-                compiledShader.modules[item.type] = std::move(byteBuffer);
+                if (item.language == ShaderLanguage::GLSL)
+                {
+                    // for GLSL, we always have "main" as entry point
+                    compiledShader.AddShaderModule(item.type, item.file, "main", std::move(byteBuffer));
+                }
+                else
+                {
+                    // for HLSL, we use entry point name based on stage
+                    compiledShader.AddShaderModule(item.type, item.file, std::move(byteBuffer));
+                }
             }
 
             numCompiledPermutations.Increment(uint32(!anyFilesErrored.Get(MemoryOrder::RELAXED) && anyFilesCompiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);

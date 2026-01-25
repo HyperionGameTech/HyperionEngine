@@ -46,7 +46,7 @@ void main()
 
     for (float i = -3.0; i <= 3.0; i += 1.0)
     {
-        color += Texture2D(gbuffer_sampler, INPUT_TEXTURE, v_texcoord0 + (offset * texel_size * radius * i));
+        color += SAMPLE_TEXTURE_2D(gbuffer_sampler, INPUT_TEXTURE, v_texcoord0 + (offset * texel_size * radius * i));
     }
 
     color /= 7.0;

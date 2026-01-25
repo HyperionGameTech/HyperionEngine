@@ -23,11 +23,11 @@ void main()
 
     vec2 resolution = vec2(camera.dimensions.xy);
 
-    vec3 rgbNW = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(-1.0, -1.0) / resolution)).xyz;
-    vec3 rgbNE = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(1.0, -1.0) / resolution)).xyz;
-    vec3 rgbSW = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(-1.0, 1.0) / resolution)).xyz;
-    vec3 rgbSE = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(1.0, 1.0) / resolution)).xyz;
-    vec3 rgbM = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0).xyz;
+    vec3 rgbNW = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(-1.0, -1.0) / resolution)).xyz;
+    vec3 rgbNE = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(1.0, -1.0) / resolution)).xyz;
+    vec3 rgbSW = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(-1.0, 1.0) / resolution)).xyz;
+    vec3 rgbSE = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0 + (vec2(1.0, 1.0) / resolution)).xyz;
+    vec3 rgbM = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0).xyz;
 
     vec3 luma = vec3(0.299, 0.587, 0.114);
     float lumaNW = dot(rgbNW, luma);
@@ -54,8 +54,8 @@ void main()
                   dir * rcpDirMin))
         / resolution;
 
-    vec3 rgbA = (1.0 / 2.0) * (Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (1.0 / 3.0 - 0.5)).xyz + Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (2.0 / 3.0 - 0.5)).xyz);
-    vec3 rgbB = rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (0.0 / 3.0 - 0.5)).xyz + Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (3.0 / 3.0 - 0.5)).xyz);
+    vec3 rgbA = (1.0 / 2.0) * (SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (1.0 / 3.0 - 0.5)).xyz + SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (2.0 / 3.0 - 0.5)).xyz);
+    vec3 rgbB = rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (0.0 / 3.0 - 0.5)).xyz + SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, v_texcoord0.xy + dir * (3.0 / 3.0 - 0.5)).xyz);
     float lumaB = dot(rgbB, luma);
 
     if ((lumaB < lumaMin) || (lumaB > lumaMax))

@@ -41,29 +41,6 @@ namespace Hyperion {
 static const Name s_shaderNames[] = { NAME("RTRadiance"), NAME("PathTracer") };
 static constexpr uint32 MaxLights = sizeof(RayTracingConstants::lightIndices) / sizeof(uint32);
 
-#pragma region Render commands
-
-struct UnsetRTRadianceImageInGlobalDescriptorSet : RenderCommand
-{
-    virtual ~UnsetRTRadianceImageInGlobalDescriptorSet() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        RendererResult result;
-
-        // remove result image from global descriptor set
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-
-        return result;
-    }
-};
-
-#pragma endregion Render commands
-
 RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& config, GBuffer* gbuffer)
     : m_config(std::move(config)),
       m_gbuffer(gbuffer)
@@ -74,8 +51,6 @@ RayTracingReflections::~RayTracingReflections()
 {
     // remove result image from global descriptor set
     SafeDelete(std::move(m_texture));
-
-    PUSH_RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet);
 }
 
 const GpuImageViewRef& RayTracingReflections::GetFinalImageView() const
@@ -92,13 +67,6 @@ void RayTracingReflections::Create()
 {
     CreateImages();
     CreateTemporalBlending();
-
-    // Set result texture in global descriptor table
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-            ->SetElement("RTRadianceResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture()));
-    }
 }
 
 void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)

@@ -35,7 +35,7 @@ HYP_DESCRIPTOR_UAV(RTReflections, OutputImage, format = rgba8) uniform image2D i
 #include "../include/env_probe.inc"
 
 /// Blue noise
-HYP_DESCRIPTOR_SSBO(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_BUFFER(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
 	ivec4 sobol_256spp_256d[256 * 256 / 4];
 	ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -45,12 +45,12 @@ HYP_DESCRIPTOR_SSBO(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuf
 #include "../include/BlueNoise.glsl"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF(RTReflections, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(RTReflections, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -58,12 +58,12 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffer
 #include "../include/rt/RTRadiance.inc"
 #include "../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_CBUFF(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_BUFFER(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_CBUFF(RTReflections, Lights) uniform Lights
+HYP_DESCRIPTOR_BUFFER(RTReflections, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -96,10 +96,10 @@ void main()
     const mat4 view_inverse = inverse(camera.view);
     const mat4 projection_inverse = inverse(camera.projection);
 
-    const vec4 normalSample = Texture2DLod(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
 
     const vec3 normal =  GBufferUnpackNormal(normalSample);
-    const float depth = Texture2DLod(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
     const vec3 position = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth).xyz;
 
     uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), uv).rg;

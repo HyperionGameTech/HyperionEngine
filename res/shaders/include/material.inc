@@ -74,19 +74,16 @@ struct Material
 #define GET_TEXTURE(mat, name) name
 #endif
 
-#define SAMPLE_TEXTURE(mat, name, texcoord) \
-    Texture2D(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
+#define SAMPLE_MATERIAL_TEXTURE(mat, name, texcoord) \
+    SAMPLE_TEXTURE_2D(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
 
-#define SAMPLE_TEXTURE_LOD(mat, name, texcoord, lod) \
-    Texture2DLod(texture_sampler, GET_TEXTURE(mat, name), (texcoord), (lod))
+#define SAMPLE_MATERIAL_TEXTURE_LOD(mat, name, texcoord, lod) \
+    SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), (lod))
 
-#define SAMPLE_TEXTURE_NEAREST(mat, name, texcoord) \
-    Texture2D(sampler_nearest, GET_TEXTURE(mat, name), (texcoord))
+#define SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(mat, name, position, normal) \
+    SampleTextureTriplanar(texture_sampler, GET_TEXTURE(mat, name), (position), (normal))
 
-#define SAMPLE_TEXTURE_TRIPLANAR(mat, name, position, normal) \
-    Texture2DTriplanar(texture_sampler, GET_TEXTURE(mat, name), (position), (normal))
-
-#define SAMPLE_TEXTURE_CUBE(mat, name, texcoord) \
-    TextureCube(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
+#define SAMPLE_MATERIAL_TEXTURE_CUBE(mat, name, texcoord) \
+    SAMPLE_TEXTURE_CUBE(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
 
 #endif

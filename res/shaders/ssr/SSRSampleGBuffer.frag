@@ -11,7 +11,7 @@ layout(location=0) out vec4 out_color;
 
 HYP_DESCRIPTOR_SRV(RenderSSR, UVImage) uniform texture2D ssr_uv_image;
 
-HYP_DESCRIPTOR_CBUFF(RenderSSR, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_BUFFER(RenderSSR, UniformBuffer) uniform UniformBuffer
 {
     uvec4 dimension;
     float ray_step;
@@ -38,19 +38,19 @@ HYP_DESCRIPTOR_SRV(RenderSSR, GBufferDepthTexture) uniform texture2D gbuffer_dep
 
 HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerNearest) uniform sampler sampler_nearest;
 HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SSBO(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_BUFFER(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_CBUFF(RenderSSR, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(RenderSSR, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(RenderSSR, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -89,14 +89,14 @@ void main(void)
 
     const vec2 ssr_image_dimensions = vec2(ssr_params.dimension.xy);
 
-    vec4 uv_sample = Texture2D(sampler_nearest, ssr_uv_image, texcoord);
+    vec4 uv_sample = SAMPLE_TEXTURE_2D(sampler_nearest, ssr_uv_image, texcoord);
     const vec2 uv = uv_sample.xy;
     const float alpha = uv_sample.z;
 
     vec4 reflection_sample = vec4(0.0);
     float roughness = 0.0;
 
-    float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
 
     if (depth > 0.99999)
@@ -106,7 +106,7 @@ void main(void)
     }
 
     vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth).xyz;
-    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
     vec3 N =  GBufferUnpackNormal(normalSample);
     vec3 V = normalize(camera.position.xyz - P);
 
@@ -131,7 +131,7 @@ void main(void)
         vec2 sample_texcoord = texcoord; //+ (offset * filter_size);
         ivec2 sample_coord = ivec2(sample_texcoord * vec2(ssr_params.dimension.xy - 1) + 0.5);
         
-        const vec4 hit_data = Texture2D(sampler_nearest, ssr_uv_image, sample_texcoord);
+        const vec4 hit_data = SAMPLE_TEXTURE_2D(sampler_nearest, ssr_uv_image, sample_texcoord);
         const vec2 hit_uv = hit_data.xy;
         const float hit_mask = hit_data.z;
         const vec2 delta_p = (hit_uv - texcoord);
@@ -144,7 +144,7 @@ void main(void)
 
         vec4 accum_color = vec4(0.0);
 
-        vec2 velocity = Texture2D(sampler_linear, gbuffer_velocity_texture, texcoord).xy;
+        vec2 velocity = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_velocity_texture, texcoord).xy;
 
 #ifdef CONE_TRACING
         for (int i = 0; i < 14; i++)
@@ -155,12 +155,12 @@ void main(void)
 
             const float mip_level = clamp(log2(/*current_radius*/ incircle_size * max(ssr_image_dimensions.x, ssr_image_dimensions.y)), 0.0, max_mip_level);
 
-            vec4 current_reflection_sample = Texture2DLod(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, vec2(0.0), vec2(1.0)), mip_level);
+            vec4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, vec2(0.0), vec2(1.0)), mip_level);
 #else
         const float current_radius = length((hit_uv - texcoord) * vec2(ssr_params.dimension.xy)) * tan(cone_angle);
         const float mip_level = clamp(log2(current_radius), 0.0, max_mip_level);
 
-        vec4 current_reflection_sample = Texture2DLod(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, vec2(0.0), vec2(1.0)), mip_level);
+        vec4 current_reflection_sample = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, clamp(hit_uv - velocity, vec2(0.0), vec2(1.0)), mip_level);
 #endif
 
 #ifdef CONE_TRACING

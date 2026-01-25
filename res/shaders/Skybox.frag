@@ -32,7 +32,7 @@ HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform textureCube textures[]; // 
 HYP_DESCRIPTOR_SRV(Default, AlbedoMap) uniform textureCube AlbedoMap;
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -46,7 +46,7 @@ void main()
     vec3 normal = normalize(v_normal);
 
 #if defined(HYP_MATERIAL_CUBEMAP_TEXTURES) && HYP_MATERIAL_CUBEMAP_TEXTURES
-    gbuffer_albedo = vec4(SAMPLE_TEXTURE_CUBE(CURRENT_MATERIAL, AlbedoMap, v_position).rgb, 1.0);
+    gbuffer_albedo = vec4(SAMPLE_MATERIAL_TEXTURE_CUBE(CURRENT_MATERIAL, AlbedoMap, v_position).rgb, 1.0);
 #else
     gbuffer_albedo = vec4(0.0);
 #endif

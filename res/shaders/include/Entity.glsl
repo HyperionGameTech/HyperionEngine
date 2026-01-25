@@ -60,12 +60,15 @@ struct EntityInstanceBatch
         | (uint((obj).bucket == HYP_OBJECT_BUCKET_SKYBOX) * (OBJECT_MASK_SKY)))
 
 #ifdef INSTANCING
-#if defined(VERTEX_SHADER)
-#define OBJECT_INDEX (entity_instance_batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
-#define entity (entities[OBJECT_INDEX])
-#elif defined(FRAGMENT_SHADER)
-#define entity (entities[v_object_index])
-#endif
-#endif
-
-#endif
+    #if defined(VERTEX_SHADER)
+        #define OBJECT_INDEX (entity_instance_batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
+        #define entity (entities[OBJECT_INDEX])
+    #elif defined(PIXEL_SHADER)
+        #define entity (entities[v_object_index])
+    #endif
+#else // !INSTANCING
+    #ifdef LANG_HLSL // for HLSL (non-instancing) we use a StructuredBuffer<Entity> that is offset, so we need to access the entity by the first element
+        #define entity (entities[0])
+    #endif // LANG_HLSL
+#endif // INSTANCING
+#endif // HYP_OBJECT_GLSL

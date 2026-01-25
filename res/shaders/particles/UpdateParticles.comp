@@ -32,7 +32,7 @@ HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) uniform te
 #define MAX_PARTICLES 1024
 #endif
 
-HYP_DESCRIPTOR_SSBO(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
+HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
 {
     ParticleShaderData instances[MAX_PARTICLES];
 };
@@ -50,24 +50,24 @@ struct IndirectDrawCommand
     uint first_instance;
 };
 
-HYP_DESCRIPTOR_SSBO(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_command;
 };
 
 HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, NoiseMap) uniform texture2D noise_map;
 
-HYP_DESCRIPTOR_CBUFF(UpdateParticlesDescriptorSet, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(UpdateParticlesDescriptorSet, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(UpdateParticlesDescriptorSet, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(UpdateParticlesDescriptorSet, ParticleSpawnerData) uniform ParticleSpawnerData
+HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, ParticleSpawnerData) uniform ParticleSpawnerData
 {
     vec4 origin;
     float spawn_radius;
@@ -93,9 +93,9 @@ vec3 GetNoiseValue()
     vec2 uv2 = vec2(float(indices.z % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.z / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
 
     vec3 noiseValue = vec3(
-        Texture2D(sampler_linear, noise_map, uv0).r * 2.0 - 1.0,
-        Texture2D(sampler_linear, noise_map, uv1).r * 2.0 - 1.0,
-        Texture2D(sampler_linear, noise_map, uv2).r * 2.0 - 1.0);
+        SAMPLE_TEXTURE_2D(sampler_linear, noise_map, uv0).r * 2.0 - 1.0,
+        SAMPLE_TEXTURE_2D(sampler_linear, noise_map, uv1).r * 2.0 - 1.0,
+        SAMPLE_TEXTURE_2D(sampler_linear, noise_map, uv2).r * 2.0 - 1.0);
 
     return noiseValue;
 }
@@ -171,7 +171,7 @@ void main()
 
     vec2 particleUV = posNDC.xy * 0.5 + 0.5;
 
-    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, particleUV).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, particleUV).r;
 
     vec4 posWS = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), particleUV, depth);
     posWS /= posWS.w;
@@ -179,7 +179,7 @@ void main()
     if (distance(posWS.xyz, particle.position.xyz) <= 1.0)
     {
         // has collision
-        const vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, particleUV));
+        const vec3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, particleUV));
 
         particle.velocity.xyz = reflect(normal, normalize(particle.velocity.xyz));
     }

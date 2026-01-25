@@ -64,27 +64,27 @@ struct PackedVertex
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SSBO(PathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_BUFFER(PathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+HYP_DESCRIPTOR_BUFFER(RTRadianceDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_BUFFER(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_BUFFER(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -214,7 +214,7 @@ void main()
     material_color = material.albedo;
 
     if (HAS_TEXTURE(material, AlbedoMap)) {
-        vec4 albedo_texture = SAMPLE_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
+        vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
         
         material_color *= albedo_texture;
     }
@@ -222,7 +222,7 @@ void main()
     float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
     if (HAS_TEXTURE(material, MetalnessMap)) {
-        float metalness_sample = SAMPLE_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+        float metalness_sample = SAMPLE_MATERIAL_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
         
         metalness = metalness_sample;
     }
@@ -230,7 +230,7 @@ void main()
     float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
 
     if (HAS_TEXTURE(material, RoughnessMap)) {
-        float roughness_sample = SAMPLE_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+        float roughness_sample = SAMPLE_MATERIAL_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
         
         roughness = roughness_sample;
     }

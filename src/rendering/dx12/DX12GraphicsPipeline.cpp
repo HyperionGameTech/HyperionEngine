@@ -352,7 +352,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
         Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
 
-        for (uint32 slotTypeIndex = DESCRIPTOR_SLOT_NONE + 1; slotTypeIndex < DESCRIPTOR_SLOT_MAX; ++slotTypeIndex)
+        for (uint32 slotTypeIndex = NONE + 1; slotTypeIndex < MAX; ++slotTypeIndex)
         {
             const auto& declarations = setDecl.slots[slotTypeIndex];
             
@@ -365,20 +365,20 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
             switch (slotTypeIndex)
             {
-            case DESCRIPTOR_SLOT_SRV:
-            case DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:
+            case SRV:
+            case ACCELERATION_STRUCTURE:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; 
                 break;
-            case DESCRIPTOR_SLOT_UAV: // storage texture
+            case UAV: // storage texture
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
                 break;
-            case DESCRIPTOR_SLOT_CBUFF:
+            case CBUFF:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
                 break;
-            case DESCRIPTOR_SLOT_SSBO:
+            case SSBO:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; 
                 break;
-            case DESCRIPTOR_SLOT_SAMPLER:
+            case SAMPLER:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
                 break;
             default:
@@ -394,7 +394,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
                 range.RegisterSpace = (UINT)setIndex;
                 range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-                if (slotTypeIndex == DESCRIPTOR_SLOT_SAMPLER)
+                if (slotTypeIndex == SAMPLER)
                 {
                     samplerRanges.PushBack(range);
                 }

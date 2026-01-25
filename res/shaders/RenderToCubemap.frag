@@ -52,27 +52,27 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -102,7 +102,7 @@ void main()
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
     albedo = CURRENT_MATERIAL.albedo;
 
-    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
     if (albedo_texture.a < 0.2)
     {

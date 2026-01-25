@@ -28,17 +28,17 @@ HYP_DESCRIPTOR_SAMPLER(HBAO, SamplerNearest) uniform sampler sampler_nearest;
 #include "../include/gbuffer.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(HBAO, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(HBAO, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(HBAO, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(HBAO, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF(HBAO, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_BUFFER(HBAO, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimension;
     float radius;
@@ -69,7 +69,7 @@ mat4 inv_proj = inverse(camera.projection);
 
 float GetDepth(vec2 uv)
 {
-    return Texture2D(sampler_nearest, gbuffer_depth_texture, uv).r;
+    return SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, uv).r;
 }
 
 vec3 GetPosition(vec2 uv, float depth)
@@ -79,7 +79,7 @@ vec3 GetPosition(vec2 uv, float depth)
 
 vec3 GetNormal(vec2 uv)
 {
-    vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, uv));
+    vec3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, uv));
     vec3 view_normal = (camera.view * vec4(normal, 0.0)).xyz;
 
     return view_normal;
@@ -198,7 +198,7 @@ void TraceAO_New(vec2 uv, out float occlusion)
 
             if (all(lessThan(new_uv.xy, vec2(1.0))) && all(greaterThanEqual(new_uv.xy, vec2(0.0))))
             {
-                new_uv = Saturate(new_uv);
+                new_uv = saturate(new_uv);
 
                 float depth_0 = GetDepth(new_uv.xy);
                 float depth_1 = GetDepth(new_uv.zw);
@@ -227,8 +227,8 @@ void TraceAO_New(vec2 uv, out float occlusion)
                 const vec2 total_impact = condition * falloffs * impact;
 
 #ifdef HBIL_ENABLED
-                vec4 new_color_0 = Texture2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
-                vec4 new_color_1 = Texture2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
+                vec4 new_color_0 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
+                vec4 new_color_1 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
 
                 slice_light[0] += vec4(new_color_0) * total_impact.x;
                 slice_light[1] += vec4(new_color_1) * total_impact.y;

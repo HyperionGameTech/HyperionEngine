@@ -25,12 +25,12 @@
 
 shared ProbeRayData ray_cache[CACHE_SIZE];
 
-HYP_DESCRIPTOR_CBUFF(DDGI, DDGIConstants) uniform CBuffer
+HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) uniform CBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_SSBO(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
+HYP_DESCRIPTOR_BUFFER(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
 {
     ProbeRayData probe_rays[];
 };

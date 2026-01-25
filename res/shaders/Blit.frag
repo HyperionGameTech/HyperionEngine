@@ -19,8 +19,8 @@ void main()
 {
     out_color = vec4(0.0, 0.0, 0.0, 1.0);
 
-    out_color.rgb = Texture2D(sampler_nearest, src_texture, v_texcoord0).rgb;
+    out_color.rgb = SAMPLE_TEXTURE_2D(sampler_nearest, src_texture, v_texcoord0).rgb;
 
-    // vec4 ui_color = Texture2D(sampler_nearest, ui_texture, v_texcoord0);
+    // vec4 ui_color = SAMPLE_TEXTURE_2D(sampler_nearest, ui_texture, v_texcoord0);
     // out_color.rgb = mix(out_color.rgb, ui_color.rgb, ui_color.a);
 }

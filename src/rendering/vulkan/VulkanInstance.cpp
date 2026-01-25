@@ -238,7 +238,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
-    if (String(callbackData->pMessage).Contains("vkDestroyBuffer"))
+    if (String(callbackData->pMessageIdName).Contains("VUID-VkComputePipelineCreateInfo-layout-07990"))
     {
         HYP_BREAKPOINT;
     }

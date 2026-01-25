@@ -62,28 +62,35 @@ bool VulkanShader::IsCreated() const
     return m_vkShaderStages.Size() != 0;
 }
 
-RendererResult VulkanShader::AttachSubShader(ShaderModuleType type, const ShaderObject& shaderObject)
+RendererResult VulkanShader::AttachShaderModule(
+    ShaderModuleType type,
+    UTF8StringView moduleName,
+    UTF8StringView entryPointName,
+    ConstByteView shaderBlobView)
 {
     Assert(m_compiledShader != nullptr);
-
-    const ByteBuffer& spirv = shaderObject.bytes;
+    Assert(shaderBlobView.Size() % sizeof(uint32) == 0);
 
     VkShaderModuleCreateInfo createInfo { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-    createInfo.codeSize = spirv.Size();
-    createInfo.pCode = reinterpret_cast<const uint32*>(spirv.Data());
+    createInfo.codeSize = shaderBlobView.Size();
+    createInfo.pCode = reinterpret_cast<const uint32*>(shaderBlobView.Data());
 
-    VkShaderModule shaderModule;
+    VkShaderModule vkShaderModule;
+    VULKAN_CHECK(vkCreateShaderModule(g_renderInterface->GetDevice()->GetDevice(), &createInfo, nullptr, &vkShaderModule));
 
-    VULKAN_CHECK(vkCreateShaderModule(g_renderInterface->GetDevice()->GetDevice(), &createInfo, nullptr, &shaderModule));
-
-    m_shaderModules.EmplaceBack(type, shaderObject.srcName, m_compiledShader->entryPointName, spirv, shaderModule);
+    VulkanShaderModule& shaderModule = m_shaderModules.EmplaceBack();
+    shaderModule.type = type;
+    shaderModule.moduleName = moduleName;
+    shaderModule.entryPointName = entryPointName;
+    shaderModule.blobHashCode = shaderBlobView.GetHashCode();
+    shaderModule.handle = vkShaderModule;
 
     std::sort(m_shaderModules.Begin(), m_shaderModules.End());
 
     return {};
 }
 
-RendererResult VulkanShader::AttachSubShaders()
+RendererResult VulkanShader::AttachShaderModules()
 {
     if (!m_compiledShader)
     {
@@ -95,7 +102,7 @@ RendererResult VulkanShader::AttachSubShaders()
         return HYP_MAKE_ERROR(RendererError, "Attached compiled shader is in invalid state");
     }
 
-    for (SizeType index = 0; index < m_compiledShader->modules.Size(); index++)
+    for (SizeType index = 0; index < m_compiledShader->moduleTypes.Size(); index++)
     {
 #ifdef HYP_DEBUG_MODE
         const Name srcName = NAME_FMT("{} ({})", m_compiledShader->GetName(), m_compiledShader->GetDefinition().GetProperties().ToString());
@@ -103,17 +110,19 @@ RendererResult VulkanShader::AttachSubShaders()
         const Name srcName = NAME("<unnamed shader>");
 #endif
 
-        ByteBuffer byteBuffer = m_compiledShader->modules[index];
+        ShaderModuleType moduleType;
+        String moduleName;
+        String entryPointName;
+        ConstByteView blob;
 
-        if (byteBuffer.Empty())
+        if (!m_compiledShader->GetShaderModuleInfo(index, moduleType, moduleName, entryPointName, blob))
         {
             continue;
         }
 
-        // since we reinterpret it as uint32 ptr we need to make sure it is aligned as uint32
-        byteBuffer.SetSize(ByteUtil::AlignAs(byteBuffer.Size(), alignof(uint32)));
+        Assert(blob.Size() != 0);
 
-        CheckResultOrReturn(AttachSubShader(ShaderModuleType(index), ShaderObject { srcName, std::move(byteBuffer) }));
+        CheckResultOrReturn(AttachShaderModule(moduleType, moduleName, entryPointName, blob));
     }
 
     return {};
@@ -221,7 +230,7 @@ RendererResult VulkanShader::Create()
         return {};
     }
 
-    CheckResultOrReturn(AttachSubShaders());
+    CheckResultOrReturn(AttachShaderModules());
 
     bool isRayTracing = false;
 
@@ -265,12 +274,10 @@ void VulkanShader::SetDebugName(Name name)
             continue;
         }
 
-        String moduleName = shaderModule.srcName.IsValid() ? shaderModule.srcName.LookupString() : name.LookupString();
-
         VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
         objectNameInfo.objectType = VK_OBJECT_TYPE_SHADER_MODULE;
         objectNameInfo.objectHandle = (uint64)shaderModule.handle;
-        objectNameInfo.pObjectName = moduleName.Data();
+        objectNameInfo.pObjectName = shaderModule.moduleName.Data();
 
         g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
     }

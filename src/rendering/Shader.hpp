@@ -18,21 +18,6 @@ namespace Hyperion {
 
 struct CompiledShader;
 
-struct ShaderObject
-{
-    Name srcName;
-    ByteBuffer bytes;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(srcName);
-        hc.Add(bytes);
-
-        return hc;
-    }
-};
-
 HYP_CLASS(Abstract, NoScriptBindings)
 class ShaderBase : public ObjectBase
 {

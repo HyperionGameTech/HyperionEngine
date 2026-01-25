@@ -15,7 +15,7 @@ layout(location = 0) out vec4 color_output;
 
 #include "include/scene.inc"
 
-HYP_DESCRIPTOR_CBUFF(MergeHalfResTexture, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(MergeHalfResTexture, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -25,7 +25,7 @@ HYP_DESCRIPTOR_SAMPLER(MergeHalfResTexture, SamplerLinear) uniform sampler sampl
 
 HYP_DESCRIPTOR_SRV(MergeHalfResTexture, InTexture) uniform texture2D src_image;
 
-HYP_DESCRIPTOR_CBUFF(MergeHalfResTexture, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_BUFFER(MergeHalfResTexture, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimensions;
 };
@@ -40,5 +40,5 @@ void main()
 
     vec2 texcoord = mix(texcoord_a, texcoord_b, float(checkerboard));
 
-    color_output = Texture2D(sampler_nearest, src_image, texcoord);
+    color_output = SAMPLE_TEXTURE_2D(sampler_nearest, src_image, texcoord);
 }

@@ -36,10 +36,6 @@ PassData::~PassData()
         delete next;
         next = nullptr;
     }
-
-    // no need to SafeDelete() the graphics pipelines as they are managed by the global graphics pipeline cache.
-
-    SafeDelete(std::move(descriptorSets));
 }
 
 int PassData::CullUnusedGraphicsPipelines(int maxIter)

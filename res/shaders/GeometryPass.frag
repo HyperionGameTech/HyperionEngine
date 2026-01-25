@@ -47,12 +47,12 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Default, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -65,7 +65,7 @@ HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform textureCubeArray envProbes
 HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SSBO(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_BUFFER(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
@@ -78,30 +78,30 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 #endif
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entity;
 };
 #endif
 
 #ifdef SHADING_TYPE_FORWARD
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -146,7 +146,7 @@ void main()
 #endif
 
 #if HAS_ALBEDO_MAP
-    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
 #ifdef ALPHA_DISCARD
     if (albedo_texture.a < alpha_threshold)
@@ -163,7 +163,7 @@ void main()
     vec4 normals_texture = vec4(0.0);
 
 #if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
+    normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
 
     N = normalize(tbn_matrix * normals_texture.xyz);
 #endif
@@ -287,13 +287,13 @@ void main()
 #endif
 
 #if HAS_METALNESS_MAP
-    float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
+    float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
 
     metalness = metalness_sample;
 #endif
 
 #if HAS_ROUGHNESS_MAP
-    float roughness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
+    float roughness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
 
     roughness = roughness_sample;
 #endif
@@ -303,7 +303,7 @@ void main()
 #endif
 
 #if HAS_AO_MAP
-    ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;
+    ao = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/

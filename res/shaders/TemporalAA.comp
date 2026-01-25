@@ -23,7 +23,7 @@ HYP_DESCRIPTOR_SAMPLER(TemporalAADescriptorSet, SamplerNearest) uniform sampler 
 
 HYP_DESCRIPTOR_UAV(TemporalAADescriptorSet, OutColorImage, format = rgba8) uniform writeonly image2D output_image;
 
-HYP_DESCRIPTOR_CBUFF(TemporalAADescriptorSet, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_BUFFER(TemporalAADescriptorSet, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimensions;
     uvec2 depth_texture_dimensions;
@@ -45,7 +45,7 @@ void main()
     const vec2 depth_texel_size = vec2(1.0) / vec2(depth_texture_dimensions);
 
     // const vec3 closest_fragment = ClosestFragment(depth_texture, uv, depth_texel_size);
-    // vec2 velocity = Texture2D(sampler_nearest, velocity_texture, closest_fragment.xy).rg;
+    // vec2 velocity = SAMPLE_TEXTURE_2D(sampler_nearest, velocity_texture, closest_fragment.xy).rg;
 
     vec2 velocity;
     float view_space_depth;
@@ -69,8 +69,8 @@ void main()
         texel_size,
         view_space_depth);
 
-    vec4 color = Texture2D(sampler_nearest, color_texture, uv);
-    vec4 previous_color = Texture2D(sampler_nearest, prev_color_texture, uv - velocity);
+    vec4 color = SAMPLE_TEXTURE_2D(sampler_nearest, color_texture, uv);
+    vec4 previous_color = SAMPLE_TEXTURE_2D(sampler_nearest, prev_color_texture, uv - velocity);
 
 #if 0
 
@@ -88,7 +88,7 @@ void main()
     );
 
     for (int i = 0; i < 4; i++) {
-        vec4 c = RGBToYCoCg(Texture2D(sampler_nearest, color_texture, clamp(uv + (offsets[i] * texel_size), 0.0, 1.0)));
+        vec4 c = RGBToYCoCg(SAMPLE_TEXTURE_2D(sampler_nearest, color_texture, clamp(uv + (offsets[i] * texel_size), 0.0, 1.0)));
         mean += c;
         stddev += c * c;
     }

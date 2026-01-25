@@ -297,7 +297,7 @@ public:
 
             if (const ShaderMapEntry* entry = it.second)
             {
-                for (const ByteBuffer& byteBuffer : entry->shaderInstance->GetCompiledShader()->modules)
+                for (const ByteBuffer& byteBuffer : entry->shaderInstance->GetCompiledShader()->shaderBlobs)
                 {
                     totalMemoryUsage += byteBuffer.Size();
                 }

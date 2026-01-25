@@ -1277,7 +1277,6 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds)
 {
     HYP_SCOPE;

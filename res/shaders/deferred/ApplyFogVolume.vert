@@ -25,12 +25,12 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
 #include "FogVolume.inl"
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(FogVolume, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
+HYP_DESCRIPTOR_BUFFER(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
 {
     FogVolume fogVolume;
 };

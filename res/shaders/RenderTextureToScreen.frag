@@ -16,7 +16,7 @@ layout(location = 0) out vec4 color_output;
 
 HYP_DESCRIPTOR_SAMPLER(RenderTextureToScreenDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_CBUFF(RenderTextureToScreenDescriptorSet, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(RenderTextureToScreenDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -34,5 +34,5 @@ void main()
     texcoord = (texcoord * 0.5) + vec2(0.5 * float((world_shader_data.frame_counter - 1) & 1), 0.0);
 #endif
 
-    color_output = Texture2D(sampler_linear, src_image, texcoord);
+    color_output = SAMPLE_TEXTURE_2D(sampler_linear, src_image, texcoord);
 }

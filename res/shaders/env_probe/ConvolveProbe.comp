@@ -23,12 +23,12 @@ layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
 
 #include "../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(ConvolveProbeDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(ConvolveProbeDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_CBUFF(ConvolveProbeDescriptorSet, SphereSamplesBuffer) uniform SphereSamplesBuffer
+HYP_DESCRIPTOR_BUFFER(ConvolveProbeDescriptorSet, SphereSamplesBuffer) uniform SphereSamplesBuffer
 {
     vec4 sphere_samples[4096];
 };
@@ -40,7 +40,7 @@ HYP_DESCRIPTOR_SAMPLER(ConvolveProbeDescriptorSet, SamplerNearest) uniform sampl
 
 HYP_DESCRIPTOR_UAV(ConvolveProbeDescriptorSet, OutImage, format = rgba8) uniform imageCube out_image;
 
-HYP_DESCRIPTOR_CBUFF(ConvolveProbeDescriptorSet, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_BUFFER(ConvolveProbeDescriptorSet, UniformBuffer) uniform UniformBuffer
 {
     uvec2 out_image_dimensions;
     uvec2 in_image_dimensions;
@@ -69,7 +69,7 @@ vec4 ConvolveProbe(uvec2 local_coord)
         vec3 offset = sphere_samples[i % 4096].xyz;
         vec3 sample_dir = normalize(dir + vec3(lobe_size) * offset);
 
-        vec4 color = TextureCube(sampler_linear, color_texture, sample_dir);
+        vec4 color = SAMPLE_TEXTURE_CUBE(sampler_linear, color_texture, sample_dir);
 
         sum_radiance += color;
     }

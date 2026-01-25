@@ -33,7 +33,7 @@ vec4 SampleEffectPre(uint index, vec2 texcoord, in vec4 default_value)
 
 #if 0// Fixme: iOS debugging
     return bitmask != 0
-        ? Texture2D(HYP_SAMPLER_NEAREST, effects_pre_stack[index], texcoord)
+        ? SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_pre_stack[index], texcoord)
         : default_value;
 #else
     return default_value;
@@ -49,7 +49,7 @@ vec4 SampleEffectPost(uint index, vec2 texcoord, in vec4 default_value)
 
 #if 0// Fixme: iOS debugging
     return bitmask != 0
-        ? Texture2D(HYP_SAMPLER_NEAREST, effects_post_stack[index], texcoord)
+        ? SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[index], texcoord)
         : default_value;
 #else
     return default_value;
@@ -72,8 +72,8 @@ vec4 SampleEffect(uint stage, uint index, vec2 texcoord, in vec4 default_value)
 #if 0// Fixme: iOS debugging
     return bitmask != 0
         ? mix(
-            Texture2D(HYP_SAMPLER_NEAREST, effects_pre_stack[index], texcoord),
-            Texture2D(HYP_SAMPLER_NEAREST, effects_post_stack[index], texcoord),
+            SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_pre_stack[index], texcoord),
+            SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[index], texcoord),
             is_post_effect
         )
         : default_value;
@@ -87,7 +87,7 @@ vec4 SampleLastEffectInChain(uint stage, vec2 texcoord, in vec4 default_value)
 {
 #if 0// Fixme: iOS debugging
     return post_processing.masks[stage] != 0
-        ? Texture2D(HYP_SAMPLER_NEAREST, effects_post_stack[post_processing.last_enabled_indices[stage]], texcoord)
+        ? SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[post_processing.last_enabled_indices[stage]], texcoord)
         : default_value;
 #else
     return default_value;

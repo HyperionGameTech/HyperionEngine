@@ -30,7 +30,7 @@ HYP_DESCRIPTOR_SAMPLER(ParticleDescriptorSet, SamplerLinear) uniform sampler Sam
 
 void main()
 {
-    vec4 color = Texture2D(SamplerLinear, ParticleTexture, v_texcoord0);
+    vec4 color = SAMPLE_TEXTURE_2D(SamplerLinear, ParticleTexture, v_texcoord0);
     //color *= v_color;
 
     gbuffer_albedo = color;

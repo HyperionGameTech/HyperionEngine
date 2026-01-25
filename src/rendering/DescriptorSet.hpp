@@ -39,7 +39,7 @@ enum class GpuBufferType : uint8;
 class IRenderProxy;
 class ObjectBase;
 
-constexpr uint32 ElementTypeToBufferType[uint32(DescriptorSetElementType::MAX)] = {
+constexpr uint32 ElementTypeToBufferType[uint32(DescriptorType::MAX)] = {
     0,                                    // UNSET
     (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER
     (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
@@ -64,29 +64,29 @@ struct DescriptorSetElementTypeInfo;
 template <>
 struct DescriptorSetElementTypeInfo<GpuBuffer>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
-        | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(DescriptorSetElementType::SSBO))
-        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
+    static constexpr uint32 mask = (1u << uint32(DescriptorType::UNIFORM_BUFFER))
+        | (1u << uint32(DescriptorType::UNIFORM_BUFFER_DYNAMIC))
+        | (1u << uint32(DescriptorType::SSBO))
+        | (1u << uint32(DescriptorType::STORAGE_BUFFER_DYNAMIC));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuImageView>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
-        | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
+    static constexpr uint32 mask = (1u << uint32(DescriptorType::IMAGE))
+        | (1u << uint32(DescriptorType::IMAGE_STORAGE));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<Sampler>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+    static constexpr uint32 mask = (1u << uint32(DescriptorType::SAMPLER));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuTlas>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
+    static constexpr uint32 mask = (1u << uint32(DescriptorType::TLAS));
 };
 
 HYP_STRUCT()
@@ -95,7 +95,7 @@ struct DescriptorSetLayoutElement
     HYP_STRUCT_BODY(DescriptorSetLayoutElement);
 
     HYP_FIELD()
-    DescriptorSetElementType type = DescriptorSetElementType::UNSET;
+    DescriptorType type = DescriptorType::UNSET;
 
     HYP_FIELD()
     uint32 binding = ~0u; // has to be set
@@ -236,7 +236,7 @@ public:
         return m_elements;
     }
 
-    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint32 binding, uint32 count, uint32 size = ~0u)
+    HYP_FORCE_INLINE void AddElement(Name name, DescriptorType type, uint32 binding, uint32 count, uint32 size = ~0u)
     {
         m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size });
     }
@@ -582,22 +582,16 @@ protected:
 #define HYP_DESCRIPTOR_SET(index, name) \
     static DescriptorTableDeclaration::DeclareSet HYP_UNIQUE_NAME(DescriptorSet_##name)(&GetStaticDescriptorTableDeclaration(), index, HYP_NAME_UNSAFE(name))
 
-#define HYP_DESCRIPTOR_SRV_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_UAV_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_CBUFF_COND(setName, name, count, size, isDynamic, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_CBUFF, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
-#define HYP_DESCRIPTOR_SSBO_COND(setName, name, count, size, isDynamic, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_SSBO, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
-#define HYP_DESCRIPTOR_ACCELERATION_STRUCTURE_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_SAMPLER_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define HYP_DESCRIPTOR_SRV_COND(setName, name, type, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define HYP_DESCRIPTOR_UAV_COND(setName, name, type, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define HYP_DESCRIPTOR_BUFFER_COND(setName, name, type, count, size, isDynamic, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
+#define HYP_DESCRIPTOR_SAMPLER_COND(setName, name, type, count, cond) \
+    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 
-#define HYP_DESCRIPTOR_SRV(setName, name, count) HYP_DESCRIPTOR_SRV_COND(setName, name, count, true)
-#define HYP_DESCRIPTOR_UAV(setName, name, count) HYP_DESCRIPTOR_UAV_COND(setName, name, count, true)
-#define HYP_DESCRIPTOR_CBUFF(setName, name, count, size, isDynamic) HYP_DESCRIPTOR_CBUFF_COND(setName, name, count, size, isDynamic, true)
-#define HYP_DESCRIPTOR_SSBO(setName, name, count, size, isDynamic) HYP_DESCRIPTOR_SSBO_COND(setName, name, count, size, isDynamic, true)
-#define HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(setName, name, count) HYP_DESCRIPTOR_ACCELERATION_STRUCTURE_COND(setName, name, count, true)
-#define HYP_DESCRIPTOR_SAMPLER(setName, name, count) HYP_DESCRIPTOR_SAMPLER_COND(setName, name, count, true)
+#define HYP_DESCRIPTOR_SRV(setName, name, type, count) HYP_DESCRIPTOR_SRV_COND(setName, name, type, count, true)
+#define HYP_DESCRIPTOR_UAV(setName, name, type, count) HYP_DESCRIPTOR_UAV_COND(setName, name, type, count, true)
+#define HYP_DESCRIPTOR_BUFFER(setName, name, type, count, size, isDynamic) HYP_DESCRIPTOR_BUFFER_COND(setName, name, type, count, size, isDynamic, true)
+#define HYP_DESCRIPTOR_SAMPLER(setName, name, type, count) HYP_DESCRIPTOR_SAMPLER_COND(setName, name, type, count, true)

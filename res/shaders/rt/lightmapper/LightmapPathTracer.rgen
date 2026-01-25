@@ -28,7 +28,7 @@ HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(LightmapPathTracer, TLAS) uniform accelera
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 /// Blue noise
-HYP_DESCRIPTOR_SSBO(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -38,7 +38,7 @@ HYP_DESCRIPTOR_SSBO(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoi
 #include "../../include/BlueNoise.glsl"
 #include "../../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
@@ -49,9 +49,9 @@ HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesTexture) uniform textureCubeArra
 HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SSBO(LightmapPathTracer, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -65,12 +65,12 @@ HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
-HYP_DESCRIPTOR_SSBO(LightmapPathTracer, HitsBuffer, standard = scalar) buffer HitsBuffer
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, HitsBuffer, standard = scalar) buffer HitsBuffer
 {
     vec4 hits[];
 };
 
-HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, Lights) uniform Lights
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -81,12 +81,12 @@ struct LightmapRay
     vec3 direction;
 };
 
-HYP_DESCRIPTOR_SSBO(LightmapPathTracer, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
 {
     vec4 ray_data[];
 };
 
-HYP_DESCRIPTOR_CBUFF(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };

@@ -26,24 +26,24 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMaterialTexture) uniform utexture2D g
 HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(ReflectionsPass, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(ReflectionsPass, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(ReflectionsPass, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(ReflectionsPass, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SSBO(ReflectionsPass, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_BUFFER(ReflectionsPass, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_CBUFF(ReflectionsPass, SphereSamplesBuffer) uniform SphereSamplesBuffer
+HYP_DESCRIPTOR_BUFFER(ReflectionsPass, SphereSamplesBuffer) uniform SphereSamplesBuffer
 {
     vec4 sphere_samples[4096];
 };
@@ -55,7 +55,7 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMipChain) uniform texture2D gbuffer_m
 #include "../include/BlueNoise.glsl"
 
 #include "../include/env_probe.inc"
-HYP_DESCRIPTOR_SSBO_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
@@ -66,7 +66,7 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform textureCubeArray e
 HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SSBO(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_BUFFER(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #include "./DeferredLighting.glsl"
 
@@ -82,8 +82,8 @@ void main()
     vec2 texcoord = v_texcoord;
     uvec2 pixel_coord = uvec2(texcoord * vec2(screen_resolution) - 0.5);
 
-    const float depth = Texture2DLod(sampler_nearest, gbuffer_depth_texture, texcoord, 0.0).r;
-    const vec4 normalSample = Texture2DLod(sampler_nearest, gbuffer_normals_texture, texcoord, 0.0);
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, texcoord, 0.0).r;
+    const vec4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, texcoord, 0.0);
 
     const vec3 N =  GBufferUnpackNormal(normalSample);
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth).xyz;

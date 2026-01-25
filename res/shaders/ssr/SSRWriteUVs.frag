@@ -11,7 +11,7 @@ layout(location=1) in vec2 v_texcoord;
 
 layout(location=0) out vec4 out_color;
 
-HYP_DESCRIPTOR_CBUFF(RenderSSR, UniformBuffer) uniform UniformBuffer
+HYP_DESCRIPTOR_BUFFER(RenderSSR, UniformBuffer) uniform UniformBuffer
 {
     uvec4 dimension;
     float ray_step;
@@ -39,19 +39,19 @@ HYP_DESCRIPTOR_SRV(RenderSSR, DeferredResult) uniform texture2D gbuffer_deferred
 
 HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerNearest) uniform sampler sampler_nearest;
 HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SSBO(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_BUFFER(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_CBUFF(RenderSSR, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(RenderSSR, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(RenderSSR, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -102,7 +102,7 @@ bool TraceRays(
         
         if (hit_pixel != saturate(hit_pixel)) return false;
         
-        float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
+        float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
         vec4 view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_pixel, depth);
 
         float step_delta = marching_position.z - view_space_position.z;
@@ -126,7 +126,7 @@ bool TraceRays(
                 marching_position -= ray_step * sign(step_delta);
 
                 hit_pixel = GetProjectedPositionFromView(proj, marching_position);
-                depth = Texture2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
+                depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_pixel).r;
                 view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_pixel, depth);
 
                 step_delta = marching_position.z - view_space_position.z;
@@ -173,14 +173,14 @@ void main(void)
     const vec2 texcoord = v_texcoord;
 
     const uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
-    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     const float roughness = materialParams.roughness;
 
-    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
     if (depth > 0.99999 || roughness > MAX_ROUGHNESS)
     {

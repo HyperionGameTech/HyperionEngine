@@ -17,7 +17,7 @@ HYP_DESCRIPTOR_SAMPLER(GenerateMipmap, SamplerNearest) uniform sampler sampler_n
 
 void main()
 {
-    vec4 input_color = Texture2D(sampler_linear, input_texture, v_texcoord);
+    vec4 input_color = SAMPLE_TEXTURE_2D(sampler_linear, input_texture, v_texcoord);
 
     color_output = input_color;
 }

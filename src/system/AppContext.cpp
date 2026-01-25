@@ -152,7 +152,6 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
     OnWindowSizeChanged(newSize);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void ApplicationWindow::CreateSwapchain()
 {
     HYP_SCOPE;

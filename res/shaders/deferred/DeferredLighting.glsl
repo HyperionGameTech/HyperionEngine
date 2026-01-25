@@ -83,7 +83,7 @@ vec3 CalculateRefraction(
     float absorption = 0.1; // TODO: material parameter
     vec3 T = min(vec3(1.0), exp(-absorption * refraction.direction));
 
-    vec3 Ft = Texture2DLod(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
+    vec3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
     Ft *= translucent_color.rgb;
     Ft *= 1.0 - E;
     Ft *= T;
@@ -158,14 +158,14 @@ vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 ca
 #ifdef PATHTRACER
 vec4 CalculatePathTracing(vec2 uv)
 {
-    return Texture2DLod(sampler_linear, rt_radiance_final, uv, 0.0);
+    return SAMPLE_TEXTURE_2D_LOD(sampler_linear, rt_radiance_final, uv, 0.0);
 }
 #endif
 
 #ifdef RT_REFLECTIONS
 void CalculateRayTracingReflection(vec2 uv, inout vec4 reflections)
 {
-    vec4 rt_radiance = Texture2DLod(sampler_linear, rt_radiance_final, uv, 0.0);
+    vec4 rt_radiance = SAMPLE_TEXTURE_2D_LOD(sampler_linear, rt_radiance_final, uv, 0.0);
 
     reflections = reflections * (1.0 - rt_radiance.a) + vec4(rt_radiance.rgb, 1.0) * rt_radiance.a;
 }

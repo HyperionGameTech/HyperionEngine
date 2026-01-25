@@ -21,8 +21,8 @@ HYP_DESCRIPTOR_SAMPLER(CombineShadowMaps, SamplerNearest) uniform sampler sample
 
 void main()
 {
-    vec4 color0 = Texture2D(sampler_nearest, src0, v_texcoord);
-    vec4 color1 = Texture2D(sampler_nearest, src1, v_texcoord);
+    vec4 color0 = SAMPLE_TEXTURE_2D(sampler_nearest, src0, v_texcoord);
+    vec4 color1 = SAMPLE_TEXTURE_2D(sampler_nearest, src1, v_texcoord);
 
 #ifdef VSM
     // VSM stores as 16 bit float in each texture

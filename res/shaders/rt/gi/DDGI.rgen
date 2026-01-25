@@ -31,30 +31,30 @@ HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
 
 HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(DDGI, TLAS) uniform accelerationStructureEXT tlas;
 
-HYP_DESCRIPTOR_CBUFF(DDGI, DDGIConstants) uniform DDGIUniformBuffer
+HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) uniform DDGIUniformBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_SSBO(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
+HYP_DESCRIPTOR_BUFFER(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
 {
     ProbeRayData probe_rays[];
 };
 
-HYP_DESCRIPTOR_CBUFF(DDGI, Lights) uniform Lights
+HYP_DESCRIPTOR_BUFFER(DDGI, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
 
 #include "../../include/rt/probe/shared.inc"
 
-HYP_DESCRIPTOR_CBUFF(DDGI, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(DDGI, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
 #if HAS_ENV_PROBE
-HYP_DESCRIPTOR_SSBO_DYNAMIC(DDGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(DDGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
 
 #if ENV_PROBE_CUBEMAP
 HYP_DESCRIPTOR_SRV(DDGI, EnvProbesTexture) uniform textureCubeArray envProbesTexture;

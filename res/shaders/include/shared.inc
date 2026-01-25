@@ -3,14 +3,32 @@
 
 #include "defines.inc"
 
+#ifdef LANG_GLSL
 // HLSL Compat
-#define saturate(_x) Saturate(_x)
+#define lerp mix
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4
 #define float2x2 mat2
 #define float3x3 mat3
 #define float4x4 mat4
+#else
+// For porting GLSL to HLSL
+#define vec2 float2
+#define vec3 float3
+#define vec4 float4
+#define ivec2 int2
+#define ivec3 int3
+#define ivec4 int4
+#define uvec2 uint2
+#define uvec3 uint3
+#define uvec4 uint4
+#define mat3 float3x3
+#define mat4 float4x4
+#define texture2D Texture2D
+#define texture3D Texture3D
+#define textureCube TextureCube
+#endif
 
 #define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
 
@@ -66,17 +84,11 @@ mat4 CreateRotationMatrix(vec3 axis, float angle)
         0.0, 0.0, 0.0, 1.0);
 }
 
-vec3 RotateVector(vec3 v, vec3 axis, float angle)
-{
-    mat4 m = CreateRotationMatrix(axis, angle);
-    return (m * vec4(v, 1.0)).xyz;
-}
-
 void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangent)
 {
     vec3 T;
     T = cross(normal, vec3(0.0, 1.0, 0.0));
-    T = mix(cross(normal, vec3(1.0, 0.0, 0.0)), T, step(HYP_FMATH_EPSILON, dot(T, T)));
+    T = lerp(cross(normal, vec3(1.0, 0.0, 0.0)), T, step(HYP_FMATH_EPSILON, dot(T, T)));
 
     T = normalize(T);
 
@@ -84,117 +96,49 @@ void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangen
     bitangent = normalize(cross(normal, T));
 }
 
-#ifndef VERTEX_SHADER
+#ifdef LANG_GLSL
 
-vec4 Texture2D(sampler2D tex, vec2 texcoord)
-{
 #if HYP_GBUFFER_FLIP_Y
-    return texture(tex, vec2(texcoord.s, 1.0 - texcoord.t));
-#else
-    return texture(tex, texcoord);
+#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), vec2((texcoord).s, 1.0 - (texcoord).t))
+#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), vec2((texcoord).s, 1.0 - (texcoord).t), lod)
+#else // !HYP_GBUFFER_FLIP_Y
+#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), texcoord)
+#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), texcoord, lod)
 #endif
-}
 
-vec4 Texture2DLod(sampler2D tex, vec2 texcoord, float lod)
-{
+#define TEXEL_FETCH_2D(tex, coord) texelFetch(tex, coord, 0)
+#define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) texelFetch(sampler2D(tex, samp), coord, lod)
+
+#define SAMPLE_TEXTURE_3D(samp, tex, texcoord) texture(sampler3D(tex, samp), texcoord)
+#define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) textureLod(sampler3D(tex, samp), texcoord, lod)
+
+#define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) texture(samplerCube(tex, samp), texcoord)
+#define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) textureLod(samplerCube(tex, samp), texcoord, lod)
+
+#elif defined(LANG_HLSL)
+
 #if HYP_GBUFFER_FLIP_Y
-    return textureLod(tex, vec2(texcoord.s, 1.0 - texcoord.t), lod);
+#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), float2((texcoord).x, 1.0 - (texcoord).y))
+#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), float2((texcoord).x, 1.0 - (texcoord).y), (lod))
+#else // !HYP_GBUFFER_FLIP_Y
+#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+#endif
+
+#define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
+#define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), 0), (lod))
+
+#define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+
+#define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
+#define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
+
 #else
-    return textureLod(tex, texcoord, lod);
-#endif
-}
 
-vec4 Texture2D(sampler samp, texture2D tex, vec2 texcoord)
-{
-#if HYP_GBUFFER_FLIP_Y
-    return texture(sampler2D(tex, samp), vec2(texcoord.s, 1.0 - texcoord.t));
-#else
-    return texture(sampler2D(tex, samp), texcoord);
-#endif
-}
+#error "No LANG_* preprocessor define provided"
 
-vec4 Texture2DLod(sampler samp, texture2D tex, vec2 texcoord, float lod)
-{
-#if HYP_GBUFFER_FLIP_Y
-    return textureLod(sampler2D(tex, samp), vec2(texcoord.s, 1.0 - texcoord.t), lod);
-#else
-    return textureLod(sampler2D(tex, samp), texcoord, lod);
-#endif
-}
-
-vec4 Texture2DTexel(sampler2D tex, ivec2 coord)
-{
-    return texelFetch(tex, coord, 0);
-}
-
-vec4 Texture2DTexel(sampler samp, texture2D tex, ivec2 coord)
-{
-    return texelFetch(sampler2D(tex, samp), coord, 0);
-}
-
-vec4 Texture2DTexelLod(sampler samp, texture2D tex, ivec2 coord, int lod)
-{
-    return texelFetch(sampler2D(tex, samp), coord, lod);
-}
-
-vec4 Texture2DGather(sampler2D tex, vec2 coord)
-{
-    return textureGather(tex, coord);
-}
-
-vec4 Texture3D(sampler samp, texture3D tex, vec3 texcoord)
-{
-    return texture(sampler3D(tex, samp), texcoord);
-}
-
-vec4 Texture3DLod(sampler samp, texture3D tex, vec3 texcoord, float lod)
-{
-    return textureLod(sampler3D(tex, samp), texcoord, lod);
-}
-
-vec4 Texture3DTexel(sampler3D tex, ivec3 coord)
-{
-    return texelFetch(tex, coord, 0);
-}
-
-vec4 Texture3DTexel(sampler samp, texture3D tex, ivec3 coord)
-{
-    return texelFetch(sampler3D(tex, samp), coord, 0);
-}
-
-vec4 Texture3DTexelLod(sampler samp, texture3D tex, ivec3 coord, int lod)
-{
-    return texelFetch(sampler3D(tex, samp), coord, lod);
-}
-
-ivec2 TextureSize(sampler samp, texture2D tex)
-{
-    return textureSize(sampler2D(tex, samp), 0);
-}
-
-ivec3 TextureSize(sampler samp, texture3D tex)
-{
-    return textureSize(sampler3D(tex, samp), 0);
-}
-
-#ifndef HYP_NO_CUBEMAP
-
-vec4 TextureCube(samplerCube tex, vec3 texcoord)
-{
-    return texture(tex, texcoord);
-}
-
-vec4 TextureCube(sampler samp, textureCube tex, vec3 texcoord)
-{
-    return texture(samplerCube(tex, samp), texcoord);
-}
-
-vec4 TextureCubeLod(sampler samp, textureCube tex, vec3 texcoord, float lod)
-{
-    return textureLod(samplerCube(tex, samp), texcoord, lod);
-}
-
-#endif
+#endif // !LANG_HLSL
 
 vec3 GetTriplanarBlend(vec3 normal)
 {
@@ -204,45 +148,37 @@ vec3 GetTriplanarBlend(vec3 normal)
     return blending;
 }
 
-vec4 Texture2DTriplanar(sampler samp, texture2D tex, vec3 position, vec3 normal)
+#ifdef LANG_GLSL
+
+vec4 SampleTextureTriplanar(sampler samp, texture2D tex, vec3 position, vec3 normal)
 {
     vec3 blending = GetTriplanarBlend(normal);
 
-    vec4 sample_x = Texture2D(samp, tex, position.zy * 0.01);
-    vec4 sample_y = Texture2D(samp, tex, position.xz * 0.01);
-    vec4 sample_z = Texture2D(samp, tex, position.xy * 0.01);
+    vec4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
+    vec4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
+    vec4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
 
     return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
 }
 
-vec4 Texture2DTriplanar(sampler2D tex, vec3 position, vec3 normal)
-{
-    vec3 blending = GetTriplanarBlend(normal);
+#elif defined(LANG_HLSL)
 
-    vec4 sample_x = Texture2D(tex, position.zy * 0.01);
-    vec4 sample_y = Texture2D(tex, position.xz * 0.01);
-    vec4 sample_z = Texture2D(tex, position.xy * 0.01);
+float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, float3 normal)
+{
+    float3 blending = GetTriplanarBlend(normal);
+
+    float4 sample_x = SAMPLE_TEXTURE_2D(samp, tex, position.zy * 0.01);
+    float4 sample_y = SAMPLE_TEXTURE_2D(samp, tex, position.xz * 0.01);
+    float4 sample_z = SAMPLE_TEXTURE_2D(samp, tex, position.xy * 0.01);
 
     return sample_x * blending.x + sample_y * blending.y + sample_z * blending.z;
 }
 
-int GetNumLevels(sampler samp, texture2D tex)
-{
-    return textureQueryLevels(sampler2D(tex, samp));
-}
-
-int GetNumLevels(sampler samp, texture3D tex)
-{
-    return textureQueryLevels(sampler3D(tex, samp));
-}
-
-int GetNumLevels(sampler samp, textureCube tex)
-{
-    return textureQueryLevels(samplerCube(tex, samp));
-}
+#endif
 
 #define GAUSS_TABLE_SIZE 15
 
+#ifdef LANG_GLSL
 const float gauss_table[GAUSS_TABLE_SIZE + 1] = float[](
     0.1847392078702266,
     0.16595854345772326,
@@ -260,6 +196,27 @@ const float gauss_table[GAUSS_TABLE_SIZE + 1] = float[](
     2.4592560765896795e-9,
     1.3534945386863618e-10,
     0.0);
+#elif defined(LANG_HLSL)
+static const float gauss_table[GAUSS_TABLE_SIZE + 1] = {
+    0.1847392078702266,
+    0.16595854345772326,
+    0.12031364177766891,
+    0.07038755277896766,
+    0.03322925565155569,
+    0.012657819729901945,
+    0.0038903040680094217,
+    0.0009646503390864025,
+    0.00019297087402915717,
+    0.000031139936308099136,
+    0.000004053309048174758,
+    4.255228059965837e-7,
+    3.602517634249573e-8,
+    2.4592560765896795e-9,
+    1.3534945386863618e-10,
+    0.0 };
+#else
+#error "No LANG_* preprocessor define provided"
+#endif
 
 float GaussianWeight(float value)
 {
@@ -271,7 +228,7 @@ float GaussianWeight(float value)
         return 0.0;
     }
 
-    return mix(gauss_table[idx], gauss_table[idx + 1], c);
+    return lerp(gauss_table[idx], gauss_table[idx + 1], c);
 }
 
 vec4 GaussianBlur9(
@@ -283,11 +240,11 @@ vec4 GaussianBlur9(
     vec4 color = vec4(0.0);
     vec2 offset1 = vec2(1.3846153846) * direction;
     vec2 offset2 = vec2(3.2307692308) * direction;
-    color += Texture2D(samp, tex, uv) * 0.2270270270;
-    color += Texture2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
-    color += Texture2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
-    color += Texture2D(samp, tex, uv + (offset2 * radius)) * 0.0702702703;
-    color += Texture2D(samp, tex, uv - (offset2 * radius)) * 0.0702702703;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.2270270270;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset2 * radius)) * 0.0702702703;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset2 * radius)) * 0.0702702703;
     return color;
 }
 
@@ -299,13 +256,11 @@ vec4 GaussianBlur5(
 {
     vec4 color = vec4(0.0);
     vec2 offset = vec2(1.3333333333333333) * direction;
-    color += Texture2D(samp, tex, uv) * 0.29411764705882354;
-    color += Texture2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
-    color += Texture2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.29411764705882354;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
+    color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
     return color;
 }
-
-#endif
 
 float LinearDepth(mat4 projection, float depth)
 {
@@ -390,25 +345,27 @@ vec2 GetProjectedPositionFromView(in mat4 projection, in vec3 view_space_positio
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
-float Saturate(float val)
+#ifndef LANG_HLSL
+float saturate(float val)
 {
     return min(max(val, 0.0), 1.0);
 }
 
-vec2 Saturate(vec2 val)
+vec2 saturate(vec2 val)
 {
     return min(max(val, vec2(0.0)), vec2(1.0));
 }
 
-vec3 Saturate(vec3 val)
+vec3 saturate(vec3 val)
 {
     return min(max(val, vec3(0.0)), vec3(1.0));
 }
 
-vec4 Saturate(vec4 val)
+vec4 saturate(vec4 val)
 {
     return min(max(val, vec4(0.0)), vec4(1.0));
 }
+#endif
 
 vec4 CalculateFogExp(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
 {
@@ -417,16 +374,16 @@ vec4 CalculateFogExp(in vec4 start_color, in vec4 end_color, vec3 world_position
 
     const float fog_factor = 1.0 / exp(dist * density);
 
-    return mix(start_color, end_color, 1.0 - fog_factor);
+    return lerp(start_color, end_color, 1.0 - fog_factor);
 }
 
 vec4 CalculateFogLinear(in vec4 start_color, in vec4 end_color, vec3 world_position, vec3 camera_position, float fog_start, float fog_end)
 {
     const float dist = distance(world_position, camera_position);
 
-    const float fog_factor = Saturate((fog_end - dist) / (fog_end - fog_start));
+    const float fog_factor = saturate((fog_end - dist) / (fog_end - fog_start));
 
-    return mix(start_color, end_color, 1.0 - fog_factor);
+    return lerp(start_color, end_color, 1.0 - fog_factor);
 }
 
 float RoughnessToConeAngle(float roughness)
@@ -481,6 +438,7 @@ vec4 YCoCgToRGB(in vec4 ycocg)
 
 //// Cubemap utilities
 
+#ifdef LANG_GLSL
 // pairs of cubemap forward direction and up direction (interleaved order)
 const vec3 g_cubemapDirections[12] = vec3[](
     vec3(1.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
@@ -489,6 +447,17 @@ const vec3 g_cubemapDirections[12] = vec3[](
     vec3(0.0, -1.0, 0.0), vec3(0.0, 0.0, 1.0),
     vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 0.0),
     vec3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0));
+#elif defined(LANG_HLSL)
+// pairs of cubemap forward direction and up direction (interleaved order)
+static const float3 g_cubemapDirections[12] = {
+    float3(1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
+    float3(-1.0, 0.0, 0.0), float3(0.0, 1.0, 0.0),
+    float3(0.0, 1.0, 0.0), float3(0.0, 0.0, -1.0),
+    float3(0.0, -1.0, 0.0), float3(0.0, 0.0, 1.0),
+    float3(0.0, 0.0, 1.0), float3(0.0, 1.0, 0.0),
+    float3(0.0, 0.0, -1.0), float3(0.0, 1.0, 0.0)
+};
+#endif
 
 vec3 GetCubemapCoord(uint face, vec2 uv)
 {

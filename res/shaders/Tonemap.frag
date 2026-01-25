@@ -33,7 +33,7 @@ HYP_DESCRIPTOR_SRV(Tonemap, TAAResultTexture) uniform texture2D temporal_aa_resu
 HYP_DESCRIPTOR_SRV(Tonemap, SSRResultTexture) uniform texture2D ssr_result;
 HYP_DESCRIPTOR_SRV(Tonemap, SSAOResultTexture) uniform texture2D ssao_gi;
 
-HYP_DESCRIPTOR_CBUFF(Tonemap, PostProcessingUniforms) uniform PostProcessingUniforms
+HYP_DESCRIPTOR_BUFFER(Tonemap, PostProcessingUniforms) uniform PostProcessingUniforms
 {
     uvec2 effect_counts;
     uvec2 last_enabled_indices;
@@ -54,12 +54,12 @@ HYP_DESCRIPTOR_SRV(Tonemap, PostFXPreStack, count = 4) uniform texture2D effects
 HYP_DESCRIPTOR_SRV(Tonemap, PostFXPostStack, count = 4) uniform texture2D effects_post_stack[4];
 #endif
 
-HYP_DESCRIPTOR_CBUFF(Tonemap, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER(Tonemap, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Tonemap, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(Tonemap, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -69,7 +69,7 @@ HYP_DESCRIPTOR_CBUFF(Tonemap, WorldsBuffer) uniform WorldsBuffer
 void main()
 {
     // Shaded result with forward rendered objects included
-    vec4 shaded_result = Texture2D(HYP_SAMPLER_NEAREST, DeferredResult, texcoord);
+    vec4 shaded_result = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, DeferredResult, texcoord);
 
     color_output = shaded_result;
 

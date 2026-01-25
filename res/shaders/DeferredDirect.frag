@@ -30,17 +30,17 @@ HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) uniform texture2D rt_r
 #include "include/Entity.glsl"
 
 #include "include/scene.inc"
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(DeferredPass, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(DeferredPass, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(DeferredPass, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
@@ -77,15 +77,15 @@ HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
 
 void main()
 {
-    vec4 albedo = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord);
-    vec4 normalSample = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord);
+    vec4 albedo = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_albedo_texture, texcoord);
+    vec4 normalSample = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_normals_texture, texcoord);
     vec3 normal = GBufferUnpackNormal(normalSample);
 
     vec3 tangent;
     vec3 bitangent;
     ComputeOrthonormalBasis(normal, tangent, bitangent);
 
-    float depth = Texture2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
+    float depth = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
 
     vec4 view_space_position = ReconstructViewSpacePositionFromDepth(inverse(camera.projection), texcoord, depth);
 
@@ -127,7 +127,7 @@ void main()
         float shadow = 1.0;
 
 #if HBAO_ENABLED
-        const vec4 ssao_data = Texture2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
+        const vec4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
         ao = ssao_data.a;
 #endif
 
@@ -156,8 +156,8 @@ void main()
         lut_uv = lut_uv * lut_scale + lut_bias;
         lut_uv = clamp(lut_uv, vec2(0.0), vec2(1.0));
 
-        const vec4 t1 = Texture2D(ltc_sampler, ltc_matrix_texture, lut_uv);
-        const vec4 t2 = Texture2D(ltc_sampler, ltc_brdf_texture, lut_uv);
+        const vec4 t1 = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_matrix_texture, lut_uv);
+        const vec4 t2 = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_brdf_texture, lut_uv);
 
         const mat3 Minv = mat3(
             vec3(t1.x, 0.0, t1.y),

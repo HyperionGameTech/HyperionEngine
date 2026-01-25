@@ -42,12 +42,12 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Default, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -61,33 +61,33 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 #include "include/shadows.inc"
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
@@ -120,7 +120,7 @@ void main()
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
 #if HAS_ALBEDO_MA
-    vec4 albedo_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, AlbedoMap, v_position, normal);
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, AlbedoMap, v_position, normal);
 
     // if (albedo_texture.a < MATERIAL_ALPHA_DISCARD) {
     //     discard;
@@ -140,23 +140,23 @@ void main()
     vec4 normals_texture = vec4(0.0);
 
 #if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, NormalMap, v_position, normal) * 2.0 - 1.0;
+    normals_texture = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, NormalMap, v_position, normal) * 2.0 - 1.0;
     normal = normalize(tbn_matrix * normals_texture.rgb);
 #endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP)) {
-    //     float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP, texcoord).r;
+    //     float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP, texcoord).r;
 
     //     metalness = metalness_sample;//mix(metalness, metalness_sample, metalness_sample);
     // }
 #if HAS_ROUGHNESS_MAP
-    float roughness_sample = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, RoughnessMap, v_position, normal).r;
+    float roughness_sample = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, RoughnessMap, v_position, normal).r;
 
     roughness = roughness_sample; // mix(roughness, roughness_sample, roughness_sample);
 #endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP)) {
-    //     ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP, texcoord).r;
+    //     ao = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP, texcoord).r;
     // }
 
     // gbuffer_albedo.rgb = GetTriplanarBlend(normal);

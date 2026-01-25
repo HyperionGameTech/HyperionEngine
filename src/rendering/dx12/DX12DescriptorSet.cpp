@@ -32,20 +32,20 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
 
         switch (element.type)
         {
-        case DescriptorSetElementType::UNIFORM_BUFFER:
-        case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
-        case DescriptorSetElementType::SSBO:
-        case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
+        case DescriptorType::UNIFORM_BUFFER:
+        case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
+        case DescriptorType::SSBO:
+        case DescriptorType::STORAGE_BUFFER_DYNAMIC:
             PrefillElements<DX12GpuBuffer>(name, element.count);
             break;
-        case DescriptorSetElementType::IMAGE:
-        case DescriptorSetElementType::IMAGE_STORAGE:
+        case DescriptorType::IMAGE:
+        case DescriptorType::IMAGE_STORAGE:
             PrefillElements<DX12GpuImageView>(name, element.count);
             break;
-        case DescriptorSetElementType::SAMPLER:
+        case DescriptorType::SAMPLER:
             PrefillElements<DX12Sampler>(name, element.count);
             break;
-        case DescriptorSetElementType::TLAS:
+        case DescriptorType::TLAS:
             PrefillElements<DX12GpuTlas>(name, element.count);
             break;
         default:
@@ -93,17 +93,17 @@ RendererResult DX12DescriptorSet::Create()
 
         switch (element.type)
         {
-        case DescriptorSetElementType::UNIFORM_BUFFER:
-        case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
-        case DescriptorSetElementType::SSBO:
-        case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
-        case DescriptorSetElementType::IMAGE:
-        case DescriptorSetElementType::IMAGE_STORAGE:
-        case DescriptorSetElementType::TLAS:
+        case DescriptorType::UNIFORM_BUFFER:
+        case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
+        case DescriptorType::SSBO:
+        case DescriptorType::STORAGE_BUFFER_DYNAMIC:
+        case DescriptorType::IMAGE:
+        case DescriptorType::IMAGE_STORAGE:
+        case DescriptorType::TLAS:
             m_viewBindingToHeapOffset.Set(element.binding, viewCount);
             viewCount += element.count;
             break;
-        case DescriptorSetElementType::SAMPLER:
+        case DescriptorType::SAMPLER:
             m_samplerBindingToHeapOffset.Set(element.binding, samplerCount);
             samplerCount += element.count;
             break;
@@ -228,14 +228,14 @@ void DX12DescriptorSet::Update(bool force)
 
     //    switch (layoutElement->type)
     //    {
-    //    case DescriptorSetElementType::UNIFORM_BUFFER:          // fallthrough
-    //    case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:  // fallthrough
-    //    case DescriptorSetElementType::SSBO:                    // fallthrough
-    //    case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
+    //    case DescriptorType::UNIFORM_BUFFER:          // fallthrough
+    //    case DescriptorType::UNIFORM_BUFFER_DYNAMIC:  // fallthrough
+    //    case DescriptorType::SSBO:                    // fallthrough
+    //    case DescriptorType::STORAGE_BUFFER_DYNAMIC:
     //    {
     //        const bool layoutHasSize = layoutElement->size != 0 && layoutElement->size != ~0u;
-    //        const bool isDynamic = layoutElement->type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
-    //            || layoutElement->type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC;
+    //        const bool isDynamic = layoutElement->type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
+    //            || layoutElement->type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
 
     //        for (auto& valuesIt : element.values)
     //        {
@@ -257,16 +257,16 @@ void DX12DescriptorSet::Update(bool force)
 
     //            switch (layoutElement->type)
     //            { // CBuffers
-    //            case DescriptorSetElementType::UNIFORM_BUFFER:
-    //            case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
+    //            case DescriptorType::UNIFORM_BUFFER:
+    //            case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
     //            {
     //                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = GetCBVDesc(ref.Get());
     //                device->CreateConstantBufferView(&cbvDesc, destHandle);
 
     //                break;
     //            }
-    //            case DescriptorSetElementType::SSBO:
-    //            case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
+    //            case DescriptorType::SSBO:
+    //            case DescriptorType::STORAGE_BUFFER_DYNAMIC:
     //            {
     //                // Use UAV for storage buffers
     //                D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
@@ -283,10 +283,10 @@ void DX12DescriptorSet::Update(bool force)
     //        }
     //        break;
     //    }
-    //    case DescriptorSetElementType::IMAGE:
-    //    case DescriptorSetElementType::IMAGE_STORAGE:
+    //    case DescriptorType::IMAGE:
+    //    case DescriptorType::IMAGE_STORAGE:
     //    {
-    //        const bool isStorageImage = layoutElement->type == DescriptorSetElementType::IMAGE_STORAGE;
+    //        const bool isStorageImage = layoutElement->type == DescriptorType::IMAGE_STORAGE;
 
     //        for (auto& valuesIt : element.values)
     //        {
@@ -306,7 +306,7 @@ void DX12DescriptorSet::Update(bool force)
     //            D3D12_CPU_DESCRIPTOR_HANDLE destHandle = GetViewCpuHandle(layoutElement->binding);
     //            destHandle.ptr += incrementSize * index;
 
-    //            if (layoutElement->type == DescriptorSetElementType::IMAGE_STORAGE)
+    //            if (layoutElement->type == DescriptorType::IMAGE_STORAGE)
     //            { // UAV
     //                const D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = GetUAVDesc(
     //                    ref->GetImage(),
@@ -328,7 +328,7 @@ void DX12DescriptorSet::Update(bool force)
 
     //        break;
     //    }
-    //    case DescriptorSetElementType::SAMPLER:
+    //    case DescriptorType::SAMPLER:
     //    {
     //        for (auto& valuesIt : element.values)
     //        {
@@ -364,7 +364,7 @@ void DX12DescriptorSet::Update(bool force)
     //        }
     //        break;
     //    }
-    //    case DescriptorSetElementType::TLAS:
+    //    case DescriptorType::TLAS:
     //    {
     //        for (auto& valuesIt : element.values)
     //        {

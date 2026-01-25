@@ -188,25 +188,25 @@ VkImageViewType ToVkImageViewType(TextureType type)
     }
 }
 
-VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type)
+VkDescriptorType ToVkDescriptorType(DescriptorType type)
 {
     switch (type)
     {
-    case DescriptorSetElementType::UNIFORM_BUFFER:
+    case DescriptorType::UNIFORM_BUFFER:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
+    case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    case DescriptorSetElementType::SSBO:
+    case DescriptorType::SSBO:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
+    case DescriptorType::STORAGE_BUFFER_DYNAMIC:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-    case DescriptorSetElementType::IMAGE:
+    case DescriptorType::IMAGE:
         return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    case DescriptorSetElementType::SAMPLER:
+    case DescriptorType::SAMPLER:
         return VK_DESCRIPTOR_TYPE_SAMPLER;
-    case DescriptorSetElementType::IMAGE_STORAGE:
+    case DescriptorType::IMAGE_STORAGE:
         return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    case DescriptorSetElementType::TLAS:
+    case DescriptorType::TLAS:
         return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
     default:
         HYP_UNREACHABLE();

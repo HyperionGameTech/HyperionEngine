@@ -19,17 +19,17 @@ HYP_DESCRIPTOR_SRV(ObjectVisibility, DepthPyramidResult) uniform texture2D depth
 #include "../include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(ObjectVisibility, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(ObjectVisibility, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibility, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_BUFFER(ObjectVisibility, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_CBUFF(ObjectVisibility, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(ObjectVisibility, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -52,22 +52,22 @@ struct ObjectInstance
     uint _pad;
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibility, ObjectInstancesBuffer, standard = scalar) readonly buffer InstancesBuffer
+HYP_DESCRIPTOR_BUFFER(ObjectVisibility, ObjectInstancesBuffer, standard = scalar) readonly buffer InstancesBuffer
 {
     ObjectInstance instances[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibility, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+HYP_DESCRIPTOR_BUFFER(ObjectVisibility, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_commands[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_BUFFER(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) buffer EntityInstanceBatchesBuffer
 {
     uvec4 entityInstanceBatchDataRaw[];
 };
 
-HYP_DESCRIPTOR_CBUFF(ObjectVisibility, ObjectVisibilityUniforms, standard = scalar) uniform ObjectVisibilityUniforms
+HYP_DESCRIPTOR_BUFFER(ObjectVisibility, ObjectVisibilityUniforms, standard = scalar) uniform ObjectVisibilityUniforms
 {
     uvec2 depth_pyramid_dimensions;
     uint batch_offset;
@@ -90,7 +90,7 @@ bool IsPixelVisible(vec3 clip_min, vec3 clip_max)
 float GetDepthAtTexel(vec2 texcoord, int mip)
 {
     ivec2 mip_dimensions = textureSize(sampler2D(depth_pyramid, depth_pyramid_sampler), mip);
-    vec4 value = Texture2DTexelLod(depth_pyramid_sampler, depth_pyramid, clamp(ivec2(texcoord * mip_dimensions), ivec2(0), mip_dimensions - ivec2(1)), mip);
+    vec4 value = TEXEL_FETCH_2D_LOD(depth_pyramid_sampler, depth_pyramid, clamp(ivec2(texcoord * mip_dimensions), ivec2(0), mip_dimensions - ivec2(1)), mip);
 
     return value.r;
 }

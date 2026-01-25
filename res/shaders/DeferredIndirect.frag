@@ -36,12 +36,12 @@ HYP_DESCRIPTOR_SRV(DeferredPass, ReflectionProbeResultTexture) uniform texture2D
 #include "include/material.inc"
 
 #include "include/scene.inc"
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(DeferredPass, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(DeferredPass, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -56,7 +56,7 @@ vec2 texcoord = v_texcoord0;
 #include "include/rt/probe/probe_uniforms.inc"
 
 #if RT_GI
-HYP_DESCRIPTOR_CBUFF(DeferredPass, DDGIConstants) uniform DDGI
+HYP_DESCRIPTOR_BUFFER(DeferredPass, DDGIConstants) uniform DDGI
 {
     DDGIConstants ddgiConstants;
 };
@@ -68,7 +68,7 @@ HYP_DESCRIPTOR_SRV(DeferredPass, DDGIDepthTexture) uniform texture2D probe_depth
 #endif
 
 #include "include/env_probe.inc"
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, EnvGridsBuffer) uniform EnvGridsBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) uniform EnvGridsBuffer
 {
     EnvGrid env_grid;
 };
@@ -87,11 +87,11 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(DeferredPass, EnvGridsBuffer) uniform EnvGridsBuffe
 
 void main()
 {
-    vec4 albedo = Texture2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
-    vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    vec4 albedo = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
+    vec4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
     vec3 normal = GBufferUnpackNormal(normalSample);
 
-    float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
     vec4 position = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), texcoord, depth);
 
     uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
@@ -115,7 +115,7 @@ void main()
     vec3 ibl = vec3(0.0);
 
 #if HBAO_ENABLED
-    const vec4 ssao_data = Texture2D(HYP_SAMPLER_NEAREST, ssao_gi_result, v_texcoord0);
+    const vec4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, v_texcoord0);
     ao = ssao_data.a;
 #endif
 
@@ -123,10 +123,10 @@ void main()
 
     const float perceptual_roughness = sqrt(roughness);
 
-    reflections = Texture2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
+    reflections = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
 
 #if SSGI_ENABLED
-    const vec4 ssgi = Texture2D(HYP_SAMPLER_LINEAR, ssgi_result, v_texcoord0);
+    const vec4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, v_texcoord0);
     irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
 #endif
 
@@ -168,7 +168,7 @@ void main()
 #elif defined(DEBUG_IRRADIANCE)
     result = irradiance.rgb;
 #elif defined(DEBUG_VELOCITY)
-    vec4 velocity = Texture2D(sampler_nearest, gbuffer_velocity_texture, texcoord);
+    vec4 velocity = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_velocity_texture, texcoord);
     result = velocity.rgb;
 #endif
 

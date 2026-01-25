@@ -76,8 +76,8 @@ vec4 SampleRectLightTexture(in Light light, in vec3 pts[4])
     float lod_b = ceil(lod);
     float t = lod - lod_a;
 
-    vec4 tex_a = Texture2DLod(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], AlbedoMap), uv, lod_a);
-    vec4 tex_b = Texture2DLod(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], AlbedoMap), uv, lod_b);
+    vec4 tex_a = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], AlbedoMap), uv, lod_a);
+    vec4 tex_b = SAMPLE_TEXTURE_2D_LOD(HYP_SAMPLER_LINEAR, GET_TEXTURE(materials[light.material_index], AlbedoMap), uv, lod_b);
 
     return mix(tex_a, tex_b, t);
 }
@@ -133,7 +133,7 @@ vec4 CalculateAreaLightRadiance(in Light light, in mat3 Minv, in vec3 pts[4], in
     uv = uv * lut_scale + lut_bias;
 
     // Fetch the form factor for horizon clipping
-    float scale = Texture2D(ltc_sampler, ltc_brdf_texture, uv).w;
+    float scale = SAMPLE_TEXTURE_2D(ltc_sampler, ltc_brdf_texture, uv).w;
 
     float sum = len * scale;
     

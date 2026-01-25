@@ -679,10 +679,16 @@ endforeach()
 
 # include shader files (under `res/shaders`) in the sln, mark as headers since
 # they are not compiled here
-file(GLOB_RECURSE SHADER_FILES "res/shaders/**/*")
+file(GLOB_RECURSE SHADER_FILES "res/shaders/*")
 if(SHADER_FILES)
     source_group(TREE ${CMAKE_SOURCE_DIR}/res/shaders PREFIX "Shader Code" FILES ${SHADER_FILES})
-    set(HEADERS ${HEADERS} ${SHADER_FILES})
+
+    if(MSVC)
+        # exclude shader files from build ( we don't want to use fxc, we compile them ourselves )set_source_files_properties(my_shader.hlsl PROPERTIES VS_TOOL_OVERRIDE "None")
+        foreach(SHADER_FILE ${SHADER_FILES})
+            set_source_files_properties(${SHADER_FILE} PROPERTIES VS_TOOL_OVERRIDE "None")
+        endforeach()
+    endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")

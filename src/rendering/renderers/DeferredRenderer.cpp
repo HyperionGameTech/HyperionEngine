@@ -1503,7 +1503,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.view = MakeWeakRef(view);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;

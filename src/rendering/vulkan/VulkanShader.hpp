@@ -18,32 +18,14 @@ namespace Hyperion {
 
 struct VulkanShaderModule
 {
-    ShaderModuleType type;
-    Name srcName;
+    ShaderModuleType type = SMT_UNSET;
+
+    String moduleName;
     String entryPointName;
-    ByteBuffer spirv;
-    VkShaderModule handle;
 
-    VulkanShaderModule(ShaderModuleType type, Name srcName, String entryPointName)
-        : type(type),
-          srcName(srcName),
-          entryPointName(std::move(entryPointName)),
-          spirv {},
-          handle {}
-    {
-    }
+    HashCode blobHashCode;
 
-    VulkanShaderModule(ShaderModuleType type, Name srcName, String entryPointName, const ByteBuffer& spirv, VkShaderModule handle = VK_NULL_HANDLE)
-        : type(type),
-          srcName(srcName),
-          entryPointName(std::move(entryPointName)),
-          spirv(spirv),
-          handle(handle)
-    {
-    }
-
-    VulkanShaderModule(const VulkanShaderModule& other) = default;
-    ~VulkanShaderModule() = default;
+    VkShaderModule handle = VK_NULL_HANDLE;
 
     bool operator<(const VulkanShaderModule& other) const
     {
@@ -98,7 +80,9 @@ public:
         for (const VulkanShaderModule& shaderModule : m_shaderModules)
         {
             hc.Add(uint32(shaderModule.type));
-            hc.Add(shaderModule.spirv.GetHashCode());
+            hc.Add(shaderModule.moduleName);
+            hc.Add(shaderModule.entryPointName);
+            hc.Add(shaderModule.blobHashCode);
         }
 
         return hc;
@@ -109,8 +93,12 @@ public:
 #endif
 
 private:
-    RendererResult AttachSubShaders();
-    RendererResult AttachSubShader(ShaderModuleType type, const ShaderObject& shaderObject);
+    RendererResult AttachShaderModules();
+    RendererResult AttachShaderModule(
+        ShaderModuleType type,
+        UTF8StringView moduleName,
+        UTF8StringView entryPointName,
+        ConstByteView shaderBlobView);
 
     RendererResult CreateShaderGroups();
 

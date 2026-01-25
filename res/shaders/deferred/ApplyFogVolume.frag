@@ -40,7 +40,7 @@ HYP_DESCRIPTOR_SRV(FogVolume, GBufferDepthTexture) uniform texture2D GBufferDept
 
 #include "../include/gbuffer.inc"
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(FogVolume, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -71,7 +71,7 @@ HYP_DESCRIPTOR_SRV(FogVolume, PointLightShadowMapsTextureArray) uniform textureC
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 HYP_DESCRIPTOR_SRV(FogVolume, NoiseMap) uniform texture3D NoiseMap;
-HYP_DESCRIPTOR_CBUFF(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
+HYP_DESCRIPTOR_BUFFER(FogVolume, FogVolumeUniforms) uniform FogVolumeUniforms
 {
     FogVolume fogVolume;
     Light lights[MAX_LIGHTS];
@@ -121,7 +121,7 @@ float HenyeyGreenstein(float g, float cosTheta)
 
 float GetFogDensity(vec3 uvw)
 {
-    return Texture3D(texture_sampler, NoiseMap, uvw).r;
+    return SAMPLE_TEXTURE_3D(texture_sampler, NoiseMap, uvw).r;
 }
 
 vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSize)
@@ -158,7 +158,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
 #if FOG_VOLUME_USE_SDF
         // SDF < 0 = Inside solid surface
         // SDF > 0 = Air (Fog)
-        float sdf = Texture3D(texture_sampler, DataMap, uvw).r;
+        float sdf = SAMPLE_TEXTURE_3D(texture_sampler, DataMap, uvw).r;
 
         // inside a surface, stop marching
         if (sdf < -0.01)
@@ -248,7 +248,7 @@ vec4 RayMarch(vec3 rayOrigin, vec3 rayDir, float tNear, float tFar, float stepSi
 void main()
 {
     vec2 screenSpaceUV = (v_positionNdc.xy / v_positionNdc.w) * 0.5 + 0.5;
-    float sceneDepth = Texture2D(SamplerNearest, GBufferDepthTexture, screenSpaceUV).r;
+    float sceneDepth = SAMPLE_TEXTURE_2D(SamplerNearest, GBufferDepthTexture, screenSpaceUV).r;
     vec4 positionVS = ReconstructViewSpacePositionFromDepth(inverse(camera.projection), screenSpaceUV, sceneDepth);
     float linearDepth = length(positionVS.xyz);
 
@@ -279,7 +279,7 @@ void main()
 
     // Debug: render the noise texture
     //vec3 uvw = WorldToTexCoord(positionWS.xyz, fogVolume.aabbMin.xyz, fogVolume.aabbMax.xyz);
-    //fogColor = Texture3D(texture_sampler, NoiseMap, uvw);
+    //fogColor = SAMPLE_TEXTURE_3D(texture_sampler, NoiseMap, uvw);
 
     gbuffer_albedo = fogColor;
     gbuffer_normals = vec4(0.0);

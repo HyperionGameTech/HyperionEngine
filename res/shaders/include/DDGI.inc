@@ -36,7 +36,7 @@ vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
         vec2 depth_texcoord = TextureCoordFromDirection(-dir, probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.zw, PROBE_SIDE_LENGTH_DEPTH);
         float distance_to_probe = length(probe_to_point);
 
-        vec2 depth_sample = Texture2DLod(gbuffer_sampler, probe_depth, depth_texcoord, 0.0).rg;
+        vec2 depth_sample = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_depth, depth_texcoord, 0.0).rg;
         
         float mean = depth_sample.x;
         float variance = abs(HYP_FMATH_SQR(mean) - depth_sample.y);
@@ -48,7 +48,7 @@ vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
 
         vec3 irradiance_dir = N;
         vec2 irradiance_texcoord = TextureCoordFromDirection(normalize(irradiance_dir), probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.xy, PROBE_SIDE_LENGTH_IRRADIANCE);
-        vec3 irradiance = Texture2DLod(gbuffer_sampler, probe_irradiance, irradiance_texcoord, 0.0).rgb;
+        vec3 irradiance = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_irradiance, irradiance_texcoord, 0.0).rgb;
     
         const float crush_threshold = 0.2;
         if (weight < crush_threshold) {

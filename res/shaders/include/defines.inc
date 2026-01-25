@@ -1,20 +1,6 @@
 #ifndef HYP_SHADER_DEFINES_GLSL
 #define HYP_SHADER_DEFINES_GLSL
 
-#define HYP_MOLTENVK 0 // tmp
-
-#if defined(HYP_MOLTENVK) && HYP_MOLTENVK
-
-#extension GL_EXT_shader_explicit_arithmetic_types : require
-
-#define U32 uint32_t
-
-#else
-
-#define U32 uint // glsl
-
-#endif
-
 #define UINT_TO_VEC4(_value) \
     (unpackUnorm4x8((_value)))
 

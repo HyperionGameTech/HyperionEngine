@@ -41,7 +41,7 @@ void main()
 
     // GPU Gems 3, Chapter 27
 
-    float current_depth = Texture2D(sampler_nearest, depth_texture, uv).r;
+    float current_depth = SAMPLE_TEXTURE_2D(sampler_nearest, depth_texture, uv).r;
     // vec4 current_position_view_space = ReconstructViewSpacePositionFromDepth(inverse_projection_matrix, uv, current_depth);
     vec4 current_position_world_space = ReconstructWorldSpacePositionFromDepth(inverse_projection_matrix, inverse_view_matrix, uv, current_depth);
     current_position_world_space /= current_position_world_space.w;

@@ -1102,7 +1102,7 @@ struct Viewport
 };
 
 HYP_ENUM()
-enum class DescriptorSetElementType : uint32
+enum class DescriptorType : uint32
 {
     UNSET,
     UNIFORM_BUFFER,
@@ -2508,7 +2508,6 @@ static constexpr inline bool IsRayTracingShaderModule(ShaderModuleType type)
 struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .ini definitions file.
 {
     Name name;
-    String entryPointName = "main";
     FlatMap<ShaderModuleType, String> sources;
     ShaderProperties versions; // permutations
 

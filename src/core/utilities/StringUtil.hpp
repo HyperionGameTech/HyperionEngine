@@ -209,6 +209,27 @@ static inline String ToSnakeCase(const String& str)
     return result;
 }
 
+template <int TStringType, class Predicate>
+static inline containers::String<TStringType> TakeWhile(const containers::String<TStringType>& src, Predicate&& predicate)
+{
+    containers::String<TStringType> dst;
+    dst.Reserve(src.Size());
+
+    for (auto ch : src)
+    {
+        if (predicate(ch))
+        {
+            dst.Append(ch);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return dst;
+}
+
 static inline bool Parse(const String& str, int* outValue)
 {
     *outValue = int(std::strtol(str.Data(), nullptr, 0));

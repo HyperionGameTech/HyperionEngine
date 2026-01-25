@@ -18,7 +18,7 @@ namespace Hyperion {
 
 DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
 {
-    for (uint32 slotIndex = 0; slotIndex < DESCRIPTOR_SLOT_MAX; slotIndex++)
+    for (uint32 slotIndex = 0; slotIndex < uint8(DescriptorSlot::MAX); slotIndex++)
     {
         for (const DescriptorDeclaration& decl : slots[slotIndex])
         {
@@ -34,13 +34,13 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Strin
 
 uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
 {
-    Assert(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
+    Assert(slot != DescriptorSlot::NONE && uint8(slot) < uint8(DescriptorSlot::MAX));
 
     uint32 flatIndex = 0;
 
-    for (uint32 slotIndex = 0; slotIndex < uint32(slot); slotIndex++)
+    for (uint8 slotIndex = 0; slotIndex < uint8(slot); slotIndex++)
     {
-        if (slotIndex == uint32(slot) - 1)
+        if (slotIndex == uint8(slot) - 1)
         {
             uint32 declIndex = 0;
 
@@ -129,47 +129,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
             //     declPtr->name, descriptor.name, descriptorIndex, int(descriptor.slot),
             //     descriptor.count, descriptor.size, descriptor.isDynamic);
 
-            switch (descriptor.slot)
-            {
-            case DescriptorSlot::DESCRIPTOR_SLOT_SRV:
-                AddElement(descriptor.name, DescriptorSetElementType::IMAGE, descriptorIndex, descriptor.count);
-
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_UAV:
-                AddElement(descriptor.name, DescriptorSetElementType::IMAGE_STORAGE, descriptorIndex, descriptor.count);
-
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_CBUFF:
-                if (descriptor.isDynamic)
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                else
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::UNIFORM_BUFFER, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_SSBO:
-                if (descriptor.isDynamic)
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                else
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::SSBO, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:
-                AddElement(descriptor.name, DescriptorSetElementType::TLAS, descriptorIndex, descriptor.count);
-
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_SAMPLER:
-                AddElement(descriptor.name, DescriptorSetElementType::SAMPLER, descriptorIndex, descriptor.count);
-
-                break;
-            default:
-                HYP_UNREACHABLE();
-            }
+            AddElement(descriptor.name, descriptor.type, descriptorIndex, descriptor.count);
         }
     }
 
@@ -179,8 +139,8 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     // Add to list of dynamic buffer names
     for (const auto& it : m_elements)
     {
-        if (it.second.type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
-            || it.second.type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
+        if (it.second.type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
+            || it.second.type == DescriptorType::STORAGE_BUFFER_DYNAMIC)
         {
             dynamicElementsWithIndex.PushBack({ it.first, it.second.binding });
         }
@@ -226,10 +186,10 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
     if constexpr (std::is_base_of_v<GpuBufferBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
-            | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-            | (1u << uint32(DescriptorSetElementType::SSBO))
-            | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
+        static constexpr uint32 Mask = (1u << uint32(DescriptorType::UNIFORM_BUFFER))
+            | (1u << uint32(DescriptorType::UNIFORM_BUFFER_DYNAMIC))
+            | (1u << uint32(DescriptorType::SSBO))
+            | (1u << uint32(DescriptorType::STORAGE_BUFFER_DYNAMIC));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
 
@@ -256,20 +216,20 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::IMAGE))
-            | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
+        static constexpr uint32 Mask = (1u << uint32(DescriptorType::IMAGE))
+            | (1u << uint32(DescriptorType::IMAGE_STORAGE));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<SamplerBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+        static constexpr uint32 Mask = (1u << uint32(DescriptorType::SAMPLER));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::TLAS));
+        static constexpr uint32 Mask = (1u << uint32(DescriptorType::TLAS));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }

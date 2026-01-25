@@ -39,7 +39,7 @@ HYP_DESCRIPTOR_UAV(PathTracer, OutputImage, format = rgba8) uniform image2D imag
 
 
 /// Blue noise
-HYP_DESCRIPTOR_SSBO(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_BUFFER(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
 	ivec4 sobol_256spp_256d[256 * 256 / 4];
 	ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -52,18 +52,18 @@ HYP_DESCRIPTOR_SSBO(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF(PathTracer, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(PathTracer, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(PathTracer, EnvGridsBuffer) uniform EnvGridsBuffer { EnvGrid env_grid; };
-HYP_DESCRIPTOR_SSBO_DYNAMIC(PathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, EnvGridsBuffer) uniform EnvGridsBuffer { EnvGrid env_grid; };
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
 
 #if ENV_PROBE_CUBEMAP
 HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
@@ -77,12 +77,12 @@ HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform texture2DArray envProbe
 #include "../../include/rt/RTRadiance.inc"
 #include "../../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_CBUFF(PathTracer, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_BUFFER(PathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_CBUFF(PathTracer, Lights) uniform Lights
+HYP_DESCRIPTOR_BUFFER(PathTracer, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -147,9 +147,9 @@ void main()
     const mat4 view_inverse = inverse(camera.view);
     const mat4 projection_inverse = inverse(camera.projection);
 
-    const vec4 normalSample = Texture2DLod(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
     const vec3 normal =  GBufferUnpackNormal(normalSample);
-    const float depth = Texture2DLod(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
     const vec4 worldPosition = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth);
 
     uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), uv).rg;
@@ -170,7 +170,7 @@ void main()
 
     vec4 color = vec4(0.0);
 
-    const vec3 albedo = Texture2DLod(sampler_nearest, gbuffer_albedo_texture, uv, 0.0).rgb;
+    const vec3 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, uv, 0.0).rgb;
     const vec3 N0 = normalize(normal);
 
     vec4 accumRadiance = vec4(0.0);

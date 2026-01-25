@@ -33,12 +33,12 @@ HYP_DESCRIPTOR_SRV(LightmapPass, ReflectionProbeResultTexture) uniform texture2D
 #include "../include/Entity.glsl"
 #include "../include/scene.inc"
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(LightmapPass, CamerasBuffer) uniform CamerasBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(LightmapPass, WorldsBuffer) uniform WorldsBuffer
+HYP_DESCRIPTOR_BUFFER(LightmapPass, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -54,7 +54,7 @@ HYP_DESCRIPTOR_SRV(LightmapPass, IrradianceTexture) uniform texture2D Irradiance
 HYP_DESCRIPTOR_SRV(LightmapPass, RadianceTexture) uniform texture2D RadianceTexture;
 HYP_DESCRIPTOR_SAMPLER(LightmapPass, LightmapSampler) uniform sampler LightmapSampler;
 
-HYP_DESCRIPTOR_CBUFF(LightmapPass, LightmapVolumeUniforms) uniform LightmapVolumeUniforms
+HYP_DESCRIPTOR_BUFFER(LightmapPass, LightmapVolumeUniforms) uniform LightmapVolumeUniforms
 {
     float irradianceWeight;
     float radianceWeight;
@@ -72,14 +72,14 @@ HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesTexture) uniform textureCubeArray envP
 HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SSBO(LightmapPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_BUFFER(LightmapPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(LightmapPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(LightmapPass, EnvGridsBuffer) uniform EnvGridsBuffer
+HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) uniform EnvGridsBuffer
 {
     EnvGrid env_grid;
 };
@@ -88,8 +88,8 @@ HYP_DESCRIPTOR_CBUFF_DYNAMIC(LightmapPass, EnvGridsBuffer) uniform EnvGridsBuffe
 
 void main()
 {
-    const vec4 albedo = Texture2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
-    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const vec4 albedo = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
 
     const uvec4 materialData = texture(usampler2D(gbuffer_material_texture, sampler_nearest), texcoord);
 
@@ -103,10 +103,10 @@ void main()
     const mat4 inverse_proj = inverse(camera.projection);
     const mat4 inverse_view = inverse(camera.view);
 
-    vec3 N = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    vec3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord));
     vec2 UV1 = vec2(uintBitsToFloat(materialData.z), uintBitsToFloat(materialData.w));
 
-    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
     const vec3 V = normalize(camera.position.xyz - P);
     const vec3 R = normalize(reflect(-V, N));
@@ -114,10 +114,10 @@ void main()
     vec2 lightmapUV = UV1;
 
     // sample lightmap atlases based on weights
-    vec4 irradiance = Texture2D(LightmapSampler, IrradianceTexture, lightmapUV) * irradianceWeight;
+    vec4 irradiance = SAMPLE_TEXTURE_2D(LightmapSampler, IrradianceTexture, lightmapUV) * irradianceWeight;
     irradiance.a = 1.0;
 
-    vec4 radiance = Texture2D(LightmapSampler, RadianceTexture, lightmapUV) * radianceWeight;
+    vec4 radiance = SAMPLE_TEXTURE_2D(LightmapSampler, RadianceTexture, lightmapUV) * radianceWeight;
     radiance.a = 1.0;
 
     vec3 ibl = vec3(0.0);
@@ -135,7 +135,7 @@ void main()
     const vec3 E = CalculateE(F0, dfg);
     const vec3 energyCompensation = CalculateEnergyCompensation(F0, dfg);
 
-    vec4 reflections = Texture2D(sampler_nearest, ReflectionProbeResultTexture, texcoord);
+    vec4 reflections = SAMPLE_TEXTURE_2D(sampler_nearest, ReflectionProbeResultTexture, texcoord);
 
     ibl = ibl * (1.0 - reflections.a) + (reflections.rgb * reflections.a);
 

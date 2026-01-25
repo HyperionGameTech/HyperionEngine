@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-enum class DescriptorSetElementType : uint32;
+enum class DescriptorType : uint32;
 enum ShaderModuleType : uint8;
 
 constexpr ResourceState PreRenderResourceStates[2] = {
@@ -53,7 +53,7 @@ VkSamplerAddressMode ToVkSamplerAddressMode(TextureWrapMode);
 VkImageAspectFlags ToVkImageAspect(TextureFormat);
 VkImageType ToVkImageType(TextureType);
 VkImageViewType ToVkImageViewType(TextureType);
-VkDescriptorType ToVkDescriptorType(DescriptorSetElementType);
+VkDescriptorType ToVkDescriptorType(DescriptorType);
 VkImageLayout GetVkImageLayout(ResourceState state);
 VkAccessFlags GetVkAccessMask(ResourceState state);
 VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType = (ShaderModuleType)0);
