@@ -993,8 +993,6 @@ void ReflectionsPass::Resize_Internal(Vec2u newSize)
     HYP_SCOPE;
 
     FullScreenPass::Resize_Internal(newSize);
-
-    m_cubemapGraphicsPipelines = {};
 }
 
 void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
@@ -1207,8 +1205,6 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
     rayTracingReflections.Reset();
     ddgi.Reset();
-
-    SafeDelete(std::move(finalPassDescriptorSet));
 }
 
 #pragma endregion DeferredPassData
@@ -1217,10 +1213,9 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 RayTracingPassData::~RayTracingPassData()
 {
-    SafeDelete(std::move(rayTracingTlases));
-    SafeDelete(std::move(rayTracingDescriptorSets));
     SafeDelete(std::move(constants));
     SafeDelete(std::move(lightsBuffer));
+    SafeDelete(std::move(rayTracingTlases));
 }
 
 #pragma endregion RayTracingPassData
@@ -1389,145 +1384,6 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         view->Id(), uint32(view->GetFlags()));
 
     return Handle<PassData>::empty;
-}
-
-void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData)
-{
-    HYP_SCOPE;
-
-    ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen"));
-    Assert(renderTextureToScreenShader.IsValid());
-
-    const GpuImageViewRef& inputImageView = m_rendererConfig.taaEnabled
-        ? g_renderInterface->textureViewCache->GetOrCreate(passData.temporalAa->GetResultTexture())
-        : passData.tonemapPass->GetFinalImageView();
-
-    Assert(inputImageView.IsValid());
-
-    const DescriptorTableDeclaration* descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    Assert(descriptorTableDecl != nullptr);
-
-    DescriptorSetDeclaration* decl = descriptorTableDecl->FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet"_sh);
-    Assert(decl != nullptr);
-
-    const DescriptorSetLayout layout { decl };
-
-    DescriptorSetRef descriptorSet = g_renderInterface->MakeDescriptorSet(layout);
-    descriptorSet->SetDebugName(NAME("FinalPassDescriptorSet"));
-    descriptorSet->SetElement("InTexture"_sh, inputImageView);
-
-    Assert(descriptorSet->Create());
-
-    SafeDelete(std::move(passData.finalPassDescriptorSet));
-
-    passData.finalPassDescriptorSet = std::move(descriptorSet);
-}
-
-void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    const DescriptorSetDeclaration* decl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View"_sh);
-    Assert(decl != nullptr);
-
-    const DescriptorSetLayout layout { decl };
-
-    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
-
-    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-
-    // depth attachment goes into separate slot
-    AttachmentBase* depthAttachment = opaquePassFramebuffer->GetAttachment(GTN_MAX - 1);
-    Assert(depthAttachment != nullptr);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        DescriptorSetRef descriptorSet = g_renderInterface->MakeDescriptorSet(layout);
-        descriptorSet->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frameIndex));
-
-        if (g_renderInterface->GetRenderConfig().dynamicDescriptorIndexing)
-        {
-            uint32 gbufferElementIndex = 0;
-
-            // not including depth texture here (hence the - 1)
-            for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
-            {
-                descriptorSet->SetElement("GBufferTextures"_sh, gbufferElementIndex++, opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
-            }
-        }
-        else
-        {
-            for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
-            {
-                descriptorSet->SetElement(GBufferTextureNames[attachmentIndex], opaquePassFramebuffer->GetAttachment(attachmentIndex)->GetImageView());
-            }
-        }
-
-        descriptorSet->SetElement("GBufferDepthTexture"_sh, depthAttachment->GetImageView());
-        descriptorSet->SetElement("GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
-        descriptorSet->SetElement("PostProcessingUniforms"_sh, passData.postProcessing->GetUniformBuffer());
-        descriptorSet->SetElement("DepthPyramidResult"_sh, passData.depthPyramidRenderer->GetResultImageView());
-        descriptorSet->SetElement("TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.temporalAa->GetResultTexture()));
-
-        // Set SSR texture - use placeholder if not available yet
-        Texture* ssrTexture = passData.reflectionsPass->ShouldRenderSSR()
-            ? passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()
-            : nullptr;
-
-        if (ssrTexture)
-        {
-            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(ssrTexture));
-            passData.cachedSsrTexture = ssrTexture;
-        }
-        else
-        {
-            descriptorSet->SetElement("SSRResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-            passData.cachedSsrTexture = nullptr;
-        }
-
-        if (passData.ssgi)
-        {
-            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(passData.ssgi->GetFinalResultTexture()));
-        }
-        else
-        {
-            descriptorSet->SetElement("SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-
-        if (passData.hbao)
-        {
-            descriptorSet->SetElement("SSAOResultTexture"_sh, passData.hbao->GetFinalImageView());
-        }
-        else
-        {
-            descriptorSet->SetElement("SSAOResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-
-        descriptorSet->SetElement("DeferredIndirectResultTexture"_sh, passData.deferredShadingFramebuffer->GetAttachment(0)->GetImageView());
-
-        descriptorSet->SetElement("ReflectionProbeResultTexture"_sh, passData.reflectionsPass->GetFinalImageView());
-
-        if (passData.ddgi)
-        {
-            descriptorSet->SetElement("DDGIConstants"_sh, passData.ddgi->GetConstantBuffer(frameIndex));
-            descriptorSet->SetElement("DDGIIrradianceTexture"_sh, passData.ddgi->GetIrradianceImageView());
-            descriptorSet->SetElement("DDGIDepthTexture"_sh, passData.ddgi->GetDepthImageView());
-        }
-        else
-        {
-            descriptorSet->SetElement("DDGIConstants"_sh, g_renderInterface->placeholderData->GetOrCreateBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants), /* exactSize */ true));
-            descriptorSet->SetElement("DDGIIrradianceTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-            descriptorSet->SetElement("DDGIDepthTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
-        }
-        
-
-        CheckResult(descriptorSet->Create());
-
-        descriptorSets[frameIndex] = std::move(descriptorSet);
-    }
-
-    passData.descriptorSets = std::move(descriptorSets);
 }
 
 void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData)

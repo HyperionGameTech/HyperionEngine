@@ -78,7 +78,6 @@ public:
     virtual void Create() override;
 
 protected:
-    GraphicsPipelineCacheHandle CreatePipeline(const ShaderProperties& shaderProperties);
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
@@ -285,9 +284,6 @@ private:
 
     GpuImageViewRef m_mipChainImageView;
 
-    FixedArray<GraphicsPipelineCacheHandle, CMT_MAX> m_cubemapGraphicsPipelines;
-    FixedArray<DescriptorTableRef, CMT_MAX> m_cubemapDescriptorTables;
-
     UniquePtr<SSRRenderer> m_ssrRenderer;
 
     bool m_isFirstFrame;
@@ -302,9 +298,6 @@ public:
     virtual ~DeferredRendererPassData() override;
 
     int priority = 0;
-
-    // Descriptor set used when rendering the View in FinalPass.
-    DescriptorSetRef finalPassDescriptorSet;
 
     Handle<Texture> mipChain;
 
@@ -346,7 +339,6 @@ public:
     
     GpuBufferRef constants;
     GpuBufferRef lightsBuffer;
-    FixedArray<DescriptorSetRef, NumFramesInFlight> rayTracingDescriptorSets;
     FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 
     virtual ~RayTracingPassData() override;
@@ -404,8 +396,6 @@ private:
     // Called on initialization or when the view changes
     virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
 
-    void CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData);
-    void CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData);
     void CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData);
 
     void CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData);

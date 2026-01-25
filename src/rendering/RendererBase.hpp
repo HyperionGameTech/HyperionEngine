@@ -250,9 +250,6 @@ public:
     WeakHandle<View> view;
     Viewport viewport;
 
-    // per-View descriptor sets
-    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
-
     CullData cullData;
 
     // cached by ObjId<RenderGroup>
