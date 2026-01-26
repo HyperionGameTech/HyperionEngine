@@ -138,8 +138,8 @@ RendererResult VulkanShader::CreateShaderGroups()
 
         switch (shaderModule.type)
         {
-        case SMT_RAY_MISS: /* fallthrough */
-        case SMT_RAY_GEN:
+        case ShaderModuleType::Miss: /* fallthrough */
+        case ShaderModuleType::RayGen:
             m_shaderGroups.PushBack({ shaderModule.type,
                 VkRayTracingShaderGroupCreateInfoKHR {
                     .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -150,7 +150,7 @@ RendererResult VulkanShader::CreateShaderGroups()
                     .intersectionShader = VK_SHADER_UNUSED_KHR } });
 
             break;
-        case SMT_RAY_CLOSEST_HIT:
+        case ShaderModuleType::ClosestHit:
             m_shaderGroups.PushBack({ shaderModule.type,
                 VkRayTracingShaderGroupCreateInfoKHR {
                     .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -177,43 +177,43 @@ VkPipelineShaderStageCreateInfo VulkanShader::CreateShaderStage(const VulkanShad
 
     switch (shaderModule.type)
     {
-    case SMT_VERTEX:
+    case ShaderModuleType::Vertex:
         createInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
         break;
-    case SMT_FRAGMENT:
+    case ShaderModuleType::Pixel:
         createInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         break;
-    case SMT_GEOMETRY:
+    case ShaderModuleType::Geometry:
         createInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
         break;
-    case SMT_COMPUTE:
+    case ShaderModuleType::Compute:
         createInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         break;
-    case SMT_TASK:
+    case ShaderModuleType::Task:
         createInfo.stage = VK_SHADER_STAGE_TASK_BIT_NV;
         break;
-    case SMT_MESH:
+    case ShaderModuleType::Mesh:
         createInfo.stage = VK_SHADER_STAGE_MESH_BIT_NV;
         break;
-    case SMT_TESS_CONTROL:
+    case ShaderModuleType::TessControl:
         createInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
         break;
-    case SMT_TESS_EVAL:
+    case ShaderModuleType::TessEval:
         createInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
         break;
-    case SMT_RAY_GEN:
+    case ShaderModuleType::RayGen:
         createInfo.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
         break;
-    case SMT_RAY_INTERSECT:
+    case ShaderModuleType::Intersect:
         createInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
         break;
-    case SMT_RAY_ANY_HIT:
+    case ShaderModuleType::AnyHit:
         createInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
         break;
-    case SMT_RAY_CLOSEST_HIT:
+    case ShaderModuleType::ClosestHit:
         createInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
         break;
-    case SMT_RAY_MISS:
+    case ShaderModuleType::Miss:
         createInfo.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
         break;
     default:

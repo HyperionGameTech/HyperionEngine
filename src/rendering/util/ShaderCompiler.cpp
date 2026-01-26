@@ -93,19 +93,19 @@ static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
 {
     switch (type)
     {
-    case SMT_VERTEX:
+    case ShaderModuleType::Vertex:
         return L"vs_6_0";
-    case SMT_FRAGMENT:
+    case ShaderModuleType::Pixel:
         return L"ps_6_0";
-    case SMT_GEOMETRY:
+    case ShaderModuleType::Geometry:
         return L"gs_6_0";
-    case SMT_COMPUTE:
+    case ShaderModuleType::Compute:
         return L"cs_6_0";
-    case SMT_RAY_GEN:
-    case SMT_RAY_MISS:
-    case SMT_RAY_CLOSEST_HIT:
-    case SMT_RAY_ANY_HIT:
-    case SMT_RAY_INTERSECT:
+    case ShaderModuleType::RayGen:
+    case ShaderModuleType::Miss:
+    case ShaderModuleType::ClosestHit:
+    case ShaderModuleType::AnyHit:
+    case ShaderModuleType::Intersect:
         return L"lib_6_3";
     default:
         return L"vs_6_0";
@@ -1139,43 +1139,43 @@ static bool PreprocessGLSL(
 
     switch (type)
     {
-    case SMT_VERTEX:
+    case ShaderModuleType::Vertex:
         stage = GLSLANG_STAGE_VERTEX;
         break;
-    case SMT_FRAGMENT:
+    case ShaderModuleType::Pixel:
         stage = GLSLANG_STAGE_FRAGMENT;
         break;
-    case SMT_GEOMETRY:
+    case ShaderModuleType::Geometry:
         stage = GLSLANG_STAGE_GEOMETRY;
         break;
-    case SMT_COMPUTE:
+    case ShaderModuleType::Compute:
         stage = GLSLANG_STAGE_COMPUTE;
         break;
-    case SMT_TASK:
+    case ShaderModuleType::Task:
         stage = GLSLANG_STAGE_TASK_NV;
         break;
-    case SMT_MESH:
+    case ShaderModuleType::Mesh:
         stage = GLSLANG_STAGE_MESH_NV;
         break;
-    case SMT_TESS_CONTROL:
+    case ShaderModuleType::TessControl:
         stage = GLSLANG_STAGE_TESSCONTROL;
         break;
-    case SMT_TESS_EVAL:
+    case ShaderModuleType::TessEval:
         stage = GLSLANG_STAGE_TESSEVALUATION;
         break;
-    case SMT_RAY_GEN:
+    case ShaderModuleType::RayGen:
         stage = GLSLANG_STAGE_RAYGEN_NV;
         break;
-    case SMT_RAY_INTERSECT:
+    case ShaderModuleType::Intersect:
         stage = GLSLANG_STAGE_INTERSECT_NV;
         break;
-    case SMT_RAY_ANY_HIT:
+    case ShaderModuleType::AnyHit:
         stage = GLSLANG_STAGE_ANYHIT_NV;
         break;
-    case SMT_RAY_CLOSEST_HIT:
+    case ShaderModuleType::ClosestHit:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
         break;
-    case SMT_RAY_MISS:
+    case ShaderModuleType::Miss:
         stage = GLSLANG_STAGE_MISS_NV;
         break;
     default:
@@ -1328,55 +1328,55 @@ static ByteBuffer CompileGLSL(
 
     switch (type)
     {
-    case SMT_VERTEX:
+    case ShaderModuleType::Vertex:
         stage = GLSLANG_STAGE_VERTEX;
         stageString = "VERTEX_SHADER";
         break;
-    case SMT_FRAGMENT:
+    case ShaderModuleType::Pixel:
         stage = GLSLANG_STAGE_FRAGMENT;
         stageString = "PIXEL_SHADER";
         break;
-    case SMT_GEOMETRY:
+    case ShaderModuleType::Geometry:
         stage = GLSLANG_STAGE_GEOMETRY;
         stageString = "GEOMETRY_SHADER";
         break;
-    case SMT_COMPUTE:
+    case ShaderModuleType::Compute:
         stage = GLSLANG_STAGE_COMPUTE;
         stageString = "COMPUTE_SHADER";
         break;
-    case SMT_TASK:
+    case ShaderModuleType::Task:
         stage = GLSLANG_STAGE_TASK_NV;
         stageString = "TASK_SHADER";
         break;
-    case SMT_MESH:
+    case ShaderModuleType::Mesh:
         stage = GLSLANG_STAGE_MESH_NV;
         stageString = "MESH_SHADER";
         break;
-    case SMT_TESS_CONTROL:
+    case ShaderModuleType::TessControl:
         stage = GLSLANG_STAGE_TESSCONTROL;
         stageString = "TESS_CONTROL_SHADER";
         break;
-    case SMT_TESS_EVAL:
+    case ShaderModuleType::TessEval:
         stage = GLSLANG_STAGE_TESSEVALUATION;
         stageString = "TESS_EVAL_SHADER";
         break;
-    case SMT_RAY_GEN:
+    case ShaderModuleType::RayGen:
         stage = GLSLANG_STAGE_RAYGEN_NV;
         stageString = "RAY_GEN_SHADER";
         break;
-    case SMT_RAY_INTERSECT:
+    case ShaderModuleType::Intersect:
         stage = GLSLANG_STAGE_INTERSECT_NV;
         stageString = "RAY_INTERSECT_SHADER";
         break;
-    case SMT_RAY_ANY_HIT:
+    case ShaderModuleType::AnyHit:
         stage = GLSLANG_STAGE_ANYHIT_NV;
         stageString = "RAY_ANY_HIT_SHADER";
         break;
-    case SMT_RAY_CLOSEST_HIT:
+    case ShaderModuleType::ClosestHit:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
         stageString = "RAY_CLOSEST_HIT_SHADER";
         break;
-    case SMT_RAY_MISS:
+    case ShaderModuleType::Miss:
         stage = GLSLANG_STAGE_MISS_NV;
         stageString = "RAY_MISS_SHADER";
         break;
@@ -1475,31 +1475,10 @@ static ByteBuffer CompileGLSL(
         return ByteBuffer();
     }
 
-    const char* entryPointName = DefaultEntryPointNames[type];
+    const char* entryPointName = DefaultEntryPointNames[uint8(type)];
 
     glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
     Assert(cppProgram != nullptr);
-
-    static constexpr const EShLanguage shLanguages[NumShaderModuleTypes - 1] = {
-        EShLangVertex,          // SMT_VERTEX
-        EShLangFragment,        // SMT_FRAGMENT
-        EShLangGeometry,        // SMT_GEOMETRY
-        EShLangCompute,         // SMT_COMPUTE
-
-        EShLangTask,            // SMT_TASK
-        EShLangMesh,            // SMT_MESH
-
-        EShLangTessControl,     // SMT_TESS_CONTROL
-        EShLangTessEvaluation,  // SMT_TESS_EVAL
-
-        EShLangRayGen,          // SMT_RAY_GEN
-        EShLangIntersect,       // SMT_RAY_INTERSECT
-        EShLangAnyHit,          // SMT_RAY_ANY_HIT
-        EShLangClosestHit,      // SMT_RAY_CLOSEST_HIT
-        EShLangMiss             // SMT_RAY_MISS
-    };
-
-    const EShLanguage shLanguage = shLanguages[type - 1];
 
 #if HYP_SHADER_REFLECTION
     if (!cppProgram->buildReflection(EShReflectionDefault))
@@ -1771,7 +1750,7 @@ static ByteBuffer CompileHLSL(
     ComPtr<IDxcBlobEncoding> pSource;
     s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
 
-    const WideString entryPointName = WideString(DefaultEntryPointNames[type]);
+    const WideString entryPointName = WideString(DefaultEntryPointNames[uint8(type)]);
 
     Array<LPCWSTR> args;
 
@@ -1917,15 +1896,15 @@ struct LoadedSourceFile
 };
 
 static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
-    { "vs", SMT_VERTEX },
-    { "ps", SMT_FRAGMENT },
-    { "gs", SMT_GEOMETRY },
-    { "cs", SMT_COMPUTE },
-    { "raygen", SMT_RAY_GEN },
-    { "closesthit", SMT_RAY_CLOSEST_HIT },
-    { "anyhit", SMT_RAY_ANY_HIT },
-    { "miss", SMT_RAY_MISS },
-    { "intersect", SMT_RAY_INTERSECT }
+    { "vs", ShaderModuleType::Vertex },
+    { "ps", ShaderModuleType::Pixel },
+    { "gs", ShaderModuleType::Geometry },
+    { "cs", ShaderModuleType::Compute },
+    { "raygen", ShaderModuleType::RayGen },
+    { "closesthit", ShaderModuleType::ClosestHit },
+    { "anyhit", ShaderModuleType::AnyHit },
+    { "miss", ShaderModuleType::Miss },
+    { "intersect", ShaderModuleType::Intersect }
 };
 
 static bool FindVertexAttributeForDefinition(const String& name, const VertexAttribute*& outAttribute)
@@ -3003,7 +2982,8 @@ static String FormatDescriptorDeclaration(
 }
 
 ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
-    ProcessShaderSourcePhase phase, ShaderModuleType type,
+    ProcessShaderSourcePhase phase,
+    ShaderModuleType type,
     ShaderLanguage language, const String& source, const String& filename,
     const ShaderProperties& properties)
 {
@@ -3030,7 +3010,8 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 preprocessedSource,
                 preprocessErrorMessages);
 #else
-            result.errors.
+            preprocessErrorMessages.PushBack("GLSL preprocessing not supported in this build.");
+            preprocessResult = false;
 #endif
         }
         else
@@ -3120,7 +3101,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         {
         case ProcessShaderSourcePhase::BEFORE_PREPROCESS:
         {
-            if (line.StartsWith("HYP_ATTRIBUTE"))
+            if (type == ShaderModuleType::Vertex && line.StartsWith("HYP_ATTRIBUTE"))
             {
                 Array<String> parts = line.Split(' ');
 
@@ -3504,7 +3485,7 @@ bool ShaderCompiler::CompileBundle(
                 // we add this define to prevent the HYP_DESCRIPTOR_* macros from being defines in shader code
                 // and folding to nothing.
                 String preamble = "#define HYP_SHADER_COMPILER 1\n\n"
-                    + HYP_FORMAT("#define {} 1\n\n", ShaderModuleTypeNames[moduleType])
+                    + HYP_FORMAT("#define {} 1\n\n", ShaderModuleTypeNames[uint8(moduleType)])
                     + HYP_FORMAT("#define LANG_{} 1\n\n", (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL"));
 
                 String sourceString = String(byteBuffer.ToByteView()).ReplaceAll("\r\n", "\n");

@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-enum ShaderModuleType : uint8;
+enum class ShaderModuleType : uint8;
 
 HYP_ENUM()
 enum class GpuImageFlags : uint32

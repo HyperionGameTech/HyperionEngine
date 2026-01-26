@@ -21,7 +21,7 @@ namespace Hyperion {
 
 class VulkanShader;
 
-enum ShaderModuleType : uint8;
+enum class ShaderModuleType : uint8;
 
 HYP_CLASS(NoScriptBindings)
 class VulkanRayTracingPipeline final : public RayTracingPipelineBase, public VulkanPipelineBase

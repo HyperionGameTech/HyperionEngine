@@ -294,7 +294,7 @@ private:
 class InsertBarrier final : public CmdBase
 {
 public:
-    InsertBarrier(GpuBuffer* buffer, const ResourceState& state, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuBuffer* buffer, const ResourceState& state, ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(buffer),
           m_image(nullptr),
           m_state(state),
@@ -303,7 +303,7 @@ public:
     {
     }
 
-    InsertBarrier(GpuImage* image, const ResourceState& state, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuImage* image, const ResourceState& state, ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
@@ -312,7 +312,7 @@ public:
     {
     }
 
-    InsertBarrier(GpuImage* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuImage* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),

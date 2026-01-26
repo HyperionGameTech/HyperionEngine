@@ -256,9 +256,9 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShader*
     }                                                                                \
     while (0)
 
-    GET_STRIDED_DEVICE_ADDRESS_REGION(SMT_RAY_GEN, rayGen);
-    GET_STRIDED_DEVICE_ADDRESS_REGION(SMT_RAY_MISS, rayMiss);
-    GET_STRIDED_DEVICE_ADDRESS_REGION(SMT_RAY_CLOSEST_HIT, closestHit);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RayGen, rayGen);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::Miss, rayMiss);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::ClosestHit, closestHit);
 
 #undef GET_STRIDED_DEVICE_ADDRESS_REGION
 

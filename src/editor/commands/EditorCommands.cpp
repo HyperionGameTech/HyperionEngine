@@ -406,7 +406,7 @@ public:
         }
 
         Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128));
-        //reflectionProbe->SetIsBaked(true);
+        reflectionProbe->SetIsBaked(true);
         InitObject(reflectionProbe);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();

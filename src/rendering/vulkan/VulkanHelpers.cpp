@@ -304,17 +304,17 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
     case RS_SHADER_RESOURCE:
         switch (shaderType)
         {
-        case SMT_VERTEX:
+        case ShaderModuleType::Vertex:
             return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-        case SMT_FRAGMENT:
+        case ShaderModuleType::Pixel:
             return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        case SMT_COMPUTE:
+        case ShaderModuleType::Compute:
             return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-        case SMT_RAY_ANY_HIT:
-        case SMT_RAY_CLOSEST_HIT:
-        case SMT_RAY_GEN:
-        case SMT_RAY_INTERSECT:
-        case SMT_RAY_MISS:
+        case ShaderModuleType::AnyHit:
+        case ShaderModuleType::ClosestHit:
+        case ShaderModuleType::RayGen:
+        case ShaderModuleType::Intersect:
+        case ShaderModuleType::Miss:
             if (g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
             {
                 return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
@@ -324,17 +324,17 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
                 HYP_FAIL("ERROR: Attempted to get rayTracing shader stage mask on a device that does not support rayTracing!");
             }
             break;
-        case SMT_GEOMETRY:
+        case ShaderModuleType::Geometry:
             return VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-        case SMT_TESS_CONTROL:
+        case ShaderModuleType::TessControl:
             return VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-        case SMT_TESS_EVAL:
+        case ShaderModuleType::TessEval:
             return VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
-        case SMT_MESH:
+        case ShaderModuleType::Mesh:
             return VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
-        case SMT_TASK:
+        case ShaderModuleType::Task:
             return VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
-        case SMT_UNSET:
+        case ShaderModuleType::None:
         {
             VkPipelineStageFlags bits = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;

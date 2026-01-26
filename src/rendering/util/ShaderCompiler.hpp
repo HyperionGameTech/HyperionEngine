@@ -26,45 +26,45 @@ namespace Hyperion {
 struct DescriptorTableDeclaration;
 
 static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
-    "",                     // SMT_UNSET
+    "",                     // ShaderModuleType::None
 
-    "VSMain",               // SMT_VERTEX
-    "PSMain",               // SMT_FRAGMENT
-    "GSMain",               // SMT_GEOMETRY
-    "CSMain",               // SMT_COMPUTE
+    "VSMain",               // ShaderModuleType::Vertex
+    "PSMain",               // ShaderModuleType::Pixel
+    "GSMain",               // ShaderModuleType::Geometry
+    "CSMain",               // ShaderModuleType::Compute
 
-    "TaskMain",             // SMT_TASK
-    "MeshMain",             // SMT_MESH
+    "TaskMain",             // ShaderModuleType::Task
+    "MeshMain",             // ShaderModuleType::Mesh
 
-    "TessControlMain",      // SMT_TESS_CONTROL
-    "TessEvalMain",         // SMT_TESS_EVAL
+    "TessControlMain",      // ShaderModuleType::TessControl
+    "TessEvalMain",         // ShaderModuleType::TessEval
 
-    "RayGen",               // SMT_RAY_GEN
-    "Intersect",            // SMT_RAY_INTERSECT
-    "AnyHit",               // SMT_RAY_ANY_HIT
-    "ClosestHit",           // SMT_RAY_CLOSEST_HIT
-    "Miss"                  // SMT_RAY_MISS
+    "RayGen",               // ShaderModuleType::RayGen
+    "Intersect",            // ShaderModuleType::Intersect
+    "AnyHit",               // ShaderModuleType::AnyHit
+    "ClosestHit",           // ShaderModuleType::ClosestHit
+    "Miss"                  // ShaderModuleType::Miss
 };
 
 static constexpr const char* ShaderModuleTypeNames[NumShaderModuleTypes] = {
-    "",                     // SMT_UNSET
+    "",                     // ShaderModuleType::None
 
-    "VERTEX_SHADER",        // SMT_VERTEX
-    "PIXEL_SHADER",         // SMT_FRAGMENT
-    "GEOMETRY_SHADER",      // SMT_GEOMETRY
-    "COMPUTE_SHADER",       // SMT_COMPUTE
+    "VERTEX_SHADER",        // ShaderModuleType::Vertex
+    "PIXEL_SHADER",         // ShaderModuleType::Pixel
+    "GEOMETRY_SHADER",      // ShaderModuleType::Geometry
+    "COMPUTE_SHADER",       // ShaderModuleType::Compute
 
-    "TASK_SHADER",          // SMT_TASK
-    "MESH_SHADER",          // SMT_MESH
+    "TASK_SHADER",          // ShaderModuleType::Task
+    "MESH_SHADER",          // ShaderModuleType::Mesh
 
-    "TESS_CONTROL_SHADER",  // SMT_TESS_CONTROL
-    "TESS_EVAL_SHADER",     // SMT_TESS_EVAL
+    "TESS_CONTROL_SHADER",  // ShaderModuleType::TessControl
+    "TESS_EVAL_SHADER",     // ShaderModuleType::TessEval
 
-    "RAY_GEN_SHADER",       // SMT_RAY_GEN
-    "INTERSECT_SHADER",     // SMT_RAY_INTERSECT
-    "ANY_HIT_SHADER",       // SMT_RAY_ANY_HIT
-    "CLOSEST_HIT_SHADER",   // SMT_RAY_CLOSEST_HIT
-    "MISS_SHADER"           // SMT_RAY_MISS
+    "RAY_GEN_SHADER",       // ShaderModuleType::RayGen
+    "INTERSECT_SHADER",     // ShaderModuleType::Intersect
+    "ANY_HIT_SHADER",       // ShaderModuleType::AnyHit
+    "CLOSEST_HIT_SHADER",   // ShaderModuleType::ClosestHit
+    "MISS_SHADER"           // ShaderModuleType::Miss
 };
 
 HYP_ENUM()
@@ -77,8 +77,8 @@ enum class ShaderLanguage : uint32
 HYP_ENUM()
 enum class ProcessShaderSourcePhase : uint32
 {
-    BEFORE_PREPROCESS,
-    AFTER_PREPROCESS
+    BEFORE_PREPROCESS, // Raw source file before any preprocessing
+    AFTER_PREPROCESS   // After preprocessor is ran the first time and inactive code behind #if/#ifdefs is stripped out.
 };
 
 HYP_ENUM()
@@ -407,7 +407,7 @@ struct HYP_API CompiledShader
         UTF8StringView moduleName,
         ByteBuffer&& shaderBlob)
     {
-        AddShaderModule(moduleType, moduleName, DefaultEntryPointNames[moduleType], std::move(shaderBlob));
+        AddShaderModule(moduleType, moduleName, DefaultEntryPointNames[uint8(moduleType)], std::move(shaderBlob));
     }
 
     bool GetShaderModuleInfo(

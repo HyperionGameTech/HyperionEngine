@@ -508,8 +508,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
 
-    asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // Helper to run pass
     auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const GpuBufferRef& inputBuffer, const GpuBufferRef& outputBuffer)
@@ -545,7 +545,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     // MODE_CLEAR
     RunPass(NAME("CLEAR"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
 
-    asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // MODE_BUILD_COEFFICIENTS
     RunPass(NAME("BUILD_COEFFICIENTS"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[0], shTilesBuffers[1]);
@@ -558,7 +558,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
             asyncRenderQueue << InsertBarrier(
                 shTilesBuffers[i - 1],
                 RS_UNORDERED_ACCESS,
-                SMT_COMPUTE);
+                ShaderModuleType::Compute);
 
             const Vec2u prevDimensions {
                 MathUtil::Max(1u, ShNumSamples.x >> (i - 1)),
@@ -589,13 +589,13 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     const uint32 finalizeShBufferIndex = ShParallelReduce ? ShNumLevels - 1 : 0;
 
     // Finalize - build into final buffer
-    asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(shTilesBuffers[finalizeShBufferIndex], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     // MODE_FINALIZE
     RunPass(NAME("FINALIZE"), uniforms, Vec3u { 1, 1, 1 }, shTilesBuffers[finalizeShBufferIndex], shTilesBuffers[finalizeShBufferIndex]);
 
-    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     frame->OnFrameEnd
         .Bind([

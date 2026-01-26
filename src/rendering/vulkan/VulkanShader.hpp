@@ -18,7 +18,7 @@ namespace Hyperion {
 
 struct VulkanShaderModule
 {
-    ShaderModuleType type = SMT_UNSET;
+    ShaderModuleType type = ShaderModuleType::None;
 
     String moduleName;
     String entryPointName;

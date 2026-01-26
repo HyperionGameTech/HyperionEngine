@@ -145,6 +145,8 @@
 #define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
 
 #ifndef HYP_SHADER_COMPILER
+    ///// For Intellisense /////
+
     // Placeholder macro definitions to allow intellisense to work.
     // The engine's shader compiler uses these markers for binding setup
     #define HYP_DESCRIPTOR_SRV(set, var)
@@ -158,9 +160,24 @@
 
     #define HYP_DESCRIPTOR_SAMPLER(set, var)
 
-    // Same here, but for vertex input.
     #define HYP_ATTRIBUTE(location)
     #define HYP_ATTRIBUTE_OPTIONAL(location)
+
+    // If we don't set these, we'll have lots of inactive code blocks
+    // for HLSL shaders that define multiple shader stages in one file.
+    #define VERTEX_SHADER 1
+    #define PIXEL_SHADER 1
+    #define COMPUTE_SHADER 1
+    #define GEOMETRY_SHADER 1
+    #define MESH_SHADER 1
+    #define TASK_SHADER 1
+    #define TESS_CONTROL_SHADER 1
+    #define TESS_EVAL_SHADER 1
+    #define RAY_GEN_SHADER 1
+    #define INTERSECT_SHADER 1
+    #define ANY_HIT_SHADER 1
+    #define CLOSEST_HIT_SHADER 1
+    #define MISS_SHADER 1
 #endif // HYP_SHADER_COMPILER
 
 #endif

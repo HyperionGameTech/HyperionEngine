@@ -112,7 +112,7 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                 commandBuffer,
                 src,
                 RS_COPY_SRC,
-                SMT_UNSET);
+                ShaderModuleType::None);
 
             if (i == int32(numMipmaps))
             {

@@ -231,9 +231,9 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.SampleDesc.Quality = 0;
 
     DX12Shader* dxShader = static_cast<DX12Shader*>(m_shader.Get());
-    psoDesc.VS = dxShader->GetShaderBytecode(SMT_VERTEX);
-    psoDesc.PS = dxShader->GetShaderBytecode(SMT_FRAGMENT);
-    psoDesc.GS = dxShader->GetShaderBytecode(SMT_GEOMETRY);
+    psoDesc.VS = dxShader->GetShaderBytecode(ShaderModuleType::Vertex);
+    psoDesc.PS = dxShader->GetShaderBytecode(ShaderModuleType::Pixel);
+    psoDesc.GS = dxShader->GetShaderBytecode(ShaderModuleType::Geometry);
 
     psoDesc.InputLayout = { inputElementDescs.Data(), (UINT)inputElementDescs.Size() };
 

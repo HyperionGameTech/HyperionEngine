@@ -2468,43 +2468,43 @@ struct ShaderDesc
 };
 
 HYP_ENUM()
-enum ShaderModuleType : uint8
+enum class ShaderModuleType : uint8
 {
-    SMT_UNSET = 0,
+    None = 0,
 
     /* Graphics and general purpose shaders */
-    SMT_VERTEX,
-    SMT_FRAGMENT,
-    SMT_GEOMETRY,
-    SMT_COMPUTE,
+    Vertex,
+    Pixel,
+    Geometry,
+    Compute,
 
     /* Mesh shaders */
-    SMT_TASK,
-    SMT_MESH,
+    Task,
+    Mesh,
 
     /* Tesselation */
-    SMT_TESS_CONTROL,
-    SMT_TESS_EVAL,
+    TessControl,
+    TessEval,
 
     /* RayTracing hardware specific */
-    SMT_RAY_GEN,
-    SMT_RAY_INTERSECT,
-    SMT_RAY_ANY_HIT,
-    SMT_RAY_CLOSEST_HIT,
-    SMT_RAY_MISS,
+    RayGen,
+    Intersect,
+    AnyHit,
+    ClosestHit,
+    Miss,
 
-    SMT_MAX
+    Max
 };
 
-static constexpr uint8 NumShaderModuleTypes = uint8(ShaderModuleType::SMT_MAX);
+static constexpr uint8 NumShaderModuleTypes = uint8(ShaderModuleType::Max);
 
 static constexpr inline bool IsRayTracingShaderModule(ShaderModuleType type)
 {
-    return type == SMT_RAY_GEN
-        || type == SMT_RAY_INTERSECT
-        || type == SMT_RAY_ANY_HIT
-        || type == SMT_RAY_CLOSEST_HIT
-        || type == SMT_RAY_MISS;
+    return type == ShaderModuleType::RayGen
+        || type == ShaderModuleType::Intersect
+        || type == ShaderModuleType::AnyHit
+        || type == ShaderModuleType::ClosestHit
+        || type == ShaderModuleType::Miss;
 }
 
 struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .ini definitions file.
@@ -2525,7 +2525,7 @@ struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .in
     {
         return Every(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
             {
-                return item.first == SMT_COMPUTE;
+                return item.first == ShaderModuleType::Compute;
             });
     }
 
@@ -2533,7 +2533,7 @@ struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .in
     {
         return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
             {
-                return item.first == SMT_VERTEX;
+                return item.first == ShaderModuleType::Vertex;
             });
     }
 };
