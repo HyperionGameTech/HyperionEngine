@@ -19,9 +19,9 @@ layout(location = 10) out flat uint v_object_mask;
 HYP_ATTRIBUTE(0) vec3 a_position;
 HYP_ATTRIBUTE(1) vec3 a_normal;
 HYP_ATTRIBUTE(2) vec2 a_texcoord0;
-HYP_ATTRIBUTE_OPTIONAL(3) vec2 a_texcoord1;
-HYP_ATTRIBUTE_OPTIONAL(4) vec3 a_tangent;
-HYP_ATTRIBUTE_OPTIONAL(5) vec3 a_bitangent;
+HYP_ATTRIBUTE(3) vec2 a_texcoord1;
+HYP_ATTRIBUTE(4) vec3 a_tangent;
+HYP_ATTRIBUTE(5) vec3 a_bitangent;
 HYP_ATTRIBUTE_OPTIONAL(6) vec4 a_bone_weights;
 HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 

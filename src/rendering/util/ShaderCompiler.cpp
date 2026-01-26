@@ -648,6 +648,15 @@ struct DescriptorUsage
         return false;
     }
 
+    /*! \brief Returns true if this is a constant buffer or storage buffer. */
+    HYP_FORCE_INLINE bool IsBuffer() const
+    {
+        return type == DescriptorType::UNIFORM_BUFFER
+            || type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
+            || type == DescriptorType::SSBO
+            || type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
+    }
+
     HYP_FORCE_INLINE uint32 GetCount() const
     {
         uint32 value = 1;
@@ -1250,16 +1259,9 @@ static bool PreprocessGLSL(
 
         glsl_include_result_t* result = new glsl_include_result_t;
 
-        String pathFriendly = path;
-
-        // escape C:\Foo\Bar to C:\\Foo\\Bar to prevent dxc from interpreting as escape sequences
-#if HYP_WINDOWS
-        pathFriendly = pathFriendly.ReplaceAll("\\", "\\\\");
-#endif
-
-        char* headerNameStr = new char[pathFriendly.Size() + 1];
-        Memory::Fill(headerNameStr, 0, pathFriendly.Size() + 1);
-        Memory::StrCpy(headerNameStr, pathFriendly.Data(), pathFriendly.Size());
+        char* headerNameStr = new char[path.Size() + 1];
+        Memory::Fill(headerNameStr, 0, path.Size() + 1);
+        Memory::StrCpy(headerNameStr, path.Data(), path.Size());
         result->header_name = headerNameStr;
 
         char* headerDataStr = new char[linesJoined.Size() + 1];
@@ -1547,9 +1549,9 @@ static ByteBuffer CompileGLSL(
     };
 
     // inject reflection info for shader inputs
-    for (DescriptorUsage& du : descriptorUsages.elements)
+    for (DescriptorUsage& usage : descriptorUsages.elements)
     {
-        const char* duNameString = du.descriptorName.LookupString();
+        const char* duNameString = usage.descriptorName.LookupString();
         const int reflectionIndex = cppProgram->getReflectionIndex(duNameString);
 
         if (reflectionIndex == -1)
@@ -1559,7 +1561,7 @@ static ByteBuffer CompileGLSL(
 
         const glslang::TObjectReflection* refl = nullptr;
 
-        if (du.slot == DescriptorSlot::BUFFER)
+        if (usage.IsBuffer())
         {
             refl = &cppProgram->getUniformBlock(reflectionIndex);
 
@@ -1578,8 +1580,8 @@ static ByteBuffer CompileGLSL(
 
         if (refl != nullptr)
         {
-            HandleShaderStruct(refl->getType(), du.structureType);
-            du.structureType.size = refl->size;
+            HandleShaderStruct(refl->getType(), usage.structureType);
+            usage.structureType.size = refl->size;
 
             continue;
         }
@@ -1920,10 +1922,10 @@ static const FlatMap<String, ShaderModuleType> s_shaderTypeNames = {
     { "gs", SMT_GEOMETRY },
     { "cs", SMT_COMPUTE },
     { "raygen", SMT_RAY_GEN },
-    { "rayclosesthit", SMT_RAY_CLOSEST_HIT },
-    { "rayanyhit", SMT_RAY_ANY_HIT },
-    { "raymiss", SMT_RAY_MISS },
-    { "rayintersect", SMT_RAY_INTERSECT }
+    { "closesthit", SMT_RAY_CLOSEST_HIT },
+    { "anyhit", SMT_RAY_ANY_HIT },
+    { "miss", SMT_RAY_MISS },
+    { "intersect", SMT_RAY_INTERSECT }
 };
 
 static bool FindVertexAttributeForDefinition(const String& name, const VertexAttribute*& outAttribute)
@@ -2984,7 +2986,7 @@ static String FormatDescriptorDeclaration(
     {
         String decl = "layout(";
         
-        if (usage.slot == DescriptorSlot::BUFFER)
+        if (usage.IsBuffer())
         {
              decl += stdVersion + ", ";
         }
@@ -3399,7 +3401,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         additionalParams.PushBack(usage.params.At("format"));
                     }
 
-                    if (usage.slot == DescriptorSlot::BUFFER)
+                    if (usage.IsBuffer())
                     {
                         if (usage.params.Contains("matrix_mode"))
                         {
