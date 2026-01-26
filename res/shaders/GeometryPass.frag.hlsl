@@ -176,7 +176,7 @@ PSOutput PSMain(PSInput input)
     {
         const float NdotV = max(HYP_FMATH_EPSILON, dot(N, V));
         const float3 F0 = CalculateF0(output.gbuffer_albedo.rgb, metalness);
-        float3 F90 = saturate(dot(F0, float3(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33)));
+        float3 F90 = saturate(dot(F0, (50.0 * 0.33).xxx));
 
         float3 L = light.position_intensity.xyz;
         L -= input.position.xyz * float(min(light.type, 1));
@@ -190,13 +190,13 @@ PSOutput PSMain(PSInput input)
 
         const float3 R = normalize(reflect(-V, N));
 
-        float3 Ft = float3(0.0, 0.0, 0.0);
-        float3 Fr = float3(0.0, 0.0, 0.0);
-        float3 Fd = float3(0.0, 0.0, 0.0);
+        float3 Ft = (float3)0;
+        float3 Fr = (float3)0;
+        float3 Fd = (float3)0;
 
-        float3 irradiance = float3(0.0, 0.0, 0.0);
-        float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
-        float4 reflections = float4(0.0, 0.0, 0.0, 0.0);
+        float3 irradiance = (float3)0;
+        float4 ibl = (float4)0;
+        float4 reflections = (float4)0;
 
         { // irradiance
             const float3 F = CalculateFresnelTerm(F0, roughness, NdotV);
@@ -236,7 +236,7 @@ PSOutput PSMain(PSInput input)
         Fd *= (1.0 - transmission);
 
         float3 indirect_lighting = Ft + Fd + Fr;
-        float3 direct_lighting = float3(0.0, 0.0, 0.0);
+        float3 direct_lighting = 0;
 
         { // direct lighting
             float shadow = 1.0;
