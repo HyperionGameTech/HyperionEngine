@@ -46,6 +46,27 @@ static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
     "Miss"                  // SMT_RAY_MISS
 };
 
+static constexpr const char* ShaderModuleTypeNames[NumShaderModuleTypes] = {
+    "",                     // SMT_UNSET
+
+    "VERTEX_SHADER",        // SMT_VERTEX
+    "PIXEL_SHADER",         // SMT_FRAGMENT
+    "GEOMETRY_SHADER",      // SMT_GEOMETRY
+    "COMPUTE_SHADER",       // SMT_COMPUTE
+
+    "TASK_SHADER",          // SMT_TASK
+    "MESH_SHADER",          // SMT_MESH
+
+    "TESS_CONTROL_SHADER",  // SMT_TESS_CONTROL
+    "TESS_EVAL_SHADER",     // SMT_TESS_EVAL
+
+    "RAY_GEN_SHADER",       // SMT_RAY_GEN
+    "INTERSECT_SHADER",     // SMT_RAY_INTERSECT
+    "ANY_HIT_SHADER",       // SMT_RAY_ANY_HIT
+    "CLOSEST_HIT_SHADER",   // SMT_RAY_CLOSEST_HIT
+    "MISS_SHADER"           // SMT_RAY_MISS
+};
+
 HYP_ENUM()
 enum class ShaderLanguage : uint32
 {

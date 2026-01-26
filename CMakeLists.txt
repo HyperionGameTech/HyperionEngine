@@ -473,36 +473,35 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
 elseif(RENDERING_BACKEND STREQUAL "DX12")
     # add DirectX-Headers include dir if DX12 rendering backend
     include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/DirectX-Headers)
+endif()
 
-    # setup DXC if found instead
+# setup DXC if found
+if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dxc/dxcapi.h")
+    message(STATUS "DXC headers found, setting up DXC")
 
-    if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dxc/dxcapi.h")
-        message(STATUS "DXC headers found, setting up DXC")
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/dxc)
 
-        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/dxc)
+    set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
+    set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
 
-        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
-        set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
+    if(EXISTS "${DXC_LIB_PATH}")
+        message(STATUS "DXC library found at ${DXC_LIB_PATH}, linking to it")
 
-        if(EXISTS "${DXC_LIB_PATH}")
-            message(STATUS "DXC library found at ${DXC_LIB_PATH}, linking to it")
+        set(RENDERER_LIBRARIES
+            ${RENDERER_LIBRARIES}
+            "${DXC_LIB_PATH}"
+        )
 
-            set(RENDERER_LIBRARIES
-                ${RENDERER_LIBRARIES}
-                "${DXC_LIB_PATH}"
-            )
+        set(HYP_DXC 1)
+        add_definitions(-DHYP_DXC=1)
 
-            set(HYP_DXC 1)
-            add_definitions(-DHYP_DXC=1)
-
-            # copy the dll to the build directory
-            file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-        else()
-            message(WARNING "DXC library not found at ${DXC_LIB_PATH}, skipping DXC setup")
-        endif()
+        # copy the dll to the build directory
+        file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
     else()
-        message(STATUS "DXC headers not found, skipping DXC setup")
+        message(WARNING "DXC library not found at ${DXC_LIB_PATH}, skipping DXC setup")
     endif()
+else()
+    message(STATUS "DXC headers not found, skipping DXC setup")
 endif()
 
 function(collect_sources_and_modules dir out_sources out_headers out_modules)

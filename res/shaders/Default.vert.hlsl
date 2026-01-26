@@ -145,3 +145,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     return output;
 }
+
+VSOutput main(VSInput input, uint instanceId : SV_InstanceID)
+{
+    return VSMain(input, instanceId);
+}

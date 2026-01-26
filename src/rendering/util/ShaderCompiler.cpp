@@ -46,6 +46,7 @@
 #endif
 
 #if HYP_DXC
+#include <Unknwn.h>
 #include <dxcapi.h>
 #include <d3d12shader.h>
 #include <wrl/client.h>
@@ -201,10 +202,15 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const Descrip
                         HYP_UNREACHABLE();
                     }
 
+#if HYP_VULKAN
+                    const uint32 registerIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(descriptorDeclaration.slot, descriptorDeclaration.name);
+#elif HYP_DX12
+                    const uint32 registerIndex = descriptorDeclaration.index;
+#endif
+
                     descriptorTableDefines += HYP_FORMAT("#define _{}_{}_REGISTER {}{}",
                         descriptorSetDeclarationPtr->name, descriptorDeclaration.name,
-                        registerKey,
-                        descriptorDeclaration.index);
+                        registerKey, registerIndex);
 
                     break;
                 }
@@ -220,7 +226,9 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const Descrip
     return descriptorTableDefines;
 }
 
-static String BuildPreamble(ShaderLanguage language, const ShaderProperties& properties)
+static String BuildAttributesDefines(
+    ShaderLanguage language,
+    const ShaderProperties& properties)
 {
     String preamble;
 
@@ -277,14 +285,6 @@ static String BuildPreamble(ShaderLanguage language, const ShaderProperties& pro
     }
 
     return preamble;
-}
-
-static String BuildPreamble(
-    ShaderLanguage language,
-    const ShaderProperties& properties,
-    const DescriptorTableDeclaration& descriptorTableDeclaration)
-{
-    return BuildDescriptorTableDefines(language, descriptorTableDeclaration) + "\n\n" + BuildPreamble(language, properties);
 }
 
 void MergeGlobalShaderProperties(ShaderProperties& properties)
@@ -952,7 +952,43 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclarat
 
 #pragma region SPRIV Compilation
 
+#if HYP_VULKAN
+static void GetSPIRVEnvironmentInfo(
+    ShaderModuleType type,
 #if HYP_GLSLANG
+    uint32& outTargetApiVersion,
+#endif
+    uint32& outSpirvVersion,
+    uint32& outVulkanVersion)
+{
+#if HYP_GLSLANG
+    outTargetApiVersion = GLSLANG_TARGET_SPV_1_2;
+#endif
+
+    outSpirvVersion = 450;
+
+    outVulkanVersion = HYP_VULKAN_API_VERSION;
+
+    if (IsRayTracingShaderModule(type))
+    {
+#if HYP_GLSLANG
+        outTargetApiVersion = MathUtil::Max(outTargetApiVersion, GLSLANG_TARGET_SPV_1_4);
+#endif
+
+        outSpirvVersion = MathUtil::Max(outSpirvVersion, 460);
+        
+        outVulkanVersion = MathUtil::Max(outVulkanVersion, VK_API_VERSION_1_2);
+    }
+}
+#endif
+
+#if HYP_GLSLANG && HYP_VULKAN
+
+static void GetSPIRVEnvironmentInfo(ShaderModuleType type, uint32& outSpirvVersion, uint32& outVulkanVersion)
+{
+    uint32 dummy;
+    GetSPIRVEnvironmentInfo(type, dummy, outSpirvVersion, outVulkanVersion);
+}
 
 static TBuiltInResource DefaultResources()
 {
@@ -1074,8 +1110,10 @@ static TBuiltInResource DefaultResources()
 }
 
 static bool PreprocessShaderSource(ShaderModuleType type,
-    ShaderLanguage language, String preamble,
-    String source, String filename,
+    ShaderLanguage language,
+    const String& preamble,
+    const String& source,
+    const String& filename,
     String& outPreprocessedSource,
     Array<String>& outErrorMessages)
 {
@@ -1089,92 +1127,57 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     auto defaultResources = DefaultResources();
 
     glslang_stage_t stage;
-    String stageString;
 
     switch (type)
     {
     case SMT_VERTEX:
         stage = GLSLANG_STAGE_VERTEX;
-        stageString = "VERTEX_SHADER";
         break;
     case SMT_FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
-        stageString = "PIXEL_SHADER";
         break;
     case SMT_GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
-        stageString = "GEOMETRY_SHADER";
         break;
     case SMT_COMPUTE:
         stage = GLSLANG_STAGE_COMPUTE;
-        stageString = "COMPUTE_SHADER";
         break;
     case SMT_TASK:
         stage = GLSLANG_STAGE_TASK_NV;
-        stageString = "TASK_SHADER";
         break;
     case SMT_MESH:
         stage = GLSLANG_STAGE_MESH_NV;
-        stageString = "MESH_SHADER";
         break;
     case SMT_TESS_CONTROL:
         stage = GLSLANG_STAGE_TESSCONTROL;
-        stageString = "TESS_CONTROL_SHADER";
         break;
     case SMT_TESS_EVAL:
         stage = GLSLANG_STAGE_TESSEVALUATION;
-        stageString = "TESS_EVAL_SHADER";
         break;
     case SMT_RAY_GEN:
         stage = GLSLANG_STAGE_RAYGEN_NV;
-        stageString = "RAY_GEN_SHADER";
         break;
     case SMT_RAY_INTERSECT:
         stage = GLSLANG_STAGE_INTERSECT_NV;
-        stageString = "RAY_INTERSECT_SHADER";
         break;
     case SMT_RAY_ANY_HIT:
         stage = GLSLANG_STAGE_ANYHIT_NV;
-        stageString = "RAY_ANY_HIT_SHADER";
         break;
     case SMT_RAY_CLOSEST_HIT:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
-        stageString = "RAY_CLOSEST_HIT_SHADER";
         break;
     case SMT_RAY_MISS:
         stage = GLSLANG_STAGE_MISS_NV;
-        stageString = "RAY_MISS_SHADER";
         break;
     default:
         HYP_THROW("Invalid shader type");
         break;
     }
     
-    uint32 spirvApiVersion = GLSLANG_TARGET_SPV_1_2;
-    uint32 spirvVersion = 450;
-
-    // fallback to allow compiling shaders for vulkan targets when not compiled with vulkan support.
-#if !HYP_VULKAN
-#ifndef VK_API_VERSION_1_1
-    static constexpr uint32 VK_API_VERSION_1_1 = 4198400;
-#endif
-#ifndef VK_API_VERSION_1_1
-    static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
-#endif
-    
-    static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
-#endif
-
-    
-    uint32 vulkanApiVersion = HYP_VULKAN_API_VERSION;
-
-    if (IsRayTracingShaderModule(type))
-    {
-        vulkanApiVersion = MathUtil::Max(vulkanApiVersion, VK_API_VERSION_1_2);
-
-        spirvApiVersion = MathUtil::Max(spirvApiVersion, GLSLANG_TARGET_SPV_1_4);
-        spirvVersion = MathUtil::Max(spirvVersion, 460);
-    }
+    uint32 spirvApiVersion;
+    uint32 spirvVersion;
+    uint32 vulkanApiVersion;
+    GetSPIRVEnvironmentInfo(type, spirvApiVersion, spirvVersion, vulkanApiVersion);
 
     struct CallbacksContext
     {
@@ -1220,8 +1223,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
 
         const FilePath basePath = FilePath(callbacksContext->filename).BasePath();
 
-        const FilePath dir =
-            includeDepth > 1
+        const FilePath dir = includeDepth > 1
             ? FilePath(includerName).BasePath()
             : GetResourceDirectory() / FilePath::Relative(basePath, GetResourceDirectory());
 
@@ -1250,12 +1252,21 @@ static bool PreprocessShaderSource(ShaderModuleType type,
 
         glsl_include_result_t* result = new glsl_include_result_t;
 
-        char* headerNameStr = new char[path.Size() + 1];
-        Memory::Copy(headerNameStr, path.Data(), path.Size() + 1);
+        String pathFriendly = path;
+
+        // escape C:\Foo\Bar to C:\\Foo\\Bar to prevent dxc from interpreting as escape sequences
+#if HYP_WINDOWS
+        pathFriendly = pathFriendly.ReplaceAll("\\", "\\\\");
+#endif
+
+        char* headerNameStr = new char[pathFriendly.Size() + 1];
+        Memory::Fill(headerNameStr, 0, pathFriendly.Size() + 1);
+        Memory::StrCpy(headerNameStr, pathFriendly.Data(), pathFriendly.Size());
         result->header_name = headerNameStr;
 
         char* headerDataStr = new char[linesJoined.Size() + 1];
-        Memory::Copy(headerDataStr, linesJoined.Data(), linesJoined.Size() + 1);
+        Memory::Fill(headerDataStr, 0, linesJoined.Size() + 1);
+        Memory::StrCpy(headerDataStr, linesJoined.Data(), linesJoined.Size());
         result->header_data = headerDataStr;
 
         result->header_length = linesJoined.Size();
@@ -1271,12 +1282,6 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     };
 
     glslang_shader_t* shader = glslang_shader_create(&input);
-
-    if (stageString.Any())
-    {
-        preamble +=
-            "\n#ifndef " + stageString + "\n#define " + stageString + "\n#endif\n";
-    }
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -1303,15 +1308,13 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     return true;
 }
 
-static ByteBuffer CompileToSPIRV(
+static ByteBuffer CompileGLSL(
     ShaderModuleType type,
-    ShaderLanguage language,
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
     const ShaderProperties& properties,
     Array<String>& errorMessages)
 {
-
 #define GLSL_ERROR(level, errorMessage, ...)                             \
     {                                                                    \
         HYP_LOG(ShaderCompiler, level, errorMessage, ##__VA_ARGS__);     \
@@ -1408,12 +1411,10 @@ static ByteBuffer CompileToSPIRV(
     }
 
     glslang_input_t input {
-        .language = language == ShaderLanguage::HLSL ? GLSLANG_SOURCE_HLSL
-                                                     : GLSLANG_SOURCE_GLSL,
+        .language = GLSLANG_SOURCE_GLSL,
         .stage = stage,
         .client = GLSLANG_CLIENT_VULKAN,
-        .client_version =
-            static_cast<glslang_target_client_version_t>(vulkanApiVersion),
+        .client_version = static_cast<glslang_target_client_version_t>(vulkanApiVersion),
         .target_language = GLSLANG_TARGET_SPV,
         .target_language_version = static_cast<glslang_target_language_version_t>(spirvApiVersion),
         .code = source.Data(),
@@ -1431,7 +1432,7 @@ static ByteBuffer CompileToSPIRV(
     DescriptorTableDeclaration table;
     descriptorUsages.BuildDescriptorTableDeclaration(table);
 
-    String preamble = BuildDescriptorTableDefines(language, table);
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::GLSL, table);
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -1445,6 +1446,8 @@ static ByteBuffer CompileToSPIRV(
 
         return ByteBuffer();
     }
+    
+    String preprocessed = glslang_shader_get_preprocessed_code(shader);
 
     if (!glslang_shader_parse(shader, &input))
     {
@@ -1459,7 +1462,7 @@ static ByteBuffer CompileToSPIRV(
 
     glslang_program_t* program = glslang_program_create();
     glslang_program_add_shader(program, shader);
-
+    
     if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT))
     {
         GLSL_ERROR(Error, "GLSL linking failed {} {}", filename, source);
@@ -1471,10 +1474,11 @@ static ByteBuffer CompileToSPIRV(
 
         return ByteBuffer();
     }
-    
+
     const char* entryPointName = DefaultEntryPointNames[type];
 
     glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
+    Assert(cppProgram != nullptr);
 
     static constexpr const EShLanguage shLanguages[NumShaderModuleTypes - 1] = {
         EShLangVertex,          // SMT_VERTEX
@@ -1497,24 +1501,15 @@ static ByteBuffer CompileToSPIRV(
 
     const EShLanguage shLanguage = shLanguages[type - 1];
 
-    // HLSL uses custom entry point names per shader module
-    if (language == ShaderLanguage::HLSL)
-    {
-        for (auto* shader : cppProgram->getShaders(shLanguage))
-        {
-            shader->setEntryPoint(entryPointName);
-        }
-    }
-
 #if HYP_SHADER_REFLECTION
     if (!cppProgram->buildReflection(EShReflectionDefault))
     {
         GLSL_ERROR(Error, "Failed to build shader reflection!");
     }
 #endif
-
+    
     glslang_spv_options_t spvOptions {};
-    spvOptions.disable_optimizer = false;
+    spvOptions.disable_optimizer = true;
 #ifdef HYP_DEBUG_MODE
     spvOptions.generate_debug_info = true;
     spvOptions.strip_debug_info = false;
@@ -1544,8 +1539,9 @@ static ByteBuffer CompileToSPIRV(
                 }
 
                 auto& field = outStructureType.AddField(
-                    CreateNameFromDynamicString(it->type->getFieldName().data()),
-                    StructureType(CreateNameFromDynamicString(fieldTypeName))).second;
+                                                    CreateNameFromDynamicString(it->type->getFieldName().data()),
+                                                    StructureType(CreateNameFromDynamicString(fieldTypeName)))
+                                    .second;
 
                 HandleShaderStruct(it->type, field);
             }
@@ -1562,7 +1558,7 @@ static ByteBuffer CompileToSPIRV(
         {
             continue;
         }
-            
+
         const glslang::TObjectReflection* refl = nullptr;
 
         if (du.slot == DescriptorSlot::BUFFER)
@@ -1573,7 +1569,7 @@ static ByteBuffer CompileToSPIRV(
             {
                 refl = &cppProgram->getBufferBlock(reflectionIndex);
             }
-                
+
             if (!refl->getType())
             {
                 continue;
@@ -1593,8 +1589,7 @@ static ByteBuffer CompileToSPIRV(
 #endif
 
     ByteBuffer shaderModule(glslang_program_SPIRV_get_size(program) * sizeof(uint32));
-    glslang_program_SPIRV_get(program,
-        reinterpret_cast<uint32*>(shaderModule.Data()));
+    glslang_program_SPIRV_get(program, reinterpret_cast<uint32*>(shaderModule.Data()));
 
     const char* spirvMessages = glslang_program_SPIRV_get_messages(program);
 
@@ -1608,10 +1603,20 @@ static ByteBuffer CompileToSPIRV(
 
 #undef GLSL_ERROR
 
+    if (filename.EndsWith(".hlsl"))
+    {
+        Assert(shaderModule.Size() > 0);
+        HYP_LOG(ShaderCompiler, Info, "Processed source for {}:\n\n{}\n\n",
+            filename, preprocessed);
+    }
+
+
     return shaderModule;
 }
 
-#elif HYP_DXC
+#endif // HYP_GLSLANG
+
+#if HYP_DXC
 
 #if HYP_SHADER_REFLECTION
 
@@ -1649,12 +1654,15 @@ static void ReflectResources(ID3D12ShaderReflection* pReflection, DescriptorUsag
         }
     }
 }
-#endif
+#endif // HYP_SHADER_REFLECTION
 
+#if !HYP_GLSLANG
 static bool PreprocessShaderSource(
     ShaderModuleType type,
-    ShaderLanguage language, String preamble,
-    String source, String filename,
+    ShaderLanguage language,
+    const String& preamble,
+    const String& source,
+    const String& filename,
     String& outPreprocessedSource,
     Array<String>& outErrorMessages)
 {
@@ -1711,9 +1719,18 @@ static bool PreprocessShaderSource(
 
     return true;
 }
+#endif // !HYP_GLSLANG
 
-static ByteBuffer CompileToDXIL(
+enum class HLSLOutputType
+{
+    SPIRV,
+    DXIL
+};
+
+HYP_DISABLE_OPTIMIZATION;
+static ByteBuffer CompileHLSL(
     ShaderModuleType type,
+    HLSLOutputType outputType,
     DescriptorUsageSet& descriptorUsages,
     String source, String filename,
     const ShaderProperties& properties,
@@ -1724,21 +1741,67 @@ static ByteBuffer CompileToDXIL(
     DescriptorTableDeclaration table;
     descriptorUsages.BuildDescriptorTableDeclaration(table);
 
-    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, table) + "\n" + BuildPreamble(ShaderLanguage::HLSL, properties);
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, table)
+        + "\n" + BuildAttributesDefines(ShaderLanguage::HLSL, properties);
+
     String fullSource = preamble + "\n" + source;
 
     ComPtr<IDxcBlobEncoding> pSource;
     s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
 
+    const WideString entryPointName = WideString(DefaultEntryPointNames[type]);
+
     Array<LPCWSTR> args;
+
     args.PushBack(L"-E");
-    args.PushBack(L"main");
+    args.PushBack(*entryPointName);
 
     args.PushBack(L"-T");
     args.PushBack(GetDXCTargetProfile(type));
+
+    args.PushBack(L"-HV 2021");
+    
+#if HYP_VULKAN
+    if (outputType == HLSLOutputType::SPIRV)
+    {
+        args.PushBack(L"-spirv");
+
+        uint32 spirvVersion;
+        uint32 vulkanApiVersion;
+        GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
+
+        switch (vulkanApiVersion)
+        {
+        case VK_API_VERSION_1_0:
+            args.PushBack(L"-fspv-target-env=vulkan1.0");
+            break;
+        case VK_API_VERSION_1_1:
+            args.PushBack(L"-fspv-target-env=vulkan1.1");
+            break;
+        case VK_API_VERSION_1_2:
+            args.PushBack(L"-fspv-target-env=vulkan1.2");
+            break;
+        case VK_API_VERSION_1_3:
+            args.PushBack(L"-fspv-target-env=vulkan1.3");
+            break;
+        case VK_API_VERSION_1_4:
+            args.PushBack(L"-fspv-target-env=vulkan1.4");
+            break;
+        default:
+            errorMessages.PushBack(HYP_FORMAT("Unsupported vulkan version {}", vulkanApiVersion));
+            return {};
+        }
+
+        args.PushBack(L"-fvk-use-scalar-layout");
+    }
+#endif
     
     args.PushBack(L"-Qstrip_debug");
-    args.PushBack(L"-Qstrip_reflect");
+
+    if (outputType == HLSLOutputType::DXIL)
+    {
+        args.PushBack(L"-Qstrip_reflect");
+    }
 
 #ifdef HYP_DEBUG_MODE
     args.PushBack(L"-Zi"); // Debug info
@@ -1759,7 +1822,7 @@ static ByteBuffer CompileToDXIL(
     ComPtr<IDxcBlobUtf8> pErrors;
     pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
 
-    if (pErrors && pErrors->GetStringLength() > 0)
+    if (pErrors && pErrors->GetStringLength() != 0)
     {
         errorMessages.PushBack(String(pErrors->GetStringPointer()));
     }
@@ -1768,10 +1831,11 @@ static ByteBuffer CompileToDXIL(
 
     if (FAILED(res))
     {
+        errorMessages.PushBack(HYP_FORMAT("Failed to compile HLSL shader {}, HRESULT: {}", filename, res));
+
         return ByteBuffer();
     }
 
-#if HYP_SHADER_REFLECTION
     ComPtr<IDxcBlob> pReflectionData;
     res = pResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
     
@@ -1781,25 +1845,32 @@ static ByteBuffer CompileToDXIL(
         ComPtr<ID3D12ShaderReflection> pReflection;
         s_dxcUtils->CreateReflection(&reflBuffer, IID_PPV_ARGS(&pReflection));
 
-        // Use the reflection object to populate your DescriptorUsageSet
         ReflectResources(pReflection.Get(), descriptorUsages);
     }
-#endif
 
     ComPtr<IDxcBlob> pBlob;
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
+    
+    Assert(pBlob->GetBufferSize() != 0);
 
-    ByteBuffer dxil(pBlob->GetBufferSize());
-    Memory::Copy(dxil.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
+    ByteBuffer bytecode(pBlob->GetBufferSize());
+    Memory::Copy(bytecode.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
 
-    return dxil;
+    return bytecode;
 }
 
-#else
+HYP_ENABLE_OPTIMIZATION;
+#endif // HYP_DXC
 
-static bool PreprocessShaderSource(ShaderModuleType type,
-    ShaderLanguage language, String preamble,
-    String source, String filename,
+#if !HYP_GLSLANG && !HYP_DXC
+
+// Dummy implementation
+static bool PreprocessShaderSource(
+    ShaderModuleType type,
+    ShaderLanguage language,
+    const String& preamble,
+    const String& source,
+    const String& filename,
     String& outPreprocessedSource,
     Array<String>& outErrorMessages)
 {
@@ -2938,18 +3009,24 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
     if (phase == ProcessShaderSourcePhase::AFTER_PREPROCESS)
     {
+        const String preamble = BuildAttributesDefines(ShaderLanguage::HLSL, properties);
+        
         String preprocessedSource;
-
         Array<String> preprocessErrorMessages;
+    
         const bool preprocessResult = PreprocessShaderSource(
-            type, language, BuildPreamble(language, properties), source, filename,
-            preprocessedSource, preprocessErrorMessages);
+            type,
+            language,
+            preamble,
+            source,
+            filename,
+            preprocessedSource,
+            preprocessErrorMessages);
 
-        result.errors.Concat(
-            Map(preprocessErrorMessages, [](const String& errorMessage)
-                {
-                    return ProcessError { errorMessage };
-                }));
+        result.errors.Concat(Map(preprocessErrorMessages, [](const String& errorMessage)
+            {
+                return ProcessError { errorMessage };
+            }));
 
         if (!preprocessResult)
         {
@@ -3332,14 +3409,6 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         result.processedSource += line + '\n';
     }
 
-    if (phase == ProcessShaderSourcePhase::AFTER_PREPROCESS && filename.EndsWith(".hlsl"))
-    {
-        
-        HYP_LOG(ShaderCompiler, Info, "Processed source for {}:\n\n{}\n\n",
-            filename,
-            result.processedSource);
-    }
-
 #ifdef HYP_SHADER_COMPILER_LOGGING
     HYP_LOG(ShaderCompiler, Info, "Processed source: {}", result.processedSource);
 #endif
@@ -3383,7 +3452,9 @@ bool ShaderCompiler::CompileBundle(
             {
                 const auto& it = shaderBundleDecl.sources.AtIndex(index);
 
+                const ShaderModuleType moduleType = it.first;
                 const FilePath filepath = it.second;
+
                 const ShaderLanguage language = filepath.EndsWith("hlsl")
                     ? ShaderLanguage::HLSL
                     : ShaderLanguage::GLSL;
@@ -3402,8 +3473,7 @@ bool ShaderCompiler::CompileBundle(
 
                 if (!reader.IsOpen())
                 {
-                    processErrors[index] = { ProcessError { HYP_FORMAT(
-                        "Failed to open shader source file: {}", std::strerror(errno)) } };
+                    processErrors[index] = { ProcessError { HYP_FORMAT("Failed to open shader source file: {}", std::strerror(errno)) } };
 
                     return;
                 }
@@ -3412,10 +3482,9 @@ bool ShaderCompiler::CompileBundle(
 
                 // we add this define to prevent the HYP_DESCRIPTOR_* macros from being defines in shader code
                 // and folding to nothing.
-                String preamble = "#define HYP_SHADER_COMPILER 1\n\n";
-
-                preamble += String("#define LANG_")
-                    + (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL") + " 1\n\n";
+                String preamble = "#define HYP_SHADER_COMPILER 1\n\n"
+                    + HYP_FORMAT("#define {} 1\n\n", ShaderModuleTypeNames[moduleType])
+                    + HYP_FORMAT("#define LANG_{} 1\n\n", (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL"));
 
                 String sourceString = String(byteBuffer.ToByteView()).ReplaceAll("\r\n", "\n");
 
@@ -3431,15 +3500,15 @@ bool ShaderCompiler::CompileBundle(
                     {
                         const SizeType versionIndex = splitIt - split.Begin();
 
-                        preamble += String("#line ") + String::ToString(versionIndex + 1) + "\n\n";
+                        preamble += String("#line ") + String::ToString(versionIndex + 1) + "\n";
                     }
                     else
                     {
-                        preamble += "#line 1\n\n";
+                        preamble += "#line 1\n";
                     }
 
                     // #version must occur first in shader (GLSL)
-                    sourceString = shaderVersion + "\n\n"
+                    sourceString = shaderVersion + "\n"
                         + preamble
                         + sourceWithoutVersion;
                 }
@@ -3811,30 +3880,58 @@ bool ShaderCompiler::CompileBundle(
                 }
 
                 ByteBuffer byteBuffer;
-
+                
+                if (item.language == ShaderLanguage::GLSL)
+                {
 #if HYP_GLSLANG
-                byteBuffer = CompileToSPIRV(
-                    item.type,
-                    item.language,
-                    descriptorUsageSetsMerged,
-                    processedSources[index],
-                    item.file,
-                    properties,
-                    errorMessages);
-#elif HYP_DXC
-                byteBuffer = CompileToDXIL(
-                    item.type,
-                    descriptorUsageSetsMerged,
-                    processedSources[index],
-                    item.file,
-                    properties,
-                    errorMessages);
+                    byteBuffer = CompileGLSL(
+                        item.type,
+                        descriptorUsageSetsMerged,
+                        processedSources[index],
+                        item.file,
+                        properties,
+                        errorMessages);
+#else
+                    out.errorMessages.EmplaceBack("Cannot compile GLSL code, glslang not linked");
+
+                    anyFilesErrored.Set(true, MemoryOrder::RELAXED);
+
+                    return;
 #endif
+                }
+
+                if (item.language == ShaderLanguage::HLSL)
+                {
+#if HYP_DXC
+                    HLSLOutputType outputType = HLSLOutputType::SPIRV;
+
+#if HYP_VULKAN
+                    outputType = HLSLOutputType::SPIRV;
+#elif HYP_DX12
+                    outputType = HLSLOutputType::DXIL;
+#endif
+
+                    byteBuffer = CompileHLSL(
+                        item.type,
+                        outputType,
+                        descriptorUsageSetsMerged,
+                        processedSources[index],
+                        item.file,
+                        properties,
+                        errorMessages);
+#else
+                    out.errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
+
+                    anyFilesErrored.Set(true, MemoryOrder::RELAXED);
+
+                    return;
+#endif
+                }
 
                 if (byteBuffer.Empty())
                 {
                     HYP_LOG(ShaderCompiler, Error,
-                        "Failed to compile file {} with version hash {}",
+                        "Failed to compile file {} with version hash {} - no shader IL returned",
                         item.file, properties.GetHashCode().Value());
 
                     Mutex::Guard guard(errorMessagesMutex);

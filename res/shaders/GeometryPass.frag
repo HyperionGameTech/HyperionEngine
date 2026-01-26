@@ -17,10 +17,10 @@ layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
 layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 11) in vec4 v_position_ndc;
-layout(location = 12) in vec4 v_previous_position_ndc;
-layout(location = 15) in flat uint v_object_index;
-layout(location = 16) in flat uint v_object_mask;
+layout(location = 8) in vec4 v_position_ndc;
+layout(location = 9) in vec4 v_previous_position_ndc;
+layout(location = 10) in flat uint v_object_index;
+layout(location = 11) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
