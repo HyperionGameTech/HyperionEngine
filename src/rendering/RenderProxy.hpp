@@ -355,7 +355,13 @@ struct alignas(16) CameraShaderData
 {
     Mat4f viewMat;
     Mat4f projMat;
-    Mat4f prevViewMat;
+
+    Mat4f viewProjMat;
+
+    Mat4f inverseViewMat;
+    Mat4f inverseProjMat;
+
+    Mat4f prevViewProjMat;
 
     Vec4u dimensions;
     Vec4f cameraPosition;

@@ -51,7 +51,7 @@ void main()
     vec2 clamped_size = entity_instance_batch.sizes[gl_InstanceIndex].zw;
 
     vec4 position = entity_instance_batch.batch.transforms[gl_InstanceIndex] * vec4(a_position, 1.0);
-    vec4 ndc_position = camera.projection * camera.view * position;
+    vec4 ndc_position = camera.viewProjMat * position;
 
     // // scale texcoord based on the size diff - need to do this because the quad mesh is always 1x1
     vec4 instance_texcoords = entity_instance_batch.texcoords[gl_InstanceIndex];

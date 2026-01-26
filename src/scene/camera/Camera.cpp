@@ -454,7 +454,7 @@ void Camera::SetTranslation(const Vec3f& translation)
     m_translation = translation;
     m_nextTranslation = translation;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
     {
@@ -534,7 +534,7 @@ void Camera::SetViewMatrix(const Mat4f& viewMat)
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
     m_viewMat = viewMat;
 
     UpdateViewProjectionMatrix();
@@ -553,7 +553,7 @@ void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     m_viewMat = viewMat;
     m_projMat = projMat;
@@ -655,7 +655,7 @@ void Camera::UpdateViewMatrix()
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
     {
@@ -683,7 +683,7 @@ void Camera::UpdateMatrices()
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
     {
@@ -751,12 +751,22 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     CameraShaderData& bufferData = proxy->bufferData;
     bufferData.viewMat = m_viewMat;
     bufferData.projMat = m_projMat;
-    bufferData.prevViewMat = m_previousViewMatrix;
+
+    bufferData.viewProjMat = m_viewProjMat;
+
+    bufferData.inverseViewMat = m_viewMat.Inverted();
+    bufferData.inverseProjMat = m_projMat.Inverted();
+
+    bufferData.prevViewProjMat = m_prevViewProjMat;
+    
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
+    
     bufferData.cameraPosition = Vec4f(m_translation, 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
+    
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
+    
     bufferData.cameraFov = m_fov;
 }
 

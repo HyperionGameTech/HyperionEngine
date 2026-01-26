@@ -63,7 +63,7 @@ float GetOffsets(vec2 uv)
     return 0.25 * float((position.y - position.x) & 3);
 }
 
-mat4 inv_view_proj = inverse(camera.projection * camera.view);
+mat4 inv_view_proj = inverse(camera.viewProjMat);
 mat4 inv_view = inverse(camera.view);
 mat4 inv_proj = inverse(camera.projection);
 

@@ -115,10 +115,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.bitangent = mul((float3x3)normal_matrix, bitangent);
 
     // ViewProjection
-    output.position_ndc = mul(camera.view, position);
-    output.position_ndc = mul(camera.projection, output.position_ndc);
-    
-    output.previous_position_ndc = mul(camera.projection, mul(camera.previous_view, previous_position));
+    output.position_ndc = mul(camera.viewProjMat, position);
+    output.previous_position_ndc = mul(camera.prevViewProjMat, previous_position);
 
     // Jitter
     float4x4 jitter_matrix = { 

@@ -134,8 +134,8 @@ void main()
     jitter_matrix[3][0] += camera.jitter.x;
     jitter_matrix[3][1] += camera.jitter.y;
 
-    v_position_ndc = camera.projection * camera.view * position;
-    v_previous_position_ndc = camera.projection * camera.previous_view * previous_position;
+    v_position_ndc = camera.viewProjMat * position;
+    v_previous_position_ndc = camera.prevViewProjMat * previous_position;
 
 #ifdef INSTANCING
     v_object_index = OBJECT_INDEX;

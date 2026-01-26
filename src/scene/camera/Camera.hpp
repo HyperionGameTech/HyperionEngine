@@ -498,9 +498,9 @@ public:
     void SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Mat4f& GetPreviousViewMatrix() const
+    HYP_FORCE_INLINE const Mat4f& GetPreviousViewProjectionMatrix() const
     {
-        return m_previousViewMatrix;
+        return m_prevViewProjMat;
     }
 
     /*! \brief Transform a 2D vector of x,y ranging from [0, 1] into ndc coordinates */
@@ -574,7 +574,7 @@ private:
     virtual void OnRemovedFromWorld(World* world) override;
 
     Mat4f m_viewProjMat;
-    Mat4f m_previousViewMatrix;
+    Mat4f m_prevViewProjMat;
 
     InputMouseLockScope m_mouseLockScope;
 

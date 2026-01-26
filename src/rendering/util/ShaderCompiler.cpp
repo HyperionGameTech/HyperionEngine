@@ -1648,6 +1648,7 @@ static bool PreprocessHLSL(
     outPreprocessedSource = source;
 
     WideString includeDirs[] = {
+        WideString(FilePath(filename).BasePath()),
         WideString(GetResourceDirectory() / "shaders"),
         WideString(GetResourceDirectory() / "shaders" / "include")
     };

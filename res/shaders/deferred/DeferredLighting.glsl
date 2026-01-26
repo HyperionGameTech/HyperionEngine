@@ -74,9 +74,9 @@ vec3 CalculateRefraction(
     RefractionSolidSphere(P, N, V, eta_ir, refraction);
 
 #ifdef LANG_GLSL
-    vec4 refraction_pos = camera.projection * camera.view * vec4(refraction.position, 1.0);
+    vec4 refraction_pos = camera.viewProjMat * vec4(refraction.position, 1.0);
 #elif defined(LANG_HLSL)
-    float4 refraction_pos = mul(camera.projection, mul(camera.view, vec4(refraction.position, 1.0)));
+    float4 refraction_pos = mul(camera.viewProjMat, vec4(refraction.position, 1.0));
 #endif
 
     refraction_pos /= refraction_pos.w;

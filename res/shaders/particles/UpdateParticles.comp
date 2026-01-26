@@ -166,7 +166,7 @@ void main()
     // if there is a collision, push the particle in the direction of the gbuffers' normal
 
 #ifdef HAS_PHYSICS
-    vec4 posNDC = camera.projection * camera.view * vec4(particle.position.xyz, 1.0);
+    vec4 posNDC = camera.viewProjMat * vec4(particle.position.xyz, 1.0);
     posNDC /= posNDC.w;
 
     vec2 particleUV = posNDC.xy * 0.5 + 0.5;

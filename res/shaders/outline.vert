@@ -62,5 +62,5 @@ void main()
     v_object_index = OBJECT_INDEX;
 #endif
 
-    gl_Position = camera.projection * camera.view * position;
+    gl_Position = camera.viewProjMat * position;
 }

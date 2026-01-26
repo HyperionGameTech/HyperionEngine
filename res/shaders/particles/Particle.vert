@@ -75,5 +75,5 @@ void main()
 
     v_color = instance.color;
 
-    gl_Position = camera.projection * camera.view * position;
+    gl_Position = camera.viewProjMat * position;
 }

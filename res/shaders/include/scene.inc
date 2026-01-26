@@ -17,7 +17,13 @@ struct Camera
 {
     mat4 view;
     mat4 projection;
-    mat4 previous_view;
+
+    mat4 viewProjMat;
+
+    mat4 invViewMat;
+    mat4 invProjMat;
+
+    mat4 prevViewProjMat;
 
     uvec4 dimensions;
     vec4 position;
