@@ -273,7 +273,6 @@ void main()
     TraceAO_New(texcoord, occlusion, light_color);
 
     values = vec4(light_color.rgb, occlusion);
-    values.rgb = pow(values.rgb, vec3(1.0 / 2.2));
 #else
     TraceAO_New(texcoord, occlusion);
 

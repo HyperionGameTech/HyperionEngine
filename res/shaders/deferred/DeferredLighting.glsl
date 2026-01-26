@@ -73,7 +73,12 @@ vec3 CalculateRefraction(
     Refraction refraction;
     RefractionSolidSphere(P, N, V, eta_ir, refraction);
 
+#ifdef LANG_GLSL
     vec4 refraction_pos = camera.projection * camera.view * vec4(refraction.position, 1.0);
+#elif defined(LANG_HLSL)
+    float4 refraction_pos = mul(camera.projection, mul(camera.view, vec4(refraction.position, 1.0)));
+#endif
+
     refraction_pos /= refraction_pos.w;
 
     vec2 refraction_texcoord = refraction_pos.xy * 0.5 + 0.5;
@@ -81,7 +86,7 @@ vec3 CalculateRefraction(
     const float lod = ApplyIORToRoughness(IOR, roughness) * log2(float(max_dimension));
 
     float absorption = 0.1; // TODO: material parameter
-    vec3 T = min(vec3(1.0), exp(-absorption * refraction.direction));
+    vec3 T = min(vec3(1.0, 1.0, 1.0), exp(-absorption * refraction.direction));
 
     vec3 Ft = SAMPLE_TEXTURE_2D_LOD(sampler_linear, gbuffer_mip_chain, refraction_texcoord, lod).rgb;
     Ft *= translucent_color.rgb;
@@ -111,7 +116,7 @@ vec3 SampleEnvProbe_SH(uint env_probe_index, vec3 N)
 
 void ApplyReflectionProbe(uint probe_texture_index, vec3 probe_world_position, vec3 aabb_min, vec3 aabb_max, vec3 P, vec3 R, float lod, inout vec4 ibl)
 {
-    ibl = vec4(0.0);
+    ibl = vec4(0.0, 0.0, 0.0, 0.0);
 
     probe_texture_index = min(probe_texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1);
 
@@ -124,15 +129,15 @@ void ApplyReflectionProbe(uint probe_texture_index, vec3 probe_world_position, v
 #endif
 
 #if ENV_PROBE_CUBEMAP
-    ibl = textureLod(samplerCubeArray(envProbesTexture, sampler_linear), vec4(normalize(R), float(probe_texture_index)), lod);
+    ibl = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(sampler_linear, envProbesTexture, vec4(normalize(R), float(probe_texture_index)), lod);
 #else
-    ibl = textureLod(sampler2DArray(envProbesTexture, sampler_linear), vec3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
+    ibl = SAMPLE_TEXTURE_2D_ARRAY_LOD(sampler_linear, envProbesTexture, vec3(EncodeOctahedralCoord(normalize(R)) * 0.5 + 0.5, float(probe_texture_index)), lod);
 #endif
 }
 
 vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 camera_position, float roughness)
 {
-    vec4 ibl = vec4(0.0);
+    vec4 ibl = vec4(0.0, 0.0, 0.0, 0.0);
 
     const float lod = HYP_FMATH_SQR(roughness) * 12.0;
 
@@ -174,7 +179,7 @@ void CalculateRayTracingReflection(vec2 uv, inout vec4 reflections)
 
 void CalculateHBILIrradiance(in vec4 ssao_data, inout vec3 irradiance)
 {
-    irradiance += pow(ssao_data.rgb, vec3(2.2)) * HYP_HBIL_MULTIPLIER;
+    irradiance += ssao_data.rgb * HYP_HBIL_MULTIPLIER;
 }
 
 void IntegrateReflections(inout vec3 Fr, in vec4 reflections)

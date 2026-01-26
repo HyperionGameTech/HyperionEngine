@@ -45,7 +45,7 @@ void GBufferUnpackMaterialParams(float roughnessAndMetalPacked, uint mask, out G
 vec4 GBufferPackNormal(vec3 normal)
 {
     // use 2 bit w component for z value
-    return vec4(0.0, EncodeNormal(normal));
+    return vec4(0.0, EncodeNormal(normal).xyz);
 }
 
 vec3 GBufferUnpackNormal(vec4 packed)

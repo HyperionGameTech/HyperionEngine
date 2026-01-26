@@ -20,7 +20,7 @@ vec2 PackNormalVec2(vec3 n)
 #elif defined(HYP_NORMAL_PACKING_2)
     return (vec2(atan(n.x, n.y) / 3.141592654, n.z) + 1.0) * 0.5;
 #else
-#error No packing mode defined
+    #error No packing mode defined
 #endif
 }
 
@@ -49,7 +49,7 @@ vec3 UnpackNormalVec2(vec2 enc)
     vec2 scphi = vec2(sqrt(1.0 - ang.y * ang.y), ang.y);
     return vec3(scth.y * scphi.x, scth.x * scphi.x, scphi.y);
 #else
-#error No packing mode defined
+    #error No packing mode defined
 #endif
 }
 
@@ -82,36 +82,23 @@ vec3 SignedOctDecode(vec3 n)
     return result;
 }
 
-
 vec4 EncodeNormal(vec3 n)
 {
     return vec4(SignedOctEncode(n), 0.0);
-
-#if defined(HYP_PACK_NORMALS) && HYP_PACK_NORMALS
-    return vec4(PackNormalVec2(n), 0.0, 0.0);
-#else
-    return vec4(n * 0.5 + 0.5, 1.0);
-#endif
 }
 
 vec3 DecodeNormal(vec4 enc)
 {
     return SignedOctDecode(enc.xyz);
-
-#if defined(HYP_PACK_NORMALS) && HYP_PACK_NORMALS
-    return UnpackNormalVec2(enc.xy);
-#else
-    return enc.xyz * 2.0 - 1.0;
-#endif
 }
 
 const vec4 depthBitShift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
-const vec4 depthBitShiftInv = vec4(1.0) / depthBitShift;
+const vec4 depthBitShiftInv = vec4(1.0, 1.0, 1.0, 1.0) / depthBitShift;
 const vec4 depthBitMask = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
 
 vec4 PackDepth(in float depth)
 {
-    vec4 res = fract(vec4(depth) * depthBitShift);
+    vec4 res = fract(depth.xxxx * depthBitShift);
     res -= res.xxyz * depthBitMask;
     return res;
 }

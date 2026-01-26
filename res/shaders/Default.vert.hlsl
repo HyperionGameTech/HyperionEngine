@@ -1,5 +1,3 @@
-#pragma pack_matrix(row_major)
-
 #include "./include/shared.inc"
 #include "./include/scene.inc"
 
@@ -146,9 +144,4 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
         | (uint(bucket == HYP_OBJECT_BUCKET_SKYBOX) * OBJECT_MASK_SKY);
 
     return output;
-}
-
-VSOutput main(VSInput input, uint instanceId : SV_InstanceID)
-{
-    return VSMain(input, instanceId);
 }

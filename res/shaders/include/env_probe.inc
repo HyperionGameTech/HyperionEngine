@@ -56,9 +56,9 @@ vec4 EnvProbeSample(
     vec3 coord, float lod)
 {
 #if ENV_PROBE_CUBEMAP
-    vec4 color = textureLod(samplerCubeArray(tex, samp), vec4(normalize(coord), float(texture_index)), lod);
+    vec4 color = SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, vec4(normalize(coord), float(texture_index)), lod);
 #else
-    vec4 color = textureLod(sampler2DArray(tex, samp), vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(texture_index)), lod);
+    vec4 color = SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(texture_index)), lod);
 #endif
     // color.rgb = pow(color.rgb, vec3(2.2));
     return color;
@@ -101,16 +101,14 @@ vec4 EnvProbeSampleParallaxCorrected(
     vec3 coord = box - env_probe.world_position.xyz;
 
 #if ENV_PROBE_CUBEMAP
-    return textureLod(samplerCubeArray(tex, samp), vec4(coord, float(probe_texture_index)), lod);
+    return SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, vec4(normalize(coord), float(probe_texture_index)), lod);
 #else
-    return textureLod(sampler2DArray(tex, samp), vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(probe_texture_index)), lod);
+    return SAMPLE_TEXTURE_2D_ARRAY_LOD(samp, tex, vec3(EncodeOctahedralCoord(normalize(coord)) * 0.5 + 0.5, float(probe_texture_index)), lod);
 #endif
 }
 
-float[9] ProjectSHBands(vec3 N)
+void ProjectSHBands(vec3 N, out float bands[9])
 {
-    float bands[9];
-
     bands[0] = 0.282095;
     bands[1] = -0.488603 * N.y;
     bands[2] = 0.488603 * N.z;
@@ -120,8 +118,6 @@ float[9] ProjectSHBands(vec3 N)
     bands[6] = 0.315392 * (3.0 * N.z * N.z - 1.0);
     bands[7] = -1.092548 * N.x * N.z;
     bands[8] = 0.546274 * (N.x * N.x - N.y * N.y);
-
-    return bands;
 }
 
 vec3 SphericalHarmonicsSample(const in SH9 sh, vec3 normal)
@@ -137,7 +133,8 @@ vec3 SphericalHarmonicsSample(const in SH9 sh, vec3 normal)
 
     //     sh.values[4] * z * x + sh.values[5] * y * z + sh.values[6] * y * x + sh.values[7] * (3.0 * z * z - 1.0) + sh.values[8] * (x * x - y * y));
 
-    float bands[9] = ProjectSHBands(normal);
+    float bands[9];
+    ProjectSHBands(normal, bands);
 
     vec3 result = sh.values[0] * bands[0]
         + sh.values[1] * bands[1]
@@ -149,7 +146,7 @@ vec3 SphericalHarmonicsSample(const in SH9 sh, vec3 normal)
         + sh.values[7] * bands[7]
         + sh.values[8] * bands[8];
 
-    result = max(result, vec3(0.0));
+    result = max(result, vec3(0.0, 0.0, 0.0));
 
     return result;
 }

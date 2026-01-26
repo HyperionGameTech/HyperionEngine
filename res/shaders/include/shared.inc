@@ -3,34 +3,41 @@
 
 #include "defines.inc"
 
-#ifdef LANG_GLSL
-// HLSL Compat
-#define lerp mix
-#define float2 vec2
-#define float3 vec3
-#define float4 vec4
-#define float2x2 mat2
-#define float3x3 mat3
-#define float4x4 mat4
-#else
-// For porting GLSL to HLSL
-#define vec2 float2
-#define vec3 float3
-#define vec4 float4
-#define ivec2 int2
-#define ivec3 int3
-#define ivec4 int4
-#define uvec2 uint2
-#define uvec3 uint3
-#define uvec4 uint4
-#define mat3 float3x3
-#define mat4 float4x4
-#define texture2D Texture2D
-#define texture3D Texture3D
-#define textureCube TextureCube
-#endif
+#ifdef LANG_HLSL
 
-#define HYP_FAST_LESS(x, y) (1 - step((y), (x)))
+// HLSL <-> GLSL compat
+// @TODO: For Shader Model 6.6+ we can use new intrinsics for packing / unpacking
+float4 unpackUnorm4x8(uint packedVal)
+{
+    float4 unpacked;
+    unpacked.x = float(packedVal & 0xFF);
+    unpacked.y = float((packedVal >> 8) & 0xFF);
+    unpacked.z = float((packedVal >> 16) & 0xFF);
+    unpacked.w = float((packedVal >> 24) & 0xFF);
+    return unpacked / 255.0;
+}
+
+float2 unpackUnorm2x16(uint packedVal)
+{
+    float2 unpacked;
+    unpacked.x = float(packedVal & 0xFFFF);
+    unpacked.y = float((packedVal >> 16) & 0xFFFF);
+    return unpacked / 65535.0;
+}
+
+float packUnorm4x8(float4 vec)
+{
+    uint packedVal = uint(vec.x * 255.0) | (uint(vec.y * 255.0) << 8) | (uint(vec.z * 255.0) << 16) | (uint(vec.w * 255.0) << 24);
+    return packedVal;
+}
+
+float packUnorm2x16(float2 vec)
+{
+    uint packedVal = uint(vec.x * 65535.0) | (uint(vec.y * 65535.0) << 16);
+    return packedVal;
+}
+
+#endif
 
 struct Ray
 {
@@ -95,50 +102,6 @@ void ComputeOrthonormalBasis(in vec3 normal, out vec3 tangent, out vec3 bitangen
     tangent = T;
     bitangent = normalize(cross(normal, T));
 }
-
-#ifdef LANG_GLSL
-
-#if HYP_GBUFFER_FLIP_Y
-#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), vec2((texcoord).s, 1.0 - (texcoord).t))
-#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), vec2((texcoord).s, 1.0 - (texcoord).t), lod)
-#else // !HYP_GBUFFER_FLIP_Y
-#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) texture(sampler2D(tex, samp), texcoord)
-#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) textureLod(sampler2D(tex, samp), texcoord, lod)
-#endif
-
-#define TEXEL_FETCH_2D(tex, coord) texelFetch(tex, coord, 0)
-#define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) texelFetch(sampler2D(tex, samp), coord, lod)
-
-#define SAMPLE_TEXTURE_3D(samp, tex, texcoord) texture(sampler3D(tex, samp), texcoord)
-#define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) textureLod(sampler3D(tex, samp), texcoord, lod)
-
-#define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) texture(samplerCube(tex, samp), texcoord)
-#define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) textureLod(samplerCube(tex, samp), texcoord, lod)
-
-#elif defined(LANG_HLSL)
-
-#if HYP_GBUFFER_FLIP_Y
-#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), float2((texcoord).x, 1.0 - (texcoord).y))
-#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), float2((texcoord).x, 1.0 - (texcoord).y), (lod))
-#else // !HYP_GBUFFER_FLIP_Y
-#define SAMPLE_TEXTURE_2D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#define SAMPLE_TEXTURE_2D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-#endif
-
-#define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-#define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), 0), (lod))
-
-#define SAMPLE_TEXTURE_3D(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#define SAMPLE_TEXTURE_3D_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-
-#define SAMPLE_TEXTURE_CUBE(samp, tex, texcoord) (tex).Sample((samp), (texcoord))
-#define SAMPLE_TEXTURE_CUBE_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
-
-#else
-
-#error "No LANG_* preprocessor define provided"
-
-#endif // !LANG_HLSL
 
 vec3 GetTriplanarBlend(vec3 normal)
 {
