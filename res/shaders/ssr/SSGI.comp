@@ -35,7 +35,7 @@ HYP_DESCRIPTOR_SRV(SSGI, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 HYP_DESCRIPTOR_SRV(SSGI, DeferredResult) uniform texture2D gbuffer_deferred_result;
 HYP_DESCRIPTOR_SAMPLER(SSGI, SamplerNearest) uniform sampler sampler_nearest;
 HYP_DESCRIPTOR_SAMPLER(SSGI, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_BUFFER(SSGI, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_SRV(SSGI, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -52,7 +52,7 @@ HYP_DESCRIPTOR_BUFFER(SSGI, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(SSGI, LightsBuffer) readonly buffer LightsBuffer
+HYP_DESCRIPTOR_SRV(SSGI, LightsBuffer) readonly buffer LightsBuffer
 {
     Light lights[];
 };
@@ -74,12 +74,12 @@ HYP_DESCRIPTOR_SRV(SSGI, EnvProbesTexture) uniform textureCubeArray envProbesTex
 HYP_DESCRIPTOR_SRV(SSGI, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_BUFFER(SSGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV(SSGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_BUFFER(SSGI, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SRV(SSGI, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

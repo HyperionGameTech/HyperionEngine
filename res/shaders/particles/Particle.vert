@@ -24,7 +24,7 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 #define MAX_PARTICLES 1024
 #endif
 
-HYP_DESCRIPTOR_BUFFER(ParticleDescriptorSet, ParticlesBuffer, standard = std430) buffer ParticlesBuffer
+HYP_DESCRIPTOR_UAV(ParticleDescriptorSet, ParticlesBuffer, standard = std430) buffer ParticlesBuffer
 {
     ParticleShaderData instances[MAX_PARTICLES];
 };

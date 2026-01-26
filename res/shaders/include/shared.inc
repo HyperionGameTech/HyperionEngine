@@ -237,9 +237,9 @@ vec4 GaussianBlur9(
     vec2 direction,
     float radius)
 {
-    vec4 color = vec4(0.0);
-    vec2 offset1 = vec2(1.3846153846) * direction;
-    vec2 offset2 = vec2(3.2307692308) * direction;
+    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 offset1 = vec2(1.3846153846, 1.3846153846) * direction;
+    vec2 offset2 = vec2(3.2307692308, 3.2307692308) * direction;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.2270270270;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset1 * radius)) * 0.3162162162;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset1 * radius)) * 0.3162162162;
@@ -254,21 +254,12 @@ vec4 GaussianBlur5(
     vec2 direction,
     float radius)
 {
-    vec4 color = vec4(0.0);
-    vec2 offset = vec2(1.3333333333333333) * direction;
+    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 offset = vec2(1.333, 1.333) * direction;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv) * 0.29411764705882354;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv + (offset * radius)) * 0.35294117647058826;
     color += SAMPLE_TEXTURE_2D(samp, tex, uv - (offset * radius)) * 0.35294117647058826;
     return color;
-}
-
-float LinearDepth(mat4 projection, float depth)
-{
-    return projection[3][2] / (depth * projection[2][3] - projection[2][2]);
-}
-float LinearizeDepth(float depth, float near, float far)
-{
-    return near * far / (far + depth * (near - far));
 }
 
 // Based on Unity's Linear01Depth function, Unity uses a reversed depth buffer though.
@@ -280,18 +271,6 @@ float Linear01Depth(float depth, float near, float far)
     float w = y / far;
 
     return 1.0 - (1.0 / (x * (1.0 - depth) + y));
-}
-
-float ProjectedDepth(mat4 projection, float depth)
-{
-    return (projection * vec4(0.0, 0.0, depth, 1.0)).z;
-
-    /*float result = depth;
-    result *= projection[3][2];
-    result += projection[2][2];
-    result /= projection[2][3];
-
-    return result;*/
 }
 
 float ViewDepth(float depth, float near, float far)
@@ -310,9 +289,18 @@ vec4 ReconstructWorldSpacePositionFromDepth(mat4 inverse_projection, mat4 invers
 {
     vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
 
+#ifdef LANG_HLSL
+    vec4 inversed = mul(inverse_projection, ndc);
+#else
     vec4 inversed = inverse_projection * ndc;
+#endif
     inversed /= inversed.w;
+
+#ifdef LANG_HLSL
+    inversed = mul(inverse_view, inversed);
+#else
     inversed = inverse_view * inversed;
+#endif
 
     return inversed;
 }
@@ -321,7 +309,11 @@ vec4 ReconstructViewSpacePositionFromDepth(mat4 inverse_projection, vec2 coord, 
 {
     vec4 ndc = vec4(coord * 2.0 - 1.0, depth, 1.0);
 
+#ifdef LANG_HLSL
+    vec4 inversed = mul(inverse_projection, ndc);
+#else
     vec4 inversed = inverse_projection * ndc;
+#endif
     inversed /= inversed.w;
 
     return inversed;
@@ -329,19 +321,31 @@ vec4 ReconstructViewSpacePositionFromDepth(mat4 inverse_projection, vec2 coord, 
 
 vec2 GetProjectedPositionFromWorld(in mat4 projection, in mat4 view, in vec3 world_space_position)
 {
+#ifdef LANG_HLSL
+    vec4 sample_position = mul(projection, mul(view, vec4(world_space_position, 1.0)));
+#else
     vec4 sample_position = projection * view * vec4(world_space_position, 1.0);
+#endif
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
 vec2 GetProjectedPositionFromWorld(in mat4 view_projection, in vec3 world_space_position)
 {
+#ifdef LANG_HLSL
+    vec4 sample_position = mul(view_projection, vec4(world_space_position, 1.0));
+#else
     vec4 sample_position = view_projection * vec4(world_space_position, 1.0);
+#endif
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
 vec2 GetProjectedPositionFromView(in mat4 projection, in vec3 view_space_position)
 {
+#ifdef LANG_HLSL
+    vec4 sample_position = mul(projection, vec4(view_space_position, 1.0));
+#else
     vec4 sample_position = projection * vec4(view_space_position, 1.0);
+#endif
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 

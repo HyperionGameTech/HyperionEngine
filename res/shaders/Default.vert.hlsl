@@ -1,14 +1,16 @@
-#include "include/shared.inc"
-#include "include/scene.inc"
+#pragma pack_matrix(row_major)
+
+#include "./include/shared.inc"
+#include "./include/scene.inc"
 
 struct VSInput
 {
     HYP_ATTRIBUTE(0) float3 a_position : POSITION;
     HYP_ATTRIBUTE(1) float3 a_normal : NORMAL;
     HYP_ATTRIBUTE(2) float2 a_texcoord0 : TEXCOORD0;
-    HYP_ATTRIBUTE(3) float2 a_texcoord1 : TEXCOORD1;
-    HYP_ATTRIBUTE(4) float3 a_tangent : TANGENT;
-    HYP_ATTRIBUTE(5) float3 a_bitangent : BINORMAL;
+    HYP_ATTRIBUTE_OPTIONAL(3) float2 a_texcoord1 : TEXCOORD1;
+    HYP_ATTRIBUTE_OPTIONAL(4) float3 a_tangent : TANGENT;
+    HYP_ATTRIBUTE_OPTIONAL(5) float3 a_bitangent : BINORMAL;
     HYP_ATTRIBUTE_OPTIONAL(6) float4 a_bone_weights : BLENDWEIGHT;
     HYP_ATTRIBUTE_OPTIONAL(7) float4 a_bone_indices : BLENDINDICES;
 };
@@ -37,18 +39,18 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 #include "include/Entity.glsl"
 
 #ifdef INSTANCING
-    HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-    HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
+    HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+    HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
 
     #define entity_instance_batch entity_instance_batches[0]
 #else
-    HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+    HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 #ifdef SKINNING
 #include "include/Skeleton.glsl"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
 float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
 {
@@ -83,7 +85,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 model_matrix = entity.model_matrix;
 #endif
 
-#if defined(SKINNING)
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
     float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
@@ -127,8 +129,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
         0, 0, 1, 0,
         0, 0, 0, 1 
     };
-    jitter_matrix._m30 += camera.jitter.x;
-    jitter_matrix._m31 += camera.jitter.y;
+    jitter_matrix._m03 += camera.jitter.x;
+    jitter_matrix._m13 += camera.jitter.y;
 
     output.position_cs = mul(jitter_matrix, output.position_ndc);
 

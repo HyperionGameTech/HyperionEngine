@@ -40,7 +40,7 @@ HYP_DESCRIPTOR_BUFFER(DeferredPass, WorldsBuffer) uniform WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SRV_DYNAMIC(DeferredPass, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };

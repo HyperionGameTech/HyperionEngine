@@ -8,8 +8,8 @@
 
 layout(location = 1) in vec3 v_position;
 layout(location = 2) in vec2 v_texcoord0;
-layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 15) in flat uint v_object_index;
+layout(location = 6) in flat vec3 v_camera_position;
+layout(location = 9) in flat uint v_object_index;
 
 layout(location = 0) out vec4 output_shadow;
 
@@ -25,21 +25,21 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

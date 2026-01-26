@@ -82,9 +82,14 @@
     // Placeholder macro definitions to allow intellisense to work.
     // The engine's shader compiler uses these markers for binding setup
     #define HYP_DESCRIPTOR_SRV(set, var)
+    #define HYP_DESCRIPTOR_SRV_DYNAMIC(set, var)
+    
     #define HYP_DESCRIPTOR_UAV(set, var)
+    #define HYP_DESCRIPTOR_UAV_DYNAMIC(set, var)
+
     #define HYP_DESCRIPTOR_BUFFER(name, var)
     #define HYP_DESCRIPTOR_BUFFER_DYNAMIC(name, var)
+
     #define HYP_DESCRIPTOR_SAMPLER(set, var)
 
     // Same here, but for vertex input.

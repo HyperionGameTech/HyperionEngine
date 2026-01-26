@@ -36,7 +36,7 @@ HYP_DESCRIPTOR_BUFFER(ReflectionsPass, WorldsBuffer) uniform WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER(ReflectionsPass, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_SRV(ReflectionsPass, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -55,7 +55,7 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMipChain) uniform texture2D gbuffer_m
 #include "../include/BlueNoise.glsl"
 
 #include "../include/env_probe.inc"
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
@@ -66,7 +66,7 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform textureCubeArray e
 HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_BUFFER(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #include "./DeferredLighting.glsl"
 

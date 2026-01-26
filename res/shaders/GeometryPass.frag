@@ -16,11 +16,11 @@ layout(location = 2) in vec2 v_texcoord0;
 layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
-layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 8) in vec4 v_position_ndc;
-layout(location = 9) in vec4 v_previous_position_ndc;
-layout(location = 10) in flat uint v_object_index;
-layout(location = 11) in flat uint v_object_mask;
+layout(location = 6) in flat vec3 v_camera_position;
+layout(location = 7) in vec4 v_position_ndc;
+layout(location = 8) in vec4 v_previous_position_ndc;
+layout(location = 9) in flat uint v_object_index;
+layout(location = 10) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
@@ -65,7 +65,7 @@ HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform textureCubeArray envProbes
 HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_BUFFER(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SRV(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
@@ -78,30 +78,30 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 #endif
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 #else
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entity;
 };
 #endif
 
 #ifdef SHADING_TYPE_FORWARD
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 #endif
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

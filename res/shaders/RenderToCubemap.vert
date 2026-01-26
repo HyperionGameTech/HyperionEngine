@@ -41,7 +41,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 
 #include "include/env_probe.inc"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
@@ -52,19 +52,19 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentE
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     EntityInstanceBatch entity_instance_batch;
 };
 
 #else
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -87,7 +87,7 @@ mat4 LookAt(vec3 pos, vec3 target, vec3 up)
 
 #ifdef SKINNING
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };

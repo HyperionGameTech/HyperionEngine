@@ -52,27 +52,27 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

@@ -45,9 +45,9 @@ HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, EnvProbesTexture) uniform textureCube
 #else
 HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
-HYP_DESCRIPTOR_BUFFER(ComputeSHDescriptorSet, EnvProbesBuffer) writeonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_UAV(ComputeSHDescriptorSet, EnvProbesBuffer) writeonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(ComputeSHDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(ComputeSHDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
@@ -55,7 +55,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(ComputeSHDescriptorSet, CurrentEnvProbe) readonly 
 HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(ComputeSHDescriptorSet, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SRV_DYNAMIC(ComputeSHDescriptorSet, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
@@ -67,11 +67,11 @@ HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, InColorCubemap) uniform textureCube c
 HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, InNormalsCubemap) uniform textureCube cubemap_normals;
 HYP_DESCRIPTOR_SRV(ComputeSHDescriptorSet, InDepthCubemap) uniform textureCube cubemap_depth;
 
-HYP_DESCRIPTOR_BUFFER(ComputeSHDescriptorSet, InputSHTilesBuffer) buffer InputSHTilesBuffer
+HYP_DESCRIPTOR_UAV(ComputeSHDescriptorSet, InputSHTilesBuffer) buffer InputSHTilesBuffer
 {
     SHTile sh_tiles[];
 };
-HYP_DESCRIPTOR_BUFFER(ComputeSHDescriptorSet, OutputSHTilesBuffer) buffer OutputSHTilesBuffer
+HYP_DESCRIPTOR_UAV(ComputeSHDescriptorSet, OutputSHTilesBuffer) buffer OutputSHTilesBuffer
 {
     SHTile sh_tiles_output[];
 };

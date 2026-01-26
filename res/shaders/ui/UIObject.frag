@@ -35,7 +35,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
@@ -45,7 +45,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

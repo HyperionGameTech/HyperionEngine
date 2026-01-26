@@ -38,7 +38,7 @@ HYP_DESCRIPTOR_SRV(RenderSSR, GBufferDepthTexture) uniform texture2D gbuffer_dep
 
 HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerNearest) uniform sampler sampler_nearest;
 HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_BUFFER(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+HYP_DESCRIPTOR_SRV(RenderSSR, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];

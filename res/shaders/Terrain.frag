@@ -13,11 +13,11 @@ layout(location = 2) in vec2 v_texcoord0;
 layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
-layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 11) in vec4 v_position_ndc;
-layout(location = 12) in vec4 v_previous_position_ndc;
-layout(location = 15) in flat uint v_object_index;
-layout(location = 16) in flat uint v_object_mask;
+layout(location = 6) in flat vec3 v_camera_position;
+layout(location = 7) in vec4 v_position_ndc;
+layout(location = 8) in vec4 v_previous_position_ndc;
+layout(location = 9) in flat uint v_object_index;
+layout(location = 10) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
@@ -61,33 +61,33 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 #include "include/shadows.inc"
 #endif
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

@@ -23,7 +23,7 @@ layout(local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE) in;
 
 #include "../include/env_probe.inc"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(ConvolveProbeDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(ConvolveProbeDescriptorSet, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };

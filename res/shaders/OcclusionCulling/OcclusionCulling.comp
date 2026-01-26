@@ -24,7 +24,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(ObjectVisibility, CamerasBuffer) uniform CamerasBu
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(ObjectVisibility, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(ObjectVisibility, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
@@ -52,17 +52,17 @@ struct ObjectInstance
     uint _pad;
 };
 
-HYP_DESCRIPTOR_BUFFER(ObjectVisibility, ObjectInstancesBuffer, standard = scalar) readonly buffer InstancesBuffer
+HYP_DESCRIPTOR_SRV(ObjectVisibility, ObjectInstancesBuffer, standard = scalar) readonly buffer InstancesBuffer
 {
     ObjectInstance instances[];
 };
 
-HYP_DESCRIPTOR_BUFFER(ObjectVisibility, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+HYP_DESCRIPTOR_UAV(ObjectVisibility, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_commands[];
 };
 
-HYP_DESCRIPTOR_BUFFER(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_UAV(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) buffer EntityInstanceBatchesBuffer
 {
     uvec4 entityInstanceBatchDataRaw[];
 };

@@ -186,16 +186,16 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const Descrip
 
                     switch (descriptorDeclaration.slot)
                     {
-                    case DescriptorSlot::SRV:
+                    case DescriptorSlot::SRV: // read-only storage buffers and textures
                         registerKey = 't';
                         break;
-                    case DescriptorSlot::UAV:
+                    case DescriptorSlot::UAV: // r/w storage buffers and images
                         registerKey = 'u';
                         break;
-                    case DescriptorSlot::BUFFER:
+                    case DescriptorSlot::BUFFER: // constant buffers
                         registerKey = 'b';
                         break;
-                    case DescriptorSlot::SAMPLER:
+                    case DescriptorSlot::SAMPLER: // samplers
                         registerKey = 's';
                         break;
                     default:
@@ -1109,8 +1109,8 @@ static TBuiltInResource DefaultResources()
         } };
 }
 
-static bool PreprocessShaderSource(ShaderModuleType type,
-    ShaderLanguage language,
+static bool PreprocessGLSL(
+    ShaderModuleType type,
     const String& preamble,
     const String& source,
     const String& filename,
@@ -1198,8 +1198,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     callbacksContext.filename = filename;
 
     glslang_input_t input {
-        .language = language == ShaderLanguage::HLSL ? GLSLANG_SOURCE_HLSL
-                                                     : GLSLANG_SOURCE_GLSL,
+        .language = GLSLANG_SOURCE_GLSL,
         .stage = stage,
         .client = GLSLANG_CLIENT_VULKAN,
         .client_version = static_cast<glslang_target_client_version_t>(vulkanApiVersion),
@@ -1216,8 +1215,7 @@ static bool PreprocessShaderSource(ShaderModuleType type,
     };
 
     input.callbacks.include_local =
-        [](void* ctx, const char* headerName, const char* includerName,
-            size_t includeDepth) -> glsl_include_result_t*
+        [](void* ctx, const char* headerName, const char* includerName, size_t includeDepth) -> glsl_include_result_t*
     {
         CallbacksContext* callbacksContext = static_cast<CallbacksContext*>(ctx);
 
@@ -1656,10 +1654,8 @@ static void ReflectResources(ID3D12ShaderReflection* pReflection, DescriptorUsag
 }
 #endif // HYP_SHADER_REFLECTION
 
-#if !HYP_GLSLANG
-static bool PreprocessShaderSource(
+static bool PreprocessHLSL(
     ShaderModuleType type,
-    ShaderLanguage language,
     const String& preamble,
     const String& source,
     const String& filename,
@@ -1670,7 +1666,19 @@ static bool PreprocessShaderSource(
 
     outPreprocessedSource = source;
 
+    WideString includeDirs[] = {
+        WideString(GetResourceDirectory() / "shaders"),
+        WideString(GetResourceDirectory() / "shaders" / "include")
+    };
+
     Array<LPCWSTR> args;
+
+    for (const WideString& str : includeDirs)
+    {
+        args.PushBack(L"-I");
+        args.PushBack(*str);
+    }
+
     args.PushBack(L"-P");
 
     String fullSource = preamble + "\n" + source;
@@ -1691,11 +1699,21 @@ static bool PreprocessShaderSource(
 
     ComPtr<IDxcResult> pResult;
 
+    ComPtr<IDxcIncludeHandler> pIncludeHandler;
+    hr = s_dxcUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
+
+    if (FAILED(hr))
+    {
+        outErrorMessages.PushBack(HYP_FORMAT("Failed to create default include handler! HRESULT: {}", hr));
+
+        return false;
+    }
+
     hr = s_dxcCompiler->Compile(
         &sourceBuffer,
         args.Data(),
         (uint32)args.Size(),
-        nullptr,
+        pIncludeHandler.Get(),
         IID_PPV_ARGS(&pResult)
     );
 
@@ -1715,11 +1733,13 @@ static bool PreprocessShaderSource(
     pResult->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&pOutput), nullptr);
 
     if (pOutput)
+    {
         outPreprocessedSource = String(pOutput->GetStringPointer());
+        return true;
+    }
 
-    return true;
+    return false;
 }
-#endif // !HYP_GLSLANG
 
 enum class HLSLOutputType
 {
@@ -1861,25 +1881,6 @@ static ByteBuffer CompileHLSL(
 
 HYP_ENABLE_OPTIMIZATION;
 #endif // HYP_DXC
-
-#if !HYP_GLSLANG && !HYP_DXC
-
-// Dummy implementation
-static bool PreprocessShaderSource(
-    ShaderModuleType type,
-    ShaderLanguage language,
-    const String& preamble,
-    const String& source,
-    const String& filename,
-    String& outPreprocessedSource,
-    Array<String>& outErrorMessages)
-{
-    outPreprocessedSource = source;
-
-    return true;
-}
-
-#endif
 
 #pragma endregion SPRIV Compilation
 
@@ -3009,19 +3010,37 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
     if (phase == ProcessShaderSourcePhase::AFTER_PREPROCESS)
     {
-        const String preamble = BuildAttributesDefines(ShaderLanguage::HLSL, properties);
-        
         String preprocessedSource;
         Array<String> preprocessErrorMessages;
     
-        const bool preprocessResult = PreprocessShaderSource(
-            type,
-            language,
-            preamble,
-            source,
-            filename,
-            preprocessedSource,
-            preprocessErrorMessages);
+        bool preprocessResult = false;
+        
+        const String preamble = BuildAttributesDefines(language, properties);
+        
+        if (language == ShaderLanguage::GLSL)
+        {
+#if HYP_GLSLANG
+            preprocessResult = PreprocessGLSL(
+                type,
+                preamble,
+                source,
+                filename,
+                preprocessedSource,
+                preprocessErrorMessages);
+#else
+            result.errors.
+#endif
+        }
+        else
+        {
+            preprocessResult = PreprocessHLSL(
+                type,
+                preamble,
+                source,
+                filename,
+                preprocessedSource,
+                preprocessErrorMessages);
+        }
 
         result.errors.Concat(Map(preprocessErrorMessages, [](const String& errorMessage)
             {
@@ -3267,22 +3286,17 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 DescriptorSlot slot = DescriptorSlot::NONE;
                 EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE;
 
-                if (commandStr == "HYP_DESCRIPTOR_SRV")
+                if (commandStr == "HYP_DESCRIPTOR_SRV" || commandStr == "HYP_DESCRIPTOR_SRV_DYNAMIC")
                 {
                     slot = DescriptorSlot::SRV;
                 }
-                else if (commandStr == "HYP_DESCRIPTOR_UAV")
+                else if (commandStr == "HYP_DESCRIPTOR_UAV" || commandStr == "HYP_DESCRIPTOR_UAV_DYNAMIC")
                 {
                     slot = DescriptorSlot::UAV;
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_BUFFER" || commandStr == "HYP_DESCRIPTOR_BUFFER_DYNAMIC")
                 {
                     slot = DescriptorSlot::BUFFER;
-
-                    if (commandStr == "HYP_DESCRIPTOR_BUFFER_DYNAMIC")
-                    {
-                        flags |= DescriptorUsageFlags::DYNAMIC;
-                    }
                 }
                 else if (commandStr == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE")
                 {
@@ -3298,6 +3312,11 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         "Invalid descriptor slot. Must match HYP_DESCRIPTOR_<Type> " });
 
                     break;
+                }
+
+                if (commandStr.EndsWith("_DYNAMIC"))
+                {
+                    flags |= DescriptorUsageFlags::DYNAMIC;
                 }
 
                 Array<String> parts = line.Split(' ');

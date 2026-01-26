@@ -32,7 +32,7 @@ HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform textureCube textures[]; // 
 HYP_DESCRIPTOR_SRV(Default, AlbedoMap) uniform textureCube AlbedoMap;
 #endif
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

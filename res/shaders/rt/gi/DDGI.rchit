@@ -66,17 +66,17 @@ struct PackedVertex
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_BUFFER(DDGI, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(DDGI, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_BUFFER(DDGI, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+HYP_DESCRIPTOR_UAV(DDGI, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_BUFFER(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };

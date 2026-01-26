@@ -55,14 +55,14 @@ HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) uniform WorldsBuff
 
 #elif defined(INSTANCING)
 
-HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -77,7 +77,7 @@ HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) uniform textureCu
 HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #define HYP_DEFERRED_NO_REFRACTION
 
@@ -85,7 +85,7 @@ HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, EnvProbesBuffer) readonly buffer
 
 #undef HYP_DEFERRED_NO_REFRACTION
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

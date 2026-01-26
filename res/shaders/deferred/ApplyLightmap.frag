@@ -72,9 +72,9 @@ HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesTexture) uniform textureCubeArray envP
 HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_BUFFER(LightmapPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+HYP_DESCRIPTOR_SRV_DYNAMIC(LightmapPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };

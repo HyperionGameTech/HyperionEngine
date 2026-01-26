@@ -53,17 +53,17 @@ hitAttributeEXT vec2 attribs;
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(LightmapPathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+HYP_DESCRIPTOR_UAV(LightmapPathTracer, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV(LightmapPathTracer, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };

@@ -32,7 +32,7 @@ HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) uniform te
 #define MAX_PARTICLES 1024
 #endif
 
-HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
+HYP_DESCRIPTOR_UAV(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
 {
     ParticleShaderData instances[MAX_PARTICLES];
 };
@@ -50,7 +50,7 @@ struct IndirectDrawCommand
     uint first_instance;
 };
 
-HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+HYP_DESCRIPTOR_UAV(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_command;
 };

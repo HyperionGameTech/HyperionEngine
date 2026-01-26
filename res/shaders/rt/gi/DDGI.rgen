@@ -36,7 +36,7 @@ HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) uniform DDGIUniformBuffer
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_BUFFER(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
+HYP_DESCRIPTOR_UAV(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
 {
     ProbeRayData probe_rays[];
 };
@@ -54,7 +54,7 @@ HYP_DESCRIPTOR_BUFFER(DDGI, WorldsBuffer) uniform WorldsBuffer
 };
 
 #if HAS_ENV_PROBE
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DDGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
+HYP_DESCRIPTOR_SRV_DYNAMIC(DDGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
 
 #if ENV_PROBE_CUBEMAP
 HYP_DESCRIPTOR_SRV(DDGI, EnvProbesTexture) uniform textureCubeArray envProbesTexture;

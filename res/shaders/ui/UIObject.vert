@@ -29,12 +29,12 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     UIEntityInstanceBatch entity_instance_batch;
 };

@@ -10,11 +10,11 @@ layout(location = 2) out vec2 v_texcoord0;
 layout(location = 3) out vec2 v_texcoord1;
 layout(location = 4) out vec3 v_tangent;
 layout(location = 5) out vec3 v_bitangent;
-layout(location = 7) out flat vec3 v_camera_position;
-layout(location = 11) out vec4 v_position_ndc;
-layout(location = 12) out vec4 v_previous_position_ndc;
-layout(location = 15) out flat uint v_object_index;
-layout(location = 16) out flat uint v_object_mask;
+layout(location = 6) out flat vec3 v_camera_position;
+layout(location = 7) out vec4 v_position_ndc;
+layout(location = 8) out vec4 v_previous_position_ndc;
+layout(location = 9) out flat uint v_object_index;
+layout(location = 10) out flat uint v_object_mask;
 
 HYP_ATTRIBUTE(0) vec3 a_position;
 HYP_ATTRIBUTE(1) vec3 a_normal;
@@ -45,19 +45,19 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     EntityInstanceBatch entity_instance_batch;
 };
 
 #else
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -65,7 +65,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEnt
 #endif
 
 #ifdef SKINNING
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };
