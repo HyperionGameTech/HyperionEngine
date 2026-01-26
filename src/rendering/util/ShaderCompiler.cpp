@@ -121,14 +121,14 @@ String GetShaderVersionFromSource(const String& source, String& outSourceWithout
     if (sourceTrimmed.StartsWith("#version"))
     {
         SizeType firstNewline = sourceTrimmed.FindFirstIndex('\n');
-        String versionLine = sourceTrimmed.Substr(0, firstNewline + 1);
+        String versionLine = sourceTrimmed.Substr(0, firstNewline);
 
         outSourceWithoutVersion = sourceTrimmed.Substr(firstNewline + 1);
 
-        return versionLine;
+        return versionLine.TrimmedRight();
     }
 
-    return "#version 450\n";
+    return "#version 450";
 }
 
 static String BuildDescriptorTableDefines(ShaderLanguage language, const DescriptorTableDeclaration& descriptorTableDeclaration)
@@ -223,9 +223,6 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const Descrip
 static String BuildPreamble(ShaderLanguage language, const ShaderProperties& properties)
 {
     String preamble;
-
-    // define shader language
-    preamble += String("#define LANG_") + (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL") + " 1\n\n";
 
     for (const VertexAttribute* attr : properties.GetRequiredVertexAttributes().BuildAttributes())
     {
@@ -1474,9 +1471,42 @@ static ByteBuffer CompileToSPIRV(
 
         return ByteBuffer();
     }
+    
+    const char* entryPointName = DefaultEntryPointNames[type];
+
+    glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
+
+    static constexpr const EShLanguage shLanguages[NumShaderModuleTypes - 1] = {
+        EShLangVertex,          // SMT_VERTEX
+        EShLangFragment,        // SMT_FRAGMENT
+        EShLangGeometry,        // SMT_GEOMETRY
+        EShLangCompute,         // SMT_COMPUTE
+
+        EShLangTask,            // SMT_TASK
+        EShLangMesh,            // SMT_MESH
+
+        EShLangTessControl,     // SMT_TESS_CONTROL
+        EShLangTessEvaluation,  // SMT_TESS_EVAL
+
+        EShLangRayGen,          // SMT_RAY_GEN
+        EShLangIntersect,       // SMT_RAY_INTERSECT
+        EShLangAnyHit,          // SMT_RAY_ANY_HIT
+        EShLangClosestHit,      // SMT_RAY_CLOSEST_HIT
+        EShLangMiss             // SMT_RAY_MISS
+    };
+
+    const EShLanguage shLanguage = shLanguages[type - 1];
+
+    // HLSL uses custom entry point names per shader module
+    if (language == ShaderLanguage::HLSL)
+    {
+        for (auto* shader : cppProgram->getShaders(shLanguage))
+        {
+            shader->setEntryPoint(entryPointName);
+        }
+    }
 
 #if HYP_SHADER_REFLECTION
-    glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
     if (!cppProgram->buildReflection(EShReflectionDefault))
     {
         GLSL_ERROR(Error, "Failed to build shader reflection!");
@@ -1838,7 +1868,8 @@ static bool FindVertexAttributeForDefinition(const String& name, const VertexAtt
     return false;
 }
 
-static VertexAttributeSet BuildVertexAttributeSet(const Array<VertexAttributeDefinition>& definitions)
+static VertexAttributeSet BuildVertexAttributeSet(
+    const Array<VertexAttributeDefinition>& definitions)
 {
     VertexAttributeSet set;
 
@@ -3378,7 +3409,45 @@ bool ShaderCompiler::CompileBundle(
                 }
 
                 const ByteBuffer byteBuffer = reader.ReadBytes();
-                String sourceString(byteBuffer.ToByteView());
+
+                // we add this define to prevent the HYP_DESCRIPTOR_* macros from being defines in shader code
+                // and folding to nothing.
+                String preamble = "#define HYP_SHADER_COMPILER 1\n\n";
+
+                preamble += String("#define LANG_")
+                    + (language == ShaderLanguage::HLSL ? "HLSL" : "GLSL") + " 1\n\n";
+
+                String sourceString = String(byteBuffer.ToByteView()).ReplaceAll("\r\n", "\n");
+
+                if (language == ShaderLanguage::GLSL)
+                {
+                    String sourceWithoutVersion;
+                    String shaderVersion = GetShaderVersionFromSource(sourceString, sourceWithoutVersion);
+
+                    auto split = sourceString.Split('\n');
+                    auto splitIt = split.Find(shaderVersion);
+
+                    if (splitIt != split.End())
+                    {
+                        const SizeType versionIndex = splitIt - split.Begin();
+
+                        preamble += String("#line ") + String::ToString(versionIndex + 1) + "\n\n";
+                    }
+                    else
+                    {
+                        preamble += "#line 1\n\n";
+                    }
+
+                    // #version must occur first in shader (GLSL)
+                    sourceString = shaderVersion + "\n\n"
+                        + preamble
+                        + sourceWithoutVersion;
+                }
+                else
+                {
+                    preamble += "#line 1\n\n";
+                    sourceString = preamble + sourceString;
+                }
 
                 // process shader source to extract vertex attributes.
                 // runs before actual preprocessing

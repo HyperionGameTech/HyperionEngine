@@ -3,14 +3,14 @@
 
 struct VSInput
 {
-    HYP_ATTRIBUTE(0) float3 position : POSITION;
-    HYP_ATTRIBUTE(1) float3 normal : NORMAL;
-    HYP_ATTRIBUTE(2) float2 texcoord0 : TEXCOORD0;
-    HYP_ATTRIBUTE(3) float2 texcoord1 : TEXCOORD1;
-    HYP_ATTRIBUTE(4) float3 tangent : TANGENT;
-    HYP_ATTRIBUTE(5) float3 bitangent : BINORMAL;
-    HYP_ATTRIBUTE_OPTIONAL(6) float4 bone_weights : BLENDWEIGHT;
-    HYP_ATTRIBUTE_OPTIONAL(7) float4 bone_indices : BLENDINDICES;
+    HYP_ATTRIBUTE(0) float3 a_position : POSITION;
+    HYP_ATTRIBUTE(1) float3 a_normal : NORMAL;
+    HYP_ATTRIBUTE(2) float2 a_texcoord0 : TEXCOORD0;
+    HYP_ATTRIBUTE(3) float2 a_texcoord1 : TEXCOORD1;
+    HYP_ATTRIBUTE(4) float3 a_tangent : TANGENT;
+    HYP_ATTRIBUTE(5) float3 a_bitangent : BINORMAL;
+    HYP_ATTRIBUTE_OPTIONAL(6) float4 a_bone_weights : BLENDWEIGHT;
+    HYP_ATTRIBUTE_OPTIONAL(7) float4 a_bone_indices : BLENDINDICES;
 };
 
 struct VSOutput
@@ -39,7 +39,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 #ifdef INSTANCING
     HYP_DESCRIPTOR_BUFFER(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
     HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
-    
+
     #define entity_instance_batch entity_instance_batches[0]
 #else
     HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
@@ -84,32 +84,32 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #endif
 
 #if defined(SKINNING)
-    float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.bone_indices, input.bone_weights);
+    float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
 
-    position = mul(model_matrix, mul(skinning_matrix, float4(input.position, 1.0)));
-    previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.position, 1.0)));
+    position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+    previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     float4x4 skin_model = mul(model_matrix, skinning_matrix);
     normal_matrix = skin_model; 
 #else
-    position = mul(model_matrix, float4(input.position, 1.0));
-    previous_position = mul(currentEntity.previous_model_matrix, float4(input.position, 1.0));
+    position = mul(model_matrix, float4(input.a_position, 1.0));
+    previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
     normal_matrix = model_matrix;
 #endif
     
     output.position = position.xyz / position.w;
-    output.normal = mul((float3x3)normal_matrix, input.normal);
-    output.texcoord0 = float2(input.texcoord0.x, 1.0 - input.texcoord0.y);
+    output.normal = mul((float3x3)normal_matrix, input.a_normal);
+    output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;
 
 #ifdef HYP_ATTRIBUTE_a_texcoord1
-    output.texcoord1 = input.texcoord1.xy;
+    output.texcoord1 = input.a_texcoord1.xy;
 #else
     output.texcoord1 = float2(0.0, 0.0);
 #endif
 
     float3 tangent;
     float3 bitangent;
-    ComputeOrthonormalBasis(input.normal, tangent, bitangent);
+    ComputeOrthonormalBasis(input.a_normal, tangent, bitangent);
 
     output.tangent = mul((float3x3)normal_matrix, tangent);
     output.bitangent = mul((float3x3)normal_matrix, bitangent);
@@ -135,7 +135,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;
 #else
-    output.object_index = 0; // Or valid default
+    output.object_index = ~0u; // unused
 #endif
 
     const uint bucket = currentEntity.bucket;

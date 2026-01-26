@@ -78,4 +78,18 @@
     prefix
 #endif
 
+#ifndef HYP_SHADER_COMPILER
+    // Placeholder macro definitions to allow intellisense to work.
+    // The engine's shader compiler uses these markers for binding setup
+    #define HYP_DESCRIPTOR_SRV(set, var)
+    #define HYP_DESCRIPTOR_UAV(set, var)
+    #define HYP_DESCRIPTOR_BUFFER(name, var)
+    #define HYP_DESCRIPTOR_BUFFER_DYNAMIC(name, var)
+    #define HYP_DESCRIPTOR_SAMPLER(set, var)
+
+    // Same here, but for vertex input.
+    #define HYP_ATTRIBUTE(location)
+    #define HYP_ATTRIBUTE_OPTIONAL(location)
+#endif // HYP_SHADER_COMPILER
+
 #endif

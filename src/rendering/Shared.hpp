@@ -2496,6 +2496,8 @@ enum ShaderModuleType : uint8
     SMT_MAX
 };
 
+static constexpr uint8 NumShaderModuleTypes = uint8(ShaderModuleType::SMT_MAX);
+
 static constexpr inline bool IsRayTracingShaderModule(ShaderModuleType type)
 {
     return type == SMT_RAY_GEN

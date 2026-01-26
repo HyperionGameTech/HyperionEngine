@@ -25,11 +25,13 @@ namespace Hyperion {
 
 struct DescriptorTableDeclaration;
 
-static constexpr const char* DefaultEntryPointNames[] = {
+static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
+    "",                     // SMT_UNSET
+
     "VSMain",               // SMT_VERTEX
     "PSMain",               // SMT_FRAGMENT
-    "CSMain",               // SMT_COMPUTE
     "GSMain",               // SMT_GEOMETRY
+    "CSMain",               // SMT_COMPUTE
 
     "TaskMain",             // SMT_TASK
     "MeshMain",             // SMT_MESH
@@ -37,11 +39,11 @@ static constexpr const char* DefaultEntryPointNames[] = {
     "TessControlMain",      // SMT_TESS_CONTROL
     "TessEvalMain",         // SMT_TESS_EVAL
 
-    "RayGenMain",           // SMT_RAY_GEN
-    "RayIntersectMain",     // SMT_RAY_INTERSECT
-    "RayAnyHitMain",        // SMT_RAY_ANY_HIT
-    "RayClosestHitMain",    // SMT_RAY_CLOSEST_HIT
-    "RayMissMain"           // SMT_RAY_MISS
+    "RayGen",               // SMT_RAY_GEN
+    "Intersect",            // SMT_RAY_INTERSECT
+    "AnyHit",               // SMT_RAY_ANY_HIT
+    "ClosestHit",           // SMT_RAY_CLOSEST_HIT
+    "Miss"                  // SMT_RAY_MISS
 };
 
 HYP_ENUM()
