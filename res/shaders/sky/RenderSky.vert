@@ -26,7 +26,7 @@ HYP_ATTRIBUTE(5) vec3 a_bitangent;
 
 #include "../include/scene.inc"
 
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/env_probe.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

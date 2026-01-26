@@ -47,7 +47,7 @@ HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) uniform WorldsBuff
     WorldShaderData world_shader_data;
 };
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
 #ifdef IMMEDIATE_MODE
 

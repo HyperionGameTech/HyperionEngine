@@ -44,7 +44,7 @@ post_processing;
 
 #include "./include/shared.inc"
 #include "./include/gbuffer.inc"
-#include "./include/Entity.glsl"
+#include "./include/Entity.inc"
 #include "./include/PostFXSample.inc"
 #include "./include/tonemap.inc"
 #include "./include/scene.inc"

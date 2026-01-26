@@ -676,16 +676,18 @@ foreach(PLATFORM_FILE ${PLATFORM_FILES})
     endif()
 endforeach()
 
-# include shader files (under `res/shaders`) in the sln, mark as headers since
-# they are not compiled here
+# include shader files (under `res/shaders`) in the sln
 file(GLOB_RECURSE SHADER_FILES "res/shaders/*")
 if(SHADER_FILES)
-    source_group(TREE ${CMAKE_SOURCE_DIR}/res/shaders PREFIX "Shader Code" FILES ${SHADER_FILES})
-
     if(MSVC)
-        # exclude shader files from build ( we don't want to use fxc, we compile them ourselves )set_source_files_properties(my_shader.hlsl PROPERTIES VS_TOOL_OVERRIDE "None")
+        # we don't want to build shader files to be compiled by fxc but we want them in the solution
         foreach(SHADER_FILE ${SHADER_FILES})
-            set_source_files_properties(${SHADER_FILE} PROPERTIES VS_TOOL_OVERRIDE "None")
+            source_group("Shader Code" FILES ${SHADER_FILE})
+
+            set_property(SOURCE ${SHADER_FILE} PROPERTY VS_TOOL_OVERRIDE "None")
+
+            # add to sources so they appear in the solution
+            list(APPEND SOURCES ${SHADER_FILE})
         endforeach()
     endif()
 endif()

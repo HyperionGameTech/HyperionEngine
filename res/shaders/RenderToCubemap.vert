@@ -26,7 +26,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #include "include/scene.inc"
 #include "include/shared.inc"
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
 #ifdef SKINNING
 #include "include/Skeleton.glsl"

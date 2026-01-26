@@ -15,7 +15,7 @@ HYP_DESCRIPTOR_SAMPLER(ObjectVisibility, SamplerNearest) uniform sampler depth_p
 HYP_DESCRIPTOR_SRV(ObjectVisibility, DepthPyramidResult) uniform texture2D depth_pyramid;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

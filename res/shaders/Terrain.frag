@@ -34,7 +34,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #include "include/scene.inc"
 #include "include/material.inc"
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"

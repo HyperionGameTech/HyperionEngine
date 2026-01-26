@@ -57,7 +57,7 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer, stand
 
 #else // !IMMEDIATE_MODE
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
 #ifdef INSTANCING
 HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) readonly buffer EntitiesBuffer

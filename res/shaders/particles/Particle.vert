@@ -15,7 +15,7 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "./Particle.glsl"

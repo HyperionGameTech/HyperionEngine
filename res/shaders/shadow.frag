@@ -18,7 +18,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/material.inc"
 #include "include/shared.inc"
 #include "include/packing.inc"

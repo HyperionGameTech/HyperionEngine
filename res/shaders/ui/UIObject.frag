@@ -22,7 +22,7 @@ layout(location = 0) out vec4 gbuffer_albedo;
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
 #include "../include/material.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/UIObject.glsl"
 #include "../include/scene.inc"
 

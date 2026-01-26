@@ -20,7 +20,7 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 
 #include "../include/scene.inc"
 
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 
 #include "../include/UIObject.glsl"
 

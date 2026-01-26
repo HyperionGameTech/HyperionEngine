@@ -21,7 +21,7 @@ HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) uniform te
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/packing.inc"
 #include "../include/gbuffer.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

@@ -406,7 +406,7 @@ public:
         }
 
         Handle<ReflectionProbe> reflectionProbe = MakeHandle<ReflectionProbe>(BoundingBox(Vec3f(-10.0f), Vec3f(10.0f)), Vec2u(128));
-        reflectionProbe->SetIsBaked(true);
+        //reflectionProbe->SetIsBaked(true);
         InitObject(reflectionProbe);
 
         WeakHandle<Node> previousFocusedNode = subsystem->GetFocusedNode();
@@ -444,16 +444,19 @@ public:
 
         currentProject->GetActionStack()->Push(action);
 
-        // kickoff task to generate reflection cubemap
-        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
-        InitObject(generateLightmapsTask);
+        if (!reflectionProbe->IsRealtime())
+        {
+            // kickoff task to generate reflection cubemap
+            Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(reflectionProbe);
+            InitObject(generateLightmapsTask);
 
-        generateLightmapsTask->SetScene(activeScene);
+            generateLightmapsTask->SetScene(activeScene);
 
-        Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
-        generateLightmapsTask->SetWorld(worldHandle);
+            Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
+            generateLightmapsTask->SetWorld(worldHandle);
 
-        subsystem->AddTask(generateLightmapsTask);
+            subsystem->AddTask(generateLightmapsTask);
+        }
     }
 };
 

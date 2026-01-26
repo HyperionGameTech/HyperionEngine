@@ -36,7 +36,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "include/scene.inc"
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"

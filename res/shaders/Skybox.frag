@@ -19,7 +19,7 @@ layout(location = 3) out vec2 gbuffer_velocity;
 HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) uniform sampler texture_sampler;
 
 #include "include/gbuffer.inc"
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/packing.inc"
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS 1 // don't want to define AlbedoMap as a 2D texture

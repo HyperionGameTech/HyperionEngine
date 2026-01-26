@@ -34,7 +34,7 @@ HYP_DESCRIPTOR_SRV(FogVolume, GBufferDepthTexture) uniform texture2D GBufferDept
 
 #include "../include/scene.inc"
 #include "../include/material.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/packing.inc"
 #include "../include/shared.inc"
 

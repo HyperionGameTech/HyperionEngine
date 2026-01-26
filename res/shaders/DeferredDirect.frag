@@ -27,7 +27,7 @@ HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) uniform texture2D rt_r
 #include "include/shared.inc"
 #include "include/gbuffer.inc"
 #include "include/material.inc"
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
 #include "include/scene.inc"
 HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) uniform CamerasBuffer

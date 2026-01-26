@@ -30,7 +30,7 @@ HYP_DESCRIPTOR_SRV(LightmapPass, ReflectionProbeResultTexture) uniform texture2D
 
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/scene.inc"
 
 HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, CamerasBuffer) uniform CamerasBuffer

@@ -21,7 +21,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

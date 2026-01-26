@@ -41,7 +41,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 #include "include/gbuffer.inc"
 #include "include/env_probe.inc"
 #include "include/Octahedron.glsl"
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/packing.inc"
 #include "include/brdf.inc"
 

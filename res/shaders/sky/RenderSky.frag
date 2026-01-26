@@ -29,7 +29,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
 #include "../include/gbuffer.inc"
 #include "../include/env_probe.inc"
 #include "../include/noise.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/packing.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

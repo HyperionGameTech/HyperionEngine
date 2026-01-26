@@ -21,7 +21,7 @@ HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/material.inc"
-#include "../../include/Entity.glsl"
+#include "../../include/Entity.inc"
 #include "../../include/scene.inc"
 
 #include "../../include/brdf.inc"

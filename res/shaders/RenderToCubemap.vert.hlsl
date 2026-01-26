@@ -1,5 +1,6 @@
-#include "./include/shared.inc"
-#include "./include/scene.inc"
+#include "include/defines.inc"
+#include "include/shared.inc"
+#include "include/scene.inc"
 
 struct VSInput
 {
@@ -19,20 +20,24 @@ struct VSOutput
     float3 position : POSITION;
     float3 normal : NORMAL;
     float2 texcoord0 : TEXCOORD0;
-    float2 texcoord1 : TEXCOORD1;
-    float3 tangent : TANGENT;
-    float3 bitangent : BINORMAL;
     nointerpolation float3 camera_position : TEXCOORD3;
-    float4 position_ndc : TEXCOORD4;
-    float4 previous_position_ndc : TEXCOORD5;
     nointerpolation uint object_index : TEXCOORD6;
-    nointerpolation uint object_mask : TEXCOORD7;
+    nointerpolation uint cube_face_index : TEXCOORD7;
 };
 
 HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
+
+#ifdef ENV_PROBE
+
+#include "include/env_probe.inc"
+
+HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+#define current_env_probe current_env_probe_buffer[0]
+
+#endif
 
 #include "include/Entity.inc"
 
@@ -43,6 +48,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     #define entity_instance_batch entity_instance_batches[0]
 #else
     HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+    #define entity entities[0]
 #endif
 
 #ifdef SKINNING
@@ -67,12 +73,25 @@ float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
 }
 #endif
 
-VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
+float4x4 LookAt(float3 pos, float3 target, float3 up)
+{
+    float3 f = normalize(pos - target);
+    float3 s = normalize(cross(f, up));
+    float3 u = cross(s, f);
+
+    return float4x4(
+        s.x, s.y, s.z, -dot(s, pos),
+        u.x, u.y, u.z, -dot(u, pos),
+        -f.x, -f.y, -f.z, dot(f, pos),
+        0.0, 0.0, 0.0, 1.0
+    );
+}
+
+VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
     
     float4 position;
-    float4 previous_position;
     float4x4 normal_matrix;
 
 #ifdef INSTANCING
@@ -87,61 +106,40 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
-    previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     float4x4 skin_model = mul(model_matrix, skinning_matrix);
-    normal_matrix = skin_model; 
+    normal_matrix = skin_model;
 #else
     position = mul(model_matrix, float4(input.a_position, 1.0));
-    previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
     normal_matrix = model_matrix;
 #endif
-    
+
     output.position = position.xyz / position.w;
     output.normal = mul((float3x3)normal_matrix, input.a_normal);
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
-    output.camera_position = camera.position.xyz;
 
-#ifdef HYP_ATTRIBUTE_a_texcoord1
-    output.texcoord1 = input.a_texcoord1.xy;
+    const float3 forward_direction = g_cubemapDirections[ViewId * 2];
+    const float3 up_direction = g_cubemapDirections[ViewId * 2 + 1];
+
+    float4x4 projection_matrix = camera.projection;
+
+    float4x4 view_matrix;
+
+#if ENV_PROBE
+    output.camera_position = current_env_probe.world_position.xyz;
+    view_matrix = current_env_probe.face_view_matrices[ViewId];
 #else
-    output.texcoord1 = float2(0.0, 0.0);
+    output.camera_position = camera.position.xyz;
+    view_matrix = LookAt(output.camera_position, output.camera_position + forward_direction, up_direction);
 #endif
-
-    float3 tangent;
-    float3 bitangent;
-    ComputeOrthonormalBasis(input.a_normal, tangent, bitangent);
-
-    output.tangent = mul((float3x3)normal_matrix, tangent);
-    output.bitangent = mul((float3x3)normal_matrix, bitangent);
-
-    // ViewProjection
-    output.position_ndc = mul(camera.view, position);
-    output.position_ndc = mul(camera.projection, output.position_ndc);
-    
-    output.previous_position_ndc = mul(camera.projection, mul(camera.previous_view, previous_position));
-
-    // Jitter
-    float4x4 jitter_matrix = { 
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1 
-    };
-    jitter_matrix[0][3] += camera.jitter.x;
-    jitter_matrix[1][3] += camera.jitter.y;
-
-    output.position_cs = mul(jitter_matrix, output.position_ndc);
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;
-#else
-    output.object_index = ~0u; // unused
 #endif
 
-    const uint bucket = currentEntity.bucket;
-    output.object_mask = (uint(bucket == HYP_OBJECT_BUCKET_OPAQUE) * OBJECT_MASK_OPAQUE)
-        | (uint(bucket == HYP_OBJECT_BUCKET_TRANSLUCENT) * OBJECT_MASK_TRANSLUCENT)
-        | (uint(bucket == HYP_OBJECT_BUCKET_SKYBOX) * OBJECT_MASK_SKY);
+    output.position_cs = mul(projection_matrix, mul(view_matrix, position));
+
+    output.cube_face_index = ViewId;
 
     return output;
 }
+
