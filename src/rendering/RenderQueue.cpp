@@ -521,7 +521,8 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
     // merge shared global properties with the one we're setting
     MergeGlobalShaderProperties(shaderDesc.properties);
 
-    state.attributes.Invalidate();
+    state.attributes.SetShaderName(shaderDesc.name);
+    state.attributes.SetShaderProperties(shaderDesc.properties);
 
     static_assert(std::is_trivially_destructible_v<SetCurrentShader>);
     // cmdCasted->~SetCurrentShader();

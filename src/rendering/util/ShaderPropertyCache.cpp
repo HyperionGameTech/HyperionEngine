@@ -83,6 +83,8 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
             TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
             shaderPropertyCacheMap.Insert(hashed, static_cast<ShaderPropertyId>(i));
 
+            GetShaderPropertyReverseMap().Set(static_cast<ShaderPropertyId>(i), property);
+
             return static_cast<ShaderPropertyId>(i);
         }
     }

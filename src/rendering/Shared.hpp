@@ -2264,9 +2264,11 @@ HYP_STRUCT()
 struct ShaderPropertySet
 {
     HYP_STRUCT_BODY(ShaderPropertySet);
-
+    
     static constexpr uint32 NumChunks = 8;
-    static constexpr uint32 MaxProperties = 64 * NumChunks;
+    static constexpr uint32 ChunkSize = sizeof(uint64);
+    static constexpr uint32 ChunkSizeBits = ChunkSize * CHAR_BIT;
+    static constexpr uint32 MaxProperties = ChunkSize * NumChunks;
 
     HYP_FIELD()
     FixedArray<uint64, NumChunks> chunks;
@@ -2290,22 +2292,22 @@ struct ShaderPropertySet
 
     HYP_FORCE_INLINE void Add(ShaderPropertyId id)
     {
-        AssertDebug(uint32(id) < 64 * NumChunks);
+        AssertDebug(uint32(id) < ChunkSizeBits * NumChunks);
 
-        chunks[uint32(id) / NumChunks] |= (1ull << (uint32(id) % NumChunks));
+        chunks[uint32(id) / ChunkSizeBits] |= (1ull << (uint32(id) % ChunkSizeBits));
     }
 
     HYP_FORCE_INLINE void Set(ShaderPropertyId id, bool enable)
     {
-        AssertDebug(uint32(id) < 64 * NumChunks);
+        AssertDebug(uint32(id) < ChunkSizeBits * NumChunks);
 
         if (enable)
         {
-            chunks[uint32(id) / NumChunks] |= (1ull << (uint32(id) % NumChunks));
+            chunks[uint32(id) / ChunkSizeBits] |= (1ull << (uint32(id) % ChunkSizeBits));
         }
         else
         {
-            chunks[uint32(id) / NumChunks] &= ~(1ull << (uint32(id) % NumChunks));
+            chunks[uint32(id) / ChunkSizeBits] &= ~(1ull << (uint32(id) % ChunkSizeBits));
         }
     }
 
@@ -2349,29 +2351,8 @@ struct ShaderPropertySet
         return result;
     }
 
-    Array<ShaderPropertyId> ToArray() const
-    {
-        Array<ShaderPropertyId> result;
-        result.Reserve(ByteUtil::BitCount(chunks[0])
-            + ByteUtil::BitCount(chunks[1])
-            + ByteUtil::BitCount(chunks[2])
-            + ByteUtil::BitCount(chunks[3]));
-
-        uint64 chunkOffset = 0;
-        for (uint64 chunk : chunks)
-        {
-            FOR_EACH_BIT(chunk, bit)
-            {
-                ShaderPropertyId propertyId = ShaderPropertyId(chunkOffset + bit);
-                
-                result.PushBack(propertyId);
-            }
-
-            chunkOffset += 64;
-        }
-
-        return result;
-    }
+    Array<ShaderPropertyId> ToArray() const;
+    String GetDebugString() const;
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {

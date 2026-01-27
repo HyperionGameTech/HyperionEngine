@@ -2299,6 +2299,55 @@ String ShaderVariant::ToString() const
 
 #pragma endregion ShaderVariant
 
+#pragma region ShaderPropertySet
+
+Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
+{
+    Array<ShaderPropertyId> result;
+    result.Reserve(ByteUtil::BitCount(chunks[0])
+        + ByteUtil::BitCount(chunks[1])
+        + ByteUtil::BitCount(chunks[2])
+        + ByteUtil::BitCount(chunks[3]));
+
+    uint64 chunkOffset = 0;
+    for (uint64 chunk : chunks)
+    {
+        FOR_EACH_BIT(chunk, bit)
+        {
+            ShaderPropertyId propertyId = ShaderPropertyId(chunkOffset + bit);
+                
+            result.PushBack(propertyId);
+        }
+
+        chunkOffset += 64;
+    }
+
+    return result;
+}
+
+String ShaderPropertySet::GetDebugString() const
+{
+    String str;
+
+    for (ShaderPropertyId propertyId : ToArray())
+    {
+        if (!str.Empty())
+            str += ", ";
+
+        ShaderProperty property;
+        if (!GetShaderPropertyById(propertyId, property))
+        {
+            str += "<UNKNOWN>";
+        }
+
+        str += property.ToString();
+    }
+
+    return str;
+}
+
+#pragma endregion ShaderPropertySet
+
 #pragma region ShaderCompiler
 
 ShaderCompiler::ShaderCompiler()
@@ -2707,6 +2756,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
 
                 return;
             }
+
+            // @TODO Just use LoadOrCompileBatch with empty Optional<ShaderRequest>
 
             ForEachPermutation(
                 decl.versions,
@@ -3637,27 +3688,24 @@ bool ShaderCompiler::CompileBundle(
 
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
     // ============================================
-    // if additionalProperties are provided we need to properly merge them into permutations.
-    // i.e if OUTPUT=RGBA8 is added and we have a ValueGroup OUTPUT={RGBA8, RGBA16F}, we need to add
-    // RGBA8 to the existing OUTPUT ValueGroup rather than applying it to EVERY single permutation.
-    //  ============================================
-    // IF isPermutation is true, we add a new permutation.
-    // otherwise: we check if it has a value (i.e OUTPUT=RGBA8)
-    //    - if it has a value, we find the ValueGroup in finalProperties and add the value to it - if it does not exist, we make a new one
-    //    - if it does not have a value, we add it as a static property (applied to every single permutation)
+    // if shaderRequest is set, we need to properly merge those properties with our ShaderVariant.
+    // 
+    // We assume all requested properties are NOT permutable.
+    // 
+    // VALUE GROUPS / ENUMS:
+    // If OUTPUT=RGBA8 is added and we have in our ShaderVariant, OUTPUT={RGBA8, RGBA16F}, we need to add
+    // RGBA8 to the existing `OUTPUT` ValueGroup rather than applying it to EVERY single permutation.
     // =============================================
     if (shaderRequest.HasValue())
     {
         const auto MergeProperty = [](ShaderVariant& targetVariant, const ShaderProperty& additional) -> Result
         {
-            auto targetIt = targetVariant.Find(StringHash(additional.name));
-
             if (additional.IsPermutable())
             {
-                targetVariant.AddPermutation(additional.name);
-
-                return {};
+                return HYP_MAKE_ERROR(Error, "Requested shader with permutable property {} (which is not allowed)", additional.name);
             }
+
+            auto targetIt = targetVariant.Find(StringHash(additional.name));
 
             if (additional.HasValue())
             {
@@ -3686,6 +3734,7 @@ bool ShaderCompiler::CompileBundle(
                     Array<ShaderProperty::Value> valueArray(1);
                     valueArray[0] = additional.currentValue;
 
+                    // Add new ValueGroup to the shader variant.
                     targetVariant.AddValueGroup(additional.name, valueArray);
 
                     return {};
@@ -3736,16 +3785,6 @@ bool ShaderCompiler::CompileBundle(
             }
 
             additionalProperties.PushBack(std::move(property));
-        }
-
-        if (shaderRequest->vertexAttributes.Size() != 0)
-        {
-            Array<const VertexAttribute*> attrs = shaderRequest->vertexAttributes.BuildAttributes();
-
-            for (const VertexAttribute* attr : attrs)
-            {
-                additionalProperties.EmplaceBack(*attr);
-            }
         }
 
         for (const ShaderProperty& additionalProperty : additionalProperties)
@@ -4119,6 +4158,7 @@ bool ShaderCompiler::CompileBundle(
     return true;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool ShaderCompiler::GetCompiledShader(
     Name name,
     const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
@@ -4160,23 +4200,17 @@ bool ShaderCompiler::GetCompiledShader(
 
     if (it == batch.compiledShaders.End())
     {
-        /*HYP_LOG(ShaderCompiler, Error,
-            "No match found for requested shader properties!\n"
-            "Shader: {}\n"
-            "Requested:\n\tHash: {}\tProps: {}\tVertex Attributes: {}\n\n"
+        HYP_LOG(ShaderCompiler, Error,
+            "No match found for requested shader!\n"
+            "Name: {}\n"
+            "\tRequested properties: {}\n\tVertex Attributes: {}\n\n"
             "Found: {}",
-            name,
-            finalPropertiesHash.Value(),
-            finalProperties.ToString(),
-            finalProperties.GetRequiredVertexAttributes().ToString(),
-            String::Join(batch.compiledShaders, "\n\t", [](auto&& item)
+            name, mergedProperties.GetDebugString(), vertexAttributes.ToString(),
+            String::Join(batch.compiledShaders, "\n", [](const CompiledShader& cs)
                 {
-                    return HYP_FORMAT(
-                        "Hash: {}\tProps: {}\tVertex Attributes: {}",
-                        item.GetDefinition().GetProperties().GetPropertySetHashCode().Value(),
-                        item.GetDefinition().GetProperties().ToString(),
-                        item.GetDefinition().GetProperties().GetRequiredVertexAttributes().ToString());
-                }));*/
+                    return HYP_FORMAT("-----\n\tProperties: {}\n\tVertex Attributes: {}\n-----",
+                        cs.properties.GetDebugString(), cs.vertexAttributes.ToString());
+                }));
 
         HYP_BREAKPOINT;
 
@@ -4197,6 +4231,7 @@ bool ShaderCompiler::GetCompiledShader(
 
     return true;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion ShaderCompiler
 
