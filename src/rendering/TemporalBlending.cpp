@@ -165,18 +165,18 @@ void TemporalBlending::Resize_Internal(Vec2u newSize)
     CreateImages();
 }
 
-void TemporalBlending::GetShaderProperties(ShaderVariant& outProperties) const
+void TemporalBlending::GetShaderProperties(ShaderPropertySet& outProperties) const
 {
     switch (m_imageFormat)
     {
     case TF_RGBA8:
-        outProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
+        outProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8"))));
         break;
     case TF_RGBA16F:
-        outProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
+        outProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F"))));
         break;
     case TF_RGBA32F:
-        outProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
+        outProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F"))));
         break;
     default:
         HYP_NOT_IMPLEMENTED();
@@ -184,8 +184,8 @@ void TemporalBlending::GetShaderProperties(ShaderVariant& outProperties) const
 
     static const Name s_feedbackTypes[] = { NAME("LOW"), NAME("MEDIUM"), NAME("HIGH") };
 
-    outProperties.Set(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique)));
-    outProperties.Set(ShaderProperty(NAME("FEEDBACK"), float(m_feedback)));
+    outProperties.Add(InternShaderProperty(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique))));
+    outProperties.Add(InternShaderProperty(ShaderProperty(NAME("FEEDBACK"), float(m_feedback))));
 }
 
 void TemporalBlending::CreateImages()
@@ -257,10 +257,10 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     uniforms.blendingFrameCounter = m_blendingFrameCounter;
     m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 
-    ShaderVariant shaderProperties;
+    ShaderPropertySet shaderProperties;
     GetShaderProperties(shaderProperties);
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("TemporalBlending"), shaderProperties)));
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("TemporalBlending"), shaderProperties));
 
     const GpuImageViewRef& inputImageView = m_inputFramebuffer.IsValid()
             ? m_inputFramebuffer->GetAttachment(0)->GetImageView()

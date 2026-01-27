@@ -149,7 +149,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         mipImageViews[mipLevel] = std::move(mipImageView);
 
         FullScreenPass* pass = new FullScreenPass(
-            ShaderDefinition(NAME("GenerateMipmaps")),
+            ShaderDesc(NAME("GenerateMipmaps")),
             texture->GetFormat(),
             Vec2u { mipWidth, mipHeight },
             nullptr);

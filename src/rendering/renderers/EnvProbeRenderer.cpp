@@ -303,9 +303,9 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         const float roughness = float(mipIndex) / float(numMips - 1);
         const float perceptualRoughness = MathUtil::Round(roughness * roughness, 3);
 
-        ShaderVariant shaderProperties;
-        shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), perceptualRoughness));
-        shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 2048));
+        ShaderPropertySet shaderProperties;
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LOBE_SIZE"), perceptualRoughness)));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("NUM_SAMPLES"), 2048)));
 
         const Vec2u mipExtent = mipIndex == 0
             ? extent
@@ -320,7 +320,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
         uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-        frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("ConvolveProbe"), shaderProperties)));
+        frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("ConvolveProbe"), shaderProperties));
 
         ImageSubResource subResource {};
         subResource.baseMipLevel = mipIndex;
@@ -453,11 +453,11 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         Assert(shTilesBuffers[i]->Create());
     }
 
-    ShaderVariant shaderProperties;
+    ShaderPropertySet shaderProperties;
 
     if (!envProbe->IsSkyProbe())
     {
-        shaderProperties.Set(ShaderProperty(NAME("LIGHTING")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("LIGHTING"))));
     }
 
     // Bind a directional light and sky envprobe if available
@@ -513,9 +513,11 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     // Helper to run pass
     auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const GpuBufferRef& inputBuffer, const GpuBufferRef& outputBuffer)
     {
-        ShaderVariant passShaderProperties = ShaderVariant::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), mode) } });
+        ShaderPropertySet passShaderProperties;
+        passShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), mode)));
+        passShaderProperties = passShaderProperties | shaderProperties;
         
-        ShaderDesc shaderDesc(ShaderDefinition(NAME("ComputeSH"), passShaderProperties));
+        ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
         asyncRenderQueue << SetCurrentShader(shaderDesc);
 
         GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(SHUniforms));

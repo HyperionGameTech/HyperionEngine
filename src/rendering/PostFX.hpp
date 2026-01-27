@@ -44,12 +44,12 @@ public:
         GBuffer* gbuffer);
 
     PostFXPass(
-        const ShaderDefinition& shaderDefinition,
+        const ShaderDesc& shaderDesc,
         TextureFormat imageFormat,
         GBuffer* gbuffer);
 
     PostFXPass(
-        const ShaderDefinition& shaderDefinition,
+        const ShaderDesc& shaderDesc,
         PostProcessingStage stage,
         uint32 effectIndex,
         TextureFormat imageFormat,
@@ -125,12 +125,12 @@ public:
     virtual void RenderEffect(Frame* frame, const RenderSetup& renderSetup, uint32 slot);
 
 protected:
-    virtual ShaderDefinition GetShaderDefinition() = 0;
+    virtual ShaderDesc GetShaderDesc() = 0;
 
     PostFXPass m_pass;
 
 private:
-    ShaderDefinition m_shaderDefinition;
+    ShaderDesc m_shaderDesc;
     bool m_isEnabled;
 };
 

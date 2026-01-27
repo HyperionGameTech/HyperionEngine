@@ -107,9 +107,8 @@ public:
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
-    ShaderVariant GetShaderProperties() const;
+    ShaderPropertySet GetShaderProperties() const;
 
-    void CreateBlueNoiseBuffer();
     void CreatePasses();
 
     void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);

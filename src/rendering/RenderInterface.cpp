@@ -1446,17 +1446,6 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             GraphicsPipeline* pipeline = nullptr;
             
-            // set required vertex attributes for the shader based on current vertexAttributes value
-
-            ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
-
-            if (state.attributes.GetMeshAttributes().vertexAttributes != shaderDefinition.properties.GetRequiredVertexAttributes())
-            {
-                shaderDefinition.GetProperties().SetRequiredVertexAttributes(state.attributes.GetMeshAttributes().vertexAttributes);
-
-                state.attributes.Invalidate();
-            }
-
             if (!state.prevGraphicsPipeline
                 || !state.prevGraphicsPipeline->MatchesSignature(
                         state.attributes,
@@ -1492,11 +1481,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             ComputePipeline* pipeline = nullptr;
 
-            const ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
-
-            if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(shaderDefinition))
+            if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
             {
-                pipeline = computePipelineCache->GetOrCreate(shaderDefinition);
+                pipeline = computePipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
                 AssertDebug(pipeline != nullptr);
 
                 BindComputePipeline bindCmd(pipeline);
@@ -1519,11 +1506,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             RayTracingPipeline* pipeline = nullptr;
 
-            const ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
-
-            if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(shaderDefinition))
+            if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
             {
-                pipeline = rayTracingPipelineCache->GetOrCreate(shaderDefinition);
+                pipeline = rayTracingPipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
                 AssertDebug(pipeline != nullptr);
 
                 BindRayTracingPipeline bindCmd(pipeline);

@@ -40,10 +40,16 @@ struct HashedShaderProperty
     }
 };
 
-static HashMap<HashedShaderProperty, ShaderPropertyId>& GetShaderPropertyCacheMap()
+static HashMap<HashedShaderProperty, ShaderPropertyId>& GetShaderPropertyMap()
 {
     static HashMap<HashedShaderProperty, ShaderPropertyId> s_propertyToIdMap;
     return s_propertyToIdMap;
+}
+
+static HashMap<ShaderPropertyId, ShaderProperty>& GetShaderPropertyReverseMap()
+{
+    static HashMap<ShaderPropertyId, ShaderProperty> s_idToPropertyMap;
+    return s_idToPropertyMap;
 }
 
 static SharedMutex& GetShaderPropertyCacheMutex()
@@ -54,7 +60,7 @@ static SharedMutex& GetShaderPropertyCacheMutex()
 
 ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
 {
-    auto& shaderPropertyCacheMap = GetShaderPropertyCacheMap();
+    auto& shaderPropertyCacheMap = GetShaderPropertyMap();
 
     TSharedLock lock(GetShaderPropertyCacheMutex());
 
@@ -95,7 +101,27 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
     const ShaderPropertyId newId = static_cast<ShaderPropertyId>(uint32(std::size(s_staticProperties)) + shaderPropertyCacheMap.Size());
     shaderPropertyCacheMap.Insert(hashed, newId);
 
+    GetShaderPropertyReverseMap().Set(newId, property);
+
     return newId;
+}
+
+bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty)
+{
+    TSharedLock lock(GetShaderPropertyCacheMutex());
+
+    auto& reverseMap = GetShaderPropertyReverseMap();
+
+    auto it = reverseMap.Find(propertyId);
+
+    if (it == reverseMap.End())
+    {
+        return false;
+    }
+
+    outProperty = it->second;
+
+    return true;
 }
 
 constexpr uint16 ShaderPropertyDatabaseVersion = 1;
@@ -107,7 +133,7 @@ void WriteShaderPropertyDatabase(ByteWriter& stream)
     TSharedLock lock(GetShaderPropertyCacheMutex());
 
     HashSet<ShaderPropertyId> visited;
-    visited.Reserve(GetShaderPropertyCacheMap().Size());
+    visited.Reserve(GetShaderPropertyMap().Size());
 
     const uint32 headerOffset = stream.Position();
 
@@ -135,7 +161,7 @@ void WriteShaderPropertyDatabase(ByteWriter& stream)
     }
 
     // now, do runtime hashed propertyies
-    for (const auto& it : GetShaderPropertyCacheMap())
+    for (const auto& it : GetShaderPropertyMap())
     {
         const HashedShaderProperty& hashedProperty = it.first;
         ShaderPropertyId id = it.second;
@@ -184,7 +210,7 @@ void ReadShaderPropertyDatabase(BufferedByteReader& stream)
     
     TUniqueLock lock(GetShaderPropertyCacheMutex());
     
-    auto& shaderPropertyCacheMap = GetShaderPropertyCacheMap();
+    auto& shaderPropertyCacheMap = GetShaderPropertyMap();
     shaderPropertyCacheMap.Reserve(entryCount);
 
     ubyte* bytes = (ubyte*)Memory::Allocate(entryCount * SizeOfEntry);

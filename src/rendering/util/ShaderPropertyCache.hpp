@@ -18,9 +18,10 @@ class ByteWriter;
 class BufferedReader;
 using BufferedByteReader = BufferedReader;
 
-HYP_API void WriteShaderPropertyDatabase(ByteWriter& stream);
-HYP_API void ReadShaderPropertyDatabase(BufferedByteReader& stream);
+void WriteShaderPropertyDatabase(ByteWriter& stream);
+void ReadShaderPropertyDatabase(BufferedByteReader& stream);
 
-HYP_API HYP_NODISCARD ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
+ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
+bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty);
 
 } // namespace Hyperion

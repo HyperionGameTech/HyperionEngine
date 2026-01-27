@@ -46,12 +46,14 @@ static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
     TF_RG16F  // VSM
 };
 
-static const ShaderProperty s_shadowMapFilterProperties[SMF_MAX] = {
-    ShaderProperty(NAME("MODE"), NAME("STANDARD")),
-    ShaderProperty(NAME("MODE"), NAME("PCF")),
-    ShaderProperty(NAME("MODE"), NAME("CONTACT_HARDENED")),
-    ShaderProperty(NAME("MODE"), NAME("VSM"))
+static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("STANDARD"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("PCF"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("CONTACT_HARDENED"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("VSM")))
 };
+
+static const ShaderPropertyId s_propModeShadows = InternShaderProperty(ShaderProperty(NAME("MODE_SHADOWS")));
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
@@ -177,11 +179,9 @@ void Light::CreateShadowViews()
         ViewFlags::COLLECT_ALL_ENTITIES
     };
 
-    ShaderDefinition shaderDefinition;
-
-    ShaderVariant shaderProperties;
-    shaderProperties.SetRequiredVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
-    shaderProperties.Set(s_shadowMapFilterProperties[shadowMapFilter]);
+    ShaderDesc shaderDesc;
+    shaderDesc.name = NAME("Shadows");
+    shaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
 
     RenderTargetDesc renderTargetDesc {};
     renderTargetDesc.extent = m_shadowMapDimensions;
@@ -210,8 +210,10 @@ void Light::CreateShadowViews()
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;
 
-        shaderProperties.Set(NAME("MODE_SHADOWS"));
-        shaderDefinition = ShaderDefinition(NAME("RenderToCubemap"), shaderProperties);
+        shaderDesc.name = NAME("RenderToCubemap");
+
+        shaderDesc.properties = {};
+        shaderDesc.properties.Add(s_propModeShadows);
 
         break;
     }
@@ -239,18 +241,12 @@ void Light::CreateShadowViews()
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;
 
-        shaderDefinition = ShaderDefinition(NAME("Shadows"), shaderProperties);
-
         break;
     }
     default:
-    {
         // no shadow mapping implementation
         return;
     }
-    }
-
-    AssertDebug(shaderDefinition.IsValid(), "Shader definition is not valid for light type {}", EnumToString(m_type));
 
     Handle<Camera> shadowMapCamera;
 
@@ -298,8 +294,10 @@ void Light::CreateShadowViews()
     const RenderableAttributeSet overrideAttributes(
         MeshAttributes {},
         MaterialAttributes {
-            .shaderDefinition = shaderDefinition,
-            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK });
+            .shaderName = shaderDesc.name,
+            .shaderProperties = shaderDesc.properties,
+            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK
+        });
 
     for (int i = 0; i < int(shadowViewFlags.Size()); i++)
     {

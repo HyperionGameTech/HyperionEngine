@@ -125,18 +125,18 @@ const Handle<Texture>& SSRRenderer::GetFinalResultTexture() const
         : m_sampledResultTexture;
 }
 
-ShaderVariant SSRRenderer::GetShaderProperties() const
+ShaderPropertySet SSRRenderer::GetShaderProperties() const
 {
-    ShaderVariant shaderProperties;
-    shaderProperties.Set(NAME("CONE_TRACING"), m_config.coneTracing);
-    shaderProperties.Set(NAME("ROUGHNESS_SCATTERING"), m_config.roughnessScattering);
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("CONE_TRACING"))), m_config.coneTracing);
+    shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("ROUGHNESS_SCATTERING"))), m_config.roughnessScattering);
 
     return shaderProperties;
 }
 
 void SSRRenderer::CreatePasses()
 {
-    const ShaderVariant shaderProperties = GetShaderProperties();
+    const ShaderPropertySet shaderProperties = GetShaderProperties();
 
     // Write UVs pass - renders to m_uvsTexture
     {
@@ -157,7 +157,7 @@ void SSRRenderer::CreatePasses()
         delete m_writeUvs;
 
         m_writeUvs = new FullScreenPass(
-            ShaderDefinition(NAME("SSRWriteUVs"), shaderProperties),
+            ShaderDesc(NAME("SSRWriteUVs"), shaderProperties),
             writeUvsFramebuffer,
             m_uvsTexture->GetFormat(),
             m_uvsTexture->GetExtent().GetXY(),
@@ -186,7 +186,7 @@ void SSRRenderer::CreatePasses()
         delete m_sampleGbuffer;
 
         m_sampleGbuffer = new FullScreenPass(
-            ShaderDefinition(NAME("SSRSampleGBuffer"), shaderProperties),
+            ShaderDesc(NAME("SSRSampleGBuffer"), shaderProperties),
             sampleGbufferFramebuffer,
             SsrFormat,
             m_sampledResultTexture->GetExtent().GetXY(),

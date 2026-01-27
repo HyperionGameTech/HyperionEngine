@@ -2276,11 +2276,37 @@ struct ShaderPropertySet
     {
     }
 
+    template <SizeType N>
+    constexpr ShaderPropertySet(const ShaderPropertyId(&properties)[N])
+    {
+        for (auto it = std::begin(properties); it != std::end(properties); ++it)
+        {
+            Add(*it);
+        }
+    }
+
+    constexpr ShaderPropertySet(const ShaderPropertySet& other) = default;
+    constexpr ShaderPropertySet& operator=(const ShaderPropertySet& other) = default;
+
     HYP_FORCE_INLINE void Add(ShaderPropertyId id)
     {
         AssertDebug(uint32(id) < 64 * NumChunks);
 
         chunks[uint32(id) / NumChunks] |= (1ull << (uint32(id) % NumChunks));
+    }
+
+    HYP_FORCE_INLINE void Set(ShaderPropertyId id, bool enable)
+    {
+        AssertDebug(uint32(id) < 64 * NumChunks);
+
+        if (enable)
+        {
+            chunks[uint32(id) / NumChunks] |= (1ull << (uint32(id) % NumChunks));
+        }
+        else
+        {
+            chunks[uint32(id) / NumChunks] &= ~(1ull << (uint32(id) % NumChunks));
+        }
     }
 
     HYP_FORCE_INLINE constexpr bool Test(ShaderPropertyId id) const
@@ -2323,11 +2349,37 @@ struct ShaderPropertySet
         return result;
     }
 
+    Array<ShaderPropertyId> ToArray() const
+    {
+        Array<ShaderPropertyId> result;
+        result.Reserve(ByteUtil::BitCount(chunks[0])
+            + ByteUtil::BitCount(chunks[1])
+            + ByteUtil::BitCount(chunks[2])
+            + ByteUtil::BitCount(chunks[3]));
+
+        uint64 chunkOffset = 0;
+        for (uint64 chunk : chunks)
+        {
+            FOR_EACH_BIT(chunk, bit)
+            {
+                ShaderPropertyId propertyId = ShaderPropertyId(chunkOffset + bit);
+                
+                result.PushBack(propertyId);
+            }
+
+            chunkOffset += 64;
+        }
+
+        return result;
+    }
+
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return chunks.GetHashCode();
     }
 };
+
+extern ShaderPropertyId InternShaderProperty(const ShaderProperty& shaderProperty);
 
 /*! \brief For requested shader instance */
 struct ShaderDesc

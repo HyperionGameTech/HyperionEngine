@@ -25,11 +25,14 @@ public:
 
     ShaderManager();
     
-    ShaderRef GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes);
+    ShaderRef GetOrCreate(
+        Name name,
+        const ShaderPropertySet& properties,
+        const VertexAttributeSet& vertexAttributes);
 
-    ShaderRef GetOrCreate(const ShaderDefinition& definition);
-    ShaderRef GetOrCreate(const ShaderDefinition& definition, ShaderCacheId& outCacheId);
+    SizeType CalculateMemoryUsage() const;
 
+private:
     /*! \brief Gets a unique ShaderCacheId for the given ShaderDefinition.
      *  If \p createIfNotExists is true, a new ShaderCacheId will be created
      *  and stored if one does not already exist for the given definition. (The shader will be created on demand when requested.)
@@ -38,11 +41,12 @@ public:
      *  with RuntimeMaterialAttributes to reference shaders without holding
      *  a full ShaderDefinition object.
      */
-    ShaderCacheId GetShaderCacheId(const ShaderDefinition& definition, bool createIfNotExists = true) const;
+    ShaderCacheId GetShaderCacheId(
+        Name name,
+        const ShaderPropertySet& properties,
+        const VertexAttributeSet& vertexAttributes,
+        bool createIfNotExists = true) const;
 
-    SizeType CalculateMemoryUsage() const;
-
-private:
     Pimpl<class ShaderManagerImpl> m_impl;
 };
 

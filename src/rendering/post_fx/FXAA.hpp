@@ -20,7 +20,7 @@ public:
     virtual void OnRemoved() override;
 
 protected:
-    virtual ShaderDefinition GetShaderDefinition() override;
+    virtual ShaderDesc GetShaderDesc() override;
 };
 
 } // namespace Hyperion

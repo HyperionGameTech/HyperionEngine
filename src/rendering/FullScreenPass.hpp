@@ -56,14 +56,14 @@ public:
         EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
-        const ShaderDefinition& shaderDefinition,
+        const ShaderDesc& shaderDesc,
         TextureFormat imageFormat,
         Vec2u extent,
         GBuffer* gbuffer,
         EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
-        const ShaderDefinition& shaderDefinition,
+        const ShaderDesc& shaderDesc,
         const FramebufferRef& framebuffer,
         TextureFormat imageFormat,
         Vec2u extent,
@@ -91,12 +91,12 @@ public:
         return m_framebuffer;
     }
 
-    HYP_FORCE_INLINE const ShaderDefinition& GetShaderDefinition() const
+    HYP_FORCE_INLINE const ShaderDesc& GetShaderdesc() const
     {
-        return m_shaderDefinition;
+        return m_shaderDesc;
     }
 
-    void SetShaderDefinition(const ShaderDefinition& shaderDefinition);
+    void SetShaderDesc(const ShaderDesc& shaderDesc);
 
     HYP_FORCE_INLINE const Handle<Mesh>& GetQuadMesh() const
     {
@@ -166,7 +166,7 @@ protected:
     UniquePtr<TemporalBlending> m_temporalBlending;
     Handle<Texture> m_previousTexture;
 
-    ShaderDefinition m_shaderDefinition;
+    ShaderDesc m_shaderDesc;
 
     bool m_isFirstFrame;
 

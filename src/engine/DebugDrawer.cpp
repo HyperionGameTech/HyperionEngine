@@ -46,6 +46,8 @@ namespace Hyperion {
 
 extern EngineStatCounter<uint32> g_statDebugDraws;
 
+static const ShaderPropertyId s_propImmediateMode = InternShaderProperty(ShaderProperty(NAME("IMMEDIATE_MODE")));
+
 static RenderableAttributeSet GetRenderableAttributes()
 {
     return RenderableAttributeSet(
@@ -696,11 +698,11 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     SizeType totalDrawCalls = 0;
     SizeType totalInstancedDraws = 0;
 
-    ShaderDefinition shaderDefinition;
-    shaderDefinition.name = NAME("DebugAABB");
-    shaderDefinition.properties.Set(NAME("IMMEDIATE_MODE"));
+    ShaderDesc shaderDesc;
+    shaderDesc.name = NAME("DebugAABB");
+    shaderDesc.properties.Add(s_propImmediateMode);
     
-    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
+    rq << SetCurrentShader(shaderDesc);
     rq << SetCurrentView(renderTargetDesc, viewport);
 
     HYP_DEFER({

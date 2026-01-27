@@ -23,6 +23,7 @@
 #include <rendering/GBuffer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/View.hpp>
@@ -42,6 +43,8 @@ namespace Hyperion {
 
 // How many frames until we release resources for unused volumes?
 static constexpr uint32 DiscardFrames = 60;
+
+static const ShaderPropertyId s_propHasPhysics = InternShaderProperty(ShaderProperty(NAME("HAS_PHYSICS")));
 
 ParticleVolumeRenderer::VolumeState::~VolumeState()
 {
@@ -149,16 +152,18 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     DeferCreate(state.indirectBuffer);
 
     CreateNoiseMap(state.noiseMap);
+    
+    state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
 
     // compute shader properties
-    ShaderVariant properties;
-    state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
-    properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
-    properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
+    ShaderPropertySet properties;
+    properties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles))));
+    properties.Set(s_propHasPhysics, state.hasPhysics);
 
     // set default particle graphics attributes (translucent)
     MaterialAttributes materialAttributes {};
-    materialAttributes.shaderDefinition = ShaderDefinition { NAME("Particle"), properties };
+    materialAttributes.shaderName = NAME("Particle");
+    materialAttributes.shaderProperties = properties;
     materialAttributes.bucket = RB_TRANSLUCENT;
     materialAttributes.blendFunction = BlendFunction::AlphaBlending();
     materialAttributes.cullFaces = FCM_FRONT;
@@ -251,11 +256,11 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     { // update gpu particles pass (compute, done before frame is rendered)
         RenderQueue& rq = frame->preRenderQueue;
 
-        ShaderVariant properties;
-        properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
-        properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
+        ShaderPropertySet properties;
+        properties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles))));
+        properties.Set(s_propHasPhysics, state.hasPhysics);
 
-        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("UpdateParticles"), properties)));
+        rq << SetCurrentShader(ShaderDesc(NAME("UpdateParticles"), properties));
 
         rq << SetShaderUniform(0, "ParticlesBuffer"_sh, state.particleBuffer); 
         rq << SetShaderUniform(1, "IndirectDrawCommandsBuffer"_sh, state.indirectBuffer);
@@ -290,7 +295,9 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         rq << SetVertexAttributes(state.renderableAttributes.GetMeshAttributes().vertexAttributes);
         rq << SetTopology(state.renderableAttributes.GetMeshAttributes().topology);
 
-        rq << SetCurrentShader(ShaderDesc(state.renderableAttributes.GetMaterialAttributes().shaderDefinition));
+        rq << SetCurrentShader(ShaderDesc(
+            state.renderableAttributes.GetMaterialAttributes().shaderName,
+            state.renderableAttributes.GetMaterialAttributes().shaderProperties));
 
         rq << SetCurrentBlendFunction(state.renderableAttributes.GetMaterialAttributes().blendFunction);
         rq << SetFaceCullMode(state.renderableAttributes.GetMaterialAttributes().cullFaces);

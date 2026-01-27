@@ -18,6 +18,8 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
 
+#include <rendering/util/ShaderPropertyCache.hpp>
+
 #include <scene/View.hpp>
 
 #include <ui/font/FontAtlas.hpp>
@@ -40,6 +42,8 @@ HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #pragma region UIRenderCollector
 
+static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
+
 static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet& entityAttributes, const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: GetMergedRenderableAttributes");
@@ -48,31 +52,7 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
 
     if (overrideAttributes.HasValue())
     {
-        if (const ShaderDefinition& overrideShaderDefinition = overrideAttributes->GetShaderDefinition())
-        {
-            attributes.SetShaderDefinition(overrideShaderDefinition);
-        }
-
-        ShaderDefinition shaderDefinition = overrideAttributes->GetShaderDefinition().IsValid()
-            ? overrideAttributes->GetShaderDefinition()
-            : attributes.GetShaderDefinition();
-
-#ifdef HYP_DEBUG_MODE
-        Assert(shaderDefinition.IsValid());
-#endif
-
-        // Check for varying vertex attributes on the override shader compared to the entity's vertex
-        // attributes. If there is not a match, we should switch to a version of the override shader that
-        // has matching vertex attribs.
-        const VertexAttributeSet meshVertexAttributes = attributes.GetMeshAttributes().vertexAttributes;
-
-        if (meshVertexAttributes != shaderDefinition.GetProperties().GetRequiredVertexAttributes())
-        {
-            shaderDefinition.properties.SetRequiredVertexAttributes(meshVertexAttributes);
-        }
-
         MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
-        newMaterialAttributes.shaderDefinition = shaderDefinition;
         // do not override bucket!
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -112,13 +92,14 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         RenderableAttributeSet attributes = GetMergedRenderableAttributes(RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() }, overrideAttributes);
 
-        if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+        if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP); albedoTexture.IsValid())
         {
             if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
             {
-                ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
-                shaderDefinition.GetProperties().Set(NAME("TEXTURED"));
-                attributes.SetShaderDefinition(shaderDefinition);
+                ShaderPropertySet newProperties = attributes.GetShaderProperties();
+                newProperties.Add(s_propTextured);
+
+                attributes.SetShaderProperties(newProperties);
             }
         }
 
@@ -131,9 +112,11 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         if (!rg)
         {
-            ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
+            ShaderRef shader = g_shaderManager->GetOrCreate(
+                attributes.GetMaterialAttributes().shaderName,
+                attributes.GetMaterialAttributes().shaderProperties,
+                attributes.GetMeshAttributes().vertexAttributes);
 
-            ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
             Assert(shader.IsValid());
 
             rg = new RenderGroup(shader, attributes, RenderGroupFlags::NONE);

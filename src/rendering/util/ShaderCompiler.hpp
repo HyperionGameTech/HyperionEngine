@@ -500,6 +500,7 @@ struct CompiledShaderBatch
 };
 
 void MergeGlobalShaderProperties(ShaderVariant& out);
+void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
 class ShaderCompiler
 {
@@ -524,6 +525,12 @@ class ShaderCompiler
         ~ProcessResult() = default;
     };
 
+    struct ShaderRequest
+    {
+        ShaderPropertySet properties;
+        VertexAttributeSet vertexAttributes;
+    };
+
 public:
     ShaderCompiler();
     ShaderCompiler(const ShaderCompiler& other) = delete;
@@ -533,12 +540,9 @@ public:
     HYP_API bool CanCompileShaders() const;
     HYP_API bool LoadShaderDefinitions(bool precompileShaders = false);
 
-    HYP_API CompiledShader GetCompiledShader(Name name);
-    HYP_API CompiledShader GetCompiledShader(Name name, const ShaderVariant& properties);
-
     HYP_API bool GetCompiledShader(
         Name name,
-        const ShaderVariant& properties,
+        const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
         CompiledShader& out);
 
 private:
@@ -558,24 +562,24 @@ private:
         ShaderBundleDecl& shaderBundleDecl,
         CompiledShaderBatch& out)
     {
-        return CompileBundle(shaderBundleDecl, ShaderVariant(), out, false);
+        return CompileBundle(shaderBundleDecl, {}, out, false);
     }
 
     bool CompileBundle(
         ShaderBundleDecl& shaderBundleDecl,
-        const ShaderVariant& additionalProperties,
+        Optional<ShaderRequest> shaderRequest,
         CompiledShaderBatch& out,
         bool onlyCompileRequestedVersions = false);
 
     bool HandleCompiledShaderBatch(
         ShaderBundleDecl& shaderBundleDecl,
-        const ShaderVariant& additionalProperties,
+        Optional<ShaderRequest> shaderRequest,
         const FilePath& outputFilePath,
         CompiledShaderBatch& batch);
 
     bool LoadOrCompileBatch(
         Name name,
-        const ShaderVariant& additionalProperties,
+        Optional<ShaderRequest> shaderRequest,
         CompiledShaderBatch& out);
 
     INIFile* m_definitions;

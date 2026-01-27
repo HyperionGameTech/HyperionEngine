@@ -18,10 +18,7 @@
 
 namespace Hyperion {
 
-static const ShaderDefinition s_defaultShaderDefinition {
-    NAME("GeometryPass"),
-    ShaderVariant(VertexAttributeSet::StaticMeshVertexAttributes)
-};
+static const Name s_defaultShaderName = NAME("GeometryPass");
 
 static HashCode GetMaterialHashCode(
     const MaterialAttributes& attributes,
@@ -155,7 +152,7 @@ const MaterialParameters& Material::DefaultParameters()
 
 Material::Material()
     : m_attributes {
-          .shaderDefinition = s_defaultShaderDefinition,
+          .shaderName = s_defaultShaderName,
           .bucket = RB_OPAQUE,
           .fillMode = FM_FILL,
           .blendFunction = BlendFunction::None(),
@@ -172,7 +169,7 @@ Material::Material()
 Material::Material(Name name, RenderBucket rb)
     : AssetObject(name),
       m_attributes {
-          .shaderDefinition = s_defaultShaderDefinition,
+          .shaderName = s_defaultShaderName,
           .bucket = rb
       },
       m_isDynamic(false),
@@ -602,10 +599,10 @@ Handle<Material> MaterialCache::CreateMaterial(
     MaterialAttributes tmpAttributes;
     const MaterialAttributes* attributesPtr = &attributes;
 
-    if (!attributes.shaderDefinition)
+    if (!attributes.shaderName)
     {
         tmpAttributes = attributes;
-        tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
+        tmpAttributes.shaderName = s_defaultShaderName;
 
         attributesPtr = &tmpAttributes;
     }
@@ -630,10 +627,10 @@ Handle<Material> MaterialCache::GetOrCreate(
     const MaterialAttributes* attributesPtr = &attributes;
     MaterialAttributes tmpAttributes;
 
-    if (!attributes.shaderDefinition)
+    if (!attributes.shaderName)
     {
         tmpAttributes = attributes;
-        tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
+        tmpAttributes.shaderName = s_defaultShaderName;
 
         attributesPtr = &tmpAttributes;
     }

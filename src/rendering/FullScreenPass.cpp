@@ -24,6 +24,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <scene/View.hpp>
 
@@ -34,6 +35,8 @@
 #include <FullScreenPass.generated.inl>
 
 namespace Hyperion {
+
+static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
 
 struct MergeHalfResTexturesUniforms
 {
@@ -86,23 +89,23 @@ FullScreenPass::FullScreenPass(EnumFlags<FullScreenPassFlags> flags)
 }
 
 FullScreenPass::FullScreenPass(TextureFormat imageFormat, GBuffer* gbuffer, EnumFlags<FullScreenPassFlags> flags)
-    : FullScreenPass(ShaderDefinition(), imageFormat, Vec2u::Zero(), gbuffer, flags)
+    : FullScreenPass(ShaderDesc(), imageFormat, Vec2u::Zero(), gbuffer, flags)
 {
 }
 
 FullScreenPass::FullScreenPass(TextureFormat imageFormat, Vec2u extent, GBuffer* gbuffer, EnumFlags<FullScreenPassFlags> flags)
-    : FullScreenPass(ShaderDefinition(), imageFormat, extent, gbuffer, flags)
+    : FullScreenPass(ShaderDesc(), imageFormat, extent, gbuffer, flags)
 {
 }
 
 FullScreenPass::FullScreenPass(
-    const ShaderDefinition& shaderDefinition,
+    const ShaderDesc& shaderDesc,
     TextureFormat imageFormat,
     Vec2u extent,
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
     : FullScreenPass(
-          shaderDefinition,
+          shaderDesc,
           FramebufferRef::Null(),
           imageFormat,
           extent,
@@ -112,13 +115,13 @@ FullScreenPass::FullScreenPass(
 }
 
 FullScreenPass::FullScreenPass(
-    const ShaderDefinition& shaderDefinition,
+    const ShaderDesc& shaderDesc,
     const FramebufferRef& framebuffer,
     TextureFormat imageFormat,
     Vec2u extent,
     GBuffer* gbuffer,
     EnumFlags<FullScreenPassFlags> flags)
-    : m_shaderDefinition(shaderDefinition),
+    : m_shaderDesc(shaderDesc),
       m_framebuffer(framebuffer),
       m_imageFormat(imageFormat),
       m_extent(extent),
@@ -202,9 +205,9 @@ void FullScreenPass::Create()
     m_isInitialized = true;
 }
 
-void FullScreenPass::SetShaderDefinition(const ShaderDefinition& shaderDefinition)
+void FullScreenPass::SetShaderDesc(const ShaderDesc& shaderDesc)
 {
-    m_shaderDefinition = shaderDefinition;
+    m_shaderDesc = shaderDesc;
 }
 
 AttachmentBase* FullScreenPass::GetAttachment(uint32 attachmentIndex) const
@@ -431,7 +434,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
     m_mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
     m_mergeHalfResTexturesPass = MakeHandle<FullScreenPass>(
-        ShaderDefinition(NAME("MergeHalfResTextures")),
+        ShaderDesc(NAME("MergeHalfResTextures")),
         m_imageFormat,
         m_extent,
         nullptr);
@@ -450,11 +453,11 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame* frame, const RenderSet
 
     RenderQueue& rq = frame->renderQueue;
     
-    ShaderDefinition shaderDefinition;
-    shaderDefinition.name = NAME("RenderTextureToScreen");
-    shaderDefinition.properties.Set(ShaderProperty(NAME("HALFRES")));
+    ShaderDesc shaderDesc;
+    shaderDesc.name = NAME("RenderTextureToScreen");
+    shaderDesc.properties.Add(s_propHalfRes);
 
-    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
+    rq << SetCurrentShader(shaderDesc);
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
@@ -605,7 +608,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
         rq << BeginFramebuffer(framebuffer);
     }
     
-    rq << SetCurrentShader(ShaderDesc(m_shaderDefinition));
+    rq << SetCurrentShader(m_shaderDesc);
 
     RenderToFramebuffer_Internal(frame, renderSetup, framebuffer);
 
@@ -648,9 +651,9 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
-    ShaderDefinition shaderDefinition;
-    shaderDefinition.name = NAME("RenderTextureToScreen");
-    rq << SetCurrentShader(ShaderDesc(shaderDefinition));
+    ShaderDesc shaderDesc;
+    shaderDesc.name = NAME("RenderTextureToScreen");
+    rq << SetCurrentShader(shaderDesc);
 
     rq << SetDepthTest(false);
     rq << SetDepthWrite(false);
@@ -712,7 +715,7 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
-    rq << SetCurrentShader(ShaderDesc(m_shaderDefinition));
+    rq << SetCurrentShader(m_shaderDesc);
 
     rq << SetDepthTest(false);
     rq << SetDepthWrite(false);

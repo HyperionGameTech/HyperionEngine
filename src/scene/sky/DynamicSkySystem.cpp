@@ -106,11 +106,7 @@ void DynamicSkySystem::Init()
         InitObject(mesh);
 
         MaterialAttributes materialAttributes {};
-        materialAttributes.shaderDefinition = ShaderDefinition {
-            NAME("Skybox"),
-            ShaderVariant(mesh->GetVertexAttributes())
-        };
-
+        materialAttributes.shaderName = NAME("Skybox");
         materialAttributes.bucket = RB_SKYBOX;
         // flip cull faces.
         materialAttributes.cullFaces = FCM_FRONT;

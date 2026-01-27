@@ -46,6 +46,9 @@ struct HBAOUniforms
     float power;
 };
 
+static const ShaderPropertyId s_propHbilEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
+static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
+
 #pragma region Render commands
 
 struct CreateHBAOUniformBuffer : RenderCommand
@@ -125,15 +128,15 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Begin(frame, renderSetup);
     
-    ShaderVariant shaderProperties;
-    shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Set(s_propHbilEnabled, CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {
-        shaderProperties.Set(NAME("HALFRES"));
+        shaderProperties.Add(s_propHalfRes);
     }
 
-    rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("HBAO"), shaderProperties)));
+    rq << SetCurrentShader(ShaderDesc(NAME("HBAO"), shaderProperties));
 
     rq << SetShaderUniform(6, "UniformBuffer"_sh, m_uniformBuffer);
     

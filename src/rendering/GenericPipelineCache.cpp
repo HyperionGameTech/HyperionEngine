@@ -19,14 +19,20 @@
 
 namespace Hyperion {
 
+static constexpr HashCode ComputeHashKey(Name shaderName, const ShaderPropertySet& properties)
+{
+    return shaderName.GetHashCode()
+        .Combine(properties.GetHashCode());
+}
+
 #pragma region GenericPipelineCache
 
 template <class PipelineType>
-auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& shaderDefinition) -> PipelineType*
+auto GenericPipelineCache<PipelineType>::GetOrCreate(Name shaderName, const ShaderPropertySet& properties) -> PipelineType*
 {
     HYP_SCOPE;
 
-    const HashCode key = shaderDefinition.GetHashCode();
+    const HashCode key = ComputeHashKey(shaderName, properties);
 
     // First try to find existing
     {
@@ -60,7 +66,7 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
         }
     }
 
-    PipelineRefType pipeline = MakePipeline(shaderDefinition);
+    PipelineRefType pipeline = MakePipeline(shaderName, properties);
 
     if (!pipeline.IsValid())
     {
@@ -103,13 +109,13 @@ auto GenericPipelineCache<PipelineType>::GetOrCreate(const ShaderDefinition& sha
 }
 
 template <class PipelineType>
-auto GenericPipelineCache<PipelineType>::Find(const ShaderDefinition& shaderDefinition) const -> PipelineType*
+auto GenericPipelineCache<PipelineType>::Find(Name shaderName, const ShaderPropertySet& properties) const -> PipelineType*
 {
     HYP_SCOPE;
 
     TSharedLock guard(m_mutex);
 
-    const HashCode key = shaderDefinition.GetHashCode();
+    const HashCode key = ComputeHashKey(shaderName, properties);
 
     auto it = m_keyToIndex.Find(key);
     if (it != m_keyToIndex.End())
@@ -204,9 +210,9 @@ template class GenericPipelineCache<RayTracingPipeline>;
 
 #pragma region ComputePipelineCache
 
-ComputePipelineRef ComputePipelineCache::MakePipeline(const ShaderDefinition& shaderDefinition)
+ComputePipelineRef ComputePipelineCache::MakePipeline(Name shaderName, const ShaderPropertySet& properties)
 {
-    ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
+    ShaderRef shader = g_shaderManager->GetOrCreate(shaderName, properties, {});
     
     if (!shader.IsValid())
     {
@@ -220,9 +226,9 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(const ShaderDefinition& sh
 
 #pragma region RayTracingPipelineCache
 
-RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(const ShaderDefinition& shaderDefinition)
+RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(Name shaderName, const ShaderPropertySet& properties)
 {
-    ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
+    ShaderRef shader = g_shaderManager->GetOrCreate(shaderName, properties, {});
     
     if (!shader.IsValid())
     {

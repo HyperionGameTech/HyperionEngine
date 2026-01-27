@@ -246,13 +246,13 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
-    ShaderVariant shaderProperties;
-    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
 
     if (renderSetup.envProbe != nullptr)
-        shaderProperties.Set(ShaderProperty(NAME("HAS_ENV_PROBE")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE"))));
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("DDGI"), shaderProperties)));
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
     
     frame->renderQueue << SetShaderUniform(0, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->renderQueue << SetShaderUniform(1, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());

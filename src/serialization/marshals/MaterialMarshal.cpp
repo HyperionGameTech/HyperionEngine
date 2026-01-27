@@ -95,6 +95,8 @@ public:
     {
 #if 0
         MaterialAttributes attributes;
+        attributes.shaderName = NAME("GeometryPass");
+
         MaterialParameters parameters = Material::DefaultParameters();
         MaterialTextures textures;
 
@@ -178,12 +180,6 @@ public:
         }
 
         uint32 textureIndex = 0;
-
-        ShaderRef shader = g_shaderManager->GetOrCreate(
-            NAME("GeometryPass"),
-            ShaderVariant(VertexAttributeSet::StaticMeshVertexAttributes));
-
-        attributes.shaderDefinition = shader->GetCompiledShader()->GetDefinition();
 
         for (const FBOMObject& child : in.GetChildren())
         {

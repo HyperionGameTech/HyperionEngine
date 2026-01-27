@@ -115,20 +115,20 @@ const Handle<Texture>& SSGI::GetFinalResultTexture() const
         : m_resultTexture;
 }
 
-ShaderVariant SSGI::GetShaderProperties() const
+ShaderPropertySet SSGI::GetShaderProperties() const
 {
-    ShaderVariant shaderProperties;
+    ShaderPropertySet shaderProperties;
 
     switch (SsgiFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8"))));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F"))));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F"))));
         break;
     default:
         HYP_FAIL("Invalid SSGI format type");
@@ -180,8 +180,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     // put sample image in writeable state
     rq << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
-    const ShaderVariant shaderProperties = GetShaderProperties();
-    rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("SSGI"), shaderProperties)));
+    rq << SetCurrentShader(ShaderDesc(NAME("SSGI"), GetShaderProperties()));
 
     uint32 numShaderUniforms = 0;
 

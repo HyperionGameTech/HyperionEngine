@@ -197,13 +197,13 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
     // Set shader and uniforms
-    ShaderVariant shaderProperties;
-    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxLights)));
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxLights))));
 
     if (renderSetup.envProbe != nullptr)
-        shaderProperties.Set(ShaderProperty(NAME("HAS_ENV_PROBE")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE"))));
 
-    frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(s_shaderNames[IsPathTracer()], shaderProperties)));
+    frame->renderQueue << SetCurrentShader(ShaderDesc(s_shaderNames[IsPathTracer()], shaderProperties));
 
     AssertDebug(parentPass->view.IsValid());
 

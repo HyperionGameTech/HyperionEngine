@@ -516,37 +516,10 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     RenderInterface::State& state = g_renderInterface->state;
 
-    ShaderDefinition& shaderDefinition = state.attributes.GetMaterialAttributes().shaderDefinition;
+    ShaderDesc& shaderDesc = cmdCasted->shaderDesc;
 
-    shaderDefinition.name = cmdCasted->shaderDesc.shaderName;
-
-    shaderDefinition.properties = ShaderVariant {};
-    MergeGlobalShaderProperties(shaderDefinition.properties);
-
-    for (uint32 propertyIndex = 0; propertyIndex < cmdCasted->shaderDesc.numProperties; propertyIndex++)
-    {
-        ShaderProperty property;
-        property.name = cmdCasted->shaderDesc.propertyNames[propertyIndex];
-        if (cmdCasted->shaderDesc.propertyValues[propertyIndex].IsValid())
-        {
-            switch (cmdCasted->shaderDesc.propertyValues[propertyIndex].index)
-            {
-            case 0:
-                property.currentValue = cmdCasted->shaderDesc.propertyValues[propertyIndex].nameValue;
-                break;
-            case 1:
-                property.currentValue = cmdCasted->shaderDesc.propertyValues[propertyIndex].intValue;
-                break;
-            case 2:
-                property.currentValue = cmdCasted->shaderDesc.propertyValues[propertyIndex].floatValue;
-                break;
-            default:
-                break;
-            }
-        }
-
-        shaderDefinition.properties.Set(property);
-    }
+    // merge shared global properties with the one we're setting
+    MergeGlobalShaderProperties(shaderDesc.properties);
 
     state.attributes.Invalidate();
 

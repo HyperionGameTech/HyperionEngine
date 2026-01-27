@@ -32,6 +32,9 @@ static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
     EPF_BAKED               // ambient
 };
 
+static const ShaderPropertyId s_propWriteNormals = InternShaderProperty(ShaderProperty(NAME("WRITE_NORMALS")));
+static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
+
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
     FixedArray<Mat4f, 6> viewMatrices;
@@ -281,23 +284,21 @@ void EnvProbe::CreateView()
         .storeOp = StoreOperation::STORE
     });
 
-    ShaderDefinition shaderDefinition;
+    ShaderDesc shaderDesc;
 
     if (IsReflectionProbe())
     {
-        shaderDefinition = ShaderDefinition(
-            NAME("RenderToCubemap"),
-            ShaderVariant {
-                VertexAttributeSet::StaticMeshVertexAttributes,
-                { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }
-            });
+        shaderDesc.name = NAME("RenderToCubemap");
+
+        shaderDesc.properties.Add(s_propWriteNormals);
+        shaderDesc.properties.Add(s_propWriteMoments);
     }
     else if (IsSkyProbe())
     {
-        shaderDefinition = ShaderDefinition(
-            NAME("RenderSky"),
-            ShaderVariant(VertexAttributeSet::StaticMeshVertexAttributes));
+        shaderDesc.name = NAME("RenderSky");
     }
+
+    AssertDebug(shaderDesc.name.IsValid());
 
     ViewDesc viewDesc {
         .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
@@ -311,7 +312,8 @@ void EnvProbe::CreateView()
         .overrideAttributes = RenderableAttributeSet(
             MeshAttributes {},
             MaterialAttributes {
-                .shaderDefinition = shaderDefinition,
+                .shaderName = shaderDesc.name,
+                .shaderProperties = shaderDesc.properties,
                 .blendFunction = BlendFunction::AlphaBlending(),
                 .cullFaces = FCM_NONE
             })

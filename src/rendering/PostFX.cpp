@@ -18,25 +18,25 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 PostFXPass::PostFXPass(TextureFormat imageFormat, GBuffer* gbuffer)
-    : PostFXPass(ShaderDefinition(), POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
+    : PostFXPass(ShaderDesc(), POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
 {
 }
 
 PostFXPass::PostFXPass(
-    const ShaderDefinition& shaderDefinition,
+    const ShaderDesc& shaderDesc,
     TextureFormat imageFormat,
     GBuffer* gbuffer)
-    : PostFXPass(shaderDefinition, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
+    : PostFXPass(shaderDesc, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, imageFormat, gbuffer)
 {
 }
 
 PostFXPass::PostFXPass(
-    const ShaderDefinition& shaderDefinition,
+    const ShaderDesc& shaderDesc,
     PostProcessingStage stage,
     uint32 effectIndex,
     TextureFormat imageFormat,
     GBuffer* gbuffer)
-    : FullScreenPass(shaderDefinition, imageFormat, Vec2u::Zero(), gbuffer),
+    : FullScreenPass(shaderDesc, imageFormat, Vec2u::Zero(), gbuffer),
       m_stage(stage),
       m_effectIndex(effectIndex)
 {
@@ -47,7 +47,7 @@ PostFXPass::~PostFXPass()
 }
 
 PostProcessingEffect::PostProcessingEffect(PostProcessingStage stage, uint32 effectIndex, TextureFormat imageFormat, GBuffer* gbuffer)
-    : m_pass(ShaderDefinition(), stage, effectIndex, imageFormat, gbuffer),
+    : m_pass(ShaderDesc(), stage, effectIndex, imageFormat, gbuffer),
       m_isEnabled(true)
 {
 }
@@ -56,9 +56,9 @@ PostProcessingEffect::~PostProcessingEffect() = default;
 
 void PostProcessingEffect::Init()
 {
-    m_shaderDefinition = GetShaderDefinition();
+    m_shaderDesc = GetShaderDesc();
 
-    m_pass.SetShaderDefinition(m_shaderDefinition);
+    m_pass.SetShaderDesc(m_shaderDesc);
     m_pass.Create();
 }
 

@@ -57,26 +57,37 @@ public:
     SparsePagedArray<CompiledShader, 16> m_compiledShaderCache;
     SparsePagedArray<ShaderMapEntry, 16> m_entries;
 
-    ShaderRef GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes,
+    ShaderRef GetOrCreate(
+        Name name, const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
         ShaderCacheId& outCacheId, bool doLoadShader)
     {
         HYP_NAMED_SCOPE("Get shader from cache or create");
 
-        const HashCode hc = GetShaderEntryHashCode(name, propertySet, vertexAttributes);
+        const HashCode hc = GetShaderEntryHashCode(name, properties, vertexAttributes);
 
-        const auto EnsureContainsProperties = [](const ShaderPropertySet& expected, const CompiledShader& received) -> bool
+        const auto EnsureMatch = [](
+            const ShaderPropertySet& expectedProperties, const VertexAttributeSet& expectedVertexAttributes,
+            const CompiledShader& received) -> bool
         {
-            for (uint64 chunk : expected.chunks)
+            if (received.vertexAttributes != expectedVertexAttributes)
+            {
+                return false;
+            }
+
+            uint64 chunkOffset = 0;
+            for (uint64 chunk : expectedProperties.chunks)
             {
                 FOR_EACH_BIT(chunk, bit)
                 {
-                    ShaderPropertyId propertyId = ShaderPropertyId(bit);
+                    ShaderPropertyId propertyId = ShaderPropertyId(chunkOffset + bit);
                     
                     if (!received.properties.Test(propertyId))
                     {
                         return false;
                     }
                 }
+
+                chunkOffset += 64;
             }
 
             return true;
@@ -135,7 +146,9 @@ public:
                 numSpins++;
             }
 
-            if (EnsureContainsProperties(propertySet, *entry->shaderInstance->GetCompiledShader()))
+            if (EnsureMatch(
+                properties, vertexAttributes,
+                *entry->shaderInstance->GetCompiledShader()))
             {
                 return entry->shaderInstance;
             }
@@ -188,7 +201,7 @@ public:
 
         { // loading / compilation of shader (outside of mutex lock)
             bool isValidCompiledShader = true;
-            isValidCompiledShader &= g_shaderCompiler->GetCompiledShader(name, propertySet, *entry->compiledShader);
+            isValidCompiledShader &= g_shaderCompiler->GetCompiledShader(name, properties, vertexAttributes, *entry->compiledShader);
             isValidCompiledShader &= entry->compiledShader->IsValid();
 
             Assert(isValidCompiledShader, "Compiled shader '{}' is not a valid compiled shader", name);
@@ -196,7 +209,7 @@ public:
             shader = g_renderInterface->MakeShader(entry->compiledShader);
 
 #ifdef HYP_DEBUG_MODE
-            Assert(EnsureContainsProperties(propertySet, *shader->GetCompiledShader()));
+            Assert(EnsureMatch(properties, vertexAttributes, *shader->GetCompiledShader()));
 #endif
 
             DeferCreate(shader);
@@ -209,12 +222,18 @@ public:
         return shader;
     }
 
-    ShaderCacheId GetShaderCacheId(const ShaderDefinition& definition, bool createIfNotExists = false)
+    ShaderCacheId GetShaderCacheId(
+        Name name,
+        const ShaderPropertySet& properties,
+        const VertexAttributeSet& vertexAttributes,
+        bool createIfNotExists = false)
     {
+        const HashCode hc = GetShaderEntryHashCode(name, properties, vertexAttributes);
+
         { // check through mapping
             TSharedLock lock(m_mutex);
 
-            auto it = m_entryMap.Find(definition);
+            auto it = m_entryMap.Find(hc);
 
             if (it != m_entryMap.End())
             {
@@ -227,7 +246,7 @@ public:
         if (createIfNotExists)
         {
             // create the shader entry - don't request loading the shader though.
-            (void)GetOrCreate(definition, cacheId, /* doLoadShader */ false);
+            (void)GetOrCreate(name, properties, vertexAttributes, cacheId, /* doLoadShader */ false);
         }
 
         return cacheId;
@@ -315,23 +334,17 @@ ShaderManager::ShaderManager()
 
 ShaderRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes)
 {
-    return m_impl->GetOrCreate(name, propertySet, vertexAttributes);
+    ShaderCacheId cacheId;
+    return m_impl->GetOrCreate(name, propertySet, vertexAttributes, cacheId, /* doLoadShader */ true);
 }
 
-ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
+ShaderCacheId ShaderManager::GetShaderCacheId(
+    Name name,
+    const ShaderPropertySet& properties,
+    const VertexAttributeSet& vertexAttributes,
+    bool createIfNotExists) const
 {
-    ShaderCacheId cacheIdUnused;
-    return m_impl->GetOrCreate(definition, cacheIdUnused, /* doLoadShader */ true);
-}
-
-ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition, ShaderCacheId& outCacheId)
-{
-    return m_impl->GetOrCreate(definition, outCacheId, /* doLoadShader */ true);
-}
-
-ShaderCacheId ShaderManager::GetShaderCacheId(const ShaderDefinition& definition, bool createIfNotExists) const
-{
-    return m_impl->GetShaderCacheId(definition, createIfNotExists);
+    return m_impl->GetShaderCacheId(name, properties, vertexAttributes, createIfNotExists);
 }
 
 SizeType ShaderManager::CalculateMemoryUsage() const

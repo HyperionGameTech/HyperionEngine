@@ -38,10 +38,10 @@ public:
      *  \param shaderDefinition The shader definition to use
      *  \return Reference to the pipeline (may not be created yet if async creation is pending)
      */
-    PipelineType* GetOrCreate(const ShaderDefinition& shaderDefinition);
+    PipelineType* GetOrCreate(Name shaderName, const ShaderPropertySet& properties);
 
     /*! \brief Finds an existing pipeline by shader definition, returns nullptr if not found. */
-    PipelineType* Find(const ShaderDefinition& shaderDefinition) const;
+    PipelineType* Find(Name shaderName, const ShaderPropertySet& properties) const;
 
     /*! \brief Runs cleanup cycle to remove unused pipelines.
      *  \param maxIter Maximum number of pipelines to check this cycle
@@ -53,7 +53,7 @@ public:
     void Clear();
 
 protected:
-    virtual PipelineRefType MakePipeline(const ShaderDefinition& shaderDefinition) = 0;
+    virtual PipelineRefType MakePipeline(Name shaderName, const ShaderPropertySet& properties) = 0;
 
 private:
     struct CachedPipeline
@@ -87,7 +87,7 @@ public:
     }
 
 protected:
-    ComputePipelineRef MakePipeline(const ShaderDefinition& shaderDefinition) override;
+    ComputePipelineRef MakePipeline(Name shaderName, const ShaderPropertySet& properties) override;
 };
 
 class RayTracingPipelineCache final : public GenericPipelineCache<RayTracingPipeline>
@@ -101,7 +101,7 @@ public:
     }
 
 protected:
-    RayTracingPipelineRef MakePipeline(const ShaderDefinition& shaderDefinition) override;
+    RayTracingPipelineRef MakePipeline(Name shaderName, const ShaderPropertySet& properties) override;
 };
 
 } // namespace Hyperion

@@ -11,7 +11,7 @@ namespace Hyperion {
 
 #pragma region ComputePipelineBase
 
-bool ComputePipelineBase::MatchesSignature(const ShaderDefinition& shaderDefinition) const
+bool ComputePipelineBase::MatchesSignature(const ShaderDesc& shaderDesc) const
 {
     if (!m_shader.IsValid())
     {
@@ -20,12 +20,7 @@ bool ComputePipelineBase::MatchesSignature(const ShaderDefinition& shaderDefinit
 
     const CompiledShader& compiledShader = *m_shader->GetCompiledShader();
 
-    if (shaderDefinition.name != compiledShader.name)
-    {
-        return false;
-    }
-
-    if (shaderDefinition.GetProperties().GetPropertySetHashCode() != compiledShader.propertySetHashCode)
+    if (shaderDesc.name != compiledShader.name || shaderDesc.properties != compiledShader.properties)
     {
         return false;
     }

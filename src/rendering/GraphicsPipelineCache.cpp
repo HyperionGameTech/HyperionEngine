@@ -332,7 +332,11 @@ void GraphicsPipelineCache::GetOrCreate(
     Assert(renderTargetDesc.numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(attributes.GetShaderDefinition());
+    ShaderRef shader = g_shaderManager->GetOrCreate(
+        attributes.GetMaterialAttributes().shaderName,
+        attributes.GetMaterialAttributes().shaderProperties,
+        attributes.GetMeshAttributes().vertexAttributes);
+
     Assert(shader.IsValid());
 
     GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(

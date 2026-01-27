@@ -69,10 +69,9 @@ public:
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
-    ShaderVariant GetShaderProperties() const;
+    ShaderPropertySet GetShaderProperties() const;
 
     void CreateUniformBuffers();
-    void CreateBlueNoiseBuffer();
 
     void FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const;
 

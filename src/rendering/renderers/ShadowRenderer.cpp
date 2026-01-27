@@ -45,15 +45,15 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
 {
     AssertDebug(views.Size() == 2, "Combine pass requires 2 views (one for static objects, one for dynamic objects)");
 
-    ShaderVariant properties;
+    ShaderPropertySet properties;
 
     if (filterMode == SMF_VSM)
     {
-        properties.Set(ShaderProperty(NAME("VSM")));
+        properties.Add(InternShaderProperty(ShaderProperty(NAME("VSM"))));
     }
 
     Handle<FullScreenPass> combineShadowMapsPass = MakeHandle<FullScreenPass>(
-        ShaderDefinition(NAME("CombineShadowMaps"), properties),
+        ShaderDesc(NAME("CombineShadowMaps"), properties),
         format,
         dimensions,
         nullptr);

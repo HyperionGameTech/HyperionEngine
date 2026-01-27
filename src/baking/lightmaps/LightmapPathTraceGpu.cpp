@@ -119,27 +119,27 @@ namespace Baking {
 
 #pragma region LightmapRenderer_GpuPathTracing
 
-static ShaderDefinition GetShaderDefinition(LightmapShadingType shadingType)
+static ShaderDesc GetShaderDesc(LightmapShadingType shadingType)
 {
-    ShaderVariant shaderProperties;
-    shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
+    ShaderPropertySet shaderProperties;
+    shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
 
     switch (shadingType)
     {
     case LightmapShadingType::RADIANCE:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("RADIANCE")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("RADIANCE"))));
         break;
     case LightmapShadingType::IRRADIANCE:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE"))));
         break;
     case LightmapShadingType::FULL:
-        shaderProperties.Set(ShaderProperty(NAME("MODE"), NAME("FULL")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("FULL"))));
         break;
     default:
         HYP_UNREACHABLE();
     }
 
-    return ShaderDefinition(NAME("LightmapPathTracer"), shaderProperties);
+    return ShaderDesc(NAME("LightmapPathTracer"), shaderProperties);
 }
 
 LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
@@ -460,7 +460,7 @@ void LightmapRenderer_GpuPathTracing::Render(Frame* frame, const RenderSetup& re
 
     RenderQueue& rq = frame->renderQueue;
 
-    rq << SetCurrentShader(ShaderDesc(GetShaderDefinition(m_shadingType)));
+    rq << SetCurrentShader(GetShaderDesc(m_shadingType));
 
     rq << SetShaderUniform(0, "TLAS"_sh, m_tlas);
     rq << SetShaderUniform(1, "MeshDescriptionsBuffer"_sh, m_tlas->GetMeshDescriptionsBuffer());

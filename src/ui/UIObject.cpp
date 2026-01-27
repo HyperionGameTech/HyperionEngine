@@ -1864,7 +1864,7 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
         | VertexAttribute::TexCoord0;
 
     return MaterialAttributes {
-        .shaderDefinition = ShaderDefinition(NAME("UIObject"), ShaderVariant(vertexAttributes)),
+        .shaderName = NAME("UIObject"),
         .blendFunction = BlendFunction(
             BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
             BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
