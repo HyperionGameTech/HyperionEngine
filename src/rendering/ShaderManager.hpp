@@ -12,8 +12,6 @@
 
 namespace Hyperion {
 
-class ShaderVariant;
-
 enum class ShaderCacheId : uint64;
 static constexpr ShaderCacheId InvalidShaderCacheId = ShaderCacheId(0);
 

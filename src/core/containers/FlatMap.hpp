@@ -138,7 +138,7 @@ public:
         return Base::Data();
     }
 
-    HYP_FORCE_INLINE KeyValuePairType* const Data() const
+    HYP_FORCE_INLINE const KeyValuePairType* Data() const
     {
         return Base::Data();
     }

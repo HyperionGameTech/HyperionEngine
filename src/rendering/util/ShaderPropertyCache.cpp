@@ -46,9 +46,9 @@ static HashMap<HashedShaderProperty, ShaderPropertyId>& GetShaderPropertyMap()
     return s_propertyToIdMap;
 }
 
-static HashMap<ShaderPropertyId, ShaderProperty>& GetShaderPropertyReverseMap()
+static SparsePagedArray<ShaderProperty, 128>& GetShaderPropertyReverseMap()
 {
-    static HashMap<ShaderPropertyId, ShaderProperty> s_idToPropertyMap;
+    static SparsePagedArray<ShaderProperty, 128> s_idToPropertyMap;
     return s_idToPropertyMap;
 }
 
@@ -69,7 +69,17 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
     auto it = shaderPropertyCacheMap.Find(hashed);
     if (it != shaderPropertyCacheMap.End())
     {
-        return it->second;
+        const ShaderPropertyId id = it->second;
+        if (!GetShaderPropertyReverseMap().HasIndex(uint32(id)))
+        {
+            // upgrade to unique lock to set in reverse map
+            lock.Reset();
+            
+            TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
+            GetShaderPropertyReverseMap().Emplace(uint32(id), property);
+        }
+
+        return id;
     }
 
     // check static properties
@@ -83,7 +93,7 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
             TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
             shaderPropertyCacheMap.Insert(hashed, static_cast<ShaderPropertyId>(i));
 
-            GetShaderPropertyReverseMap().Set(static_cast<ShaderPropertyId>(i), property);
+            GetShaderPropertyReverseMap().Emplace(i, property);
 
             return static_cast<ShaderPropertyId>(i);
         }
@@ -103,7 +113,7 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
     const ShaderPropertyId newId = static_cast<ShaderPropertyId>(uint32(std::size(s_staticProperties)) + shaderPropertyCacheMap.Size());
     shaderPropertyCacheMap.Insert(hashed, newId);
 
-    GetShaderPropertyReverseMap().Set(newId, property);
+    GetShaderPropertyReverseMap().Emplace(uint32(newId), property);
 
     return newId;
 }
@@ -114,14 +124,12 @@ bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outPrope
 
     auto& reverseMap = GetShaderPropertyReverseMap();
 
-    auto it = reverseMap.Find(propertyId);
-
-    if (it == reverseMap.End())
+    if (!reverseMap.HasIndex(uint32(propertyId)))
     {
         return false;
     }
 
-    outProperty = it->second;
+    outProperty = reverseMap.Get(uint32(propertyId));
 
     return true;
 }

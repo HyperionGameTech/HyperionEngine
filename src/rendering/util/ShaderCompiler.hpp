@@ -436,9 +436,9 @@ struct HYP_API CompiledShader
 };
 
 HYP_STRUCT()
-struct CompiledShaderBatch
+struct ShaderBundle
 {
-    HYP_STRUCT_BODY(CompiledShaderBatch);
+    HYP_STRUCT_BODY(ShaderBundle);
 
     HYP_FIELD()
     Array<CompiledShader> compiledShaders;
@@ -446,15 +446,15 @@ struct CompiledShaderBatch
     HYP_FIELD()
     Array<String> errorMessages;
 
-    CompiledShaderBatch() = default;
+    ShaderBundle() = default;
 
-    CompiledShaderBatch(const CompiledShaderBatch& other)
+    ShaderBundle(const ShaderBundle& other)
         : compiledShaders(other.compiledShaders),
           errorMessages(other.errorMessages)
     {
     }
 
-    CompiledShaderBatch& operator=(const CompiledShaderBatch& other)
+    ShaderBundle& operator=(const ShaderBundle& other)
     {
         if (this == &other)
         {
@@ -467,13 +467,13 @@ struct CompiledShaderBatch
         return *this;
     }
 
-    CompiledShaderBatch(CompiledShaderBatch&& other) noexcept
+    ShaderBundle(ShaderBundle&& other) noexcept
         : compiledShaders(std::move(other.compiledShaders)),
           errorMessages(std::move(other.errorMessages))
     {
     }
 
-    CompiledShaderBatch& operator=(CompiledShaderBatch&& other) noexcept
+    ShaderBundle& operator=(ShaderBundle&& other) noexcept
     {
         if (this == &other)
         {
@@ -486,7 +486,7 @@ struct CompiledShaderBatch
         return *this;
     }
 
-    ~CompiledShaderBatch() = default;
+    ~ShaderBundle() = default;
 
     HYP_FORCE_INLINE bool HasErrors() const
     {
@@ -499,7 +499,7 @@ struct CompiledShaderBatch
     }
 };
 
-void MergeGlobalShaderProperties(ShaderVariant& out);
+void MergeGlobalShaderProperties(ShaderVariantPerms& out);
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
 class ShaderCompiler
@@ -540,9 +540,10 @@ public:
     HYP_API bool CanCompileShaders() const;
     HYP_API bool LoadShaderDefinitions(bool precompileShaders = false);
 
-    HYP_API bool GetCompiledShader(
+    HYP_API bool RequestShader(
         Name name,
-        const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
+        const ShaderPropertySet& properties,
+        const VertexAttributeSet& vertexAttributes,
         CompiledShader& out);
 
 private:
@@ -552,35 +553,35 @@ private:
         ShaderLanguage language,
         const String& source,
         const String& filename,
-        const ShaderVariant& properties);
+        const ShaderVariantPerms& perm);
 
     void ParseDefinitionSection(
         const INIFile::Section& section,
-        ShaderBundleDecl& outShaderBundleDecl);
+        ShaderBundleDecl& outDecl);
 
     bool CompileBundle(
-        ShaderBundleDecl& shaderBundleDecl,
-        CompiledShaderBatch& out)
+        ShaderBundleDecl& decl,
+        ShaderBundle& outBundle)
     {
-        return CompileBundle(shaderBundleDecl, {}, out, false);
+        return CompileBundle(decl, {}, outBundle, false);
     }
 
-    bool CompileBundle(
-        ShaderBundleDecl& shaderBundleDecl,
-        Optional<ShaderRequest> shaderRequest,
-        CompiledShaderBatch& out,
-        bool onlyCompileRequestedVersions = false);
-
-    bool HandleCompiledShaderBatch(
-        ShaderBundleDecl& shaderBundleDecl,
+    bool HandleBundle(
+        ShaderBundleDecl& decl,
         Optional<ShaderRequest> shaderRequest,
         const FilePath& outputFilePath,
-        CompiledShaderBatch& batch);
+        ShaderBundle& inOutBundle);
 
-    bool LoadOrCompileBatch(
+    bool CompileBundle(
+        const ShaderBundleDecl& decl,
+        Optional<ShaderRequest> shaderRequest,
+        ShaderBundle& outBundle,
+        bool onlyCompileRequested = false);
+
+    bool LoadBundle(
         Name name,
         Optional<ShaderRequest> shaderRequest,
-        CompiledShaderBatch& out);
+        ShaderBundle& outBundle);
 
     INIFile* m_definitions;
     Array<ShaderBundleDecl> m_shaderBundleDecls;

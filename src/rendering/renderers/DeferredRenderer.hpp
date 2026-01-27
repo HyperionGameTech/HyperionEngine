@@ -26,7 +26,6 @@ class Texture;
 class DepthPyramidRenderer;
 class SSRRenderer;
 class SSGI;
-class ShaderVariant;
 class View;
 class DeferredRenderer;
 class GBuffer;

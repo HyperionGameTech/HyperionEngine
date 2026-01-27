@@ -50,7 +50,6 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> 
     #define entity_instance_batch entity_instance_batches[0]
 #else
     HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
-    #define entity entities[0]
 #endif
 
 #ifdef SKINNING

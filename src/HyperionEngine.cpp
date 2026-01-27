@@ -243,7 +243,7 @@ static void InitLogger()
 
 static void LoadShaderPropertyDatabase()
 {
-    FileBufferedReaderSource source { GetCacheDirectory() / "ShaderPropertyCache.db" };
+    FileBufferedReaderSource source { GetCacheDirectory() / "ShaderProperties.bin" };
     BufferedByteReader br { &source };
 
     if (br.IsOpen())

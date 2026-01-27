@@ -1784,22 +1784,22 @@ struct ShaderProperty
 };
 
 HYP_STRUCT()
-class ShaderVariant
+class ShaderVariantPerms
 {
     friend class ShaderCompiler;
 
 public:
-    HYP_STRUCT_BODY(ShaderVariant);
+    HYP_STRUCT_BODY(ShaderVariantPerms);
 
     using Iterator = typename HashSet<ShaderProperty>::Iterator;
     using ConstIterator = typename HashSet<ShaderProperty>::ConstIterator;
 
-    ShaderVariant()
+    ShaderVariantPerms()
         : m_needsHashCodeRecalculation(true)
     {
     }
 
-    explicit ShaderVariant(const HashSet<ShaderProperty>& props)
+    explicit ShaderVariantPerms(const HashSet<ShaderProperty>& props)
         : m_needsHashCodeRecalculation(true)
     {
         for (const ShaderProperty& property : props)
@@ -1809,7 +1809,7 @@ public:
     }
 
     template <SizeType Sz>
-    ShaderVariant(Name const (&props)[Sz])
+    ShaderVariantPerms(Name const (&props)[Sz])
         : m_needsHashCodeRecalculation(true)
     {
         for (Name propKey : props)
@@ -1819,7 +1819,7 @@ public:
     }
 
     template <SizeType Sz>
-    ShaderVariant(ShaderProperty const (&props)[Sz])
+    ShaderVariantPerms(ShaderProperty const (&props)[Sz])
         : m_needsHashCodeRecalculation(true)
     {
         for (const ShaderProperty& property : props)
@@ -1829,7 +1829,7 @@ public:
     }
 
     template <SizeType Sz>
-    ShaderVariant(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
+    ShaderVariantPerms(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
     {
@@ -1839,22 +1839,22 @@ public:
         }
     }
 
-    explicit ShaderVariant(const VertexAttributeSet& vertexAttributes)
+    explicit ShaderVariantPerms(const VertexAttributeSet& vertexAttributes)
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
     {
     }
 
-    ShaderVariant(const ShaderVariant& other) = default;
-    ShaderVariant& operator=(const ShaderVariant& other) = default;
+    ShaderVariantPerms(const ShaderVariantPerms& other) = default;
+    ShaderVariantPerms& operator=(const ShaderVariantPerms& other) = default;
 
-    ShaderVariant(ShaderVariant&& other) noexcept = default;
-    ShaderVariant& operator=(ShaderVariant&& other) = default;
+    ShaderVariantPerms(ShaderVariantPerms&& other) noexcept = default;
+    ShaderVariantPerms& operator=(ShaderVariantPerms&& other) = default;
 
-    ~ShaderVariant() = default;
+    ~ShaderVariantPerms() = default;
 
-    HYP_FORCE_INLINE bool operator==(const ShaderVariant& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const ShaderVariant& other) const = delete;
+    HYP_FORCE_INLINE bool operator==(const ShaderVariantPerms& other) const = delete;
+    HYP_FORCE_INLINE bool operator!=(const ShaderVariantPerms& other) const = delete;
 
     HYP_FORCE_INLINE bool Any() const
     {
@@ -1873,7 +1873,7 @@ public:
 
     HYP_FORCE_INLINE ConstIterator Find(const ShaderProperty& property) const
     {
-        return const_cast<ShaderVariant*>(this)->Find(property);
+        return const_cast<ShaderVariantPerms*>(this)->Find(property);
     }
 
     Iterator Find(StringHash name)
@@ -1900,7 +1900,7 @@ public:
 
     HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
-        return const_cast<ShaderVariant*>(this)->Find(name);
+        return const_cast<ShaderVariantPerms*>(this)->Find(name);
     }
 
     HYP_FORCE_INLINE bool HasRequiredVertexAttributes(VertexAttributeSet vertexAttributes) const
@@ -1933,15 +1933,15 @@ public:
         return Find(name) != m_props.End();
     }
 
-    HYP_API ShaderVariant& Set(const ShaderProperty& property, bool enabled = true);
+    HYP_API ShaderVariantPerms& Set(const ShaderProperty& property, bool enabled = true);
 
-    HYP_FORCE_INLINE ShaderVariant& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
+    HYP_FORCE_INLINE ShaderVariantPerms& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
     {
         return Set(ShaderProperty(name, flags), enabled);
     }
 
     /*! \brief Applies \p other properties onto this set */
-    void Merge(const ShaderVariant& other)
+    void Merge(const ShaderVariantPerms& other)
     {
         for (const ShaderProperty& property : other.m_props)
         {
@@ -1954,9 +1954,9 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
-    static ShaderVariant Merge(const ShaderVariant& a, const ShaderVariant& b)
+    static ShaderVariantPerms Merge(const ShaderVariantPerms& a, const ShaderVariantPerms& b)
     {
-        ShaderVariant result(a);
+        ShaderVariantPerms result(a);
         result.Merge(b);
 
         return result;
@@ -1971,7 +1971,7 @@ public:
      *  Permutations create new shader variants based on their values.
      *  Many permutations will drastically increase the number of shader variants generated,
      *  so use them sparingly. (prefer value groups or static properties where appropriate) */
-    ShaderVariant& AddPermutation(Name key)
+    ShaderVariantPerms& AddPermutation(Name key)
     {
         const ShaderProperty shaderProperty(key, SPF_PERMUTATION);
 
@@ -1993,7 +1993,7 @@ public:
 
     /*! \brief Adds a new static property with key \p key
      *  Static properties are applied to every shader variant and do not create new permutations. */
-    ShaderVariant& AddStatic(Name key)
+    ShaderVariantPerms& AddStatic(Name key)
     {
         const ShaderProperty shaderProperty(key, SPF_NONE);
 
@@ -2017,7 +2017,7 @@ public:
      *  Value groups create new shader variants but their values are mututally exclusive to each other.
      *  i.e, only one value from the value group can be selected at a time. This reduces the number of
      *  shader variants generated compared to permutations. */
-    ShaderVariant& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
+    ShaderVariantPerms& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
     {
         ShaderProperty shaderProperty(key, SPF_NONE);
 
@@ -2471,7 +2471,7 @@ struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .in
 {
     Name name;
     FlatMap<ShaderModuleType, String> sources;
-    ShaderVariant versions; // permutations
+    ShaderVariantPerms variantPerms;
 
     bool HasRTShaders() const
     {

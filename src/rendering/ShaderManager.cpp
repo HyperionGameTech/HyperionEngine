@@ -201,7 +201,7 @@ public:
 
         { // loading / compilation of shader (outside of mutex lock)
             bool isValidCompiledShader = true;
-            isValidCompiledShader &= g_shaderCompiler->GetCompiledShader(name, properties, vertexAttributes, *entry->compiledShader);
+            isValidCompiledShader &= g_shaderCompiler->RequestShader(name, properties, vertexAttributes, *entry->compiledShader);
             isValidCompiledShader &= entry->compiledShader->IsValid();
 
             Assert(isValidCompiledShader, "Compiled shader '{}' is not a valid compiled shader", name);
