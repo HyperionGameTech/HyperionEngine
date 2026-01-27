@@ -7,6 +7,8 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Shader.hpp>
 
+#include <rendering/util/ShaderPropertyCache.hpp>
+
 #include <core/reflection/Handle.hpp>
 
 #include <core/threading/SharedMutex.hpp>
@@ -17,6 +19,16 @@ static ShaderCacheId GenerateShaderCacheId()
 {
     static volatile int64 s_idCounter = 0;
     return ShaderCacheId(AtomicIncrement(&s_idCounter));
+}
+
+static constexpr HashCode GetShaderEntryHashCode(
+    Name name,
+    const ShaderPropertySet& propertySet,
+    const VertexAttributeSet& vertexAttributes)
+{
+    return name.GetHashCode()
+        .Combine(propertySet.GetHashCode())
+        .Combine(vertexAttributes.GetHashCode());
 }
 
 class ShaderManagerImpl
@@ -38,24 +50,32 @@ public:
         ThreadId loadingThreadId;
     };
 
-    HashMap<ShaderDefinition, ShaderMapEntry*> m_entryMap;
+    HashMap<HashCode, ShaderMapEntry*> m_entryMap;
     SharedMutex m_mutex;
 
     // these live forever to keep pointers valid
     SparsePagedArray<CompiledShader, 16> m_compiledShaderCache;
     SparsePagedArray<ShaderMapEntry, 16> m_entries;
 
-    ShaderRef GetOrCreate(const ShaderDefinition& definition, ShaderCacheId& outCacheId, bool doLoadShader)
+    ShaderRef GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes,
+        ShaderCacheId& outCacheId, bool doLoadShader)
     {
         HYP_NAMED_SCOPE("Get shader from cache or create");
 
-        const auto EnsureContainsProperties = [](const ShaderProperties& expected, const ShaderProperties& received) -> bool
+        const HashCode hc = GetShaderEntryHashCode(name, propertySet, vertexAttributes);
+
+        const auto EnsureContainsProperties = [](const ShaderPropertySet& expected, const CompiledShader& received) -> bool
         {
-            for (const ShaderProperty& property : expected.GetPropertySet())
+            for (uint64 chunk : expected.chunks)
             {
-                if (!received.GetPropertySet().Contains(property))
+                FOR_EACH_BIT(chunk, bit)
                 {
-                    return false;
+                    ShaderPropertyId propertyId = ShaderPropertyId(bit);
+                    
+                    if (!received.properties.Test(propertyId))
+                    {
+                        return false;
+                    }
                 }
             }
 
@@ -70,7 +90,7 @@ public:
         { // pulling value from cache if it exists
             TSharedLock lock(m_mutex);
 
-            auto it = m_entryMap.Find(definition);
+            auto it = m_entryMap.Find(hc);
 
             if (it != m_entryMap.End())
             {
@@ -97,7 +117,7 @@ public:
                 {
                     HYP_LOG(Shader, Warning,
                         "Shader {} is loading for too long! Skipping reuse attempt and loading on this thread. (Loading thread: {}, current thread: {})",
-                        definition.GetName(),
+                        name,
                         entry->loadingThreadId.GetName(),
                         CurrentThreadId().GetName());
 
@@ -115,17 +135,15 @@ public:
                 numSpins++;
             }
 
-            if (EnsureContainsProperties(definition.GetProperties(), entry->shaderInstance->GetCompiledShader()->GetProperties()))
+            if (EnsureContainsProperties(propertySet, *entry->shaderInstance->GetCompiledShader()))
             {
                 return entry->shaderInstance;
             }
             else
             {
                 HYP_LOG(Shader, Error,
-                    "Loaded shader from cache (Name: {}, Properties: {}) does not contain the requested properties!\n\tRequested: {}",
-                    definition.GetName(),
-                    entry->shaderInstance->GetCompiledShader()->GetProperties().ToString(),
-                    definition.GetProperties().ToString());
+                    "Loaded shader from cache (Name: {}) does not contain the requested properties!",
+                    name);
             }
         }
 
@@ -153,11 +171,11 @@ public:
             TUniqueLock lock(m_mutex);
 
             // double check, as we don't want to overwrite an entry, potentially invalidating references to the compiled shader.
-            auto it = m_entryMap.Find(definition);
+            auto it = m_entryMap.Find(hc);
 
             if (it == m_entryMap.End())
             {
-                m_entryMap.Insert(definition, entry);
+                m_entryMap.Insert(hc, entry);
             }
         }
 
@@ -169,19 +187,16 @@ public:
         ShaderRef shader;
 
         { // loading / compilation of shader (outside of mutex lock)
-
             bool isValidCompiledShader = true;
-            isValidCompiledShader &= g_shaderCompiler->GetCompiledShader(definition.GetName(), definition.GetProperties(), *entry->compiledShader);
-            isValidCompiledShader &= entry->compiledShader->GetDefinition().IsValid();
+            isValidCompiledShader &= g_shaderCompiler->GetCompiledShader(name, propertySet, *entry->compiledShader);
+            isValidCompiledShader &= entry->compiledShader->IsValid();
 
-            Assert(isValidCompiledShader, "Compiled shader '{}' with properties hash {} is not a valid compiled shader",
-                definition.GetName().LookupString(),
-                definition.GetProperties().GetHashCode().Value());
+            Assert(isValidCompiledShader, "Compiled shader '{}' is not a valid compiled shader", name);
 
             shader = g_renderInterface->MakeShader(entry->compiledShader);
 
 #ifdef HYP_DEBUG_MODE
-            Assert(EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));
+            Assert(EnsureContainsProperties(propertySet, *shader->GetCompiledShader()));
 #endif
 
             DeferCreate(shader);
@@ -192,12 +207,6 @@ public:
         }
 
         return shader;
-    }
-
-    ShaderRef GetOrCreate(Name name, const ShaderProperties& props)
-    {
-        ShaderCacheId cacheIdUnused;
-        return GetOrCreate(ShaderDefinition { name, props }, cacheIdUnused, /* doLoadShader */ true);
     }
 
     ShaderCacheId GetShaderCacheId(const ShaderDefinition& definition, bool createIfNotExists = false)
@@ -222,20 +231,6 @@ public:
         }
 
         return cacheId;
-    }
-
-    const ShaderDefinition* GetShaderDefinition(ShaderCacheId shaderCacheId) const
-    {
-        TSharedLock lock(m_mutex);
-
-        const ShaderMapEntry* entry = m_entries.TryGet(uint64(shaderCacheId));
-
-        if (!entry)
-        {
-            return nullptr;
-        }
-
-        return &entry->compiledShader->definition;
     }
 
     CompiledShader* GetCompiledShader(ShaderCacheId shaderCacheId)
@@ -318,9 +313,9 @@ ShaderManager::ShaderManager()
 {
 }
 
-ShaderRef ShaderManager::GetOrCreate(Name name, const ShaderProperties& props)
+ShaderRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes)
 {
-    return m_impl->GetOrCreate(name, props);
+    return m_impl->GetOrCreate(name, propertySet, vertexAttributes);
 }
 
 ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
@@ -337,16 +332,6 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition, ShaderC
 ShaderCacheId ShaderManager::GetShaderCacheId(const ShaderDefinition& definition, bool createIfNotExists) const
 {
     return m_impl->GetShaderCacheId(definition, createIfNotExists);
-}
-
-const ShaderDefinition* ShaderManager::GetShaderDefinition(ShaderCacheId shaderCacheId) const
-{
-    if (shaderCacheId == InvalidShaderCacheId)
-    {
-        return nullptr;
-    }
-
-    return m_impl->GetShaderDefinition(shaderCacheId);
 }
 
 SizeType ShaderManager::CalculateMemoryUsage() const

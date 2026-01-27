@@ -125,9 +125,9 @@ const Handle<Texture>& SSRRenderer::GetFinalResultTexture() const
         : m_sampledResultTexture;
 }
 
-ShaderProperties SSRRenderer::GetShaderProperties() const
+ShaderVariant SSRRenderer::GetShaderProperties() const
 {
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     shaderProperties.Set(NAME("CONE_TRACING"), m_config.coneTracing);
     shaderProperties.Set(NAME("ROUGHNESS_SCATTERING"), m_config.roughnessScattering);
 
@@ -136,7 +136,7 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
 
 void SSRRenderer::CreatePasses()
 {
-    const ShaderProperties shaderProperties = GetShaderProperties();
+    const ShaderVariant shaderProperties = GetShaderProperties();
 
     // Write UVs pass - renders to m_uvsTexture
     {

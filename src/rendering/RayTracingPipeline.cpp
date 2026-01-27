@@ -18,14 +18,14 @@ bool RayTracingPipelineBase::MatchesSignature(const ShaderDefinition& shaderDefi
         return false;
     }
 
-    const ShaderDefinition& currentShaderDefinition = m_shader->GetCompiledShader()->GetDefinition();
+    const CompiledShader& compiledShader = *m_shader->GetCompiledShader();
 
-    if (shaderDefinition.name != currentShaderDefinition.name)
+    if (shaderDefinition.name != compiledShader.name)
     {
         return false;
     }
 
-    if (shaderDefinition.GetProperties().GetPropertySetHashCode() != currentShaderDefinition.properties.GetPropertySetHashCode())
+    if (shaderDefinition.GetProperties().GetPropertySetHashCode() != compiledShader.propertySetHashCode)
     {
         return false;
     }

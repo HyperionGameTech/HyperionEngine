@@ -44,6 +44,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <scene/ComponentInterface.hpp>
 
@@ -240,6 +241,17 @@ static void InitLogger()
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
 
+static void LoadShaderPropertyDatabase()
+{
+    FileBufferedReaderSource source { GetCacheDirectory() / "ShaderPropertyCache.db" };
+    BufferedByteReader br { &source };
+
+    if (br.IsOpen())
+    {
+        ReadShaderPropertyDatabase(br);
+    }
+}
+
 extern "C"
 {
     HYP_EXPORT int Hyp_Initialize(int argc, char** argv)
@@ -304,6 +316,8 @@ extern "C"
         g_shaderManager = new ShaderManager;
         g_materialCache = new MaterialCache;
         g_safeDeleter = new SafeDeleter;
+
+        LoadShaderPropertyDatabase();
 
         g_shaderCompiler = new ShaderCompiler;
         if (!g_shaderCompiler->LoadShaderDefinitions())

@@ -13,6 +13,14 @@ enum class ShaderPropertyId : uint32;
 
 struct ShaderProperty;
 
-HYP_API ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
+class ByteWriter;
+
+class BufferedReader;
+using BufferedByteReader = BufferedReader;
+
+HYP_API void WriteShaderPropertyDatabase(ByteWriter& stream);
+HYP_API void ReadShaderPropertyDatabase(BufferedByteReader& stream);
+
+HYP_API HYP_NODISCARD ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 
 } // namespace Hyperion

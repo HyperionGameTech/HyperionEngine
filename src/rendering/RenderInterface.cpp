@@ -848,9 +848,6 @@ void EndFrameSim()
 
 #pragma region RenderInterface
 
-extern void WriteShaderPropertyDatabase(ByteWriter& stream);
-extern void ReadShaderPropertyDatabase(BufferedByteReader& stream);
-
 RenderInterface::RenderInterface()
     : shadowMapAllocator(PoolNew<ShadowMapAllocator>(*g_renderPool)),
       gpuBufferHolders(PoolNew<GpuBufferHolderMap>(*g_renderPool)),
@@ -865,20 +862,6 @@ RenderInterface::RenderInterface()
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool))
 {
-    FileBufferedReaderSource source { "TestShaderPropertyDB.bin" };
-    BufferedByteReader br { &source };
-    if (br.IsOpen())
-    {
-        ReadShaderPropertyDatabase(br);
-    }
-
-    // Testing
-    InternShaderProperty(ShaderProperty(NAME("Foo"), NAME("Bar")));
-    InternShaderProperty(ShaderProperty(NAME("Fizz"), NAME("Buzz")));
-
-    FileByteWriter fbr("TestShaderPropertyDB.bin");
-    WriteShaderPropertyDatabase(fbr);
-    fbr.Close();
 }
 
 RenderInterface::~RenderInterface()

@@ -84,11 +84,11 @@ static const Float16 s_ltcBrdf[] = {
 static_assert(sizeof(s_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
 // Maps individual light types to per-light specific properties.
-static const FixedArray<ShaderProperties, LT_MAX> s_deferredLightTypeProperties {
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("DIRECTIONAL")) } },
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("POINT")) } },
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT")) } },
-    ShaderProperties { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) } }
+static const FixedArray<ShaderVariant, LT_MAX> s_deferredLightTypeProperties {
+    ShaderVariant { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("DIRECTIONAL")) } },
+    ShaderVariant { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("POINT")) } },
+    ShaderVariant { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT")) } },
+    ShaderVariant { { ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT")) } }
 };
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
@@ -124,7 +124,7 @@ extern const GlobalConfig& GetGlobalConfig();
 
 static void GetDeferredShaderProperties(
     DeferredPassMode mode,
-    ShaderProperties& outShaderProperties,
+    ShaderVariant& outShaderProperties,
     const RenderProxyList* rpl = nullptr,
     LightType lightType = LT_INVALID)
 {
@@ -372,7 +372,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
-        ShaderProperties shaderProperties;
+        ShaderVariant shaderProperties;
         GetDeferredShaderProperties(DPM_INDIRECT_LIGHTING, shaderProperties, &rpl);
 
         rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("DeferredIndirect"), shaderProperties)));
@@ -399,7 +399,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             
             if (lightType != prevLightType)
             {
-                ShaderProperties shaderProperties;
+                ShaderVariant shaderProperties;
                 GetDeferredShaderProperties(DPM_DIRECT_LIGHTING, shaderProperties, &rpl, lightType);
 
                 rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("DeferredDirect"), shaderProperties)));
@@ -450,7 +450,7 @@ TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
 {
     const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("SDR")));
 
     m_shaderDefinition = ShaderDefinition(NAME("Tonemap"), shaderProperties);
@@ -780,7 +780,7 @@ void FogVolumePass::Create()
     m_volumeMesh->SetName(NAME("FogVolumeMesh"));
     InitObject(m_volumeMesh);
     
-    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
+    ShaderVariant shaderProperties(m_volumeMesh->GetVertexAttributes());
     shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
 
     m_shaderDefinition = ShaderDefinition(NAME("ApplyFogVolume"), shaderProperties);
@@ -812,7 +812,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     UpdateUniforms(frame, renderSetup, data);
     
-    ShaderProperties shaderProperties(m_volumeMesh->GetVertexAttributes());
+    ShaderVariant shaderProperties(m_volumeMesh->GetVertexAttributes());
     shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLightsPerFogVolume)));
 
     RenderQueue& rq = frame->renderQueue;
@@ -942,9 +942,9 @@ constexpr FixedArray<CubemapType, CMT_MAX> CubemapTypes {
     CMT_PARALLAX_CORRECTED // EPT_REFLECTION
 };
 
-static const FixedArray<Pair<CubemapType, ShaderProperties>, CMT_MAX> s_cubemapPasses = {
-    Pair<CubemapType, ShaderProperties> { CMT_DEFAULT, ShaderProperties {} },
-    Pair<CubemapType, ShaderProperties> { CMT_PARALLAX_CORRECTED, ShaderProperties { { NAME("ENV_PROBE_PARALLAX_CORRECTED") } } }
+static const FixedArray<Pair<CubemapType, ShaderVariant>, CMT_MAX> s_cubemapPasses = {
+    Pair<CubemapType, ShaderVariant> { CMT_DEFAULT, ShaderVariant {} },
+    Pair<CubemapType, ShaderVariant> { CMT_PARALLAX_CORRECTED, ShaderVariant { { NAME("ENV_PROBE_PARALLAX_CORRECTED") } } }
 };
 
 ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
@@ -1135,7 +1135,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     
         rq << SetCurrentView(renderTargetDesc, rs.view->GetViewport());
 
-        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderProperties())));
+        rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderVariant())));
         
         // reset
         rq << SetDepthTest(false);
@@ -2056,7 +2056,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << SetDepthWrite(false);
             frame->renderQueue << SetStencilTest(false);
 
-            frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderProperties())));
+            frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("RenderTextureToScreen"), ShaderVariant())));
 
             frame->renderQueue << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
             frame->renderQueue << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));

@@ -13,7 +13,7 @@
 namespace Hyperion {
 
 struct ShaderDefinition;
-class ShaderProperties;
+class ShaderVariant;
 
 enum class ShaderCacheId : uint64;
 static constexpr ShaderCacheId InvalidShaderCacheId = ShaderCacheId(0);
@@ -25,7 +25,7 @@ public:
 
     ShaderManager();
     
-    ShaderRef GetOrCreate(Name name, const ShaderProperties& props = {});
+    ShaderRef GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes);
 
     ShaderRef GetOrCreate(const ShaderDefinition& definition);
     ShaderRef GetOrCreate(const ShaderDefinition& definition, ShaderCacheId& outCacheId);
@@ -39,11 +39,6 @@ public:
      *  a full ShaderDefinition object.
      */
     ShaderCacheId GetShaderCacheId(const ShaderDefinition& definition, bool createIfNotExists = true) const;
-
-    /*! \brief Retrieves the ShaderDefinition associated with the given ShaderCacheId.
-     *  Returns a pointer to the ShaderDefinition if found, or nullptr if not found.
-     */
-    const ShaderDefinition* GetShaderDefinition(ShaderCacheId shaderCacheId) const;
 
     SizeType CalculateMemoryUsage() const;
 

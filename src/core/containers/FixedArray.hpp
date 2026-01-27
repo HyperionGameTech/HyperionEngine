@@ -43,7 +43,7 @@ public:
     static constexpr SizeType size = Sz;
 
     template <class OtherType, SizeType OtherSize>
-    HYP_FORCE_INLINE bool operator==(const FixedArray<OtherType, OtherSize>& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const FixedArray<OtherType, OtherSize>& other) const
     {
         if constexpr (Sz != OtherSize)
         {
@@ -71,7 +71,7 @@ public:
     }
 
     template <class OtherType, SizeType OtherSize>
-    HYP_FORCE_INLINE bool operator!=(const FixedArray<OtherType, OtherSize>& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const FixedArray<OtherType, OtherSize>& other) const
     {
         if constexpr (Sz != OtherSize)
         {
@@ -104,12 +104,12 @@ public:
         return impl.Contains(value);
     }
 
-    HYP_FORCE_INLINE T& operator[](KeyType index)
+    HYP_FORCE_INLINE constexpr T& operator[](KeyType index)
     {
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE const T& operator[](KeyType index) const
+    HYP_FORCE_INLINE constexpr const T& operator[](KeyType index) const
     {
         return m_values[index];
     }
@@ -121,7 +121,7 @@ public:
 
     HYP_FORCE_INLINE constexpr SizeType ByteSize() const
     {
-        return Sz * sizeof(T);
+        return sizeof(m_values);
     }
 
     HYP_FORCE_INLINE constexpr bool Empty() const
@@ -189,71 +189,71 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE T* Data()
+    HYP_FORCE_INLINE constexpr T* Data()
     {
         return static_cast<T*>(m_values);
     }
 
-    HYP_FORCE_INLINE const T* Data() const
+    HYP_FORCE_INLINE constexpr const T* Data() const
     {
         return static_cast<const T*>(m_values);
     }
 
-    HYP_FORCE_INLINE T& Front()
+    HYP_FORCE_INLINE constexpr T& Front()
     {
         return m_values[0];
     }
 
-    HYP_FORCE_INLINE const T& Front() const
+    HYP_FORCE_INLINE constexpr const T& Front() const
     {
         return m_values[0];
     }
 
-    HYP_FORCE_INLINE T& Back()
+    HYP_FORCE_INLINE constexpr T& Back()
     {
         return m_values[Sz - 1];
     }
 
-    HYP_FORCE_INLINE const T& Back() const
+    HYP_FORCE_INLINE constexpr const T& Back() const
     {
         return m_values[Sz - 1];
     }
 
     /*! \brief Creates a Span<T> from the FixedArray's data.
      *  \return A Span<T> of the FixedArray's data. */
-    HYP_NODISCARD HYP_FORCE_INLINE operator Span<T>()
+    HYP_NODISCARD HYP_FORCE_INLINE constexpr operator Span<T>()
     {
         return Span<T>(Begin(), End());
     }
 
     /*! \brief Creates a Span<T> from the FixedArray's data.
      *  \return A Span<T> of the FixedArray's data. */
-    HYP_NODISCARD HYP_FORCE_INLINE operator Span<const T>() const
+    HYP_NODISCARD HYP_FORCE_INLINE constexpr operator Span<const T>() const
     {
         return Span<const T>(Begin(), End());
     }
 
     /*! \brief Creates a Span<T> from the FixedArray's data.
      *  \return A Span<T> of the FixedArray's data. */
-    HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
+    HYP_NODISCARD HYP_FORCE_INLINE constexpr Span<T> ToSpan()
     {
         return Span<T>(Begin(), End());
     }
 
     /*! \brief Creates a Span<const T> from the FixedArray's data.
      *  \return A Span<const T> of the FixedArray's data. */
-    HYP_NODISCARD HYP_FORCE_INLINE Span<const T> ToSpan() const
+    HYP_NODISCARD HYP_FORCE_INLINE constexpr Span<const T> ToSpan() const
     {
         return Span<const T>(Begin(), End());
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.GetHashCode();
     }
 
-    HYP_DEF_STL_BEGIN_END(&m_values[0], &m_values[0] + Sz)
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(m_values, m_values + Sz)
 };
 
 // template <class T, SizeType Sz>
@@ -322,7 +322,7 @@ public:
         return Sz;
     }
 
-    HYP_DEF_STL_BEGIN_END(ptr, ptr + Sz)
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(ptr, ptr + Sz)
 };
 
 // deduction guide

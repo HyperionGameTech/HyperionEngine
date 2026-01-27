@@ -36,7 +36,10 @@ struct MaterialAttributes
     HYP_STRUCT_BODY(MaterialAttributes);
 
     HYP_FIELD()
-    ShaderDefinition shaderDefinition;
+    Name shaderName;
+
+    HYP_FIELD()
+    ShaderPropertySet shaderProperties;
 
     HYP_FIELD()
     RenderBucket bucket = RB_OPAQUE;
@@ -64,7 +67,8 @@ struct MaterialAttributes
 
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
     {
-        return shaderDefinition == other.shaderDefinition
+        return shaderName == other.shaderName
+            && shaderProperties == other.shaderProperties
             && bucket == other.bucket
             && fillMode == other.fillMode
             && blendFunction == other.blendFunction
@@ -77,7 +81,8 @@ struct MaterialAttributes
 
     HYP_FORCE_INLINE bool operator!=(const MaterialAttributes& other) const
     {
-        return shaderDefinition != other.shaderDefinition
+        return shaderName != other.shaderName
+            || shaderProperties != other.shaderProperties
             || bucket != other.bucket
             || fillMode != other.fillMode
             || blendFunction != other.blendFunction
@@ -91,7 +96,8 @@ struct MaterialAttributes
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(shaderDefinition.GetHashCode());
+        hc.Add(shaderName);
+        hc.Add(shaderProperties);
         hc.Add(bucket);
         hc.Add(fillMode);
         hc.Add(blendFunction);
@@ -102,64 +108,6 @@ struct MaterialAttributes
         hc.Add(textureMask);
 
         return hc;
-    }
-};
-
-struct RuntimeMaterialAttributes
-{
-    ShaderCacheId shaderCacheId; // id in cache
-    RenderBucket bucket;
-    FillMode fillMode;
-    FaceCullMode cullFaces;
-    EnumFlags<MaterialAttributeFlags> flags;
-    uint8 stencilReference;
-    StencilFunction stencilFunction;
-    BlendFunction blendFunction;
-    uint32 textureMask;
-
-    HYP_API RuntimeMaterialAttributes();
-
-    HYP_API explicit RuntimeMaterialAttributes(const MaterialAttributes&);
-
-    HYP_API explicit operator MaterialAttributes() const;
-
-    HYP_FORCE_INLINE bool operator==(const RuntimeMaterialAttributes& other) const
-    {
-        return shaderCacheId == other.shaderCacheId
-            && bucket == other.bucket
-            && fillMode == other.fillMode
-            && blendFunction == other.blendFunction
-            && cullFaces == other.cullFaces
-            && flags == other.flags
-            && stencilFunction == other.stencilFunction
-            && stencilReference == other.stencilReference
-            && textureMask == other.textureMask;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const RuntimeMaterialAttributes& other) const
-    {
-        return shaderCacheId != other.shaderCacheId
-            || bucket != other.bucket
-            || fillMode != other.fillMode
-            || blendFunction != other.blendFunction
-            || cullFaces != other.cullFaces
-            || flags != other.flags
-            || stencilFunction != other.stencilFunction
-            || stencilReference != other.stencilReference
-            || textureMask != other.textureMask;
-    }
-
-    constexpr HashCode GetHashCode() const
-    {
-        return HashCode::GetHashCode(shaderCacheId)
-            .Combine(bucket)
-            .Combine(fillMode)
-            .Combine(cullFaces)
-            .Combine(flags)
-            .Combine(stencilReference)
-            .Combine(stencilFunction)
-            .Combine(blendFunction)
-            .Combine(textureMask);
     }
 };
 
@@ -233,19 +181,36 @@ public:
         return GetHashCode().Value() < other.GetHashCode().Value();
     }
 
-    HYP_FORCE_INLINE const ShaderDefinition& GetShaderDefinition() const
+    HYP_FORCE_INLINE Name GetShaderName() const
     {
-        return m_materialAttributes.shaderDefinition;
+        return m_materialAttributes.shaderName;
     }
 
-    HYP_FORCE_INLINE void SetShaderDefinition(const ShaderDefinition& shaderDefinition)
+    HYP_FORCE_INLINE void SetShaderName(Name shaderName)
     {
-        if (m_materialAttributes.shaderDefinition == shaderDefinition)
+        if (m_materialAttributes.shaderName == shaderName)
         {
             return;
         }
 
-        m_materialAttributes.shaderDefinition = shaderDefinition;
+        m_materialAttributes.shaderName = shaderName;
+        m_needsHashCodeRecalculation = true;
+
+    }
+
+    HYP_FORCE_INLINE const ShaderPropertySet& GetShaderProperties() const
+    {
+        return m_materialAttributes.shaderProperties;
+    }
+
+    HYP_FORCE_INLINE void SetShaderProperties(const ShaderPropertySet& shaderProperties)
+    {
+        if (m_materialAttributes.shaderProperties == shaderProperties)
+        {
+            return;
+        }
+
+        m_materialAttributes.shaderProperties = shaderProperties;
         m_needsHashCodeRecalculation = true;
     }
 

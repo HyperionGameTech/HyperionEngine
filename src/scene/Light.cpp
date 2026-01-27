@@ -179,7 +179,7 @@ void Light::CreateShadowViews()
 
     ShaderDefinition shaderDefinition;
 
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     shaderProperties.SetRequiredVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
     shaderProperties.Set(s_shadowMapFilterProperties[shadowMapFilter]);
 

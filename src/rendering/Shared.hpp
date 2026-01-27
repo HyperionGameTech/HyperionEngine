@@ -1591,6 +1591,8 @@ enum ShaderPropertyFlags : uint8
     SPF_PERMUTATION = 0x2
 };
 
+enum class ShaderPropertyId : uint32;
+
 HYP_STRUCT()
 struct ShaderProperty
 {
@@ -1777,29 +1779,27 @@ struct ShaderProperty
     }
 
     HYP_API String GetValueString() const;
-
     HYP_API HashCode GetHashCode() const;
-
     HYP_API String ToString() const;
 };
 
 HYP_STRUCT()
-class ShaderProperties
+class ShaderVariant
 {
     friend class ShaderCompiler;
 
 public:
-    HYP_STRUCT_BODY(ShaderProperties);
+    HYP_STRUCT_BODY(ShaderVariant);
 
     using Iterator = typename HashSet<ShaderProperty>::Iterator;
     using ConstIterator = typename HashSet<ShaderProperty>::ConstIterator;
 
-    ShaderProperties()
+    ShaderVariant()
         : m_needsHashCodeRecalculation(true)
     {
     }
 
-    explicit ShaderProperties(const HashSet<ShaderProperty>& props)
+    explicit ShaderVariant(const HashSet<ShaderProperty>& props)
         : m_needsHashCodeRecalculation(true)
     {
         for (const ShaderProperty& property : props)
@@ -1809,7 +1809,7 @@ public:
     }
 
     template <SizeType Sz>
-    ShaderProperties(Name const (&props)[Sz])
+    ShaderVariant(Name const (&props)[Sz])
         : m_needsHashCodeRecalculation(true)
     {
         for (Name propKey : props)
@@ -1819,7 +1819,7 @@ public:
     }
 
     template <SizeType Sz>
-    ShaderProperties(ShaderProperty const (&props)[Sz])
+    ShaderVariant(ShaderProperty const (&props)[Sz])
         : m_needsHashCodeRecalculation(true)
     {
         for (const ShaderProperty& property : props)
@@ -1829,7 +1829,7 @@ public:
     }
 
     template <SizeType Sz>
-    ShaderProperties(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
+    ShaderVariant(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
     {
@@ -1839,32 +1839,22 @@ public:
         }
     }
 
-    explicit ShaderProperties(const VertexAttributeSet& vertexAttributes)
+    explicit ShaderVariant(const VertexAttributeSet& vertexAttributes)
         : m_requiredVertexAttributes(vertexAttributes),
           m_needsHashCodeRecalculation(true)
     {
     }
 
-    ShaderProperties(const ShaderProperties& other) = default;
-    ShaderProperties& operator=(const ShaderProperties& other) = default;
+    ShaderVariant(const ShaderVariant& other) = default;
+    ShaderVariant& operator=(const ShaderVariant& other) = default;
 
-    ShaderProperties(ShaderProperties&& other) noexcept = default;
-    ShaderProperties& operator=(ShaderProperties&& other) = default;
+    ShaderVariant(ShaderVariant&& other) noexcept = default;
+    ShaderVariant& operator=(ShaderVariant&& other) = default;
 
-    ~ShaderProperties() = default;
+    ~ShaderVariant() = default;
 
-    // HYP_FORCE_INLINE bool operator==(const ShaderProperties& other) const
-    // {
-    //     return (m_requiredVertexAttributes == other.m_requiredVertexAttributes) && (m_props == other.m_props);
-    // }
-
-    // HYP_FORCE_INLINE bool operator!=(const ShaderProperties& other) const
-    // {
-    //     return m_requiredVertexAttributes != other.m_requiredVertexAttributes || m_props != other.m_props;
-    // }
-
-    HYP_FORCE_INLINE bool operator==(const ShaderProperties& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const ShaderProperties& other) const = delete;
+    HYP_FORCE_INLINE bool operator==(const ShaderVariant& other) const = delete;
+    HYP_FORCE_INLINE bool operator!=(const ShaderVariant& other) const = delete;
 
     HYP_FORCE_INLINE bool Any() const
     {
@@ -1883,7 +1873,7 @@ public:
 
     HYP_FORCE_INLINE ConstIterator Find(const ShaderProperty& property) const
     {
-        return const_cast<ShaderProperties*>(this)->Find(property);
+        return const_cast<ShaderVariant*>(this)->Find(property);
     }
 
     Iterator Find(StringHash name)
@@ -1910,7 +1900,7 @@ public:
 
     HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
     {
-        return const_cast<ShaderProperties*>(this)->Find(name);
+        return const_cast<ShaderVariant*>(this)->Find(name);
     }
 
     HYP_FORCE_INLINE bool HasRequiredVertexAttributes(VertexAttributeSet vertexAttributes) const
@@ -1943,15 +1933,15 @@ public:
         return Find(name) != m_props.End();
     }
 
-    HYP_API ShaderProperties& Set(const ShaderProperty& property, bool enabled = true);
+    HYP_API ShaderVariant& Set(const ShaderProperty& property, bool enabled = true);
 
-    HYP_FORCE_INLINE ShaderProperties& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
+    HYP_FORCE_INLINE ShaderVariant& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
     {
         return Set(ShaderProperty(name, flags), enabled);
     }
 
     /*! \brief Applies \p other properties onto this set */
-    void Merge(const ShaderProperties& other)
+    void Merge(const ShaderVariant& other)
     {
         for (const ShaderProperty& property : other.m_props)
         {
@@ -1964,9 +1954,9 @@ public:
         m_needsHashCodeRecalculation = true;
     }
 
-    static ShaderProperties Merge(const ShaderProperties& a, const ShaderProperties& b)
+    static ShaderVariant Merge(const ShaderVariant& a, const ShaderVariant& b)
     {
-        ShaderProperties result(a);
+        ShaderVariant result(a);
         result.Merge(b);
 
         return result;
@@ -1981,7 +1971,7 @@ public:
      *  Permutations create new shader variants based on their values.
      *  Many permutations will drastically increase the number of shader variants generated,
      *  so use them sparingly. (prefer value groups or static properties where appropriate) */
-    ShaderProperties& AddPermutation(Name key)
+    ShaderVariant& AddPermutation(Name key)
     {
         const ShaderProperty shaderProperty(key, SPF_PERMUTATION);
 
@@ -2003,7 +1993,7 @@ public:
 
     /*! \brief Adds a new static property with key \p key
      *  Static properties are applied to every shader variant and do not create new permutations. */
-    ShaderProperties& AddStatic(Name key)
+    ShaderVariant& AddStatic(Name key)
     {
         const ShaderProperty shaderProperty(key, SPF_NONE);
 
@@ -2027,7 +2017,7 @@ public:
      *  Value groups create new shader variants but their values are mututally exclusive to each other.
      *  i.e, only one value from the value group can be selected at a time. This reduces the number of
      *  shader variants generated compared to permutations. */
-    ShaderProperties& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
+    ShaderVariant& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
     {
         ShaderProperty shaderProperty(key, SPF_NONE);
 
@@ -2216,19 +2206,19 @@ struct ShaderDefinition
     Name name;
 
     HYP_FIELD()
-    ShaderProperties properties;
+    ShaderVariant properties;
 
     HYP_FORCE_INLINE Name GetName() const
     {
         return name;
     }
 
-    HYP_FORCE_INLINE ShaderProperties& GetProperties()
+    HYP_FORCE_INLINE ShaderVariant& GetProperties()
     {
         return properties;
     }
 
-    HYP_FORCE_INLINE const ShaderProperties& GetProperties() const
+    HYP_FORCE_INLINE const ShaderVariant& GetProperties() const
     {
         return properties;
     }
@@ -2267,6 +2257,75 @@ struct ShaderDefinition
     {
         // ensure they return the same hash codes so they can be compared.
         return (operator HashedShaderDefinition()).GetHashCode();
+    }
+};
+
+HYP_STRUCT()
+struct ShaderPropertySet
+{
+    HYP_STRUCT_BODY(ShaderPropertySet);
+
+    static constexpr uint32 NumChunks = 8;
+    static constexpr uint32 MaxProperties = 64 * NumChunks;
+
+    HYP_FIELD()
+    FixedArray<uint64, NumChunks> chunks;
+
+    HYP_FORCE_INLINE constexpr ShaderPropertySet()
+        : chunks{}
+    {
+    }
+
+    HYP_FORCE_INLINE void Add(ShaderPropertyId id)
+    {
+        AssertDebug(uint32(id) < 64 * NumChunks);
+
+        chunks[uint32(id) / NumChunks] |= (1ull << (uint32(id) % NumChunks));
+    }
+
+    HYP_FORCE_INLINE constexpr bool Test(ShaderPropertyId id) const
+    {
+        return bool(chunks[0] & (1ull << uint32(id)))
+            || bool(chunks[1] & (1ull << uint32(id)))
+            || bool(chunks[2] & (1ull << uint32(id)))
+            || bool(chunks[3] & (1ull << uint32(id)));
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator==(const ShaderPropertySet& other) const
+    {
+        return chunks == other.chunks;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const ShaderPropertySet& other) const
+    {
+        return chunks != other.chunks;
+    }
+
+    HYP_FORCE_INLINE constexpr ShaderPropertySet operator&(const ShaderPropertySet& other) const
+    {
+        ShaderPropertySet result = *this;
+        result.chunks[0] &= other.chunks[0];
+        result.chunks[1] &= other.chunks[1];
+        result.chunks[2] &= other.chunks[2];
+        result.chunks[3] &= other.chunks[3];
+
+        return result;
+    }
+
+    HYP_FORCE_INLINE constexpr ShaderPropertySet operator|(const ShaderPropertySet& other) const
+    {
+        ShaderPropertySet result = *this;
+        result.chunks[0] |= other.chunks[0];
+        result.chunks[1] |= other.chunks[1];
+        result.chunks[2] |= other.chunks[2];
+        result.chunks[3] |= other.chunks[3];
+
+        return result;
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return chunks.GetHashCode();
     }
 };
 
@@ -2389,81 +2448,51 @@ struct ShaderDesc
         }
     };
 
-    Name shaderName;
-    Name propertyNames[MaxShaderProperties];
-    PropertyValue propertyValues[MaxShaderProperties];
-    uint32 numProperties = 0;
+    Name name;
+    ShaderPropertySet properties;
 
     ShaderDesc() = default;
     
-    explicit ShaderDesc(Name shaderName)
-        : shaderName(shaderName),
-          numProperties(0)
+    explicit ShaderDesc(Name name)
+        : name(name),
+          properties{}
     {
     }
 
     template <SizeType N>
-    ShaderDesc(Name shaderName, const Pair<Name, PropertyValue>(&properties)[N])
-        : shaderName(shaderName),
-          numProperties(N)
+    constexpr ShaderDesc(Name name, const ShaderPropertyId(&propertyIds)[N])
+        : name(name)
     {
-        static_assert(N <= MaxShaderProperties);
-
         for (uint32 i = 0; i < N; i++)
         {
-            propertyNames[i] = properties[i].first;
-            propertyValues[i] = properties[i].second;
+            properties.Add(propertyIds[i]);
         }
     }
 
-    explicit ShaderDesc(const ShaderDefinition& shaderDefinition)
-        : shaderName(shaderDefinition.name),
-          numProperties(0)
+    explicit constexpr ShaderDesc(Name name, const ShaderPropertySet& properties)
+        : name(name),
+          properties(properties)
     {
-        for (const ShaderProperty& property : shaderDefinition.GetProperties().GetPropertySet())
-        {
-            const uint32 propertyIndex = numProperties++;
-
-            if (propertyIndex == ShaderDesc::MaxShaderProperties)
-            {
-                break;
-            }
-
-            propertyNames[propertyIndex] = property.name;
-            if (property.HasValue())
-            {
-                if (property.currentValue.Is<Name>())
-                    propertyValues[propertyIndex] = property.currentValue.GetUnchecked<Name>();
-                else if (property.currentValue.Is<int>())
-                    propertyValues[propertyIndex] = property.currentValue.GetUnchecked<int>();
-                else if (property.currentValue.Is<float>())
-                    propertyValues[propertyIndex] = property.currentValue.GetUnchecked<float>();
-            }
-        }
     }
 
     ShaderDesc(const ShaderDesc& other) = default;
     ShaderDesc& operator=(const ShaderDesc& other) = default;
 
-    HYP_FORCE_INLINE bool operator==(const ShaderDesc& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const ShaderDesc& other) const
     {
-        return shaderName == other.shaderName
-            && numProperties == other.numProperties
-            && std::equal(propertyNames, propertyNames + numProperties, other.propertyNames)
-            && std::equal(propertyValues, propertyValues + numProperties, other.propertyValues);
+        return name == other.name
+            && properties == other.properties;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const ShaderDesc& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const ShaderDesc& other) const
     {
         return !(*this == other);
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(shaderName)
-            .Combine(numProperties)
-            .Combine(HashCode::GetHashCode(propertyNames, propertyNames + numProperties))
-            .Combine(HashCode::GetHashCode(propertyValues, propertyValues + numProperties));
+        return HashCode::GetHashCode(name)
+            .Combine(properties.GetHashCode());
     }
 };
 
@@ -2511,7 +2540,7 @@ struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .in
 {
     Name name;
     FlatMap<ShaderModuleType, String> sources;
-    ShaderProperties versions; // permutations
+    ShaderVariant versions; // permutations
 
     bool HasRTShaders() const
     {

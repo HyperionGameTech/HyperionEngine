@@ -181,7 +181,7 @@ public:
 
         ShaderRef shader = g_shaderManager->GetOrCreate(
             NAME("GeometryPass"),
-            ShaderProperties(VertexAttributeSet::StaticMeshVertexAttributes));
+            ShaderVariant(VertexAttributeSet::StaticMeshVertexAttributes));
 
         attributes.shaderDefinition = shader->GetCompiledShader()->GetDefinition();
 

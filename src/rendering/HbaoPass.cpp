@@ -125,7 +125,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Begin(frame, renderSetup);
     
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     shaderProperties.Set(NAME("HBIL_ENABLED"), CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())

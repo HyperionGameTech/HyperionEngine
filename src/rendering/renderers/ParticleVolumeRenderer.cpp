@@ -151,7 +151,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     CreateNoiseMap(state.noiseMap);
 
     // compute shader properties
-    ShaderProperties properties;
+    ShaderVariant properties;
     state.hasPhysics = proxy->particleVolume.GetUnsafe()->GetParams().hasPhysics;
     properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
     properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
@@ -251,7 +251,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     { // update gpu particles pass (compute, done before frame is rendered)
         RenderQueue& rq = frame->preRenderQueue;
 
-        ShaderProperties properties;
+        ShaderVariant properties;
         properties.Set(NAME("HAS_PHYSICS"), state.hasPhysics);
         properties.Set(ShaderProperty(NAME("MAX_PARTICLES"), int(state.maxParticles)));
 

@@ -165,7 +165,7 @@ void TemporalBlending::Resize_Internal(Vec2u newSize)
     CreateImages();
 }
 
-void TemporalBlending::GetShaderProperties(ShaderProperties& outProperties) const
+void TemporalBlending::GetShaderProperties(ShaderVariant& outProperties) const
 {
     switch (m_imageFormat)
     {
@@ -257,7 +257,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     uniforms.blendingFrameCounter = m_blendingFrameCounter;
     m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     GetShaderProperties(shaderProperties);
 
     frame->renderQueue << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("TemporalBlending"), shaderProperties)));

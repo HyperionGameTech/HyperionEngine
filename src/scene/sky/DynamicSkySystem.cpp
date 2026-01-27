@@ -108,7 +108,7 @@ void DynamicSkySystem::Init()
         MaterialAttributes materialAttributes {};
         materialAttributes.shaderDefinition = ShaderDefinition {
             NAME("Skybox"),
-            ShaderProperties(mesh->GetVertexAttributes())
+            ShaderVariant(mesh->GetVertexAttributes())
         };
 
         materialAttributes.bucket = RB_SKYBOX;

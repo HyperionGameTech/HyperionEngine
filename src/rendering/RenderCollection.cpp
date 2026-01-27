@@ -262,7 +262,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     }
 
     const ShaderDefinition& currentShaderDefinition = attributes.GetShaderDefinition();
-    const ShaderProperties& currentProperties = currentShaderDefinition.GetProperties();
+    const ShaderVariant& currentProperties = currentShaderDefinition.GetProperties();
 
     ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
     bool shaderDefinitionChanged = false;

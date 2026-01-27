@@ -163,7 +163,6 @@ void WriteShaderPropertyDatabase(ByteWriter& stream)
     stream.Write<uint32>(maxShaderId + 1);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void ReadShaderPropertyDatabase(BufferedByteReader& stream)
 {
     const SizeType readOffset = stream.Position();

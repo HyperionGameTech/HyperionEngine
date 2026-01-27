@@ -121,7 +121,7 @@ namespace Baking {
 
 static ShaderDefinition GetShaderDefinition(LightmapShadingType shadingType)
 {
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
 
     switch (shadingType)

@@ -323,8 +323,14 @@ struct HYP_API CompiledShader
 {
     HYP_STRUCT_BODY(CompiledShader);
 
-    HYP_FIELD(Property = "Definition")
-    ShaderDefinition definition;
+    HYP_FIELD(Property = "Name")
+    Name name;
+
+    HYP_FIELD(Property = "PropertySet")
+    ShaderPropertySet properties;
+
+    HYP_FIELD(Property = "VertexAttributes")
+    VertexAttributeSet vertexAttributes;
 
     HYP_FIELD(Property = "DescriptorTableDeclaration")
     DescriptorTableDeclaration descriptorTableDeclaration;
@@ -340,6 +346,9 @@ struct HYP_API CompiledShader
 
     HYP_FIELD(Property = "ShaderBlobs", Compressed)
     Array<ByteBuffer> shaderBlobs;
+
+    HYP_FIELD(Property = "PropertySetHashCode")
+    HashCode propertySetHashCode;
 
     /// ===== Serialization only =====
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
@@ -363,37 +372,17 @@ struct HYP_API CompiledShader
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return definition.IsValid()
+        return name.IsValid()
             && shaderBlobs.Any()
             && moduleTypes.Size() == shaderBlobs.Size()
             && moduleNames.Size() == shaderBlobs.Size()
             && entryPointNames.Size() == shaderBlobs.Size();
     }
 
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return definition.name;
-    }
-
-    HYP_FORCE_INLINE ShaderDefinition& GetDefinition()
-    {
-        return definition;
-    }
-
-    HYP_FORCE_INLINE const ShaderDefinition& GetDefinition() const
-    {
-        return definition;
-    }
-
     HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDescriptorTableDeclaration() const
     {
         // \TODO return reference
         return &descriptorTableDeclaration;
-    }
-
-    HYP_FORCE_INLINE const ShaderProperties& GetProperties() const
-    {
-        return definition.properties;
     }
 
     void AddShaderModule(
@@ -433,11 +422,14 @@ struct HYP_API CompiledShader
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(definition.GetHashCode());
+        hc.Add(name.GetHashCode());
+        hc.Add(properties.GetHashCode());
+        hc.Add(vertexAttributes.GetHashCode());
         hc.Add(moduleTypes.GetHashCode());
         hc.Add(moduleNames.GetHashCode());
         hc.Add(entryPointNames.GetHashCode());
         hc.Add(shaderBlobs.GetHashCode());
+        hc.Add(propertySetHashCode);
 
         return hc;
     }
@@ -507,7 +499,7 @@ struct CompiledShaderBatch
     }
 };
 
-void MergeGlobalShaderProperties(ShaderProperties& out);
+void MergeGlobalShaderProperties(ShaderVariant& out);
 
 class ShaderCompiler
 {
@@ -542,11 +534,11 @@ public:
     HYP_API bool LoadShaderDefinitions(bool precompileShaders = false);
 
     HYP_API CompiledShader GetCompiledShader(Name name);
-    HYP_API CompiledShader GetCompiledShader(Name name, const ShaderProperties& properties);
+    HYP_API CompiledShader GetCompiledShader(Name name, const ShaderVariant& properties);
 
     HYP_API bool GetCompiledShader(
         Name name,
-        const ShaderProperties& properties,
+        const ShaderVariant& properties,
         CompiledShader& out);
 
 private:
@@ -556,7 +548,7 @@ private:
         ShaderLanguage language,
         const String& source,
         const String& filename,
-        const ShaderProperties& properties);
+        const ShaderVariant& properties);
 
     void ParseDefinitionSection(
         const INIFile::Section& section,
@@ -566,24 +558,24 @@ private:
         ShaderBundleDecl& shaderBundleDecl,
         CompiledShaderBatch& out)
     {
-        return CompileBundle(shaderBundleDecl, ShaderProperties(), out, false);
+        return CompileBundle(shaderBundleDecl, ShaderVariant(), out, false);
     }
 
     bool CompileBundle(
         ShaderBundleDecl& shaderBundleDecl,
-        const ShaderProperties& additionalProperties,
+        const ShaderVariant& additionalProperties,
         CompiledShaderBatch& out,
         bool onlyCompileRequestedVersions = false);
 
     bool HandleCompiledShaderBatch(
         ShaderBundleDecl& shaderBundleDecl,
-        const ShaderProperties& additionalProperties,
+        const ShaderVariant& additionalProperties,
         const FilePath& outputFilePath,
         CompiledShaderBatch& batch);
 
     bool LoadOrCompileBatch(
         Name name,
-        const ShaderProperties& additionalProperties,
+        const ShaderVariant& additionalProperties,
         CompiledShaderBatch& out);
 
     INIFile* m_definitions;

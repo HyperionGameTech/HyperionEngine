@@ -734,7 +734,9 @@ void RenderGroup::PerformRendering(
         renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
         renderSetup.view->GetViewport());
     
-    rq << SetCurrentShader(ShaderDesc(renderableAttributes.GetMaterialAttributes().shaderDefinition));
+    rq << SetCurrentShader(ShaderDesc(
+        renderableAttributes.GetMaterialAttributes().shaderName,
+        renderableAttributes.GetMaterialAttributes().shaderProperties));
 
     rq << SetDepthTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
     rq << SetDepthWrite(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));

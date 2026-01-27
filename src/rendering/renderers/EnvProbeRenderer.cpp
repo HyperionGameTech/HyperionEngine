@@ -303,7 +303,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         const float roughness = float(mipIndex) / float(numMips - 1);
         const float perceptualRoughness = MathUtil::Round(roughness * roughness, 3);
 
-        ShaderProperties shaderProperties;
+        ShaderVariant shaderProperties;
         shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), perceptualRoughness));
         shaderProperties.Set(ShaderProperty(NAME("NUM_SAMPLES"), 2048));
 
@@ -453,7 +453,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         Assert(shTilesBuffers[i]->Create());
     }
 
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
 
     if (!envProbe->IsSkyProbe())
     {
@@ -513,7 +513,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     // Helper to run pass
     auto RunPass = [&](Name mode, const SHUniforms& passUniforms, const Vec3u& dispatchGroupSize, const GpuBufferRef& inputBuffer, const GpuBufferRef& outputBuffer)
     {
-        ShaderProperties passShaderProperties = ShaderProperties::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), mode) } });
+        ShaderVariant passShaderProperties = ShaderVariant::Merge(shaderProperties, { { ShaderProperty(NAME("MODE"), mode) } });
         
         ShaderDesc shaderDesc(ShaderDefinition(NAME("ComputeSH"), passShaderProperties));
         asyncRenderQueue << SetCurrentShader(shaderDesc);

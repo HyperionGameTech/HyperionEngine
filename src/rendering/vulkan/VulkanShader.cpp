@@ -37,7 +37,7 @@ VulkanShader::VulkanShader(const CompiledShader* compiledShader)
 #ifdef HYP_DEBUG_MODE
     if (compiledShader != nullptr)
     {
-        SetDebugName(compiledShader->GetName());
+        SetDebugName(compiledShader->name);
     }
 #endif
 }
@@ -105,7 +105,7 @@ RendererResult VulkanShader::AttachShaderModules()
     for (SizeType index = 0; index < m_compiledShader->moduleTypes.Size(); index++)
     {
 #ifdef HYP_DEBUG_MODE
-        const Name srcName = NAME_FMT("{} ({})", m_compiledShader->GetName(), m_compiledShader->GetDefinition().GetProperties().ToString());
+        const Name srcName = NAME_FMT("{}", m_compiledShader->name);
 #else
         const Name srcName = NAME("<unnamed shader>");
 #endif

@@ -92,7 +92,7 @@ public:
 private:
     void Resize_Internal(Vec2u newSize);
 
-    void GetShaderProperties(class ShaderProperties& outProperties) const;
+    void GetShaderProperties(class ShaderVariant& outProperties) const;
 
     void CreateImages();
 

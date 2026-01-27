@@ -475,14 +475,21 @@ Transform BuildTransformFromNode(const cgltf_node& node)
 
 Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* material, const Handle<Mesh>& mesh)
 {
+    MaterialAttributes materialAttributes {};
+    materialAttributes.shaderName = NAME("GeometryPass");
+    materialAttributes.shaderProperties = {};
+    materialAttributes.bucket = RB_OPAQUE;
+
     if (material == nullptr)
     {
         Handle<Material> fallback = MaterialCache::GetInstance()->GetOrCreate(
             NAME("BasicGLTFMaterial"),
-            { ShaderDefinition { NAME("GeometryPass"), ShaderProperties(mesh->GetVertexAttributes()) }, RB_OPAQUE },
-            { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
+            materialAttributes,
+            {
+                { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) },
                 { MATERIAL_KEY_ROUGHNESS, 0.9f },
-                { MATERIAL_KEY_METALNESS, 0.0f } });
+                { MATERIAL_KEY_METALNESS, 0.0f }
+            });
 
         InitObject(fallback);
 
@@ -552,17 +559,14 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         parameters[MATERIAL_KEY_ALPHA_THRESHOLD] = MaterialParameter(float(material->alpha_cutoff));
     }
 
-    MaterialAttributes attributes;
-    attributes.shaderDefinition = ShaderDefinition { NAME("GeometryPass"), ShaderProperties(mesh->GetVertexAttributes()) };
-
     switch (material->alpha_mode)
     {
     case cgltf_alpha_mode_blend:
-        attributes.bucket = RB_TRANSLUCENT;
-        attributes.blendFunction = BlendFunction::AlphaBlending();
+        materialAttributes.bucket = RB_TRANSLUCENT;
+        materialAttributes.blendFunction = BlendFunction::AlphaBlending();
         break;
     case cgltf_alpha_mode_mask:
-        attributes.flags |= MAF_ALPHA_DISCARD;
+        materialAttributes.flags |= MAF_ALPHA_DISCARD;
         break;
     default:
         break;
@@ -570,7 +574,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
 
     if (material->double_sided)
     {
-        attributes.cullFaces = FCM_NONE;
+        materialAttributes.cullFaces = FCM_NONE;
     }
 
     if (Handle<Texture> normalTexture = AcquireTexture(ctx, material->normal_texture, false))
@@ -583,7 +587,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
         textures[MaterialTextureKey::AO_MAP] = occlusionTexture;
     }
 
-    Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, attributes, parameters, textures);
+    Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, materialAttributes, parameters, textures);
     ctx.materialCache.Set(material, materialHandle);
 
     return materialHandle;

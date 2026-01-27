@@ -115,9 +115,9 @@ const Handle<Texture>& SSGI::GetFinalResultTexture() const
         : m_resultTexture;
 }
 
-ShaderProperties SSGI::GetShaderProperties() const
+ShaderVariant SSGI::GetShaderProperties() const
 {
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
 
     switch (SsgiFormat)
     {
@@ -180,7 +180,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     // put sample image in writeable state
     rq << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
-    const ShaderProperties shaderProperties = GetShaderProperties();
+    const ShaderVariant shaderProperties = GetShaderProperties();
     rq << SetCurrentShader(ShaderDesc(ShaderDefinition(NAME("SSGI"), shaderProperties)));
 
     uint32 numShaderUniforms = 0;

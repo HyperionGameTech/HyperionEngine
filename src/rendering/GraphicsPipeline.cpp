@@ -117,11 +117,11 @@ bool GraphicsPipelineBase::MatchesSignature(
             return false;
     }
 
-    const ShaderDefinition& shaderDefinition = m_shader->GetCompiledShader()->GetDefinition();
+    const CompiledShader& compiledShader = *m_shader->GetCompiledShader();
 
-    if (materialAttributes.shaderDefinition.name != shaderDefinition.name
-        || (shaderDefinition.properties.GetRequiredVertexAttributes().flagMask & meshAttributes.vertexAttributes.flagMask) != shaderDefinition.properties.GetRequiredVertexAttributes().flagMask
-        || materialAttributes.shaderDefinition.GetProperties().GetPropertySetHashCode() != shaderDefinition.properties.GetPropertySetHashCode())
+    if (materialAttributes.shaderName != compiledShader.name
+        || (compiledShader.vertexAttributes.flagMask & meshAttributes.vertexAttributes.flagMask) != compiledShader.vertexAttributes.flagMask
+        || materialAttributes.shaderProperties != compiledShader.properties)
     {
         return false;
     }

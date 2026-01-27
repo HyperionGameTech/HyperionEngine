@@ -246,7 +246,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
-    ShaderProperties shaderProperties;
+    ShaderVariant shaderProperties;
     shaderProperties.Set(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights)));
 
     if (renderSetup.envProbe != nullptr)

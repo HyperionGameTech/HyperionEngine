@@ -520,7 +520,7 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
     shaderDefinition.name = cmdCasted->shaderDesc.shaderName;
 
-    shaderDefinition.properties = ShaderProperties {};
+    shaderDefinition.properties = ShaderVariant {};
     MergeGlobalShaderProperties(shaderDefinition.properties);
 
     for (uint32 propertyIndex = 0; propertyIndex < cmdCasted->shaderDesc.numProperties; propertyIndex++)

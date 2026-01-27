@@ -329,10 +329,8 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         MaterialAttributes materialAttributes {};
         materialAttributes.bucket = RB_TRANSLUCENT;
         materialAttributes.blendFunction = BlendFunction::AlphaBlending();
-        materialAttributes.shaderDefinition = ShaderDefinition {
-            NAME("GeometryPass"),
-            ShaderProperties(mesh->GetVertexAttributes())
-        };
+        materialAttributes.shaderName = NAME("GeometryPass");
+        materialAttributes.shaderProperties = {};
 
         Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));

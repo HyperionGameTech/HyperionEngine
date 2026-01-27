@@ -287,7 +287,7 @@ void EnvProbe::CreateView()
     {
         shaderDefinition = ShaderDefinition(
             NAME("RenderToCubemap"),
-            ShaderProperties {
+            ShaderVariant {
                 VertexAttributeSet::StaticMeshVertexAttributes,
                 { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }
             });
@@ -296,7 +296,7 @@ void EnvProbe::CreateView()
     {
         shaderDefinition = ShaderDefinition(
             NAME("RenderSky"),
-            ShaderProperties(VertexAttributeSet::StaticMeshVertexAttributes));
+            ShaderVariant(VertexAttributeSet::StaticMeshVertexAttributes));
     }
 
     ViewDesc viewDesc {
