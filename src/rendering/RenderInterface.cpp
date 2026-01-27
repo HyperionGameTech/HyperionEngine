@@ -857,8 +857,7 @@ RenderInterface::RenderInterface()
       rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       finalPass(nullptr),
-      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      shaderPropertyCache(PoolNew<ShaderPropertyCache>(*g_renderPool))
+      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool))
 {
 }
 
@@ -872,15 +871,15 @@ RendererResult RenderInterface::Initialize()
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
     
-    gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CBUFF>(16, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CBUFF>(1024, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::SSBO>(1024, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::SSBO>(1 << 15, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::SSBO>(1 << 10, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::SSBO>(1 << 6, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::SSBO>(1 << 3, /* cpuAccessible */ false);
-    gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CBUFF>(1 << 3, /* cpuAccessible */ true);
-    gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::SSBO>(1 << 3, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CONSTANT_BUFFER>(16, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CONSTANT_BUFFER>(1024, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::STORAGE_BUFFER>(1024, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENTITIES] = gpuBufferHolders->GetOrCreate<EntityShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 15, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_MATERIALS] = gpuBufferHolders->GetOrCreate<MaterialShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 10, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_SKELETONS] = gpuBufferHolders->GetOrCreate<SkeletonShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 6, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENV_PROBES] = gpuBufferHolders->GetOrCreate<EnvProbeShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 3, /* cpuAccessible */ false);
+    gpuBuffers.buffers[GRB_ENV_GRIDS] = gpuBufferHolders->GetOrCreate<EnvGridShaderData, GpuBufferType::CONSTANT_BUFFER>(1 << 3, /* cpuAccessible */ true);
+    gpuBuffers.buffers[GRB_LIGHTMAP_VOLUMES] = gpuBufferHolders->GetOrCreate<LightmapVolumeShaderData, GpuBufferType::STORAGE_BUFFER>(1 << 3, /* cpuAccessible */ false);
 
     resources = PoolNew<ResourceContainer>(*g_renderPool);
 
@@ -1031,9 +1030,6 @@ RendererResult RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
 
-    PoolDelete(*g_renderPool, shaderPropertyCache);
-    shaderPropertyCache = nullptr;
-
     return {};
 }
 
@@ -1051,8 +1047,8 @@ void RenderInterface::BeginFrame()
     const uint32 slot = s_frameIndex[CONSUMER];
     FrameData& fd = s_frameData[slot];
 
-    g_renderInterface->constantsAllocator->OnFrameStart();
-    g_renderInterface->descriptorSetCache->OnFrameStart();
+    constantsAllocator->OnFrameStart();
+    descriptorSetCache->OnFrameStart();
 
     g_engineStats->Prepare();
 
@@ -1061,7 +1057,7 @@ void RenderInterface::BeginFrame()
     Array<View*, RenderTempAllocator> activeViews;
 
     // collect views for worlds enqueued to be rendered
-    for (World* world : g_renderInterface->renderWorlds[slot])
+    for (World* world : renderWorlds[slot])
     {
         for (View* view : world->GetViews())
         {
@@ -1329,18 +1325,18 @@ void RenderInterface::EndFrame()
     int numCleanupCycles = FrameCleanupBudget;
     for (uint32 i = 0; i < GRT_MAX && numCleanupCycles > 0; i++)
     {
-        for (uint32 j = 0; j < g_renderInterface->globalRenderers[i].Size() && numCleanupCycles > 0; j++)
+        for (uint32 j = 0; j < globalRenderers[i].Size() && numCleanupCycles > 0; j++)
         {
-            if (RendererBase* renderer = g_renderInterface->globalRenderers[i][j])
+            if (RendererBase* renderer = globalRenderers[i][j])
             {
                 numCleanupCycles -= renderer->RunCleanupCycle(numCleanupCycles);
             }
         }
     }
 
-    numCleanupCycles -= g_renderInterface->graphicsPipelineCache->RunCleanupCycle(16);
-    numCleanupCycles -= g_renderInterface->computePipelineCache->RunCleanupCycle(4);
-    numCleanupCycles -= g_renderInterface->rayTracingPipelineCache->RunCleanupCycle(1);
+    numCleanupCycles -= graphicsPipelineCache->RunCleanupCycle(16);
+    numCleanupCycles -= computePipelineCache->RunCleanupCycle(4);
+    numCleanupCycles -= rayTracingPipelineCache->RunCleanupCycle(1);
 
     for (ResourceSubtypeData& subtypeData : resources->dataByType)
     {
@@ -1385,11 +1381,12 @@ void RenderInterface::EndFrame()
     ReleaseTransientMemory();
     NextFrame();
 
-    g_renderInterface->state.Reset();
-    g_renderInterface->constantsAllocator->OnFrameEnd();
-    g_renderInterface->descriptorSetCache->OnFrameEnd();
+    state.Reset();
 
-    g_renderInterface->textureViewCache->CleanupUnusedTextures();
+    constantsAllocator->OnFrameEnd();
+    descriptorSetCache->OnFrameEnd();
+
+    textureViewCache->CleanupUnusedTextures();
 
     s_frameIndex[CONSUMER] = (s_frameIndex[CONSUMER] + 1) % RingBufferDepth;
 
@@ -1435,7 +1432,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     // set prev pipeline to null if state changed,
     // we cannot rely upon descriptors being valid between switches
-    if (psoType != state.prevPSOType)
+    if (psoType != state.prevPsoType)
     {
         state.prevGraphicsPipeline = nullptr;
     }
@@ -1546,7 +1543,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         HYP_UNREACHABLE();
     }
 
-    state.prevPSOType = psoType;
+    state.prevPsoType = psoType;
 
     AssertDebug(shader != nullptr);
 
@@ -1575,7 +1572,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     const auto FetchDescriptorSet = [frameIndex = GetCurrentFrame()->GetFrameIndex()](const DescriptorSetDeclaration& dsDecl, uint8& outStateFlags) -> DescriptorSet*
     {
-        // global reference (TRANSITIONAL, WILL BE REMOVED EVENTUALLY)
+        // reference to globally shared set
         if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
         {
             if (dsDecl.flags & DescriptorSetDeclarationFlags::TEMPLATE)
@@ -1944,7 +1941,7 @@ void RenderInterface::CreateBlueNoiseBuffer()
             + ((scramblingTileOffset - (sobol256spp256dOffset + sobol256spp256dSize)) + scramblingTileSize)
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
-    blueNoiseBuffer = MakeGpuBuffer(GpuBufferType::SSBO, sizeof(BlueNoiseBuffer));
+    blueNoiseBuffer = MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
     blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(blueNoiseBuffer->Create());
@@ -1958,7 +1955,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(Vec4f) * 4096);
+    sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
     sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
     CheckResult(sphereSamplesBuffer->Create());
 

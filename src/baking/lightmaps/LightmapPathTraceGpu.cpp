@@ -172,13 +172,13 @@ void LightmapRenderer_GpuPathTracing::CreateBuffers(BakeJobBase* job)
 {
     JobData& jd = m_jobData[job];
 
-    jd.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
+    jd.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(RayTracingConstants));
     PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, jd.cBuffer);
 
-    jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
+    jd.raysBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * m_maxTexelsPerFrame, alignof(Vec4f));
     jd.raysBuffer->SetRequireCpuAccessible(true);
 
-    jd.lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
+    jd.lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxBoundLights);
 
     // ATOMIC_COUNTER type allows readback to cpu.
     jd.hitsBufferGpu = g_renderInterface->MakeGpuBuffer(GpuBufferType::ATOMIC_COUNTER, sizeof(LightmapHit) * m_maxTexelsPerFrame, alignof(Vec4f));
@@ -345,9 +345,6 @@ void LightmapRenderer_GpuPathTracing::UpdateUniforms(Frame* frame, BakeJobBase* 
             uniforms.numBoundLights = numBoundLights;
 
             cBuffer->Copy(sizeof(uniforms), &uniforms);
-            cBuffer->Flush(0, sizeof(uniforms));
-
-            lightsBuffer->Flush(0, sizeof(LightShaderData) * numBoundLights);
         }
     };
     

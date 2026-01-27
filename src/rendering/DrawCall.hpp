@@ -343,7 +343,7 @@ public:
     virtual EntityInstanceBatch* AcquireBatch() const override
     {
         BatchType* batch;
-        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<BatchType, GpuBufferType::SSBO>*>(m_bufferHolder)->AcquireIndex(&batch);
+        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<BatchType, GpuBufferType::STORAGE_BUFFER>*>(m_bufferHolder)->AcquireIndex(&batch);
 
         batch->batchIndex = batchIndex;
 

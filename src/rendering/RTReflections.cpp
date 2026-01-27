@@ -74,19 +74,18 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     RayTracingPassData* pd = ObjCast<RayTracingPassData>(renderSetup.passData);
     Assert(pd != nullptr);
     
-    GpuBufferRef& constants = pd->constants;
-    if (!constants)
+    GpuBufferRef& cBuffer = pd->cBuffer;
+    if (!cBuffer)
     {
-        constants = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RayTracingConstants));
-        constants->SetRequireCpuAccessible(true);
-        constants->SetDebugName(NAME("RayTracingConstants"));
-        Assert(constants->Create());
+        cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(RayTracingConstants));
+        cBuffer->SetDebugName(NAME("RayTracingCBuffer"));
+        Assert(cBuffer->Create());
     }
 
     GpuBufferRef& lightsBuffer = pd->lightsBuffer;
     if (!lightsBuffer)
     {
-        lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxLights);
+        lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxLights);
         lightsBuffer->SetRequireCpuAccessible(true);
         lightsBuffer->SetDebugName(NAME("RayTracingLightsBuffer"));
         Assert(lightsBuffer->Create());
@@ -109,8 +108,8 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
             GpuBufferRef& lightsBuffer = passData->lightsBuffer;
             AssertDebug(lightsBuffer != nullptr);
 
-            GpuBufferRef& constants = passData->constants;
-            AssertDebug(constants != nullptr);
+            GpuBufferRef& cBuffer = passData->cBuffer;
+            AssertDebug(cBuffer != nullptr);
 
             RayTracingConstants constantData {};
             constantData.minRoughness = 0.4f;
@@ -145,10 +144,7 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
 
             constantData.numBoundLights = numBoundLights;
 
-            constants->Copy(sizeof(RayTracingConstants), &constantData);
-            constants->Flush(0, sizeof(RayTracingConstants));
-
-            lightsBuffer->Flush(0, sizeof(LightShaderData) * numBoundLights);
+            cBuffer->Copy(sizeof(RayTracingConstants), &constantData);
         }
     };
 
@@ -224,7 +220,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << SetShaderUniform(6, "TLAS"_sh, tlas);
     frame->renderQueue << SetShaderUniform(7, "MeshDescriptionsBuffer"_sh, meshDescriptionsBuffer);
     frame->renderQueue << SetShaderUniform(8, "OutputImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_texture));
-    frame->renderQueue << SetShaderUniform(9, "RayTracingConstants"_sh, pd->constants);
+    frame->renderQueue << SetShaderUniform(9, "RayTracingConstants"_sh, pd->cBuffer);
     frame->renderQueue << SetShaderUniform(10, "Lights"_sh, pd->lightsBuffer);
     frame->renderQueue << SetShaderUniform(11, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
 

@@ -681,7 +681,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     if (!m_meshDescriptionsBuffer)
     {
-        m_meshDescriptionsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, meshDescriptionsBufferSize);
+        m_meshDescriptionsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, meshDescriptionsBufferSize);
         m_meshDescriptionsBuffer->SetRequireCpuAccessible(true);
         m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
         CheckResultOrReturn(m_meshDescriptionsBuffer->Create());

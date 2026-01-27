@@ -92,11 +92,11 @@ void DDGI::CreateConstantBuffers()
 {
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIConstants));
+        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(DDGIConstants));
         Assert(m_cBuffers[frameIndex]->Create());
         m_cBuffers[frameIndex]->Memset(sizeof(DDGIConstants), 0);
         
-        m_lightsBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightShaderData) * MaxBoundLights);
+        m_lightsBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxBoundLights);
         Assert(m_lightsBuffers[frameIndex]->Create());
         m_lightsBuffers[frameIndex]->Memset(sizeof(LightShaderData) * MaxBoundLights, 0);
     }
@@ -106,7 +106,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probeCounts = m_gridInfo.NumProbesPerDimension();
 
-    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, m_gridInfo.GetImageDimensions().x * m_gridInfo.GetImageDimensions().y * sizeof(ProbeRayData));
+    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, m_gridInfo.GetImageDimensions().x * m_gridInfo.GetImageDimensions().y * sizeof(ProbeRayData));
     m_radianceBuffer->SetRequireCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
     m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);
@@ -218,9 +218,6 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     }
 
     m_cBuffers[frameIndex]->Copy(sizeof(DDGIConstants), &uniforms);
-    m_cBuffers[frameIndex]->Flush(0, sizeof(DDGIConstants));
-
-    m_lightsBuffers[frameIndex]->Flush(0, sizeof(LightShaderData) * uniforms.numBoundLights);
 
     if (m_counter == 0)
     {

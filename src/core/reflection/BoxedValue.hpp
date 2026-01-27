@@ -3660,6 +3660,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         int foundTypeIndex = Variant<Types...>::invalidTypeIndex;
         int currTypeIndex = 0;
 
+        // start by looking for exact type matches (same TypeId)
         StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
             {
                 if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
@@ -3668,36 +3669,53 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
                     return;
                 }
 
-                // check if same TypeIds, or if a HypDataHelper for T has ConvertibleFrom that is the same type id
+                // check if same TypeId as this type
                 if (data.GetType().GetNativeTypeId() == TypeId::ForType<T>())
                 {
                     foundTypeIndex = currTypeIndex;
                     return;
                 }
 
-                // Also check any types listed in HypDataHelper<T>::ConvertibleFrom
-                bool matchedConvertible = false;
-                StaticForEach<typename HypDataHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
-                    {
-                        if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
-                        {
-                            return;
-                        }
-
-                        if (data.GetType().GetNativeTypeId() == TypeId::ForType<FromT>())
-                        {
-                            foundTypeIndex = currTypeIndex;
-                            matchedConvertible = true;
-                        }
-                    });
-
-                if (matchedConvertible)
-                {
-                    return;
-                }
-
                 currTypeIndex++;
             });
+
+        // now, try compatible types if no exact match found
+        if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
+        {
+            currTypeIndex = 0;
+
+            StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
+                {
+                    if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
+                    {
+                        // already found
+                        return;
+                    }
+
+                    // check any types listed in HypDataHelper<T>::ConvertibleFrom
+                    bool matchedConvertible = false;
+                    StaticForEach<typename HypDataHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
+                        {
+                            if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
+                            {
+                                return;
+                            }
+
+                            if (data.GetType().GetNativeTypeId() == TypeId::ForType<FromT>())
+                            {
+                                foundTypeIndex = currTypeIndex;
+                                matchedConvertible = true;
+                            }
+                        });
+
+                    if (matchedConvertible)
+                    {
+                        return;
+                    }
+
+                    currTypeIndex++;
+                });
+        }
 
         if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
         {

@@ -246,7 +246,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     if (!m_uniformBuffers[frame->GetFrameIndex()])
     {
          m_uniformBuffers[frame->GetFrameIndex()] = g_renderInterface->MakeGpuBuffer(
-                GpuBufferType::CBUFF,
+                GpuBufferType::CONSTANT_BUFFER,
                 sizeof(TemporalBlendingUniforms));
          m_uniformBuffers[frame->GetFrameIndex()]->Create();
     }

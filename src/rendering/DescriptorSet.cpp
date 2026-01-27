@@ -188,7 +188,7 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     {
         static constexpr uint32 Mask = (1u << uint32(DescriptorType::UNIFORM_BUFFER))
             | (1u << uint32(DescriptorType::UNIFORM_BUFFER_DYNAMIC))
-            | (1u << uint32(DescriptorType::SSBO))
+            | (1u << uint32(DescriptorType::STORAGE_BUFFER))
             | (1u << uint32(DescriptorType::STORAGE_BUFFER_DYNAMIC));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));

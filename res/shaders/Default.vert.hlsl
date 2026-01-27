@@ -119,16 +119,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.previous_position_ndc = mul(camera.prevViewProjMat, previous_position);
 
     // Jitter
-    float4x4 jitter_matrix = { 
+    float4x4 jitterMat = { 
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1 
     };
-    jitter_matrix[0][3] += camera.jitter.x;
-    jitter_matrix[1][3] += camera.jitter.y;
+    jitterMat[0][3] += camera.jitter.x;
+    jitterMat[1][3] += camera.jitter.y;
 
-    output.position_cs = mul(jitter_matrix, output.position_ndc);
+    output.position_cs = mul(jitterMat, output.position_ndc);
 
 #ifdef INSTANCING
     output.object_index = OBJECT_INDEX;

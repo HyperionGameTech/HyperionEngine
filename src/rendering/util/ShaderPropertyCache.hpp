@@ -13,27 +13,6 @@ enum class ShaderPropertyId : uint32;
 
 struct ShaderProperty;
 
-class ShaderPropertyCache
-{
-public:
-    ShaderPropertyCache();
-
-    ShaderPropertyCache(const ShaderPropertyCache& other) = delete;
-    ShaderPropertyCache& operator=(const ShaderPropertyCache& other) = delete;
-
-    ShaderPropertyCache(ShaderPropertyCache&& other) noexcept = delete;
-    ShaderPropertyCache& operator=(ShaderPropertyCache&& other) noexcept = delete;
-
-    ~ShaderPropertyCache();
-
-    /*! \brief Returns the assigned index for the given property, assigning a new index if it does not exist yet. */
-    ShaderPropertyId GetOrAssignIndex(const ShaderProperty& property);
-
-    /*! \brief Returns the ShaderProperty assigned to the given id, or nullptr if not found. */
-    const ShaderProperty* GetPropertyById(ShaderPropertyId id) const;
-
-private:
-    struct ShaderPropertyCacheImpl* m_pImpl;
-};
+HYP_API ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 
 } // namespace Hyperion

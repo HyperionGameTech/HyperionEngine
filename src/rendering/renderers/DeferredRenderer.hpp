@@ -337,7 +337,7 @@ public:
     // Set only while rendering to this pass
     DeferredRendererPassData* parentPass = nullptr;
     
-    GpuBufferRef constants;
+    GpuBufferRef cBuffer;
     GpuBufferRef lightsBuffer;
     FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 

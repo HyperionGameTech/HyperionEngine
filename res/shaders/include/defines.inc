@@ -1,6 +1,11 @@
 #ifndef HYP_SHADER_DEFINES
 #define HYP_SHADER_DEFINES
 
+// TEMP: For hlsl intellisense to work
+#ifndef HYP_SHADER_COMPILER
+    #define LANG_HLSL 1
+#endif
+
 #define UINT_TO_VEC4(_value) unpackUnorm4x8((_value))
 #define UINT_TO_VEC2(_value) unpackUnorm2x16((_value))
 #define VEC4_TO_UINT(_value) packUnorm4x8((_value))

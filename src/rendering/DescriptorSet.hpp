@@ -41,14 +41,14 @@ class ObjectBase;
 
 constexpr uint32 ElementTypeToBufferType[uint32(DescriptorType::MAX)] = {
     0,                                    // UNSET
-    (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER
-    (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
-    (1u << uint32(GpuBufferType::SSBO))
+    (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER
+    (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER_DYNAMIC
+    (1u << uint32(GpuBufferType::STORAGE_BUFFER))
         | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)), // SSBO
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)), // STORAGE_BUFFER
 
-    (1u << uint32(GpuBufferType::SSBO))
+    (1u << uint32(GpuBufferType::STORAGE_BUFFER))
         | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
         | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)),   // STORAGE_BUFFER_DYNAMIC
@@ -66,7 +66,7 @@ struct DescriptorSetElementTypeInfo<GpuBuffer>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorType::UNIFORM_BUFFER))
         | (1u << uint32(DescriptorType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(DescriptorType::SSBO))
+        | (1u << uint32(DescriptorType::STORAGE_BUFFER))
         | (1u << uint32(DescriptorType::STORAGE_BUFFER_DYNAMIC));
 };
 

@@ -5,65 +5,146 @@
 #include <rendering/util/ShaderPropertyCache.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <core/io/ByteWriter.hpp>
+
+#include <core/threading/SharedMutex.hpp>
 
 #include <core/utilities/IdGenerator.hpp>
 
 namespace Hyperion {
 
-struct ShaderPropertyCacheImpl
-{
-    Mutex mutex;
-    HashMap<HashCode, ShaderPropertyId> propertyHashCodeToId;
-    HashMap<ShaderPropertyId, ShaderProperty, DynamicNodeAllocator> idToProperty;
-    IdGenerator idGenerator;
+static const ShaderProperty s_staticProperties[] = {
+    ShaderProperty()
 };
 
-ShaderPropertyCache::ShaderPropertyCache()
-    : m_pImpl(new ShaderPropertyCacheImpl())
+static HashMap<ShaderProperty, ShaderPropertyId>& GetShaderPropertyCacheMap()
 {
+    static HashMap<ShaderProperty, ShaderPropertyId> s_propertyToIdMap;
+    return s_propertyToIdMap;
 }
 
-ShaderPropertyCache::~ShaderPropertyCache()
+static SharedMutex& GetShaderPropertyCacheMutex()
 {
-    delete m_pImpl;
+    static SharedMutex s_propertyToIdMapMutex;
+    return s_propertyToIdMapMutex;
 }
 
-ShaderPropertyId ShaderPropertyCache::GetOrAssignIndex(const ShaderProperty& property)
+ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
 {
-    HYP_SCOPE;
+    auto& shaderPropertyCacheMap = GetShaderPropertyCacheMap();
 
-    HashCode hashCode = property.GetHashCode();
+    TSharedLock lock(GetShaderPropertyCacheMutex());
 
-    Mutex::Guard guard(m_pImpl->mutex);
-
-    auto it = m_pImpl->propertyHashCodeToId.Find(hashCode);
-    if (it != m_pImpl->propertyHashCodeToId.End())
+    auto it = shaderPropertyCacheMap.Find(property);
+    if (it != shaderPropertyCacheMap.End())
     {
         return it->second;
     }
-    // we want to start at zero to remove wasted slot in bitsets/arrays based on this
-    ShaderPropertyId id = static_cast<ShaderPropertyId>(m_pImpl->idGenerator.Next() - 1);
 
-    m_pImpl->propertyHashCodeToId.Insert(hashCode, id);
-    m_pImpl->idToProperty.Insert(id, property);
-
-    return id;
-}
-
-const ShaderProperty* ShaderPropertyCache::GetPropertyById(ShaderPropertyId id) const
-{
-    HYP_SCOPE;
-
-    Mutex::Guard guard(m_pImpl->mutex);
-
-    auto it = m_pImpl->idToProperty.Find(id);
-    if (it != m_pImpl->idToProperty.End())
+    // check static properties
+    for (SizeType i = 0; i < std::size(s_staticProperties); i++)
     {
-        return &it->second;
+        if (s_staticProperties[i] == property)
+        {
+            // found in static properties; put in map for faster access next time
+            lock.Reset();
+
+            TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
+            shaderPropertyCacheMap.Insert(property, static_cast<ShaderPropertyId>(i));
+
+            return static_cast<ShaderPropertyId>(i);
+        }
     }
 
-    return nullptr;
+    lock.Reset();
+
+    TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
+
+    // double check in case another thread added it while we were unlocking
+    it = shaderPropertyCacheMap.Find(property);
+    if (it != shaderPropertyCacheMap.End())
+    {
+        return it->second;
+    }
+
+    const ShaderPropertyId newId = static_cast<ShaderPropertyId>(uint32(std::size(s_staticProperties)) + shaderPropertyCacheMap.Size());
+    shaderPropertyCacheMap.Insert(property, newId);
+
+    return newId;
+}
+
+
+struct HashedShaderProperty
+{
+    HashCode nameAndValueHash;
+
+    explicit HashedShaderProperty(const ShaderProperty& property)
+        : nameAndValueHash(property.GetHashCode())
+    {
+    }
+};
+
+void WriteShaderDatabase(ByteWriter& stream)
+{
+    constexpr SizeType SizeOfHashedProperty = sizeof(HashedShaderProperty);
+    constexpr SizeType SizeOfEntry = SizeOfHashedProperty + sizeof(ShaderPropertyId);
+
+    TSharedLock lock(GetShaderPropertyCacheMutex());
+
+    HashSet<ShaderPropertyId> visited;
+    visited.Reserve(GetShaderPropertyCacheMap().Size());
+
+    const uint32 headerOffset = stream.Position();
+
+    // reserve 64 bytes space at start
+    stream.Seek(64);
+
+    const SizeType entryMapOffset = stream.Position();
+
+    uint32 maxShaderId = 0;
+
+    for (uint32 i = 0; i < uint32(std::size(s_staticProperties)); i++)
+    {
+        ShaderPropertyId id = static_cast<ShaderPropertyId>(i);
+        const ShaderProperty& property = s_staticProperties[i];
+        
+        HashedShaderProperty hashed = HashedShaderProperty(property);
+
+        stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
+        stream.Write(&hashed, sizeof(HashedShaderProperty));
+        stream.Write(&id, sizeof(ShaderPropertyId));
+
+        maxShaderId = MathUtil::Max(maxShaderId, uint32(id));
+
+        visited.Add(id);
+    }
+
+    // now, do runtime hashed propertyies
+    for (const auto& it : GetShaderPropertyCacheMap())
+    {
+        const ShaderProperty& property = it.first;
+        ShaderPropertyId id = it.second;
+        
+        if (visited.Contains(id))
+        {
+            continue;
+        }
+        
+        HashedShaderProperty hashed = HashedShaderProperty(property);
+
+        stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
+        stream.Write(&hashed, sizeof(HashedShaderProperty));
+        stream.Write(&id, sizeof(ShaderPropertyId));
+
+        maxShaderId = MathUtil::Max(maxShaderId, uint32(id));
+
+        visited.Add(id);
+    }
+
+    // seek back to start, write (max id + 1) as a marker
+    stream.Seek(headerOffset);
+
+    stream.Write<uint32>(maxShaderId + 1);
 }
 
 } // namespace Hyperion

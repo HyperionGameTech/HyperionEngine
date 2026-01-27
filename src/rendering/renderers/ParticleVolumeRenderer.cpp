@@ -142,7 +142,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
 
     state.maxParticles = proxy->bufferData.maxParticles;
 
-    state.particleBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, state.maxParticles * sizeof(ParticleShaderData));
+    state.particleBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, state.maxParticles * sizeof(ParticleShaderData));
     DeferCreate(state.particleBuffer);
 
     state.indirectBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
@@ -235,15 +235,14 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     uniforms.deltaTime = 0.016f; // TODO: real render delta
     uniforms.globalCounter = m_counter++;
 
-    GpuBufferRef& uniformBuffer = state.uniformBuffers[frame->GetFrameIndex()];
-    if (!uniformBuffer)
+    GpuBufferRef& cBuffer = state.uniformBuffers[frame->GetFrameIndex()];
+    if (!cBuffer)
     {
-        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
-        CheckResult(uniformBuffer->Create());
+        cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        CheckResult(cBuffer->Create());
     }
 
-    uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-    uniformBuffer->Flush(0, sizeof(uniforms));
+    cBuffer->Copy(sizeof(uniforms), &uniforms);
 
     // this is rendered from translucent pass in DeferredRenderer
     Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
@@ -275,7 +274,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         
         rq << SetShaderUniform(11, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frame->GetFrameIndex()), ShaderDataOffset<CameraShaderData>(view->GetCamera()));
         
-        rq << SetShaderUniform(12, "ParticleSpawnerData"_sh, uniformBuffer);
+        rq << SetShaderUniform(12, "ParticleSpawnerData"_sh, cBuffer);
 
         const SizeType maxParticles = proxy->bufferData.maxParticles;
         rq << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });

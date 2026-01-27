@@ -163,8 +163,8 @@ PSOutput PSMain(PSInput input)
     float4 radiance = SAMPLE_TEXTURE_2D(LightmapSampler, RadianceTexture, lightmapUV) * radianceWeight;
     radiance.a = 1.0;
 
-    float3 ibl = float3(0.0, 0.0, 0.0);
-    float3 F = float3(0.0, 0.0, 0.0);
+    float3 ibl = 0.0;
+    float3 F = 0.0;
 
     float NdotV = max(0.0001, dot(N, V));
 
@@ -172,7 +172,7 @@ PSOutput PSMain(PSInput input)
     const float3 F0 = CalculateF0(albedo.rgb, metalness);
 
     F = CalculateFresnelTerm(F0, roughness, NdotV);
-    const float3 kD = (float3(1.0, 1.0, 1.0) - F) * (1.0 - metalness);
+    const float3 kD = (1.0 - F) * (1.0 - metalness);
 
     const float3 dfg = CalculateDFG(F, roughness, NdotV);
     const float3 E = CalculateE(F0, dfg);

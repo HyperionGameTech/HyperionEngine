@@ -674,8 +674,8 @@ enum class GpuBufferType : uint8
     NONE = 0,
     MESH_INDEX_BUFFER,
     MESH_VERTEX_BUFFER,
-    CBUFF,
-    SSBO,
+    CONSTANT_BUFFER,
+    STORAGE_BUFFER,
     ATOMIC_COUNTER,
     STAGING_BUFFER,
     INDIRECT_ARGS_BUFFER,
@@ -1107,7 +1107,7 @@ enum class DescriptorType : uint32
     UNSET,
     UNIFORM_BUFFER,
     UNIFORM_BUFFER_DYNAMIC,
-    SSBO,
+    STORAGE_BUFFER,
     STORAGE_BUFFER_DYNAMIC,
     IMAGE,
     IMAGE_STORAGE,
@@ -1604,10 +1604,10 @@ struct ShaderProperty
     HYP_FIELD(Property = "Flags")
     ShaderPropertyFlags flags;
 
-    HYP_FIELD(Transient)
+    HYP_FIELD(Property = "Value")
     Value currentValue;
 
-    HYP_FIELD(Transient)
+    HYP_FIELD(Property = "EnumValues")
     Array<Value> enumValues;
 
     HYP_FIELD(Transient)

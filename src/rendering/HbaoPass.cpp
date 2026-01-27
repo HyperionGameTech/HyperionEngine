@@ -96,7 +96,7 @@ void HBAO::CreateUniformBuffers()
     uniforms.radius = m_config.radius;
     uniforms.power = m_config.power;
 
-    m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+    m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
 
     PUSH_RENDER_COMMAND(CreateHBAOUniformBuffer, uniforms, m_uniformBuffer);
 }

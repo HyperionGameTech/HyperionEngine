@@ -639,7 +639,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
             SafeDelete(std::move(instanceBuffer));
         }
 
-        instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
+        instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
         instanceBuffer->SetRequireCpuAccessible(true);
         CheckResult(instanceBuffer->Create());
 

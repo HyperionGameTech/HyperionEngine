@@ -33,7 +33,7 @@ protected:
 private:
     struct VolumeState
     {
-        GpuBufferRef particleBuffer; // SSBO of ParticleShaderData
+        GpuBufferRef particleBuffer; // STORAGE_BUFFER of ParticleShaderData
         GpuBufferRef indirectBuffer; // struct IndirectDrawCommand
         FixedArray<GpuBufferRef, NumFramesInFlight> uniformBuffers; // per-frame uniform buffer for this volume
         Handle<Texture> noiseMap;    // 128x128

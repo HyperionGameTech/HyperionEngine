@@ -301,7 +301,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
     {
         const float roughness = float(mipIndex) / float(numMips - 1);
-        const float perceptualRoughness = roughness * roughness;
+        const float perceptualRoughness = MathUtil::Round(roughness * roughness, 3);
 
         ShaderProperties shaderProperties;
         shaderProperties.Set(ShaderProperty(NAME("LOBE_SIZE"), perceptualRoughness));
@@ -312,7 +312,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
             : Vec2u(MathUtil::Max(extent.x >> mipIndex, 1u), MathUtil::Max(extent.y >> mipIndex, 1u));
 
         GpuBufferRef& uniformBuffer = buffers[mipIndex];
-        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+
+        uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
         Assert(uniformBuffer->Create());
 
         uniforms.outImageDimensions = mipExtent;
@@ -447,7 +448,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     {
         const SizeType size = sizeof(SHTile) * (ShNumTiles.x >> i) * (ShNumTiles.y >> i);
 
-        shTilesBuffers[i] = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, size);
+        shTilesBuffers[i] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, size);
         shTilesBuffers[i]->SetRequireCpuAccessible(true);
         Assert(shTilesBuffers[i]->Create());
     }
@@ -517,7 +518,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         ShaderDesc shaderDesc(ShaderDefinition(NAME("ComputeSH"), passShaderProperties));
         asyncRenderQueue << SetCurrentShader(shaderDesc);
 
-        GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(SHUniforms));
+        GpuBufferRef ub = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(SHUniforms));
         ub->Create();
         ub->Copy(sizeof(SHUniforms), &passUniforms);
         uniformBuffers.PushBack(ub);

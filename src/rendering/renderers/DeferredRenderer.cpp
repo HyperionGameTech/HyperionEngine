@@ -727,7 +727,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
         if (!uniformBuffer)
         {
-            uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightmapVolumeUniforms));
+            uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightmapVolumeUniforms));
             CheckResult(uniformBuffer->Create());
         }
 
@@ -885,7 +885,7 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     
     if (!data.cBuffer)
     {
-        data.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
+        data.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
         Assert(data.cBuffer->Create());
     }
 
@@ -925,7 +925,6 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     }
 
     cBuffer->Copy(sizeof(FogVolumeShaderData), &shaderData);
-    cBuffer->Flush(0, sizeof(FogVolumeShaderData) + (numBoundLights * sizeof(LightShaderData)));
 }
 
 #pragma endregion FogVolumePass
@@ -1213,7 +1212,7 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 RayTracingPassData::~RayTracingPassData()
 {
-    SafeDelete(std::move(constants));
+    SafeDelete(std::move(cBuffer));
     SafeDelete(std::move(lightsBuffer));
     SafeDelete(std::move(rayTracingTlases));
 }

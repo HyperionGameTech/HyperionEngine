@@ -240,7 +240,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         uniforms.screenEdgeFadeStart = m_config.screenEdgeFade.x;
         uniforms.screenEdgeFadeEnd = m_config.screenEdgeFade.y;
 
-        m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
         m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
 
         PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);

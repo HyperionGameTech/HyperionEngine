@@ -45,19 +45,18 @@ VSOutput VSMain(VSInput input)
     VSOutput output;
 
     float4 position = mul(fogVolume.transformMatrix, float4(input.a_position, 1.0));
-
     output.position = position.xyz / position.w;
 
-    float4x4 jitter_matrix = {
+    float4x4 jitterMat = {
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1
     };
-    jitter_matrix._m03 += camera.jitter.x;
-    jitter_matrix._m13 += camera.jitter.y;
+    jitterMat[0][3] += camera.jitter.x;
+    jitterMat[1][3] += camera.jitter.y;
 
-    output.positionNdc = mul(mul(jitter_matrix, camera.projection), mul(camera.view, position));
+    output.positionNdc = mul(jitterMat, mul(camera.viewProjMat, float4(output.position, 1.0)));
 
     output.position_cs = output.positionNdc;
 

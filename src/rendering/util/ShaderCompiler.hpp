@@ -563,27 +563,27 @@ private:
         ShaderBundleDecl& outShaderBundleDecl);
 
     bool CompileBundle(
-        ShaderBundleDecl& ShaderBundleDecl,
+        ShaderBundleDecl& shaderBundleDecl,
         CompiledShaderBatch& out)
     {
-        return CompileBundle(ShaderBundleDecl, ShaderProperties(), out, false);
+        return CompileBundle(shaderBundleDecl, ShaderProperties(), out, false);
     }
 
     bool CompileBundle(
-        ShaderBundleDecl& ShaderBundleDecl,
-        const ShaderProperties& additionalVersions,
+        ShaderBundleDecl& shaderBundleDecl,
+        const ShaderProperties& additionalProperties,
         CompiledShaderBatch& out,
         bool onlyCompileRequestedVersions = false);
 
     bool HandleCompiledShaderBatch(
-        ShaderBundleDecl& ShaderBundleDecl,
-        const ShaderProperties& additionalVersions,
+        ShaderBundleDecl& shaderBundleDecl,
+        const ShaderProperties& additionalProperties,
         const FilePath& outputFilePath,
         CompiledShaderBatch& batch);
 
     bool LoadOrCompileBatch(
         Name name,
-        const ShaderProperties& additionalVersions,
+        const ShaderProperties& additionalProperties,
         CompiledShaderBatch& out);
 
     INIFile* m_definitions;

@@ -653,7 +653,7 @@ struct DescriptorUsage
     {
         return type == DescriptorType::UNIFORM_BUFFER
             || type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
-            || type == DescriptorType::SSBO
+            || type == DescriptorType::STORAGE_BUFFER
             || type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
     }
 
@@ -1797,17 +1797,9 @@ static ByteBuffer CompileHLSL(
         args.PushBack(L"-fvk-use-scalar-layout");
     }
 #endif
-    
-    args.PushBack(L"-Qstrip_debug");
-
-    if (outputType == HLSLOutputType::DXIL)
-    {
-        args.PushBack(L"-Qstrip_reflect");
-    }
 
 #ifdef HYP_DEBUG_MODE
-    args.PushBack(L"-Zi"); // Debug info
-    args.PushBack(L"-Od"); // Disable optimization
+    args.PushBack(L"-Zsb");
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
@@ -2523,8 +2515,8 @@ bool ShaderCompiler::HandleCompiledShaderBatch(
                 + " - " + (properties.GetRequiredVertexAttributes() ? properties.GetRequiredVertexAttributes().ToString() : "<no vertex attributes>") + "\n";
         }
 
-        // clear the batch if properties requested are missing.
-        batch = CompiledShaderBatch {};
+        //// clear the batch if properties requested are missing.
+        //batch = CompiledShaderBatch {};
 
         if (CanCompileShaders())
         {
@@ -2578,7 +2570,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
     const INIFile::Section& section = m_definitions->GetSection(nameString);
     ParseDefinitionSection(section, shaderBundleDecl);
 
-    auto forceRecompileOnError = [&](const FilePath& outputFilePath)
+    auto ForceRecompile = [&](const FilePath& outputFilePath)
     {
         if (CanCompileShaders())
         {
@@ -2615,13 +2607,13 @@ bool ShaderCompiler::LoadOrCompileBatch(
 
         if (!LoadBatchFromFile(outputFilePath, batch))
         {
-            if (!forceRecompileOnError(outputFilePath))
+            if (!ForceRecompile(outputFilePath))
             {
                 return false;
             }
         }
     }
-    else if (!forceRecompileOnError(outputFilePath))
+    else if (!ForceRecompile(outputFilePath))
     {
         return false;
     }
@@ -2671,7 +2663,6 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
     m_shaderBundleDecls.Clear();
     m_shaderBundleDecls.Reserve(m_definitions->GetSections().Size());
 
-    // init shader descs
     for (const auto& it : m_definitions->GetSections())
     {
         const String& key = it.first;
@@ -2701,8 +2692,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
             if (decl.HasRTShaders() && !supportsRtShaders)
             {
                 HYP_LOG(ShaderCompiler, Warning,
-                    "Not compiling shader {} because it contains rayTracing "
-                    "shaders and rayTracing is not supported on this device.",
+                    "Not compiling shader {} because it contains ray tracing "
+                    "shaders and ray tracing is not supported on this device.",
                     decl.name);
 
                 return;
@@ -2801,7 +2792,7 @@ static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
             ? DescriptorType::STORAGE_BUFFER_DYNAMIC
-            : DescriptorType::SSBO;
+            : DescriptorType::STORAGE_BUFFER;
     };
 
     if (language == ShaderLanguage::HLSL)
@@ -3421,7 +3412,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
 bool ShaderCompiler::CompileBundle(
     ShaderBundleDecl& shaderBundleDecl,
-    const ShaderProperties& additionalVersions,
+    const ShaderProperties& additionalProperties,
     CompiledShaderBatch& out,
     bool onlyCompileRequestedVersions)
 {
@@ -3623,11 +3614,9 @@ bool ShaderCompiler::CompileBundle(
         finalProperties.SetOptionalVertexAttributes(optionalVertexAttributeSet);
     }
 
-    HYP_LOG(ShaderCompiler, Info, "Compiling shader {}", shaderBundleDecl.name);
-
-    // INFO ON MERGING ADDITIONAL SHADER VERSIONS (on requesting a shader)
+    // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
     // ============================================
-    // if additionalVersions are provided we need to properly merge them into permutations.
+    // if additionalProperties are provided we need to properly merge them into permutations.
     // i.e if OUTPUT=RGBA8 is added and we have a ValueGroup OUTPUT={RGBA8, RGBA16F}, we need to add
     // RGBA8 to the existing OUTPUT ValueGroup rather than applying it to EVERY single permutation.
     //  ============================================
@@ -3636,9 +3625,9 @@ bool ShaderCompiler::CompileBundle(
     //    - if it has a value, we find the ValueGroup in finalProperties and add the value to it - if it does not exist, we make a new one
     //    - if it does not have a value, we add it as a static property (applied to every single permutation)
     // =============================================
-    if (additionalVersions.Any())
+    if (additionalProperties.Any())
     {
-        const auto mergeAdditionalVersion = [](ShaderProperties& target, const ShaderProperty& additional) -> Result
+        const auto MergeAdditionalProperties = [](ShaderProperties& target, const ShaderProperty& additional) -> Result
         {
             auto targetIt = target.Find(StringHash(additional.name));
 
@@ -3713,9 +3702,9 @@ bool ShaderCompiler::CompileBundle(
             return {};
         };
 
-        for (const ShaderProperty& additionalProperty : additionalVersions.ToArray())
+        for (const ShaderProperty& additionalProperty : additionalProperties.ToArray())
         {
-            if (Result mergeResult = mergeAdditionalVersion(finalProperties, additionalProperty); mergeResult.HasError())
+            if (Result mergeResult = MergeAdditionalProperties(finalProperties, additionalProperty); mergeResult.HasError())
             {
                 HYP_LOG(ShaderCompiler, Warning,
                     "Failed to merge additional shader property {} into final properties: {}",
@@ -3727,7 +3716,7 @@ bool ShaderCompiler::CompileBundle(
         }
     }
 
-    // update versions to include vertex attribute properties
+    // update versions in bundle
     if (onlyCompileRequestedVersions)
     {
         shaderBundleDecl.versions.Merge(finalProperties);
@@ -3749,6 +3738,11 @@ bool ShaderCompiler::CompileBundle(
         finalProperties,
         [&](const ShaderProperties& properties)
         {
+            HYP_LOG(ShaderCompiler, Info, "Compiling shader {}\n\tProperties: {}\n\tAttributes: {}",
+                shaderBundleDecl.name,
+                properties.ToString(),
+                properties.GetRequiredVertexAttributes().ToString());
+
             CompiledShader compiledShader;
             compiledShader.definition = ShaderDefinition { shaderBundleDecl.name, properties };
 
@@ -3790,8 +3784,12 @@ bool ShaderCompiler::CompileBundle(
 
                 { // Process shader (preprocessing, custom statements, etc.)
                     ProcessResult processResult = ProcessShaderSource(
-                        ProcessShaderSourcePhase::AFTER_PREPROCESS, item.type,
-                        item.language, item.source, item.file, properties);
+                        ProcessShaderSourcePhase::AFTER_PREPROCESS,
+                        item.type,
+                        item.language,
+                        item.source,
+                        item.file,
+                        properties);
 
                     if (processResult.errors.Any())
                     {
@@ -3820,8 +3818,7 @@ bool ShaderCompiler::CompileBundle(
             // compiling.
             DescriptorUsageSet descriptorUsageSetsMerged;
 
-            for (const DescriptorUsageSet& descriptorUsageSet :
-                descriptorUsageSetsPerFile)
+            for (const DescriptorUsageSet& descriptorUsageSet : descriptorUsageSetsPerFile)
             {
                 descriptorUsageSetsMerged.Merge(descriptorUsageSet);
             }
@@ -3945,21 +3942,22 @@ bool ShaderCompiler::CompileBundle(
                     return;
                 }
 
-                // write the spirv to the output file
-                FileByteWriter spirvWriter(outputFilepath.Data());
+                { // write the shader bytecode to the temp file
+                    FileByteWriter tempWriter(outputFilepath.Data());
 
-                if (!spirvWriter.IsOpen())
-                {
-                    HYP_LOG(ShaderCompiler, Error,
-                        "Could not open file {} for writing!", outputFilepath);
+                    if (!tempWriter.IsOpen())
+                    {
+                        HYP_LOG(ShaderCompiler, Error,
+                            "Could not open file {} for writing!", outputFilepath);
 
-                    anyFilesErrored.Set(true, MemoryOrder::RELAXED);
+                        anyFilesErrored.Set(true, MemoryOrder::RELAXED);
 
-                    return;
+                        return;
+                    }
+
+                    tempWriter.Write(byteBuffer.Data(), byteBuffer.Size());
+                    tempWriter.Close();
                 }
-
-                spirvWriter.Write(byteBuffer.Data(), byteBuffer.Size());
-                spirvWriter.Close();
 
                 anyFilesCompiled.Set(true, MemoryOrder::RELAXED);
 

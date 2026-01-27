@@ -196,7 +196,7 @@ VkDescriptorType ToVkDescriptorType(DescriptorType type)
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     case DescriptorType::UNIFORM_BUFFER_DYNAMIC:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    case DescriptorType::SSBO:
+    case DescriptorType::STORAGE_BUFFER:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     case DescriptorType::STORAGE_BUFFER_DYNAMIC:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
@@ -375,9 +375,9 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
         return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     case GpuBufferType::MESH_INDEX_BUFFER:
         return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    case GpuBufferType::CBUFF:
+    case GpuBufferType::CONSTANT_BUFFER:
         return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    case GpuBufferType::SSBO:
+    case GpuBufferType::STORAGE_BUFFER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     case GpuBufferType::ATOMIC_COUNTER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
@@ -421,9 +421,9 @@ VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible)
         return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::MESH_INDEX_BUFFER:
         return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
-    case GpuBufferType::CBUFF:
-        return VMA_MEMORY_USAGE_CPU_TO_GPU;
-    case GpuBufferType::SSBO:
+    case GpuBufferType::CONSTANT_BUFFER:
+        return VMA_MEMORY_USAGE_CPU_ONLY;
+    case GpuBufferType::STORAGE_BUFFER:
         return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
     case GpuBufferType::ATOMIC_COUNTER:
         return (requireCpuAccessible ? VMA_MEMORY_USAGE_CPU_TO_GPU : VMA_MEMORY_USAGE_GPU_ONLY);
@@ -459,9 +459,9 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
         return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::MESH_INDEX_BUFFER:
         return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
-    case GpuBufferType::CBUFF:
+    case GpuBufferType::CONSTANT_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GpuBufferType::SSBO:
+    case GpuBufferType::STORAGE_BUFFER:
         return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);
     case GpuBufferType::ATOMIC_COUNTER:
         return (requireCpuAccessible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 0);

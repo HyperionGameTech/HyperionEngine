@@ -105,7 +105,7 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (!m_uniformBuffers[frameIndex])
     {
-        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));
+        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TaaUniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME("TAA_UniformBuffer"));
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }

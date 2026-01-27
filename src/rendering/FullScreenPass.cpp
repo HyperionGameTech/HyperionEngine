@@ -424,7 +424,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
 
     if (!m_mergeHalfResTexturesUniformBuffer)
     {
-        m_mergeHalfResTexturesUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_mergeHalfResTexturesUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
         CheckResult(m_mergeHalfResTexturesUniformBuffer->Create());
     }
 

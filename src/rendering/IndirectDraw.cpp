@@ -206,7 +206,7 @@ void IndirectDrawState::Create()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ObjectInstance));
+        m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
         m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
         DeferCreate(m_instanceBuffers[frameIndex]);
@@ -366,7 +366,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(ObjectVisibilityUniforms));
+        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ObjectVisibilityUniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }

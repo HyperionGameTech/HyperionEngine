@@ -232,7 +232,7 @@ void GpuBufferHolderBase::CopyStagingToGpu(
         renderQueue << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
     }
 
-    renderQueue << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::SSBO ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
+    renderQueue << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::STORAGE_BUFFER ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
 }
 
 #pragma endregion GpuBufferHolderBase

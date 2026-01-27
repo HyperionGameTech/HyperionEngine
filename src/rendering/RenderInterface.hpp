@@ -44,7 +44,6 @@ struct RenderStatsCounts;
 struct Viewport;
 class FinalPass;
 class ResourceBinderBase;
-class ShaderPropertyCache;
 class World;
 class ConstantsAllocator;
 class RenderGroup;
@@ -200,7 +199,7 @@ public:
             RayTracingPipeline* prevRayTracingPipeline;
         };
 
-        PSOType prevPSOType = PSO_Graphics;
+        PSOType prevPsoType = PSO_Graphics;
         
         void Reset()
         {
@@ -216,7 +215,7 @@ public:
             stencilCompareMask = 0xFF;
             stencilWriteMask = 0x0;
             
-            prevPSOType = PSO_Graphics;
+            prevPsoType = PSO_Graphics;
             prevGraphicsPipeline = nullptr;
         }
     };
@@ -343,8 +342,6 @@ public:
     RayTracingPipelineCache* rayTracingPipelineCache;
 
     FinalPass* finalPass;
-
-    ShaderPropertyCache* shaderPropertyCache;
 
     TextureViewCache* textureViewCache;
 
