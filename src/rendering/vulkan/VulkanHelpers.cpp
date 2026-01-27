@@ -643,15 +643,14 @@ RendererResult VulkanSingleTimeCommands::Execute()
 
     /// \todo Refactor to use frame's fence instead, just need to make Frame able to not be presentable
     fence = MakeHandle<VulkanFence>();
-    CheckResultOrReturn(fence->Create());
-    CheckResultOrReturn(fence->Reset());
+    fence->Create(/* createSignalled */ false);
 
     // Submit to the queue
     VulkanDeviceQueue* queueGraphics = g_renderInterface->GetDevice()->GetGraphicsQueue();
 
     CheckResultOrReturn(commandBuffer->SubmitPrimary(queueGraphics, fence, nullptr, nullptr));
 
-    CheckResultOrReturn(fence->Wait());
+    fence->Wait();
 
     fence.Reset();
     commandBuffer.Reset();

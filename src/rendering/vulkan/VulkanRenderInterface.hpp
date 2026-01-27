@@ -112,8 +112,6 @@ public:
 
     const IRenderConfig& GetRenderConfig() const override;
 
-    AsyncComputeBase* GetAsyncCompute() const override;
-
     VulkanFrame* GetCurrentFrame() const override;
 
     VulkanFrame* PrepareNextFrame() override;
@@ -172,6 +170,9 @@ public:
 
     UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 
+    HYP_NODISCARD VulkanAsyncCompute* CreateAsyncCompute() override;
+    void SubmitAsyncCompute(VulkanAsyncCompute* asyncCompute) override;
+
     void ReleaseTransientMemory() override;
 
     void NextFrame() override
@@ -199,8 +200,6 @@ private:
 
     Pimpl<VulkanDescriptorSetManager> m_descriptorSetManager;
 
-    VulkanAsyncCompute* m_asyncCompute;
-
     HashMap<DefaultImageFormat, TextureFormat> m_defaultFormats;
 
     Pimpl<VulkanTextureCache> m_textureCache;
@@ -209,6 +208,10 @@ private:
     uint32 m_currentFrameIndex;
 
     FixedArray<VulkanCommandBufferRef, NumFramesInFlight> m_commandBuffers;
+
+    Array<VulkanAsyncCompute*, RenderAllocator> m_asyncComputePool;
+    Array<VulkanAsyncCompute*, RenderAllocator> m_submittedAsyncComputes;
+    Mutex m_asyncComputesMutex;
 };
 
 } // namespace Hyperion

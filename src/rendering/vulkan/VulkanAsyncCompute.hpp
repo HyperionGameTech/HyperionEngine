@@ -19,6 +19,8 @@ namespace Hyperion {
 
 class VulkanAsyncCompute final : public AsyncComputeBase
 {
+    friend class VulkanRenderInterface;
+
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
@@ -30,17 +32,29 @@ public:
         return m_isSupported;
     }
 
-    RendererResult Create();
-    RendererResult Submit(VulkanFrame* frame);
+    bool CheckStatus() override;
+    
+    void Create() override;
 
-    RendererResult PrepareForFrame(VulkanFrame* frame);
-    RendererResult WaitForFence(VulkanFrame* frame);
+    HYP_FORCE_INLINE VulkanCommandBuffer* GetCommandBuffer() const
+    {
+        return m_commandBuffer;
+    }
+
+    HYP_FORCE_INLINE VulkanFence* GetFence() const
+    {
+        return m_fence;
+    }
 
 private:
-    FixedArray<VulkanCommandBufferRef, NumFramesInFlight> m_commandBuffers;
-    FixedArray<VulkanFenceRef, NumFramesInFlight> m_fences;
-    bool m_isSupported;
-    bool m_isFallback;
+    void Submit();
+
+    VulkanCommandBuffer* m_commandBuffer;
+    VulkanFence* m_fence;
+    VulkanDeviceQueue* m_deviceQueue;
+
+    bool m_isSupported : 1;
+    bool m_isSubmitted : 1;
 };
 
 } // namespace Hyperion

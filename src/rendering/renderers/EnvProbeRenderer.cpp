@@ -502,11 +502,9 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     Array<GpuBufferRef> uniformBuffers;
 
-    RenderQueue* asyncRenderQueuePtr = g_renderInterface->GetAsyncCompute()->IsSupported()
-        ? &g_renderInterface->GetAsyncCompute()->renderQueue
-        : &frame->renderQueue;
+    AsyncCompute* asyncCompute = g_renderInterface->CreateAsyncCompute();
 
-    RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
+    RenderQueue& asyncRenderQueue = asyncCompute->renderQueue;
 
     asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
@@ -597,11 +595,12 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
-    frame->OnFrameEnd
+    asyncCompute->OnCompleted
         .Bind([
+            asyncCompute,
             envProbe = MakeStrongRef(envProbe),
             shTilesBuffers = std::move(shTilesBuffers),
-            uniformBuffers = std::move(uniformBuffers)](Frame* frame) mutable
+            uniformBuffers = std::move(uniformBuffers)]() mutable
             {
                 const uint32 boundIndex = RetrieveResourceBinding(envProbe);
                 Assert(boundIndex != ~0u);
@@ -612,6 +611,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
                 SafeDelete(std::move(uniformBuffers));
             })
         .Detach();
+
+    g_renderInterface->SubmitAsyncCompute(asyncCompute);
 }
 
 #pragma endregion ReflectionProbeRenderer

@@ -553,7 +553,6 @@ VulkanRenderInterface::VulkanRenderInterface()
     : m_instance(nullptr),
       m_renderConfig(MakePimpl<VulkanRenderConfig>()),
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
-      m_asyncCompute(new VulkanAsyncCompute()),
       m_currentFrameIndex(0)
 {
 }
@@ -570,11 +569,6 @@ const VulkanDeviceRef& VulkanRenderInterface::GetDevice() const
 const IRenderConfig& VulkanRenderInterface::GetRenderConfig() const
 {
     return *m_renderConfig;
-}
-
-AsyncComputeBase* VulkanRenderInterface::GetAsyncCompute() const
-{
-    return m_asyncCompute;
 }
 
 RendererResult VulkanRenderInterface::Initialize()
@@ -630,7 +624,6 @@ RendererResult VulkanRenderInterface::Initialize()
     m_crashHandler.Initialize();
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
-    CheckResultOrReturn(m_asyncCompute->Create());
 
     m_defaultFormats.Set(DIF_COLOR, TF_RGBA8);
     m_defaultFormats.Set(DIF_DEPTH, m_instance->GetDevice()->GetFeatures().FindSupportedFormat({ { TF_DEPTH_24, TF_DEPTH_32F } }, ImageSupport::Attachment));
@@ -645,12 +638,24 @@ RendererResult VulkanRenderInterface::Shutdown()
     SafeDelete(std::move(m_frames));
     SafeDelete(std::move(m_commandBuffers));
 
+    for (VulkanAsyncCompute* ac : m_asyncComputePool)
+    {
+        delete ac;
+    }
+
+    for (VulkanAsyncCompute* ac : m_submittedAsyncComputes)
+    {
+        ac->GetFence()->Wait(true);
+
+        delete ac;
+    }
+
+    m_asyncComputePool.Clear();
+    m_submittedAsyncComputes.Clear();
+
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
 
-    delete m_asyncCompute;
-    m_asyncCompute = nullptr;
-
-    CheckResultOrReturn(m_instance->GetDevice()->WaitIdle());
+    CheckResult(m_instance->GetDevice()->WaitIdle());
 
     PoolDelete(*g_renderPool, m_instance);
     m_instance = nullptr;
@@ -669,12 +674,50 @@ VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
 VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
 {
     VulkanFrame* frame = GetCurrentFrame();
+    frame->GetFence()->Wait(true);
 
-    RendererResult res = frame->GetFence()->Wait(true);
-
-    if (!res)
+    for (auto it = m_submittedAsyncComputes.Begin(); it != m_submittedAsyncComputes.End();)
     {
-        HYP_FAIL("Failed to wait on frame fence! VkResult: {}", frame->GetFence()->GetLastFrameResult());
+        VulkanAsyncCompute* elem = *it;
+
+        if (elem->CheckStatus())
+        {
+            elem->OnCompleted();
+
+            // @NOTE Don't need to lock mutex since we'll only be using CreateAsyncCompute() from main render thread and render task / workers.
+            // And workers wouldn't be kicked off at this point in the frame.
+            m_asyncComputePool.PushBack(elem);
+
+            it = m_submittedAsyncComputes.Erase(it);
+
+            continue;
+        }
+        
+        ++it;
+    }
+
+    // trim async compute pool if > 10 items
+    if (m_asyncComputePool.Size() > 10)
+    {
+        static constexpr uint32 MaxFramesBeforeDiscard = 100;
+
+        const uint32 currFrameIndex = GetFrameCounter();
+
+        for (auto it = m_asyncComputePool.Begin(); it != m_asyncComputePool.End();)
+        {
+            VulkanAsyncCompute* elem = *it;
+
+            if (currFrameIndex - elem->lastFrame >= MaxFramesBeforeDiscard)
+            {
+                delete elem;
+
+                it = m_asyncComputePool.Erase(it);
+
+                continue;
+            }
+
+            ++it;
+        }
     }
 
     frame->OnFrameStart();
@@ -682,11 +725,6 @@ VulkanFrame* VulkanRenderInterface::PrepareNextFrame()
     m_descriptorSetManager->OnFrameStart();
 
     AssertDebug(frame != nullptr);
-
-    if (m_asyncCompute->IsSupported())
-    {
-        CHECK_FRAME_RESULT(m_asyncCompute->PrepareForFrame(frame));
-    }
 
     return frame;
 }
@@ -729,17 +767,6 @@ void VulkanRenderInterface::SubmitCommandBuffers(VulkanSwapchain* swapchain)
     VulkanCommandBuffer* vulkanCommandBuffer = GetCurrentCommandBuffer();
 
     CHECK_FRAME_RESULT(vulkanFrame->Submit(presentQueue, vulkanCommandBuffer, swapchain));
-
-    if (m_asyncCompute->IsSupported())
-    {
-        CHECK_FRAME_RESULT(m_asyncCompute->Submit(vulkanFrame));
-    }
-#ifdef HYP_DEBUG_MODE
-    else if (!m_asyncCompute->renderQueue.IsEmpty())
-    {
-        HYP_LOG(RenderingBackend, Fatal, "Cannot write to async compute render queue, this device does not support async compute!");
-    }
-#endif
 }
 
 void VulkanRenderInterface::PresentToSwapchain(VulkanSwapchain* swapchain)
@@ -959,6 +986,36 @@ RendererResult VulkanRenderInterface::GetOrCreateVkDescriptorSetLayout(const Des
 UniquePtr<SingleTimeCommands> VulkanRenderInterface::GetSingleTimeCommands()
 {
     return MakeUnique<VulkanSingleTimeCommands>();
+}
+
+VulkanAsyncCompute* VulkanRenderInterface::CreateAsyncCompute()
+{
+    {
+        Mutex::Guard guard(m_asyncComputesMutex);
+
+        if (m_asyncComputePool.Any())
+        {
+            return m_asyncComputePool.PopBack();
+        }
+    }
+
+    // create new
+    VulkanAsyncCompute* newAsyncCompute = new VulkanAsyncCompute();
+    newAsyncCompute->Create();
+
+    return newAsyncCompute;
+}
+
+void VulkanRenderInterface::SubmitAsyncCompute(VulkanAsyncCompute* asyncCompute)
+{
+    Assert(asyncCompute != nullptr);
+    
+    Mutex::Guard guard(m_asyncComputesMutex);
+    Assert(!m_submittedAsyncComputes.Contains(asyncCompute));
+
+    asyncCompute->Submit();
+
+    m_submittedAsyncComputes.PushBack(asyncCompute);
 }
 
 void VulkanRenderInterface::ReleaseTransientMemory()

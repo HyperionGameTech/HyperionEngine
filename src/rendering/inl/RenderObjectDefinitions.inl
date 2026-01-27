@@ -1,4 +1,5 @@
 DECLARE_GFX_TYPE(Device);
+DECLARE_GFX_TYPE(AsyncCompute);
 DECLARE_GFX_TYPE(Swapchain);
 DECLARE_GFX_TYPE(GpuImage);
 DECLARE_GFX_TYPE(GpuImageView);

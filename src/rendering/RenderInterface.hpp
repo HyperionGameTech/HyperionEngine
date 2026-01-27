@@ -31,7 +31,6 @@ class SkyProbe;
 class RenderGlobalState;
 class RenderResourceLock;
 class UIRenderer;
-class AsyncComputeBase;
 class Material;
 class MaterialTextureCache;
 class GraphicsPipelineCache;
@@ -246,8 +245,6 @@ public:
 
     virtual const IRenderConfig& GetRenderConfig() const = 0;
 
-    virtual AsyncComputeBase* GetAsyncCompute() const = 0;
-
     virtual Frame* GetCurrentFrame() const = 0;
 
     virtual Frame* PrepareNextFrame() = 0;
@@ -313,6 +310,9 @@ public:
     virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const = 0;
 
     virtual UniquePtr<SingleTimeCommands> GetSingleTimeCommands() = 0;
+
+    virtual AsyncCompute* CreateAsyncCompute() = 0;
+    virtual void SubmitAsyncCompute(AsyncCompute* asyncCompute) = 0;
 
     virtual void ReleaseTransientMemory() = 0;
     virtual void NextFrame() = 0;

@@ -51,7 +51,7 @@ RendererResult VulkanFrame::Create()
     }
 
     m_queueSubmitFence = new VulkanFence();
-    CheckResultOrReturn(m_queueSubmitFence->Create());
+    m_queueSubmitFence->Create(/* createSignalled */ true);
 
     return {};
 }
@@ -60,7 +60,7 @@ void VulkanFrame::OnFrameStart()
 {
     FrameBase::OnFrameStart();
 
-    CheckResult(m_queueSubmitFence->Reset());
+    m_queueSubmitFence->Reset();
 
 #ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
     for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
@@ -131,9 +131,7 @@ void VulkanFrame::RecreateFence()
     }
 
     m_queueSubmitFence = new VulkanFence();
-
-    RendererResult res = m_queueSubmitFence->Create();
-    Assert(res, "Failed to recreate frame fence: {}", res.GetError().GetMessage());
+    m_queueSubmitFence->Create(/* createSignalled */ true);
 }
 
 void VulkanFrame::RecreateSemaphores(const VulkanSwapchain* swapchain)

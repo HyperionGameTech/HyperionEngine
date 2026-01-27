@@ -18,29 +18,82 @@ namespace Hyperion {
 extern VulkanRenderInterface* g_renderInterface;
 
 VulkanAsyncCompute::VulkanAsyncCompute()
-    : m_isSupported(false),
-      m_isFallback(false)
+    : m_deviceQueue(nullptr),
+      m_isSupported(false),
+      m_isSubmitted(false)
 {
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; ++frameIndex)
-    {
-        m_commandBuffers[frameIndex] = MakeHandle<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        m_fences[frameIndex] = MakeHandle<VulkanFence>();
-    }
+    m_commandBuffer = new VulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    m_fence = new VulkanFence();
 }
 
 VulkanAsyncCompute::~VulkanAsyncCompute()
 {
-    SafeDelete(std::move(m_commandBuffers));
-    SafeDelete(std::move(m_fences));
+    if (m_fence != nullptr)
+    {
+        if (m_isSubmitted && !CheckStatus())
+        {
+            m_fence->Wait();
+        }
+
+        m_fence->Release();
+        m_fence = nullptr;
+
+        m_commandBuffer->Release();
+        m_commandBuffer = nullptr;
+    }
 }
 
-RendererResult VulkanAsyncCompute::Create()
+bool VulkanAsyncCompute::CheckStatus()
+{
+    Assert(m_isSupported && m_fence != nullptr);
+
+    if (!m_isSubmitted)
+    {
+        return true;
+    }
+
+    VkResult result = vkGetFenceStatus(g_renderInterface->GetDevice()->GetDevice(), m_fence->GetVulkanHandle());
+
+    if (result == VK_NOT_READY)
+    {
+        return false;
+    }
+
+    Assert(result == VK_SUCCESS);
+
+    if (result == VK_SUCCESS)
+    {
+        m_isSubmitted = false;
+
+        return true;
+    }
+
+    return false;
+}
+
+void VulkanAsyncCompute::Submit()
+{
+    Assert(CheckStatus());
+    
+    m_fence->Wait(true);
+    m_fence->Reset();
+
+    CheckResult(m_commandBuffer->Begin());
+    renderQueue.Execute(m_commandBuffer);
+    CheckResult(m_commandBuffer->End());
+
+    CheckResult(m_commandBuffer->SubmitPrimary(m_deviceQueue, m_fence, nullptr, nullptr));
+
+    m_isSubmitted = true;
+}
+
+void VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
     Assert(g_renderInterface->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
-    VulkanDeviceQueue* queue = g_renderInterface->GetDevice()->GetComputeQueue();
+    m_deviceQueue = g_renderInterface->GetDevice()->GetComputeQueue();
 
     m_isSupported = g_renderInterface->GetDevice()->GetQueueFamilyIndices().computeFamily.HasValue();
 
@@ -48,62 +101,11 @@ RendererResult VulkanAsyncCompute::Create()
     {
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
-        queue = g_renderInterface->GetDevice()->GetGraphicsQueue();
+        m_deviceQueue = g_renderInterface->GetDevice()->GetGraphicsQueue();
     }
 
-    for (const VulkanCommandBufferRef& commandBuffer : m_commandBuffers)
-    {
-        Assert(commandBuffer.IsValid());
-
-        CheckResultOrReturn(commandBuffer->Create(queue->commandPools[0]));
-    }
-
-    for (const VulkanFenceRef& fence : m_fences)
-    {
-        CheckResultOrReturn(fence->Create());
-    }
-
-    return {};
-}
-
-RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
-{
-    HYP_SCOPE;
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    /// \todo : Call RenderQueue::Prepare to set descriptor sets to be used for the frame.
-
-    CheckResultOrReturn(m_commandBuffers[frameIndex]->Begin());
-    renderQueue.Execute(m_commandBuffers[frameIndex]);
-    CheckResultOrReturn(m_commandBuffers[frameIndex]->End());
-
-    VulkanDeviceQueue* computeQueue = g_renderInterface->GetDevice()->GetComputeQueue();
-
-    return m_commandBuffers[frameIndex]->SubmitPrimary(computeQueue, m_fences[frameIndex], nullptr, nullptr);
-}
-
-RendererResult VulkanAsyncCompute::PrepareForFrame(VulkanFrame* frame)
-{
-    HYP_SCOPE;
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    CheckResultOrReturn(WaitForFence(frame));
-
-    return {};
-}
-
-RendererResult VulkanAsyncCompute::WaitForFence(VulkanFrame* frame)
-{
-    HYP_SCOPE;
-
-    const uint32 frameIndex = frame->GetFrameIndex();
-
-    CheckResultOrReturn(m_fences[frameIndex]->Wait());
-    CheckResultOrReturn(m_fences[frameIndex]->Reset());
-
-    return {};
+    CheckResult(m_commandBuffer->Create(m_deviceQueue->commandPools[0]));
+    m_fence->Create(/* createSignalled */ true);
 }
 
 } // namespace Hyperion

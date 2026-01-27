@@ -33,43 +33,43 @@ VulkanFence::~VulkanFence()
     }
 }
 
-RendererResult VulkanFence::Create()
+void VulkanFence::Create(bool createSignaled)
 {
     Assert(m_handle == VK_NULL_HANDLE);
 
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fenceCreateInfo { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VULKAN_CHECK(vkCreateFence(g_renderInterface->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle));
+    if (createSignaled)
+    {
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    }
 
-    return {};
+    VkResult result = vkCreateFence(g_renderInterface->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle);
+    Assert(result == VK_SUCCESS, "Failed to create Vulkan fence, VkResult: {}", result);
 }
 
-RendererResult VulkanFence::Wait(bool timeoutLoop)
+void VulkanFence::Wait(bool timeoutLoop)
 {
     Assert(m_handle != VK_NULL_HANDLE);
 
-    VkResult vkResult;
+    VkResult result = VK_SUCCESS;
 
     do
     {
-        vkResult = vkWaitForFences(g_renderInterface->GetDevice()->GetDevice(), 1, &m_handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+        result = vkWaitForFences(g_renderInterface->GetDevice()->GetDevice(), 1, &m_handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
     }
-    while (vkResult == VK_TIMEOUT && timeoutLoop);
+    while (result == VK_TIMEOUT && timeoutLoop);
 
-    m_lastFrameResult = vkResult;
+    m_lastFrameResult = result;
 
-    VULKAN_CHECK(vkResult);
-
-    return {};
+    Assert(result == VK_SUCCESS, "Failed to wait for Vulkan fence, VkResult: {}", result);
 }
 
-RendererResult VulkanFence::Reset()
+void VulkanFence::Reset()
 {
-    VULKAN_CHECK(vkResetFences(g_renderInterface->GetDevice()->GetDevice(), 1, &m_handle));
-
-    return {};
+    VkResult result = vkResetFences(g_renderInterface->GetDevice()->GetDevice(), 1, &m_handle);
+    Assert(result == VK_SUCCESS, "Failed to reset Vulkan fence, VkResult: {}", result);
 }
 
 } // namespace Hyperion
