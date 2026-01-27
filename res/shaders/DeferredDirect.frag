@@ -45,6 +45,22 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(DeferredPass, CurrentLight) readonly buffer CurrentLi
     Light light;
 };
 
+#ifdef LIGHT_TYPE_AREA_RECT
+
+HYP_DESCRIPTOR_SRV_DYNAMIC(DeferredPass, CurrentMaterial) readonly buffer CurrentMaterial
+{
+    Material lightMaterial;
+};
+
+HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
+
+HYP_DESCRIPTOR_SRV(DeferredPass, LTCMatrixTexture) uniform texture2D ltc_matrix_texture;
+HYP_DESCRIPTOR_SRV(DeferredPass, LTCBRDFTexture) uniform texture2D ltc_brdf_texture;
+
+HYP_DESCRIPTOR_SAMPLER(DeferredPass, LTCSampler) uniform sampler ltc_sampler;
+
+#endif
+
 HYP_DESCRIPTOR_SRV(DeferredPass, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
@@ -62,15 +78,6 @@ vec2 texcoord = v_texcoord0;
 
 #include "include/PhysicalCamera.inc"
 #include "include/LightRays.glsl"
-
-HYP_DESCRIPTOR_SAMPLER(DeferredPass, LTCSampler) uniform sampler ltc_sampler;
-HYP_DESCRIPTOR_SRV(DeferredPass, LTCMatrixTexture) uniform texture2D ltc_matrix_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, LTCBRDFTexture) uniform texture2D ltc_brdf_texture;
-
-#ifdef LIGHT_TYPE_AREA_RECT // material texture bindings used for textured rectangular area light
-HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
-#endif
-
 #include "include/LightSampling.glsl"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

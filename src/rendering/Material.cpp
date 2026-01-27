@@ -435,6 +435,8 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     {
         proxy->material = MakeWeakRef(this);
     }
+
+    proxy->attributes = m_attributes;
     
     MaterialShaderData& bufferData = proxy->bufferData;
 

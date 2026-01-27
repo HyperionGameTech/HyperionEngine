@@ -6,6 +6,7 @@
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <rendering/RenderGroup.hpp>
+#include <rendering/MaterialTextureCache.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
@@ -90,6 +91,8 @@ static const FixedArray<ShaderPropertySet, LT_MAX> s_deferredLightTypeProperties
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT"))) } },
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT"))) } }
 };
+
+static const ShaderPropertyId s_propHasAlbedoMap = InternShaderProperty(ShaderProperty(NAME("HAS_ALBEDO_MAP")));
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
@@ -406,7 +409,10 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             {
                 continue;
             }
-            
+
+            RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
+            AssertDebug(lightProxy != nullptr);
+
             if (lightType != prevLightType)
             {
                 ShaderPropertySet shaderProperties;
@@ -416,10 +422,33 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             }
 
             uint32 localNumShaderUniforms = numShaderUniforms;
-            rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RetrieveResourceBinding(light) * sizeof(LightShaderData));
+            rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), ShaderDataOffset<LightShaderData>(light));
 
             if (lightType == LT_AREA_RECT)
             {
+                if (lightProxy != nullptr && lightProxy->lightMaterial != nullptr)
+                {
+                    RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(lightProxy->lightMaterial));
+                    AssertDebug(materialProxy != nullptr);
+
+                    if (materialProxy->attributes.textureMask & uint32(MaterialTextureKey::ALBEDO_MAP))
+                    {
+                        const uint32 materialBoundIndex = RetrieveResourceBinding(lightProxy->lightMaterial);
+                        AssertDebug(materialBoundIndex != ~0u);
+                        
+                        Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
+                        AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
+
+                        rq << SetShaderUniform(localNumShaderUniforms++, "AlbedoMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
+                    }
+
+                    rq << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), ShaderDataOffset<MaterialShaderData>(lightProxy->lightMaterial));
+                }
+                else
+                {
+                    rq << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), 0);
+                }
+
                 rq << SetShaderUniform(localNumShaderUniforms++, "LTCSampler"_sh, m_ltcSampler);
 
                 if (m_ltcMatrixTexture != nullptr)

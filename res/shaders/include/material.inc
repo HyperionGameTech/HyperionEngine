@@ -68,7 +68,7 @@ struct Material
 
 #define HAS_TEXTURE(mat, name) bool(((mat).textureUsage & (1 << MATERIAL_TEXTURE_##name)))
 
-#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+#if defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT) // area rect light uses AlbedoMap in any case
 #define GET_TEXTURE(mat, name) textures[(mat).texture_indices[(MATERIAL_TEXTURE_##name) / 4][(MATERIAL_TEXTURE_##name) % 4]]
 #else
 #define GET_TEXTURE(mat, name) name

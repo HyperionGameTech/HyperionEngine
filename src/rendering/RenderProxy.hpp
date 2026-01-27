@@ -324,6 +324,7 @@ public:
     }
 
     WeakHandle<Material> material;
+    MaterialAttributes attributes;
     MaterialShaderData bufferData {};
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
     Array<Handle<Texture>> boundTextures;
