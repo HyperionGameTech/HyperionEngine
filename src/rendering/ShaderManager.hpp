@@ -12,7 +12,6 @@
 
 namespace Hyperion {
 
-struct ShaderDefinition;
 class ShaderVariant;
 
 enum class ShaderCacheId : uint64;
@@ -33,14 +32,11 @@ public:
     SizeType CalculateMemoryUsage() const;
 
 private:
-    /*! \brief Gets a unique ShaderCacheId for the given ShaderDefinition.
-     *  If \p createIfNotExists is true, a new ShaderCacheId will be created
-     *  and stored if one does not already exist for the given definition. (The shader will be created on demand when requested.)
-     *  Otherwise, if no ShaderCacheId exists for the definition, an invalid ShaderCacheId will be returned.
-     *  A ShaderCacheId is a unique identifier for a ShaderDefinition, used
-     *  with RuntimeMaterialAttributes to reference shaders without holding
-     *  a full ShaderDefinition object.
-     */
+    /*! \brief Gets a unique ShaderCacheId for the given shader info.
+    *   If the shader has already been loaded or if this method has been called before,
+    *   the same ShaderCacheId will be returned.
+    *   However, this value is not persistent across runs.
+    */
     ShaderCacheId GetShaderCacheId(
         Name name,
         const ShaderPropertySet& properties,
