@@ -1,5 +1,5 @@
-#ifndef LIGHT_RAYS_GLSL
-#define LIGHT_RAYS_GLSL
+#ifndef HYP_LIGHT_RAYS
+#define HYP_LIGHT_RAYS
 
 #include "shadows.inc"
 
@@ -9,10 +9,12 @@
 #define VOLUMETRIC_LIGHTING_FADE_END 0.9
 #define VOLUMETRIC_LIGHTING_INTENSITY 0.9
 
+
+
 float LightRayAttenuation(in Light light, vec3 P, float NdotL)
 {
     // Get shadow
-    return GetShadowStandard(light, P, vec2(0.0), NdotL);
+    return GetShadowStandard(light, P, vec2(0.0, 0.0), NdotL);
 }
 
 float LightRayDensity(vec3 position)
@@ -98,7 +100,11 @@ float LightRays2(vec2 uv, vec2 ss_L, vec3 P, vec3 camera_position)
     {
         march_uv -= delta_uv;
 
+#ifdef LANG_GLSL
         const uint mask = texture(usampler2D(gbuffer_material_texture, sampler_nearest), march_uv).r;
+#elif defined(LANG_HLSL)
+        const uint mask = gbuffer_material_texture.Load(int3(march_uv * (camera.dimensions.xy - 1), 0)).r;
+#endif
 
         bool occluded = !bool(mask & (0x01 | 0x02));
         float occlusion = float(occluded);

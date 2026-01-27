@@ -182,8 +182,17 @@ void WriteShaderPropertyDatabase(ByteWriter& stream)
         }
 
         stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
+
         stream.Write(&hashedProperty, sizeof(HashedShaderProperty));
         stream.Write(&id, sizeof(ShaderPropertyId));
+
+        // write padding bytes at end of entry
+        constexpr uint16 NumPaddingBytes = SizeOfEntry - sizeof(ShaderPropertyId) - sizeof(HashedShaderProperty);
+        if constexpr (NumPaddingBytes > 0)
+        {
+            uint8 paddingBytes[NumPaddingBytes] {};
+            stream.Write(paddingBytes, NumPaddingBytes);
+        }
 
         maxShaderId = MathUtil::Max(maxShaderId, uint32(id));
 
@@ -224,9 +233,16 @@ void ReadShaderPropertyDatabase(BufferedByteReader& stream)
     shaderPropertyCacheMap.Reserve(entryCount);
 
     ubyte* bytes = (ubyte*)Memory::Allocate(entryCount * SizeOfEntry);
-    if (stream.ReadBytes(bytes, entryCount * SizeOfEntry) != entryCount * SizeOfEntry)
+    SizeType readBytes = 0;
+
+    if ((readBytes = stream.ReadBytes(bytes, entryCount * SizeOfEntry)) != entryCount * SizeOfEntry)
     {
-        HYP_LOG(Core, Error, "Shader property database is corrupt!");
+        HYP_LOG(Core, Error, "Shader property database is corrupt! Read {} bytes, expected {}.",
+            readBytes, entryCount * SizeOfEntry);
+
+        Memory::Free(bytes);
+
+        return;
     }
 
     ubyte* pBytes = bytes;

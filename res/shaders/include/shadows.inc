@@ -1,5 +1,5 @@
-#ifndef HYP_SHADOWS_GLSL
-#define HYP_SHADOWS_GLSL
+#ifndef HYP_SHADOWS
+#define HYP_SHADOWS
 
 #include "noise.inc"
 #include "aabb.inc"
@@ -63,18 +63,27 @@ static const float2 s_pcfKernel[16] = {
 };
 #endif
 
+#ifdef LANG_HLSL
+static const float4x4 s_shadowBiasMatrix = float4x4(
+    0.5, 0.0, 0.0, 0.5,
+    0.0, 0.5, 0.0, 0.5,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0);
+#elif defined(LANG_GLSL)
 const mat4 s_shadowBiasMatrix = mat4(
     0.5, 0.0, 0.0, 0.0,
     0.0, 0.5, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
     0.5, 0.5, 0.0, 1.0);
+#endif
 
 vec3 GetShadowCoord(in mat4 shadowMatrix, vec3 pos)
 {
-    mat4 shadow_matrix = s_shadowBiasMatrix * shadowMatrix;
 #ifdef LANG_HLSL
+    float4x4 shadow_matrix = mul(s_shadowBiasMatrix, shadowMatrix);
     float4 shadow_position = mul(shadow_matrix, float4(pos, 1.0));
 #else
+    mat4 shadow_matrix = s_shadowBiasMatrix * shadowMatrix;
     vec4 shadow_position = shadow_matrix * vec4(pos, 1.0);
 #endif
     shadow_position.xyz /= shadow_position.w;

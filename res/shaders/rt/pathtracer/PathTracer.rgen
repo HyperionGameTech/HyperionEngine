@@ -62,7 +62,6 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, EnvGridsBuffer) uniform EnvGridsBuffer { EnvGrid env_grid; };
 HYP_DESCRIPTOR_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
 
 #if ENV_PROBE_CUBEMAP

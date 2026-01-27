@@ -1,14 +1,14 @@
-#ifndef HYP_LIGHT_SAMPLING_GLSL
-#define HYP_LIGHT_SAMPLING_GLSL
+#ifndef HYP_LIGHT_SAMPLING
+#define HYP_LIGHT_SAMPLING
 
 #include "shared.inc"
 #include "brdf.inc"
 #include "scene.inc"
 #include "material.inc"
 
-const float lut_size = 64.0;
-const float lut_scale = (lut_size - 1.0) / lut_size;
-const float lut_bias = 0.5 / lut_size;
+static const float lut_size = 64.0;
+static const float lut_scale = (lut_size - 1.0) / lut_size;
+static const float lut_bias = 0.5 / lut_size;
 
 // References:
 // https://blog.selfshadow.com/publications/s2016-advances/s2016_ltc_rnd.pdf

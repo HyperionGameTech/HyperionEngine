@@ -92,9 +92,15 @@ vec3 DecodeNormal(vec4 enc)
     return SignedOctDecode(enc.xyz);
 }
 
+#ifdef LANG_HLSL
+static const float4 depthBitShift = float4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
+static const float4 depthBitShiftInv = float4(1.0, 1.0, 1.0, 1.0) / depthBitShift;
+static const float4 depthBitMask = float4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
+#else
 const vec4 depthBitShift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
 const vec4 depthBitShiftInv = vec4(1.0, 1.0, 1.0, 1.0) / depthBitShift;
 const vec4 depthBitMask = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
+#endif
 
 vec4 PackDepth(in float depth)
 {

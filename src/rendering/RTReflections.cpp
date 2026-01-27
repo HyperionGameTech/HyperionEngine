@@ -209,6 +209,8 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     AssertDebug(viewFramebuffer != nullptr);
+
+    AssertDebug(pd->cBuffer != nullptr);
     
     frame->renderQueue << SetShaderUniform(0, "GBufferAlbedoTexture"_sh, viewFramebuffer->GetAttachment(0)->GetImageView());
     frame->renderQueue << SetShaderUniform(1, "GBufferNormalsTexture"_sh, viewFramebuffer->GetAttachment(1)->GetImageView());

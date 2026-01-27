@@ -69,17 +69,17 @@ HYP_DESCRIPTOR_SRV(PathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_UAV(RTRadianceDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+HYP_DESCRIPTOR_UAV(PathTracer, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SRV(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer MaterialsBuffer
+HYP_DESCRIPTOR_SRV(PathTracer, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_BUFFER(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+HYP_DESCRIPTOR_BUFFER(PathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };

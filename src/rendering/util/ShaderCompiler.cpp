@@ -1867,10 +1867,10 @@ static ByteBuffer CompileHLSL(
 
     ComPtr<IDxcBlob> pBlob;
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
-    
-    Assert(pBlob->GetBufferSize() != 0);
 
     ByteBuffer bytecode(pBlob->GetBufferSize());
+    Assert(bytecode.Size() > 0);
+
     Memory::Copy(bytecode.Data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
 
     return bytecode;
@@ -3824,8 +3824,8 @@ bool ShaderCompiler::CompileBundle(
             compiledShader.vertexAttributes = perm.GetRequiredVertexAttributes();
             compiledShader.propertySetHashCode = perm.GetPropertySetHashCode();
 
-            AtomicVar<bool> anyFilesCompiled { false };
-            AtomicVar<bool> anyFilesErrored { false };
+            uint32 numErrored = 0;
+            uint32 numCompiled = 0;
 
             Array<DescriptorUsageSet> descriptorUsageSetsPerFile;
             descriptorUsageSetsPerFile.Resize(loadedSourceFiles.Size());
@@ -3879,9 +3879,9 @@ bool ShaderCompiler::CompileBundle(
                         Mutex::Guard guard(errorMessagesMutex);
                         out.errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
 
-                        anyFilesErrored.Set(true, MemoryOrder::RELAXED);
+                        ++numErrored;
 
-                        return;
+                        continue;
                     }
 
                     descriptorUsages.Merge(std::move(processResult.descriptorUsages));
@@ -3911,7 +3911,7 @@ bool ShaderCompiler::CompileBundle(
                 // don't process these files
                 if (filepathState.second)
                 {
-                    return;
+                    continue;
                 }
 
                 const FilePath& outputFilepath = filepathState.first;
@@ -3966,12 +3966,23 @@ bool ShaderCompiler::CompileBundle(
                         processedSources[index],
                         item.file,
                         errorMessages);
+
+                    if (errorMessages.Any())
+                    {
+                        Mutex::Guard guard(errorMessagesMutex);
+                        out.errorMessages.Concat(errorMessages);
+                        
+                        ++numErrored;
+                        
+                        continue;
+                    }
 #else
+                    Mutex::Guard guard(errorMessagesMutex);
                     out.errorMessages.EmplaceBack("Cannot compile GLSL code, glslang not linked");
 
-                    anyFilesErrored.Set(true, MemoryOrder::RELAXED);
-
-                    return;
+                    ++numErrored;
+                    
+                    continue;
 #endif
                 }
 
@@ -3994,27 +4005,35 @@ bool ShaderCompiler::CompileBundle(
                         item.file,
                         perm,
                         errorMessages);
+
+                    if (errorMessages.Any())
+                    {
+                        Mutex::Guard guard(errorMessagesMutex);
+                        out.errorMessages.Concat(errorMessages);
+                        
+                        ++numErrored;
+                        
+                        continue;
+                    }
+
 #else
+                    Mutex::Guard guard(errorMessagesMutex);
                     out.errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
 
-                    anyFilesErrored.Set(true, MemoryOrder::RELAXED);
-
-                    return;
+                    ++numErrored;
+                    
+                    continue;
 #endif
                 }
 
                 if (byteBuffer.Empty())
                 {
-                    HYP_LOG(ShaderCompiler, Error,
-                        "Failed to compile file {} with version hash {} - no shader IL returned",
-                        item.file, perm.GetHashCode().Value());
-
                     Mutex::Guard guard(errorMessagesMutex);
-                    out.errorMessages.Concat(errorMessages);
+                    out.errorMessages.EmplaceBack("No shader IL returned");
 
-                    anyFilesErrored.Set(true, MemoryOrder::RELAXED);
-
-                    return;
+                    ++numErrored;
+                    
+                    continue;
                 }
 
                 { // write the shader bytecode to the temp file
@@ -4022,19 +4041,17 @@ bool ShaderCompiler::CompileBundle(
 
                     if (!tempWriter.IsOpen())
                     {
-                        HYP_LOG(ShaderCompiler, Error,
-                            "Could not open file {} for writing!", outputFilepath);
+                        Mutex::Guard guard(errorMessagesMutex);
+                        out.errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", outputFilepath));
 
-                        anyFilesErrored.Set(true, MemoryOrder::RELAXED);
+                        ++numErrored;
 
-                        return;
+                        continue;
                     }
 
                     tempWriter.Write(byteBuffer.Data(), byteBuffer.Size());
                     tempWriter.Close();
                 }
-
-                anyFilesCompiled.Set(true, MemoryOrder::RELAXED);
 
                 if (item.language == ShaderLanguage::GLSL)
                 {
@@ -4046,18 +4063,37 @@ bool ShaderCompiler::CompileBundle(
                     // for HLSL, we use entry point name based on stage
                     compiledShader.AddShaderModule(item.type, item.file, std::move(byteBuffer));
                 }
+
+                ++numCompiled;
             }
 
-            numCompiledPermutations.Increment(uint32(!anyFilesErrored.Get(MemoryOrder::RELAXED) && anyFilesCompiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
-            numErroredPermutations.Increment(uint32(anyFilesErrored.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
+            numCompiledPermutations.Increment(numErrored == 0 && numCompiled > 0 ? 1 : 0, MemoryOrder::RELAXED);
+            numErroredPermutations.Increment(numErrored > 0 ? 1 : 0, MemoryOrder::RELAXED);
 
-            compiledShader.descriptorTableDeclaration = DescriptorTableDeclaration();
-            descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(compiledShader.descriptorTableDeclaration);
+            if (numErrored == 0 && numCompiled > 0)
+            {
+                compiledShader.descriptorTableDeclaration = DescriptorTableDeclaration();
+                descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(compiledShader.descriptorTableDeclaration);
 
-            Mutex::Guard guard(compiledShadersMutex);
-            out.compiledShaders.PushBack(std::move(compiledShader));
+                Mutex::Guard guard(compiledShadersMutex);
+                out.compiledShaders.PushBack(std::move(compiledShader));
+            }
         },
         false); // true);
+
+    if (out.HasErrors())
+    {
+        HYP_LOG(ShaderCompiler, Error,
+            "Shader compilation failed for shader {} with {} errored permutations!",
+            decl.name, numErroredPermutations.Get(MemoryOrder::RELAXED));
+
+        for (const String& errorMessage : out.errorMessages)
+        {
+            HYP_LOG(ShaderCompiler, Error, "\t{}", errorMessage);
+        }
+
+        return false;
+    }
 
     if (out.compiledShaders.Empty())
     {
@@ -4077,15 +4113,6 @@ bool ShaderCompiler::CompileBundle(
             return ByteUtil::BitCount(a.vertexAttributes.flagMask)
                 > ByteUtil::BitCount(b.vertexAttributes.flagMask);
         });
-
-    if (numErroredPermutations.Get(MemoryOrder::RELAXED))
-    {
-        HYP_LOG(ShaderCompiler, Error,
-            "Failed to compile {} permutations of shader {}",
-            numErroredPermutations.Get(MemoryOrder::RELAXED), decl.name);
-
-        return false;
-    }
 
     { // Save the shader property DB
         
