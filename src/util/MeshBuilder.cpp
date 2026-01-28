@@ -259,7 +259,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
     }
 
     const Mat4f modelMatrix = transform.GetMatrix();
-    const Mat4f normalMatrix = modelMatrix.Inverted().Transposed();
+    const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
 

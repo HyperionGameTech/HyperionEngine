@@ -1005,8 +1005,8 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                     meshComponent && meshComponent->mesh && meshComponent->mesh->GetBVH().IsValid())
                 {
                     Mat4f modelMatrix = entry.value->GetWorldMatrix();
-                    Mat4f invModelMatrix = modelMatrix.Inverted();
-                    Mat4f normalMatrix = invModelMatrix.Transposed();
+                    Mat4f invModelMatrix = modelMatrix.Inverse();
+                    Mat4f normalMatrix = invModelMatrix.Transpose();
 
                     Ray localSpaceRay = invModelMatrix * ray;
 

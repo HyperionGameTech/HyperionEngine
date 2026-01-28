@@ -106,7 +106,6 @@ struct alignas(16) HYP_API Quaternion
     float LengthSquared() const;
     Quaternion& Normalize();
 
-    Quaternion& Invert();
     Quaternion Inverse() const;
 
     Quaternion& Slerp(const Quaternion& to, float amt);

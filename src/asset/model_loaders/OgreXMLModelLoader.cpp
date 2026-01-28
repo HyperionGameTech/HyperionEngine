@@ -327,15 +327,15 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
 
         MaterialAttributes materialAttributes {};
-        materialAttributes.bucket = RB_TRANSLUCENT;
-        materialAttributes.blendFunction = BlendFunction::AlphaBlending();
+        // materialAttributes.bucket = RB_TRANSLUCENT;
+        // materialAttributes.blendFunction = BlendFunction::AlphaBlending();
         materialAttributes.shaderName = NAME("GeometryPass");
         materialAttributes.shaderProperties = {};
 
         Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.8f);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.01f);
+        // material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
+        // material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.8f);
+        // material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.01f);
 
         entity->SetLocalBounds(mesh->GetAABB());
 

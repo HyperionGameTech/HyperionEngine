@@ -73,14 +73,16 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     
     float4 position;
     float4 previous_position;
-    float4x4 normal_matrix;
 
 #ifdef INSTANCING
     Entity currentEntity = entities[instanceId];
     float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
+    // @NOTE: doesn't handle non-uniform scaling for instancing
+    float3x3 normal_matrix = mul((float3x3)entity_instance_batch.transforms[instanceId], currentEntity.normal_matrix);
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
+    float3x3 normal_matrix = entity.normal_matrix; //transpose(inverse((float3x3)model_matrix));
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
@@ -88,16 +90,14 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
-    float4x4 skin_model = mul(model_matrix, skinning_matrix);
-    normal_matrix = skin_model; 
+    normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
 #else
     position = mul(model_matrix, float4(input.a_position, 1.0));
     previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
-    normal_matrix = model_matrix;
 #endif
-    
+
     output.position = position.xyz / position.w;
-    output.normal = mul((float3x3)normal_matrix, input.a_normal);
+    output.normal = mul(normal_matrix, input.a_normal);
     output.texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.camera_position = camera.position.xyz;
 
@@ -111,8 +111,8 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float3 bitangent;
     ComputeOrthonormalBasis(input.a_normal, tangent, bitangent);
 
-    output.tangent = mul((float3x3)normal_matrix, tangent);
-    output.bitangent = mul((float3x3)normal_matrix, bitangent);
+    output.tangent = mul(normal_matrix, tangent);
+    output.bitangent = mul(normal_matrix, bitangent);
 
     // ViewProjection
     output.position_ndc = mul(camera.viewProjMat, position);

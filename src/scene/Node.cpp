@@ -829,7 +829,7 @@ void Node::SetWorldTranslation(const Vec3f& translation)
         return;
     }
 
-    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverted() * translation);
+    SetLocalTranslation(m_parentNode->GetWorldMatrix().Inverse() * translation);
 }
 
 Vec3f Node::GetWorldScale() const
@@ -899,15 +899,23 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
         {
             if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION)
             {
-                transformMatrix[3] = prevWorldMatrix[3];
-                transformMatrix[3].w = 1.0f;
+                transformMatrix[3][0] = prevWorldMatrix[3][0];
+                transformMatrix[3][1] = prevWorldMatrix[3][1];
+                transformMatrix[3][2] = prevWorldMatrix[3][2];
+                transformMatrix[3][3] = 1.0f;
             }
 
             if (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION)
             {
-                transformMatrix[0] = prevWorldMatrix[0];
-                transformMatrix[1] = prevWorldMatrix[1];
-                transformMatrix[2] = prevWorldMatrix[2];
+                const Mat4f curr = transformMatrix;
+
+                transformMatrix = prevWorldMatrix;
+
+                transformMatrix[3][0] = curr[3][0];
+                transformMatrix[3][1] = curr[3][1];
+                transformMatrix[3][2] = curr[3][2];
+                transformMatrix[3][3] = curr[3][3];
+
                 transformMatrix.Orthonormalize();
             }
 
@@ -915,9 +923,21 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
             {
                 const Vec3f prevScale = prevWorldMatrix.ExtractScale();
                 const Vec3f currentScale = transformMatrix.ExtractScale();
-                transformMatrix[0] *= prevScale.x / currentScale.x;
-                transformMatrix[1] *= prevScale.y / currentScale.y;
-                transformMatrix[2] *= prevScale.z / currentScale.z;
+
+                const Vec3f denom = prevScale / currentScale;
+
+                transformMatrix[0][0] *= denom.x;
+                transformMatrix[0][1] *= denom.x;
+                transformMatrix[0][2] *= denom.x;
+                
+                transformMatrix[1][0] *= denom.y;
+                transformMatrix[1][1] *= denom.y;
+                transformMatrix[1][2] *= denom.y;
+
+                transformMatrix[2][0] *= denom.z;
+                transformMatrix[2][1] *= denom.z;
+                transformMatrix[2][2] *= denom.z;
+
                 transformMatrix.Orthonormalize();
             }
         }
@@ -1033,7 +1053,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             {
                 RayTestResults localBvhResults;
 
-                const Ray localSpaceRay = modelMatrix.Inverted() * ray;
+                const Ray localSpaceRay = modelMatrix.Inverse() * ray;
 
 #ifdef HYP_EDITOR
                 if ((flags & RTF_EDITOR_PICK) && pickCacheEntry)
@@ -1059,7 +1079,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                 if (localBvhResults.Any())
                 {
-                    const Mat4f normalMatrix = modelMatrix.Transposed().Inverted();
+                    const Mat4f normalMatrix = modelMatrix.Transpose().Inverse();
 
                     RayTestResults bvhResults;
 

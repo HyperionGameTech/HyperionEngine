@@ -1708,7 +1708,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (getFbxObject(fbxNode.parentId, parentNode))
             {
-                fbxNode.localBindMatrix = parentNode->worldBindMatrix.Inverted() * fbxNode.localBindMatrix;
+                fbxNode.localBindMatrix = parentNode->worldBindMatrix.Inverse() * fbxNode.localBindMatrix;
             }
         }
 

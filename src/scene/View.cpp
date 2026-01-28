@@ -891,9 +891,10 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
-            meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
+            
             meshProxy.bufferData.modelMatrix = transformComponent->GetMatrix();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
+            meshProxy.bufferData.normalMatrix = Mat3f(transformComponent->GetMatrix()).Inverse().Transpose();
         }
     }
 }

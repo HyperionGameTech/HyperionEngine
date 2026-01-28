@@ -173,7 +173,7 @@ public:
                 }
                 else
                 {
-                    LastKeyframe().rotation = Quaternion(axis, m_keyframeAngles.Top()).Invert();
+                    LastKeyframe().rotation = Quaternion(axis, m_keyframeAngles.Top()).Inverse();
 
                     m_keyframeAngles.Pop();
                 }

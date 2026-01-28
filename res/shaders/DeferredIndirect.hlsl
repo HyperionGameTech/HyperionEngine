@@ -208,6 +208,8 @@ PSOutput PSMain(PSInput input)
 #elif defined(DEBUG_VELOCITY)
     float4 velocity = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_velocity_texture, texcoord);
     result = velocity.rgb;
+#elif defined(DEBUG_NORMALS)
+    result = normal * 0.5 + 0.5;
 #endif
 
     output.output_color = float4(result, 1.0);

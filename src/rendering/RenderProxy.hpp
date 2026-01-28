@@ -69,11 +69,10 @@ struct alignas(16) WorldShaderData
 
 struct alignas(16) EntityShaderData
 {
-    Mat4f modelMatrix;
-    Mat4f previousModelMatrix;
+    alignas(16) Mat4f modelMatrix;
+    alignas(16) Mat4f previousModelMatrix;
+    Mat3f normalMatrix;
 
-    Vec4f _pad0;
-    Vec4f _pad1;
     Vec3f worldAabbMax;
     Vec3f worldAabbMin;
 
@@ -84,17 +83,7 @@ struct alignas(16) EntityShaderData
 
     uint32 bucket;
     uint32 flags;
-    uint32 _pad3;
-    uint32 _pad4;
-
-    struct alignas(16) EntityUserData
-    {
-        Vec4u userData0;
-        Vec4u userData1;
-    } userData;
 };
-
-static_assert(sizeof(EntityShaderData) == 256);
 
 enum class LightmapElementId : uint32;
 

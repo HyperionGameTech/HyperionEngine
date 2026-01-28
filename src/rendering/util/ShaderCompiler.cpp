@@ -309,24 +309,19 @@ void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
     inOutPerm.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGBufferTargets))));
 
     if (g_renderInterface->GetRenderConfig().bindlessTextures)
-    {
         inOutPerm.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
-    }
 
     if (s_globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
-    {
         inOutPerm.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
-    }
 
     if (s_globalConfig.Get("Rendering.Debug.Irradiance").ToBool(false))
-    {
         inOutPerm.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
-    }
 
     if (s_globalConfig.Get("Rendering.Debug.Velocity").ToBool(false))
-    {
         inOutPerm.Set(ShaderProperty(NAME("DEBUG_VELOCITY")));
-    }
+
+    if (s_globalConfig.Get("Rendering.Debug.Normals").ToBool(false))
+        inOutPerm.Set(ShaderProperty(NAME("DEBUG_NORMALS")));
 
     // inOutPerm.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS"));
     // inOutPerm.Set(ShaderProperty("HYP_MAX_BONES"));

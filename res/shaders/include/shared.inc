@@ -312,6 +312,24 @@ vec2 GetProjectedPositionFromView(in mat4 projection, in vec3 view_space_positio
     return (sample_position.xy / sample_position.w) * 0.5 + 0.5;
 }
 
+#ifdef LANG_HLSL
+float3x3 inverse(float3x3 m)
+{
+    float3 a = m[0];
+    float3 b = m[1];
+    float3 c = m[2];
+
+    float3 r0 = cross(b, c);
+    float3 r1 = cross(c, a);
+    float3 r2 = cross(a, b);
+
+    float det = dot(r2, c);
+    float invDet = 1.0 / max(abs(det), 1e-8);
+
+    return float3x3(r0 * invDet, r1 * invDet, r2 * invDet);
+}
+#endif
+
 #ifndef LANG_HLSL
 float saturate(float val)
 {

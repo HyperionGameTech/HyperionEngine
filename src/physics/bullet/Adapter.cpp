@@ -143,7 +143,7 @@ void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 
         Transform rigidBodyTransform = rigidBody->GetTransform();
         rigidBodyTransform.GetTranslation() = FromBtVector(btTransform.getOrigin());
-        rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation()).Invert();
+        rigidBodyTransform.GetRotation() = FromBtQuaternion(btTransform.getRotation()).Inverse();
 
         rigidBody->SetTransform(rigidBodyTransform);
     }

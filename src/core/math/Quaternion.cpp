@@ -29,9 +29,9 @@ Quaternion::Quaternion(float x, float y, float z, float w)
 
 Quaternion::Quaternion(const Mat4f& m)
 {
-    Vec3f m0 = m[0].GetXYZ(),
-          m1 = m[1].GetXYZ(),
-          m2 = m[2].GetXYZ();
+    Vec3f m0 = Vec3f(m[0][0], m[0][1], m[0][2]),
+        m1 = Vec3f(m[1][0], m[1][1], m[1][2]),
+        m2 = Vec3f(m[2][0], m[2][1], m[2][2]);
 
     float lengthSqr = m0[0] * m0[0] + m1[0] * m1[0] + m2[0] * m2[0];
 
@@ -216,23 +216,19 @@ Quaternion& Quaternion::Normalize()
     return *this;
 }
 
-Quaternion& Quaternion::Invert()
+Quaternion Quaternion::Inverse() const
 {
+    Quaternion q(*this);
     float len2 = LengthSquared();
     if (len2 > 0.0)
     {
         float invLen2 = 1.0f / len2;
-        w = w * invLen2;
-        x = -x * invLen2;
-        y = -y * invLen2;
-        z = -z * invLen2;
+        q.w = w * invLen2;
+        q.x = -x * invLen2;
+        q.y = -y * invLen2;
+        q.z = -z * invLen2;
     }
-    return *this;
-}
-
-Quaternion Quaternion::Inverse() const
-{
-    return Quaternion(*this).Invert();
+    return q;
 }
 
 Quaternion& Quaternion::Slerp(const Quaternion& to, float amt)

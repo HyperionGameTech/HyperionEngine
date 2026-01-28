@@ -74,7 +74,7 @@ namespace Hyperion
             get
             {
                 Mat4f result = new Mat4f();
-                Matrix4_Transposed(ref this, out result);
+                Matrix4_Transpose(ref this, out result);
                 return result;
             }
         }
@@ -84,7 +84,7 @@ namespace Hyperion
             get
             {
                 Mat4f result = new Mat4f();
-                Matrix4_Inverted(ref this, out result);
+                Matrix4_Inverse(ref this, out result);
                 return result;
             }
         }
@@ -118,10 +118,10 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Matrix4_Multiply")]
         private static extern void Matrix4_Multiply([In] ref Mat4f a, [In] ref Mat4f b, [Out] out Mat4f result);
 
-        [DllImport("hyperion", EntryPoint = "Matrix4_Transposed")]
-        private static extern void Matrix4_Transposed([In] ref Mat4f matrix, [Out] out Mat4f result);
+        [DllImport("hyperion", EntryPoint = "Matrix4_Transpose")]
+        private static extern void Matrix4_Transpose([In] ref Mat4f matrix, [Out] out Mat4f result);
 
-        [DllImport("hyperion", EntryPoint = "Matrix4_Inverted")]
-        private static extern void Matrix4_Inverted([In] ref Mat4f matrix, [Out] out Mat4f result);
+        [DllImport("hyperion", EntryPoint = "Matrix4_Inverse")]
+        private static extern void Matrix4_Inverse([In] ref Mat4f matrix, [Out] out Mat4f result);
     }
 }

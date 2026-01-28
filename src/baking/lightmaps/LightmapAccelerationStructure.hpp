@@ -169,20 +169,20 @@ public:
 
         const Mat4f modelMatrix = m_bakeEntity->transformMatrix;
 
-        const Ray localSpaceRay = modelMatrix.Inverted() * ray;
+        const Ray localSpaceRay = modelMatrix.Inverse() * ray;
 
         RayTestResults localBvhResults = m_root.TestRay(localSpaceRay, m_cachedVertices, m_cachedIndices);
 
         if (localBvhResults.Any())
         {
-            const Mat4f normalMatrix = modelMatrix.Transposed().Inverted();
+            const Mat3f normalMatrix = Mat3f(modelMatrix).Inverse().Transpose();
 
             RayTestResults bvhResults;
 
             for (RayHit hit : localBvhResults)
             {
-                Vec4f transformedNormal = normalMatrix * Vec4f(hit.normal, 0.0f);
-                hit.normal = transformedNormal.GetXYZ().Normalized();
+                Vec3f transformedNormal = (normalMatrix * hit.normal).Normalized();
+                hit.normal = transformedNormal;
 
                 Vec4f transformedPosition = modelMatrix * Vec4f(hit.hitpoint, 1.0f);
                 transformedPosition /= transformedPosition.w;

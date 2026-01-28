@@ -430,7 +430,7 @@ Transform BuildTransformFromNode(const cgltf_node& node)
     if (node.has_matrix)
     {
         Mat4f matrix(node.matrix);
-        matrix = matrix.Transposed();
+        matrix = matrix.Transpose();
 
         const Vec3f translation = matrix.ExtractTranslation();
         const Vec3f scale = matrix.ExtractScale();

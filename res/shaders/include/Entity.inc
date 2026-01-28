@@ -1,17 +1,16 @@
-#ifndef HYP_OBJECT_GLSL
-#define HYP_OBJECT_GLSL
+#ifndef HYP_ENTITY
+#define HYP_ENTITY
 
 #include "defines.inc"
 
 struct Entity
 {
-    mat4 model_matrix;
-    mat4 previous_model_matrix;
+    float4x4 model_matrix;
+    float4x4 previous_model_matrix;
+    float3x3 normal_matrix;
 
-    vec4 _pad0;
-    vec4 _pad1;
-    vec4 world_aabb_max;
-    vec4 world_aabb_min;
+    float4 world_aabb_max;
+    float4 world_aabb_min;
 
     uint entity_index;
     uint lightmap_volume_index;
@@ -19,12 +18,7 @@ struct Entity
     uint skeleton_index;
 
     uint bucket;
-    uint _pad2;
-    uint _pad3;
-    uint _pad4;
-
-    uvec4 user_data0;
-    uvec4 user_data1;
+    uint flags;
 };
 
 #define MAX_ENTITIES_PER_INSTANCE_BATCH 60
@@ -36,8 +30,8 @@ struct EntityInstanceBatch
     uint _pad0;
     uint _pad1;
 
-    uvec4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
-    mat4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
+    uint4 indices[MAX_ENTITIES_PER_INSTANCE_BATCH / 4];
+    float4x4 transforms[MAX_ENTITIES_PER_INSTANCE_BATCH];
 };
 
 // can use up to 10 bits.

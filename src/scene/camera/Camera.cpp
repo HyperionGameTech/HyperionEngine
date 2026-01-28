@@ -587,11 +587,11 @@ Vec4f Camera::TransformNDCToWorld(const Vec3f& ndc) const
 {
     const Vec4f clip(ndc, 1.0f);
 
-    Vec4f eye = m_projMat.Inverted() * clip;
+    Vec4f eye = m_projMat.Inverse() * clip;
     eye /= eye.w;
     // eye = Vec4f(eye.x, eye.y, -1.0f, 0.0f);
 
-    return m_viewMat.Inverted() * eye;
+    return m_viewMat.Inverse() * eye;
 }
 
 Vec3f Camera::TransformWorldToNDC(const Vec3f& world) const
@@ -754,8 +754,8 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 
     bufferData.viewProjMat = m_viewProjMat;
 
-    bufferData.inverseViewMat = m_viewMat.Inverted();
-    bufferData.inverseProjMat = m_projMat.Inverted();
+    bufferData.inverseViewMat = m_viewMat.Inverse();
+    bufferData.inverseProjMat = m_projMat.Inverse();
 
     bufferData.prevViewProjMat = m_prevViewProjMat;
     
