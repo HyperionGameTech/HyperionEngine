@@ -24,6 +24,13 @@ Mat3f::Mat3f(const float* v)
     Memory::Copy(&values[0], v, HYP_ARRAY_SIZE(values) * sizeof(values[0]));
 }
 
+Mat3f::Mat3f(const Mat4f& other)
+{
+    Memory::Copy(rows[0], other.rows[0], sizeof(float) * 3);
+    Memory::Copy(rows[1], other.rows[1], sizeof(float) * 3);
+    Memory::Copy(rows[2], other.rows[2], sizeof(float) * 3);
+}
+
 float Mat3f::Determinant() const
 {
     float a = rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1]);
@@ -32,7 +39,7 @@ float Mat3f::Determinant() const
     return a - b + c;
 }
 
-Mat3f Mat3f::Transposed() const
+Mat3f Mat3f::Transpose() const
 {
     const float v[3][3] = {
         { rows[0][0], rows[1][0], rows[2][0] },
@@ -43,12 +50,7 @@ Mat3f Mat3f::Transposed() const
     return Mat3f(reinterpret_cast<const float*>(v));
 }
 
-Mat3f& Mat3f::Transpose()
-{
-    return *this = Transposed();
-}
-
-Mat3f Mat3f::Inverted() const
+Mat3f Mat3f::Inverse() const
 {
     const float det = Determinant();
     const float invDet = 1.0f / det;
@@ -65,11 +67,6 @@ Mat3f Mat3f::Inverted() const
     result[2][2] = (rows[0][0] * rows[1][1] - rows[1][0] * rows[0][1]) * invDet;
 
     return result;
-}
-
-Mat3f& Mat3f::Invert()
-{
-    return *this = Inverted();
 }
 
 Mat3f Mat3f::operator+(const Mat3f& other) const

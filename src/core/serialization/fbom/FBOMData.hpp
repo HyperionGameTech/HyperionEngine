@@ -80,7 +80,7 @@ template <class FBOMData, class T, class FBOMTypeClass, class T2 = void>
 struct FBOMDataTypeOps;
 
 template <class FBOMData, class T, class FBOMTypeClass>
-struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fundamental_v<T> || IsPodTypeV<T>>>
+struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fundamental_v<T> || IsPodTypeV<T> || std::is_same_v<Mat3f, T>>> // hack for mat3f since it uses padding to stay 16 byte aligned
 {
     const FBOMData& target;
 
@@ -93,7 +93,7 @@ struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fund
     {
         const TypeId typeId = target.GetType().GetNativeTypeId();
 
-        auto readAsType = [this, &out, &typeId]<class TReadAsType>(TypeWrapper<TReadAsType>) -> bool
+        auto ReadAsType = [this, &out, &typeId]<class TReadAsType>(TypeWrapper<TReadAsType>) -> bool
         {
             if (typeId == TypeId::ForType<TReadAsType>())
             {
@@ -122,9 +122,9 @@ struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fund
             {
                 HYP_CORE_ASSERT(typeId != TypeId::Void(), "Type must have a valid native TypeId if it is numeric");
 
-                if (readAsType(TypeWrapper<uint8> {}) || readAsType(TypeWrapper<uint16> {}) || readAsType(TypeWrapper<uint32> {}) || readAsType(TypeWrapper<uint64> {})
-                    || readAsType(TypeWrapper<int8> {}) || readAsType(TypeWrapper<int16> {}) || readAsType(TypeWrapper<int32> {}) || readAsType(TypeWrapper<int64> {})
-                    || readAsType(TypeWrapper<float> {}) || readAsType(TypeWrapper<double> {}))
+                if (ReadAsType(TypeWrapper<uint8> {}) || ReadAsType(TypeWrapper<uint16> {}) || ReadAsType(TypeWrapper<uint32> {}) || ReadAsType(TypeWrapper<uint64> {})
+                    || ReadAsType(TypeWrapper<int8> {}) || ReadAsType(TypeWrapper<int16> {}) || ReadAsType(TypeWrapper<int32> {}) || ReadAsType(TypeWrapper<int64> {})
+                    || ReadAsType(TypeWrapper<float> {}) || ReadAsType(TypeWrapper<double> {}))
                 {
                     FBOM_RETURN_OK;
                 }

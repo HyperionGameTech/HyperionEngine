@@ -40,26 +40,20 @@ Mat4f Mat4f::Rotation(const Quaternion& rotation)
                 zz = rotation.z * rotation.z,
                 zw = rotation.z * rotation.w;
 
-    mat[0] = {
-        1.0f - 2.0f * (yy + zz),
-        2.0f * (xy + zw),
-        2.0f * (xz - yw),
-        0.0f
-    };
+    mat[0][0] = 1.0f - 2.0f * (yy + zz);
+    mat[0][1] = 2.0f * (xy + zw);
+    mat[0][2] = 2.0f * (xz - yw);
+    mat[0][3] = 0.0f;
 
-    mat[1] = {
-        2.0f * (xy - zw),
-        1.0f - 2.0f * (xx + zz),
-        2.0f * (yz + xw),
-        0.0f
-    };
+    mat[1][0] = 2.0f * (xy - zw);
+    mat[1][1] = 1.0f - 2.0f * (xx + zz);
+    mat[1][2] = 2.0f * (yz + xw);
+    mat[1][3] = 0.0f;
 
-    mat[2] = {
-        2.0f * (xz + yw),
-        2.0f * (yz - xw),
-        1.0f - 2.0f * (xx + yy),
-        0.0f
-    };
+    mat[2][0] = 2.0f * (xz + yw);
+    mat[2][1] = 2.0f * (yz - xw);
+    mat[2][2] = 1.0f - 2.0f * (xx + yy);
+    mat[2][3] = 0.0f;
 
     return mat;
 }
@@ -112,10 +106,25 @@ Mat4f Mat4f::Orthographic(float l, float r, float b, float t, float n, float f)
     float ty = -((t + b) / (t - b));
     float tz = ((n) / (n - f));
 
-    mat[0] = { xOrth, 0.0f, 0.0f, tx };
-    mat[1] = { 0.0f, yOrth, 0.0f, ty };
-    mat[2] = { 0.0f, 0.0f, zOrth, tz };
-    mat[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    mat[0][0] = xOrth;
+    mat[0][1] = 0.0f;
+    mat[0][2] = 0.0f;
+    mat[0][3] = tx;
+
+    mat[1][0] = 0.0f;
+    mat[1][1] = yOrth;
+    mat[1][2] = 0.0f;
+    mat[1][3] = ty;
+
+    mat[2][0] = 0.0f;
+    mat[2][1] = 0.0f;
+    mat[2][2] = zOrth;
+    mat[2][3] = tz;
+
+    mat[3][0] = 0.0f;
+    mat[3][1] = 0.0f;
+    mat[3][2] = 0.0f;
+    mat[3][3] = 1.0f;
 
     return mat;
 }
@@ -158,9 +167,20 @@ Mat4f Mat4f::LookAt(const Vec3f& direction, const Vec3f& up)
     const Vec3f x = direction.Cross(up).Normalize();
     const Vec3f y = x.Cross(z).Normalize();
 
-    mat[0] = Vec4f(x, 0.0f);
-    mat[1] = Vec4f(y, 0.0f);
-    mat[2] = Vec4f(z, 0.0f);
+    mat[0][0] = x.x;
+    mat[0][1] = x.y;
+    mat[0][2] = x.z;
+    mat[0][3] = 0.0f;
+
+    mat[1][0] = y.x;
+    mat[1][1] = y.y;
+    mat[1][2] = y.z;
+    mat[1][3] = 0.0f;
+
+    mat[2][0] = z.x;
+    mat[2][1] = z.y;
+    mat[2][2] = z.z;
+    mat[2][2] = 0.0f;
 
     return mat;
 }
@@ -191,21 +211,19 @@ Mat4f::Mat4f(const Mat3f& matrix3)
 }
 
 Mat4f::Mat4f(const Vec4f* rows)
-    : rows {
-          rows[0],
-          rows[1],
-          rows[2],
-          rows[3]
-      }
 {
+    Memory::Copy(this->rows[0], rows[0].values, sizeof(float) * 4);
+    Memory::Copy(this->rows[1], rows[1].values, sizeof(float) * 4);
+    Memory::Copy(this->rows[2], rows[2].values, sizeof(float) * 4);
+    Memory::Copy(this->rows[3], rows[3].values, sizeof(float) * 4);
 }
 
 Mat4f::Mat4f(const float* v)
 {
-    rows[0] = { v[0], v[1], v[2], v[3] };
-    rows[1] = { v[4], v[5], v[6], v[7] };
-    rows[2] = { v[8], v[9], v[10], v[11] };
-    rows[3] = { v[12], v[13], v[14], v[15] };
+    Memory::Copy(this->rows[0], v + 0, sizeof(float) * 4);
+    Memory::Copy(this->rows[1], v + 4, sizeof(float) * 4);
+    Memory::Copy(this->rows[2], v + 8, sizeof(float) * 4);
+    Memory::Copy(this->rows[3], v + 12, sizeof(float) * 4);
 }
 
 float Mat4f::Determinant() const
@@ -215,12 +233,7 @@ float Mat4f::Determinant() const
         + rows[1][0] * rows[2][1] * rows[0][2] * rows[3][3] + rows[2][0] * rows[0][1] * rows[1][2] * rows[3][3] - rows[0][0] * rows[2][1] * rows[1][2] * rows[3][3] - rows[1][0] * rows[0][1] * rows[2][2] * rows[3][3] + rows[0][0] * rows[1][1] * rows[2][2] * rows[3][3];
 }
 
-Mat4f& Mat4f::Transpose()
-{
-    return operator=(Transposed());
-}
-
-Mat4f Mat4f::Transposed() const
+Mat4f Mat4f::Transpose() const
 {
     Mat4f transposed(*this);
     transposed.rows[0][0] = rows[0][0];
@@ -243,12 +256,7 @@ Mat4f Mat4f::Transposed() const
     return transposed;
 }
 
-Mat4f& Mat4f::Invert()
-{
-    return operator=(Inverted());
-}
-
-Mat4f Mat4f::Inverted() const
+Mat4f Mat4f::Inverse() const
 {
     const float det = Determinant();
     float invDet = 1.0f / det;
