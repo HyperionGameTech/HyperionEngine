@@ -25,3 +25,21 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define HYP_SSR_ROUGHNESS_MAX 1.0
+
+struct SSRUniforms
+{
+    uint4 dimension;
+    float ray_step;
+    float num_iterations;
+    float max_ray_distance;
+    float distance_bias;
+    float offset;
+    float eye_fade_start;
+    float eye_fade_end;
+    float screen_edge_fade_start;
+    float screen_edge_fade_end;
+
+    float _pad0;
+    float _pad1;
+    float _pad2;
+};
