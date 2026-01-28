@@ -70,7 +70,7 @@ HYP_DESCRIPTOR_SRV(Default, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "include/brdf.inc"
-#include "deferred/DeferredLighting.glsl"
+#include "deferred/DeferredLighting.inc"
 #include "include/shadows.inc"
 #endif
 

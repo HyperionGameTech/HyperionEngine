@@ -106,7 +106,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuff
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
-#include "./deferred/DeferredLighting.glsl"
+#include "./deferred/DeferredLighting.inc"
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE
 

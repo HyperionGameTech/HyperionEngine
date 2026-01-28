@@ -46,7 +46,7 @@ HYP_DESCRIPTOR_SRV(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 	ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-#include "../../include/BlueNoise.glsl"
+#include "../../include/BlueNoise.inc"
 
 #include "../../include/env_probe.inc"
 
@@ -70,7 +70,7 @@ HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform textureCubeArray envPro
 HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-#include "../../include/Octahedron.glsl"
+#include "../../include/Octahedron.inc"
 
 #define PATHTRACER
 #include "../../include/rt/RTRadiance.inc"

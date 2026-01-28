@@ -35,7 +35,7 @@ HYP_DESCRIPTOR_SRV(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNois
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-#include "../../include/BlueNoise.glsl"
+#include "../../include/BlueNoise.inc"
 #include "../../include/env_probe.inc"
 
 HYP_DESCRIPTOR_SRV_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
@@ -56,7 +56,7 @@ HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-#include "../../include/Octahedron.glsl"
+#include "../../include/Octahedron.inc"
 
 #define PATHTRACER
 #define LIGHTMAPPER

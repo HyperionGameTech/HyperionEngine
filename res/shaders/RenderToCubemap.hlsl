@@ -53,7 +53,7 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> enti
 #endif
 
 #ifdef SKINNING
-#include "include/Skeleton.glsl"
+#include "include/Skeleton.inc"
 
 HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
@@ -188,7 +188,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #include "include/material.inc"
 #include "include/gbuffer.inc"
 #include "include/env_probe.inc"
-#include "include/Octahedron.glsl"
+#include "include/Octahedron.inc"
 #include "include/Entity.inc"
 #include "include/packing.inc"
 #include "include/brdf.inc"

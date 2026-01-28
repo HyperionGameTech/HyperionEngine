@@ -120,7 +120,7 @@ HYP_DESCRIPTOR_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
 
-#include "./DeferredLighting.glsl"
+#include "./DeferredLighting.inc"
 
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE

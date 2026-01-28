@@ -33,7 +33,7 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #include "include/Entity.inc"
 
 #ifdef SKINNING
-#include "include/Skeleton.glsl"
+#include "include/Skeleton.inc"
 #endif
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

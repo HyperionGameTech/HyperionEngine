@@ -208,7 +208,7 @@ HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<E
 
 #define HYP_DEFERRED_NO_REFRACTION
 
-#include "deferred/DeferredLighting.glsl"
+#include "deferred/DeferredLighting.inc"
 
 #undef HYP_DEFERRED_NO_REFRACTION
 

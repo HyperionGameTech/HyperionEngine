@@ -46,7 +46,7 @@ HYP_DESCRIPTOR_UAV(TemporalBlending, OutImage, format = OUTPUT_FORMAT) uniform w
 
 //#define ADJUST_COLOR_HDR
 
-#include "./include/Temporal.glsl"
+#include "./include/Temporal.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 HYP_DESCRIPTOR_BUFFER(TemporalBlending, WorldsBuffer) uniform WorldsBuffer

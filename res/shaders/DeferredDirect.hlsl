@@ -100,7 +100,7 @@ HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeAr
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE
 
-#include "./deferred/DeferredLighting.glsl"
+#include "./deferred/DeferredLighting.inc"
 
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE
@@ -108,8 +108,8 @@ HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeAr
 #include "include/shadows.inc"
 
 #include "include/PhysicalCamera.inc"
-#include "include/LightRays.glsl"
-#include "include/LightSampling.glsl"
+#include "include/LightRays.inc"
+#include "include/LightSampling.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

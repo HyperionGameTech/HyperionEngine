@@ -62,9 +62,9 @@ HYP_DESCRIPTOR_SRV(SSGI, PointLightShadowMapsTextureArray) uniform textureCubeAr
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"
-#include "../include/BlueNoise.glsl"
+#include "../include/BlueNoise.inc"
 #include "../include/shadows.inc"
-#include "../include/Octahedron.glsl"
+#include "../include/Octahedron.inc"
 
 #include "../include/env_probe.inc"
 

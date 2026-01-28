@@ -79,8 +79,8 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) cbuffer CamerasBuffer
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"
-#include "../include/BlueNoise.glsl"
-#include "../include/Temporal.glsl"
+#include "../include/BlueNoise.inc"
+#include "../include/Temporal.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define MAX_ROUGHNESS 0.4

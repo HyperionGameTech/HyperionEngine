@@ -84,7 +84,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) uniform EnvGridsBuff
     EnvGrid env_grid;
 };
 
-#include "./DeferredLighting.glsl"
+#include "./DeferredLighting.inc"
 
 void main()
 {

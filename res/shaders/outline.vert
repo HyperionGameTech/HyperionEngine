@@ -28,7 +28,7 @@ layout(location = 7) in vec4 a_bone_indices;
 
 #include "include/Entity.inc"
 
-#include "include/Skeleton.glsl"
+#include "include/Skeleton.inc"
 
 void main()
 {

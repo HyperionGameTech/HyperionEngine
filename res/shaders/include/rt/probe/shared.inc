@@ -1,7 +1,7 @@
 #ifndef PROBE_COMMON_GLSL
 #define PROBE_COMMON_GLSL
 
-#include "../../Octahedron.glsl"
+#include "../../Octahedron.inc"
 
 #define M_PI 3.14159265359
 

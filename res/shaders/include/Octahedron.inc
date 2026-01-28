@@ -1,5 +1,5 @@
-#ifndef OCTAHEDRON_GLSL
-#define OCTAHEDRON_GLSL
+#ifndef HYP_OCTAHEDRON
+#define HYP_OCTAHEDRON
 
 vec2 EncodeOctahedralCoord(in vec3 v)
 {

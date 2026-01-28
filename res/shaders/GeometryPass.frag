@@ -73,7 +73,7 @@ HYP_DESCRIPTOR_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shado
 HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #include "include/brdf.inc"
-#include "deferred/DeferredLighting.glsl"
+#include "deferred/DeferredLighting.inc"
 #include "include/shadows.inc"
 #endif
 

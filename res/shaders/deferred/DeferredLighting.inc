@@ -1,9 +1,9 @@
-#ifndef HYP_DEFERRED_LIGHTING_GLSL
-#define HYP_DEFERRED_LIGHTING_GLSL
+#ifndef HYP_DEFERRED_LIGHTING
+#define HYP_DEFERRED_LIGHTING
 
 #include "../include/shared.inc"
 #include "../include/brdf.inc"
-#include "../include/Octahedron.glsl"
+#include "../include/Octahedron.inc"
 
 #define HYP_HBIL_MULTIPLIER 1.0
 #define ENV_GRID_MULTIPLIER 1.0

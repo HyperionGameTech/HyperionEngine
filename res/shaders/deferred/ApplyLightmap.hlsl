@@ -119,7 +119,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) cbuffer EnvGridsBuff
     EnvGrid env_grid;
 };
 
-#include "./DeferredLighting.glsl"
+#include "./DeferredLighting.inc"
 
 PSOutput PSMain(PSInput input)
 {

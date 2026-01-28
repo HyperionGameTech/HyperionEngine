@@ -19,7 +19,7 @@ HYP_DESCRIPTOR_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 #include "../include/shared.inc"
 #include "../include/packing.inc"
 #include "../include/scene.inc"
-#include "../include/Octahedron.glsl"
+#include "../include/Octahedron.inc"
 
 #include "../include/env_probe.inc"
 
@@ -42,7 +42,7 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(ComputeSH, CurrentLight) StructuredBuffer<Light> curr
 #define currentLight current_light_buffer[0]
 
 #include "../include/shadows.inc"
-#include "../include/Octahedron.glsl"
+#include "../include/Octahedron.inc"
 
 HYP_DESCRIPTOR_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
 HYP_DESCRIPTOR_SRV(ComputeSH, InNormalsCubemap) TextureCube cubemap_normals;

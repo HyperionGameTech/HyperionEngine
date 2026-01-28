@@ -42,7 +42,7 @@ HYP_DESCRIPTOR_SRV(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuff
 	ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-#include "../include/BlueNoise.glsl"
+#include "../include/BlueNoise.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 HYP_DESCRIPTOR_BUFFER(RTReflections, WorldsBuffer) uniform WorldsBuffer

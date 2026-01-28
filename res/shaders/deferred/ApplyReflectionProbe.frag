@@ -52,7 +52,7 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMipChain) uniform texture2D gbuffer_m
 
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
-#include "../include/BlueNoise.glsl"
+#include "../include/BlueNoise.inc"
 
 #include "../include/env_probe.inc"
 HYP_DESCRIPTOR_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
@@ -68,7 +68,7 @@ HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform texture2DArray env
 
 HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-#include "./DeferredLighting.glsl"
+#include "./DeferredLighting.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

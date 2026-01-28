@@ -33,7 +33,7 @@ HYP_DESCRIPTOR_BUFFER(TemporalAADescriptorSet, UniformBuffer) uniform UniformBuf
 
 // #define ADJUST_COLOR_HDR
 
-#include "include/Temporal.glsl"
+#include "include/Temporal.inc"
 
 void main()
 {

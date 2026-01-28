@@ -57,7 +57,7 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 
 #ifdef LIGHTING_FORWARD
 #include "include/brdf.inc"
-#include "deferred/DeferredLighting.glsl"
+#include "deferred/DeferredLighting.inc"
 #include "include/shadows.inc"
 #endif
 

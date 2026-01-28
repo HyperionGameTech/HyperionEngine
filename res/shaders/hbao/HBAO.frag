@@ -45,7 +45,7 @@ HYP_DESCRIPTOR_BUFFER(HBAO, UniformBuffer) uniform UniformBuffer
     float power;
 };
 
-#include "../include/Temporal.glsl"
+#include "../include/Temporal.inc"
 
 #define HYP_HBAO_NUM_CIRCLES 4
 #define HYP_HBAO_NUM_SLICES 2

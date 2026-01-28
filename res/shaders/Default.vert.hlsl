@@ -46,7 +46,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 #endif
 
 #ifdef SKINNING
-#include "include/Skeleton.glsl"
+#include "include/Skeleton.inc"
 
 HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
