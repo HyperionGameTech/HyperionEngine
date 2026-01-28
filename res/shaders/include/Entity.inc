@@ -7,7 +7,11 @@ struct Entity
 {
     float4x4 model_matrix;
     float4x4 previous_model_matrix;
-    float3x3 normal_matrix;
+#ifdef LANG_HLSL
+    float4x3 normal_matrix;
+#else
+    mat3 normal_matrix;
+#endif
 
     float4 world_aabb_max;
     float4 world_aabb_min;

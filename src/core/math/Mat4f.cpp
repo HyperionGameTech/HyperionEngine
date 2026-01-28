@@ -200,30 +200,27 @@ Mat4f::Mat4f()
 {
 }
 
-Mat4f::Mat4f(const Mat3f& matrix3)
+Mat4f::Mat4f(const Mat3f& other)
     : rows {
-          { matrix3.rows[0][0], matrix3.rows[0][1], matrix3.rows[0][2], 0.0f },
-          { matrix3.rows[1][0], matrix3.rows[1][1], matrix3.rows[1][2], 0.0f },
-          { matrix3.rows[2][0], matrix3.rows[2][1], matrix3.rows[2][2], 0.0f },
+          { other.rows[0][0], other.rows[0][1], other.rows[0][2], 0.0f },
+          { other.rows[1][0], other.rows[1][1], other.rows[1][2], 0.0f },
+          { other.rows[2][0], other.rows[2][1], other.rows[2][2], 0.0f },
           { 0.0f, 0.0f, 0.0f, 1.0f }
       }
 {
 }
 
 Mat4f::Mat4f(const Vec4f* rows)
+    : Mat4f(reinterpret_cast<const float*>(rows))
 {
-    Memory::Copy(this->rows[0], rows[0].values, sizeof(float) * 4);
-    Memory::Copy(this->rows[1], rows[1].values, sizeof(float) * 4);
-    Memory::Copy(this->rows[2], rows[2].values, sizeof(float) * 4);
-    Memory::Copy(this->rows[3], rows[3].values, sizeof(float) * 4);
 }
 
 Mat4f::Mat4f(const float* v)
 {
-    Memory::Copy(this->rows[0], v + 0, sizeof(float) * 4);
-    Memory::Copy(this->rows[1], v + 4, sizeof(float) * 4);
-    Memory::Copy(this->rows[2], v + 8, sizeof(float) * 4);
-    Memory::Copy(this->rows[3], v + 12, sizeof(float) * 4);
+    Memory::Copy(&rows[0][0], v + 0, sizeof(float) * 4);
+    Memory::Copy(&rows[1][0], v + 4, sizeof(float) * 4);
+    Memory::Copy(&rows[2][0], v + 8, sizeof(float) * 4);
+    Memory::Copy(&rows[3][0], v + 12, sizeof(float) * 4);
 }
 
 float Mat4f::Determinant() const
@@ -236,18 +233,22 @@ float Mat4f::Determinant() const
 Mat4f Mat4f::Transpose() const
 {
     Mat4f transposed(*this);
+
     transposed.rows[0][0] = rows[0][0];
     transposed.rows[0][1] = rows[1][0];
     transposed.rows[0][2] = rows[2][0];
     transposed.rows[0][3] = rows[3][0];
+
     transposed.rows[1][0] = rows[0][1];
     transposed.rows[1][1] = rows[1][1];
     transposed.rows[1][2] = rows[2][1];
     transposed.rows[1][3] = rows[3][1];
+
     transposed.rows[2][0] = rows[0][2];
     transposed.rows[2][1] = rows[1][2];
     transposed.rows[2][2] = rows[2][2];
     transposed.rows[2][3] = rows[3][2];
+
     transposed.rows[3][0] = rows[0][3];
     transposed.rows[3][1] = rows[1][3];
     transposed.rows[3][2] = rows[2][3];

@@ -78,11 +78,11 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     Entity currentEntity = entities[instanceId];
     float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
     // @NOTE: doesn't handle non-uniform scaling for instancing
-    float3x3 normal_matrix = mul((float3x3)entity_instance_batch.transforms[instanceId], currentEntity.normal_matrix);
+    float3x3 normal_matrix = mul((float3x3)entity_instance_batch.transforms[instanceId], (float3x3)currentEntity.normal_matrix);
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
-    float3x3 normal_matrix = entity.normal_matrix; //transpose(inverse((float3x3)model_matrix));
+    float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));//(float3x3)entity.normal_matrix;
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
