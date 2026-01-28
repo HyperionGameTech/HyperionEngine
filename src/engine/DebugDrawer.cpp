@@ -712,7 +712,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     SizeType totalInstancedDraws = 0;
 
     ShaderDesc shaderDesc;
-    shaderDesc.name = NAME("DebugAABB");
+    shaderDesc.name = NAME("DebugVis");
     shaderDesc.properties.Add(s_propImmediateMode);
     
     rq << SetCurrentShader(shaderDesc);
