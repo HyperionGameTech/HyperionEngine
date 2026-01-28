@@ -39,7 +39,7 @@ public:
     static Mat4f LookAt(const Vec3f& dir, const Vec3f& up);
     static Mat4f LookAt(const Vec3f& pos, const Vec3f& target, const Vec3f& up);
 
-    union
+    union alignas(16)
     {
         float rows[4][4];
         float values[16];

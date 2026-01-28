@@ -69,8 +69,8 @@ struct alignas(16) WorldShaderData
 
 struct alignas(16) EntityShaderData
 {
-    alignas(16) Mat4f modelMatrix;
-    alignas(16) Mat4f previousModelMatrix;
+    Mat4f modelMatrix;
+    Mat4f previousModelMatrix;
     Mat3f normalMatrix;
 
     Vec3f worldAabbMax;
