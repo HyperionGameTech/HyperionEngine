@@ -31,7 +31,6 @@ HYP_DESCRIPTOR_SAMPLER(ComputeSHDescriptorSet, SamplerNearest) uniform sampler s
 
 #include "../include/defines.inc"
 #include "../include/shared.inc"
-#include "../include/tonemap.inc"
 #include "../include/packing.inc"
 #include "../include/scene.inc"
 #include "../include/Octahedron.glsl"

@@ -8,7 +8,7 @@ bool HasEffectPre(uint index)
 {
     index = clamp(index, 0, HYP_MAX_EFFECTS_PER_SLOT);
 
-    const uint flag = 1 << index;
+    const uint flag = 1u << index;
     const uint bitmask = post_processing.masks[HYP_STAGE_PRE] & flag;
 
     return bitmask != 0;
@@ -18,7 +18,7 @@ bool HasEffectPost(uint index)
 {
     index = clamp(index, 0, HYP_MAX_EFFECTS_PER_SLOT);
 
-    const uint flag = 1 << index;
+    const uint flag = 1u << index;
     const uint bitmask = post_processing.masks[HYP_STAGE_POST] & flag;
 
     return bitmask != 0;
@@ -28,7 +28,7 @@ vec4 SampleEffectPre(uint index, vec2 texcoord, in vec4 default_value)
 {
     index = clamp(index, 0, HYP_MAX_EFFECTS_PER_SLOT);
 
-    const uint flag = 1 << index;
+    const uint flag = 1u << index;
     const uint bitmask = post_processing.masks[HYP_STAGE_PRE] & flag;
 
 #if 0// Fixme: iOS debugging
@@ -44,7 +44,7 @@ vec4 SampleEffectPost(uint index, vec2 texcoord, in vec4 default_value)
 {
     index = clamp(index, 0, HYP_MAX_EFFECTS_PER_SLOT);
 
-    const uint flag = 1 << index; 
+    const uint flag = 1u << index; 
     const uint bitmask = post_processing.masks[HYP_STAGE_POST] & flag;
 
 #if 0// Fixme: iOS debugging
@@ -63,19 +63,17 @@ vec4 SampleEffect(uint stage, uint index, vec2 texcoord, in vec4 default_value)
     const uint flag = 1u << index;
     const float is_post_effect = float(stage == HYP_STAGE_POST);
 
-    const uint bitmask = mix(
+    const uint bitmask = lerp(
         post_processing.masks[HYP_STAGE_PRE] & flag,
         post_processing.masks[HYP_STAGE_POST] & flag,
-        bool(is_post_effect)
-    );
+        bool(is_post_effect));
 
 #if 0// Fixme: iOS debugging
     return bitmask != 0
-        ? mix(
+        ? lerp(
             SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_pre_stack[index], texcoord),
             SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[index], texcoord),
-            is_post_effect
-        )
+            is_post_effect)
         : default_value;
 #else
     return default_value;

@@ -12,7 +12,7 @@
 #define HYP_DEPTH_CMP min
 #endif
 
-const ivec2 depth_pyramid_offsets[HYP_NUM_DEPTH_PYRAMID_OFFSETS] = {
+static const ivec2 depth_pyramid_offsets[HYP_NUM_DEPTH_PYRAMID_OFFSETS] = {
     ivec2(0, 0),
     ivec2(0, 1),
     ivec2(1, 1),
