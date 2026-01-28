@@ -1,5 +1,5 @@
-#ifndef HYP_UI_OBJECT_GLSL
-#define HYP_UI_OBJECT_GLSL
+#ifndef HYP_UI_OBJECT
+#define HYP_UI_OBJECT
 
 #define UOFS_NONE 0x0
 #define UOFS_HOVER 0x1
