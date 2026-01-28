@@ -106,6 +106,14 @@ struct DescriptorSetLayoutElement
     HYP_FIELD()
     uint32 size = ~0u;
 
+    HYP_FORCE_INLINE bool IsBuffer() const
+    {
+        return type == DescriptorType::UNIFORM_BUFFER
+            || type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
+            || type == DescriptorType::STORAGE_BUFFER
+            || type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
+    }
+
     HYP_FORCE_INLINE bool IsBindless() const
     {
         return count == uint32(-1);

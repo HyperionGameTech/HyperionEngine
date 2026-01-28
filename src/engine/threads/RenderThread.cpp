@@ -170,7 +170,7 @@ void RenderThread::Update()
 
     if (g_renderInterface->GetRenderConfig().bindlessTextures)
     {
-        DescriptorSet* bindlessDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBindless"_sh, frame->GetFrameIndex());
+        DescriptorSet* bindlessDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalTextureSet"_sh, frame->GetFrameIndex());
         bindlessDescriptorSet->UpdateDirtyState();
         bindlessDescriptorSet->Update();
     }

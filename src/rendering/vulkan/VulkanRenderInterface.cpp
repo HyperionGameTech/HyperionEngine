@@ -58,6 +58,14 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
+enum VulkanDescriptorPoolRequirements : uint8
+{
+    VDPR_None = 0x0,
+    VDPR_BindlessTextures = 0x1,
+    VDPR_BindlessBuffers = 0x2,
+    VDPR_Bindless = VDPR_BindlessTextures | VDPR_BindlessBuffers
+};
+
 #pragma region VulkanRenderConfig
 
 class VulkanRenderConfig final : public IRenderConfig
@@ -233,20 +241,23 @@ public:
     RendererResult Create(VulkanDevice* device);
     RendererResult Destroy(VulkanDevice* device);
 
-    RendererResult CreateDescriptorSet(VulkanDevice* device,
+    RendererResult CreateDescriptorSet(
+        VulkanDevice* device,
         VkDescriptorSetLayout layout,
+        VulkanDescriptorPoolRequirements reqs,
         VkDescriptorSet& outVkDescriptorSet,
         VkDescriptorPool& outVkDescriptorPool);
 
-    RendererResult DestroyDescriptorSet(VulkanDevice* device,
+    RendererResult DestroyDescriptorSet(
+        VulkanDevice* device,
         VkDescriptorSet vkDescriptorSet,
         VkDescriptorPool vkDescriptorPool);
 
     VkDescriptorSetLayout GetOrCreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout);
 
 private:
-    VkDescriptorPool GetDescriptorPool(uint32 currentFrameCounter, int& outPoolIndex);
-    RendererResult CreateDescriptorPool(VkDescriptorPool& outDescriptorPool);
+    VkDescriptorPool GetDescriptorPool(uint32 currentFrameCounter, VulkanDescriptorPoolRequirements reqs, int& outPoolIndex);
+    RendererResult CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool);
 
     SharedMutex m_mutex;
     HashMap<HashCode, VkDescriptorSetLayout> m_vkDescriptorSetLayouts;
@@ -254,6 +265,7 @@ private:
     struct VulkanDescriptorPool
     {
         VkDescriptorPool pool = VK_NULL_HANDLE;
+        VulkanDescriptorPoolRequirements reqs = VDPR_None;
         uint32 useCount = 0;
         uint32 frameCounter = 0; // last used or created
     };
@@ -318,7 +330,10 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
     return result;
 }
 
-VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(uint32 currentFrameCounter, int& outPoolIndex)
+VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
+    uint32 currentFrameCounter,
+    VulkanDescriptorPoolRequirements reqs,
+    int& outPoolIndex)
 {
     outPoolIndex = -1;
 
@@ -327,6 +342,11 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(uint32 currentFra
     for (SizeType idx = m_pools.Size(); idx != 0; --idx)
     {
         VulkanDescriptorPool& dp = m_pools[idx - 1];
+
+        if (reqs && (dp.reqs & reqs) != reqs)
+        {
+            continue;
+        }
 
         const uint32 delta = currentFrameCounter - dp.frameCounter;
 
@@ -345,7 +365,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(uint32 currentFra
     // no pool (for this frame); create a new one
     
     VkDescriptorPool pool = VK_NULL_HANDLE;
-    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(pool); createDescriptorPoolResult.HasError())
+    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, pool); createDescriptorPoolResult.HasError())
     {
         HYP_FAIL("Failed to create descriptor pool! {}", createDescriptorPoolResult.GetError().GetMessage());
     }
@@ -355,17 +375,17 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(uint32 currentFra
     return pool;
 }
 
-RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool& outDescriptorPool)
+RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool)
 {
     Array<VkDescriptorPoolSize> descriptorPoolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources : 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 }
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources : 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources : 1000 }
     };
 
     // only add acceleration structure descriptor type if rayTracing is supported,
@@ -378,6 +398,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
     outDescriptorPool = VK_NULL_HANDLE;
 
     VulkanDescriptorPool& dp = m_pools.EmplaceBack();
+    dp.reqs = reqs;
     dp.frameCounter = GetFrameCounter();
 
     VkDescriptorPoolCreateInfo poolInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
@@ -403,6 +424,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VkDescriptorPool
 RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
     VulkanDevice* device,
     VkDescriptorSetLayout layout,
+    VulkanDescriptorPoolRequirements reqs,
     VkDescriptorSet& outVkDescriptorSet,
     VkDescriptorPool& outVkDescriptorPool)
 {
@@ -412,7 +434,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
 
     int poolIndex = -1;
 
-    outVkDescriptorPool = GetDescriptorPool(GetFrameCounter(), poolIndex);
+    outVkDescriptorPool = GetDescriptorPool(GetFrameCounter(), reqs, poolIndex);
 
     bool shouldRetry = false;
 
@@ -446,7 +468,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
                 }
                 else
                 {
-                    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(outVkDescriptorPool); createDescriptorPoolResult.HasError())
+                    if (RendererResult createDescriptorPoolResult = CreateDescriptorPool(reqs, outVkDescriptorPool); createDescriptorPoolResult.HasError())
                     {
                         // failed to allocate new descriptor pool
                         return createDescriptorPoolResult;
@@ -961,9 +983,20 @@ TextureFormat VulkanRenderInterface::FindSupportedFormat(Span<TextureFormat> pos
     return m_instance->GetDevice()->GetFeatures().FindSupportedFormat(possibleFormats, supportType);
 }
 
-RendererResult VulkanRenderInterface::CreateDescriptorSet(VkDescriptorSetLayout vkDescriptorSetLayout, VkDescriptorSet& outVkDescriptorSet, VkDescriptorPool& outVkDescriptorPool)
+RendererResult VulkanRenderInterface::CreateDescriptorSet(
+    VkDescriptorSetLayout vkDescriptorSetLayout,
+    bool isBindlessTextures, bool isBindlessBuffers,
+    VkDescriptorSet& outVkDescriptorSet,
+    VkDescriptorPool& outVkDescriptorPool)
 {
-    return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(), vkDescriptorSetLayout, outVkDescriptorSet, outVkDescriptorPool);
+    uint8 reqs = VDPR_None;
+    if (isBindlessTextures)
+        reqs |= VDPR_BindlessTextures;
+    if (isBindlessBuffers)
+        reqs |= VDPR_BindlessBuffers;
+
+    return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(),
+        vkDescriptorSetLayout, VulkanDescriptorPoolRequirements(reqs), outVkDescriptorSet, outVkDescriptorPool);
 }
 
 RendererResult VulkanRenderInterface::DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool)

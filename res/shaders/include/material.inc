@@ -9,7 +9,7 @@
 #ifndef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-    HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform texture2D textures[];
+    HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) uniform texture2D textures[];
 #else
     #if HAS_ALBEDO_MAP
         HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;

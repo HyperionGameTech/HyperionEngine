@@ -86,7 +86,7 @@ HYP_DESCRIPTOR_BUFFER(RTReflections, Lights) uniform Lights
     Light lights[MAX_LIGHTS];
 };
 
-HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) uniform texture2D textures[];
 
 void main()
 {

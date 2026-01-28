@@ -180,7 +180,11 @@ public:
         m_currentFrameIndex = (m_currentFrameIndex + 1) % NumFramesInFlight;
     }
 
-    HYP_API RendererResult CreateDescriptorSet(VkDescriptorSetLayout vkDescriptorSetLayout, VkDescriptorSet& outVkDescriptorSet, VkDescriptorPool& outVkDescriptorPool);
+    HYP_API RendererResult CreateDescriptorSet(
+        VkDescriptorSetLayout vkDescriptorSetLayout,
+        bool isBindlessTextures, bool isBindlessBuffers,
+        VkDescriptorSet& outVkDescriptorSet,
+        VkDescriptorPool& outVkDescriptorPool);
 
     HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet, VkDescriptorPool vkDescriptorPool);
 

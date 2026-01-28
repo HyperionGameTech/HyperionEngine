@@ -541,7 +541,21 @@ RendererResult VulkanDescriptorSet::Create()
         return {};
     }
 
-    CheckResultOrReturn(g_renderInterface->CreateDescriptorSet(m_vkDescriptorSetLayout, m_handle, m_vkDescriptorPool));
+    const bool isBindlessTextures = std::any_of(m_layout.GetElements().Begin(), m_layout.GetElements().End(), [](const KeyValuePair<Name, DescriptorSetLayoutElement>& pair)
+        {
+            return pair.second.type == DescriptorType::IMAGE && pair.second.IsBindless();
+        });
+
+    const bool isBindlessBuffers = std::any_of(m_layout.GetElements().Begin(), m_layout.GetElements().End(), [](const KeyValuePair<Name, DescriptorSetLayoutElement>& pair)
+        {
+            return pair.second.IsBuffer() || pair.second.IsBindless();
+        });
+
+    CheckResultOrReturn(g_renderInterface->CreateDescriptorSet(
+        m_vkDescriptorSetLayout,
+        isBindlessTextures, isBindlessBuffers,
+        m_handle,
+        m_vkDescriptorPool));
 
     AssertDebug(m_vkDescriptorPool != VK_NULL_HANDLE);
 

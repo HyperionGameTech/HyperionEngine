@@ -81,7 +81,7 @@ HYP_DESCRIPTOR_SRV(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) uniform texture2D textures[];
 
 void main()
 {

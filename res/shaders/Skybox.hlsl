@@ -98,7 +98,7 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(GlobalBindless, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
+HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
 #else
 HYP_DESCRIPTOR_SRV(Default, AlbedoMap) TextureCube AlbedoMap;
 #endif

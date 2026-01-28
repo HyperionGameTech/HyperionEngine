@@ -97,22 +97,20 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
 #ifdef INSTANCING
     Entity currentEntity = entities[instanceId];
     float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
-    float3x3 normal_matrix = currentEntity.normal_matrix;
+    float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
-    float3x3 normal_matrix = entity.normal_matrix;
+    float3x3 normal_matrix = (float3x3)entity.normal_matrix;
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
     float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
 
     position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
-    previous_position = mul(currentEntity.previous_model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
     normal_matrix = mul(normal_matrix, transpose(inverse((float3x3)skinning_matrix)));
 #else
     position = mul(model_matrix, float4(input.a_position, 1.0));
-    previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
 #endif
 
     output.position = position.xyz / position.w;
@@ -254,12 +252,12 @@ PSOutput PSMain(PSInput input)
     output.output_color.rgb = albedo.rgb;
     output.output_color.a = 1.0;
 
-    #ifdef WRITE_NORMALS
+#ifdef WRITE_NORMALS
     output.output_normals = PackNormalVec2(N);
-    #endif
+#endif
 
-    #ifdef WRITE_MOMENTS
-    output.output_moments = moments;
+#ifdef WRITE_MOMENTS
+output.output_moments = moments;
     #endif
 #endif
 
