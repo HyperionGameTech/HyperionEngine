@@ -180,7 +180,7 @@ Mat4f Mat4f::LookAt(const Vec3f& direction, const Vec3f& up)
     mat[2][0] = z.x;
     mat[2][1] = z.y;
     mat[2][2] = z.z;
-    mat[2][2] = 0.0f;
+    mat[2][3] = 0.0f;
 
     return mat;
 }
