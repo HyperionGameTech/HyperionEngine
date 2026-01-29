@@ -62,7 +62,7 @@ void VulkanFrame::OnFrameStart()
 
     m_queueSubmitFence->Reset();
 
-#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+#ifdef DECLARE_SET_TRACK_FRAME_USAGE
     for (VulkanDescriptorSet* descriptorSet : m_usedDescriptorSets)
     {
         auto it = descriptorSet->GetCurrentFrames().FindAs(this);

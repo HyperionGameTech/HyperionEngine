@@ -5,8 +5,8 @@
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
-HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(DDGI, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -24,41 +24,41 @@ HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 #include "../../include/rt/payload.inc"
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_SRV(DDGI, TLAS) RaytracingAccelerationStructure tlas;
+DECLARE_SRV(DDGI, TLAS) RaytracingAccelerationStructure tlas;
 
-HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) cbuffer DDGIUniformBuffer
+DECLARE_BUFFER(DDGI, DDGIConstants) cbuffer DDGIUniformBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_UAV(DDGI, ProbeRayData) RWStructuredBuffer<ProbeRayData> probe_rays;
+DECLARE_UAV(DDGI, ProbeRayData) RWStructuredBuffer<ProbeRayData> probe_rays;
 
-HYP_DESCRIPTOR_BUFFER(DDGI, Lights) cbuffer Lights
+DECLARE_BUFFER(DDGI, Lights) cbuffer Lights
 {
     Light lights[MAX_LIGHTS];
 };
 
 #include "../../include/rt/probe/shared.inc"
 
-HYP_DESCRIPTOR_BUFFER(DDGI, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(DDGI, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
 #if HAS_ENV_PROBE
-HYP_DESCRIPTOR_SRV_DYNAMIC(DDGI, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+DECLARE_SRV_DYNAMIC(DDGI, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(DDGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(DDGI, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(DDGI, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(DDGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
 #endif
 
-HYP_DESCRIPTOR_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "../../include/shadows.inc"
 

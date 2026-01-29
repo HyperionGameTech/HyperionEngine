@@ -14,14 +14,14 @@ layout(location = 0) out vec4 color_output;
 #include "include/shared.inc"
 #include "include/scene.inc"
 
-HYP_DESCRIPTOR_SAMPLER(RenderTextureToScreenDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(RenderTextureToScreenDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_BUFFER(RenderTextureToScreenDescriptorSet, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(RenderTextureToScreenDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(RenderTextureToScreenDescriptorSet, InTexture) uniform texture2D src_image;
+DECLARE_SRV(RenderTextureToScreenDescriptorSet, InTexture) uniform texture2D src_image;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

@@ -29,7 +29,7 @@ struct VSOutput
     nointerpolation uint object_mask : TEXCOORD7;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
@@ -37,18 +37,18 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 #include "include/Entity.inc"
 
 #ifdef INSTANCING
-    HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-    HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
+    DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+    DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
 
     #define entity_instance_batch entity_instance_batches[0]
 #else
-    HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+    DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 #ifdef SKINNING
 #include "include/Skeleton.inc"
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
 float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
 {

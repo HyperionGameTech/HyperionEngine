@@ -13,17 +13,17 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(TemporalAADescriptorSet, InColorTexture) uniform texture2D color_texture;
-HYP_DESCRIPTOR_SRV(TemporalAADescriptorSet, InPrevColorTexture) uniform texture2D prev_color_texture;
-HYP_DESCRIPTOR_SRV(TemporalAADescriptorSet, InVelocityTexture) uniform texture2D velocity_texture;
-HYP_DESCRIPTOR_SRV(TemporalAADescriptorSet, InDepthTexture) uniform texture2D depth_texture;
+DECLARE_SRV(TemporalAADescriptorSet, InColorTexture) uniform texture2D color_texture;
+DECLARE_SRV(TemporalAADescriptorSet, InPrevColorTexture) uniform texture2D prev_color_texture;
+DECLARE_SRV(TemporalAADescriptorSet, InVelocityTexture) uniform texture2D velocity_texture;
+DECLARE_SRV(TemporalAADescriptorSet, InDepthTexture) uniform texture2D depth_texture;
 
-HYP_DESCRIPTOR_SAMPLER(TemporalAADescriptorSet, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(TemporalAADescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(TemporalAADescriptorSet, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(TemporalAADescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
 
-HYP_DESCRIPTOR_UAV(TemporalAADescriptorSet, OutColorImage, format = rgba8) uniform writeonly image2D output_image;
+DECLARE_UAV(TemporalAADescriptorSet, OutColorImage, format = rgba8) uniform writeonly image2D output_image;
 
-HYP_DESCRIPTOR_BUFFER(TemporalAADescriptorSet, UniformBuffer) uniform UniformBuffer
+DECLARE_BUFFER(TemporalAADescriptorSet, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimensions;
     uvec2 depth_texture_dimensions;

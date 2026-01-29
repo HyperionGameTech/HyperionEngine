@@ -9,8 +9,8 @@
 
 #define HYP_NO_CUBEMAP
 
-HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(DDGI, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -32,15 +32,15 @@ HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
 
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) uniform CBuffer
+DECLARE_BUFFER(DDGI, DDGIConstants) uniform CBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(DDGI, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(DDGI, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(DDGI, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/shadows.inc"
@@ -54,22 +54,22 @@ hitAttributeEXT vec2 attribs;
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SRV(DDGI, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(DDGI, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_UAV(DDGI, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+DECLARE_UAV(DDGI, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SRV(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) uniform texture2D textures[];
+DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 
 void main()
 {

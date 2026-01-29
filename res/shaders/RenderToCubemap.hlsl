@@ -27,7 +27,7 @@ struct VSOutput
     nointerpolation uint cube_face_index : TEXCOORD7;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
@@ -36,7 +36,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 
 #include "include/env_probe.inc"
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
 #endif
@@ -44,18 +44,18 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) StructuredBuffer<EnvProbe> 
 #include "include/Entity.inc"
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
 
 #define entity_instance_batch entity_instance_batches[0]
 #else
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 #ifdef SKINNING
 #include "include/Skeleton.inc"
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
 float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
 {
@@ -178,8 +178,8 @@ struct PSOutput
 #endif
 };
 
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define texture_sampler sampler_linear
 
@@ -193,19 +193,19 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define HYP_CUBEMAP_AMBIENT 0.005
 
-HYP_DESCRIPTOR_SRV(Default, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(Default, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #ifdef INSTANCING
-    HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+    DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 #else
-    HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+    DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
+DECLARE_SRV_DYNAMIC(Default, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define light current_light_buffer[0]
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materials_buffer;
 #define material materials_buffer[0]
 
 #ifndef CURRENT_MATERIAL

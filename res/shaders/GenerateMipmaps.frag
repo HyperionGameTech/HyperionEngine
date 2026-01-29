@@ -11,9 +11,9 @@ layout(location = 0) out vec4 color_output;
 #include "../include/defines.inc"
 #include "../include/shared.inc"
 
-HYP_DESCRIPTOR_SRV(GenerateMipmap, InputTexture) uniform texture2D input_texture;
-HYP_DESCRIPTOR_SAMPLER(GenerateMipmap, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(GenerateMipmap, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SRV(GenerateMipmap, InputTexture) uniform texture2D input_texture;
+DECLARE_SAMPLER(GenerateMipmap, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(GenerateMipmap, SamplerNearest) uniform sampler sampler_nearest;
 
 void main()
 {

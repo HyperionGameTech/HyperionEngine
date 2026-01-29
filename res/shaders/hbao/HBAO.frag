@@ -13,32 +13,32 @@ layout(location = 0) out vec4 color_output;
 #include "../include/noise.inc"
 #include "../include/packing.inc"
 
-HYP_DESCRIPTOR_SRV(HBAO, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(HBAO, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(HBAO, GBufferMaterialTexture) uniform texture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(HBAO, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
+DECLARE_SRV(HBAO, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(HBAO, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(HBAO, GBufferMaterialTexture) uniform texture2D gbuffer_material_texture;
+DECLARE_SRV(HBAO, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(HBAO, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(HBAO, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(HBAO, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(HBAO, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SRV(HBAO, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(HBAO, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(HBAO, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(HBAO, SamplerNearest) uniform sampler sampler_nearest;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
 #include "../include/gbuffer.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(HBAO, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(HBAO, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(HBAO, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(HBAO, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER(HBAO, UniformBuffer) uniform UniformBuffer
+DECLARE_BUFFER(HBAO, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimension;
     float radius;

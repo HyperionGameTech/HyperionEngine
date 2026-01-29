@@ -9,25 +9,25 @@
 #ifndef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-    HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) uniform texture2D textures[];
+    DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 #else
     #if HAS_ALBEDO_MAP
-        HYP_DESCRIPTOR_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
+        DECLARE_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
     #endif
     #if HAS_NORMAL_MAP
-        HYP_DESCRIPTOR_SRV(Material, NormalMap) uniform texture2D NormalMap;
+        DECLARE_SRV(Material, NormalMap) uniform texture2D NormalMap;
     #endif
     #if HAS_PARALLAX_MAP
-        HYP_DESCRIPTOR_SRV(Material, ParallaxMap) uniform texture2D ParallaxMap;
+        DECLARE_SRV(Material, ParallaxMap) uniform texture2D ParallaxMap;
     #endif
     #if HAS_METALNESS_MAP
-        HYP_DESCRIPTOR_SRV(Material, MetalnessMap) uniform texture2D MetalnessMap;
+        DECLARE_SRV(Material, MetalnessMap) uniform texture2D MetalnessMap;
     #endif
     #if HAS_ROUGHNESS_MAP
-        HYP_DESCRIPTOR_SRV(Material, RoughnessMap) uniform texture2D RoughnessMap;
+        DECLARE_SRV(Material, RoughnessMap) uniform texture2D RoughnessMap;
     #endif
     #if HAS_AO_MAP
-        HYP_DESCRIPTOR_SRV(Material, AoMap) uniform texture2D AoMap;
+        DECLARE_SRV(Material, AoMap) uniform texture2D AoMap;
     #endif
 #endif
 

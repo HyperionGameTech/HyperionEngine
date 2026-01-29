@@ -161,16 +161,16 @@
 
     // Placeholder macro definitions to allow intellisense to work.
     // The engine's shader compiler uses these markers for binding setup
-    #define HYP_DESCRIPTOR_SRV(set, var)
-    #define HYP_DESCRIPTOR_SRV_DYNAMIC(set, var)
+    #define DECLARE_SRV(set, var)
+    #define DECLARE_SRV_DYNAMIC(set, var)
 
-    #define HYP_DESCRIPTOR_UAV(set, var)
-    #define HYP_DESCRIPTOR_UAV_DYNAMIC(set, var)
+    #define DECLARE_UAV(set, var)
+    #define DECLARE_UAV_DYNAMIC(set, var)
 
-    #define HYP_DESCRIPTOR_BUFFER(name, var)
-    #define HYP_DESCRIPTOR_BUFFER_DYNAMIC(name, var)
+    #define DECLARE_BUFFER(name, var)
+    #define DECLARE_BUFFER_DYNAMIC(name, var)
 
-    #define HYP_DESCRIPTOR_SAMPLER(set, var)
+    #define DECLARE_SAMPLER(set, var)
 
     #define HYP_ATTRIBUTE(location)
     #define HYP_ATTRIBUTE_OPTIONAL(location)

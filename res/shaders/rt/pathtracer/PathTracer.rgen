@@ -8,25 +8,25 @@
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
-HYP_DESCRIPTOR_SRV(PathTracer,  GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(PathTracer,  GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(PathTracer,  GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(PathTracer,  GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
+DECLARE_SRV(PathTracer,  GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(PathTracer,  GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(PathTracer,  GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(PathTracer,  GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(PathTracer,  GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(PathTracer,  GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SRV(PathTracer,  GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(PathTracer,  GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_SRV(PathTracer, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(PathTracer, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
-HYP_DESCRIPTOR_SAMPLER(PathTracer, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(PathTracer, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(PathTracer, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(PathTracer, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(PathTracer, TLAS) uniform accelerationStructureEXT tlas;
-HYP_DESCRIPTOR_UAV(PathTracer, OutputImage, format = rgba8) uniform image2D image;
+DECLARE_ACCELERATION_STRUCTURE(PathTracer, TLAS) uniform accelerationStructureEXT tlas;
+DECLARE_UAV(PathTracer, OutputImage, format = rgba8) uniform image2D image;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -39,7 +39,7 @@ HYP_DESCRIPTOR_UAV(PathTracer, OutputImage, format = rgba8) uniform image2D imag
 
 
 /// Blue noise
-HYP_DESCRIPTOR_SRV(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
 	ivec4 sobol_256spp_256d[256 * 256 / 4];
 	ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -52,22 +52,22 @@ HYP_DESCRIPTOR_SRV(PathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER(PathTracer, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(PathTracer, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
+DECLARE_SRV_DYNAMIC(PathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+DECLARE_SRV(PathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+DECLARE_SRV(PathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
 #include "../../include/Octahedron.inc"
@@ -76,12 +76,12 @@ HYP_DESCRIPTOR_SRV(PathTracer, EnvProbesTexture) uniform texture2DArray envProbe
 #include "../../include/rt/RTRadiance.inc"
 #include "../../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_BUFFER(PathTracer, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(PathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_BUFFER(PathTracer, Lights) uniform Lights
+DECLARE_BUFFER(PathTracer, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };

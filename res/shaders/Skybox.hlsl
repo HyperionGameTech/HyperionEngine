@@ -28,17 +28,17 @@ struct VSOutput
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batch_buffer;
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
 #else
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
+DECLARE_SRV_DYNAMIC(Default, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
@@ -87,7 +87,7 @@ struct PSOutput
     float2 gbuffer_velocity : SV_Target3;
 };
 
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
+DECLARE_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
 
 #include "include/gbuffer.inc"
 #include "include/Entity.inc"
@@ -98,12 +98,12 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
+DECLARE_SRV(BindlessResources0, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
 #else
-HYP_DESCRIPTOR_SRV(Default, AlbedoMap) TextureCube AlbedoMap;
+DECLARE_SRV(Default, AlbedoMap) TextureCube AlbedoMap;
 #endif
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
 #define material material_buffer[0]
 
 #ifndef CURRENT_MATERIAL

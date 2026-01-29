@@ -50,31 +50,31 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
+DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
+DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 
-HYP_DESCRIPTOR_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
-HYP_DESCRIPTOR_SRV(DeferredPass, SSGIResultTexture) Texture2D ssgi_result;
-HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
-HYP_DESCRIPTOR_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D reflections_texture;
+DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
+DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D ssgi_result;
+DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D reflections_texture;
 
 #include "include/gbuffer.inc"
 #include "include/material.inc"
 
 #include "include/scene.inc"
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -87,19 +87,19 @@ HYP_DESCRIPTOR_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 #include "include/rt/probe/probe_uniforms.inc"
 
 #if RT_GI
-HYP_DESCRIPTOR_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
+DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 {
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
-HYP_DESCRIPTOR_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
+DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
+DECLARE_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
 #include "include/DDGI.inc"
 
 #endif
 
 #include "include/env_probe.inc"
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
+DECLARE_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
 {
     EnvGrid env_grid;
 };

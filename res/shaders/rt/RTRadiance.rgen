@@ -7,20 +7,20 @@
 #include "../include/noise.inc"
 #include "../include/packing.inc"
 
-HYP_DESCRIPTOR_SRV(RTReflections, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(RTReflections, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(RTReflections, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(RTReflections, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SRV(RTReflections, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(RTReflections, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(RTReflections, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(RTReflections, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(RTReflections, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(RTReflections, TLAS) uniform accelerationStructureEXT tlas;
-HYP_DESCRIPTOR_UAV(RTReflections, OutputImage, format = rgba8) uniform image2D image;
+DECLARE_ACCELERATION_STRUCTURE(RTReflections, TLAS) uniform accelerationStructureEXT tlas;
+DECLARE_UAV(RTReflections, OutputImage, format = rgba8) uniform image2D image;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -35,7 +35,7 @@ HYP_DESCRIPTOR_UAV(RTReflections, OutputImage, format = rgba8) uniform image2D i
 #include "../include/env_probe.inc"
 
 /// Blue noise
-HYP_DESCRIPTOR_SRV(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
 	ivec4 sobol_256spp_256d[256 * 256 / 4];
 	ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -45,12 +45,12 @@ HYP_DESCRIPTOR_SRV(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuff
 #include "../include/BlueNoise.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER(RTReflections, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(RTReflections, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -58,12 +58,12 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffe
 #include "../include/rt/RTRadiance.inc"
 #include "../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_BUFFER(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_BUFFER(RTReflections, Lights) uniform Lights
+DECLARE_BUFFER(RTReflections, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };

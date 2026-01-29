@@ -17,56 +17,56 @@ layout(location = 0) out vec4 color_output;
 #include "../include/brdf.inc"
 #include "../include/noise.inc"
 
-HYP_DESCRIPTOR_SAMPLER(ReflectionsPass, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(ReflectionsPass, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(ReflectionsPass, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(ReflectionsPass, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SRV(ReflectionsPass, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(ReflectionsPass, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(ReflectionsPass, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(ReflectionsPass, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
+DECLARE_SRV(ReflectionsPass, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(ReflectionsPass, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(ReflectionsPass, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(ReflectionsPass, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(ReflectionsPass, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(ReflectionsPass, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(ReflectionsPass, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_BUFFER(ReflectionsPass, SphereSamplesBuffer) uniform SphereSamplesBuffer
+DECLARE_BUFFER(ReflectionsPass, SphereSamplesBuffer) uniform SphereSamplesBuffer
 {
     vec4 sphere_samples[4096];
 };
 
-HYP_DESCRIPTOR_SRV(ReflectionsPass, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(ReflectionsPass, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
 #define HYP_DEFERRED_NO_RT_RADIANCE
 
 #include "../include/BlueNoise.inc"
 
 #include "../include/env_probe.inc"
-HYP_DESCRIPTOR_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+DECLARE_SRV_DYNAMIC(ReflectionsPass, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+DECLARE_SRV(ReflectionsPass, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+DECLARE_SRV(ReflectionsPass, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SRV(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+DECLARE_SRV(ReflectionsPass, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
 #include "./DeferredLighting.inc"
 

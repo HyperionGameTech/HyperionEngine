@@ -12,9 +12,9 @@ layout(location = 0) out vec4 color_output;
 #include "../include/defines.inc"
 #include "../include/gbuffer.inc"
 
-layout(set = HYP_DESCRIPTOR_SET_GLOBAL, binding = 50) uniform texture2D temporal_aa_result;
-layout(set = HYP_DESCRIPTOR_SET_GLOBAL, binding = 77) uniform texture2D dof_blur_hor;
-layout(set = HYP_DESCRIPTOR_SET_GLOBAL, binding = 78) uniform texture2D dof_blur_vert;
+layout(set = DECLARE_SET_GLOBAL, binding = 50) uniform texture2D temporal_aa_result;
+layout(set = DECLARE_SET_GLOBAL, binding = 77) uniform texture2D dof_blur_hor;
+layout(set = DECLARE_SET_GLOBAL, binding = 78) uniform texture2D dof_blur_vert;
 
 layout(push_constant) uniform PushConstant
 {

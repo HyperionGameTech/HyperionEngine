@@ -30,12 +30,12 @@ struct VSOutput
 
 #include "./FogVolume.inl"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
+DECLARE_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
 {
     FogVolume fogVolume;
 };
@@ -84,8 +84,8 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SAMPLER(FogVolume, SamplerLinear) SamplerState SamplerLinear;
-HYP_DESCRIPTOR_SAMPLER(FogVolume, SamplerNearest) SamplerState SamplerNearest;
+DECLARE_SAMPLER(FogVolume, SamplerLinear) SamplerState SamplerLinear;
+DECLARE_SAMPLER(FogVolume, SamplerNearest) SamplerState SamplerNearest;
 
 #define texture_sampler SamplerLinear
 #define sampler_linear SamplerLinear
@@ -93,11 +93,11 @@ HYP_DESCRIPTOR_SAMPLER(FogVolume, SamplerNearest) SamplerState SamplerNearest;
 #define HYP_SAMPLER_NEAREST SamplerNearest
 #define HYP_SAMPLER_LINEAR SamplerLinear
 
-HYP_DESCRIPTOR_SRV(FogVolume, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
-HYP_DESCRIPTOR_SRV(FogVolume, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
-HYP_DESCRIPTOR_SRV(FogVolume, GBufferMaterialTexture) Texture2D<uint4> GBufferMaterialTexture;
-HYP_DESCRIPTOR_SRV(FogVolume, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
-HYP_DESCRIPTOR_SRV(FogVolume, GBufferDepthTexture) Texture2D GBufferDepthTexture;
+DECLARE_SRV(FogVolume, GBufferAlbedoTexture) Texture2D GBufferAlbedoTexture;
+DECLARE_SRV(FogVolume, GBufferNormalsTexture) Texture2D GBufferNormalsTexture;
+DECLARE_SRV(FogVolume, GBufferMaterialTexture) Texture2D<uint4> GBufferMaterialTexture;
+DECLARE_SRV(FogVolume, GBufferVelocityTexture) Texture2D GBufferVelocityTexture;
+DECLARE_SRV(FogVolume, GBufferDepthTexture) Texture2D GBufferDepthTexture;
 
 #include "../include/scene.inc"
 #include "../include/material.inc"
@@ -107,13 +107,13 @@ HYP_DESCRIPTOR_SRV(FogVolume, GBufferDepthTexture) Texture2D GBufferDepthTexture
 
 #include "../include/gbuffer.inc"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(FogVolume, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(FogVolume, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "../include/brdf.inc"
 
@@ -135,8 +135,8 @@ HYP_DESCRIPTOR_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(FogVolume, NoiseMap) Texture3D NoiseMap;
-HYP_DESCRIPTOR_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
+DECLARE_SRV(FogVolume, NoiseMap) Texture3D NoiseMap;
+DECLARE_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
 {
     FogVolume fogVolume;
     Light lights[MAX_LIGHTS];

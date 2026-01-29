@@ -49,29 +49,29 @@ struct PSOutput
     float4 out_color : SV_Target0;
 };
 
-HYP_DESCRIPTOR_SRV(RenderSSR, UVImage) Texture2D ssr_uv_image;
+DECLARE_SRV(RenderSSR, UVImage) Texture2D ssr_uv_image;
 
-HYP_DESCRIPTOR_BUFFER(RenderSSR, UniformBuffer) cbuffer UniformBuffer
+DECLARE_BUFFER(RenderSSR, UniformBuffer) cbuffer UniformBuffer
 {
     SSRUniforms ssrUniforms;
 };
 
-HYP_DESCRIPTOR_SRV(RenderSSR, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(RenderSSR, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(RenderSSR, GBufferMipChain) Texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(RenderSSR, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(RenderSSR, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(RenderSSR, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
+DECLARE_SRV(RenderSSR, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(RenderSSR, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(RenderSSR, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
-HYP_DESCRIPTOR_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
+DECLARE_SAMPLER(RenderSSR, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(RenderSSR, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SRV(RenderSSR, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
-HYP_DESCRIPTOR_BUFFER(RenderSSR, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(RenderSSR, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(RenderSSR, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };

@@ -46,18 +46,18 @@ struct PSOutput
     float4 output_color : SV_Target0;
 };
 
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(DeferredPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
+DECLARE_SRV(DeferredPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(DeferredPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
+DECLARE_SRV(DeferredPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SRV(DeferredPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(DeferredPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(DeferredPass, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(DeferredPass, SamplerLinear) SamplerState sampler_linear;
 
-HYP_DESCRIPTOR_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
-HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+DECLARE_SRV(DeferredPass, SSAOResultTexture) Texture2D ssao_gi_result;
+DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/env_probe.inc"
@@ -67,35 +67,35 @@ HYP_DESCRIPTOR_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_
 #include "include/Entity.inc"
 
 #include "include/scene.inc"
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(DeferredPass, CurrentLight) StructuredBuffer<Light> current_light_buffer;
+DECLARE_SRV_DYNAMIC(DeferredPass, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define currentLight current_light_buffer[0]
 
 #ifdef LIGHT_TYPE_AREA_RECT
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(DeferredPass, CurrentMaterial) StructuredBuffer<Material> light_material_buffer;
+DECLARE_SRV_DYNAMIC(DeferredPass, CurrentMaterial) StructuredBuffer<Material> light_material_buffer;
 #define lightMaterial light_material_buffer[0]
 
-HYP_DESCRIPTOR_SRV(Material, AlbedoMap) Texture2D AlbedoMap;
+DECLARE_SRV(Material, AlbedoMap) Texture2D AlbedoMap;
 
-HYP_DESCRIPTOR_SRV(DeferredPass, LTCMatrixTexture) Texture2D ltc_matrix_texture;
-HYP_DESCRIPTOR_SRV(DeferredPass, LTCBRDFTexture) Texture2D ltc_brdf_texture;
+DECLARE_SRV(DeferredPass, LTCMatrixTexture) Texture2D ltc_matrix_texture;
+DECLARE_SRV(DeferredPass, LTCBRDFTexture) Texture2D ltc_brdf_texture;
 
-HYP_DESCRIPTOR_SAMPLER(DeferredPass, LTCSampler) SamplerState ltc_sampler;
+DECLARE_SAMPLER(DeferredPass, LTCSampler) SamplerState ltc_sampler;
 
 #endif
 
-HYP_DESCRIPTOR_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(DeferredPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DEFERRED_NO_REFRACTION
 #define HYP_DEFERRED_NO_ENV_PROBE

@@ -5,8 +5,8 @@
 
 #define HYP_NO_CUBEMAP
 
-HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(DDGI, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -27,13 +27,13 @@ HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) cbuffer CBuffer
+DECLARE_BUFFER(DDGI, DDGIConstants) cbuffer CBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/shadows.inc"
@@ -41,13 +41,13 @@ HYP_DESCRIPTOR_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray poin
 
 #undef HYP_NO_CUBEMAP
 
-HYP_DESCRIPTOR_SRV(DDGI, EntitiesBuffer) StructuredBuffer<Entity> entities;
-HYP_DESCRIPTOR_SRV(DDGI, MaterialsBuffer) StructuredBuffer<Material> materials;
+DECLARE_SRV(DDGI, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV(DDGI, MaterialsBuffer) StructuredBuffer<Material> materials;
 
-HYP_DESCRIPTOR_SRV(DDGI, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
+DECLARE_SRV(DDGI, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) Texture2D textures[];
-HYP_DESCRIPTOR_SRV(BindlessResources1, Buffers) ByteAddressBuffer buffers[];
+DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
+DECLARE_SRV(BindlessResources1, Buffers) ByteAddressBuffer buffers[];
 
 [shader("closesthit")]
 void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attrib)

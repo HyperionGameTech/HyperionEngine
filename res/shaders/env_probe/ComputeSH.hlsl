@@ -13,8 +13,8 @@ struct SHTile
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SAMPLER(ComputeSH, SamplerLinear) SamplerState sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(ComputeSH, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 
 #include "../include/shared.inc"
 #include "../include/packing.inc"
@@ -26,32 +26,32 @@ HYP_DESCRIPTOR_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(ComputeSH, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(ComputeSH, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(ComputeSH, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(ComputeSH, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
-HYP_DESCRIPTOR_UAV(ComputeSH, EnvProbesBuffer) RWStructuredBuffer<EnvProbe> env_probes;
+DECLARE_UAV(ComputeSH, EnvProbesBuffer) RWStructuredBuffer<EnvProbe> env_probes;
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(ComputeSH, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+DECLARE_SRV_DYNAMIC(ComputeSH, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-HYP_DESCRIPTOR_SRV(ComputeSH, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(ComputeSH, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(ComputeSH, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(ComputeSH, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(ComputeSH, CurrentLight) StructuredBuffer<Light> current_light_buffer;
+DECLARE_SRV_DYNAMIC(ComputeSH, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define currentLight current_light_buffer[0]
 
 #include "../include/shadows.inc"
 #include "../include/Octahedron.inc"
 
-HYP_DESCRIPTOR_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
-HYP_DESCRIPTOR_SRV(ComputeSH, InNormalsCubemap) TextureCube cubemap_normals;
-HYP_DESCRIPTOR_SRV(ComputeSH, InDepthCubemap) TextureCube cubemap_depth;
+DECLARE_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
+DECLARE_SRV(ComputeSH, InNormalsCubemap) TextureCube cubemap_normals;
+DECLARE_SRV(ComputeSH, InDepthCubemap) TextureCube cubemap_depth;
 
-HYP_DESCRIPTOR_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
-HYP_DESCRIPTOR_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
+DECLARE_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
+DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
 
-HYP_DESCRIPTOR_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
+DECLARE_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
 {
     uint4 probe_grid_position;
     uint4 cubemap_dimensions;

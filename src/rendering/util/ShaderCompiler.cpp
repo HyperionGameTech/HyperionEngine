@@ -3305,7 +3305,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         }
         case ProcessShaderSourcePhase::AFTER_PREPROCESS:
         {
-            if (line.StartsWith("HYP_DESCRIPTOR"))
+            if (line.StartsWith("DECLARE"))
             {
                 String commandStr;
 
@@ -3324,30 +3324,30 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 DescriptorSlot slot = DescriptorSlot::NONE;
                 EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE;
 
-                if (commandStr == "HYP_DESCRIPTOR_SRV" || commandStr == "HYP_DESCRIPTOR_SRV_DYNAMIC")
+                if (commandStr == "DECLARE_SRV" || commandStr == "DECLARE_SRV_DYNAMIC")
                 {
                     slot = DescriptorSlot::SRV;
                 }
-                else if (commandStr == "HYP_DESCRIPTOR_UAV" || commandStr == "HYP_DESCRIPTOR_UAV_DYNAMIC")
+                else if (commandStr == "DECLARE_UAV" || commandStr == "DECLARE_UAV_DYNAMIC")
                 {
                     slot = DescriptorSlot::UAV;
                 }
-                else if (commandStr == "HYP_DESCRIPTOR_BUFFER" || commandStr == "HYP_DESCRIPTOR_BUFFER_DYNAMIC")
+                else if (commandStr == "DECLARE_BUFFER" || commandStr == "DECLARE_BUFFER_DYNAMIC")
                 {
                     slot = DescriptorSlot::BUFFER;
                 }
-                else if (commandStr == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE")
+                else if (commandStr == "DECLARE_ACCELERATION_STRUCTURE")
                 {
                     slot = DescriptorSlot::SRV;
                 }
-                else if (commandStr == "HYP_DESCRIPTOR_SAMPLER")
+                else if (commandStr == "DECLARE_SAMPLER")
                 {
                     slot = DescriptorSlot::SAMPLER;
                 }
                 else
                 {
                     result.errors.PushBack(ProcessError {
-                        "Invalid descriptor slot. Must match HYP_DESCRIPTOR_<Type> " });
+                        "Invalid descriptor slot. Must match DECLARE_<Type> " });
 
                     break;
                 }
@@ -3369,7 +3369,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 {
                     result.errors.PushBack(ProcessError {
                         "Invalid descriptor: Requires format "
-                        "HYP_DESCRIPTOR_<SLOT>(set, name)" });
+                        "DECLARE_<SLOT>(set, name)" });
 
                     break;
                 }
@@ -3537,7 +3537,7 @@ bool ShaderCompiler::CompileBundle(
 
                 const ByteBuffer byteBuffer = reader.ReadBytes();
 
-                // we add this define to prevent the HYP_DESCRIPTOR_* macros from being defines in shader code
+                // we add this define to prevent the DECLARE_* macros from being defines in shader code
                 // and folding to nothing.
                 String preamble = "#define HYP_SHADER_COMPILER 1\n\n"
                     + HYP_FORMAT("#define {} 1\n\n", ShaderModuleTypeNames[uint8(moduleType)])

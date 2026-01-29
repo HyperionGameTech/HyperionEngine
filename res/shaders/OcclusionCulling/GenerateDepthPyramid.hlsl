@@ -3,10 +3,10 @@
 #include "../include/shared.inc"
 #include "./Shared.inc"
 
-HYP_DESCRIPTOR_SRV(DepthPyramidDescriptorSet, InImage) Texture2D mip_in;
-HYP_DESCRIPTOR_UAV(DepthPyramidDescriptorSet, OutImage) RWTexture2D<float4> mip_out;
-HYP_DESCRIPTOR_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) SamplerState depth_pyramid_sampler;
-HYP_DESCRIPTOR_BUFFER(DepthPyramidDescriptorSet, UniformBuffer) cbuffer DepthPyramidUniforms
+DECLARE_SRV(DepthPyramidDescriptorSet, InImage) Texture2D mip_in;
+DECLARE_UAV(DepthPyramidDescriptorSet, OutImage) RWTexture2D<float4> mip_out;
+DECLARE_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) SamplerState depth_pyramid_sampler;
+DECLARE_BUFFER(DepthPyramidDescriptorSet, UniformBuffer) cbuffer DepthPyramidUniforms
 {
     uint2 mip_dimensions;
     uint2 prev_mip_dimensions;

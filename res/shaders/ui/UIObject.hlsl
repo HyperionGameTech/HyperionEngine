@@ -27,14 +27,14 @@ struct VSOutput
 
 #include "../include/scene.inc"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEntityInstanceBatch> entity_instance_batch_buffer;
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
 
 #undef OBJECT_INDEX
@@ -101,19 +101,19 @@ struct PSOutput
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
 #define material material_buffer[0]
 
 #ifndef CURRENT_MATERIAL
@@ -122,9 +122,9 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> 
 
 #ifdef TEXTURED
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) Texture2D textures[];
+DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
 #else
-HYP_DESCRIPTOR_SRV(Default, AlbedoMap) Texture2D AlbedoMap;
+DECLARE_SRV(Default, AlbedoMap) Texture2D AlbedoMap;
 #endif
 #endif
 

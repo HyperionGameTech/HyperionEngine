@@ -9,12 +9,12 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/defines.inc"
 #include "../include/shared.inc"
 
-HYP_DESCRIPTOR_SAMPLER(BlurShadowMap, SamplerLinear) uniform sampler src_sampler;
+DECLARE_SAMPLER(BlurShadowMap, SamplerLinear) uniform sampler src_sampler;
 
-HYP_DESCRIPTOR_SRV(BlurShadowMap, InputTexture) uniform texture2D src;
-HYP_DESCRIPTOR_UAV(BlurShadowMap, OutputTexture, format = rg16f) uniform writeonly image2D dst;
+DECLARE_SRV(BlurShadowMap, InputTexture) uniform texture2D src;
+DECLARE_UAV(BlurShadowMap, OutputTexture, format = rg16f) uniform writeonly image2D dst;
 
-HYP_DESCRIPTOR_BUFFER(BlurShadowMap, BlurShadowMapUniforms) uniform BlurShadowMapUniforms
+DECLARE_BUFFER(BlurShadowMap, BlurShadowMapUniforms) uniform BlurShadowMapUniforms
 {
     uvec2 image_dimensions;
     uvec2 dimensions;

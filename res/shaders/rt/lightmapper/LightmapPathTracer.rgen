@@ -8,14 +8,14 @@
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
-HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(LightmapPathTracer, TLAS) uniform accelerationStructureEXT tlas;
+DECLARE_ACCELERATION_STRUCTURE(LightmapPathTracer, TLAS) uniform accelerationStructureEXT tlas;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -28,7 +28,7 @@ HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(LightmapPathTracer, TLAS) uniform accelera
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 /// Blue noise
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
@@ -38,20 +38,20 @@ HYP_DESCRIPTOR_SRV(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNois
 #include "../../include/BlueNoise.inc"
 #include "../../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+DECLARE_SRV_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+DECLARE_SRV(LightmapPathTracer, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -65,12 +65,12 @@ HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
-HYP_DESCRIPTOR_UAV(LightmapPathTracer, HitsBuffer, standard = scalar) buffer HitsBuffer
+DECLARE_UAV(LightmapPathTracer, HitsBuffer, standard = scalar) buffer HitsBuffer
 {
     vec4 hits[];
 };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, Lights) uniform Lights
+DECLARE_BUFFER(LightmapPathTracer, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -81,12 +81,12 @@ struct LightmapRay
     vec3 direction;
 };
 
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
+DECLARE_SRV(LightmapPathTracer, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
 {
     vec4 ray_data[];
 };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };

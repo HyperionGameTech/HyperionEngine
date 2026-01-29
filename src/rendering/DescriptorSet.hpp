@@ -30,7 +30,7 @@
 
 namespace Hyperion {
 
-// #define HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+// #define DECLARE_SET_TRACK_FRAME_USAGE
 
 class RenderResourceBase;
 
@@ -319,7 +319,7 @@ public:
         m_debugName = name;
     }
 
-#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+#ifdef DECLARE_SET_TRACK_FRAME_USAGE
     HYP_FORCE_INLINE HashSet<FrameWeakRef>& GetCurrentFrames()
     {
         return m_currentFrames;
@@ -426,7 +426,7 @@ protected:
 
     Name m_debugName;
 
-#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+#ifdef DECLARE_SET_TRACK_FRAME_USAGE
     HashSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
 #endif
 };
@@ -599,19 +599,19 @@ protected:
 #undef INCLUDE_FROM_RHI
 #endif
 
-#define HYP_DESCRIPTOR_SET(index, name) \
+#define DECLARE_SET(index, name) \
     static DescriptorTableDeclaration::DeclareSet HYP_UNIQUE_NAME(DescriptorSet_##name)(&GetStaticDescriptorTableDeclaration(), index, HYP_NAME_UNSAFE(name))
 
-#define HYP_DESCRIPTOR_SRV_COND(setName, name, type, count, cond) \
+#define DECLARE_SRV_COND(setName, name, type, count, cond) \
     static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_UAV_COND(setName, name, type, count, cond) \
+#define DECLARE_UAV_COND(setName, name, type, count, cond) \
     static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_BUFFER_COND(setName, name, type, count, size, isDynamic, cond) \
+#define DECLARE_BUFFER_COND(setName, name, type, count, size, isDynamic, cond) \
     static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
-#define HYP_DESCRIPTOR_SAMPLER_COND(setName, name, type, count, cond) \
+#define DECLARE_SAMPLER_COND(setName, name, type, count, cond) \
     static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 
-#define HYP_DESCRIPTOR_SRV(setName, name, type, count) HYP_DESCRIPTOR_SRV_COND(setName, name, type, count, true)
-#define HYP_DESCRIPTOR_UAV(setName, name, type, count) HYP_DESCRIPTOR_UAV_COND(setName, name, type, count, true)
-#define HYP_DESCRIPTOR_BUFFER(setName, name, type, count, size, isDynamic) HYP_DESCRIPTOR_BUFFER_COND(setName, name, type, count, size, isDynamic, true)
-#define HYP_DESCRIPTOR_SAMPLER(setName, name, type, count) HYP_DESCRIPTOR_SAMPLER_COND(setName, name, type, count, true)
+#define DECLARE_SRV(setName, name, type, count) DECLARE_SRV_COND(setName, name, type, count, true)
+#define DECLARE_UAV(setName, name, type, count) DECLARE_UAV_COND(setName, name, type, count, true)
+#define DECLARE_BUFFER(setName, name, type, count, size, isDynamic) DECLARE_BUFFER_COND(setName, name, type, count, size, isDynamic, true)
+#define DECLARE_SAMPLER(setName, name, type, count) DECLARE_SAMPLER_COND(setName, name, type, count, true)

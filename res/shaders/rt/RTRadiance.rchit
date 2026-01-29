@@ -21,8 +21,8 @@
 #include "../include/rt/mesh.inc"
 #include "../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(RTReflections, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -30,8 +30,8 @@ HYP_DESCRIPTOR_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_lin
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(RTReflections, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(RTReflections, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(RTReflections, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(RTReflections, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/shadows.inc"
@@ -49,32 +49,32 @@ hitAttributeEXT vec2 attribs;
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SRV(RTReflections, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(RTReflections, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_UAV(RTReflections, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+DECLARE_UAV(RTReflections, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SRV(RTReflections, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV(RTReflections, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_BUFFER(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_BUFFER(RTReflections, Lights) uniform Lights
+DECLARE_BUFFER(RTReflections, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
 
-HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) uniform texture2D textures[];
+DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 
 void main()
 {

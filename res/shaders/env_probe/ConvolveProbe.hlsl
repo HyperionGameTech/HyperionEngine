@@ -17,22 +17,22 @@
 
 #include "../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(ConvolveProbe, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+DECLARE_SRV_DYNAMIC(ConvolveProbe, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-HYP_DESCRIPTOR_BUFFER(ConvolveProbe, SphereSamplesBuffer) cbuffer SphereSamplesBuffer
+DECLARE_BUFFER(ConvolveProbe, SphereSamplesBuffer) cbuffer SphereSamplesBuffer
 {
     float4 sphere_samples[4096];
 };
 
-HYP_DESCRIPTOR_SRV(ConvolveProbe, ColorTexture) TextureCube color_texture;
+DECLARE_SRV(ConvolveProbe, ColorTexture) TextureCube color_texture;
 
-HYP_DESCRIPTOR_SAMPLER(ConvolveProbe, SamplerLinear) SamplerState sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(ConvolveProbe, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(ConvolveProbe, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(ConvolveProbe, SamplerNearest) SamplerState sampler_nearest;
 
-HYP_DESCRIPTOR_UAV(ConvolveProbe, OutImage) RWTexture2DArray<float4> out_image;
+DECLARE_UAV(ConvolveProbe, OutImage) RWTexture2DArray<float4> out_image;
 
-HYP_DESCRIPTOR_BUFFER(ConvolveProbe, UniformBuffer) cbuffer UniformBuffer
+DECLARE_BUFFER(ConvolveProbe, UniformBuffer) cbuffer UniformBuffer
 {
     uint2 out_image_dimensions;
     uint2 in_image_dimensions;

@@ -37,7 +37,7 @@ struct VSOutput
 #include "./include/scene.inc"
 
 #ifdef IMMEDIATE_MODE
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
+DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
 struct ImmediateDraw
 {
@@ -49,7 +49,7 @@ struct ImmediateDraw
     uint _pad2;
 };
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBuffer<ImmediateDraw> immediateDraws;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) StructuredBuffer<ImmediateDraw> immediateDraws;
 
 #define MODEL_MATRIX (immediateDraw.model_matrix)
 #define PREV_MODEL_MATRIX (immediateDraw.model_matrix)
@@ -59,12 +59,12 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, ImmediateDrawsBuffer) Struc
 #include "./include/Entity.inc"
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batch_buffer;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
 #else
-HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entity_buffer;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entity_buffer;
 #endif
 
 #define MODEL_MATRIX (entity.model_matrix)
@@ -73,7 +73,7 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBu
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
@@ -164,22 +164,22 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SAMPLER(DebugDrawerDescriptorSet, SamplerLinear) SamplerState sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(DebugDrawerDescriptorSet, SamplerNearest) SamplerState sampler_nearest;
 
 #include "include/material.inc"
 #include "include/packing.inc"
 #include "include/scene.inc"
 #include "include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(DebugDrawerDescriptorSet, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(DebugDrawerDescriptorSet, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -191,20 +191,20 @@ HYP_DESCRIPTOR_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) cbuffer WorldsBuff
 #include "include/brdf.inc"
 
 #elif defined(INSTANCING)
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
+DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 #else
-HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entity_buffer;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entity_buffer;
 #endif
 
 #include "include/env_probe.inc"
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
+DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
 #define HYP_DEFERRED_NO_REFRACTION
 
@@ -212,7 +212,7 @@ HYP_DESCRIPTOR_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<E
 
 #undef HYP_DEFERRED_NO_REFRACTION
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(DebugDrawerDescriptorSet, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
 #define material material_buffer[0]
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

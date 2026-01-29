@@ -27,8 +27,8 @@ layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
@@ -47,12 +47,12 @@ HYP_DESCRIPTOR_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -60,17 +60,17 @@ HYP_DESCRIPTOR_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
 #ifdef SHADING_TYPE_FORWARD
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+DECLARE_SRV(Default, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(Default, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+DECLARE_SRV(Default, EnvProbesTexture) uniform texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SRV(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+DECLARE_SRV(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
 
-HYP_DESCRIPTOR_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
-HYP_DESCRIPTOR_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.inc"
@@ -78,30 +78,30 @@ HYP_DESCRIPTOR_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCub
 #endif
 
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 #else
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entity;
 };
 #endif
 
 #ifdef SHADING_TYPE_FORWARD
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
+DECLARE_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 #endif
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };

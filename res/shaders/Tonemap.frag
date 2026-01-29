@@ -12,28 +12,28 @@ layout(location = 0) out vec4 color_output;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
+DECLARE_SRV(Tonemap, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(Tonemap, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(Tonemap, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(Tonemap, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(Tonemap, DeferredResult) uniform texture2D DeferredResult;
+DECLARE_SRV(Tonemap, DeferredResult) uniform texture2D DeferredResult;
 
-HYP_DESCRIPTOR_SRV(Tonemap, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(Tonemap, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
 
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(Tonemap, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Tonemap, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SRV(Tonemap, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(Tonemap, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(Tonemap, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(Tonemap, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_SRV(Tonemap, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
+DECLARE_SRV(Tonemap, RTRadianceResultTexture) uniform texture2D rt_radiance_final;
 
-HYP_DESCRIPTOR_SRV(Tonemap, SSGIResultTexture) uniform texture2D ssgi_result;
-HYP_DESCRIPTOR_SRV(Tonemap, TAAResultTexture) uniform texture2D temporal_aa_result;
-HYP_DESCRIPTOR_SRV(Tonemap, SSRResultTexture) uniform texture2D ssr_result;
-HYP_DESCRIPTOR_SRV(Tonemap, SSAOResultTexture) uniform texture2D ssao_gi;
+DECLARE_SRV(Tonemap, SSGIResultTexture) uniform texture2D ssgi_result;
+DECLARE_SRV(Tonemap, TAAResultTexture) uniform texture2D temporal_aa_result;
+DECLARE_SRV(Tonemap, SSRResultTexture) uniform texture2D ssr_result;
+DECLARE_SRV(Tonemap, SSAOResultTexture) uniform texture2D ssao_gi;
 
-HYP_DESCRIPTOR_BUFFER(Tonemap, PostProcessingUniforms) uniform PostProcessingUniforms
+DECLARE_BUFFER(Tonemap, PostProcessingUniforms) uniform PostProcessingUniforms
 {
     uvec2 effect_counts;
     uvec2 last_enabled_indices;
@@ -50,16 +50,16 @@ post_processing;
 #include "./include/scene.inc"
 
 #ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(Tonemap, PostFXPreStack, count = 4) uniform texture2D effects_pre_stack[4];
-HYP_DESCRIPTOR_SRV(Tonemap, PostFXPostStack, count = 4) uniform texture2D effects_post_stack[4];
+DECLARE_SRV(Tonemap, PostFXPreStack, count = 4) uniform texture2D effects_pre_stack[4];
+DECLARE_SRV(Tonemap, PostFXPostStack, count = 4) uniform texture2D effects_post_stack[4];
 #endif
 
-HYP_DESCRIPTOR_BUFFER(Tonemap, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER(Tonemap, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(Tonemap, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(Tonemap, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };

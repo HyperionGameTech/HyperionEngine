@@ -25,8 +25,8 @@
 #define LIGHTMAPPER
 #include "../../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -34,8 +34,8 @@ HYP_DESCRIPTOR_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sample
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(LightmapPathTracer, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/shadows.inc"
@@ -53,28 +53,28 @@ hitAttributeEXT vec2 attribs;
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(LightmapPathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_UAV(LightmapPathTracer, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
+DECLARE_UAV(LightmapPathTracer, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SRV(LightmapPathTracer, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV(LightmapPathTracer, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
 // for RT, all textures are bindless
-HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) uniform texture2D textures[];
+DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 
 float CheckLightIntersection(in Light light, in vec3 position, in vec3 R)
 {

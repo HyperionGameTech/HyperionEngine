@@ -48,28 +48,28 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(Tonemap, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
+DECLARE_SRV(Tonemap, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(Tonemap, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
+DECLARE_SRV(Tonemap, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(Tonemap, DeferredResult) Texture2D DeferredResult;
+DECLARE_SRV(Tonemap, DeferredResult) Texture2D DeferredResult;
 
-HYP_DESCRIPTOR_SRV(Tonemap, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(Tonemap, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferMipChain) Texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(Tonemap, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(Tonemap, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SRV(Tonemap, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(Tonemap, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(Tonemap, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(Tonemap, SamplerLinear) SamplerState sampler_linear;
 
-HYP_DESCRIPTOR_SRV(Tonemap, RTRadianceResultTexture) Texture2D rt_radiance_final;
+DECLARE_SRV(Tonemap, RTRadianceResultTexture) Texture2D rt_radiance_final;
 
-HYP_DESCRIPTOR_SRV(Tonemap, SSGIResultTexture) Texture2D ssgi_result;
-HYP_DESCRIPTOR_SRV(Tonemap, TAAResultTexture) Texture2D temporal_aa_result;
-HYP_DESCRIPTOR_SRV(Tonemap, SSRResultTexture) Texture2D ssr_result;
-HYP_DESCRIPTOR_SRV(Tonemap, SSAOResultTexture) Texture2D ssao_gi;
+DECLARE_SRV(Tonemap, SSGIResultTexture) Texture2D ssgi_result;
+DECLARE_SRV(Tonemap, TAAResultTexture) Texture2D temporal_aa_result;
+DECLARE_SRV(Tonemap, SSRResultTexture) Texture2D ssr_result;
+DECLARE_SRV(Tonemap, SSAOResultTexture) Texture2D ssao_gi;
 
-HYP_DESCRIPTOR_BUFFER(Tonemap, PostProcessingUniforms) cbuffer PostProcessingUniforms
+DECLARE_BUFFER(Tonemap, PostProcessingUniforms) cbuffer PostProcessingUniforms
 {
     struct
     {
@@ -88,16 +88,16 @@ HYP_DESCRIPTOR_BUFFER(Tonemap, PostProcessingUniforms) cbuffer PostProcessingUni
 #include "include/scene.inc"
 
 #ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(Tonemap, PostFXPreStack, count = 4) Texture2D effects_pre_stack[4];
-HYP_DESCRIPTOR_SRV(Tonemap, PostFXPostStack, count = 4) Texture2D effects_post_stack[4];
+DECLARE_SRV(Tonemap, PostFXPreStack, count = 4) Texture2D effects_pre_stack[4];
+DECLARE_SRV(Tonemap, PostFXPostStack, count = 4) Texture2D effects_post_stack[4];
 #endif
 
-HYP_DESCRIPTOR_BUFFER(Tonemap, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER(Tonemap, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(Tonemap, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(Tonemap, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };

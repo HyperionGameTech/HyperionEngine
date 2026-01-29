@@ -11,9 +11,9 @@ layout(location = 0) out vec4 out_color;
 #include "include/shared.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture) uniform texture2D src_texture;
-// HYP_DESCRIPTOR_SRV(Global, UITexture) uniform texture2D ui_texture;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SRV(Global, FinalOutputTexture) uniform texture2D src_texture;
+// DECLARE_SRV(Global, UITexture) uniform texture2D ui_texture;
+DECLARE_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 void main()
 {

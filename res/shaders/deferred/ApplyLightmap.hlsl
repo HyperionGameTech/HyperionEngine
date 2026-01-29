@@ -48,50 +48,50 @@ struct PSOutput
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(LightmapPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(LightmapPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(LightmapPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(LightmapPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(LightmapPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(LightmapPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SRV(LightmapPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
+DECLARE_SRV(LightmapPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(LightmapPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
+DECLARE_SRV(LightmapPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(LightmapPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(LightmapPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
 
-HYP_DESCRIPTOR_SRV(LightmapPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+DECLARE_SRV(LightmapPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
 
-HYP_DESCRIPTOR_SRV(LightmapPass, SSGIResultTexture) Texture2D ssgi_result;
-HYP_DESCRIPTOR_SRV(LightmapPass, SSAOResultTexture) Texture2D ssao_gi;
+DECLARE_SRV(LightmapPass, SSGIResultTexture) Texture2D ssgi_result;
+DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D ssao_gi;
 
-HYP_DESCRIPTOR_SRV(LightmapPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
+DECLARE_SRV(LightmapPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
 
 #include "../include/shared.inc"
 #include "../include/gbuffer.inc"
 #include "../include/Entity.inc"
 #include "../include/scene.inc"
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, CamerasBuffer) cbuffer CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(LightmapPass, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
+DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
 #include "../include/brdf.inc"
 
-HYP_DESCRIPTOR_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #include "../include/shadows.inc"
 
-HYP_DESCRIPTOR_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
-HYP_DESCRIPTOR_SRV(LightmapPass, RadianceTexture) Texture2D RadianceTexture;
-HYP_DESCRIPTOR_SAMPLER(LightmapPass, LightmapSampler) SamplerState LightmapSampler;
+DECLARE_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
+DECLARE_SRV(LightmapPass, RadianceTexture) Texture2D RadianceTexture;
+DECLARE_SAMPLER(LightmapPass, LightmapSampler) SamplerState LightmapSampler;
 
-HYP_DESCRIPTOR_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
+DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
 {
     float irradianceWeight;
     float radianceWeight;
@@ -104,17 +104,17 @@ HYP_DESCRIPTOR_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolu
 #include "../include/env_probe.inc"
 
 #if ENV_PROBE_CUBEMAP
-HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
+DECLARE_SRV(LightmapPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
-HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesTexture) Texture2DArray envProbesTexture;
+DECLARE_SRV(LightmapPass, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
 
-HYP_DESCRIPTOR_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
+DECLARE_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
 
-HYP_DESCRIPTOR_SRV_DYNAMIC(LightmapPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+DECLARE_SRV_DYNAMIC(LightmapPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
+DECLARE_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
 {
     EnvGrid env_grid;
 };

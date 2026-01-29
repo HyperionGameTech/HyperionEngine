@@ -22,13 +22,13 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #endif
 #endif
 
-HYP_DESCRIPTOR_SRV(TemporalBlending, InImage) uniform texture2D input_texture;
-HYP_DESCRIPTOR_SRV(TemporalBlending, PrevImage) uniform texture2D prev_input_texture;
-HYP_DESCRIPTOR_SRV(TemporalBlending, VelocityImage) uniform texture2D velocity_texture;
-HYP_DESCRIPTOR_SAMPLER(TemporalBlending, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(TemporalBlending, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SRV(TemporalBlending, InImage) uniform texture2D input_texture;
+DECLARE_SRV(TemporalBlending, PrevImage) uniform texture2D prev_input_texture;
+DECLARE_SRV(TemporalBlending, VelocityImage) uniform texture2D velocity_texture;
+DECLARE_SAMPLER(TemporalBlending, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(TemporalBlending, SamplerNearest) uniform sampler sampler_nearest;
 
-HYP_DESCRIPTOR_UAV(TemporalBlending, OutImage, format = OUTPUT_FORMAT) uniform writeonly image2D output_image;
+DECLARE_UAV(TemporalBlending, OutImage, format = OUTPUT_FORMAT) uniform writeonly image2D output_image;
 
 #ifndef TEMPORAL_BLEND_TECHNIQUE
 #define TEMPORAL_BLEND_TECHNIQUE 0
@@ -49,19 +49,19 @@ HYP_DESCRIPTOR_UAV(TemporalBlending, OutImage, format = OUTPUT_FORMAT) uniform w
 #include "./include/Temporal.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_BUFFER(TemporalBlending, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(TemporalBlending, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(TemporalBlending, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(TemporalBlending, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SRV(TemporalBlending, GBufferDepthTexture) uniform texture2D depth_texture;
+DECLARE_SRV(TemporalBlending, GBufferDepthTexture) uniform texture2D depth_texture;
 
-HYP_DESCRIPTOR_BUFFER(TemporalBlending, TemporalBlendingUniforms) uniform TemporalBlendingUniforms
+DECLARE_BUFFER(TemporalBlending, TemporalBlendingUniforms) uniform TemporalBlendingUniforms
 {
     uvec2 output_dimensions;
     uvec2 depth_texture_dimensions;

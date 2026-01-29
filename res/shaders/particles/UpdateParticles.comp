@@ -8,14 +8,14 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #include "../include/defines.inc"
 
-HYP_DESCRIPTOR_SAMPLER(UpdateParticlesDescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(UpdateParticlesDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(UpdateParticlesDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
 
-HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
+DECLARE_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
 #include "../include/shared.inc"
 
@@ -32,7 +32,7 @@ HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, GBufferDepthTexture) uniform te
 #define MAX_PARTICLES 1024
 #endif
 
-HYP_DESCRIPTOR_UAV(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
+DECLARE_UAV(UpdateParticlesDescriptorSet, ParticlesBuffer, standard = std140) buffer ParticlesBuffer
 {
     ParticleShaderData instances[MAX_PARTICLES];
 };
@@ -50,24 +50,24 @@ struct IndirectDrawCommand
     uint first_instance;
 };
 
-HYP_DESCRIPTOR_UAV(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+DECLARE_UAV(UpdateParticlesDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_command;
 };
 
-HYP_DESCRIPTOR_SRV(UpdateParticlesDescriptorSet, NoiseMap) uniform texture2D noise_map;
+DECLARE_SRV(UpdateParticlesDescriptorSet, NoiseMap) uniform texture2D noise_map;
 
-HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(UpdateParticlesDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_BUFFER_DYNAMIC(UpdateParticlesDescriptorSet, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(UpdateParticlesDescriptorSet, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_BUFFER(UpdateParticlesDescriptorSet, ParticleSpawnerData) uniform ParticleSpawnerData
+DECLARE_BUFFER(UpdateParticlesDescriptorSet, ParticleSpawnerData) uniform ParticleSpawnerData
 {
     vec4 origin;
     float spawn_radius;
