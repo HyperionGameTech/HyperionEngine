@@ -19,14 +19,6 @@
 #define HYP_SAMPLER_LINEAR sampler_linear
 #endif
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-#define HYP_GBUFFER_TEXTURE(index) (gbuffer_textures[index])
-#define gbuffer_albedo_texture HYP_GBUFFER_TEXTURE(0)
-#define gbuffer_normals_texture HYP_GBUFFER_TEXTURE(1)
-#define gbuffer_material_texture HYP_GBUFFER_TEXTURE(2)
-#define gbuffer_velocity_texture HYP_GBUFFER_TEXTURE(3)
-#endif
-
 struct GBufferMaterialParams
 {
     float roughness;
@@ -34,14 +26,14 @@ struct GBufferMaterialParams
     uint mask;
 };
 
-void GBufferPackMaterialParams(in GBufferMaterialParams params, out float roughnessAndMetalPacked, out uint mask)
+void GBufferPackMaterialParams(GBufferMaterialParams params, out float roughnessAndMetalPacked, out uint mask)
 {
     // max. 10 bits for roughness / metal packed - stored in normals target (r10g10b10a2)
     roughnessAndMetalPacked = float(HYP_QUANTIZE(params.roughness, 6) | (HYP_QUANTIZE(params.metalness, 4) << 6)) / 1023.0;
     mask = params.mask & 0x3FFu;
 }
 
-void GBufferUnpackMaterialParams(in float roughnessAndMetalPacked, in uint mask, out GBufferMaterialParams params)
+void GBufferUnpackMaterialParams(float roughnessAndMetalPacked, uint mask, out GBufferMaterialParams params)
 {
     uint roughnessAndMetalU32 = uint(round(roughnessAndMetalPacked * 1023.0));
 
@@ -50,13 +42,13 @@ void GBufferUnpackMaterialParams(in float roughnessAndMetalPacked, in uint mask,
     params.mask = mask & 0x3FFu;
 }
 
-vec4 GBufferPackNormal(in vec3 normal)
+vec4 GBufferPackNormal(vec3 normal)
 {
     // use 2 bit w component for z value
-    return vec4(0.0, EncodeNormal(normal));
+    return vec4(0.0, EncodeNormal(normal).xyz);
 }
 
-vec3 GBufferUnpackNormal(in vec4 packed)
+vec3 GBufferUnpackNormal(vec4 packed)
 {
     return DecodeNormal(packed.yzww);
 }

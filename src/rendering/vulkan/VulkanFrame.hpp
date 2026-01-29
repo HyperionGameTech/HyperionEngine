@@ -27,21 +27,23 @@ class VulkanFrame final : public FrameBase
     HYP_OBJECT_BODY(VulkanFrame);
 
 public:
-    explicit VulkanFrame();
+    VulkanFrame();
     explicit VulkanFrame(uint32 frameIndex);
-    virtual ~VulkanFrame() override;
 
-    virtual bool IsCreated() const override
+    ~VulkanFrame() override;
+
+    bool IsCreated() const override
     {
-        return m_queueSubmitFence.IsValid();
+        return m_queueSubmitFence != nullptr;
     }
 
-    virtual RendererResult Create() override;
-    virtual RendererResult ResetFrameState() override;
+    RendererResult Create() override;
+
+    void OnFrameStart() override;
 
     HYP_FORCE_INLINE void AddRenderPass(VulkanRenderPass* renderPass)
     {
-        HYP_GFX_ASSERT(renderPass != nullptr);
+        Assert(renderPass != nullptr);
         m_renderPasses.Add(renderPass);
     }
 
@@ -50,7 +52,7 @@ public:
         VulkanCommandBuffer* commandBuffer,
         VulkanSwapchain* swapchain = nullptr);
 
-    HYP_FORCE_INLINE const VulkanFenceRef& GetFence() const
+    HYP_FORCE_INLINE VulkanFence* GetFence() const
     {
         return m_queueSubmitFence;
     }
@@ -71,12 +73,12 @@ private:
     struct VulkanSwapchainData
     {
         VulkanSwapchainWeakRef swapchainWeak; // always keep a weak ref so we can check validatity when iterating
-        VulkanSemaphoreRef imageAvailableSemaphore;
+        VulkanSemaphore* imageAvailableSemaphore = nullptr;
     };
 
     static void InitVulkanSwapchainData(VulkanSwapchainData& swapchainData);
 
-    VulkanFenceRef m_queueSubmitFence;
+    VulkanFence* m_queueSubmitFence;
     VulkanRenderPassesSet m_renderPasses;
 
     HashMap<const VulkanSwapchain*, VulkanSwapchainData> m_swapchainData;

@@ -1,12 +1,12 @@
 #ifndef PROBE_COMMON_GLSL
 #define PROBE_COMMON_GLSL
 
-#include "../../Octahedron.glsl"
+#include "../../Octahedron.inc"
 
 #define M_PI 3.14159265359
 
 #define PROBE_GRID_ORIGIN (ddgiConstants.aabb_min.xyz)
-#define PROBE_GRID_STEP   (vec3(ddgiConstants.probe_distance))
+#define PROBE_GRID_STEP   (vec3(ddgiConstants.probe_distance, ddgiConstants.probe_distance, ddgiConstants.probe_distance))
 #define PROBE_TOTAL_COUNT (ddgiConstants.probe_counts.x * ddgiConstants.probe_counts.y * ddgiConstants.probe_counts.z)
 #define PROBE_NORMAL_BIAS (0.01)
 
@@ -47,8 +47,8 @@ vec3 ProbeIndexToWorldPosition(uint index)
 ivec3 BaseGridCoord(vec3 P)
 {   
     return PROBE_TOTAL_COUNT == 0
-        ? ivec3(0)
-        : clamp(ivec3(max(vec3(0.0), P - PROBE_GRID_ORIGIN) / PROBE_GRID_STEP), ivec3(0), ivec3(ddgiConstants.probe_counts.xyz) - ivec3(1));
+        ? ivec3(0, 0, 0)
+        : clamp(ivec3(max(vec3(0.0, 0.0, 0.0), P - PROBE_GRID_ORIGIN) / PROBE_GRID_STEP), ivec3(0, 0, 0), ivec3(ddgiConstants.probe_counts.xyz) - ivec3(1, 1, 1));
 }
 
 vec2 TextureCoordFromDirection(vec3 dir, int probe_index, uvec3 probe_counts, uvec2 image_dimensions, uint probe_side_length)
@@ -66,7 +66,7 @@ vec2 TextureCoordFromDirection(vec3 dir, int probe_index, uvec3 probe_counts, uv
     // return offset_uv + oct_coord;
 
     vec2 normalizedOctCoord = EncodeOctahedralCoord(normalize(dir));
-    vec2 normalizedOctCoordZeroOne = (normalizedOctCoord + vec2(1.0f)) * 0.5f;
+    vec2 normalizedOctCoordZeroOne = (normalizedOctCoord + vec2(1.0f, 1.0f)) * 0.5f;
 
     // Length of a probe side, plus one pixel on each edge for the border
     float probeWithBorderSide = float(probe_side_length) + 2.0f;

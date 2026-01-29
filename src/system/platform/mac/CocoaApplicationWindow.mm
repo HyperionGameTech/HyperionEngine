@@ -20,7 +20,7 @@
 #include <rendering/RenderBackend.hpp>
 #include <rendering/Device.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 

@@ -40,18 +40,14 @@ public:
 private:
     void CreateTextures();
 
-    void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
-
     Vec2u m_extent;
 
     GpuImageViewRef m_inputImageView;
-    GpuBufferRef m_uniformBuffer;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
     GBuffer* m_gbuffer;
 
     Handle<Texture> m_resultTexture;
     Handle<Texture> m_historyTexture;
-
-    ComputePipelineRef m_computePipeline;
 
     DelegateHandler m_onGbufferResolutionChanged;
 

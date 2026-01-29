@@ -7,27 +7,20 @@
 #include "../include/noise.inc"
 #include "../include/packing.inc"
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D gbuffer_textures[NUM_GBUFFER_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-#endif
+DECLARE_SRV(RTReflections, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(RTReflections, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(RTReflections, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(RTReflections, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(RTReflections, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(RTReflections, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(RTRadianceDescriptorSet, TLAS) uniform accelerationStructureEXT tlas;
-HYP_DESCRIPTOR_UAV(RTRadianceDescriptorSet, OutputImage, format = rgba8) uniform image2D image;
+DECLARE_ACCELERATION_STRUCTURE(RTReflections, TLAS) uniform accelerationStructureEXT tlas;
+DECLARE_UAV(RTReflections, OutputImage, format = rgba8) uniform image2D image;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -38,42 +31,39 @@ HYP_DESCRIPTOR_UAV(RTRadianceDescriptorSet, OutputImage, format = rgba8) uniform
 #include "../include/noise.inc"
 #include "../include/brdf.inc"
 
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../include/env_probe.inc"
 
 /// Blue noise
-HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(RTReflections, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
 	ivec4 sobol_256spp_256d[256 * 256 / 4];
 	ivec4 scrambling_tile[128 * 128 * 8 / 4];
 	ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-#include "../include/BlueNoise.glsl"
+#include "../include/BlueNoise.inc"
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(RTReflections, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CameraShaderData
+DECLARE_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer { EnvGrid env_grid; };
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe { EnvProbe current_env_probe; };
-
 #include "../include/rt/RTRadiance.inc"
 #include "../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(RTReflections, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+DECLARE_BUFFER(RTReflections, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -106,10 +96,10 @@ void main()
     const mat4 view_inverse = inverse(camera.view);
     const mat4 projection_inverse = inverse(camera.projection);
 
-    const vec4 normalSample = Texture2DLod(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_normals_texture, uv, 0.0);
 
     const vec3 normal =  GBufferUnpackNormal(normalSample);
-    const float depth = Texture2DLod(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
+    const float depth = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_depth_texture, uv, 0.0).r;
     const vec3 position = ReconstructWorldSpacePositionFromDepth(projection_inverse, view_inverse, uv, depth).xyz;
 
     uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), uv).rg;

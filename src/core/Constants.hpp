@@ -42,8 +42,6 @@ constexpr uint32 MaxBoundOmniShadowMaps = 8;
 constexpr uint32 MaxBoundTextures = 16;
 constexpr uint32 MaxBoundLightmapVolumes = 4;
 
-constexpr uint32 MaxBindlessResources = 4096;
-
 constexpr uint32 NumGBufferTargets = 5;
 
 constexpr uint32 MaxEntitiesPerBatch = 60;

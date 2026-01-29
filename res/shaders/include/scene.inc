@@ -17,7 +17,13 @@ struct Camera
 {
     mat4 view;
     mat4 projection;
-    mat4 previous_view;
+
+    mat4 viewProjMat;
+
+    mat4 invViewMat;
+    mat4 invProjMat;
+
+    mat4 prevViewProjMat;
 
     uvec4 dimensions;
     vec4 position;
@@ -77,7 +83,7 @@ struct Light
 #define LF_SHADOW_FILTER_MASK (LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING | LF_SHADOW_VSM)
 #define LF_DEFAULT (LF_SHADOW | LF_SHADOW_PCF)
 
-#define LIGHT_LAYER_INDEX(light) (floatBitsToUint(light.normal.w))
+#define LIGHT_LAYER_INDEX(light) (FLOAT_BITS_TO_UINT(light.normal.w))
 
 struct LightmapVolume
 {

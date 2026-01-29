@@ -29,7 +29,7 @@ Vector3 Bone::GetOffsetTranslation() const
 
 Quaternion Bone::GetOffsetRotation() const
 {
-    return m_localTransform.GetRotation() * Quaternion(m_bindingTransform.GetRotation()).Invert();
+    return m_localTransform.GetRotation() * Quaternion(m_bindingTransform.GetRotation()).Inverse();
 }
 
 void Bone::SetKeyframe(const Keyframe& keyframe)
@@ -65,7 +65,7 @@ void Bone::ClearPose()
 
 void Bone::StoreBindingPose()
 {
-    m_invBindingRotation = Quaternion(m_worldBoneRotation).Invert();
+    m_invBindingRotation = Quaternion(m_worldBoneRotation).Inverse();
 
     for (const Handle<Node>& child : m_childNodes)
     {

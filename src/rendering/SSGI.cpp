@@ -8,13 +8,16 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/Shader.hpp>
+#include <rendering/TextureViewCache.hpp>
+#include <rendering/RenderHelpers.hpp>
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -54,41 +57,6 @@ struct SSGIUniforms
     alignas(16) uint32 lightIndices[16];
 };
 
-#pragma region Render commands
-
-struct CreateSSGIUniformBuffers : RenderCommand
-{
-    SSGIUniforms uniforms;
-    FixedArray<GpuBufferRef, NumFramesInFlight> uniformBuffers;
-
-    CreateSSGIUniformBuffers(
-        const SSGIUniforms& uniforms,
-        const FixedArray<GpuBufferRef, NumFramesInFlight>& uniformBuffers)
-        : uniforms(uniforms),
-          uniformBuffers(uniformBuffers)
-    {
-        Assert(uniforms.dimensions.x * uniforms.dimensions.y != 0);
-    }
-
-    virtual ~CreateSSGIUniformBuffers() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            Assert(uniformBuffers[frameIndex] != nullptr);
-
-            HYP_GFX_CHECK(uniformBuffers[frameIndex]->Create());
-
-            uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 #pragma region SSGI
 
 SSGI::SSGI(SSGIConfig&& config, GBuffer* gbuffer)
@@ -106,12 +74,11 @@ SSGI::~SSGI()
     }
 
     SafeDelete(std::move(m_uniformBuffers));
-    SafeDelete(std::move(m_computePipeline));
 }
 
 void SSGI::Create()
 {
-    m_resultTexture = CreateObject<Texture>(TextureDesc {
+    m_resultTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         SsgiFormat,
         Vec3u(m_config.extent, 1),
@@ -134,13 +101,11 @@ void SSGI::Create()
             SsgiFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
             0.96,
-            g_renderBackend->GetTextureImageView(m_resultTexture),
+            g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture),
             m_gbuffer);
 
         m_temporalBlending->Create();
     }
-
-    CreateComputePipelines();
 }
 
 const Handle<Texture>& SSGI::GetFinalResultTexture() const
@@ -150,20 +115,20 @@ const Handle<Texture>& SSGI::GetFinalResultTexture() const
         : m_resultTexture;
 }
 
-ShaderProperties SSGI::GetShaderProperties() const
+ShaderPropertySet SSGI::GetShaderProperties() const
 {
-    ShaderProperties shaderProperties;
+    ShaderPropertySet shaderProperties;
 
     switch (SsgiFormat)
     {
     case TF_RGBA8:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8"))));
         break;
     case TF_RGBA16F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F"))));
         break;
     case TF_RGBA32F:
-        shaderProperties.Set(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
+        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F"))));
         break;
     default:
         HYP_FAIL("Invalid SSGI format type");
@@ -179,39 +144,13 @@ void SSGI::CreateUniformBuffers()
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
+        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("SSGI_UniformBuffer_Frame{}", frameIndex));
+
+        CheckResult(m_uniformBuffers[frameIndex]->Create());
+
+        m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
     }
-
-    PUSH_RENDER_COMMAND(CreateSSGIUniformBuffers, uniforms, m_uniformBuffers);
-}
-
-void SSGI::CreateComputePipelines()
-{
-    const ShaderProperties shaderProperties = GetShaderProperties();
-
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("SSGI"), shaderProperties);
-    Assert(shader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("SSGIDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("OutImage"_sh, g_renderBackend->GetTextureImageView(m_resultTexture));
-        descriptorSet->SetElement("UniformBuffer"_sh, m_uniformBuffers[frameIndex]);
-    }
-
-    DeferCreate(descriptorTable);
-
-    m_computePipeline = g_renderBackend->MakeComputePipeline(
-        shader,
-        descriptorTable);
-
-    DeferCreate(m_computePipeline);
 }
 
 void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -219,47 +158,71 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
     AssertDebug(renderSetup.world && renderSetup.view);
+    AssertDebug(renderSetup.passData != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
+
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
 
     // Update uniform buffer data
     SSGIUniforms uniforms;
     FillUniformBufferData(renderSetup.view, uniforms);
-    m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
+    m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
 
     const uint32 totalPixelsInImage = m_config.extent.Volume();
     const uint32 numDispatchCalls = (totalPixelsInImage + 255) / 256;
 
+    RenderQueue& rq = frame->renderQueue;
+
     // put sample image in writeable state
-    frame->renderQueue << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
+    rq << InsertBarrier(m_resultTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
 
-    frame->renderQueue << BindComputePipeline(m_computePipeline);
+    rq << SetCurrentShader(ShaderDesc(NAME("SSGI"), GetShaderProperties()));
 
-    frame->renderQueue << BindDescriptorTable(
-        m_computePipeline->GetDescriptorTable(),
-        m_computePipeline,
-        { { "Global"_sh,
-            { { "CamerasBuffer"_sh, ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { "CurrentEnvProbe"_sh, ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
-        frameIndex);
+    uint32 numShaderUniforms = 0;
 
-    const uint32 viewDescriptorSetIndex = m_computePipeline->GetDescriptorTable()->GetDescriptorSetIndex("View"_sh);
+    rq << SetShaderUniform(numShaderUniforms++, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture));
+    rq << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_uniformBuffers[frameIndex]);
 
-    if (viewDescriptorSetIndex != ~0u)
-    {
-        Assert(renderSetup.passData != nullptr);
+    // GBuffer textures
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+    rq << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, dpd->combinePass->GetFinalImageView());
 
-        frame->renderQueue << BindDescriptorSet(
-            renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
-            m_computePipeline,
-            {},
-            viewDescriptorSetIndex);
-    }
+    // Samplers
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
 
-    frame->renderQueue << DispatchCompute(m_computePipeline, Vec3u { numDispatchCalls, 1, 1 });
+    // Blue noise
+    rq << SetShaderUniform(numShaderUniforms++, "BlueNoiseBuffer"_sh, g_renderInterface->blueNoiseBuffer);
+
+    // World and camera buffers
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+
+    // Lights
+    rq << SetShaderUniform(numShaderUniforms++, "LightsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+
+    // Shadow maps
+    rq << SetShaderUniform(numShaderUniforms++, "ShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetAtlasImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
+
+    // Env probes
+    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+    rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0));
+    rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+
+    rq << DispatchCompute(Vec3u { numDispatchCalls, 1, 1 });
 
     // transition sample image back into read state
-    frame->renderQueue << InsertBarrier(m_resultTexture->GetGpuImage(), RS_SHADER_RESOURCE);
+    rq << InsertBarrier(m_resultTexture->GetGpuImage(), RS_SHADER_RESOURCE);
 
     if (UseTemporalBlending && m_temporalBlending != nullptr)
     {
@@ -288,7 +251,7 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
     // Can only fill the lights if we have a view ready
     if (view)
     {
-        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(view);
+        RenderProxyList& rpl = GetConsumerProxyList(view);
         rpl.BeginRead();
 
         HYP_DEFER({ rpl.EndRead(); });
@@ -309,7 +272,7 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
                 break;
             }
 
-            outUniforms.lightIndices[numBoundLights++] = RenderApi::RetrieveResourceBinding(light);
+            outUniforms.lightIndices[numBoundLights++] = RetrieveResourceBinding(light);
         }
     }
 

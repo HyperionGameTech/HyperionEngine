@@ -19,7 +19,6 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/renderers/ShadowRenderer.hpp>
@@ -47,12 +46,14 @@ static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
     TF_RG16F  // VSM
 };
 
-static const ShaderProperty s_shadowMapFilterProperties[SMF_MAX] = {
-    ShaderProperty(NAME("MODE"), NAME("STANDARD")),
-    ShaderProperty(NAME("MODE"), NAME("PCF")),
-    ShaderProperty(NAME("MODE"), NAME("CONTACT_HARDENED")),
-    ShaderProperty(NAME("MODE"), NAME("VSM"))
+static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("STANDARD"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("PCF"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("CONTACT_HARDENED"))),
+    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("VSM")))
 };
+
+static const ShaderPropertyId s_propModeShadows = InternShaderProperty(ShaderProperty(NAME("MODE_SHADOWS")));
 
 static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
@@ -178,14 +179,12 @@ void Light::CreateShadowViews()
         ViewFlags::COLLECT_ALL_ENTITIES
     };
 
-    ShaderDefinition shaderDefinition;
+    ShaderDesc shaderDesc;
+    shaderDesc.name = NAME("Shadows");
+    shaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
 
-    ShaderProperties shaderProperties;
-    shaderProperties.SetRequiredVertexAttributes(staticMeshVertexAttributes);
-    shaderProperties.Set(s_shadowMapFilterProperties[shadowMapFilter]);
-
-    ViewOutputTargetDesc outputTargetDesc {};
-    outputTargetDesc.extent = m_shadowMapDimensions;
+    RenderTargetDesc renderTargetDesc {};
+    renderTargetDesc.extent = m_shadowMapDimensions;
 
     switch (m_type)
     {
@@ -194,24 +193,27 @@ void Light::CreateShadowViews()
         // Frustum culling for cubemap views not currently supported.
         shadowViewFlags[0] |= ViewFlags::NO_FRUSTUM_CULLING;
 
-        outputTargetDesc.numViews = 6;
+        renderTargetDesc.numAttachments = 0;
+        renderTargetDesc.numLayers = 6;
 
         // depth, depth^2 texture (for variance shadow map)
-        ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = PointLightShadowFormat;
-        attachmentDesc.imageType = TT_CUBEMAP;
-        attachmentDesc.loadOp = LoadOperation::CLEAR;
-        attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = Vec4f(10000.0f);
+        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        moments.imageType = TT_CUBEMAP;
+        moments.format = PointLightShadowFormat;
+        moments.loadOp = LoadOperation::CLEAR;
+        moments.storeOp = StoreOperation::STORE;
+        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
-        ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = TF_DEPTH_32F;
-        depthAttachmentDesc.imageType = TT_CUBEMAP;
-        depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
-        depthAttachmentDesc.storeOp = StoreOperation::STORE;
+        AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        depth.imageType = TT_CUBEMAP;
+        depth.format = TF_DEPTH_32F;
+        depth.loadOp = LoadOperation::CLEAR;
+        depth.storeOp = StoreOperation::STORE;
 
-        shaderProperties.Set(NAME("MODE_SHADOWS"));
-        shaderDefinition = ShaderDefinition(NAME("RenderToCubemap"), shaderProperties);
+        shaderDesc.name = NAME("RenderToCubemap");
+
+        shaderDesc.properties = {};
+        shaderDesc.properties.Add(s_propModeShadows);
 
         break;
     }
@@ -223,32 +225,28 @@ void Light::CreateShadowViews()
             DefaultShadowViewFlags | ViewFlags::COLLECT_DYNAMIC_ENTITIES
         };
 
+        renderTargetDesc.numAttachments = 0;
+
         // depth, depth^2 texture (for variance shadow map)
-        ViewOutputTargetAttachmentDesc& attachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        attachmentDesc.format = DirectionalLightShadowFormats[shadowMapFilter];
-        attachmentDesc.imageType = TT_TEX2D;
-        attachmentDesc.loadOp = LoadOperation::CLEAR;
-        attachmentDesc.storeOp = StoreOperation::STORE;
-        attachmentDesc.clearColor = Vec4f(1000.0f);
+        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        moments.format = DirectionalLightShadowFormats[shadowMapFilter];
+        moments.imageType = TT_TEX2D;
+        moments.loadOp = LoadOperation::CLEAR;
+        moments.storeOp = StoreOperation::STORE;
+        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
-        ViewOutputTargetAttachmentDesc& depthAttachmentDesc = outputTargetDesc.attachments.EmplaceBack();
-        depthAttachmentDesc.format = TF_DEPTH_32F;
-        depthAttachmentDesc.imageType = TT_TEX2D;
-        depthAttachmentDesc.loadOp = LoadOperation::CLEAR;
-        depthAttachmentDesc.storeOp = StoreOperation::STORE;
-
-        shaderDefinition = ShaderDefinition(NAME("Shadows"), shaderProperties);
+        AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        depth.format = TF_DEPTH_32F;
+        depth.imageType = TT_TEX2D;
+        depth.loadOp = LoadOperation::CLEAR;
+        depth.storeOp = StoreOperation::STORE;
 
         break;
     }
     default:
-    {
         // no shadow mapping implementation
         return;
     }
-    }
-
-    AssertDebug(shaderDefinition.IsValid(), "Shader definition is not valid for light type {}", EnumToString(m_type));
 
     Handle<Camera> shadowMapCamera;
 
@@ -265,20 +263,20 @@ void Light::CreateShadowViews()
 
     if (!shadowMapCamera)
     {
-        shadowMapCamera = CreateObject<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
+        shadowMapCamera = MakeHandle<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
         shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", GetName()));
 
         switch (m_type)
         {
         case LT_DIRECTIONAL:
-            shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+            shadowMapCamera->AddCameraController(MakeHandle<OrthoCameraController>());
             break;
         case LT_POINT:
             shadowMapCamera->SetFOV(90.0f);
             shadowMapCamera->SetNear(0.01f);
             shadowMapCamera->SetFar(m_radius);
 
-            shadowMapCamera->AddCameraController(CreateObject<PerspectiveCameraController>());
+            shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
 
             shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
             break;
@@ -296,21 +294,23 @@ void Light::CreateShadowViews()
     const RenderableAttributeSet overrideAttributes(
         MeshAttributes {},
         MaterialAttributes {
-            .shaderDefinition = shaderDefinition,
-            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK });
+            .shaderName = shaderDesc.name,
+            .shaderProperties = shaderDesc.properties,
+            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK
+        });
 
     for (int i = 0; i < int(shadowViewFlags.Size()); i++)
     {
         ViewDesc viewDesc {
             .flags = shadowViewFlags[i] | DefaultShadowViewFlags,
             .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
-            .outputTargetDesc = outputTargetDesc,
+            .renderTargetDesc = renderTargetDesc,
             .scenes = {},
             .camera = shadowMapCamera,
             .overrideAttributes = overrideAttributes
         };
 
-        m_shadowViews[i] = CreateObject<View>(viewDesc);
+        m_shadowViews[i] = MakeHandle<View>(viewDesc);
 
         if (Scene* scene = GetScene())
         {

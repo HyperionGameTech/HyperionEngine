@@ -6,13 +6,13 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler2D sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler2D sampler_nearest;
+DECLARE_SAMPLER(DilateLightmap, SamplerLinear) uniform sampler2D sampler_linear;
+DECLARE_SAMPLER(DilateLightmap, SamplerNearest) uniform sampler2D sampler_nearest;
 
-HYP_DESCRIPTOR_SRV(DilateLightmapDescriptorSet, InImage) uniform texture2D input_texture;
-HYP_DESCRIPTOR_UAV(DilateLightmapDescriptorSet, OutImage, format = rgba8) uniform writeonly image2D output_image;
+DECLARE_SRV(DilateLightmap, InImage) uniform texture2D input_texture;
+DECLARE_UAV(DilateLightmap, OutImage, format = rgba8) uniform writeonly image2D output_image;
 
-HYP_DESCRIPTOR_CBUFF(DilateLightmapDescriptorSet, DilateLightmapUniforms) uniform DilateLightmapUniforms
+DECLARE_BUFFER(DilateLightmap, DilateLightmapUniforms) uniform DilateLightmapUniforms
 {
     uvec2 input_texture_size;
 };
@@ -35,15 +35,15 @@ void main(void)
 
     const vec2 texel_size = 1.0 / vec2(input_texture_size);
 
-    vec4 c = Texture2D(sampler_nearest, input_texture, (vec2(input_coord)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) - texel_size) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(0.0, -texel_size)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(texel_size, -texel_size)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(-texel_size, 0.0)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(texel_size, 0.0)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(-texel_size, texel_size)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(0.0, texel_size)) * texel_size);
-    c = c.a > 0.0 ? c : Texture2D(sampler_nearest, input_texture, (vec2(input_coord) + texel_size) * texel_size);
+    vec4 c = SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) - texel_size) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(0.0, -texel_size)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(texel_size, -texel_size)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(-texel_size, 0.0)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(texel_size, 0.0)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(-texel_size, texel_size)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + vec2(0.0, texel_size)) * texel_size);
+    c = c.a > 0.0 ? c : SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, (vec2(input_coord) + texel_size) * texel_size);
 
     imageStore(output_image, ivec2(input_coord), c);
 }

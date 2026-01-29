@@ -76,9 +76,9 @@ const Array<Vertex> MeshBuilder::cubeVertices = {
 
 Handle<Mesh> MeshBuilder::Quad()
 {
-    const VertexAttributeSet vertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+    const VertexAttributeSet vertexAttributes = VertexAttribute::Position
+        | VertexAttribute::Normal
+        | VertexAttribute::TexCoord0;
 
     MeshDesc meshDesc;
     meshDesc.meshAttributes.vertexAttributes = vertexAttributes;
@@ -90,7 +90,7 @@ Handle<Mesh> MeshBuilder::Quad()
     meshData.indexData.SetSize(quadIndices.Size() * sizeof(uint32));
     meshData.indexData.Write(quadIndices.Size() * sizeof(uint32), 0, quadIndices.Data());
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_Quad"));
 
@@ -102,7 +102,7 @@ Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
     static const auto s_cubeVerticesAndIndices = Mesh::CalculateIndices(cubeVertices);
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
     meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
@@ -120,7 +120,7 @@ Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
     meshData.indexData.SetSize(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
     meshData.indexData.Write(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32), 0, s_cubeVerticesAndIndices.second.Data());
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Cube"));
     mesh->SetMeshData(meshDesc, meshData);
 
@@ -224,7 +224,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
@@ -235,7 +235,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
 
     meshData.CalculateNormals(true);
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));
 
@@ -259,7 +259,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
     }
 
     const Mat4f modelMatrix = transform.GetMatrix();
-    const Mat4f normalMatrix = modelMatrix.Inverted().Transposed();
+    const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
 
@@ -278,7 +278,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
         vertex.SetBitangent(normalMatrix * vertex.GetBitangent());
     }
 
-    Handle<Mesh> newMesh = CreateObject<Mesh>();
+    Handle<Mesh> newMesh = MakeHandle<Mesh>();
     newMesh->SetMeshData(meshDesc, newMeshData);
     newMesh->SetName(mesh->GetName());
 
@@ -359,7 +359,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     mergedMeshData.indexData.SetSize(allIndices.Size() * sizeof(uint32));
     mergedMeshData.indexData.Write(allIndices.Size() * sizeof(uint32), 0, allIndices.Data());
 
-    Handle<Mesh> newMesh = CreateObject<Mesh>();
+    Handle<Mesh> newMesh = MakeHandle<Mesh>();
     newMesh->SetMeshData(mergedMeshDesc, mergedMeshData);
     newMesh->SetName(NAME("MeshBuilder_MergedMesh"));
 
@@ -446,7 +446,7 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     }
 
     MeshDesc meshDesc;
-    meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+    meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
     meshDesc.numIndices = (uint32)indices.Size();
     meshDesc.numVertices = (uint32)vertices.Size();
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
@@ -457,7 +457,7 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
     meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_VoxelMesh"));
 

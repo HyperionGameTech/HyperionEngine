@@ -7,7 +7,6 @@
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/Frame.hpp>
@@ -73,7 +72,7 @@ void ShadowMapAllocator::Initialize()
 
     AssertOnThread(g_renderThread);
 
-    m_atlasImage = g_renderBackend->MakeImage(TextureDesc {
+    m_atlasImage = g_renderInterface->MakeImage(TextureDesc {
         TT_TEX2D_ARRAY,
         TF_RG16F,
         Vec3u { m_atlasDimensions, 1 },
@@ -84,13 +83,13 @@ void ShadowMapAllocator::Initialize()
         IU_SAMPLED | IU_STORAGE });
 
     m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));
-    HYP_GFX_ASSERT(m_atlasImage->Create());
+    CheckResult(m_atlasImage->Create());
 
-    m_atlasImageView = g_renderBackend->MakeImageView(m_atlasImage);
+    m_atlasImageView = g_renderInterface->MakeImageView(m_atlasImage);
     m_atlasImageView->SetDebugName(NAME("ShadowMapAtlasImageView"));
-    HYP_GFX_ASSERT(m_atlasImageView->Create());
+    CheckResult(m_atlasImageView->Create());
 
-    m_pointLightShadowMapImage = g_renderBackend->MakeImage(TextureDesc {
+    m_pointLightShadowMapImage = g_renderInterface->MakeImage(TextureDesc {
         TT_CUBEMAP_ARRAY,
         TF_RG16F,
         Vec3u { 256, 256, 1 },
@@ -101,11 +100,11 @@ void ShadowMapAllocator::Initialize()
         IU_SAMPLED | IU_STORAGE });
 
     m_pointLightShadowMapImage->SetDebugName(NAME("PointLightShadowMapImage"));
-    HYP_GFX_ASSERT(m_pointLightShadowMapImage->Create());
+    CheckResult(m_pointLightShadowMapImage->Create());
 
-    m_pointLightShadowMapImageView = g_renderBackend->MakeImageView(m_pointLightShadowMapImage);
+    m_pointLightShadowMapImageView = g_renderInterface->MakeImageView(m_pointLightShadowMapImage);
     m_pointLightShadowMapImageView->SetDebugName(NAME("PointLightShadowMapImageView"));
-    HYP_GFX_ASSERT(m_pointLightShadowMapImageView->Create());
+    CheckResult(m_pointLightShadowMapImageView->Create());
 }
 
 void ShadowMapAllocator::Destroy()

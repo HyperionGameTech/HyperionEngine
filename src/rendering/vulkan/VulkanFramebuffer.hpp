@@ -13,7 +13,6 @@
 #include <rendering/vulkan/VulkanAttachment.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
-#include <rendering/vulkan/VulkanRenderPass.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -22,12 +21,15 @@
 #include <vulkan/vulkan.h>
 
 namespace Hyperion {
+
 class VulkanCommandBuffer;
+
+enum class VulkanRenderPassMode : uint8;
 
 struct VulkanAttachmentDef
 {
     VulkanGpuImageRef image;
-    VulkanAttachmentRef attachment;
+    VulkanAttachment* attachment = nullptr;
 };
 
 struct VulkanAttachmentMap
@@ -50,7 +52,11 @@ struct VulkanAttachmentMap
     {
         for (auto& it : attachments)
         {
-            SafeDelete(std::move(it.second.attachment));
+            Attachment* attachment = it.second.attachment;
+            if (!attachment)
+                continue;
+
+            attachment->Release();
         }
 
         attachments.Clear();
@@ -61,21 +67,21 @@ struct VulkanAttachmentMap
         return attachments.Size();
     }
 
-    HYP_FORCE_INLINE const VulkanAttachmentRef& GetAttachment(uint32 binding) const
+    VulkanAttachment* GetAttachment(uint32 binding) const
     {
         const auto it = attachments.Find(binding);
 
         if (it == attachments.End())
         {
-            return VulkanAttachmentRef::Null();
+            return nullptr;
         }
 
         return it->second.attachment;
     }
 
-    HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment)
+    VulkanAttachment* AddAttachment(VulkanAttachment* attachment)
     {
-        Assert(attachment.IsValid());
+        Assert(attachment != nullptr);
         Assert(attachment->GetImage().IsValid());
 
         Assert(attachment->HasBinding(), "Attachment must have a binding");
@@ -87,17 +93,18 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 VulkanGpuImageRef(attachment->GetImage()),
-                attachment });
+                attachment
+            });
 
         return attachment;
     }
 
-    HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(
+    VulkanAttachment* AddAttachment(
         uint32 binding,
         Vec2u extent,
         TextureFormat format,
         TextureType type,
-        RenderTargetType renderTargetType,
+        VulkanRenderPassMode renderPassMode,
         LoadOperation loadOp,
         StoreOperation storeOp)
     {
@@ -107,14 +114,20 @@ struct VulkanAttachmentMap
         textureDesc.extent = Vec3u { extent.x, extent.y, 1 };
         textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
-        VulkanGpuImageRef image = CreateObject<VulkanGpuImage>(textureDesc);
+        VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(textureDesc);
 
-        VulkanAttachmentRef attachment = CreateObject<VulkanAttachment>(
+        VulkanAttachment* attachment = new VulkanAttachment(
             image,
             framebufferWeak,
-            renderTargetType,
-            loadOp,
-            storeOp);
+            renderPassMode,
+            AttachmentDesc {
+                .imageType = type,
+                .format = format,
+                .loadOp = loadOp,
+                .storeOp = storeOp,
+                .blendFunction = BlendFunction::None(),
+                .clearColor = {}
+            });
 
         attachment->SetBinding(binding);
 
@@ -122,7 +135,8 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 image,
-                attachment });
+                attachment
+            });
 
         return attachment;
     }
@@ -136,12 +150,8 @@ class VulkanFramebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(VulkanFramebuffer);
 
 public:
-    VulkanFramebuffer(
-        Vec2u extent,
-        RenderTargetType renderTargetType = RTT_SHADER_RESOURCE,
-        uint32 numMultiviewLayers = 0);
-
-    virtual ~VulkanFramebuffer() override;
+    VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode);
+    ~VulkanFramebuffer() override;
 
     HYP_FORCE_INLINE const VkFramebuffer& GetVulkanHandle() const
     {
@@ -153,23 +163,9 @@ public:
         return m_renderPass;
     }
 
-    virtual VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment) override;
-    virtual VulkanAttachmentRef AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
-
-    virtual VulkanAttachmentRef AddAttachment(
-        uint32 binding,
-        TextureFormat format,
-        TextureType type,
-        LoadOperation loadOp,
-        StoreOperation storeOp) override;
-
-    virtual bool RemoveAttachment(uint32 binding) override;
-
-    virtual VulkanAttachment* GetAttachment(uint32 binding) const override;
-
-    virtual int NumAttachments() const override
+    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
     {
-        return int(m_attachmentMap.Size());
+        return m_renderPassMode;
     }
 
     HYP_FORCE_INLINE const VulkanAttachmentMap& GetAttachmentMap() const
@@ -177,19 +173,39 @@ public:
         return m_attachmentMap;
     }
 
-    virtual bool IsCreated() const override;
+    VulkanAttachment* AddAttachment(VulkanAttachment* attachment) override;
+    VulkanAttachment* AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
 
-    virtual RendererResult Create() override;
+    VulkanAttachment* AddAttachment(
+        uint32 binding,
+        TextureFormat format,
+        TextureType type,
+        LoadOperation loadOp,
+        StoreOperation storeOp) override;
 
-    virtual RendererResult Resize(Vec2u newSize) override;
+    bool RemoveAttachment(uint32 binding) override;
 
-    virtual void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
-    virtual void EndCapture(VulkanCommandBuffer* commandBuffer) override;
+    VulkanAttachment* GetAttachment(uint32 binding) const override;
 
-    virtual void Clear(VulkanCommandBuffer* commandBuffer) override;
+    int NumAttachments() const override
+    {
+        return int(m_attachmentMap.Size());
+    }
+
+    bool IsCreated() const override;
+
+    RendererResult Create() override;
+
+    RendererResult Resize(Vec2u newSize) override;
+
+    void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
+    void EndCapture(VulkanCommandBuffer* commandBuffer) override;
+
+    void Clear(VulkanCommandBuffer* commandBuffer) override;
 
 private:
     VkFramebuffer m_handle;
+    VulkanRenderPassMode m_renderPassMode;
     VulkanRenderPassRef m_renderPass;
     VulkanAttachmentMap m_attachmentMap;
 };

@@ -3,21 +3,22 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RenderGroup.hpp>
+#include <rendering/RenderInterface.hpp>
+#include <rendering/RenderConfig.hpp>
+#include <rendering/RenderProxyList.hpp>
+#include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/RenderConfig.hpp>
-#include <rendering/GraphicsPipeline.hpp>
-#include <rendering/RenderProxyList.hpp>
-#include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/UIRenderer.hpp>
+
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <scene/View.hpp>
 
@@ -41,6 +42,8 @@ HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #pragma region UIRenderCollector
 
+static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
+
 static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet& entityAttributes, const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: GetMergedRenderableAttributes");
@@ -49,31 +52,7 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
 
     if (overrideAttributes.HasValue())
     {
-        if (const ShaderDefinition& overrideShaderDefinition = overrideAttributes->GetShaderDefinition())
-        {
-            attributes.SetShaderDefinition(overrideShaderDefinition);
-        }
-
-        ShaderDefinition shaderDefinition = overrideAttributes->GetShaderDefinition().IsValid()
-            ? overrideAttributes->GetShaderDefinition()
-            : attributes.GetShaderDefinition();
-
-#ifdef HYP_DEBUG_MODE
-        Assert(shaderDefinition.IsValid());
-#endif
-
-        // Check for varying vertex attributes on the override shader compared to the entity's vertex
-        // attributes. If there is not a match, we should switch to a version of the override shader that
-        // has matching vertex attribs.
-        const VertexAttributeSet meshVertexAttributes = attributes.GetMeshAttributes().vertexAttributes;
-
-        if (meshVertexAttributes != shaderDefinition.GetProperties().GetRequiredVertexAttributes())
-        {
-            shaderDefinition.properties.SetRequiredVertexAttributes(meshVertexAttributes);
-        }
-
         MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
-        newMaterialAttributes.shaderDefinition = shaderDefinition;
         // do not override bucket!
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -113,13 +92,14 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
 
         RenderableAttributeSet attributes = GetMergedRenderableAttributes(RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() }, overrideAttributes);
 
-        if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+        if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP); albedoTexture.IsValid())
         {
             if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
             {
-                ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
-                shaderDefinition.GetProperties().Set(NAME("TEXTURED"));
-                attributes.SetShaderDefinition(shaderDefinition);
+                ShaderPropertySet newProperties = attributes.GetShaderProperties();
+                newProperties.Add(s_propTextured);
+
+                attributes.SetShaderProperties(newProperties);
             }
         }
 
@@ -128,19 +108,21 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
         attributes.SetLayerIndex(pair.second);
 
         DrawCallCollectionMapping& mapping = renderCollector.mappingsByBucket[rb][attributes];
-        Handle<RenderGroup>& rg = mapping.renderGroup;
+        RenderGroup*& rg = mapping.renderGroup;
 
-        if (!rg.IsValid())
+        if (!rg)
         {
-            ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
+            ShaderRef shader = g_shaderManager->GetOrCreate(
+                attributes.GetMaterialAttributes().shaderName,
+                attributes.GetMaterialAttributes().shaderProperties,
+                attributes.GetMeshAttributes().vertexAttributes);
 
-            ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
             Assert(shader.IsValid());
 
-            rg = CreateObject<RenderGroup>(shader, attributes, RenderGroupFlags::NONE);
+            rg = new RenderGroup(shader, attributes, RenderGroupFlags::NONE);
 
 #ifdef HYP_DEBUG_MODE
-            if (!rg.IsValid())
+            if (!rg)
             {
                 HYP_LOG(UI, Error, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
 
@@ -148,7 +130,16 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
             }
 #endif
 
-            InitObject(rg);
+            // If parallel rendering is globally disabled, disable it for this RenderGroup
+            if (!g_renderInterface->GetRenderConfig().parallelRendering)
+            {
+                rg->flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
+            }
+
+            if (!g_renderInterface->GetRenderConfig().indirectRendering)
+            {
+                rg->flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+            }
         }
 
         mapping.meshProxies.Set(meshProxy->entity.Id().ToIndex(), meshProxy);
@@ -163,7 +154,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     AssertDebug(renderSetup.HasWorld() && renderSetup.HasView());
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(renderSetup.view);
+    RenderProxyList& rpl = GetConsumerProxyList(renderSetup.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
@@ -203,8 +194,8 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
         DrawCallCollectionMapping& mapping = it.second;
         Assert(mapping.IsValid());
 
-        const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
-        Assert(renderGroup.IsValid());
+        RenderGroup* renderGroup = mapping.renderGroup;
+        Assert(renderGroup != nullptr);
 
         DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
 
@@ -264,7 +255,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     rs.view = m_view.Get();
     rs.passData = pd;
 
-    RenderProxyList& rpl = RenderApi::GetConsumerProxyList(m_view);
+    RenderProxyList& rpl = GetConsumerProxyList(m_view);
     rpl.BeginRead();
 
     const ViewOutputTarget& outputTarget = m_view->GetOutputTarget();
@@ -280,7 +271,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
 
 Handle<PassData> UIRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    Handle<UIRendererPassData> pd = CreateObject<UIRendererPassData>();
+    Handle<UIRendererPassData> pd = MakeHandle<UIRendererPassData>();
 
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();

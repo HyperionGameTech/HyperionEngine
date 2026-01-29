@@ -124,7 +124,7 @@ private:
     void RebuildDescriptors(Frame* frame);
 
     IndirectDrawState m_indirectDrawState;
-    ComputePipelineRef m_objectVisibility;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
     CullData m_cachedCullData;
     uint8 m_cachedCullDataUpdatedBits;
     EntityBatchAllocatorBase* m_batchAllocator;

@@ -71,7 +71,7 @@ enum class ViewFlags : uint32
     ENABLE_READBACK = 0x4000, //!< Enable render target texture readback (final texture)
 
     // enable flags
-    RAYTRACING = 0x100000, //!< Does this View contain raytracing data (acceleration structures)? (Raytracing must be enabled in the global config and must have RT hardware support)
+    RAY_TRACING = 0x100000, //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
 
     MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the Viewport dimensions will always match the associated Camera's dimensions.
 
@@ -80,27 +80,11 @@ enum class ViewFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
 
-struct ViewOutputTargetAttachmentDesc
-{
-    TextureFormat format = TF_RGBA8;
-    TextureType imageType = TT_TEX2D;
-    LoadOperation loadOp = LoadOperation::CLEAR;
-    StoreOperation storeOp = StoreOperation::STORE;
-    Vec4f clearColor = Vec4f::Zero();
-};
-
-struct ViewOutputTargetDesc
-{
-    Vec2u extent = Vec2u::One();
-    Array<ViewOutputTargetAttachmentDesc> attachments;
-    uint32 numViews = 1;
-};
-
 struct ViewDesc
 {
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
     Viewport viewport;
-    ViewOutputTargetDesc outputTargetDesc;
+    RenderTargetDesc renderTargetDesc;
     Array<Scene*> scenes;
     Camera* camera = nullptr;
     int priority = 0;
@@ -225,9 +209,9 @@ public:
         return m_renderProxyLists[index];
     }
 
-    HYP_FORCE_INLINE const WeakHandle<View>& GetRaytracingView() const
+    HYP_FORCE_INLINE const WeakHandle<View>& GetRayTracingView() const
     {
-        return m_raytracingView;
+        return m_rayTracingView;
     }
 
     bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RTF_USE_BVH) const;
@@ -270,8 +254,8 @@ protected:
     Handle<Camera> m_camera;
     ViewOutputTarget m_outputTarget;
 
-    // optional raytracing View set by the world
-    WeakHandle<View> m_raytracingView;
+    // optional rayTracing View set by the world
+    WeakHandle<View> m_rayTracingView;
 
     RenderProxyList* m_renderProxyLists[RingBufferDepth];
 

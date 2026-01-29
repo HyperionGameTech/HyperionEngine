@@ -10,18 +10,18 @@ layout(location = 2) out vec2 v_texcoord0;
 layout(location = 3) out vec2 v_texcoord1;
 layout(location = 4) out vec3 v_tangent;
 layout(location = 5) out vec3 v_bitangent;
-layout(location = 7) out flat vec3 v_camera_position;
-layout(location = 11) out vec4 v_position_ndc;
-layout(location = 12) out vec4 v_previous_position_ndc;
-layout(location = 15) out flat uint v_object_index;
-layout(location = 16) out flat uint v_object_mask;
+layout(location = 6) out flat vec3 v_camera_position;
+layout(location = 7) out vec4 v_position_ndc;
+layout(location = 8) out vec4 v_previous_position_ndc;
+layout(location = 9) out flat uint v_object_index;
+layout(location = 10) out flat uint v_object_mask;
 
 HYP_ATTRIBUTE(0) vec3 a_position;
 HYP_ATTRIBUTE(1) vec3 a_normal;
 HYP_ATTRIBUTE(2) vec2 a_texcoord0;
-HYP_ATTRIBUTE_OPTIONAL(3) vec2 a_texcoord1;
-HYP_ATTRIBUTE_OPTIONAL(4) vec3 a_tangent;
-HYP_ATTRIBUTE_OPTIONAL(5) vec3 a_bitangent;
+HYP_ATTRIBUTE(3) vec2 a_texcoord1;
+HYP_ATTRIBUTE(4) vec3 a_tangent;
+HYP_ATTRIBUTE(5) vec3 a_bitangent;
 HYP_ATTRIBUTE_OPTIONAL(6) vec4 a_bone_weights;
 HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 
@@ -30,34 +30,34 @@ HYP_ATTRIBUTE_OPTIONAL(7) vec4 a_bone_indices;
 #include "include/scene.inc"
 #include "include/shared.inc"
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
 #ifdef SKINNING
-#include "include/Skeleton.glsl"
+#include "include/Skeleton.inc"
 #endif
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Instancing, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
     EntityInstanceBatch entity_instance_batch;
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
+DECLARE_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
@@ -65,7 +65,7 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffe
 #endif
 
 #ifdef SKINNING
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, SkeletonsBuffer) readonly buffer SkeletonsBuffer
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) readonly buffer SkeletonsBuffer
 {
     Skeleton skeleton;
 };
@@ -134,8 +134,8 @@ void main()
     jitter_matrix[3][0] += camera.jitter.x;
     jitter_matrix[3][1] += camera.jitter.y;
 
-    v_position_ndc = camera.projection * camera.view * position;
-    v_previous_position_ndc = camera.projection * camera.previous_view * previous_position;
+    v_position_ndc = camera.viewProjMat * position;
+    v_previous_position_ndc = camera.prevViewProjMat * previous_position;
 
 #ifdef INSTANCING
     v_object_index = OBJECT_INDEX;

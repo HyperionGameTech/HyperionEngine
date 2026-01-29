@@ -129,6 +129,12 @@ public:
         }
     }
 
+    HYP_METHOD()
+    bool IsRealtime() const
+    {
+        return !IsBaked();
+    }
+
     HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
     {
         if (IsBaked())

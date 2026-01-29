@@ -3,15 +3,15 @@
 #include <UIPch.hpp>
 
 #include <ui/font/FontAtlas.hpp>
+
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderQueue.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderHelpers.hpp>
-#include <rendering/util/SafeDeleter.hpp>
-
 #include <rendering/Texture.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -220,7 +220,7 @@ Result FontAtlas::RenderAtlasTextures()
             atlasBitmap->GetUnpackedBytes(4)
         };
 
-        Handle<Texture> atlasTexture = CreateObject<Texture>(atlasTextureDesc, std::move(atlasTextureData));
+        Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, std::move(atlasTextureData));
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
         InitObject(atlasTexture);
 

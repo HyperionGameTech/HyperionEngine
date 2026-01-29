@@ -11,25 +11,25 @@ layout(local_size_x = 256) in;
 #include "../include/aabb.inc"
 #include "./Shared.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler depth_pyramid_sampler;
-HYP_DESCRIPTOR_SRV(View, DepthPyramidResult) uniform texture2D depth_pyramid;
+DECLARE_SAMPLER(ObjectVisibility, SamplerNearest) uniform sampler depth_pyramid_sampler;
+DECLARE_SRV(ObjectVisibility, DepthPyramidResult) uniform texture2D depth_pyramid;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/scene.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(ObjectVisibility, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(ObjectVisibility, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(ObjectVisibility, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
@@ -52,28 +52,28 @@ struct ObjectInstance
     uint _pad;
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibilityDescriptorSet, ObjectInstancesBuffer) readonly buffer InstancesBuffer
+DECLARE_SRV(ObjectVisibility, ObjectInstancesBuffer, standard = scalar) readonly buffer InstancesBuffer
 {
     ObjectInstance instances[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibilityDescriptorSet, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
+DECLARE_UAV(ObjectVisibility, IndirectDrawCommandsBuffer, standard = scalar) buffer IndirectDrawCommandsBuffer
 {
     IndirectDrawCommand indirect_draw_commands[];
 };
 
-HYP_DESCRIPTOR_SSBO(ObjectVisibilityDescriptorSet, EntityInstanceBatchesBuffer) buffer EntityInstanceBatchesBuffer
+DECLARE_UAV(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) buffer EntityInstanceBatchesBuffer
 {
     uvec4 entityInstanceBatchDataRaw[];
 };
 
-layout(push_constant) uniform ObjectVisibilityData
+DECLARE_BUFFER(ObjectVisibility, ObjectVisibilityUniforms, standard = scalar) uniform ObjectVisibilityUniforms
 {
     uvec2 depth_pyramid_dimensions;
     uint batch_offset;
     uint num_instances;
     uint batch_stride;
-} push_constants;
+};
 
 // uint GetObjectBucket(ObjectInstance object_instance)
 // {
@@ -82,7 +82,7 @@ layout(push_constant) uniform ObjectVisibilityData
 
 bool IsPixelVisible(vec3 clip_min, vec3 clip_max)
 {
-    vec2 dim = (clip_max.xy - clip_min.xy) * 0.5 * vec2(push_constants.depth_pyramid_dimensions);
+    vec2 dim = (clip_max.xy - clip_min.xy) * 0.5 * vec2(depth_pyramid_dimensions);
 
     return max(dim.x, dim.y) < 16.0;
 }
@@ -90,7 +90,7 @@ bool IsPixelVisible(vec3 clip_min, vec3 clip_max)
 float GetDepthAtTexel(vec2 texcoord, int mip)
 {
     ivec2 mip_dimensions = textureSize(sampler2D(depth_pyramid, depth_pyramid_sampler), mip);
-    vec4 value = Texture2DTexelLod(depth_pyramid_sampler, depth_pyramid, clamp(ivec2(texcoord * mip_dimensions), ivec2(0), mip_dimensions - ivec2(1)), mip);
+    vec4 value = TEXEL_FETCH_2D_LOD(depth_pyramid_sampler, depth_pyramid, clamp(ivec2(texcoord * mip_dimensions), ivec2(0), mip_dimensions - ivec2(1)), mip);
 
     return value.r;
 }
@@ -98,9 +98,9 @@ float GetDepthAtTexel(vec2 texcoord, int mip)
 void main()
 {
     const uint id = gl_GlobalInvocationID.x;
-    const uint index = id; // push_constants.batch_offset + id;
+    const uint index = id; // batch_offset + id;
 
-    if (id >= push_constants.num_instances)
+    if (id >= num_instances)
     {
         return;
     }
@@ -159,7 +159,7 @@ void main()
             clip_min.xy = clip_min.xy * vec2(0.5) + vec2(0.5);
             clip_max.xy = clip_max.xy * vec2(0.5) + vec2(0.5);
 
-            vec2 dimensions = vec2(push_constants.depth_pyramid_dimensions);
+            vec2 dimensions = vec2(depth_pyramid_dimensions);
 
             // Calculate hi-Z buffer mip
             vec2 size = (clip_max.xy - clip_min.xy) * max(dimensions.x, dimensions.y);
@@ -186,7 +186,7 @@ void main()
 
         if (object_instance.batch_index != ~0u && instance_index < MAX_ENTITIES_PER_INSTANCE_BATCH)
         {
-            uint bufferOffsetWords = object_instance.batch_index * push_constants.batch_stride / 4;
+            uint bufferOffsetWords = object_instance.batch_index * batch_stride / 4;
             // `indices` member of EntityInstanceBatch has offset of 16 bytes (4 words)
             uint indicesOffsetWords = bufferOffsetWords + 4 + instance_index;
 

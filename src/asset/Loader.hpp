@@ -41,16 +41,16 @@ public:
     {
     }
 
-    template <auto MessageString>
-    AssetLoadError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, ErrorCode errorCode)
-        : Error(currentFunction, ValueWrapper<MessageString>()),
+    template <auto CurrentFunctionString, auto MessageString>
+    AssetLoadError(ValueWrapper<CurrentFunctionString>, ValueWrapper<MessageString>, ErrorCode errorCode)
+        : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<MessageString>()),
           m_errorCode(errorCode)
     {
     }
 
-    template <auto MessageString, class... Args>
-    AssetLoadError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, Args&&... args)
-        : Error(currentFunction, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
+    template <auto CurrentFunctionString, auto MessageString, class... Args>
+    AssetLoadError(ValueWrapper<CurrentFunctionString>, ValueWrapper<MessageString>, Args&&... args)
+        : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<MessageString>(), std::forward<Args>(args)...),
           m_errorCode(UNKNOWN)
     {
     }

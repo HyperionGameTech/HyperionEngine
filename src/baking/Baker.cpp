@@ -12,7 +12,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Device.hpp>
@@ -73,7 +72,7 @@ namespace Baking {
 
 // Changing tile size will change the number of jobs that get enqueued.
 // Smaller tile size = more jobs required to complete the bake
-static constexpr uint32 TileSize = 64;
+static constexpr uint32 TileSize = 32;
 
 // Too many concurrent jobs will cause excessive memory usage and thrashing
 static constexpr uint32 MaxConcurrentJobs = 8;
@@ -168,32 +167,32 @@ void BakerBase::Initialize()
 {
     if (PerformsRayTracing())
     {
-        Handle<Camera> camera = CreateObject<Camera>();
+        Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME_FMT("{}_Camera", InstanceClass()->GetName()));
-        camera->AddCameraController(CreateObject<OrthoCameraController>());
+        camera->AddCameraController(MakeHandle<OrthoCameraController>());
         InitObject(camera);
 
         // dummy output target
-        ViewOutputTargetDesc outputTargetDesc {
-            .extent = Vec2u::One(),
-            .attachments = { { TF_R8 } }
-        };
+        RenderTargetDesc renderTargetDesc;
+        renderTargetDesc.extent = Vec2u::One();
+        renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
+        renderTargetDesc.numAttachments = 1;
 
         ViewDesc viewDesc {
             .flags = ViewFlags::COLLECT_STATIC_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING
                 | ViewFlags::SKIP_ENV_GRIDS
                 | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
-                | ViewFlags::RAYTRACING
+                | ViewFlags::RAY_TRACING
                 | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::NOT_MULTI_BUFFERED,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
-            .outputTargetDesc = outputTargetDesc,
+            .renderTargetDesc = renderTargetDesc,
             .scenes = { m_scene },
             .camera = camera
         };
 
-        m_view = CreateObject<View>(viewDesc);
+        m_view = MakeHandle<View>(viewDesc);
         InitObject(m_view);
 
         m_view->UpdateViewport();
@@ -238,7 +237,7 @@ UniquePtr<ILightmapRenderer> BakerBase::CreateRenderer(LightmapShadingType shadi
         return nullptr;
     }
 
-    if (!g_renderBackend->GetRenderConfig().raytracing)
+    if (!g_renderInterface->GetRenderConfig().rayTracing)
     {
         HYP_LOG(Lightmap, Error, "GPU path tracing is not supported on this device. Falling back to CPU path tracing.");
 
@@ -352,7 +351,8 @@ void BakerBase::Build()
             meshComponent.mesh,
             meshComponent.material,
             Transform(transformComponent.translation, transformComponent.scale, transformComponent.rotation).GetMatrix(),
-            boundingBoxComponent.worldAabb });
+            boundingBoxComponent.worldAabb
+        });
     }
 
     // set pointers in map after pushing, so that the addresses are stable
@@ -400,7 +400,7 @@ void BakerBase::DispatchJobs()
             const uint32 x = i % dimensions.x;
             const uint32 y = i / dimensions.y;
 
-            const Vec2i tileCoord { int(x / TileSize), int(y / TileSize) };
+            const Vec2i tileCoord = Vec2i(int32(x / TileSize), int32(y / TileSize));
             tileBuckets[tileCoord].PushBack(i);
         }
 

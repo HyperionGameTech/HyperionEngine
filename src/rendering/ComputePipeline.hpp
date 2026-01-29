@@ -19,16 +19,6 @@ class ComputePipelineBase : public ObjectBase
 public:
     virtual ~ComputePipelineBase() override = default;
 
-    HYP_FORCE_INLINE const DescriptorTableRef& GetDescriptorTable() const
-    {
-        return m_descriptorTable;
-    }
-
-    HYP_FORCE_INLINE void SetDescriptorTable(const DescriptorTableRef& descriptorTable)
-    {
-        m_descriptorTable = descriptorTable;
-    }
-
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -63,18 +53,20 @@ public:
 
     // Deprecated - will be removed to decouple from vulkan
     HYP_DEPRECATED virtual void SetPushConstants(const void* data, SizeType size) = 0;
+    
+    bool MatchesSignature(const ShaderDesc& shaderDesc) const;
+
+    uint32 lastFrame = uint32(-1);
 
 protected:
     ComputePipelineBase() = default;
 
-    ComputePipelineBase(const ShaderRef& shader, const DescriptorTableRef& descriptorTable)
-        : m_shader(shader),
-          m_descriptorTable(descriptorTable)
+    explicit ComputePipelineBase(const ShaderRef& shader)
+        : m_shader(shader)
     {
     }
 
     ShaderRef m_shader;
-    DescriptorTableRef m_descriptorTable;
 
     Name m_debugName;
 };
@@ -84,8 +76,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanComputePipeline.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12ComputePipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

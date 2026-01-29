@@ -28,8 +28,6 @@ public:
         return m_layout;
     }
 
-    Array<VkDescriptorSetLayout> GetDescriptorSetLayouts() const;
-
     bool IsCreated() const;
 
     void SetPushConstants(const void* data, SizeType size);

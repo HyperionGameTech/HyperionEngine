@@ -79,14 +79,14 @@ public:
         return m_memoryProperties;
     }
 
-    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR& GetRaytracingPipelineFeatures() const
+    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR& GetRayTracingPipelineFeatures() const
     {
-        return m_raytracingPipelineFeatures;
+        return m_rayTracingPipelineFeatures;
     }
 
-    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRaytracingPipelineProperties() const
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRayTracingPipelineProperties() const
     {
-        return m_raytracingPipelineProperties;
+        return m_rayTracingPipelineProperties;
     }
 
     const VkPhysicalDeviceBufferDeviceAddressFeatures& GetBufferDeviceAddressFeatures() const
@@ -197,7 +197,7 @@ public:
 
     VulkanSwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR surface) const
     {
-        HYP_GFX_ASSERT(m_physicalDevice != VK_NULL_HANDLE, "No physical device set!");
+        Assert(m_physicalDevice != VK_NULL_HANDLE, "No physical device set!");
 
         VulkanSwapchainSupportDetails details {};
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, surface, &details.capabilities);
@@ -217,7 +217,7 @@ public:
         surfaceFormats.Resize(numSurfaceFormats);
 
         vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, surface, &numSurfaceFormats, surfaceFormats.Data());
-        HYP_GFX_ASSERT(surfaceFormats.Any(), "No surface formats available!");
+        Assert(surfaceFormats.Any(), "No surface formats available!");
 
         uint32 numPresentModes = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &numPresentModes, nullptr);
@@ -226,7 +226,7 @@ public:
         presentModes.Resize(numPresentModes);
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, surface, &numPresentModes, presentModes.Data());
-        HYP_GFX_ASSERT(presentModes.Any(), "No present modes available!");
+        Assert(presentModes.Any(), "No present modes available!");
 
         details.queueFamilyProperties = queueFamilyProperties;
         details.formats = surfaceFormats;
@@ -235,9 +235,7 @@ public:
         return details;
     }
 
-    bool IsSupportedFormat(
-        TextureFormat format,
-        ImageSupport supportType) const
+    bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const
     {
         if (m_physicalDevice == nullptr)
         {
@@ -250,14 +248,22 @@ public:
 
         switch (supportType)
         {
-        case IS_SRV:
-            featureFlags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+        case ImageSupport::Attachment:
+            if (TextureUtils::IsDepthFormat(format))
+            {
+                featureFlags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+            else
+            {
+                featureFlags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+            }
+            
             break;
-        case IS_UAV:
+        case ImageSupport::ShaderResource:
+            featureFlags |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+            break;
+        case ImageSupport::UnorderedAccess:
             featureFlags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-            break;
-        case IS_DEPTH:
-            featureFlags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
             break;
         default:
             HYP_UNREACHABLE();
@@ -339,7 +345,7 @@ public:
             return HYP_MAKE_ERROR(RendererError, "Failed to get image format properties", vkResult);
         }
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 
     template <class StructType>
@@ -366,25 +372,26 @@ public:
         return m_features.geometryShader;
     }
 
-    bool IsRaytracingDisabled() const
+    bool IsRayTracingDisabled() const
     {
-        return !IsRaytracingSupported() || m_isRaytracingDisabled;
+        return !IsRayTracingSupported() || m_isRayTracingDisabled;
     }
 
-    void SetIsRaytracingDisabled(bool isRaytracingDisabled)
+    void SetIsRayTracingDisabled(bool isRayTracingDisabled)
     {
-        m_isRaytracingDisabled = isRaytracingDisabled;
+        m_isRayTracingDisabled = isRayTracingDisabled;
     }
 
-    bool IsRaytracingEnabled() const
+    bool IsRayTracingEnabled() const
     {
-        return IsRaytracingSupported() && !m_isRaytracingDisabled;
+        return IsRayTracingSupported() && !m_isRayTracingDisabled;
     }
 
-    bool IsRaytracingSupported() const
+    bool IsRayTracingSupported() const
     {
-#if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
-        return m_raytracingPipelineFeatures.rayTracingPipeline
+#if defined(HYP_FEATURES_ENABLE_RAY_TRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
+        return m_rayTracingPipelineFeatures.rayTracingPipeline
+            && m_rayQueryFeatures.rayQuery
             && m_accelerationStructureFeatures.accelerationStructure
             && m_bufferDeviceAddressFeatures.bufferDeviceAddress;
 #else
@@ -398,8 +405,8 @@ private:
     VkPhysicalDeviceFeatures m_features;
 
     VkPhysicalDeviceBufferDeviceAddressFeatures m_bufferDeviceAddressFeatures;
-    VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_raytracingPipelineFeatures;
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_raytracingPipelineProperties;
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR m_rayTracingPipelineFeatures;
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rayTracingPipelineProperties;
     VkPhysicalDeviceRayQueryFeaturesKHR m_rayQueryFeatures;
     VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT m_samplerMinmaxProperties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_accelerationStructureFeatures;
@@ -414,7 +421,7 @@ private:
 
     VkPhysicalDeviceMemoryProperties m_memoryProperties;
 
-    bool m_isRaytracingDisabled { false };
+    bool m_isRayTracingDisabled { false };
 };
 
 } // namespace Hyperion

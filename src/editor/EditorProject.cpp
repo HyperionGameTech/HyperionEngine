@@ -57,7 +57,7 @@ EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
       m_gameInstance(gameInstance),
       m_lastSavedTime(~0ull)
 {
-    m_actionStack = CreateObject<EditorActionStack>(WeakHandleFromThis());
+    m_actionStack = MakeHandle<EditorActionStack>(WeakHandleFromThis());
 }
 
 EditorProject::~EditorProject()
@@ -81,7 +81,7 @@ void EditorProject::Init()
 
     if (!m_gameInstance)
     {
-        m_gameInstance = CreateObject<Game>(); // base game instance
+        m_gameInstance = MakeHandle<Game>(); // base game instance
     }
 
     InitObject(m_gameInstance);

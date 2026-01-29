@@ -233,7 +233,7 @@ void LibDataChannelRTCServer::SendToSignallingServer(ByteBuffer bytes)
             rtc::binary bin;
             bin.resize(byteBuffer->Size());
 
-            Memory::MemCpy(bin.data(), byteBuffer->Data(), byteBuffer->Size());
+            Memory::Copy(bin.data(), byteBuffer->Data(), byteBuffer->Size());
 
             if (!m_websocket->send(std::move(bin)))
             {

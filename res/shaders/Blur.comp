@@ -42,7 +42,7 @@ void main(void)
 	const vec2 texcoord = (vec2(coord) + 0.5) / vec2(output_image_dimensions);
 
     const vec2 texel_size = vec2(1.0) / vec2(depth_texture_dimensions);
-    const float depth = Texture2D(sampler_nearest, depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, depth_texture, texcoord).r;
 
     const float blur_amount = 3.5;
 
@@ -57,7 +57,7 @@ void main(void)
 #endif
 
         vec2 offset_texcoord = offset_coord * blur_amount * texel_size / depth;
-        vec4 offset_sample = Texture2D(sampler_linear, input_texture, Saturate(texcoord + offset_texcoord));
+        vec4 offset_sample = SAMPLE_TEXTURE_2D(sampler_linear, input_texture, saturate(texcoord + offset_texcoord));
 
         accum_sample += offset_sample;
     }

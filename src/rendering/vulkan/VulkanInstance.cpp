@@ -10,9 +10,9 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -39,8 +39,8 @@
 namespace Hyperion {
 
 #ifdef HYP_DEBUG_MODE
-constexpr bool EnableVulkanSynchronizationValidation = true;
-constexpr bool EnableVulkanVerboseValidationLogging = true;
+constexpr bool EnableVulkanSynchronizationValidation = false;
+constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
 
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
@@ -107,7 +107,7 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-    HYP_GFX_ASSERT(deviceCount != 0, "No devices with Vulkan support found! "
+    Assert(deviceCount != 0, "No devices with Vulkan support found! "
                                      "Please update your graphics drivers or install a Vulkan compatible device.\n");
 
     Array<VkPhysicalDevice> devices;
@@ -121,10 +121,10 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 #ifdef HYP_DEBUG_MODE
 
 // Returns supported vulkan debug layers
-static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& requestedLayers)
+static Array<const char*> CheckValidationLayerSupport(Span<const char*> requestLayers)
 {
     Array<const char*> supportedLayers;
-    supportedLayers.Reserve(requestedLayers.Size());
+    supportedLayers.Reserve(requestLayers.Size());
 
     uint32 layersCount;
     vkEnumerateInstanceLayerProperties(&layersCount, nullptr);
@@ -134,7 +134,7 @@ static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& 
 
     vkEnumerateInstanceLayerProperties(&layersCount, availableLayers.Data());
 
-    for (const char* request : requestedLayers)
+    for (const char* request : requestLayers)
     {
         bool layerFound = false;
 
@@ -176,7 +176,7 @@ ExtensionMap VulkanInstance::GetExtensionMap()
     map[VK_EXT_DEBUG_UTILS_EXTENSION_NAME] = false;
 #endif
 
-#if HYP_FEATURES_ENABLE_RAYTRACING
+#if HYP_FEATURES_ENABLE_RAY_TRACING
     map[VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME] = false;
     map[VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME] = false;
     map[VK_KHR_RAY_QUERY_EXTENSION_NAME] = false;
@@ -238,6 +238,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
+    if (String(callbackData->pMessageIdName).Contains("VUID-VkComputePipelineCreateInfo-layout-07990"))
+    {
+        HYP_BREAKPOINT;
+    }
+
     return VK_FALSE;
 }
 
@@ -271,15 +276,11 @@ static void DestroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessenge
 
 RendererResult VulkanInstance::SetupDebug()
 {
-    static const Array<const char*> s_requestedLayers = {
+    static const char* s_requestLayers[] = {
         "VK_LAYER_KHRONOS_validation"
-#if !defined(HYP_APPLE) || !HYP_APPLE
-        ,
-        "VK_LAYER_LUNARG_monitor"
-#endif
     };
 
-    m_validationLayers = CheckValidationLayerSupport(s_requestedLayers);
+    m_validationLayers = CheckValidationLayerSupport(s_requestLayers);
 
     return {};
 }
@@ -349,11 +350,11 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     /* Set up our debug and validation layers */
     if (enableDebugLayers)
     {
-        HYP_GFX_CHECK(SetupDebug());
+        CheckResultOrReturn(SetupDebug());
     }
 #endif
 
-    HYP_GFX_ASSERT(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
+    Assert(g_appContext != nullptr, "AppContext must be set before initializing VulkanInstance");
 
     VkApplicationInfo appInfo { VK_STRUCTURE_TYPE_APPLICATION_INFO };
     appInfo.pApplicationName = g_appContext->GetAppName().Data();
@@ -380,7 +381,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
 
-    if (RendererResult result = g_renderBackend->GetVkExtensions(extensionNames); result.HasError())
+    if (RendererResult result = g_renderInterface->GetVkExtensions(extensionNames); result.HasError())
     {
         return result;
     }
@@ -444,13 +445,13 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
     IDummyVulkanSurfaceContext* dummySurfaceContext = nullptr;
-    VkSurfaceKHR surface = g_renderBackend->CreateSurface(nullptr, &dummySurfaceContext);
+    VkSurfaceKHR surface = g_renderInterface->CreateSurface(nullptr, &dummySurfaceContext);
 
     Array<VkPhysicalDevice> devices = EnumeratePhysicalDevices(m_instance);
     VkPhysicalDevice physicalDevice = PickPhysicalDevice(Span<VkPhysicalDevice>(devices.Begin(), devices.End()));
 
     /* Find and set up an adequate GPU for rendering and presentation */
-    HYP_GFX_CHECK(CreateDevice(physicalDevice, surface));
+    CheckResultOrReturn(CreateDevice(physicalDevice, surface));
 
     delete dummySurfaceContext;
     vkDestroySurfaceKHR(m_instance, surface, nullptr);
@@ -471,10 +472,10 @@ RendererResult VulkanInstance::CreateDevice(VkPhysicalDevice physicalDevice, VkS
 {
     Assert(physicalDevice != VK_NULL_HANDLE && surface != VK_NULL_HANDLE);
 
-    m_device = CreateObject<VulkanDevice>(physicalDevice);
+    m_device = MakeHandle<VulkanDevice>(physicalDevice);
     m_device->SetWantedExtensions(GetExtensionMap());
 
-    HYP_GFX_CHECK(m_device->Create(surface));
+    CheckResultOrReturn(m_device->Create(surface));
 
     return {};
 }

@@ -18,9 +18,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-namespace RenderApi {
 extern uint32 GetFrameCounter();
-} // namespace RenderApi
 
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
@@ -57,7 +55,7 @@ static int ComputeResidency(const EditorPickCacheEntry& entry)
         return 0;
     }
 
-    const int fc = RenderApi::GetFrameCounter();
+    const int fc = GetFrameCounter();
 
     int residency = MinResidency;
 
@@ -121,7 +119,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
 
     AssertDebug(std::is_final_v<Mesh> || mesh->InstanceClass() == Mesh::StaticClass());
 
-    const uint32 fc = RenderApi::GetFrameCounter();
+    const uint32 fc = GetFrameCounter();
 
     if (m_impl->cache.HasIndex(mesh->Id().ToIndex()))
     {
@@ -188,7 +186,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
-    Memory::MemCpy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+    Memory::Copy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
 
     entry.residency = ComputeResidency(entry);
 

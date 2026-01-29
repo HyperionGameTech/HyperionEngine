@@ -8,10 +8,11 @@
 #include <rendering/vulkan/VulkanShader.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
+
+#include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-
 #include <rendering/util/ShaderCompiler.hpp> // For CompiledShader
 
 #include <core/debug/Debug.hpp>
@@ -25,7 +26,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 template <>
 Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(const VulkanGraphicsPipeline& pipeline)
@@ -35,13 +36,13 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(c
     VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
-    const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     for (const DescriptorSetDeclaration& setDecl : decl->elements)
     {
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-        Assert(g_renderBackend->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
+        Assert(g_renderInterface->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));
 
         Assert(layout != VK_NULL_HANDLE);
 
@@ -50,75 +51,6 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(c
 
     return usedLayouts;
 }
-
-#pragma region Helpers
-
-static VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode)
-{
-    switch (blendMode)
-    {
-    case BMF_ONE:
-        return VK_BLEND_FACTOR_ONE;
-    case BMF_ZERO:
-        return VK_BLEND_FACTOR_ZERO;
-    case BMF_SRC_COLOR:
-        return VK_BLEND_FACTOR_SRC_COLOR;
-    case BMF_SRC_ALPHA:
-        return VK_BLEND_FACTOR_SRC_ALPHA;
-    case BMF_DST_COLOR:
-        return VK_BLEND_FACTOR_DST_COLOR;
-    case BMF_DST_ALPHA:
-        return VK_BLEND_FACTOR_DST_ALPHA;
-    case BMF_ONE_MINUS_SRC_COLOR:
-        return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-    case BMF_ONE_MINUS_SRC_ALPHA:
-        return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    case BMF_ONE_MINUS_DST_COLOR:
-        return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-    case BMF_ONE_MINUS_DST_ALPHA:
-        return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-    default:
-        return VK_BLEND_FACTOR_ONE;
-    }
-}
-
-static VkStencilOp ToVkStencilOp(StencilOp stencilOp)
-{
-    switch (stencilOp)
-    {
-    case SO_KEEP:
-        return VK_STENCIL_OP_KEEP;
-    case SO_ZERO:
-        return VK_STENCIL_OP_ZERO;
-    case SO_REPLACE:
-        return VK_STENCIL_OP_REPLACE;
-    case SO_INCREMENT:
-        return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-    case SO_DECREMENT:
-        return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
-    default:
-        return VK_STENCIL_OP_KEEP;
-    }
-}
-
-static VkCompareOp ToVkCompareOp(StencilCompareOp compareOp)
-{
-    switch (compareOp)
-    {
-    case SCO_ALWAYS:
-        return VK_COMPARE_OP_ALWAYS;
-    case SCO_NEVER:
-        return VK_COMPARE_OP_NEVER;
-    case SCO_EQUAL:
-        return VK_COMPARE_OP_EQUAL;
-    case SCO_NOT_EQUAL:
-        return VK_COMPARE_OP_NOT_EQUAL;
-    default:
-        return VK_COMPARE_OP_ALWAYS;
-    }
-}
-
-#pragma endregion Helpers
 
 #pragma region GraphicsPipeline
 
@@ -136,7 +68,6 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderRef& shader)
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
-    SafeDelete(std::move(m_renderPass));
 }
 
 void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
@@ -144,17 +75,14 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)
     Vec2i viewportOffset = Vec2i::Zero();
     Vec2u viewportExtent = Vec2u::One();
 
-    if (m_framebuffers.Any())
-    {
-        viewportExtent = m_framebuffers[0]->GetExtent();
-    }
+    viewportExtent = m_renderTargetDesc.extent;
 
     Bind(cmd, viewportOffset, viewportExtent);
 }
 
 void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent)
 {
-    HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VulkanCommandBuffer* vulkanCommandBuffer = commandBuffer;
 
@@ -185,22 +113,25 @@ void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* commandBuffer, Vec2i view
             m_pushConstants.Data());
     }
 
-    if (m_stencilFunction.HasValue())
+    if (m_stencilWrite || m_stencilFunction.HasValue())
     {
         vkCmdSetStencilReference(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilReference);
+            g_renderInterface->state.stencilReference);
+    }
 
+    if (m_stencilFunction.HasValue())
+    {
         vkCmdSetStencilCompareMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilCompareMask);
+            g_renderInterface->state.stencilCompareMask);
 
         vkCmdSetStencilWriteMask(
             vulkanCommandBuffer->GetVulkanHandle(),
             VK_STENCIL_FRONT_AND_BACK,
-            commandBuffer->stencilWriteMask);
+            g_renderInterface->state.stencilWriteMask);
     }
 }
 
@@ -244,7 +175,12 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    m_viewport = { m_framebuffers[0]->GetExtent(), Vec2i::Zero() };
+    VulkanRenderPassRef renderPass = MakeHandle<VulkanRenderPass>(
+        m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
+
+    CheckResultOrReturn(renderPass->Create());
+
+    m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
 
     VkViewport vkViewport {};
     vkViewport.x = float(m_viewport.position.x);
@@ -310,29 +246,42 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     multisampling.alphaToOneEnable = VK_FALSE;      // Optional
 
     Array<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
-    colorBlendAttachments.Reserve(m_renderPass->GetAttachments().Size());
+    colorBlendAttachments.Reserve(m_renderTargetDesc.numAttachments);
 
-    for (const VulkanAttachmentRef& attachment : m_renderPass->GetAttachments())
+    const BlendFunction* pBlendFunction = &m_blendFunction;
+
+    for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
     {
-        if (attachment->IsDepthAttachment())
+        const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
+
+        if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
             continue;
         }
 
-        const bool blendEnabled = m_blendFunction != BlendFunction::None() && TextureUtils::FormatSupportsBlending(attachment->GetFormat());
+        const BlendFunction* pAttachmentBlendFunction = pBlendFunction;
+
+        if (attachmentDesc.blendFunction != BlendFunction::None())
+        {
+            pAttachmentBlendFunction = &attachmentDesc.blendFunction;
+        }
+
+        const bool blendEnabled = *pAttachmentBlendFunction != BlendFunction::None()
+            && TextureUtils::FormatSupportsBlending(attachmentDesc.format);
 
         static constexpr VkBlendOp ColorBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
         static constexpr VkBlendOp AlphaBlendOps[] = { VK_BLEND_OP_ADD, VK_BLEND_OP_ADD, VK_BLEND_OP_ADD };
 
         colorBlendAttachments.PushBack(VkPipelineColorBlendAttachmentState {
             .blendEnable = blendEnabled,
-            .srcColorBlendFactor = ToVkBlendFactor(m_blendFunction.GetSrcColor()),
-            .dstColorBlendFactor = ToVkBlendFactor(m_blendFunction.GetDstColor()),
+            .srcColorBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetSrcColor()),
+            .dstColorBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetDstColor()),
             .colorBlendOp = VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = ToVkBlendFactor(m_blendFunction.GetSrcAlpha()),
-            .dstAlphaBlendFactor = ToVkBlendFactor(m_blendFunction.GetDstAlpha()),
+            .srcAlphaBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetSrcAlpha()),
+            .dstAlphaBlendFactor = ToVkBlendFactor(pAttachmentBlendFunction->GetDstAlpha()),
             .alphaBlendOp = VK_BLEND_OP_ADD,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT });
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+        });
     }
 
     VkPipelineColorBlendStateCreateInfo colorBlending { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
@@ -350,9 +299,13 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    if (m_stencilFunction.HasValue())
+    if (m_stencilWrite || m_stencilFunction.HasValue())
     {
         dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+    }
+
+    if (m_stencilFunction.HasValue())
+    {
         dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
         dynamicStates.PushBack(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
     }
@@ -363,7 +316,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const uint32 maxSetLayouts = g_renderBackend->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 maxSetLayouts = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
@@ -385,16 +338,18 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        { .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+        {
+            .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = uint32(g_renderBackend->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(g_renderInterface->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
+        }
     };
 
     layoutInfo.pushConstantRangeCount = uint32(std::size(pushConstantRanges));
     layoutInfo.pPushConstantRanges = pushConstantRanges;
 
     VULKAN_CHECK_MSG(
-        vkCreatePipelineLayout(g_renderBackend->GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
+        vkCreatePipelineLayout(g_renderInterface->GetDevice()->GetDevice(), &layoutInfo, nullptr, &m_layout),
         "Failed to create graphics pipeline layout");
 
     /* Depth / stencil */
@@ -429,7 +384,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     VkGraphicsPipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
     const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
-    HYP_GFX_ASSERT(stages.Any(), "No shader stages found");
+    Assert(stages.Any(), "No shader stages found");
 
     pipelineInfo.stageCount = uint32(stages.Size());
     pipelineInfo.pStages = stages.Data();
@@ -442,7 +397,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_layout;
-    pipelineInfo.renderPass = m_renderPass->GetVulkanHandle();
+    pipelineInfo.renderPass = renderPass->GetVulkanHandle();
     pipelineInfo.subpass = 0; /* Index of the subpass */
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
@@ -459,7 +414,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     };
 
     VULKAN_CHECK_MSG(
-        vkCreateGraphicsPipelines(g_renderBackend->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
+        vkCreateGraphicsPipelines(g_renderInterface->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
 #ifdef HYP_DEBUG_MODE
@@ -470,13 +425,6 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 #endif
 
     return {};
-}
-
-void VulkanGraphicsPipeline::SetRenderPass(const VulkanRenderPassRef& renderPass)
-{
-    SafeDelete(std::move(m_renderPass));
-
-    m_renderPass = renderPass;
 }
 
 void VulkanGraphicsPipeline::SetPushConstants(const void* data, SizeType size)
@@ -524,12 +472,14 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
 
     FlatMap<uint32, uint32> bindingSizes {};
 
-    const Array<VertexAttribute::Type> attributeTypes = attributeSet.BuildAttributes();
+    const Array<const VertexAttribute*> attributeTypes = attributeSet.BuildAttributes();
     outVkVertexAttributes.Resize(attributeTypes.Size());
 
     for (SizeType i = 0; i < attributeTypes.Size(); i++)
     {
-        const VertexAttribute& attribute = VertexAttribute::mapping[attributeTypes[i]];
+        AssertDebug(attributeTypes[i] != nullptr);
+
+        const VertexAttribute& attribute = *attributeTypes[i];
 
         outVkVertexAttributes[i] = VkVertexInputAttributeDescription {
             .location = attribute.location,
@@ -549,7 +499,8 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
         outVkVertexBindingDescriptions.PushBack(VkVertexInputBindingDescription {
             .binding = it.first,
             .stride = it.second,
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX });
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+        });
     }
 }
 

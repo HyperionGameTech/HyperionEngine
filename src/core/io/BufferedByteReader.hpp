@@ -168,7 +168,7 @@ public:
         }
 
         const SizeType numBytes = MathUtil::Min(count, m_byteView.Size() - offset);
-        Memory::MemCpy(ptr, m_byteView.Data() + offset, numBytes);
+        Memory::Copy(ptr, m_byteView.Data() + offset, numBytes);
         return numBytes;
     }
 
@@ -395,7 +395,7 @@ public:
     {
         return Read(byteBuffer.Data(), byteBuffer.Size(), [](void* ptr, const ubyte* buffer, SizeType chunkSize)
             {
-                Memory::MemCpy(ptr, buffer, chunkSize);
+                Memory::Copy(ptr, buffer, chunkSize);
             });
     }
 
@@ -403,7 +403,7 @@ public:
     {
         return Read(ptr, count, [](void* ptr, const ubyte* buffer, SizeType chunkSize)
             {
-                Memory::MemCpy(ptr, buffer, chunkSize);
+                Memory::Copy(ptr, buffer, chunkSize);
             });
     }
 

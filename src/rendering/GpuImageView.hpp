@@ -14,7 +14,7 @@ class GpuImageViewBase : public ObjectBase
     HYP_OBJECT_BODY(GpuImageViewBase);
 
 public:
-    virtual ~GpuImageViewBase() override = default;
+    virtual ~GpuImageViewBase() override;
 
     Name GetDebugName() const
     {
@@ -31,33 +31,39 @@ public:
         return m_image;
     }
 
+    HYP_FORCE_INLINE uint32 GetMipIndex() const
+    {
+        return m_mipIndex;
+    }
+
+    HYP_FORCE_INLINE uint32 NumMips() const
+    {
+        return m_numMips;
+    }
+
+    HYP_FORCE_INLINE uint32 GetLayerIndex() const
+    {
+        return m_layerIndex;
+    }
+
+    HYP_FORCE_INLINE uint32 NumArrayLayers() const
+    {
+        return m_numLayers;
+    }
+
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create() = 0;
 
 protected:
-    explicit GpuImageViewBase(const GpuImageRef& image)
-        : m_image(image),
-          m_mipIndex(0),
-          m_numMips(0),
-          m_layerIndex(0),
-          m_numLayers(0)
-    {
-    }
+    explicit GpuImageViewBase(const GpuImageRef& image);
 
     GpuImageViewBase(
         const GpuImageRef& image,
         uint32 mipIndex,
         uint32 numMips,
         uint32 layerIndex,
-        uint32 numLayers)
-        : m_image(image),
-          m_mipIndex(mipIndex),
-          m_numMips(numMips),
-          m_layerIndex(layerIndex),
-          m_numLayers(numLayers)
-    {
-    }
+        uint32 numLayers);
 
     GpuImageRef m_image;
     uint32 m_mipIndex;
@@ -73,8 +79,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanGpuImageView.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12GpuImageView.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

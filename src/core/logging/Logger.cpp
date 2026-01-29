@@ -101,9 +101,9 @@ public:
           m_redirectEnabledMask(0),
           m_redirectIdCounter(-1)
     {
-        Memory::MemSet(m_contexts, 0, sizeof(m_contexts));
-        Memory::MemSet(m_writeFnptrTable, 0, sizeof(m_writeFnptrTable));
-        Memory::MemSet(m_writeErrorFnptrTable, 0, sizeof(m_writeErrorFnptrTable));
+        Memory::Fill(m_contexts, 0, sizeof(m_contexts));
+        Memory::Fill(m_writeFnptrTable, 0, sizeof(m_writeFnptrTable));
+        Memory::Fill(m_writeErrorFnptrTable, 0, sizeof(m_writeErrorFnptrTable));
     }
 
     virtual ~BasicLoggerOutputStream() override = default;

@@ -12,10 +12,10 @@ vec4 SamplePrevEffectInChain(uint stage, uint index, vec2 texcoord, in vec4 defa
 {
     if (index == 0) {
         if (stage == HYP_STAGE_POST) {
-            return Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, texcoord);
+            return SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, texcoord);
         }
     } else {
-        return Texture2D(HYP_SAMPLER_NEAREST, effects_post_stack[index - 1], texcoord);
+        return SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[index - 1], texcoord);
     }
 
     return default_value;
@@ -29,10 +29,10 @@ vec4 SamplePrevEffectInChain(uint index_stage_combined, vec2 texcoord, in vec4 d
 
     if (index == 0) {
         if (stage == HYP_STAGE_POST) {
-            return Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, texcoord);
+            return SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, texcoord);
         }
     } else {
-        return Texture2D(HYP_SAMPLER_NEAREST, effects_post_stack[index - 1], texcoord);
+        return SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[index - 1], texcoord);
     }
 
     return default_value;
@@ -46,10 +46,10 @@ vec4 SamplePrevEffectInChain(vec2 texcoord, in vec4 default_value)
 
     if (index == 0) {
         if (stage == HYP_STAGE_POST) {
-            return Texture2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, texcoord);
+            return SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_deferred_result, texcoord);
         }
     } else {
-        return Texture2D(HYP_SAMPLER_NEAREST, effects_post_stack[index - 1], texcoord);
+        return SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, effects_post_stack[index - 1], texcoord);
     }
 
     return default_value;

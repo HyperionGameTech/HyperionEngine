@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include <rendering/Framebuffer.hpp>
-#include <rendering/GpuImage.hpp>
 #include <rendering/GpuBuffer.hpp>
+#include <rendering/GpuImage.hpp>
+#include <rendering/Framebuffer.hpp>
 #include <rendering/CommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/RenderableAttributes.hpp>
+#include <rendering/Vertex.hpp>
 #include <rendering/Shared.hpp>
 
 // Uncomment to enable trace collection for commands.
@@ -20,19 +22,21 @@
 namespace Hyperion {
 
 class CmdBase;
+class View;
+class RenderGroup;
 
 class CmdBase
 {
 public:
-    static inline void PrepareStatic(CmdBase* cmd, Frame* frame)
-    {
-    }
-
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
     RawStackTrace trace;
 #else
     CmdBase() = default;
 #endif
+    
+    static void PrepareStatic(CmdBase*, Frame*)
+    {
+    }
 };
 
 class BindVertexBuffer final : public CmdBase
@@ -41,7 +45,7 @@ public:
     BindVertexBuffer(GpuBuffer* buffer)
         : m_buffer(buffer)
     {
-        HYP_GFX_ASSERT(buffer && buffer->IsCreated());
+        Assert(buffer && buffer->IsCreated());
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -64,7 +68,7 @@ public:
     BindIndexBuffer(GpuBuffer* buffer)
         : m_buffer(buffer)
     {
-        HYP_GFX_ASSERT(buffer && buffer->IsCreated());
+        Assert(buffer && buffer->IsCreated());
     }
 
     static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -114,9 +118,9 @@ public:
         : m_buffer(buffer),
           m_bufferOffset(bufferOffset)
     {
-        HYP_GFX_ASSERT(buffer != nullptr && buffer->IsCreated());
-#ifdef HYP_VULKAN
-        HYP_GFX_ASSERT(bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= buffer->Size());
+        Assert(buffer != nullptr && buffer->IsCreated());
+#if HYP_VULKAN
+        Assert(bufferOffset + /*sizeof(VkDrawIndexedIndirectCommand)*/ 20 <= buffer->Size());
 #endif
     }
 
@@ -144,18 +148,10 @@ public:
 class BeginFramebuffer final : public CmdBase
 {
 public:
-    HYP_API BeginFramebuffer(Framebuffer* framebuffer);
-    HYP_API static void PrepareStatic(CmdBase* cmd, Frame* frame);
+    BeginFramebuffer(Framebuffer* framebuffer);
+    static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        BeginFramebuffer* cmdCasted = static_cast<BeginFramebuffer*>(cmd);
-
-        cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<BeginFramebuffer>);
-        // cmdCasted->~BeginFramebuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     Framebuffer* m_framebuffer;
@@ -164,18 +160,10 @@ private:
 class EndFramebuffer final : public CmdBase
 {
 public:
-    HYP_API EndFramebuffer(Framebuffer* framebuffer);
-    HYP_API static void PrepareStatic(CmdBase* cmd, Frame* frame);
+    EndFramebuffer(Framebuffer* framebuffer);
+    static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        EndFramebuffer* cmdCasted = static_cast<EndFramebuffer*>(cmd);
-
-        cmdCasted->m_framebuffer->EndCapture(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<EndFramebuffer>);
-        // cmdCasted->~EndFramebuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     Framebuffer* m_framebuffer;
@@ -189,15 +177,7 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        ClearFramebuffer* cmdCasted = static_cast<ClearFramebuffer*>(cmd);
-
-        cmdCasted->m_framebuffer->Clear(commandBuffer);
-
-        static_assert(std::is_trivially_destructible_v<ClearFramebuffer>);
-        // cmdCasted->~ClearFramebuffer();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     Framebuffer* m_framebuffer;
@@ -206,31 +186,23 @@ private:
 class BindGraphicsPipeline final : public CmdBase
 {
 public:
-#ifdef HYP_DEBUG_MODE
-    HYP_API BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport);
-    HYP_API BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
-    HYP_API BindGraphicsPipeline(GraphicsPipeline* pipeline);
-#else
     BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport)
         : m_pipeline(pipeline),
           m_viewport(viewport)
     {
     }
 
-    BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent);
+    BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
         : m_pipeline(pipeline),
           m_viewport(Viewport { viewportExtent, viewportOffset })
-        {
-        }
+    {
+    }
 
-        BindGraphicsPipeline(GraphicsPipeline* pipeline)
-            : m_pipeline(pipeline),
-              m_viewport()
-        {
-        }
-#endif
-
-    HYP_API static void PrepareStatic(CmdBase* cmd, Frame*);
+    BindGraphicsPipeline(GraphicsPipeline* pipeline)
+        : m_pipeline(pipeline),
+            m_viewport()
+    {
+    }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
@@ -253,10 +225,10 @@ private:
     ComputePipeline* m_pipeline;
 };
 
-class BindRaytracingPipeline final : public CmdBase
+class BindRayTracingPipeline final : public CmdBase
 {
 public:
-    BindRaytracingPipeline(RaytracingPipeline* pipeline)
+    BindRayTracingPipeline(RayTracingPipeline* pipeline)
         : m_pipeline(pipeline)
     {
     }
@@ -264,7 +236,7 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RaytracingPipeline* m_pipeline;
+    RayTracingPipeline* m_pipeline;
 };
 
 class BindDescriptorSet final : public CmdBase
@@ -274,8 +246,8 @@ public:
     BindDescriptorSet(DescriptorSet* descriptorSet, GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
     BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
     BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
-    BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
-    BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
+    BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets = {});
+    BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex);
 
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
@@ -286,11 +258,11 @@ private:
     {
         GraphicsPipeline* m_graphicsPipeline;
         ComputePipeline* m_computePipeline;
-        RaytracingPipeline* m_raytracingPipeline;
+        RayTracingPipeline* m_rayTracingPipeline;
     };
     DescriptorSetOffsetMap m_offsets;
     uint32 m_bindIndex;
-    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = Raytracing
+    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = RayTracing
 };
 
 class BindDescriptorTable final : public CmdBase
@@ -298,7 +270,7 @@ class BindDescriptorTable final : public CmdBase
 public:
     BindDescriptorTable(DescriptorTable* descriptorTable, GraphicsPipeline* graphicsPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
     BindDescriptorTable(DescriptorTable* descriptorTable, ComputePipeline* computePipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
-    BindDescriptorTable(DescriptorTable* descriptorTable, RaytracingPipeline* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
+    BindDescriptorTable(DescriptorTable* descriptorTable, RayTracingPipeline* rayTracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex);
 
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
@@ -310,19 +282,19 @@ private:
     {
         GraphicsPipeline* m_graphicsPipeline;
         ComputePipeline* m_computePipeline;
-        RaytracingPipeline* m_raytracingPipeline;
+        RayTracingPipeline* m_rayTracingPipeline;
     };
 
     DescriptorTableOffsetMap m_offsets;
     uint32 m_frameIndex;
 
-    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = Raytracing
+    uint8 m_pipelineType : 2; // 0 = Graphics, 1 = Compute, 2 = RayTracing
 };
 
 class InsertBarrier final : public CmdBase
 {
 public:
-    InsertBarrier(GpuBuffer* buffer, const ResourceState& state, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuBuffer* buffer, const ResourceState& state, ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(buffer),
           m_image(nullptr),
           m_state(state),
@@ -331,7 +303,7 @@ public:
     {
     }
 
-    InsertBarrier(GpuImage* image, const ResourceState& state, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuImage* image, const ResourceState& state, ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
@@ -340,7 +312,7 @@ public:
     {
     }
 
-    InsertBarrier(GpuImage* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuImage* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
@@ -397,32 +369,33 @@ public:
     Blit(GpuImage* srcImage, GpuImage* dstImage)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
-          m_hasMipFaceInfo(false),
-          m_hasSrcRect(false),
-          m_hasDstRect(false)
+          m_hasSubResource(false),
+          m_hasRect(false)
     {
     }
 
-    Blit(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+    Blit(GpuImage* srcImage, GpuImage* dstImage,
+        const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
-          m_hasMipFaceInfo(false),
-          m_hasSrcRect(true),
-          m_hasDstRect(true)
+          m_hasSubResource(false),
+          m_hasRect(true)
     {
     }
 
-    Blit(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect, uint32 srcMip, uint32 dstMip, uint32 srcFace, uint32 dstFace)
+    Blit(GpuImage* srcImage, GpuImage* dstImage,
+        const Rect<uint32>& srcRect, const Rect<uint32>& dstRect,
+        const ImageSubResource& srcSubResource, const ImageSubResource& dstSubResource)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
           m_dstRect(dstRect),
-          m_mipFaceInfo(MipFaceInfo { srcMip, dstMip, srcFace, dstFace }),
-          m_hasMipFaceInfo(true),
-          m_hasSrcRect(true),
-          m_hasDstRect(true)
+          m_srcSubResource(srcSubResource),
+          m_dstSubResource(dstSubResource),
+          m_hasSubResource(true),
+          m_hasRect(true)
     {
     }
 
@@ -430,22 +403,17 @@ public:
     {
         Blit* cmdCasted = static_cast<Blit*>(cmd);
 
-        if (cmdCasted->m_hasMipFaceInfo)
+        if (cmdCasted->m_hasSubResource)
         {
-            MipFaceInfo info = cmdCasted->m_mipFaceInfo;
-
-            if (cmdCasted->m_hasSrcRect && cmdCasted->m_hasDstRect)
-            {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect, info.srcMip, info.dstMip, info.srcFace, info.dstFace);
-            }
-            else
-            {
-                cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, info.srcMip, info.dstMip, info.srcFace, info.dstFace);
-            }
+            cmdCasted->m_dstImage->Blit(
+                commandBuffer, 
+                cmdCasted->m_srcImage,
+                cmdCasted->m_srcRect, cmdCasted->m_dstRect,
+                cmdCasted->m_srcSubResource, cmdCasted->m_dstSubResource);
         }
         else
         {
-            if (cmdCasted->m_hasSrcRect && cmdCasted->m_hasDstRect)
+            if (cmdCasted->m_hasRect)
             {
                 cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
             }
@@ -460,31 +428,23 @@ public:
     }
 
 private:
-    struct MipFaceInfo
-    {
-        uint32 srcMip;
-        uint32 dstMip;
-        uint32 srcFace;
-        uint32 dstFace;
-    };
-
     GpuImage* m_srcImage;
     GpuImage* m_dstImage;
 
-    MipFaceInfo m_mipFaceInfo;
+    ImageSubResource m_srcSubResource;
+    ImageSubResource m_dstSubResource;
 
     Rect<uint32> m_srcRect;
     Rect<uint32> m_dstRect;
 
-    bool m_hasMipFaceInfo : 1;
-    bool m_hasSrcRect : 1;
-    bool m_hasDstRect : 1;
+    bool m_hasSubResource : 1;
+    bool m_hasRect : 1;
 };
 
 class BlitRect final : public CmdBase
 {
 public:
-    BlitRect(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+    HYP_DEPRECATED BlitRect(GpuImage* srcImage, GpuImage* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
@@ -496,7 +456,10 @@ public:
     {
         BlitRect* cmdCasted = static_cast<BlitRect*>(cmd);
 
-        cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
+        cmdCasted->m_dstImage->Blit(
+            commandBuffer,
+            cmdCasted->m_srcImage,
+            cmdCasted->m_srcRect, cmdCasted->m_dstRect);
 
         static_assert(std::is_trivially_destructible_v<BlitRect>);
         // cmdCasted->~BlitRect();
@@ -657,6 +620,12 @@ private:
 class DispatchCompute final : public CmdBase
 {
 public:
+    explicit DispatchCompute(Vec3u workgroupCount)
+        : m_pipeline(nullptr),
+          m_workgroupCount(workgroupCount)
+    {
+    }
+
     DispatchCompute(ComputePipeline* pipeline, Vec3u workgroupCount)
         : m_pipeline(pipeline),
           m_workgroupCount(workgroupCount)
@@ -673,7 +642,13 @@ private:
 class TraceRays final : public CmdBase
 {
 public:
-    TraceRays(RaytracingPipeline* pipeline, const Vec3u& workgroupCount)
+    explicit TraceRays(const Vec3u& workgroupCount)
+        : m_pipeline(nullptr),
+          m_workgroupCount(workgroupCount)
+    {
+    }
+
+    TraceRays(RayTracingPipeline* pipeline, const Vec3u& workgroupCount)
         : m_pipeline(pipeline),
           m_workgroupCount(workgroupCount)
     {
@@ -682,7 +657,7 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RaytracingPipeline* m_pipeline;
+    RayTracingPipeline* m_pipeline;
     Vec3u m_workgroupCount;
 };
 
@@ -696,22 +671,219 @@ public:
     {
     }
 
-    static inline void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-    {
-        SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
-
-        commandBuffer->stencilReference = cmdCasted->m_referenceValue;
-        commandBuffer->stencilCompareMask = cmdCasted->m_compareMask;
-        commandBuffer->stencilWriteMask = cmdCasted->m_writeMask;
-
-        static_assert(std::is_trivially_destructible_v<SetStencilState>);
-        // cmdCasted->~SetStencilState();
-    }
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
     uint8 m_referenceValue;
     uint8 m_compareMask;
     uint8 m_writeMask;
+};
+
+class SetCurrentShader final : public CmdBase
+{
+public:
+    explicit SetCurrentShader(const ShaderDesc& shaderDesc)
+        : shaderDesc(shaderDesc)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    ShaderDesc shaderDesc;
+};
+
+class SetCurrentView final : public CmdBase
+{
+public:
+    SetCurrentView(const RenderTargetDesc& renderTargetDesc, const Viewport& viewport)
+        : renderTargetDesc(renderTargetDesc),
+          viewport(viewport)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    RenderTargetDesc renderTargetDesc;
+    Viewport viewport;
+};
+
+class SetTopology final : public CmdBase
+{
+public:
+    explicit SetTopology(Topology topology)
+        : topology(topology)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    Topology topology;
+};
+
+class SetVertexAttributes final : public CmdBase
+{
+public:
+    explicit SetVertexAttributes(VertexAttributeSet vertexAttributes)
+        : vertexAttributes(vertexAttributes)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    VertexAttributeSet vertexAttributes;
+};
+
+class SetCurrentBlendFunction final : public CmdBase
+{
+public:
+    explicit SetCurrentBlendFunction(const BlendFunction& blendFunction)
+        : blendFunction(blendFunction)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    BlendFunction blendFunction;
+};
+
+class SetDepthWrite final : public CmdBase
+{
+public:
+    explicit SetDepthWrite(bool depthWrite)
+        : depthWrite(depthWrite)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool depthWrite;
+};
+
+class SetDepthTest final : public CmdBase
+{
+public:
+    explicit SetDepthTest(bool depthTest)
+        : depthTest(depthTest)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool depthTest;
+};
+
+class SetStencilTest final : public CmdBase
+{
+public:
+    explicit SetStencilTest(bool stencilTest)
+        : stencilTest(stencilTest)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool stencilTest;
+};
+
+class SetStencilFunction final : public CmdBase
+{
+public:
+    explicit SetStencilFunction(StencilFunction stencilFunction)
+        : stencilFunction(stencilFunction)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    StencilFunction stencilFunction;
+};
+
+class SetFillMode final : public CmdBase
+{
+public:
+    explicit SetFillMode(FillMode fillMode)
+        : fillMode(fillMode)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    FillMode fillMode;
+};
+
+class SetFaceCullMode final : public CmdBase
+{
+public:
+    explicit SetFaceCullMode(FaceCullMode faceCullMode)
+        : faceCullMode(faceCullMode)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    FaceCullMode faceCullMode;
+};
+
+class SetShaderUniform final : public CmdBase
+{
+public:
+    SetShaderUniform(uint32 uniformIndex, const ShaderUniform& uniform)
+        : uniformIndex(uniformIndex),
+          bufferOffset(0),
+          uniform(uniform)
+    {
+    }
+
+    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuBuffer* buffer, uint32 bufferOffset = 0)
+        : uniformIndex(uniformIndex),
+          bufferOffset(bufferOffset),
+          uniform { name, buffer }
+    {
+    }
+    
+    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuImageView* imageView)
+        : uniformIndex(uniformIndex),
+          uniform { name, imageView }
+    {
+    }
+    
+    SetShaderUniform(uint32 uniformIndex, StringHash name, Sampler* sampler)
+        : uniformIndex(uniformIndex),
+          uniform { name, sampler }
+    {
+    }
+    
+    SetShaderUniform(uint32 uniformIndex, StringHash name, GpuTlas* tlas)
+        : uniformIndex(uniformIndex),
+          uniform { name, tlas }
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    uint32 uniformIndex;
+    uint32 bufferOffset;
+    ShaderUniform uniform;
+};
+
+class CommitDrawState final : public CmdBase
+{
+public:
+    CommitDrawState() = default;
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 };
 
 class RenderQueueBase
@@ -778,8 +950,8 @@ public:
         using TCmd = NormalizedType<CmdType>;
         static_assert(alignof(TCmd) <= 16, "CmdType should have alignment <= 16!");
 
-        static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
-            "CmdType should be trivially copyable and destructible!");
+        //static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
+         //   "CmdType should be trivially copyable and destructible!");
 
         constexpr SizeType CmdSize = sizeof(TCmd);
 
@@ -836,7 +1008,7 @@ public:
         SizeType cmdsOffset = m_cmdHeaders.Size();
 
         // Reconstruct the commands into our memory
-        Memory::MemCpy(m_buffer.Data() + newStartOffset, other.m_buffer.Data(), other.m_offset);
+        Memory::Copy(m_buffer.Data() + newStartOffset, other.m_buffer.Data(), other.m_offset);
 
         // Add headers and update offsets
         for (const CmdHeader& cmdHeader : other.m_cmdHeaders)

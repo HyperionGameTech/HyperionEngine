@@ -23,9 +23,9 @@ void FXAAEffect::OnRemoved()
 {
 }
 
-ShaderRef FXAAEffect::CreateShader()
+ShaderDesc FXAAEffect::GetShaderDesc()
 {
-    return ShaderManager::GetInstance()->GetOrCreate(NAME("FXAA"));
+    return ShaderDesc(NAME("FXAA"));
 }
 
 } // namespace Hyperion

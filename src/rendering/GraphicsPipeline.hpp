@@ -12,12 +12,46 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/math/Vertex.hpp>
-
 namespace Hyperion {
 
 class RenderableAttributeSet;
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
+
+struct PSOCacheKey
+{
+    HashCode hashCode;
+
+    PSOCacheKey()
+    {
+    }
+
+    PSOCacheKey(
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc);
+    
+    PSOCacheKey(const PSOCacheKey& other) = default;
+    PSOCacheKey& operator=(const PSOCacheKey& other) = default;
+
+    HYP_FORCE_INLINE constexpr bool operator==(const PSOCacheKey& other) const
+    {
+        return hashCode == other.hashCode;
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator!=(const PSOCacheKey& other) const
+    {
+        return hashCode != other.hashCode;
+    }
+
+    HYP_FORCE_INLINE constexpr operator HashCode() const
+    {
+        return hashCode;
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return hashCode;
+    }
+};
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class GraphicsPipelineBase : public ObjectBase
@@ -77,16 +111,6 @@ public:
         m_blendFunction = blendFunction;
     }
 
-    HYP_FORCE_INLINE const Optional<StencilFunction>& GetStencilFunction() const
-    {
-        return m_stencilFunction;
-    }
-
-    HYP_FORCE_INLINE void SetStencilFunction(const Optional<StencilFunction>& optStencilFunction)
-    {
-        m_stencilFunction = optStencilFunction;
-    }
-
     HYP_FORCE_INLINE bool GetDepthTest() const
     {
         return m_depthTest;
@@ -107,6 +131,26 @@ public:
         m_depthWrite = depthWrite;
     }
 
+    HYP_FORCE_INLINE const Optional<StencilFunction>& GetStencilFunction() const
+    {
+        return m_stencilFunction;
+    }
+
+    HYP_FORCE_INLINE void SetStencilFunction(const Optional<StencilFunction>& optStencilFunction)
+    {
+        m_stencilFunction = optStencilFunction;
+    }
+
+    HYP_FORCE_INLINE bool GetStencilWrite() const
+    {
+        return m_stencilWrite;
+    }
+
+    HYP_FORCE_INLINE void SetStencilWrite(bool stencilWrite)
+    {
+        m_stencilWrite = stencilWrite;
+    }
+
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -114,12 +158,12 @@ public:
 
     void SetShader(const ShaderRef& shader);
 
-    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
+    HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
     {
-        return m_framebuffers;
+        return m_renderTargetDesc;
     }
 
-    void SetFramebuffers(const Array<FramebufferRef>& framebuffers);
+    void SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc);
 
     Name GetDebugName() const
     {
@@ -131,6 +175,11 @@ public:
         m_debugName = name;
     }
 
+    HYP_FORCE_INLINE const PSOCacheKey& GetPSOCacheKey() const
+    {
+        return m_psoCacheKey;
+    }
+
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create();
@@ -140,10 +189,9 @@ public:
     virtual void Bind(CommandBuffer* commandBuffer) = 0;
     virtual void Bind(CommandBuffer* commandBuffer, Vec2i viewportOffset, Vec2u viewportExtent) = 0;
 
-    virtual bool MatchesSignature(
-        const Shader* shader,
-        const Array<const Framebuffer*>& framebuffers,
-        const RenderableAttributeSet& attributes) const;
+    bool MatchesSignature(
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc) const;
 
     // Deprecated - will be removed to decouple from vulkan
     HYP_DEPRECATED virtual void SetPushConstants(const void* data, SizeType size) = 0;
@@ -169,13 +217,16 @@ protected:
     FillMode m_fillMode = FM_FILL;
     BlendFunction m_blendFunction = BlendFunction::None();
 
-    Optional<StencilFunction> m_stencilFunction;
-
     bool m_depthTest = true;
     bool m_depthWrite = true;
 
+    bool m_stencilWrite = false;
+    Optional<StencilFunction> m_stencilFunction;
+
     ShaderRef m_shader;
-    Array<FramebufferRef> m_framebuffers;
+    RenderTargetDesc m_renderTargetDesc;
+    
+    PSOCacheKey m_psoCacheKey;
 
 #ifdef HYP_DEBUG_MODE
     Name m_debugName;
@@ -187,8 +238,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12GraphicsPipeline.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

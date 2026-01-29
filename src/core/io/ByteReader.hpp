@@ -138,7 +138,7 @@ protected:
             return;
         }
 
-        Memory::MemCpy(ptr, m_byteBuffer->Data() + m_pos, size);
+        Memory::Copy(ptr, m_byteBuffer->Data() + m_pos, size);
         m_pos += size;
     }
 

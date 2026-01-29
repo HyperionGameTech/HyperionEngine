@@ -89,6 +89,7 @@ struct ClassDefinition
     Array<String> baseClassNames;
     Array<MemberDef> members;
     Array<String> namespaceParts;
+    String condition; // preprocessor condition for this class to be defined
     String source;
     Module* declModule = nullptr;
 

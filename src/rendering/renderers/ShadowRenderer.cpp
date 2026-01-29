@@ -10,7 +10,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/FullScreenPass.hpp>
@@ -18,6 +17,7 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <scene/Light.hpp>
@@ -45,33 +45,15 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
 {
     AssertDebug(views.Size() == 2, "Combine pass requires 2 views (one for static objects, one for dynamic objects)");
 
-    ShaderProperties properties;
+    ShaderPropertySet properties;
 
     if (filterMode == SMF_VSM)
     {
-        properties.Set(ShaderProperty(NAME("VSM")));
+        properties.Add(InternShaderProperty(ShaderProperty(NAME("VSM"))));
     }
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("CombineShadowMaps"), properties);
-    Assert(shader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        shader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("CombineShadowMapsDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("Src0"_sh, views[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-        descriptorSet->SetElement("Src1"_sh, views[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-    }
-
-    DeferCreate(descriptorTable);
-
-    Handle<FullScreenPass> combineShadowMapsPass = CreateObject<FullScreenPass>(
-        shader,
-        descriptorTable,
+    Handle<FullScreenPass> combineShadowMapsPass = MakeHandle<FullScreenPass>(
+        ShaderDesc(NAME("CombineShadowMaps"), properties),
         format,
         dimensions,
         nullptr);
@@ -79,36 +61,6 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
     combineShadowMapsPass->Create();
 
     return combineShadowMapsPass;
-}
-
-static ComputePipelineRef CreateBlurShadowMapPipeline(const GpuImageViewRef& input, const GpuImageViewRef& output)
-{
-    Assert(input.IsValid());
-    Assert(output.IsValid());
-
-    ShaderRef blurShadowMapShader = g_shaderManager->GetOrCreate(NAME("BlurShadowMap"));
-    Assert(blurShadowMapShader.IsValid());
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(
-        blurShadowMapShader->GetCompiledShader()->GetDescriptorTableDeclaration());
-
-    // have to create descriptor sets specifically for compute shader,
-    // holding framebuffer attachment image (src), and our final shadowmap image (dst)
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("BlurShadowMapDescriptorSet"_sh, frameIndex);
-        Assert(descriptorSet != nullptr);
-
-        descriptorSet->SetElement("InputTexture"_sh, input);
-        descriptorSet->SetElement("OutputTexture"_sh, output);
-    }
-
-    DeferCreate(descriptorTable);
-
-    ComputePipelineRef blurShadowMapPipeline = g_renderBackend->MakeComputePipeline(blurShadowMapShader, descriptorTable);
-    DeferCreate(blurShadowMapPipeline);
-
-    return blurShadowMapPipeline;
 }
 
 ShadowRendererBase::ShadowRendererBase() = default;
@@ -181,7 +133,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     Light* light = renderSetup.light;
     ShadowMap* shadowMap = nullptr;
 
-    RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(RenderApi::GetRenderProxy(light));
+    RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
     Assert(lightProxy != nullptr, "Proxy for Light {} not found when rendering shadows!", light->Id());
     Assert(lightProxy->shadowViews.Any(), "Light {} proxy has no shadow view attached!", light->Id());
 
@@ -210,9 +162,12 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         /// TODO: Better check for using combined pass
         if (lightProxy->shadowViews.Size() == 2)
         {
+            GpuImage* image = shadowMap->GetImageView()->GetImage();
+            AssertDebug(image != nullptr);
+
             cacheIt->second.combineShadowMapsPass = CreateCombineShadowMapsPass(
                 shadowMap->GetFilterMode(),
-                shadowMap->GetImageView()->GetImage()->GetTextureFormat(), /// \todo get format from Light's settings
+                image->GetTextureFormat(), /// \todo get format from Light's settings
                 shadowMap->GetAtlasElement()->dimensions,
                 lightProxy->shadowViews);
 
@@ -221,18 +176,15 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
         if (shadowMap->GetFilterMode() == SMF_VSM)
         {
-            const GpuImageViewRef& inputImageView = cacheIt->second.combineShadowMapsPass != nullptr
-                ? cacheIt->second.combineShadowMapsPass->GetFinalImageView()
-                : lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                cacheIt->second.blurUniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(Vec2u) * 3);
+                cacheIt->second.blurUniformBuffers[frameIndex]->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));
+                DeferCreate(cacheIt->second.blurUniformBuffers[frameIndex]);
+            }
 
-            Assert(inputImageView.IsValid());
-
-            /// TODO: Blur into separate texture before blitting to final shadow map,
-            /// or we'll end up blurring other maps in the atlas multiple times!
-            cacheIt->second.csBlurShadowMap = CreateBlurShadowMapPipeline(inputImageView, shadowMap->GetImageView());
+            /// TODO: Add re-alloc of shadow maps if parameters have changed
         }
-
-        /// TODO: Add re-alloc of shadow maps if parameters have changed
     }
     else
     {
@@ -250,14 +202,13 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     lightProxy->bufferData.offsetUv = atlasElement.offsetUv;
     lightProxy->bufferData.layerIndex = atlasElement.layerIndex;
 
-    RenderApi::UpdateGpuData(light);
+    UpdateGpuData(light);
 
     const GpuImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();
     Assert(shadowMapImage.IsValid());
     Assert(atlasElement.layerIndex < shadowMapImage->NumLayers());
 
     FullScreenPass* combineShadowMapsPass = cacheIt->second.combineShadowMapsPass.Get();
-    const ComputePipelineRef& csBlurShadowMap = cacheIt->second.csBlurShadowMap;
 
     const bool useVsm = shadowMap->GetFilterMode() == SMF_VSM;
 
@@ -281,7 +232,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         ShadowRendererPassData* pd = ObjCast<ShadowRendererPassData>(rs.passData);
         AssertDebug(pd != nullptr);
 
-        RenderProxyList& rpl = RenderApi::GetConsumerProxyList(shadowView);
+        RenderProxyList& rpl = GetConsumerProxyList(shadowView);
         rpl.BeginRead();
         renderProxyLists.PushBack(&rpl);
 
@@ -291,7 +242,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             continue;
         }
 
-        RenderCollector& renderCollector = RenderApi::GetRenderCollector(shadowView);
+        RenderCollector& renderCollector = GetRenderCollector(shadowView);
         renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT) | (1u << RB_LIGHTMAP)));
 
         if (!combineShadowMapsPass)
@@ -308,7 +259,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 atlasElement.layerIndex, numLayers, numLayers, (atlasElement.layerIndex * numLayers) + numLayers,
                 shadowMapImage->NumArrayLayers());
 
-            const ImageSubResource subResource {
+            const ImageSubResource baseSubResource {
                 .baseArrayLayer = (atlasElement.layerIndex * numLayers),
                 .baseMipLevel = 0,
                 .numLayers = numLayers,
@@ -316,7 +267,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             };
 
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
-            frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, subResource);
+            frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, baseSubResource);
 
             for (uint32 layerIndex = 0; layerIndex < numLayers; layerIndex++)
             {
@@ -328,30 +279,47 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                         atlasElement.offsetCoords.x,
                         atlasElement.offsetCoords.y,
                         atlasElement.offsetCoords.x + atlasElement.dimensions.x,
-                        atlasElement.offsetCoords.y + atlasElement.dimensions.y },
-                    0,                                      /* srcMip */
-                    subResource.baseMipLevel,               /* dstMip */
-                    layerIndex,                             /* srcFace */
-                    subResource.baseArrayLayer + layerIndex /* dstFace */
+                        atlasElement.offsetCoords.y + atlasElement.dimensions.y
+                    },
+                    ImageSubResource {
+                        .baseArrayLayer = layerIndex,
+                        .baseMipLevel = 0,
+                        .numLayers = 1
+                    },
+                    ImageSubResource {
+                        .baseArrayLayer = baseSubResource.baseArrayLayer + layerIndex,
+                        .baseMipLevel = baseSubResource.baseMipLevel,
+                        .numLayers = 1,
+                        .numLevels = 1
+                    }
                 );
             }
 
-            frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, subResource);
+            frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, baseSubResource);
             frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
         }
     }
 
     if (combineShadowMapsPass)
     {
-        AssertDebug(lightProxy->shadowViews[0]->GetViewDesc().outputTargetDesc.numViews == 1,
+        AssertDebug(lightProxy->shadowViews[0]->GetViewDesc().renderTargetDesc.numLayers == 1,
             "Combining static and dynamic shadow maps does not support cubemap targets!");
 
         RenderSetup rs = renderSetup;
-        // FullScreenPass::Render needs a View set
+        // FullScreenPass::Begin() needs a View set
         rs.view = lightProxy->shadowViews[0];
 
-        // Combine passes into one
-        combineShadowMapsPass->Render(frame, rs);
+        { // Combine passes into one
+            combineShadowMapsPass->Begin(frame, rs);
+
+            frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+            frame->renderQueue << SetShaderUniform(5, "Src0"_sh, lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+            frame->renderQueue << SetShaderUniform(6, "Src1"_sh, lightProxy->shadowViews[1]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+
+            combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
+
+            combineShadowMapsPass->End(frame, rs);
+        }
 
         AttachmentBase* attachment = combineShadowMapsPass->GetFramebuffer()->GetAttachment(0);
         Assert(attachment != nullptr);
@@ -372,11 +340,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 atlasElement.offsetCoords.x,
                 atlasElement.offsetCoords.y,
                 atlasElement.offsetCoords.x + atlasElement.dimensions.x,
-                atlasElement.offsetCoords.y + atlasElement.dimensions.y },
-            0,                      /* srcMip */
-            0,                      /* dstMip */
-            0,                      /* srcFace */
-            atlasElement.layerIndex /* dstFace */
+                atlasElement.offsetCoords.y + atlasElement.dimensions.y
+            },
+            ImageSubResource {
+                .baseArrayLayer = 0,
+                .numLayers = 1
+            },
+            ImageSubResource {
+                .baseArrayLayer = atlasElement.layerIndex,
+                .numLayers = 1
+            }
         );
 
         // put the images back into a state for reading
@@ -386,39 +359,49 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
     if (useVsm)
     {
-        AssertDebug(csBlurShadowMap.IsValid());
+        const GpuImageViewRef& inputImageView = cacheIt->second.combineShadowMapsPass != nullptr
+            ? cacheIt->second.combineShadowMapsPass->GetFinalImageView()
+            : lightProxy->shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
 
-        struct
+        Assert(inputImageView.IsValid());
+
+        struct alignas(16)
         {
             Vec2u imageDimensions;
             Vec2u dimensions;
             Vec2u offset;
-        } pushConstants;
+        } uniformData;
 
-        pushConstants.imageDimensions = shadowMapImage->GetExtent().GetXY();
-        pushConstants.dimensions = atlasElement.dimensions;
-        pushConstants.offset = atlasElement.offsetCoords;
+        uniformData.imageDimensions = shadowMapImage->GetExtent().GetXY();
+        uniformData.dimensions = atlasElement.dimensions;
+        uniformData.offset = atlasElement.offsetCoords;
 
-        csBlurShadowMap->SetPushConstants(&pushConstants, sizeof(pushConstants));
+        const uint32 frameIndex = frame->GetFrameIndex();
+        cacheIt->second.blurUniformBuffers[frameIndex]->Copy(sizeof(uniformData), &uniformData);
 
-        // blur the image using compute shader
-        frame->renderQueue << BindComputePipeline(csBlurShadowMap);
+        RenderQueue& rq = frame->renderQueue;
 
-        // bind descriptor set containing info needed to blur
-        frame->renderQueue << BindDescriptorTable(csBlurShadowMap->GetDescriptorTable(), csBlurShadowMap, {}, frame->GetFrameIndex());
+        rq << SetCurrentShader(ShaderDesc(NAME("BlurShadowMap")));
+
+        uint32 numShaderUniforms = 0;
+
+        rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
+        rq << SetShaderUniform(numShaderUniforms++, "InputTexture"_sh, inputImageView);
+        rq << SetShaderUniform(numShaderUniforms++, "OutputTexture"_sh, shadowMap->GetImageView());
+        rq << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cacheIt->second.blurUniformBuffers[frameIndex]);
 
         // put our shadow map in a state for writing
-        frame->renderQueue << InsertBarrier(shadowMapImage, RS_UNORDERED_ACCESS, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
-        frame->renderQueue << DispatchCompute(csBlurShadowMap, Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
+        rq << InsertBarrier(shadowMapImage, RS_UNORDERED_ACCESS, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        rq << DispatchCompute(Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
 
         // put shadow map back into readable state
-        frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        rq << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
     }
 }
 
 Handle<PassData> ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    Handle<ShadowRendererPassData> pd = CreateObject<ShadowRendererPassData>();
+    Handle<ShadowRendererPassData> pd = MakeHandle<ShadowRendererPassData>();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 
@@ -450,8 +433,5 @@ ShadowMap* DirectionalShadowRenderer::AllocateShadowMap(Light* light)
 }
 
 #pragma endregion DirectionalShadowRenderer
-
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray, 1);
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray, 1);
 
 } // namespace Hyperion

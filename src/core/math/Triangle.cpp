@@ -14,24 +14,19 @@ Triangle::Triangle()
 {
 }
 
-Triangle::Triangle(const Vertex& v0, const Vertex& v1, const Vertex& v2)
+Triangle::Triangle(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2)
     : points({ v0, v1, v2 })
 {
 }
 
-Triangle::Triangle(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2)
-    : points({ Vertex(v0), Vertex(v1), Vertex(v2) })
+Vec3f& Triangle::Closest(const Vec3f& vec)
 {
-}
-
-Vertex& Triangle::Closest(const Vec3f& vec)
-{
-    float distances[3];
+    float distances[3] {};
     uint32 shortestIndex = 0;
 
     for (uint32 i = 0; i < 3; i++)
     {
-        distances[i] = points[i].GetPosition().DistanceSquared(vec);
+        distances[i] = points[i].DistanceSquared(vec);
 
         if (i != 0)
         {
@@ -45,7 +40,7 @@ Vertex& Triangle::Closest(const Vec3f& vec)
     return points[shortestIndex];
 }
 
-const Vertex& Triangle::Closest(const Vec3f& vec) const
+const Vec3f& Triangle::Closest(const Vec3f& vec) const
 {
     return const_cast<Triangle*>(this)->Closest(vec);
 }
@@ -53,16 +48,16 @@ const Vertex& Triangle::Closest(const Vec3f& vec) const
 BoundingBox Triangle::GetBoundingBox() const
 {
     return BoundingBox()
-        .Union(points[0].GetPosition())
-        .Union(points[1].GetPosition())
-        .Union(points[2].GetPosition());
+        .Union(points[0])
+        .Union(points[1])
+        .Union(points[2]);
 }
 
 bool Triangle::ContainsPoint(const Vec3f& pt) const
 {
-    const Vec3f v0 = points[2].GetPosition() - points[0].GetPosition();
-    const Vec3f v1 = points[1].GetPosition() - points[0].GetPosition();
-    const Vec3f v2 = pt - points[0].GetPosition();
+    const Vec3f v0 = points[2] - points[0];
+    const Vec3f v1 = points[1] - points[0];
+    const Vec3f v2 = pt - points[0];
 
     const float dot00 = v0.Dot(v0);
     const float dot01 = v0.Dot(v1);
@@ -79,17 +74,11 @@ bool Triangle::ContainsPoint(const Vec3f& pt) const
 
 Triangle operator*(const Mat4f& transform, const Triangle& triangle)
 {
-    const Mat4f normalMatrix = transform.Inverted().Transposed();
-
     Triangle result;
 
     for (SizeType i = 0; i < 3; i++)
     {
-        result.points[i] = triangle.points[i];
-        result.points[i].SetPosition(transform * triangle.points[i].GetPosition());
-        result.points[i].SetNormal((normalMatrix * Vec4f(triangle.points[i].GetNormal(), 0.0f)).GetXYZ());
-        result.points[i].SetTangent((normalMatrix * Vec4f(triangle.points[i].GetTangent(), 0.0f)).GetXYZ());
-        result.points[i].SetBitangent((normalMatrix * Vec4f(triangle.points[i].GetBitangent(), 0.0f)).GetXYZ());
+        result.points[i] = transform * triangle.points[i];
     }
 
     return result;

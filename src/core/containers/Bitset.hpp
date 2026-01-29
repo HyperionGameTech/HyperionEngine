@@ -161,17 +161,26 @@ public:
     TBitset operator<<(uint32 pos) const;
     TBitset& operator<<=(uint32 pos);
 
+    TBitset operator&(uint64 value) const;
+    TBitset& operator&=(uint64 value);
+
     template <class OtherAllocatorType>
     TBitset operator&(const TBitset<OtherAllocatorType>& other) const;
 
     template <class OtherAllocatorType>
     TBitset& operator&=(const TBitset<OtherAllocatorType>& other);
 
+    TBitset operator|(uint64 value) const;
+    TBitset& operator|=(uint64 value);
+
     template <class OtherAllocatorType>
     TBitset operator|(const TBitset<OtherAllocatorType>& other) const;
 
     template <class OtherAllocatorType>
     TBitset& operator|=(const TBitset<OtherAllocatorType>& other);
+
+    TBitset operator^(uint64 value) const;
+    TBitset& operator^=(uint64 value);
 
     template <class OtherAllocatorType>
     TBitset operator^(const TBitset<OtherAllocatorType>& other) const;
@@ -347,6 +356,16 @@ public:
         \param index The index of the bit to set.
         \param value True to set the bit, false to unset the bit. */
     void Set(BitIndex index, bool value);
+
+    /*! \brief Set the value of the bit at the given iterator position.
+        \param iter The iterator pointing to the bit to set.
+        \param value True to set the bit, false to unset the bit. */
+    void Set(Iterator iter, bool value);
+
+    /*! \brief Set the value of the bit at the given iterator position.
+        \param iter The iterator pointing to the bit to set.
+        \param value True to set the bit, false to unset the bit. */
+    void Set(ConstIterator iter, bool value);
 
     /*! \brief Clear the entire bitset.
      *  \details The bitset is cleared by setting it to its default state,
@@ -642,6 +661,35 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator<<=(uint32 pos)
 }
 
 template <class AllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator&(uint64 value) const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.Resize(MathUtil::Min(m_blocks.Size(), uint32(2)));
+
+    if (m_blocks.Size() > 0)
+    {
+        result.m_blocks[0] = m_blocks[0] & typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu);
+    }
+
+    if (m_blocks.Size() > 1)
+    {
+        result.m_blocks[1] = m_blocks[1] & typename TBitset<AllocatorType>::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull);
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator&=(uint64 value)
+{
+    *this = (*this & value);
+
+    return *this;
+}
+
+template <class AllocatorType>
 template <class OtherAllocatorType>
 TBitset<AllocatorType> TBitset<AllocatorType>::operator&(const TBitset<OtherAllocatorType>& other) const
 {
@@ -670,6 +718,43 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator&=(const TBitset<OtherAl
     }
 
     RemoveLeadingZeros();
+
+    return *this;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator|(uint64 value) const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), uint32(2)));
+
+    if (m_blocks.Size() > 0)
+    {
+        result.m_blocks[0] = m_blocks[0] | typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu);
+    }
+    else
+    {
+        result.m_blocks[0] = typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu);
+    }
+
+    if (m_blocks.Size() > 1)
+    {
+        result.m_blocks[1] = m_blocks[1] | typename TBitset<AllocatorType>::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull);
+    }
+    else
+    {
+        result.m_blocks[1] = typename TBitset<AllocatorType>::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull);
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator|=(uint64 value)
+{
+    *this = (*this | value);
 
     return *this;
 }
@@ -704,6 +789,43 @@ TBitset<AllocatorType>& TBitset<AllocatorType>::operator|=(const TBitset<OtherAl
     }
 
     RemoveLeadingZeros();
+
+    return *this;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType> TBitset<AllocatorType>::operator^(uint64 value) const
+{
+    TBitset result { m_pAllocator };
+    result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), uint32(2)));
+
+    if (m_blocks.Size() > 0)
+    {
+        result.m_blocks[0] = m_blocks[0] ^ typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu);
+    }
+    else
+    {
+        result.m_blocks[0] = typename TBitset<AllocatorType>::BlockType(value & 0xFFFFFFFFu);
+    }
+
+    if (m_blocks.Size() > 1)
+    {
+        result.m_blocks[1] = m_blocks[1] ^ typename TBitset<AllocatorType>::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull);
+    }
+    else
+    {
+        result.m_blocks[1] = typename TBitset<AllocatorType>::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull);
+    }
+
+    result.RemoveLeadingZeros();
+
+    return result;
+}
+
+template <class AllocatorType>
+TBitset<AllocatorType>& TBitset<AllocatorType>::operator^=(uint64 value)
+{
+    *this = (*this ^ value);
 
     return *this;
 }
@@ -767,6 +889,18 @@ void TBitset<AllocatorType>::Set(BitIndex index, bool value)
 
         // RemoveLeadingZeros();
     }
+}
+
+template <class AllocatorType>
+void TBitset<AllocatorType>::Set(Iterator iter, bool value)
+{
+    Set(iter.bitIndex, value);
+}
+
+template <class AllocatorType>
+void TBitset<AllocatorType>::Set(ConstIterator iter, bool value)
+{
+    Set(iter.bitIndex, value);
 }
 
 template <class AllocatorType>

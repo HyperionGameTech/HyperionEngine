@@ -237,6 +237,19 @@ const Class* ObjectBase::InstanceClass() const
     return m_header->cls;
 }
 
+int32 ObjectBase::AddRef()
+{
+    return m_header->IncRefStrong();
+}
+
+int32 ObjectBase::Release()
+{
+    uint32 count = m_header->DecRefStrong();
+    AssertDebug(count >= 0);
+
+    return count;
+}
+
 #ifdef HYP_DOTNET
 dotnet::ManagedObject* ObjectBase::GetManagedObject() const
 {

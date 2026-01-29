@@ -21,7 +21,7 @@ All types with a `Class` object must derive from `ObjectBase`. To register a cla
 ### Handle
 A [`Handle`](../src/core/reflection/Handle.hpp) is a strong reference to a `Object`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `Object` rather than a strong reference.
 
-To create a new `Handle`, use `CreateObject<T>()` where `T` is the type of the object you want to create. This will return a `Handle<T>` that can be used to access the object. The object will be automatically destroyed when the last handle to it is released.
+To create a new `Handle`, use `MakeHandle<T>()` where `T` is the type of the object you want to create. This will return a `Handle<T>` that can be used to access the object. The object will be automatically destroyed when the last handle to it is released.
 
 ## Scene management oriented:
 ### World

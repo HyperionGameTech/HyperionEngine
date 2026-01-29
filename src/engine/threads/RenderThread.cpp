@@ -15,13 +15,12 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/Device.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -38,11 +37,15 @@
 
 #include <core/threading/Threads.hpp>
 
+#include <semaphore>
+
 namespace Hyperion {
 
 extern void HandleSignal(int signum);
 
 extern EngineStatTimer g_renderTimer;
+
+extern std::binary_semaphore g_renderThreadInit;
 
 RenderThread::RenderThread()
     : Thread(g_renderThread, ThreadPriorityValue::HIGHEST)
@@ -77,7 +80,7 @@ void RenderThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_renderTimer);
 
-    RenderApi::BeginFrameRender();
+    g_renderInterface->BeginFrame();
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -90,7 +93,7 @@ void RenderThread::Update()
         }
     }
 
-    Frame* frame = g_renderBackend->PrepareNextFrame();
+    Frame* frame = g_renderInterface->PrepareNextFrame();
     Assert(frame != nullptr);
 
     // Check if any swapchains need to be recreated
@@ -106,10 +109,10 @@ void RenderThread::Update()
 
     for (Swapchain* swapchain : swapchains)
     {
-        g_renderBackend->PrepareSwapchain(swapchain);
+        g_renderInterface->PrepareSwapchain(swapchain);
     }
 
-    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi::GetWorldBufferData(), sizeof(WorldShaderData));
+    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
 
     Swapchain* swapchain = nullptr;
 
@@ -118,7 +121,7 @@ void RenderThread::Update()
         swapchain = mainWindow->GetSwapchain();
     }
 
-    Array<World*>& worldsToRender = g_renderInterface->renderWorlds[RenderApi::GetRingIndex()];
+    Array<World*>& worldsToRender = g_renderInterface->renderWorlds[GetRingIndex()];
 
     if (worldsToRender.Any())
     {
@@ -165,16 +168,26 @@ void RenderThread::Update()
         g_renderInterface->finalPass->Render(frame, rs);
     }
 
+    // update shared global descriptor sets
+    for (DescriptorSet* ds : g_renderInterface->globalDescriptorTable->GetSets()[frame->GetFrameIndex()])
+    {
+        bool dirty = false;
+        ds->UpdateDirtyState(&dirty);
+
+        if (dirty)
+            ds->Update();
+    }
+
     g_renderInterface->UpdateBuffers(frame);
 
-    g_renderBackend->SubmitCommandBuffers(swapchain);
+    g_renderInterface->SubmitCommandBuffers(swapchain);
 
     if (swapchain != nullptr)
     {
-        g_renderBackend->PresentToSwapchain(swapchain);
+        g_renderInterface->PresentToSwapchain(swapchain);
     }
 
-    RenderApi::EndFrameRender();
+    g_renderInterface->EndFrame();
  
     g_renderArena->Reset();
 }
@@ -189,11 +202,18 @@ void RenderThread::operator()()
             delete g_renderArena;
             g_renderArena = nullptr;
         });
+    
+#if HYP_VULKAN
+    g_renderInterface = new VulkanRenderInterface();
+#elif HYP_DX12
+    g_renderInterface = new DX12RenderInterface();
+#else
+    HYP_FAIL("Not compiled with any rendering backend - cannot initialize renderer!");
+#endif
 
-    RenderApi::Init();
+    CheckResult(g_renderInterface->Initialize());
 
-    /// HAX !!! We should only upload gpu resources on first use for debug draer
-    InitObject(g_engineDriver->GetDebugDrawer());
+    g_renderThreadInit.release();
 
     if (m_id != g_mainThread) // !RenderOnMainThread
     {

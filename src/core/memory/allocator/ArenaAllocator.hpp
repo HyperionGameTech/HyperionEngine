@@ -146,6 +146,7 @@ void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
     if (m_offset + totalSize > m_size)
     {
         // Out of memory
+        AssertDebug(false, "Arena out of memory!");
         return nullptr;
     }
 

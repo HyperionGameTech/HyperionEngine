@@ -18,13 +18,13 @@ extern "C"
         *result = *left * *right;
     }
 
-    HYP_EXPORT void Matrix4_Inverted(Mat4f* in, Mat4f* result)
+    HYP_EXPORT void Matrix4_Inverse(Mat4f* in, Mat4f* result)
     {
-        *result = (*in).Inverted();
+        *result = (*in).Inverse();
     }
 
-    HYP_EXPORT void Matrix4_Transposed(Mat4f* in, Mat4f* result)
+    HYP_EXPORT void Matrix4_Transpose(Mat4f* in, Mat4f* result)
     {
-        *result = (*in).Transposed();
+        *result = (*in).Transpose();
     }
 } // extern "C"

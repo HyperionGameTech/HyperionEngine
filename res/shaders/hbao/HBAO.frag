@@ -13,43 +13,39 @@ layout(location = 0) out vec4 color_output;
 #include "../include/noise.inc"
 #include "../include/packing.inc"
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D gbuffer_textures[NUM_GBUFFER_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform texture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-#endif
+DECLARE_SRV(HBAO, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(HBAO, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(HBAO, GBufferMaterialTexture) uniform texture2D gbuffer_material_texture;
+DECLARE_SRV(HBAO, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SRV(HBAO, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(HBAO, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(HBAO, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(HBAO, SamplerNearest) uniform sampler sampler_nearest;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
 #include "../include/gbuffer.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(HBAO, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(HBAO, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF(HBAODescriptorSet, UniformBuffer) uniform UniformBuffer
+DECLARE_BUFFER(HBAO, UniformBuffer) uniform UniformBuffer
 {
     uvec2 dimension;
     float radius;
     float power;
 };
 
-#include "../include/Temporal.glsl"
+#include "../include/Temporal.inc"
 
 #define HYP_HBAO_NUM_CIRCLES 4
 #define HYP_HBAO_NUM_SLICES 2
@@ -67,13 +63,13 @@ float GetOffsets(vec2 uv)
     return 0.25 * float((position.y - position.x) & 3);
 }
 
-mat4 inv_view_proj = inverse(camera.projection * camera.view);
+mat4 inv_view_proj = inverse(camera.viewProjMat);
 mat4 inv_view = inverse(camera.view);
 mat4 inv_proj = inverse(camera.projection);
 
 float GetDepth(vec2 uv)
 {
-    return Texture2D(sampler_nearest, gbuffer_depth_texture, uv).r;
+    return SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, uv).r;
 }
 
 vec3 GetPosition(vec2 uv, float depth)
@@ -83,7 +79,7 @@ vec3 GetPosition(vec2 uv, float depth)
 
 vec3 GetNormal(vec2 uv)
 {
-    vec3 normal = GBufferUnpackNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, uv));
+    vec3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, uv));
     vec3 view_normal = (camera.view * vec4(normal, 0.0)).xyz;
 
     return view_normal;
@@ -202,7 +198,7 @@ void TraceAO_New(vec2 uv, out float occlusion)
 
             if (all(lessThan(new_uv.xy, vec2(1.0))) && all(greaterThanEqual(new_uv.xy, vec2(0.0))))
             {
-                new_uv = Saturate(new_uv);
+                new_uv = saturate(new_uv);
 
                 float depth_0 = GetDepth(new_uv.xy);
                 float depth_1 = GetDepth(new_uv.zw);
@@ -231,8 +227,8 @@ void TraceAO_New(vec2 uv, out float occlusion)
                 const vec2 total_impact = condition * falloffs * impact;
 
 #ifdef HBIL_ENABLED
-                vec4 new_color_0 = Texture2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
-                vec4 new_color_1 = Texture2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
+                vec4 new_color_0 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
+                vec4 new_color_1 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
 
                 slice_light[0] += vec4(new_color_0) * total_impact.x;
                 slice_light[1] += vec4(new_color_1) * total_impact.y;
@@ -277,7 +273,6 @@ void main()
     TraceAO_New(texcoord, occlusion, light_color);
 
     values = vec4(light_color.rgb, occlusion);
-    values.rgb = pow(values.rgb, vec3(1.0 / 2.2));
 #else
     TraceAO_New(texcoord, occlusion);
 

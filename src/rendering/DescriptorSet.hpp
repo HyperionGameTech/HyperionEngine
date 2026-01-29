@@ -23,82 +23,39 @@
 #include <rendering/Shared.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
 namespace Hyperion {
 
-// #define HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+// #define DECLARE_SET_TRACK_FRAME_USAGE
 
 class RenderResourceBase;
 
 enum class GpuBufferType : uint8;
 
-HYP_ENUM()
-enum class DescriptorSetDeclarationFlags : uint8
-{
-    NONE = 0x0,
-    REFERENCE = 0x1, // is this a reference to a global descriptor set declaration?
-    TEMPLATE = 0x2   // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
-};
-
-HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
-
 class IRenderProxy;
 class ObjectBase;
 
-namespace RenderApi {
-uint32 RetrieveResourceBinding(const ObjectBase* resource);
-} // namespace RenderApi
-
-template <class T>
-struct ShaderDataOffset
-{
-    static_assert(IsPodTypeV<T>, "T must be POD to use with ShaderDataOffset");
-
-    static constexpr uint32 InvalidIndex = ~0u;
-
-    explicit ShaderDataOffset(uint32 index)
-        : index(index)
-    {
-    }
-
-    explicit ShaderDataOffset(const ObjectBase* resource, uint32 indexIfNull = InvalidIndex)
-        : index(indexIfNull)
-    {
-        if (uint32 idx = RenderApi::RetrieveResourceBinding(resource); idx != ~0u)
-        {
-            index = idx;
-        }
-    }
-
-    HYP_FORCE_INLINE operator uint32() const
-    {
-        AssertDebug(index != InvalidIndex);
-
-        return uint32(sizeof(T) * index);
-    }
-
-    uint32 index;
-};
-
-struct DescriptorSetDeclaration;
-struct DescriptorTableDeclaration;
-
-constexpr uint32 ElementTypeToBufferType[uint32(DescriptorSetElementType::MAX)] = {
+constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = {
     0,                                    // UNSET
-    (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER
-    (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
-    (1u << uint32(GpuBufferType::SSBO))
+    (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER
+    (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER_DYNAMIC
+    (1u << uint32(GpuBufferType::STORAGE_BUFFER))
         | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)), // SSBO
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)), // STORAGE_BUFFER
 
-    (1u << uint32(GpuBufferType::SSBO))
+    (1u << uint32(GpuBufferType::STORAGE_BUFFER))
         | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)),   // STORAGE_BUFFER_DYNAMIC
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)),  // STORAGE_BUFFER_DYNAMIC
     0,                                                           // IMAGE
     0,                                                           // IMAGE_STORAGE
     0,                                                           // SAMPLER
@@ -111,29 +68,29 @@ struct DescriptorSetElementTypeInfo;
 template <>
 struct DescriptorSetElementTypeInfo<GpuBuffer>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
-        | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(DescriptorSetElementType::SSBO))
-        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::UNIFORM_BUFFER))
+        | (1u << uint32(ShaderInputType::UNIFORM_BUFFER_DYNAMIC))
+        | (1u << uint32(ShaderInputType::STORAGE_BUFFER))
+        | (1u << uint32(ShaderInputType::STORAGE_BUFFER_DYNAMIC));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuImageView>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
-        | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::IMAGE))
+        | (1u << uint32(ShaderInputType::IMAGE_STORAGE));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<Sampler>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::SAMPLER));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuTlas>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::TLAS));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::TLAS));
 };
 
 HYP_STRUCT()
@@ -142,7 +99,7 @@ struct DescriptorSetLayoutElement
     HYP_STRUCT_BODY(DescriptorSetLayoutElement);
 
     HYP_FIELD()
-    DescriptorSetElementType type = DescriptorSetElementType::UNSET;
+    ShaderInputType type = ShaderInputType::UNSET;
 
     HYP_FIELD()
     uint32 binding = ~0u; // has to be set
@@ -152,6 +109,14 @@ struct DescriptorSetLayoutElement
 
     HYP_FIELD()
     uint32 size = ~0u;
+
+    HYP_FORCE_INLINE bool IsBuffer() const
+    {
+        return type == ShaderInputType::UNIFORM_BUFFER
+            || type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+            || type == ShaderInputType::STORAGE_BUFFER
+            || type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
+    }
 
     HYP_FORCE_INLINE bool IsBindless() const
     {
@@ -171,229 +136,7 @@ struct DescriptorSetLayoutElement
     }
 };
 
-HYP_ENUM()
-enum DescriptorSlot : uint32
-{
-    DESCRIPTOR_SLOT_NONE = 0,
-    DESCRIPTOR_SLOT_SRV,
-    DESCRIPTOR_SLOT_UAV,
-    DESCRIPTOR_SLOT_CBUFF,
-    DESCRIPTOR_SLOT_SSBO,
-    DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE,
-    DESCRIPTOR_SLOT_SAMPLER,
-    DESCRIPTOR_SLOT_MAX
-};
-
-HYP_STRUCT()
-struct DescriptorDeclaration
-{
-    HYP_STRUCT_BODY(DescriptorDeclaration);
-
-    using ConditionFunction = bool (*)();
-
-    HYP_FIELD(Property = "Slot", Serialize = true)
-    DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
-
-    HYP_FIELD(Property = "Name", Serialize = true)
-    Name name;
-
-    HYP_FIELD(Property = "Count", Serialize = true)
-    uint32 count = 1;
-
-    HYP_FIELD(Property = "Size", Serialize = true)
-    uint32 size = uint32(-1);
-
-    HYP_FIELD(Property = "IsDynamic", Serialize = true)
-    bool isDynamic = false;
-
-    HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
-    uint32 index = ~0u;
-
-    ConditionFunction cond = nullptr;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        hc.Add(slot);
-        hc.Add(name);
-        hc.Add(count);
-        hc.Add(size);
-        hc.Add(isDynamic);
-        hc.Add(index);
-
-        // cond excluded intentionally
-
-        return hc;
-    }
-};
-
-HYP_STRUCT()
-struct DescriptorSetDeclaration
-{
-    HYP_STRUCT_BODY(DescriptorSetDeclaration);
-
-    HYP_FIELD(Property = "SetIndex", Serialize = true)
-    uint32 setIndex = ~0u;
-
-    HYP_FIELD(Property = "Name", Serialize = true)
-    Name name = Name::Invalid();
-
-    HYP_FIELD(Property = "Slots", Serialize = true)
-    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, DESCRIPTOR_SLOT_MAX> slots = {};
-
-    HYP_FIELD(Property = "Flags", Serialize = true)
-    EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
-
-    DescriptorSetDeclaration() = default;
-
-    DescriptorSetDeclaration(uint32 setIndex, Name name)
-        : setIndex(setIndex),
-          name(name)
-    {
-    }
-
-    DescriptorSetDeclaration(const DescriptorSetDeclaration& other) = default;
-    DescriptorSetDeclaration& operator=(const DescriptorSetDeclaration& other) = default;
-    DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
-    DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
-    ~DescriptorSetDeclaration() = default;
-
-    HYP_FORCE_INLINE void AddDescriptorDeclaration(DescriptorDeclaration decl)
-    {
-        AssertDebug(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
-
-        decl.index = uint32(slots[uint32(decl.slot) - 1].Size());
-        slots[uint32(decl.slot) - 1].PushBack(std::move(decl));
-    }
-
-    /*! \brief Calculate a flat index for a Descriptor that is part of this set.
-        Returns -1 if not found */
-    uint32 CalculateFlatIndex(DescriptorSlot slot, StringHash name) const;
-
-    DescriptorDeclaration* FindDescriptorDeclaration(StringHash name) const;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        hc.Add(setIndex);
-        hc.Add(name);
-        hc.Add(flags);
-
-        for (const auto& slot : slots)
-        {
-            for (const auto& decl : slot)
-            {
-                hc.Add(decl.GetHashCode());
-            }
-        }
-
-        return hc;
-    }
-};
-
-HYP_STRUCT()
-struct DescriptorTableDeclaration
-{
-    HYP_STRUCT_BODY(DescriptorTableDeclaration);
-
-    HYP_FIELD(Property = "Elements", Serialize = true)
-    Array<DescriptorSetDeclaration> elements;
-
-    DescriptorSetDeclaration* FindDescriptorSetDeclaration(StringHash name) const;
-    DescriptorSetDeclaration* AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration);
-
-    /*! \brief Get the index of a descriptor set in the table
-        \param name The name of the descriptor set
-        \return The index of the descriptor set in the table, or -1 if not found */
-    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(StringHash name) const
-    {
-        for (const auto& it : elements)
-        {
-            if (it.name == name)
-            {
-                return it.setIndex;
-            }
-        }
-
-        return ~0u;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-
-        for (const DescriptorSetDeclaration& decl : elements)
-        {
-            hc.Add(decl.GetHashCode());
-        }
-
-        return hc;
-    }
-
-    struct DeclareSet
-    {
-        DeclareSet(DescriptorTableDeclaration* table, uint32 setIndex, Name name, bool isTemplate = false)
-        {
-            AssertDebug(table != nullptr);
-
-            if (table->elements.Size() <= setIndex)
-            {
-                table->elements.Resize(setIndex + 1);
-            }
-
-            DescriptorSetDeclaration& decl = table->elements[setIndex];
-            decl.setIndex = setIndex;
-            decl.name = name;
-
-            if (isTemplate)
-            {
-                decl.flags |= DescriptorSetDeclarationFlags::TEMPLATE;
-            }
-        }
-    };
-
-    struct DeclareDescriptor
-    {
-        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
-        {
-            AssertDebug(table != nullptr);
-
-            uint32 setIndex = ~0u;
-
-            for (SizeType i = 0; i < table->elements.Size(); ++i)
-            {
-                if (table->elements[i].name == setName)
-                {
-                    setIndex = uint32(i);
-                    break;
-                }
-            }
-
-            AssertDebug(setIndex != ~0u, "Descriptor set {} not found", setName);
-
-            DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
-            AssertDebug(descriptorSetDecl.setIndex == setIndex);
-            AssertDebug(slotType > 0 && slotType < descriptorSetDecl.slots.Size());
-
-            const uint32 slotTypeIndex = uint32(slotType) - 1;
-
-            const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
-
-            DescriptorDeclaration& descriptorDecl = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
-            descriptorDecl.index = slotIndex;
-            descriptorDecl.slot = slotType;
-            descriptorDecl.name = descriptorName;
-            descriptorDecl.cond = cond;
-            descriptorDecl.size = size;
-            descriptorDecl.count = count;
-            descriptorDecl.isDynamic = isDynamic;
-        }
-    };
-};
-
-extern DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration();
+extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 
 class DescriptorSetLayout
 {
@@ -405,7 +148,8 @@ public:
           m_isTemplate(other.m_isTemplate),
           m_isReference(other.m_isReference),
           m_elements(other.m_elements),
-          m_dynamicElements(other.m_dynamicElements)
+          m_dynamicElements(other.m_dynamicElements),
+          m_cachedHashCode(other.m_cachedHashCode)
     {
     }
 
@@ -421,6 +165,7 @@ public:
         m_isReference = other.m_isReference;
         m_elements = other.m_elements;
         m_dynamicElements = other.m_dynamicElements;
+        m_cachedHashCode = other.m_cachedHashCode;
 
         return *this;
     }
@@ -430,11 +175,13 @@ public:
           m_isTemplate(other.m_isTemplate),
           m_isReference(other.m_isReference),
           m_elements(std::move(other.m_elements)),
-          m_dynamicElements(std::move(other.m_dynamicElements))
+          m_dynamicElements(std::move(other.m_dynamicElements)),
+          m_cachedHashCode(other.m_cachedHashCode)
     {
         other.m_decl = nullptr;
         other.m_isTemplate = false;
         other.m_isReference = false;
+        other.m_cachedHashCode = HashCode();
     }
 
     DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept
@@ -449,10 +196,12 @@ public:
         m_isReference = other.m_isReference;
         m_elements = std::move(other.m_elements);
         m_dynamicElements = std::move(other.m_dynamicElements);
+        m_cachedHashCode = other.m_cachedHashCode;
 
         other.m_decl = nullptr;
         other.m_isTemplate = false;
         other.m_isReference = false;
+        other.m_cachedHashCode = HashCode();
 
         return *this;
     }
@@ -499,7 +248,7 @@ public:
         return m_elements;
     }
 
-    HYP_FORCE_INLINE void AddElement(Name name, DescriptorSetElementType type, uint32 binding, uint32 count, uint32 size = ~0u)
+    HYP_FORCE_INLINE void AddElement(Name name, ShaderInputType type, uint32 binding, uint32 count, uint32 size = ~0u)
     {
         m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size });
     }
@@ -523,22 +272,7 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        HashCode hc;
-
-        if (!m_decl)
-        {
-            return hc; // empty hash
-        }
-
-        hc.Add(m_decl->GetHashCode());
-
-        for (const auto& it : m_elements)
-        {
-            hc.Add(it.first.GetHashCode());
-            hc.Add(it.second.GetHashCode());
-        }
-
-        return hc;
+        return m_cachedHashCode;
     }
 
 private:
@@ -547,30 +281,14 @@ private:
     bool m_isReference : 1 = false; // is this descriptor set a reference to a global set? (e.g global material textures)
     HashMap<Name, DescriptorSetLayoutElement> m_elements;
     Array<Name> m_dynamicElements;
+    HashCode m_cachedHashCode;
 };
 
 struct DescriptorSetElement
 {
-    FlatMap<uint32, Handle<ObjectBase>> values;
-    Range<uint32> dirtyRange {};
-
-    ~DescriptorSetElement()
-    {
-        if (values.Empty())
-        {
-            return;
-        }
-
-        for (auto& it : values)
-        {
-            if (!it.second)
-            {
-                continue;
-            }
-
-            SafeDelete(std::move(it.second));
-        }
-    }
+    Range<uint32> dirtyRange;
+    Array<ObjectBase*> values;
+    Bitset occupiedArrayElems;
 
     HYP_FORCE_INLINE bool IsDirty() const
     {
@@ -591,10 +309,6 @@ public:
         return m_layout;
     }
 
-    HYP_FORCE_INLINE const HashMap<Name, DescriptorSetElement>& GetElements() const
-    {
-        return m_elements;
-    }
     Name GetDebugName() const
     {
         return m_debugName;
@@ -605,7 +319,7 @@ public:
         m_debugName = name;
     }
 
-#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+#ifdef DECLARE_SET_TRACK_FRAME_USAGE
     HYP_FORCE_INLINE HashSet<FrameWeakRef>& GetCurrentFrames()
     {
         return m_currentFrames;
@@ -627,43 +341,50 @@ public:
 
     bool HasElement(StringHash name) const;
 
-    void SetElement(StringHash name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref);
-    void SetElement(StringHash name, uint32 index, const GpuBufferRef& ref);
-    void SetElement(StringHash name, const GpuBufferRef& ref);
+    void SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref);
+    void SetElement(StringHash name, uint32 index, GpuBuffer* ref);
+    void SetElement(StringHash name, GpuBuffer* ref);
 
-    void SetElement(StringHash name, uint32 index, const GpuImageViewRef& ref);
-    void SetElement(StringHash name, const GpuImageViewRef& ref);
+    void SetElement(StringHash name, uint32 index, GpuImageView* ref);
+    void SetElement(StringHash name, GpuImageView* ref);
 
-    void SetElement(StringHash name, uint32 index, const SamplerRef& ref);
-    void SetElement(StringHash name, const SamplerRef& ref);
+    void SetElement(StringHash name, uint32 index, Sampler* ref);
+    void SetElement(StringHash name, Sampler* ref);
 
-    void SetElement(StringHash name, uint32 index, const GpuTlasRef& ref);
-    void SetElement(StringHash name, const GpuTlasRef& ref);
+    void SetElement(StringHash name, uint32 index, GpuTlas* ref);
+    void SetElement(StringHash name, GpuTlas* ref);
+
+    /*! \brief Only for bindless descriptors; Marks the element at \p index as invalid */
+    void DeleteElement(StringHash name, uint32 index);
 
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+
     virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const ComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, uint32 bindIndex) const = 0;
-    virtual void Bind(CommandBuffer* commandBuffer, const RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+
+    virtual void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, uint32 bindIndex) const = 0;
+    virtual void Bind(CommandBuffer* commandBuffer, const RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
+    
+    uint32 frameCounter; // last used
 
 protected:
     DescriptorSetBase(const DescriptorSetLayout& layout)
-        : m_layout(layout)
+        : frameCounter(0),
+          m_layout(layout)
     {
     }
 
     template <class T>
-    DescriptorSetElement& SetElementT(StringHash name, uint32 index, const Handle<T>& ref);
+    DescriptorSetElement& SetElementT(StringHash name, uint32 index, T* ref);
 
     template <class T>
-    void PrefillElements(Name name, uint32 count, const Optional<T>& placeholderValue = {})
+    void PrefillElements(Name name, uint32 count, T* placeholder = nullptr)
     {
         bool isBindless = false;
 
         if (count == ~0u)
         {
-            count = MaxBindlessResources;
             isBindless = true;
         }
 
@@ -681,25 +402,20 @@ protected:
         {
             it = m_elements.Emplace(name).first;
         }
+        
+        // if we are a bindless descriptor then we want to NOT have occupiedArrayElems set.
+        if (isBindless)
+        {
+            return;
+        }
 
         DescriptorSetElement& element = it->second;
-
-        // // Set bufferSize, only used in the case of buffer elements
-        // element.bufferSize = layoutElement->size;
-
-        element.values.Clear();
-        element.values.Reserve(count);
+        element.values.Resize(count);
 
         for (uint32 i = 0; i < count; i++)
         {
-            if (placeholderValue.HasValue())
-            {
-                element.values.Set(i, placeholderValue.Get());
-            }
-            else
-            {
-                element.values.Set(i, T {});
-            }
+            element.values[i] = placeholder;
+            element.occupiedArrayElems.Set(i, true);
         }
 
         element.dirtyRange = { 0, count };
@@ -710,7 +426,7 @@ protected:
 
     Name m_debugName;
 
-#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+#ifdef DECLARE_SET_TRACK_FRAME_USAGE
     HashSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
 #endif
 };
@@ -721,6 +437,8 @@ class DescriptorTableBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorTableBase);
 
 public:
+    explicit DescriptorTableBase(const ShaderInputGroup* decl);
+
     virtual ~DescriptorTableBase() override
     {
         for (auto& it : m_sets)
@@ -744,7 +462,7 @@ public:
         return m_decl != nullptr;
     }
 
-    HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDeclaration() const
+    HYP_FORCE_INLINE const ShaderInputGroup* GetDeclaration() const
     {
         return m_decl;
     }
@@ -859,12 +577,7 @@ public:
     }
 
 protected:
-    DescriptorTableBase(const DescriptorTableDeclaration* decl)
-        : m_decl(decl)
-    {
-    }
-
-    const DescriptorTableDeclaration* m_decl;
+    const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
     Name m_debugName;
@@ -875,8 +588,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12DescriptorSet.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE
@@ -884,25 +599,16 @@ protected:
 #undef INCLUDE_FROM_RHI
 #endif
 
-#define HYP_DESCRIPTOR_SET(index, name) \
-    static DescriptorTableDeclaration::DeclareSet HYP_UNIQUE_NAME(DescriptorSet_##name)(&GetStaticDescriptorTableDeclaration(), index, HYP_NAME_UNSAFE(name))
+#define DECLARE_SRV_COND(setName, name, type, count, cond) \
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define DECLARE_UAV_COND(setName, name, type, count, cond) \
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+#define DECLARE_BUFFER_COND(setName, name, type, count, size, isDynamic, cond) \
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
+#define DECLARE_SAMPLER_COND(setName, name, type, count, cond) \
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 
-#define HYP_DESCRIPTOR_SRV_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_UAV_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_CBUFF_COND(setName, name, count, size, isDynamic, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_CBUFF, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
-#define HYP_DESCRIPTOR_SSBO_COND(setName, name, count, size, isDynamic, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_SSBO, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
-#define HYP_DESCRIPTOR_ACCELERATION_STRUCTURE_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-#define HYP_DESCRIPTOR_SAMPLER_COND(setName, name, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), DESCRIPTOR_SLOT_SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
-
-#define HYP_DESCRIPTOR_SRV(setName, name, count) HYP_DESCRIPTOR_SRV_COND(setName, name, count, true)
-#define HYP_DESCRIPTOR_UAV(setName, name, count) HYP_DESCRIPTOR_UAV_COND(setName, name, count, true)
-#define HYP_DESCRIPTOR_CBUFF(setName, name, count, size, isDynamic) HYP_DESCRIPTOR_CBUFF_COND(setName, name, count, size, isDynamic, true)
-#define HYP_DESCRIPTOR_SSBO(setName, name, count, size, isDynamic) HYP_DESCRIPTOR_SSBO_COND(setName, name, count, size, isDynamic, true)
-#define HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(setName, name, count) HYP_DESCRIPTOR_ACCELERATION_STRUCTURE_COND(setName, name, count, true)
-#define HYP_DESCRIPTOR_SAMPLER(setName, name, count) HYP_DESCRIPTOR_SAMPLER_COND(setName, name, count, true)
+#define DECLARE_SRV(setName, name, type, count) DECLARE_SRV_COND(setName, name, type, count, true)
+#define DECLARE_UAV(setName, name, type, count) DECLARE_UAV_COND(setName, name, type, count, true)
+#define DECLARE_BUFFER(setName, name, type, count, size, isDynamic) DECLARE_BUFFER_COND(setName, name, type, count, size, isDynamic, true)
+#define DECLARE_SAMPLER(setName, name, type, count) DECLARE_SAMPLER_COND(setName, name, type, count, true)

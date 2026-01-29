@@ -1197,7 +1197,7 @@ public:
 
         Assert(GetNode().IsValid());
 
-        Handle<Entity> entity = CreateObject<Entity>();
+        Handle<Entity> entity = MakeHandle<Entity>();
         entity->SetName(name);
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
@@ -1431,7 +1431,7 @@ private:
 
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
-        Handle<UIObject> uiObject = CreateObject<T>();
+        Handle<UIObject> uiObject = MakeHandle<T>();
 
         UIStage* stage = IsA<UIStage>() ? ObjCast<UIStage>(this) : GetStage();
 

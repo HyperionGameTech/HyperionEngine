@@ -29,16 +29,13 @@ public:
 
     virtual bool IsCreated() const = 0;
     virtual RendererResult Create() = 0;
-    virtual RendererResult ResetFrameState() = 0;
 
-    void UpdateUsedDescriptorSets();
+    virtual void OnFrameStart();
 
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
     {
         return m_frameIndex;
     }
-
-    void MarkDescriptorSetUsed(DescriptorSet* descriptorSet);
 
     Delegate<void, Frame*> OnPresent;
     Delegate<void, Frame*> OnFrameEnd;
@@ -48,13 +45,14 @@ public:
     RenderQueue postRenderQueue;
 
 protected:
-    FrameBase(uint32 frameIndex)
-        : m_frameIndex(frameIndex)
+    explicit FrameBase(uint32 frameIndex)
+        : m_frameIndex(frameIndex),
+          m_frameCounter(0)
     {
     }
 
     uint32 m_frameIndex;
-    HashSet<DescriptorSet*> m_usedDescriptorSets;
+    uint32 m_frameCounter;
 };
 
 } // namespace Hyperion
@@ -62,8 +60,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanFrame.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12Frame.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

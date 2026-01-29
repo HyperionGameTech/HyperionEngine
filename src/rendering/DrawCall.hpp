@@ -11,7 +11,6 @@
 #include <core/memory/UniquePtr.hpp>
 
 #include <rendering/GpuBufferHolderMap.hpp>
-#include <rendering/Buffers.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 
@@ -251,10 +250,7 @@ public:
         return m_structAlignment;
     }
 
-    HYP_FORCE_INLINE void ReleaseBatch(EntityInstanceBatch* batch) const
-    {
-        m_bufferHolder->ReleaseIndex(batch->batchIndex);
-    }
+    void ReleaseBatch(EntityInstanceBatch* batch) const;
 
     HYP_FORCE_INLINE GpuBufferHolderBase* GetGpuBufferHolder() const
     {
@@ -308,12 +304,16 @@ struct DrawCallCollection
     /*! \brief Push \p numInstances instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset);
+    uint32 PushEntityToBatch(
+        SizeType drawCallIndex,
+        Entity* entity,
+        const MeshInstanceData& meshInstanceData,
+        uint32 numInstances,
+        uint32 instanceOffset);
 
     EntityBatchAllocatorBase* batchAllocator;
 
     RenderGroup* renderGroup;
-    FixedArray<DescriptorSetRef, NumFramesInFlight> instancingDescriptorSets;
 
     DrawCallStorage drawCalls;
     InstancedDrawCallStorage instancedDrawCalls;
@@ -343,7 +343,7 @@ public:
     virtual EntityInstanceBatch* AcquireBatch() const override
     {
         BatchType* batch;
-        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<BatchType, GpuBufferType::SSBO>*>(m_bufferHolder)->AcquireIndex(&batch);
+        const uint32 batchIndex = reinterpret_cast<GpuBufferHolder<BatchType, GpuBufferType::STORAGE_BUFFER>*>(m_bufferHolder)->AcquireIndex(&batch);
 
         batch->batchIndex = batchIndex;
 
@@ -365,19 +365,19 @@ static inline EntityBatchAllocatorBase* GetOrCreateEntityBatchAllocator()
 // used internally
 extern void RegisterEntityBatchAllocator(const TypeId& typeId, PFNCreateEntityBatchAllocator createFn);
 
-#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                      \
-    namespace {                                                                                                                      \
-    struct BatchType##AllocatorRegistrationHelper                                                                                    \
-    {                                                                                                                                \
-        BatchType##AllocatorRegistrationHelper()                                                                                     \
-        {                                                                                                                            \
-            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*                             \
-                {                                                                                                                    \
-                    return PoolNew<TEntityBatchAllocator<BatchType>>(*g_renderPool, /* initialCount */ 0, /* cpuAccessible */ true); \
-                });                                                                                                                  \
-        }                                                                                                                            \
-    };                                                                                                                               \
-    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                                        \
+#define HYP_REGISTER_DRAW_BATCH_TYPE(BatchType)                                                                                       \
+    namespace {                                                                                                                       \
+    struct BatchType##AllocatorRegistrationHelper                                                                                     \
+    {                                                                                                                                 \
+        BatchType##AllocatorRegistrationHelper()                                                                                      \
+        {                                                                                                                             \
+            RegisterEntityBatchAllocator(TypeId::ForType<BatchType>(), []() -> EntityBatchAllocatorBase*                              \
+                {                                                                                                                     \
+                    return PoolNew<TEntityBatchAllocator<BatchType>>(*g_renderPool, /* initialCount */ 0, /* cpuAccessible */ false); \
+                });                                                                                                                   \
+        }                                                                                                                             \
+    };                                                                                                                                \
+    static BatchType##AllocatorRegistrationHelper s_##BatchType##AllocatorRegistrationHelper;                                         \
     }
 
 } // namespace Hyperion

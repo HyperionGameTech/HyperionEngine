@@ -6,8 +6,8 @@
 #include "../include/noise.inc"
 #include "../include/brdf.inc"
 
-HYP_DESCRIPTOR_UAV(SSGIDescriptorSet, OutImage, format = rgba8) uniform writeonly image2D out_image;
-HYP_DESCRIPTOR_CBUFF(SSGIDescriptorSet, UniformBuffer) uniform UniformBuffer
+DECLARE_UAV(SSGI, OutImage, format = rgba8) uniform writeonly image2D out_image;
+DECLARE_BUFFER(SSGI, UniformBuffer) uniform UniformBuffer
 {
     uvec4 dimension;
     float ray_step;
@@ -25,58 +25,63 @@ HYP_DESCRIPTOR_CBUFF(SSGIDescriptorSet, UniformBuffer) uniform UniformBuffer
 }
 ssr_params;
 
-#ifdef HYP_FEATURES_DYNAMIC_DESCRIPTOR_INDEXING
-HYP_DESCRIPTOR_SRV(View, GBufferTextures) uniform texture2D gbuffer_textures[NUM_GBUFFER_TEXTURES];
-#else
-HYP_DESCRIPTOR_SRV(View, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
-#endif
+DECLARE_SRV(SSGI, GBufferAlbedoTexture) uniform texture2D gbuffer_albedo_texture;
+DECLARE_SRV(SSGI, GBufferNormalsTexture) uniform texture2D gbuffer_normals_texture;
+DECLARE_SRV(SSGI, GBufferMaterialTexture) uniform utexture2D gbuffer_material_texture;
+DECLARE_SRV(SSGI, GBufferVelocityTexture) uniform texture2D gbuffer_velocity_texture;
 
-HYP_DESCRIPTOR_SRV(View, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
-HYP_DESCRIPTOR_SRV(View, DeferredResult) uniform texture2D gbuffer_deferred_result;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(SSGI, GBufferDepthTexture) uniform texture2D gbuffer_depth_texture;
+DECLARE_SRV(SSGI, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(SSGI, DeferredResult) uniform texture2D gbuffer_deferred_result;
+DECLARE_SAMPLER(SSGI, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(SSGI, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SRV(SSGI, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(SSGI, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CameraShaderData
+DECLARE_BUFFER(SSGI, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_SSBO(Global, LightsBuffer) readonly buffer LightsBuffer
+DECLARE_SRV(SSGI, LightsBuffer) readonly buffer LightsBuffer
 {
     Light lights[];
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(SSGI, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/gbuffer.inc"
-#include "../include/BlueNoise.glsl"
+#include "../include/BlueNoise.inc"
 #include "../include/shadows.inc"
-#include "../include/Octahedron.glsl"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "../include/Octahedron.inc"
 
 #include "../include/env_probe.inc"
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(SSGI, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+#else
+DECLARE_SRV(SSGI, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+#endif
+
+DECLARE_SRV(SSGI, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
+
+DECLARE_SRV(SSGI, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #define NUM_RAYS 8
 #define EVAL_LIGHTING
@@ -114,7 +119,7 @@ bool TraceRays(
         marching_position += ray_step;
 
         hit_uv = GetProjectedPositionFromView(proj, marching_position);
-        hit_depth = Texture2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
+        hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
         hit_view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_uv, hit_depth);
 
         step_delta = marching_position.z - hit_view_space_position.z;
@@ -137,7 +142,7 @@ bool TraceRays(
             marching_position = marching_position - ray_step * sign(step_delta);
 
             hit_uv = GetProjectedPositionFromView(proj, marching_position);
-            hit_depth = Texture2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
+            hit_depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, hit_uv).r;
             hit_view_space_position = ReconstructViewSpacePositionFromDepth(inverse_proj, hit_uv, hit_depth);
 
             step_delta = abs(marching_position.z) - hit_view_space_position.z;
@@ -202,7 +207,7 @@ vec4 SampleSky(vec3 dir)
     {
         uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
 
-        return EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], dir, 0.0);
+        return EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, dir, 0.0);
     }
 
     return vec4(0.0);
@@ -223,7 +228,7 @@ void main(void)
     const vec2 texcoord = saturate((vec2(coord) + 0.5) / (vec2(ssr_params.dimension.xy)));
 
     const uvec2 materialData = texture(usampler2D(gbuffer_material_texture, HYP_SAMPLER_NEAREST), texcoord).rg;
-    const vec4 normalSample = Texture2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+    const vec4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
 
     GBufferMaterialParams materialParams;
     GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
@@ -231,7 +236,7 @@ void main(void)
     const float roughness = materialParams.roughness;
 
     const float perceptual_roughness = sqrt(roughness);
-    const float depth = Texture2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
 
     const vec3 N = DecodeNormal(normalSample);
     const vec3 view_space_normal = normalize((view * vec4(N, 0.0)).xyz);
@@ -249,7 +254,7 @@ void main(void)
     const vec3 P = ReconstructViewSpacePositionFromDepth(inverse_proj, texcoord, depth).xyz;
     const vec3 V = normalize(vec3(0.0) - P);
 
-    const vec2 velocity = Texture2D(sampler_linear, gbuffer_velocity_texture, texcoord).xy;
+    const vec2 velocity = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_velocity_texture, texcoord).xy;
 
     vec3 tangent;
     vec3 bitangent;
@@ -292,9 +297,9 @@ void main(void)
                     vec2 sample_uv = saturate(hit_uv);
 
 #ifdef EVAL_LIGHTING
-                    vec4 hit_albedo = Texture2D(sampler_linear, gbuffer_albedo_texture, sample_uv);
+                    vec4 hit_albedo = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, sample_uv);
 
-                    vec3 hit_normal = DecodeNormal(Texture2D(sampler_nearest, gbuffer_normals_texture, sample_uv));
+                    vec3 hit_normal = DecodeNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, sample_uv));
 
                     vec4 hit_position = inverse_view * hit_view_space_position;
                     hit_position /= hit_position.w;
@@ -311,7 +316,7 @@ void main(void)
 
                     vec4 gi = radiance * hit_albedo * alpha;
 #else
-                    vec4 gi = Texture2D(sampler_linear, gbuffer_deferred_result, sample_uv);
+                    vec4 gi = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_deferred_result, sample_uv);
 #endif
 
                     accum_result += gi;

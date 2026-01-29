@@ -13,7 +13,7 @@ layout(location = 0) out vec4 color_output;
 #include "../include/gbuffer.inc"
 #include "../include/scene.inc"
 
-layout(set = HYP_DESCRIPTOR_SET_GLOBAL, binding = 78) uniform texture2D dof_blur_vert;
+layout(set = DepthOfField, binding = 78) uniform texture2D dof_blur_vert;
 
 void main()
 {
@@ -29,7 +29,7 @@ void main()
     const vec3 P = ReconstructWorldSpacePositionFromDepth(inverse(camera.projection), inverse(camera.view), v_texcoord, depth).xyz;
 
     const float blur_amount = smoothstep(dof_start, dof_end, distance(P, focal_point));
-    color_output = mix(Texture2D(gbuffer_sampler, gbuffer_deferred_result, v_texcoord), Texture2D(gbuffer_sampler, dof_blur_vert, v_texcoord), blur_amount);
+    color_output = mix(SAMPLE_TEXTURE_2D(gbuffer_sampler, gbuffer_deferred_result, v_texcoord), SAMPLE_TEXTURE_2D(gbuffer_sampler, dof_blur_vert, v_texcoord), blur_amount);
 #else
 
     color_output = vec4(1.0, 0.0, 0.0, 1.0);

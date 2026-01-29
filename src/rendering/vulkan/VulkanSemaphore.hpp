@@ -15,7 +15,7 @@ class VulkanSemaphore final : public ObjectBase
 
 public:
     VulkanSemaphore();
-    virtual ~VulkanSemaphore() override;
+    ~VulkanSemaphore() override;
 
     HYP_FORCE_INLINE VkSemaphore GetVulkanHandle() const
     {

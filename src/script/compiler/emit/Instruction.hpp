@@ -401,7 +401,7 @@ struct RawOperation final : public Instruction
 
         const SizeType previousSize = data.Size();
         data.Resize(previousSize + length);
-        Memory::MemCpy(data.Data() + previousSize, str, length);
+        Memory::Copy(data.Data() + previousSize, str, length);
     }
 
     template <typename T>
@@ -417,7 +417,7 @@ struct RawOperation final : public Instruction
     {
         const SizeType previousSize = data.Size();
         data.Resize(previousSize + byteView.Size());
-        Memory::MemCpy(data.Data() + previousSize, byteView.Data(), byteView.Size());
+        Memory::Copy(data.Data() + previousSize, byteView.Data(), byteView.Size());
     }
 
     template <typename T, typename = std::enable_if_t<std::is_fundamental_v<T> || std::is_enum_v<T>>>
@@ -425,7 +425,7 @@ struct RawOperation final : public Instruction
     {
         const SizeType previousSize = data.Size();
         data.Resize(previousSize + sizeof(T));
-        Memory::MemCpy(data.Data() + previousSize, &value, sizeof(T));
+        Memory::Copy(data.Data() + previousSize, &value, sizeof(T));
     }
 };
 

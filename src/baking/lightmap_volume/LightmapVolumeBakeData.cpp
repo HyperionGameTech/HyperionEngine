@@ -74,18 +74,18 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
 
         if (indexSize == sizeof(uint32))
         {
-            Memory::MemCpy(m_meshIndices[i].Data(), meshData.indexData.Data(), meshData.indexData.Size());
+            Memory::Copy(m_meshIndices[i].Data(), meshData.indexData.Data(), meshData.indexData.Size());
         }
         else
         {
             for (SizeType j = 0; j < meshData.indexData.Size(); j += indexSize)
             {
-                Memory::MemCpy(&m_meshIndices[i][j / indexSize], meshData.indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
+                Memory::Copy(&m_meshIndices[i][j / indexSize], meshData.indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
             }
         }
 
         const Mat4f modelMatrix = bakeEntity.transformMatrix;
-        const Mat4f normalMatrix = modelMatrix.Inverted().Transpose();
+        const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
         for (SizeType vertexIndex = 0; vertexIndex < meshData.vertexData.Size(); vertexIndex++)
         {
@@ -166,9 +166,9 @@ Result BakeData<LightmapVolume>::Build()
         BakeMesh& bakeMesh = m_meshData[meshIndex];
 
         const Mat4f& transform = bakeMesh.transformMatrix;
-        const Mat4f inverseTransform = transform.Inverted();
-        const Mat4f normalMatrix = transform.Inverted().Transpose();
-        const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
+        const Mat4f inverseTransform = transform.Inverse();
+        const Mat4f normalMatrix = transform.Inverse().Transpose();
+        const Mat4f inverseNormalMatrix = normalMatrix.Inverse();
 
         MeshIndexArray& currentUvIndices = meshToUvIndices[bakeMesh.mesh->Id()];
 
@@ -289,9 +289,9 @@ Result BakeData<LightmapVolume>::Build()
         bakeMesh.vertices.Resize(atlas->meshes[meshIndex].vertexCount);
         bakeMesh.indices.Resize(atlas->meshes[meshIndex].indexCount);
 
-        const Mat4f inverseTransform = bakeMesh.transformMatrix.Inverted();
-        const Mat4f normalMatrix = bakeMesh.transformMatrix.Inverted().Transpose();
-        const Mat4f inverseNormalMatrix = normalMatrix.Inverted();
+        const Mat4f inverseTransform = bakeMesh.transformMatrix.Inverse();
+        const Mat4f normalMatrix = bakeMesh.transformMatrix.Inverse().Transpose();
+        const Mat4f inverseNormalMatrix = normalMatrix.Inverse();
 
         for (uint32 j = 0; j < atlas->meshes[meshIndex].indexCount; j++)
         {

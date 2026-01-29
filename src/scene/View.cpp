@@ -27,7 +27,6 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
@@ -205,32 +204,36 @@ void View::Init()
         viewportBuffered = m_viewport;
     }
 
-    const Vec2u extent = MathUtil::Max(m_viewDesc.outputTargetDesc.extent, Vec2u::One());
+    const Vec2u extent = MathUtil::Max(m_viewDesc.renderTargetDesc.extent, Vec2u::One());
 
     if (m_viewDesc.flags & ViewFlags::GBUFFER)
     {
-        AssertDebug(m_viewDesc.outputTargetDesc.attachments.Empty(),
+        AssertDebug(m_viewDesc.renderTargetDesc.numAttachments == 0,
             "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
-        m_outputTarget = ViewOutputTarget(CreateObject<GBuffer>(extent));
+        m_outputTarget = ViewOutputTarget(MakeHandle<GBuffer>(extent));
     }
-    else if (m_viewDesc.outputTargetDesc.attachments.Any())
+    else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
     {
-        FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(extent, m_viewDesc.outputTargetDesc.numViews);
+        FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.renderTargetDesc);
 
-        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.outputTargetDesc.attachments.Size(); ++attachmentIndex)
+        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
         {
-            const ViewOutputTargetAttachmentDesc& attachmentDesc = m_viewDesc.outputTargetDesc.attachments[attachmentIndex];
+            const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
             AssertDebug(attachmentDesc.format != TF_NONE);
 
-            AttachmentRef attachment = framebuffer->AddAttachment(
+            Attachment* attachment = framebuffer->AddAttachment(
                 attachmentIndex,
                 attachmentDesc.format,
                 attachmentDesc.imageType,
                 attachmentDesc.loadOp,
                 attachmentDesc.storeOp);
 
-            attachment->SetClearColor(attachmentDesc.clearColor);
+            attachment->SetClearColor(Vec4f(
+                attachmentDesc.clearColor[0],
+                attachmentDesc.clearColor[1],
+                attachmentDesc.clearColor[2],
+                attachmentDesc.clearColor[3]));
         }
 
         DeferCreate(framebuffer);
@@ -279,7 +282,7 @@ void View::UpdateViewport()
     AssertOnThread(g_simThread);
     AssertReady();
 
-    const uint32 slot = RenderApi::GetRingIndex();
+    const uint32 slot = GetRingIndex();
 
     if ((m_flags & ViewFlags::MATCH_CAMERA_DIMENSIONS))
     {
@@ -343,7 +346,7 @@ void View::BeginAsyncCollection(TaskBatch& batch)
     AssertDebug(m_collectionTaskBatch == nullptr, "m_collectionTaskBatch is not nullptr, already collecting?");
     m_collectionTaskBatch = &batch;
 
-    RenderProxyList& rpl = RenderApi::GetProducerProxyList(this);
+    RenderProxyList& rpl = GetProducerProxyList(this);
 
     batch.AddTask([this, &rpl]()
         {
@@ -403,7 +406,7 @@ const Viewport& View::GetViewport() const
 
     AssertReady();
 
-    return m_viewportBuffered[RenderApi::GetRingIndex()];
+    return m_viewportBuffered[GetRingIndex()];
 }
 
 void View::SetViewport(const Viewport& viewport)
@@ -432,7 +435,7 @@ void View::SetViewport(const Viewport& viewport)
             CreateReadbackTexture();
         }
 
-        m_viewportBuffered[RenderApi::GetRingIndex()] = viewport;
+        m_viewportBuffered[GetRingIndex()] = viewport;
     }
 }
 
@@ -441,7 +444,7 @@ GpuImage* View::GetReadbackTextureGpuImage() const
     HYP_SCOPE;
     AssertOnThread(g_simThread | g_renderThread);
 
-    return m_readbackTextureGpuImages[RenderApi::GetRingIndex()];
+    return m_readbackTextureGpuImages[GetRingIndex()];
 }
 
 void View::CreateReadbackTexture()
@@ -450,7 +453,7 @@ void View::CreateReadbackTexture()
     AssertOnThread(g_simThread);
 
     m_readbackTexture.Reset();
-    m_readbackTexture = CreateObject<Texture>(TextureDesc {
+    m_readbackTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         m_viewDesc.readbackTextureFormat,
         Vec3u { m_viewport.extent, 1 },
@@ -888,9 +891,10 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
-            meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
+            
             meshProxy.bufferData.modelMatrix = transformComponent->GetMatrix();
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
+            meshProxy.bufferData.normalMatrix = Mat3f(transformComponent->GetMatrix()).Inverse().Transpose();
         }
     }
 }
@@ -1121,16 +1125,16 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
         {
             EnvGrid* envGrid = static_cast<EnvGrid*>(entity);
 
-            const BoundingBox& gridAabb = envGrid->GetAABB();
+            const BoundingBox worldBounds = envGrid->GetWorldBounds();
 
-            if (!gridAabb.IsValid() || !gridAabb.IsFinite())
+            if (!worldBounds.IsValid() || !worldBounds.IsFinite())
             {
                 HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", envGrid->Id(), Id());
 
                 continue;
             }
 
-            if (!m_camera->GetFrustum().ContainsAABB(gridAabb))
+            if (!m_camera->GetFrustum().ContainsAABB(worldBounds))
             {
                 HYP_LOG(Scene, Debug, "EnvGrid {} is not in frustum of View {}", envGrid->Id(), Id());
 
@@ -1138,35 +1142,6 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
             }
 
             rpl.GetEnvGrids().Track(envGrid->Id(), envGrid, envGrid->GetRenderProxyVersionPtr());
-        }
-    }
-
-    ResourceTrackerDiff envGridsDiff = rpl.GetEnvGrids().GetDiff();
-
-    if (envGridsDiff.NeedsUpdate())
-    {
-        Array<EnvGrid*> added;
-        rpl.GetEnvGrids().GetAdded(added, /* includeChanged */ true);
-
-        for (EnvGrid* envGrid : added)
-        {
-            if (!envGrid->IsA(LegacyEnvGrid::StaticClass()))
-            {
-                continue;
-            }
-
-            LegacyEnvGrid* legacyEnvGrid = static_cast<LegacyEnvGrid*>(envGrid);
-
-            for (uint32 probeIndex = 0; probeIndex < legacyEnvGrid->GetEnvProbeCollection().numProbes; probeIndex++)
-            {
-                EnvProbe* probe = legacyEnvGrid->GetEnvProbeCollection().GetEnvProbeDirect(probeIndex);
-                if (!probe)
-                {
-                    continue;
-                }
-
-                rpl.GetEnvProbes().Track(probe->Id(), probe, probe->GetRenderProxyVersionPtr());
-            }
         }
     }
 }

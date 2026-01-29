@@ -58,7 +58,7 @@ Uuid::Uuid(const char* str)
     };
 
     char buffer[37] {};
-    Memory::MemCpy(buffer, str, len < 36 ? len : 36);
+    Memory::Copy(buffer, str, len < 36 ? len : 36);
     buffer[36] = '\0';
 
     unsigned int uints[16];

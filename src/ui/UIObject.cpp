@@ -1859,12 +1859,12 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 {
     HYP_SCOPE;
 
-    constexpr VertexAttributeSet UIObjectVertexAttributes = VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL
-        | VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+    const VertexAttributeSet vertexAttributes = VertexAttribute::Position
+        | VertexAttribute::Normal
+        | VertexAttribute::TexCoord0;
 
     return MaterialAttributes {
-        .shaderDefinition = ShaderDefinition(NAME("UIObject"), ShaderProperties(UIObjectVertexAttributes)),
+        .shaderName = NAME("UIObject"),
         .blendFunction = BlendFunction(
             BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
             BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
@@ -1897,7 +1897,7 @@ Handle<Material> UIObject::CreateMaterial() const
 
     if (AllowMaterialUpdate())
     {
-        Handle<Material> material = CreateObject<Material>(
+        Handle<Material> material = MakeHandle<Material>(
             m_name,
             GetMaterialAttributes(),
             GetMaterialParameters(),
@@ -3082,7 +3082,7 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
         name = cls->GetName();
     }
 
-    Handle<Entity> entity = CreateObject<Entity>();
+    Handle<Entity> entity = MakeHandle<Entity>();
     entity->SetName(name);
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
     entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);

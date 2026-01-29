@@ -2,22 +2,23 @@
 
 #pragma once
 
+#include <core/Defines.hpp>
+#include <core/Types.hpp>
+#include <core/HashCode.hpp>
+
 #include <rendering/Shared.hpp>
 #include <rendering/RenderBucket.hpp>
-#include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/reflection/ObjectFwd.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
-
 namespace Hyperion {
 
+enum class ShaderCacheId : uint64;
+
 HYP_ENUM()
-enum MaterialAttributeFlags : uint32
+enum MaterialAttributeFlags : uint8
 {
     MAF_NONE = 0x0,
 
@@ -35,7 +36,10 @@ struct MaterialAttributes
     HYP_STRUCT_BODY(MaterialAttributes);
 
     HYP_FIELD()
-    ShaderDefinition shaderDefinition;
+    Name shaderName;
+
+    HYP_FIELD()
+    ShaderPropertySet shaderProperties;
 
     HYP_FIELD()
     RenderBucket bucket = RB_OPAQUE;
@@ -63,7 +67,8 @@ struct MaterialAttributes
 
     HYP_FORCE_INLINE bool operator==(const MaterialAttributes& other) const
     {
-        return shaderDefinition == other.shaderDefinition
+        return shaderName == other.shaderName
+            && shaderProperties == other.shaderProperties
             && bucket == other.bucket
             && fillMode == other.fillMode
             && blendFunction == other.blendFunction
@@ -76,7 +81,8 @@ struct MaterialAttributes
 
     HYP_FORCE_INLINE bool operator!=(const MaterialAttributes& other) const
     {
-        return shaderDefinition != other.shaderDefinition
+        return shaderName != other.shaderName
+            || shaderProperties != other.shaderProperties
             || bucket != other.bucket
             || fillMode != other.fillMode
             || blendFunction != other.blendFunction
@@ -90,7 +96,8 @@ struct MaterialAttributes
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(shaderDefinition.GetHashCode());
+        hc.Add(shaderName);
+        hc.Add(shaderProperties);
         hc.Add(bucket);
         hc.Add(fillMode);
         hc.Add(blendFunction);
@@ -110,7 +117,7 @@ struct MeshAttributes
     HYP_STRUCT_BODY(MeshAttributes);
 
     HYP_FIELD(Property = "VertexAttributes")
-    VertexAttributeSet vertexAttributes = staticMeshVertexAttributes;
+    VertexAttributeSet vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
 
     HYP_FIELD(Property = "Topology")
     Topology topology = TOP_TRIANGLES;
@@ -125,14 +132,11 @@ struct MeshAttributes
             && indexBufferElemType == other.indexBufferElemType;
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(vertexAttributes);
-        hc.Add(topology);
-        hc.Add(indexBufferElemType);
-
-        return hc;
+        return HashCode::GetHashCode(vertexAttributes)
+            .Combine(topology)
+            .Combine(indexBufferElemType);
     }
 };
 
@@ -177,19 +181,36 @@ public:
         return GetHashCode().Value() < other.GetHashCode().Value();
     }
 
-    HYP_FORCE_INLINE const ShaderDefinition& GetShaderDefinition() const
+    HYP_FORCE_INLINE Name GetShaderName() const
     {
-        return m_materialAttributes.shaderDefinition;
+        return m_materialAttributes.shaderName;
     }
 
-    HYP_FORCE_INLINE void SetShaderDefinition(const ShaderDefinition& shaderDefinition)
+    HYP_FORCE_INLINE void SetShaderName(Name shaderName)
     {
-        if (m_materialAttributes.shaderDefinition == shaderDefinition)
+        if (m_materialAttributes.shaderName == shaderName)
         {
             return;
         }
 
-        m_materialAttributes.shaderDefinition = shaderDefinition;
+        m_materialAttributes.shaderName = shaderName;
+        m_needsHashCodeRecalculation = true;
+
+    }
+
+    HYP_FORCE_INLINE const ShaderPropertySet& GetShaderProperties() const
+    {
+        return m_materialAttributes.shaderProperties;
+    }
+
+    HYP_FORCE_INLINE void SetShaderProperties(const ShaderPropertySet& shaderProperties)
+    {
+        if (m_materialAttributes.shaderProperties == shaderProperties)
+        {
+            return;
+        }
+
+        m_materialAttributes.shaderProperties = shaderProperties;
         m_needsHashCodeRecalculation = true;
     }
 

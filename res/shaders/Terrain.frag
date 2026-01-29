@@ -13,11 +13,11 @@ layout(location = 2) in vec2 v_texcoord0;
 layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
-layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 11) in vec4 v_position_ndc;
-layout(location = 12) in vec4 v_previous_position_ndc;
-layout(location = 15) in flat uint v_object_index;
-layout(location = 16) in flat uint v_object_mask;
+layout(location = 6) in flat vec3 v_camera_position;
+layout(location = 7) in vec4 v_position_ndc;
+layout(location = 8) in vec4 v_previous_position_ndc;
+layout(location = 9) in flat uint v_object_index;
+layout(location = 10) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
@@ -25,8 +25,8 @@ layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 layout(location = 4) out vec4 gbuffer_ws_normals;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
@@ -34,87 +34,66 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
 
 #include "include/scene.inc"
 #include "include/material.inc"
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"
 #include "include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+DECLARE_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
-
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #ifdef LIGHTING_FORWARD
 #include "include/brdf.inc"
-#include "deferred/DeferredLighting.glsl"
+#include "deferred/DeferredLighting.inc"
 #include "include/shadows.inc"
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
+DECLARE_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+DECLARE_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material materials[HYP_MAX_MATERIALS];
-};
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[entity.material_index])
-#endif
-#else
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer)
-readonly buffer MaterialsBuffer
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
 #endif
 
 void main()
@@ -141,7 +120,7 @@ void main()
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
 #if HAS_ALBEDO_MA
-    vec4 albedo_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, AlbedoMap, v_position, normal);
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, AlbedoMap, v_position, normal);
 
     // if (albedo_texture.a < MATERIAL_ALPHA_DISCARD) {
     //     discard;
@@ -161,23 +140,23 @@ void main()
     vec4 normals_texture = vec4(0.0);
 
 #if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, NormalMap, v_position, normal) * 2.0 - 1.0;
+    normals_texture = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, NormalMap, v_position, normal) * 2.0 - 1.0;
     normal = normalize(tbn_matrix * normals_texture.rgb);
 #endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP)) {
-    //     float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP, texcoord).r;
+    //     float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_METALNESS_MAP, texcoord).r;
 
     //     metalness = metalness_sample;//mix(metalness, metalness_sample, metalness_sample);
     // }
 #if HAS_ROUGHNESS_MAP
-    float roughness_sample = SAMPLE_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, RoughnessMap, v_position, normal).r;
+    float roughness_sample = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, RoughnessMap, v_position, normal).r;
 
     roughness = roughness_sample; // mix(roughness, roughness_sample, roughness_sample);
 #endif
 
     // if (HAS_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP)) {
-    //     ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP, texcoord).r;
+    //     ao = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MATERIAL_TEXTURE_AO_MAP, texcoord).r;
     // }
 
     // gbuffer_albedo.rgb = GetTriplanarBlend(normal);

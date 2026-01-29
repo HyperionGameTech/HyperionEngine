@@ -27,29 +27,42 @@ class VulkanRenderPass;
 struct VulkanDeviceQueue;
 class VulkanPipelineBase;
 
+constexpr uint32 MaxVulkanDynamicOffsets = 16;
+
 struct VulkanCachedDescriptorSetBinding
 {
     VkDescriptorSet descriptorSet;
     VkPipeline pipeline;
     VkPipelineLayout pipelineLayout;
-
-    // usually we use at most 5 dynamic offsets
-    Array<uint32, InlineAllocator<5>> dynamicOffsets;
+    
+    uint32 numDynamicOffsets;
+    uint32 dynamicOffsets[MaxVulkanDynamicOffsets];
 
     HYP_FORCE_INLINE bool operator==(const VulkanCachedDescriptorSetBinding& other) const
     {
-        return GetHashCode() == other.GetHashCode();
+        return descriptorSet == other.descriptorSet
+            && pipeline == other.pipeline
+            && pipelineLayout == other.pipelineLayout
+            && numDynamicOffsets == other.numDynamicOffsets
+            && Memory::Compare(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptorSetBinding& other) const
     {
-        return !(*this == other);
+        return descriptorSet != other.descriptorSet
+            || pipeline != other.pipeline
+            || pipelineLayout != other.pipelineLayout
+            || numDynamicOffsets != other.numDynamicOffsets
+            || Memory::Compare(dynamicOffsets, other.dynamicOffsets, numDynamicOffsets * sizeof(uint32)) != 0;
     }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(reinterpret_cast<const ubyte*>(this), reinterpret_cast<const ubyte*>(this) + offsetof(VulkanCachedDescriptorSetBinding, dynamicOffsets))
-            .Combine(dynamicOffsets.GetHashCode());
+        return HashCode::GetHashCode((void*)descriptorSet)
+            .Combine((void*)pipeline)
+            .Combine((void*)pipelineLayout)
+            .Combine(numDynamicOffsets)
+            .Combine(HashCode::GetHashCode((const ubyte*)dynamicOffsets, (const ubyte*)(dynamicOffsets + numDynamicOffsets)));
     }
 };
 
@@ -63,7 +76,7 @@ public:
     friend class VulkanDescriptorSet;
 
     explicit VulkanCommandBuffer(VkCommandBufferLevel type);
-    virtual ~VulkanCommandBuffer() override;
+    ~VulkanCommandBuffer() override;
 
     HYP_FORCE_INLINE VkCommandBuffer GetVulkanHandle() const
     {
@@ -85,9 +98,9 @@ public:
         return m_isInRenderPass;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
     RendererResult Create(VkCommandPool commandPool);
 
     RendererResult Begin(const VulkanRenderPass* renderPass = nullptr);
@@ -101,15 +114,15 @@ public:
 
     RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 
-    virtual void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
-    virtual void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
+    void BindVertexBuffer(const VulkanGpuBuffer* buffer) override;
+    void BindIndexBuffer(const VulkanGpuBuffer* buffer, GpuElemType elemType = GET_UNSIGNED_INT) override;
 
-    virtual void DrawIndexed(
+    void DrawIndexed(
         uint32 numIndices,
         uint32 numInstances = 1,
         uint32 instanceIndex = 0) const override;
 
-    virtual void DrawIndexedIndirect(
+    void DrawIndexedIndirect(
         const VulkanGpuBuffer* buffer,
         uint32 bufferOffset) const override;
 
@@ -119,13 +132,11 @@ public:
     template <class LambdaFunction>
     RendererResult Record(const VulkanRenderPass* renderPass, LambdaFunction&& fn)
     {
-        HYP_GFX_CHECK(Begin(renderPass));
+        CheckResultOrReturn(Begin(renderPass));
+        CheckResultOrReturn(fn(this));
+        CheckResultOrReturn(End());
 
-        RendererResult result = fn(this);
-
-        HYPERION_PASS_ERRORS(End(), result);
-
-        return result;
+        return {};
     }
 
     void ResetBoundDescriptorSets()

@@ -11,7 +11,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/MeshRTData.hpp>
 
-#include <rendering/raytracing/RaytracingReflections.hpp>
+#include <rendering/RTReflections.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -21,13 +21,11 @@
 namespace Hyperion {
 
 class IndirectDrawState;
-class RenderEnvironment;
 class GBuffer;
 class Texture;
 class DepthPyramidRenderer;
 class SSRRenderer;
 class SSGI;
-class ShaderProperties;
 class View;
 class DeferredRenderer;
 class GBuffer;
@@ -39,7 +37,7 @@ class PostProcessing;
 class HBAO;
 class DOFBlur;
 class Texture;
-class RaytracingReflections;
+class RayTracingReflections;
 class DDGI;
 struct RenderSetup;
 class RenderGroup;
@@ -48,19 +46,6 @@ class RenderProxyList;
 class RenderCollector;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
-
-using DeferredFlagBits = uint32;
-
-enum DeferredFlags : DeferredFlagBits
-{
-    DEFERRED_FLAGS_NONE = 0x0,
-    DEFERRED_FLAGS_VCT_ENABLED = 0x2,
-    DEFERRED_FLAGS_ENV_PROBE_ENABLED = 0x4,
-    DEFERRED_FLAGS_HBAO_ENABLED = 0x8,
-    DEFERRED_FLAGS_HBIL_ENABLED = 0x10,
-    DEFERRED_FLAGS_RT_RADIANCE_ENABLED = 0x20,
-    DEFERRED_FLAGS_DDGI_ENABLED = 0x40
-};
 
 enum DeferredPassMode : uint32
 {
@@ -92,7 +77,6 @@ public:
     virtual void Create() override;
 
 protected:
-    GraphicsPipelineCacheHandle CreatePipeline(const ShaderProperties& shaderProperties);
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
@@ -100,29 +84,9 @@ protected:
 private:
     const DeferredPassMode m_mode;
 
-    FixedArray<GraphicsPipelineCacheHandle, LT_MAX> m_directLightGraphicsPipelines;
-    FixedArray<FixedArray<DescriptorSetRef, NumFramesInFlight>, LT_MAX> m_directPassDescriptorSets;
-
     Handle<Texture> m_ltcMatrixTexture;
     Handle<Texture> m_ltcBrdfTexture;
     SamplerRef m_ltcSampler;
-};
-
-enum EnvGridPassMode : uint8
-{
-    EGPM_RADIANCE,
-    EGPM_IRRADIANCE,
-
-    EGPM_MAX
-};
-
-enum EnvGridApplyMode : uint8
-{
-    EGAM_SH,
-    EGAM_VOXEL,
-    EGAM_LIGHT_FIELD,
-
-    EGAM_MAX
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -136,11 +100,7 @@ public:
     TonemapPass& operator=(const TonemapPass& other) = delete;
     virtual ~TonemapPass() override;
 
-    virtual void Create() override;
     virtual void Render(Frame* frame, const RenderSetup& rs) override;
-
-protected:
-    virtual void CreatePipeline() override;
 
 private:
     virtual bool UsesTemporalBlending() const override
@@ -175,13 +135,10 @@ protected:
         class LightmapVolume* volume = nullptr;
         Array<Texture*> atlasIrradianceTextures;
         Array<Texture*> atlasRadianceTextures;
-        GraphicsPipelineCacheHandle graphicsPipeline;
-        Array<DescriptorSetRef> descriptorSets;
+        Array<GpuBufferRef> uniformBuffers;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
-
-    const GraphicsPipelineRef& GetGraphicsPipeline(Framebuffer* framebuffer, LightmapVolumePassData& data);
 
     LightmapVolumePassData& GetLightmapVolumePassData(LightmapVolume* lightmapVolume)
     {
@@ -236,14 +193,10 @@ protected:
         class FogVolume* volume = nullptr;
         Texture* volumeTexture = nullptr;
         Texture* noiseTexture = nullptr;
-        DescriptorTableRef descriptorTable;
         GpuBufferRef cBuffer;
-        GraphicsPipelineCacheHandle graphicsPipeline;
     };
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer) override;
-
-    const GraphicsPipelineRef& GetGraphicsPipeline(Framebuffer* framebuffer, FogVolumePassData& data);
 
     void UpdateUniforms(Frame* frame, const RenderSetup& renderSetup, FogVolumePassData& data);
 
@@ -283,52 +236,12 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class EnvGridPass final : public FullScreenPass
-{
-    HYP_OBJECT_BODY(EnvGridPass);
-
-public:
-    EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer);
-    EnvGridPass(const EnvGridPass& other) = delete;
-    EnvGridPass& operator=(const EnvGridPass& other) = delete;
-    virtual ~EnvGridPass() override;
-
-    virtual void Create() override;
-    virtual void Render(Frame* frame, const RenderSetup& rs) override;
-
-protected:
-    virtual void CreatePipeline() override;
-    virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
-private:
-    virtual bool UsesTemporalBlending() const override
-    {
-        return false;
-        // m_mode == EGPM_RADIANCE;
-    }
-
-    virtual bool ShouldRenderHalfRes() const override
-    {
-        return false;
-    }
-
-    virtual void Resize_Internal(Vec2u newSize) override;
-
-    const EnvGridPassMode m_mode;
-    FixedArray<GraphicsPipelineCacheHandle, EGAM_MAX> m_graphicsPipelines;
-    bool m_isFirstFrame;
-};
-
-HYP_CLASS(NoScriptBindings)
 class ReflectionsPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(ReflectionsPass);
 
 public:
-    ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView);
+    ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView);
     ReflectionsPass(const ReflectionsPass& other) = delete;
     ReflectionsPass& operator=(const ReflectionsPass& other) = delete;
     virtual ~ReflectionsPass() override;
@@ -336,11 +249,6 @@ public:
     HYP_FORCE_INLINE const GpuImageViewRef& GetMipChainImageView() const
     {
         return m_mipChainImageView;
-    }
-
-    HYP_FORCE_INLINE const GpuImageViewRef& GetDeferredResultImageView() const
-    {
-        return m_deferredResultImageView;
     }
 
     HYP_FORCE_INLINE SSRRenderer* GetSSRRenderer() const
@@ -364,9 +272,6 @@ private:
         return false;
     }
 
-    virtual void CreatePipeline() override;
-    virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes) override;
-
     void CreateSSRRenderer();
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override
@@ -377,15 +282,8 @@ private:
     virtual void Resize_Internal(Vec2u newSize) override;
 
     GpuImageViewRef m_mipChainImageView;
-    GpuImageViewRef m_deferredResultImageView;
-
-    FixedArray<GraphicsPipelineCacheHandle, CMT_MAX> m_cubemapGraphicsPipelines;
-    FixedArray<DescriptorTableRef, CMT_MAX> m_cubemapDescriptorTables;
 
     UniquePtr<SSRRenderer> m_ssrRenderer;
-
-    Handle<FullScreenPass> m_renderSsrToScreenPass;
-    Texture* m_cachedSsrTexture;
 
     bool m_isFirstFrame;
 };
@@ -400,18 +298,12 @@ public:
 
     int priority = 0;
 
-    // Descriptor set used when rendering the View in FinalPass.
-    DescriptorSetRef finalPassDescriptorSet;
-
     Handle<Texture> mipChain;
 
     Handle<DeferredPass> indirectPass;
     Handle<DeferredPass> directPass;
 
     FramebufferRef deferredShadingFramebuffer;
-
-    Handle<EnvGridPass> envGridRadiancePass;
-    Handle<EnvGridPass> envGridIrradiancePass;
 
     Handle<ReflectionsPass> reflectionsPass;
 
@@ -429,27 +321,26 @@ public:
     UniquePtr<DepthPyramidRenderer> depthPyramidRenderer;
     UniquePtr<DOFBlur> dofBlur;
 
-    UniquePtr<RaytracingReflections> raytracingReflections;
+    UniquePtr<RayTracingReflections> rayTracingReflections;
     UniquePtr<DDGI> ddgi;
 
-    Texture* cachedSsrTexture = nullptr;
+    mutable Texture* cachedSsrTexture = nullptr;
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API RaytracingPassData : public PassData
+class HYP_API RayTracingPassData : public PassData
 {
-    HYP_OBJECT_BODY(RaytracingPassData);
+    HYP_OBJECT_BODY(RayTracingPassData);
 
 public:
     // Set only while rendering to this pass
     DeferredRendererPassData* parentPass = nullptr;
     
-    GpuBufferRef constants;
+    GpuBufferRef cBuffer;
     GpuBufferRef lightsBuffer;
-    FixedArray<DescriptorSetRef, NumFramesInFlight> raytracingDescriptorSets;
-    FixedArray<GpuTlasRef, NumFramesInFlight> raytracingTlases;
+    FixedArray<GpuTlasRef, NumFramesInFlight> rayTracingTlases;
 
-    virtual ~RaytracingPassData() override;
+    virtual ~RayTracingPassData() override;
 };
 
 class DeferredRenderer final : public RendererBase
@@ -499,17 +390,14 @@ public:
 
 private:
     void RenderFrameForView(Frame* frame, const RenderSetup& rs);
-    void UpdateRaytracingView(Frame* frame, const RenderSetup& rs);
+    void UpdateRayTracingView(Frame* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
     virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
 
-    void CreateViewFinalPassDescriptorSet(View* view, DeferredRendererPassData& passData);
-    void CreateViewDescriptorSets(View* view, DeferredRendererPassData& passData);
-    void CreateViewCombinePass(View* view, DeferredRendererPassData& passData);
-    void CreateViewRaytracingPasses(View* view, DeferredRendererPassData& passData);
+    void CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData);
 
-    void CreateViewTopLevelAccelerationStructures(View* view, RaytracingPassData& passData);
+    void CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData);
 
     void ResizeView(Viewport viewport, View* view, DeferredRendererPassData& passData);
 

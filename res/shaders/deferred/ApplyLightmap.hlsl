@@ -1,0 +1,193 @@
+#include "../include/defines.inc"
+
+#ifdef VERTEX_SHADER
+
+struct VSInput
+{
+    HYP_ATTRIBUTE(0) float3 a_position : POSITION;
+    HYP_ATTRIBUTE(1) float3 a_normal : NORMAL;
+    HYP_ATTRIBUTE(2) float2 a_texcoord0 : TEXCOORD0;
+};
+
+struct VSOutput
+{
+    float4 position_cs : SV_POSITION;
+    float3 position : POSITION;
+    float2 texcoord : TEXCOORD0;
+};
+
+VSOutput VSMain(VSInput input)
+{
+    VSOutput output;
+
+    float4 position = float4(input.a_position, 1.0);
+
+    output.position = position.xyz;
+    output.texcoord = input.a_texcoord0;
+
+    output.position_cs = position;
+
+    return output;
+}
+
+#endif // VERTEX_SHADER
+
+#ifdef PIXEL_SHADER
+
+struct PSInput
+{
+    float4 position_cs : SV_POSITION;
+    float3 position : POSITION;
+    float2 texcoord : TEXCOORD0;
+};
+
+struct PSOutput
+{
+    float4 color_output : SV_Target0;
+};
+
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+DECLARE_SRV(LightmapPass, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
+DECLARE_SRV(LightmapPass, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(LightmapPass, GBufferMaterialTexture) Texture2D<uint4> gbuffer_material_texture;
+DECLARE_SRV(LightmapPass, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+DECLARE_SRV(LightmapPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(LightmapPass, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+
+DECLARE_SAMPLER(LightmapPass, SamplerNearest) SamplerState sampler_nearest;
+DECLARE_SAMPLER(LightmapPass, SamplerLinear) SamplerState sampler_linear;
+
+DECLARE_SRV(LightmapPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
+
+DECLARE_SRV(LightmapPass, SSGIResultTexture) Texture2D ssgi_result;
+DECLARE_SRV(LightmapPass, SSAOResultTexture) Texture2D ssao_gi;
+
+DECLARE_SRV(LightmapPass, ReflectionProbeResultTexture) Texture2D ReflectionProbeResultTexture;
+
+#include "../include/shared.inc"
+#include "../include/gbuffer.inc"
+#include "../include/Entity.inc"
+#include "../include/scene.inc"
+
+DECLARE_BUFFER_DYNAMIC(LightmapPass, CamerasBuffer) cbuffer CamerasBuffer
+{
+    Camera camera;
+};
+
+DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
+{
+    WorldShaderData world_shader_data;
+};
+
+#include "../include/brdf.inc"
+
+DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
+DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
+
+#include "../include/shadows.inc"
+
+DECLARE_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
+DECLARE_SRV(LightmapPass, RadianceTexture) Texture2D RadianceTexture;
+DECLARE_SAMPLER(LightmapPass, LightmapSampler) SamplerState LightmapSampler;
+
+DECLARE_BUFFER(LightmapPass, LightmapVolumeUniforms) cbuffer LightmapVolumeUniforms
+{
+    float irradianceWeight;
+    float radianceWeight;
+
+    uint numAtlases;
+};
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "../include/env_probe.inc"
+
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(LightmapPass, EnvProbesTexture) TextureCubeArray envProbesTexture;
+#else
+DECLARE_SRV(LightmapPass, EnvProbesTexture) Texture2DArray envProbesTexture;
+#endif
+
+DECLARE_SRV(LightmapPass, EnvProbesBuffer) StructuredBuffer<EnvProbe> env_probes;
+
+DECLARE_SRV_DYNAMIC(LightmapPass, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
+#define current_env_probe current_env_probe_buffer[0]
+
+DECLARE_BUFFER_DYNAMIC(LightmapPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
+{
+    EnvGrid env_grid;
+};
+
+#include "./DeferredLighting.inc"
+
+PSOutput PSMain(PSInput input)
+{
+    PSOutput output;
+
+    const float2 texcoord = input.texcoord;
+
+    uint2 gbufferDimensions;
+    gbuffer_albedo_texture.GetDimensions(gbufferDimensions.x, gbufferDimensions.y);
+
+    const uint2 pixelCoord = uint2(texcoord * max(0, int2(gbufferDimensions) - 1));
+
+    const float4 albedo = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_albedo_texture, texcoord);
+    const float4 normalSample = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord);
+
+    const uint4 materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0));
+
+    GBufferMaterialParams materialParams;
+    GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
+
+    const float roughness = materialParams.roughness;
+    const float metalness = materialParams.metalness;
+    const float ao = 1.0;
+
+    const float4x4 inverse_proj = camera.invProjMat;
+    const float4x4 inverse_view = camera.invViewMat;
+
+    float3 N = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, texcoord));
+    float2 UV1 = float2(asfloat(materialData.z), asfloat(materialData.w));
+
+    const float depth = SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, texcoord).r;
+    const float3 P = ReconstructWorldSpacePositionFromDepth(inverse_proj, inverse_view, texcoord, depth).xyz;
+    const float3 V = normalize(camera.position.xyz - P);
+    const float3 R = normalize(reflect(-V, N));
+
+    float2 lightmapUV = UV1;
+
+    float4 irradiance = SAMPLE_TEXTURE_2D(LightmapSampler, IrradianceTexture, lightmapUV) * irradianceWeight;
+    irradiance.a = 1.0;
+
+    float4 radiance = SAMPLE_TEXTURE_2D(LightmapSampler, RadianceTexture, lightmapUV) * radianceWeight;
+    radiance.a = 1.0;
+
+    float3 ibl = 0.0;
+    float3 F = 0.0;
+
+    float NdotV = max(0.0001, dot(N, V));
+
+    const float3 diffuse_color = CalculateDiffuseColor(albedo.rgb, metalness);
+    const float3 F0 = CalculateF0(albedo.rgb, metalness);
+
+    F = CalculateFresnelTerm(F0, roughness, NdotV);
+    const float3 kD = (1.0 - F) * (1.0 - metalness);
+
+    const float3 dfg = CalculateDFG(F, roughness, NdotV);
+    const float3 E = CalculateE(F0, dfg);
+    const float3 energyCompensation = CalculateEnergyCompensation(F0, dfg);
+
+    float4 reflections = SAMPLE_TEXTURE_2D(sampler_nearest, ReflectionProbeResultTexture, texcoord);
+
+    ibl = ibl * (1.0 - reflections.a) + (reflections.rgb * reflections.a);
+
+    float3 spec = (ibl * lerp(dfg.xxx, dfg.yyy, F0)) * energyCompensation;
+
+    output.color_output.rgb = (diffuse_color * irradiance.rgb) + (diffuse_color * radiance.rgb * ao) + spec;
+    output.color_output.a = 1.0;
+
+    return output;
+}
+
+#endif // PIXEL_SHADER

@@ -12,7 +12,7 @@
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/material.inc"
-#include "../../include/Entity.glsl"
+#include "../../include/Entity.inc"
 #include "../../include/scene.inc"
 #include "../../include/noise.inc"
 
@@ -25,8 +25,8 @@
 #define LIGHTMAPPER
 #include "../../include/rt/payload.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -34,8 +34,8 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(LightmapPathTracer, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/shadows.inc"
@@ -53,28 +53,28 @@ hitAttributeEXT vec2 attribs;
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(LightmapPathTracer, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptions
+DECLARE_UAV(LightmapPathTracer, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, MaterialsBuffer) readonly buffer MaterialBuffer
+DECLARE_SRV(LightmapPathTracer, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
 
 // for RT, all textures are bindless
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
+DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 
 float CheckLightIntersection(in Light light, in vec3 position, in vec3 R)
 {
@@ -196,7 +196,7 @@ void main()
     material_color = material.albedo;
 
     if (HAS_TEXTURE(material, AlbedoMap)) {
-        vec4 albedo_texture = SAMPLE_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
+        vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
 
         material_color *= albedo_texture;
     }
@@ -204,7 +204,7 @@ void main()
     float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
     if (HAS_TEXTURE(material, MetalnessMap)) {
-        float metalness_sample = SAMPLE_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+        float metalness_sample = SAMPLE_MATERIAL_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
 
         metalness = metalness_sample;
     }
@@ -212,7 +212,7 @@ void main()
     float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
 
     if (HAS_TEXTURE(material, RoughnessMap)) {
-        float roughness_sample = SAMPLE_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+        float roughness_sample = SAMPLE_MATERIAL_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
 
         roughness = roughness_sample;
     }

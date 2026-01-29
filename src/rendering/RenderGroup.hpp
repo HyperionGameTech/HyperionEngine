@@ -68,21 +68,21 @@ public:
 
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
-        return m_shader;
+        return shader;
     }
 
     void SetShader(const ShaderRef& shader);
 
     HYP_FORCE_INLINE const RenderableAttributeSet& GetRenderableAttributes() const
     {
-        return m_renderableAttributes;
+        return renderableAttributes;
     }
 
     void SetRenderableAttributes(const RenderableAttributeSet& renderableAttributes);
 
     HYP_FORCE_INLINE EnumFlags<RenderGroupFlags> GetFlags() const
     {
-        return m_flags;
+        return flags;
     }
 
     void PerformRendering(
@@ -91,18 +91,10 @@ public:
         DrawCallCollection& drawCallCollection,
         IndirectRenderer* indirectRenderer,
         ParallelRenderingState* parallelRenderingState);
-
-private:
-    void Init() override;
-
-    GraphicsPipelineCacheHandle CreateGraphicsPipeline(
-        PassData* pd,
-        EntityBatchAllocatorBase* batchAllocator) const;
-
-    EnumFlags<RenderGroupFlags> m_flags;
-    ShaderRef m_shader;
-    DescriptorTableRef m_descriptorTable;
-    RenderableAttributeSet m_renderableAttributes;
+        
+    ShaderRef shader;
+    RenderableAttributeSet renderableAttributes;
+    EnumFlags<RenderGroupFlags> flags;
 };
 
 } // namespace Hyperion

@@ -12,44 +12,44 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(Size = 48)
+class Mat4f;
+
+HYP_STRUCT()
 class HYP_API Mat3f
 {
     HYP_STRUCT_BODY(Mat3f);
 
-public:
-    union
+    enum LazyInitTag
     {
-        Vec3f rows[3];
-
-        struct
-        {
-            float values[9];
-            float _pad[3];
-        };
+        LazyInit
     };
 
+    explicit Mat3f(LazyInitTag);
+
+public:
+    Vec3f rows[3];
+
     Mat3f();
-    explicit Mat3f(const float* v);
-    Mat3f(const Mat3f& other) = default;
-    Mat3f& operator=(const Mat3f& other) = default;
+    explicit Mat3f(const float(&v)[9]);
+
+    /*! \brief Construct a 3x3 matrix from a 4x4 matrix by taking the upper-left 3x3 portion.
+     *  \param other The 4x4 matrix to convert from. */
+    explicit Mat3f(const Mat4f& other);
+
+    Mat3f(const Mat3f& other);
+    Mat3f& operator=(const Mat3f& other);
 
     float Determinant() const;
-    Mat3f& Transpose();
-    Mat3f Transposed() const;
-    Mat3f& Invert();
-    Mat3f Inverted() const;
 
-    Mat3f operator+(const Mat3f& other) const;
-    Mat3f& operator+=(const Mat3f& other);
+    Mat3f Transpose() const;
+    Mat3f Inverse() const;
+
     Mat3f operator*(const Mat3f& other) const;
     Mat3f& operator*=(const Mat3f& other);
-    Mat3f operator*(float scalar) const;
-    Mat3f& operator*=(float scalar);
 
     HYP_FORCE_INLINE bool operator==(const Mat3f& other) const
     {
-        return &values[0] == &other.values[0] || !std::memcmp(values, other.values, sizeof(values));
+        return std::memcmp(rows, other.rows, sizeof(rows)) == 0;
     }
 
     HYP_FORCE_INLINE bool operator!=(const Mat3f& other) const
@@ -57,22 +57,14 @@ public:
         return !operator==(other);
     }
 
-#pragma region deprecated
-    float operator()(int i, int j) const;
-    float& operator()(int i, int j);
-
-    float At(int i, int j) const;
-    float& At(int i, int j);
-#pragma endregion deprecated
-
-    HYP_FORCE_INLINE constexpr Vec3f& operator[](uint32 row)
+    HYP_FORCE_INLINE constexpr auto operator[](uint32 row) -> float(&)[3]
     {
-        return rows[row];
+        return rows[row].values;
     }
 
-    HYP_FORCE_INLINE constexpr const Vec3f& operator[](uint32 row) const
+    HYP_FORCE_INLINE constexpr auto operator[](uint32 row) const -> const float (&)[3]
     {
-        return rows[row];
+        return rows[row].values;
     }
 
     static Mat3f Zeros();
@@ -82,11 +74,9 @@ public:
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-
-        for (float value : values)
-        {
-            hc.Add(value);
-        }
+        hc.Add(rows[0].GetHashCode());
+        hc.Add(rows[1].GetHashCode());
+        hc.Add(rows[2].GetHashCode());
 
         return hc;
     }

@@ -113,7 +113,7 @@ struct BoxedValue
 
         HYP_FORCE_INLINE bool operator==(const InlineData& other) const
         {
-            return Memory::MemCmp(this, &other, sizeof(InlineData)) == 0;
+            return Memory::Compare(this, &other, sizeof(InlineData)) == 0;
         }
 
         HYP_FORCE_INLINE bool operator!=(const InlineData& other) const
@@ -186,13 +186,13 @@ struct BoxedValue
             uint8 isStaticInit : 1; // static data pool / stack data - will be 1 if init
         };
     } extData;
-#else
-    char extData[1]; // preserved for backwards compatibility
 #endif
 
     BoxedValue()
     {
-        Memory::MemSet(&extData, 0, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = {};
+#endif
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, BoxedValue>>>
@@ -216,7 +216,9 @@ struct BoxedValue
     BoxedValue(const BoxedValue& other)
         : value(other.value)
     {
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+#endif
     }
 
     BoxedValue& operator=(const BoxedValue& other)
@@ -227,8 +229,9 @@ struct BoxedValue
         }
 
         value = other.value;
-
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+#endif
 
         return *this;
     }
@@ -236,8 +239,10 @@ struct BoxedValue
     BoxedValue(BoxedValue&& other) noexcept
         : value(std::move(other.value))
     {
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
-        Memory::MemSet(&other.extData, 0, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+        other.extData = {};
+#endif
     }
 
     BoxedValue& operator=(BoxedValue&& other) noexcept
@@ -248,9 +253,10 @@ struct BoxedValue
         }
 
         value = std::move(other.value);
-
-        Memory::MemCpy(&extData, &other.extData, sizeof(extData));
-        Memory::MemSet(&other.extData, 0, sizeof(extData));
+#ifdef HYP_SCRIPT
+        extData = other.extData;
+        other.extData = {};
+#endif
 
         return *this;
     }
@@ -3654,6 +3660,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         int foundTypeIndex = Variant<Types...>::invalidTypeIndex;
         int currTypeIndex = 0;
 
+        // start by looking for exact type matches (same TypeId)
         StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
             {
                 if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
@@ -3662,36 +3669,53 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
                     return;
                 }
 
-                // check if same TypeIds, or if a HypDataHelper for T has ConvertibleFrom that is the same type id
+                // check if same TypeId as this type
                 if (data.GetType().GetNativeTypeId() == TypeId::ForType<T>())
                 {
                     foundTypeIndex = currTypeIndex;
                     return;
                 }
 
-                // Also check any types listed in HypDataHelper<T>::ConvertibleFrom
-                bool matchedConvertible = false;
-                StaticForEach<typename HypDataHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
-                    {
-                        if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
-                        {
-                            return;
-                        }
-
-                        if (data.GetType().GetNativeTypeId() == TypeId::ForType<FromT>())
-                        {
-                            foundTypeIndex = currTypeIndex;
-                            matchedConvertible = true;
-                        }
-                    });
-
-                if (matchedConvertible)
-                {
-                    return;
-                }
-
                 currTypeIndex++;
             });
+
+        // now, try compatible types if no exact match found
+        if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
+        {
+            currTypeIndex = 0;
+
+            StaticForEach<Tuple<Types...>>([&]<class T>(TypeWrapper<T>)
+                {
+                    if (foundTypeIndex != Variant<Types...>::invalidTypeIndex)
+                    {
+                        // already found
+                        return;
+                    }
+
+                    // check any types listed in HypDataHelper<T>::ConvertibleFrom
+                    bool matchedConvertible = false;
+                    StaticForEach<typename HypDataHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
+                        {
+                            if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
+                            {
+                                return;
+                            }
+
+                            if (data.GetType().GetNativeTypeId() == TypeId::ForType<FromT>())
+                            {
+                                foundTypeIndex = currTypeIndex;
+                                matchedConvertible = true;
+                            }
+                        });
+
+                    if (matchedConvertible)
+                    {
+                        return;
+                    }
+
+                    currTypeIndex++;
+                });
+        }
 
         if (foundTypeIndex == Variant<Types...>::invalidTypeIndex)
         {

@@ -6,6 +6,7 @@
 #include <rendering/Framebuffer.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/RenderableAttributes.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -15,10 +16,23 @@
 
 namespace Hyperion {
 
+#pragma region PSOCacheKey
+
+PSOCacheKey::PSOCacheKey(
+    const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc)
+{
+    hashCode = HashCode::GetHashCode(attributes.GetHashCode())
+        .Combine(renderTargetDesc.GetHashCode());
+}
+
+#pragma endregion PSOCacheKey
+
+#pragma region GraphicsPipelineBase
+
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
     SafeDelete(std::move(m_shader));
-    SafeDelete(std::move(m_framebuffers));
 }
 
 RendererResult GraphicsPipelineBase::Create()
@@ -28,9 +42,9 @@ RendererResult GraphicsPipelineBase::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
 
-    if (m_framebuffers.Empty())
+    if (m_renderTargetDesc.numAttachments == 0)
     {
-        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no framebuffers");
+        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no attachment descriptors!");
     }
 
     RendererResult rebuildResult = Rebuild();
@@ -40,12 +54,12 @@ RendererResult GraphicsPipelineBase::Create()
         return rebuildResult;
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const
 {
-    const DescriptorTableDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     if (decl == nullptr)
     {
@@ -60,51 +74,61 @@ void GraphicsPipelineBase::SetShader(const ShaderRef& shader)
     m_shader = shader;
 }
 
-void GraphicsPipelineBase::SetFramebuffers(const Array<FramebufferRef>& framebuffers)
+void GraphicsPipelineBase::SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc)
 {
-    SafeDelete(std::move(m_framebuffers));
-    m_framebuffers = framebuffers;
+    m_renderTargetDesc = renderTargetDesc;
 }
 
 bool GraphicsPipelineBase::MatchesSignature(
-    const Shader* shader,
-    const Array<const Framebuffer*>& framebuffers,
-    const RenderableAttributeSet& attributes) const
+    const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc) const
 {
-    // check shader:
-    // if shader presence differs, no match
-    if (!shader != !m_shader)
+
+    if (renderTargetDesc != m_renderTargetDesc)
+        return false;
+
+    const MeshAttributes& meshAttributes = attributes.GetMeshAttributes();
+
+    if (meshAttributes.topology != m_topology || meshAttributes.vertexAttributes != m_vertexAttributes)
+        return false;
+
+    const MaterialAttributes& materialAttributes = attributes.GetMaterialAttributes();
+
+    if (materialAttributes.blendFunction != m_blendFunction
+        || materialAttributes.cullFaces != m_faceCullMode
+        || materialAttributes.fillMode != m_fillMode
+        || bool(materialAttributes.flags & MAF_DEPTH_TEST) != m_depthTest
+        || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite)
     {
         return false;
     }
 
-    // if ANY framebuffer is provided, check that the sizes match
-    // (if no framebuffers are provided, we skip this check, assuming the caller doesn't care about framebuffer matching)
-    if (framebuffers.Size() != 0 && m_framebuffers.Size() != framebuffers.Size())
+    if (materialAttributes.flags & MAF_STENCIL_TEST)
     {
-        return false;
-    }
-
-    if (shader != nullptr)
-    {
-        if (shader->GetCompiledShader()->GetHashCode() != m_shader->GetCompiledShader()->GetHashCode())
-        {
+        if (!m_stencilFunction.HasValue())
             return false;
-        }
+
+        if (*m_stencilFunction != materialAttributes.stencilFunction)
+            return false;
+    }
+    else
+    {
+        if (m_stencilFunction.HasValue())
+            return false;
     }
 
-    if (framebuffers.Size() != 0)
+    const CompiledShader& compiledShader = *m_shader->GetCompiledShader();
+
+    if (materialAttributes.shaderName != compiledShader.name
+        || (compiledShader.vertexAttributes.flagMask & meshAttributes.vertexAttributes.flagMask) != compiledShader.vertexAttributes.flagMask
+        || materialAttributes.shaderProperties != compiledShader.properties)
     {
-        for (SizeType i = 0; i < m_framebuffers.Size(); i++)
-        {
-            if (m_framebuffers[i].Get() != framebuffers[i])
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
     return true;
 }
+
+#pragma endregion GraphicsPipelineBase
 
 } // namespace Hyperion

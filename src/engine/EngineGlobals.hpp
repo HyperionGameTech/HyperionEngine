@@ -16,7 +16,6 @@ class SafeDeleter;
 class ShaderManager;
 class MaterialCache;
 class RenderInterface;
-class IRenderBackend;
 class ShaderCompiler;
 class EditorState;
 class StreamingManager;
@@ -29,8 +28,10 @@ class InputManager;
 class Game;
 struct GameState;
 
-#ifdef HYP_VULKAN
-class VulkanRenderBackend;
+#if HYP_VULKAN
+class VulkanRenderInterface;
+#elif HYP_DX12
+class DX12RenderInterface;
 #endif
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
@@ -46,10 +47,9 @@ extern Handle<EngineStats> g_engineStats;
 extern ShaderManager* g_shaderManager;
 extern MaterialCache* g_materialCache;
 extern SafeDeleter* g_safeDeleter;
-extern RenderInterface* g_renderInterface;
 extern ShaderCompiler* g_shaderCompiler;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif
 
@@ -60,8 +60,12 @@ extern VisThread* g_visThreadInstance;
 
 extern Handle<Game> g_gameInstance;
 
-#ifdef HYP_VULKAN
-extern VulkanRenderBackend* g_renderBackend;
+#if HYP_VULKAN
+extern VulkanRenderInterface* g_renderInterface;
+#elif HYP_DX12
+extern DX12RenderInterface* g_renderInterface;
+#else
+extern RenderBackend* g_renderInterface;
 #endif
 
 #endif

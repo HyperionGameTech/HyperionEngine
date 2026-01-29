@@ -99,7 +99,7 @@ public:
           m_eventData(),
           m_timestamp(Time(0))
     {
-        Memory::MemSet(&m_platformEvent, 0x0, sizeof(PlatformEvent));
+        Memory::Fill(&m_platformEvent, 0x0, sizeof(PlatformEvent));
     }
 
     Event(EventType eventType, ApplicationWindow* window, PlatformEvent platformEvent)
@@ -128,7 +128,7 @@ public:
         other.m_timestamp = Time(0);
 
         m_platformEvent = other.m_platformEvent;
-        Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
+        Memory::Fill(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
     }
 
     Event& operator=(Event&& other) noexcept
@@ -151,7 +151,7 @@ public:
         other.m_window = nullptr;
         other.m_timestamp = Time(0);
 
-        Memory::MemSet(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
+        Memory::Fill(&other.m_platformEvent, 0x0, sizeof(PlatformEvent));
 
         return *this;
     }

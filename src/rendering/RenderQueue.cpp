@@ -5,12 +5,20 @@
 #include <rendering/RenderQueue.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
+#include <rendering/DescriptorSetCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/RenderGroup.hpp>
 
-#include <rendering/raytracing/RenderRaytracingPipeline.hpp>
+#include <rendering/RayTracingPipeline.hpp>
+#include <rendering/AccelerationStructure.hpp>
+
+#include <rendering/util/ShaderCompiler.hpp>
+
+#include <scene/View.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -28,7 +36,10 @@ void RenderQueue::Prepare(Frame* frame)
         CmdBase* cmdDataPtr = reinterpret_cast<CmdBase*>(m_buffer.Data() + cmdHeader.offset);
         AssertDebug(cmdHeader.offset < m_buffer.Size());
 
-        cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+        if (cmdHeader.prepareFnPtr != nullptr)
+        {
+            cmdHeader.prepareFnPtr(cmdDataPtr, frame);
+        }
     }
 }
 
@@ -107,11 +118,11 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeli
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets)
     : m_descriptorSet(descriptorSet),
-      m_raytracingPipeline(pipeline),
+      m_rayTracingPipeline(pipeline),
       m_offsets(offsets),
-      m_pipelineType(2) // 2 = Raytracing
+      m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -122,12 +133,12 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPip
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
-BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
+BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex)
     : m_descriptorSet(descriptorSet),
-      m_raytracingPipeline(pipeline),
+      m_rayTracingPipeline(pipeline),
       m_offsets(offsets),
       m_bindIndex(bindIndex),
-      m_pipelineType(2) // 2 = Raytracing
+      m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorSet != nullptr, "Descriptor set must not be null");
     AssertDebug(descriptorSet->IsCreated(), "Descriptor set is not created yet");
@@ -139,8 +150,6 @@ void BindDescriptorSet::PrepareStatic(CmdBase* cmd, Frame* frame)
     BindDescriptorSet* cmdCasted = static_cast<BindDescriptorSet*>(cmd);
 
     Assert(cmdCasted->m_descriptorSet->IsCreated());
-
-    frame->MarkDescriptorSetUsed(cmdCasted->m_descriptorSet);
 }
 
 void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
@@ -155,8 +164,8 @@ void BindDescriptorSet::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     case 1: // Compute
         cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_computePipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
         break;
-    case 2: // Raytracing
-        cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
+    case 2: // RayTracing
+        cmdCasted->m_descriptorSet->Bind(commandBuffer, cmdCasted->m_rayTracingPipeline, cmdCasted->m_offsets, cmdCasted->m_bindIndex);
         break;
     default:
         HYP_UNREACHABLE();
@@ -190,12 +199,12 @@ BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, Compu
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
 
-BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, RaytracingPipeline* raytracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
+BindDescriptorTable::BindDescriptorTable(DescriptorTable* descriptorTable, RayTracingPipeline* rayTracingPipeline, const DescriptorTableOffsetMap& offsets, uint32 frameIndex)
     : m_descriptorTable(descriptorTable),
-      m_raytracingPipeline(raytracingPipeline),
+      m_rayTracingPipeline(rayTracingPipeline),
       m_offsets(offsets),
       m_frameIndex(frameIndex),
-      m_pipelineType(2) // 2 = Raytracing
+      m_pipelineType(2) // 2 = RayTracing
 {
     AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
 }
@@ -212,8 +221,6 @@ void BindDescriptorTable::PrepareStatic(CmdBase* cmd, Frame* frame)
         }
 
         Assert(descriptorSet->IsCreated());
-
-        frame->MarkDescriptorSetUsed(descriptorSet);
     }
 }
 
@@ -229,8 +236,8 @@ void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
     case 1: // Compute
         cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_computePipeline, cmdCasted->m_offsets);
         break;
-    case 2: // Raytracing
-        cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_raytracingPipeline, cmdCasted->m_offsets);
+    case 2: // RayTracing
+        cmdCasted->m_descriptorTable->Bind(commandBuffer, cmdCasted->m_frameIndex, cmdCasted->m_rayTracingPipeline, cmdCasted->m_offsets);
         break;
     default:
         HYP_UNREACHABLE();
@@ -247,7 +254,7 @@ void BindDescriptorTable::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 #if defined(HYP_VULKAN) && defined(HYP_DEBUG_MODE)
 void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
 {
-    HYP_GFX_ASSERT(!commandBuffer->IsInRenderPass());
+    Assert(!commandBuffer->IsInRenderPass());
 }
 #endif
 
@@ -278,6 +285,16 @@ void BeginFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
 }
 
+void BeginFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    BeginFramebuffer* cmdCasted = static_cast<BeginFramebuffer*>(cmd);
+
+    cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<BeginFramebuffer>);
+    // cmdCasted->~BeginFramebuffer();
+}
+
 #pragma endregion BeginFramebuffer
 
 #pragma region EndFramebuffer
@@ -301,48 +318,39 @@ void EndFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
 }
 
+void EndFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    EndFramebuffer* cmdCasted = static_cast<EndFramebuffer*>(cmd);
+
+    cmdCasted->m_framebuffer->EndCapture(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<EndFramebuffer>);
+    // cmdCasted->~EndFramebuffer();
+}
+
 #pragma endregion EndFramebuffer
 
+#pragma region ClearFramebuffer
+
+void ClearFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    ClearFramebuffer* cmdCasted = static_cast<ClearFramebuffer*>(cmd);
+
+    cmdCasted->m_framebuffer->Clear(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<ClearFramebuffer>);
+    // cmdCasted->~ClearFramebuffer();
+}
+
+#pragma endregion ClearFramebuffer
+
 #pragma region BindGraphicsPipeline
-
-#ifdef HYP_DEBUG_MODE
-
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline, const Viewport& viewport)
-    : m_pipeline(pipeline),
-      m_viewport(viewport)
-{
-    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
-}
-
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline, Vec2i viewportOffset, Vec2u viewportExtent)
-    : m_pipeline(pipeline),
-      m_viewport(Viewport { viewportExtent, viewportOffset })
-{
-    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
-}
-
-BindGraphicsPipeline::BindGraphicsPipeline(GraphicsPipeline* pipeline)
-    : m_pipeline(pipeline),
-      m_viewport()
-{
-    Assert(s_framebufferCount, "Cannot bind graphics pipeline: not in a framebuffer");
-}
-
-#endif
-
-void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, Frame*)
-{
-    BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
-
-    if (cmdCasted->m_pipeline)
-    {
-        cmdCasted->m_pipeline->lastFrame = RenderApi::GetFrameCounter();
-    }
-}
 
 void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     BindGraphicsPipeline* cmdCasted = static_cast<BindGraphicsPipeline*>(cmd);
+    
+    cmdCasted->m_pipeline->lastFrame = GetFrameCounter();
 
     if (cmdCasted->m_viewport.position != Vec2i(0, 0) || cmdCasted->m_viewport.extent != Vec2u(0, 0))
     {
@@ -352,6 +360,10 @@ void BindGraphicsPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuff
     {
         cmdCasted->m_pipeline->Bind(commandBuffer);
     }
+
+    //// temporary, will be removed once everything operates through CommitDrawState().
+    //RenderInterface::State& state = g_renderInterface->state;
+    //state.Reset();
 
     static_assert(std::is_trivially_destructible_v<BindGraphicsPipeline>);
     // cmdCasted->~BindGraphicsPipeline();
@@ -373,19 +385,19 @@ void BindComputePipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffe
 
 #pragma endregion BindComputePipeline
 
-#pragma region BindRaytracingPipeline
+#pragma region BindRayTracingPipeline
 
-void BindRaytracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+void BindRayTracingPipeline::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
-    BindRaytracingPipeline* cmdCasted = static_cast<BindRaytracingPipeline*>(cmd);
+    BindRayTracingPipeline* cmdCasted = static_cast<BindRayTracingPipeline*>(cmd);
 
     cmdCasted->m_pipeline->Bind(commandBuffer);
 
-    static_assert(std::is_trivially_destructible_v<BindRaytracingPipeline>);
-    // cmdCasted->~BindRaytracingPipeline();
+    static_assert(std::is_trivially_destructible_v<BindRayTracingPipeline>);
+    // cmdCasted->~BindRayTracingPipeline();
 }
 
-#pragma endregion BindRaytracingPipeline
+#pragma endregion BindRayTracingPipeline
 
 #pragma region DispatchCompute
 
@@ -393,7 +405,17 @@ void DispatchCompute::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     DispatchCompute* cmdCasted = static_cast<DispatchCompute*>(cmd);
 
-    cmdCasted->m_pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
+    ComputePipeline* pipeline = cmdCasted->m_pipeline;
+
+    if (pipeline == nullptr)
+    {
+        g_renderInterface->CommitPipelineState(PSO_Compute, commandBuffer);
+        
+        pipeline = g_renderInterface->state.prevComputePipeline;
+        AssertDebug(pipeline != nullptr, "No compute pipeline set, call SetCurrentShader before DispatchCompute() without pipeline passed");
+    }
+
+    pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
 
     static_assert(std::is_trivially_destructible_v<DispatchCompute>);
     // cmdCasted->~DispatchCompute();
@@ -407,7 +429,17 @@ void TraceRays::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
     TraceRays* cmdCasted = static_cast<TraceRays*>(cmd);
 
-    cmdCasted->m_pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
+    RayTracingPipeline* pipeline = cmdCasted->m_pipeline;
+    
+    if (pipeline == nullptr)
+    {
+        g_renderInterface->CommitPipelineState(PSO_RayTracing, commandBuffer);
+
+        pipeline = g_renderInterface->state.prevRayTracingPipeline;
+        AssertDebug(pipeline != nullptr, "No rayTracing pipeline set, call SetCurrentShader before TraceRays() without pipeline passed");
+    }
+
+    pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
 
     static_assert(std::is_trivially_destructible_v<TraceRays>);
     // cmdCasted->~TraceRays();
@@ -443,5 +475,322 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 }
 
 #pragma endregion DrawQuad
+
+#pragma region SetStencilState
+
+void SetStencilState::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+{
+    SetStencilState* cmdCasted = static_cast<SetStencilState*>(cmd);
+
+    RenderInterface::State& state = g_renderInterface->state;
+
+    if (state.stencilReference != cmdCasted->m_referenceValue
+        || state.stencilCompareMask != cmdCasted->m_compareMask
+        || state.stencilWriteMask != cmdCasted->m_writeMask)
+    {
+        // set stencil state
+        state.stencilReference = cmdCasted->m_referenceValue;
+        state.stencilCompareMask = cmdCasted->m_compareMask;
+        state.stencilWriteMask = cmdCasted->m_writeMask;
+
+        // invalidate pipeline state
+        state.prevGraphicsPipeline = nullptr;
+
+        state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
+        state.validUniforms = 0;
+
+        Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
+    }
+
+    static_assert(std::is_trivially_destructible_v<SetStencilState>);
+    // cmdCasted->~SetStencilState();
+}
+
+#pragma endregion SetStencilState
+
+#pragma region SetCurrentShader
+
+void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentShader* cmdCasted = static_cast<SetCurrentShader*>(cmd);
+
+    RenderInterface::State& state = g_renderInterface->state;
+
+    ShaderDesc& shaderDesc = cmdCasted->shaderDesc;
+
+    // merge shared global properties with the one we're setting
+    MergeGlobalShaderProperties(shaderDesc.properties);
+
+    state.attributes.SetShaderName(shaderDesc.name);
+    state.attributes.SetShaderProperties(shaderDesc.properties);
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentShader>);
+    // cmdCasted->~SetCurrentShader();
+}
+
+#pragma endregion SetCurrentShader
+
+#pragma region SetCurrentView
+
+void SetCurrentView::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentView* cmdCasted = static_cast<SetCurrentView*>(cmd);
+
+    Framebuffer* framebuffer = nullptr;
+
+    g_renderInterface->state.renderTargetDesc = cmdCasted->renderTargetDesc;
+    g_renderInterface->state.viewport = cmdCasted->viewport;
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentView>);
+    // cmdCasted->~SetCurrentView();
+}
+
+#pragma endregion SetCurrentView
+
+#pragma region SetTopology
+
+void SetTopology::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetTopology* cmdCasted = static_cast<SetTopology*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMeshAttributes().topology == cmdCasted->topology)
+        return;
+
+    g_renderInterface->state.attributes.GetMeshAttributes().topology = cmdCasted->topology;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetTopology>);
+    // cmdCasted->~SetTopology();
+}
+
+#pragma endregion SetTopology
+
+#pragma region SetVertexAttributes
+
+void SetVertexAttributes::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetVertexAttributes* cmdCasted = static_cast<SetVertexAttributes*>(cmd);
+
+    RenderInterface::State& state = g_renderInterface->state;
+
+    if (state.attributes.GetMeshAttributes().vertexAttributes == cmdCasted->vertexAttributes)
+        return;
+
+    state.attributes.GetMeshAttributes().vertexAttributes = cmdCasted->vertexAttributes;
+
+    state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetVertexAttributes>);
+    // cmdCasted->~SetVertexAttributes();
+}
+
+#pragma endregion SetVertexAttributes
+
+#pragma region SetCurrentBlendFunction
+
+void SetCurrentBlendFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetCurrentBlendFunction* cmdCasted = static_cast<SetCurrentBlendFunction*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction == cmdCasted->blendFunction)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().blendFunction = cmdCasted->blendFunction;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetCurrentBlendFunction>);
+    // cmdCasted->~SetCurrentBlendFunction();
+}
+
+#pragma endregion SetCurrentBlendFunction
+
+#pragma region SetDepthWrite
+
+void SetDepthWrite::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthWrite* cmdCasted = static_cast<SetDepthWrite*>(cmd);
+
+    if (cmdCasted->depthWrite)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_WRITE;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_WRITE;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetDepthWrite>);
+    // cmdCasted->~SetDepthWrite();
+}
+
+#pragma endregion SetDepthWrite
+
+#pragma region SetDepthTest
+
+void SetDepthTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthTest* cmdCasted = static_cast<SetDepthTest*>(cmd);
+
+    if (cmdCasted->depthTest)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_TEST;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_TEST;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetDepthTest>);
+    // cmdCasted->~SetDepthTest();
+}
+
+#pragma endregion SetDepthTest
+
+#pragma region SetStencilTest
+
+void SetStencilTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetStencilTest* cmdCasted = static_cast<SetStencilTest*>(cmd);
+
+    if (cmdCasted->stencilTest)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetStencilTest>);
+    // cmdCasted->~SetStencilTest();
+}
+
+#pragma endregion SetStencilTest
+
+#pragma region SetStencilFunction
+
+void SetStencilFunction::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetStencilFunction* cmdCasted = static_cast<SetStencilFunction*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction == cmdCasted->stencilFunction)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().stencilFunction = cmdCasted->stencilFunction;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetStencilFunction>);
+    // cmdCasted->~SetStencilFunction();
+}
+
+#pragma endregion SetStencilFunction
+
+#pragma region SetFillMode
+
+void SetFillMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetFillMode* cmdCasted = static_cast<SetFillMode*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().fillMode == cmdCasted->fillMode)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().fillMode = cmdCasted->fillMode;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetFillMode>);
+    // cmdCasted->~SetFillMode();
+}
+
+#pragma endregion SetFillMode
+
+#pragma region SetFaceCullMode
+
+void SetFaceCullMode::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetFaceCullMode* cmdCasted = static_cast<SetFaceCullMode*>(cmd);
+
+    if (g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces == cmdCasted->faceCullMode)
+        return;
+
+    g_renderInterface->state.attributes.GetMaterialAttributes().cullFaces = cmdCasted->faceCullMode;
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetFaceCullMode>);
+    // cmdCasted->~SetFaceCullMode();
+}
+
+#pragma endregion SetFaceCullMode
+
+#pragma region SetShaderUniform
+
+void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetShaderUniform* cmdCasted = static_cast<SetShaderUniform*>(cmd);
+    
+    RenderInterface& ri = *g_renderInterface;
+    RenderInterface::State& state = ri.state;
+
+    ShaderUniform& uniform = state.shaderUniforms[cmdCasted->uniformIndex];
+
+    if (uniform != cmdCasted->uniform || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))
+    {
+        uniform = cmdCasted->uniform;
+
+        state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
+    }
+    
+    if (cmdCasted->uniform.type == ShaderUniform::UT_Buffer)
+    {
+        // buffer offset only updating
+        state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->bufferOffset;
+        state.dirtyBufferOffsets |= (1u << cmdCasted->uniformIndex);
+    }
+    else
+    {
+        // unset dirty buffer offset bit if it is not a buffer
+        state.dirtyBufferOffsets &= ~(1u << cmdCasted->uniformIndex);
+    }
+
+    static_assert(std::is_trivially_destructible_v<SetShaderUniform>);
+    // cmdCasted->~SetShaderUniform();
+}
+
+#pragma endregion SetShaderUniform
+
+#pragma region CommitDrawState
+
+void CommitDrawState::InvokeStatic(CmdBase*, CommandBuffer* commandBuffer)
+{
+    g_renderInterface->CommitDrawState(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<CommitDrawState>);
+    // cmdCasted->~CommitDrawState();
+}
+
+#pragma endregion CommitDrawState
 
 } // namespace Hyperion

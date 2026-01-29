@@ -19,15 +19,6 @@ class Mesh;
 class SwapchainBase;
 struct RenderSetup;
 
-struct FinalPassData
-{
-    SwapchainWeakRef swapchain;
-    Handle<FullScreenPass> renderTextureToScreenPass;
-    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
-    GpuImageViewRef lastUiImageView;
-    uint8 dirtyFrameIndices = 0;
-};
-
 class FinalPass final
 {
 public:
@@ -42,9 +33,6 @@ public:
     void Render(Frame* frame, const RenderSetup& rs);
 
 private:
-    FinalPassData* GetOrCreatePassData(Swapchain* swapchain);
-
-    SparsePagedArray<FinalPassData> m_passData;
     Handle<Mesh> m_quadMesh;
     GpuImageViewRef m_uiLayerImageView;
 };

@@ -7,7 +7,6 @@
 #include <core/cli/CommandLine.hpp>
 
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderBackend.hpp>
 
 #include <engine/Game.hpp>
 

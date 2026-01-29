@@ -78,7 +78,7 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    Handle<AudioSource> audioSource = CreateObject<AudioSource>(
+    Handle<AudioSource> audioSource = MakeHandle<AudioSource>(
         object.format,
         object.waveBytes,
         object.frequency);

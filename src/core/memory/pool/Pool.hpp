@@ -182,6 +182,50 @@ using memory::PoolNew;
 
 } // namespace Hyperion
 
+#pragma region Global operator new and delete
+
+inline void* operator new(size_t size, Hyperion::Pool& pool)
+{
+    return pool.Allocate(size);
+}
+
+inline void* operator new(size_t size, std::align_val_t alignment, Hyperion::Pool& pool)
+{
+    return pool.Allocate(size, size_t(alignment));
+}
+
+inline void* operator new[](size_t size, Hyperion::Pool& pool)
+{
+    return pool.Allocate(size);
+}
+
+inline void* operator new[](size_t size, std::align_val_t alignment, Hyperion::Pool& pool)
+{
+    return pool.Allocate(size, size_t(alignment));
+}
+
+inline void operator delete(void* ptr, Hyperion::Pool& pool)
+{
+    pool.Free(ptr);
+}
+
+inline void operator delete(void* ptr, std::align_val_t alignment, Hyperion::Pool& pool)
+{
+    pool.Free(ptr);
+}
+
+inline void operator delete[](void* ptr, Hyperion::Pool& pool)
+{
+    pool.Free(ptr);
+}
+
+inline void operator delete[](void* ptr, std::align_val_t alignment, Hyperion::Pool& pool)
+{
+    pool.Free(ptr);
+}
+
+#pragma endregion Global operator new and delete
+
 #define HYP_DEF_POOL_NEW_DELETE(poolName)                                  \
     void* operator new(size_t size)                                        \
     {                                                                      \

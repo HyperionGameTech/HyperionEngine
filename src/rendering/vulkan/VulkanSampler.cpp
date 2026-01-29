@@ -6,7 +6,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 VulkanSampler::VulkanSampler(TextureFilterMode minFilterMode, TextureFilterMode magFilterMode, TextureWrapMode wrapMode)
     : m_handle(VK_NULL_HANDLE)
@@ -28,7 +28,7 @@ VulkanSampler::~VulkanSampler()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroySampler(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroySampler(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 }
@@ -40,7 +40,7 @@ bool VulkanSampler::IsCreated() const
 
 RendererResult VulkanSampler::Create()
 {
-    HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
+    Assert(m_handle == VK_NULL_HANDLE);
 
     VkSamplerCreateInfo samplerInfo { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
     samplerInfo.magFilter = ToVkFilter(m_magFilterMode);
@@ -86,7 +86,7 @@ RendererResult VulkanSampler::Create()
 
     if (m_minFilterMode == TFM_MINMAX_MIPMAP)
     {
-        if (!g_renderBackend->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
+        if (!g_renderInterface->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
         {
             return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
@@ -95,12 +95,12 @@ RendererResult VulkanSampler::Create()
         samplerInfo.pNext = &reductionInfo;
     }
 
-    if (vkCreateSampler(g_renderBackend->GetDevice()->GetDevice(), &samplerInfo, nullptr, &m_handle) != VK_SUCCESS)
+    if (vkCreateSampler(g_renderInterface->GetDevice()->GetDevice(), &samplerInfo, nullptr, &m_handle) != VK_SUCCESS)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 #ifdef HYP_DEBUG_MODE
@@ -121,7 +121,7 @@ void VulkanSampler::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

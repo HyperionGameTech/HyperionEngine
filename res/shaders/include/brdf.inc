@@ -225,7 +225,7 @@ vec4 SchlickFresnelRoughness(vec4 f0, float roughness, float u)
     // const float Fc = pow(1 - u, 5.0);
     // return f0 * (1.0 - Fc) + f90 * Fc;
 
-    return f0 + (max(vec4(1.0 - roughness), f0) - f0) * pow(1.0 - u, 5.0);
+    return f0 + (max(vec4((1.0 - roughness).xxxx), f0) - f0) * pow(1.0 - u, 5.0);
 }
 
 vec3 SchlickFresnelRoughness(vec3 f0, float roughness, float u)
@@ -233,7 +233,7 @@ vec3 SchlickFresnelRoughness(vec3 f0, float roughness, float u)
     // const float Fc = pow(1 - u, 5.0);
     // return f0 * (1.0 - Fc) + f90 * Fc;
 
-    return f0 + (max(vec3(1.0 - roughness), f0) - f0) * pow(1.0 - u, 5.0);
+    return f0 + (max(vec3((1.0 - roughness).xxx), f0) - f0) * pow(1.0 - u, 5.0);
 }
 
 vec3 mon2lin(vec3 x)
@@ -330,7 +330,7 @@ float SpecularAO_Cones(vec3 bentNormal, float visibility, float roughness, vec3 
     float ao = sphericalCapsIntersection(cosAv, cosAs, cosB) / (1.0 - cosAs);
     // Smoothly kill specular AO when entering the perceptual roughness range [0.1..0.3]
     // Without this, specular AO can remove all reflections, which looks bad on metals
-    return mix(1.0, ao, smoothstep(0.01, 0.09, roughness));
+    return lerp(1.0, ao, smoothstep(0.01, 0.09, roughness));
 }
 
 float SpecularAO_Lagarde(float NoV, float visibility, float roughness)
@@ -345,7 +345,7 @@ vec3 GTAOMultiBounce(float visibility, const vec3 albedo) {
     vec3 b = -4.7951 * albedo + 0.6417;
     vec3 c =  2.7552 * albedo + 0.6903;
 
-    return max(vec3(visibility), ((visibility * a + b) * visibility + c) * visibility);
+    return max(vec3(visibility.xxx), ((visibility * a + b) * visibility + c) * visibility);
 }
 
 float VanDerCorpus(uint bits) 
@@ -421,8 +421,8 @@ vec4 CalculateDiffuseColor(vec4 albedo, float metalness)
 vec3 CalculateF0(vec3 albedo, float metalness)
 {
     const float IOR = 1.5;
-    vec3 F0 = vec3(pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0));
-    F0 = mix(F0, albedo, metalness);
+    vec3 F0 = vec3((pow(IOR - 1.0, 2.0) / pow(IOR + 1.0, 2.0)).xxx);
+    F0 = lerp(F0, albedo, metalness);
     return F0;
 }
 
@@ -462,12 +462,12 @@ vec4 CalculateDFG(vec4 F, float perceptual_roughness, float NdotV)
 
 vec3 CalculateE(vec3 F0, vec3 dfg)
 {
-    return mix(dfg.xxx, dfg.yyy, F0);
+    return lerp(dfg.xxx, dfg.yyy, F0);
 }
 
 vec4 CalculateE(vec4 F0, vec4 dfg)
 {
-    return mix(dfg.xxxx, dfg.yyyy, F0);
+    return lerp(dfg.xxxx, dfg.yyyy, F0);
 }
 
 vec3 CalculateEnergyCompensation(vec3 F0, vec3 dfg)

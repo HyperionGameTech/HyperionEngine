@@ -2,31 +2,29 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderConfig.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
-
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <DescriptorSet.generated.inl>
 
 namespace Hyperion {
 #pragma region DescriptorSetDeclaration
 
-DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
+ShaderInput* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
 {
-    for (uint32 slotIndex = 0; slotIndex < DESCRIPTOR_SLOT_MAX; slotIndex++)
+    for (uint32 slotIndex = 0; slotIndex < uint8(ShaderRegister::MAX); slotIndex++)
     {
-        for (const DescriptorDeclaration& decl : slots[slotIndex])
+        for (const ShaderInput& decl : slots[slotIndex])
         {
             if (decl.name == name)
             {
-                return const_cast<DescriptorDeclaration*>(&decl);
+                return const_cast<ShaderInput*>(&decl);
             }
         }
     }
@@ -34,19 +32,19 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Strin
     return nullptr;
 }
 
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(ShaderRegister slot, StringHash name) const
 {
-    HYP_GFX_ASSERT(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
+    Assert(slot != ShaderRegister::NONE && uint8(slot) < uint8(ShaderRegister::MAX));
 
     uint32 flatIndex = 0;
 
-    for (uint32 slotIndex = 0; slotIndex < uint32(slot); slotIndex++)
+    for (uint8 slotIndex = 0; slotIndex < uint8(slot); slotIndex++)
     {
-        if (slotIndex == uint32(slot) - 1)
+        if (slotIndex == uint8(slot) - 1)
         {
             uint32 declIndex = 0;
 
-            for (const DescriptorDeclaration& decl : slots[slotIndex])
+            for (const ShaderInput& decl : slots[slotIndex])
             {
                 if (decl.name == name)
                 {
@@ -63,7 +61,7 @@ uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringH
     return ~0u;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(StringHash name) const
+DescriptorSetDeclaration* ShaderInputGroup::FindDescriptorSetDeclaration(StringHash name) const
 {
     for (const DescriptorSetDeclaration& decl : elements)
     {
@@ -76,19 +74,16 @@ DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclarati
     return nullptr;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
+DescriptorSetDeclaration* ShaderInputGroup::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
 {
     return &elements.PushBack(std::move(descriptorSetDeclaration));
 }
 
-DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
+ShaderInputGroup& GetStaticDescriptorTableDeclaration()
 {
-    static DescriptorTableDeclaration s_decl;
-
-    static DescriptorTableDeclaration::DeclareSet s_globalSet { &s_decl, 0, NAME("Global") };
-    static DescriptorTableDeclaration::DeclareSet s_viewSet { &s_decl, 1, NAME("View"), /* isTemplate */ true };
-    static DescriptorTableDeclaration::DeclareSet s_entitySet { &s_decl, 2, NAME("Entity") };
-    static DescriptorTableDeclaration::DeclareSet s_materialSet { &s_decl, 3, NAME("Material") };
+    static ShaderInputGroup s_decl;
+    static ShaderInputGroup::DeclareSet s_BindlessResources0Decl { &s_decl, 0, NAME("BindlessResources0") };
+    static ShaderInputGroup::DeclareSet s_BindlessResources1Decl { &s_decl, 1, NAME("BindlessResources1") };
 
     return s_decl;
 }
@@ -100,7 +95,8 @@ DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
 DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     : m_decl(decl),
       m_isTemplate(false),
-      m_isReference(false)
+      m_isReference(false),
+      m_cachedHashCode(HashCode())
 {
     if (!decl)
     {
@@ -114,15 +110,15 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     {
         m_decl = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl->name);
 
-        HYP_GFX_ASSERT(m_decl != nullptr, "Invalid global descriptor set reference: %s", decl->name.LookupString());
+        Assert(m_decl != nullptr, "Invalid global descriptor set reference: {}", decl->name);
     }
 
-    for (const Array<DescriptorDeclaration>& slot : m_decl->slots)
+    for (const Array<ShaderInput>& slot : m_decl->slots)
     {
-        for (const DescriptorDeclaration& descriptor : slot)
+        for (const ShaderInput& descriptor : slot)
         {
             const uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
-            HYP_GFX_ASSERT(descriptorIndex != ~0u);
+            Assert(descriptorIndex != ~0u);
 
             if (descriptor.cond != nullptr && !descriptor.cond())
             {
@@ -134,47 +130,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
             //     declPtr->name, descriptor.name, descriptorIndex, int(descriptor.slot),
             //     descriptor.count, descriptor.size, descriptor.isDynamic);
 
-            switch (descriptor.slot)
-            {
-            case DescriptorSlot::DESCRIPTOR_SLOT_SRV:
-                AddElement(descriptor.name, DescriptorSetElementType::IMAGE, descriptorIndex, descriptor.count);
-
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_UAV:
-                AddElement(descriptor.name, DescriptorSetElementType::IMAGE_STORAGE, descriptorIndex, descriptor.count);
-
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_CBUFF:
-                if (descriptor.isDynamic)
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                else
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::UNIFORM_BUFFER, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_SSBO:
-                if (descriptor.isDynamic)
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                else
-                {
-                    AddElement(descriptor.name, DescriptorSetElementType::SSBO, descriptorIndex, descriptor.count, descriptor.size);
-                }
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:
-                AddElement(descriptor.name, DescriptorSetElementType::TLAS, descriptorIndex, descriptor.count);
-
-                break;
-            case DescriptorSlot::DESCRIPTOR_SLOT_SAMPLER:
-                AddElement(descriptor.name, DescriptorSetElementType::SAMPLER, descriptorIndex, descriptor.count);
-
-                break;
-            default:
-                HYP_UNREACHABLE();
-            }
+            AddElement(descriptor.name, descriptor.type, descriptorIndex, descriptor.count);
         }
     }
 
@@ -184,8 +140,8 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     // Add to list of dynamic buffer names
     for (const auto& it : m_elements)
     {
-        if (it.second.type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
-            || it.second.type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
+        if (it.second.type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+            || it.second.type == ShaderInputType::STORAGE_BUFFER_DYNAMIC)
         {
             dynamicElementsWithIndex.PushBack({ it.first, it.second.binding });
         }
@@ -202,29 +158,15 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     {
         m_dynamicElements[i] = dynamicElementsWithIndex[i].first;
     }
+
+    m_cachedHashCode = m_elements.GetHashCode();
 }
 
 #pragma endregion DescriptorSetLayout
 
 #pragma region DescriptorSetBase
 
-DescriptorSetBase::~DescriptorSetBase()
-{
-    for (auto& elementsIt : m_elements)
-    {
-        for (auto& valuesIt : elementsIt.second.values)
-        {
-            Handle<ObjectBase>& value = valuesIt.second;
-
-            if (!value)
-            {
-                continue;
-            }
-
-            SafeDelete(std::move(value));
-        }
-    }
-}
+DescriptorSetBase::~DescriptorSetBase() = default;
 
 bool DescriptorSetBase::HasElement(StringHash name) const
 {
@@ -232,10 +174,12 @@ bool DescriptorSetBase::HasElement(StringHash name) const
 }
 
 template <class T>
-DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, const Handle<T>& ref)
+DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, T* ref)
 {
     const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
     AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
+
+    AssertDebug(ref != nullptr);
 
     // Range check
     AssertDebug(index < layoutElement->count, "Index {} out of range for element {} with count {}",
@@ -243,10 +187,10 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
     if constexpr (std::is_base_of_v<GpuBufferBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
-            | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-            | (1u << uint32(DescriptorSetElementType::SSBO))
-            | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::UNIFORM_BUFFER))
+            | (1u << uint32(ShaderInputType::UNIFORM_BUFFER_DYNAMIC))
+            | (1u << uint32(ShaderInputType::STORAGE_BUFFER))
+            | (1u << uint32(ShaderInputType::STORAGE_BUFFER_DYNAMIC));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
 
@@ -264,29 +208,29 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
             {
                 const uint32 remainder = ref->Size() % layoutElement->size;
 
-                AssertDebug(
-                    remainder == 0,
-                    "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
-                    ref->Size(), layoutElement->size, Name(name));
+                // AssertDebug(
+                //     remainder == 0,
+                //     "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
+                //     ref->Size(), layoutElement->size, Name(name));
             }
         }
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::IMAGE))
-            | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::IMAGE))
+            | (1u << uint32(ShaderInputType::IMAGE_STORAGE));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<SamplerBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::SAMPLER));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::SAMPLER));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorSetElementType::TLAS));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::TLAS));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
@@ -295,86 +239,163 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         static_assert(ResolutionFailureV<T>, "Unsupported type for descriptor set element");
     }
 
-    auto it = m_elements.FindAs(name);
-    AssertDebug(it != m_elements.End());
+    DescriptorSetElement* element = nullptr;
+
+    auto it = m_elements.Find(Name(name));
 
     if (it == m_elements.End())
     {
         it = m_elements.Emplace(Name(name)).first;
-    }
+        
+        element = &it->second;
 
-    DescriptorSetElement& element = it->second;
+        element->values.Resize(index + 1);
+        element->values[index] = ref;
 
-    auto elementIt = element.values.Find(index);
-
-    if (elementIt == element.values.End())
-    {
-        elementIt = element.values.Emplace(index, ref).first;
+        element->occupiedArrayElems.Set(index, true);
     }
     else
     {
-        if (elementIt->second != nullptr)
-        {
-            SafeDelete(std::move(elementIt->second));
-        }
+        element = &it->second;
 
-        elementIt->second = ref;
+        if (!element->occupiedArrayElems.Test(index))
+        {
+            element->values.Resize(MathUtil::Max(element->values.Size(), index + 1));
+            element->values[index] = ref;
+
+            element->occupiedArrayElems.Set(index, true);
+        }
+        else
+        {
+            //if (element->values[index] == ref)
+            //{
+            //    // same object reference; skip marking dirty; unless TLAS (the tlas can change)
+            //    return *element;
+            //}
+
+            element->values[index] = ref;
+        }
     }
 
     // Mark the range as dirty so that it will be updated in the next update
-    element.dirtyRange |= { index, index + 1 };
+    element->dirtyRange |= { index, index + 1 };
 
-    return element;
+    return *element;
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuBuffer* ref)
 {
     SetElementT<GpuBuffer>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref)
 {
     SetElementT<GpuBuffer>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuBuffer* ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuImageView* ref)
 {
     SetElementT<GpuImageView>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuImageView* ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, Sampler* ref)
 {
     SetElementT<Sampler>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, Sampler* ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, const GpuTlasRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuTlas* ref)
 {
     SetElementT<GpuTlas>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, const GpuTlasRef& ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuTlas* ref)
 {
     SetElement(name, 0, ref);
+}
+
+void DescriptorSetBase::DeleteElement(StringHash name, uint32 index)
+{
+    const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
+    Assert(layoutElement != nullptr);
+    Assert(layoutElement->IsBindless(), "Can only call DeleteElement() for bindless descriptors");
+
+    DescriptorSetElement* element = nullptr;
+
+    auto it = m_elements.Find(Name(name));
+
+    if (it == m_elements.End())
+    {
+        return;
+    }
+
+    element = &it->second;
+
+    if (!element->occupiedArrayElems.Test(index))
+    {
+        return;
+    }
+
+    element->occupiedArrayElems.Set(index, false);
 }
 
 #pragma endregion DescriptorSetBase
 
 #pragma region DescriptorTableBase
+
+DescriptorTableBase::DescriptorTableBase(const ShaderInputGroup* decl)
+    : m_decl(decl)
+{
+    AssertDebug(decl != nullptr);
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        m_sets[frameIndex].Reserve(m_decl->elements.Size());
+    }
+
+    for (const DescriptorSetDeclaration& descriptorSetDeclaration : m_decl->elements)
+    {
+        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
+        {
+            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
+            Assert(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: {}", descriptorSetDeclaration.name);
+
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                DescriptorSetRef descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(referencedDescriptorSetDeclaration->name, frameIndex);
+                Assert(descriptorSet.IsValid(), "Invalid global descriptor set reference: {}", referencedDescriptorSetDeclaration->name);
+
+                m_sets[frameIndex].PushBack(std::move(descriptorSet));
+            }
+
+            continue;
+        }
+
+        DescriptorSetLayout layout { &descriptorSetDeclaration };
+
+        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        {
+            DescriptorSetRef descriptorSet = MakeHandle<DescriptorSet>(layout);
+            descriptorSet->SetDebugName(layout.GetName());
+
+            m_sets[frameIndex].PushBack(std::move(descriptorSet));
+        }
+    }
+}
 
 RendererResult DescriptorTableBase::Create()
 {

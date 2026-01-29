@@ -308,7 +308,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 {
     Assert(state.assetManager != nullptr);
 
-    Handle<Node> top = CreateObject<Node>(CreateNameFromDynamicString(model.name));
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
 
     Handle<MaterialGroup> materialLibrary;
 
@@ -426,7 +426,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         meshData.CalculateNormals();
 
-        Handle<Mesh> mesh = CreateObject<Mesh>();
+        Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
         mesh->SetMeshData(meshDesc, meshData);
 
@@ -451,11 +451,16 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
             }
         }
 
+        MaterialAttributes materialAttributes {};
+        materialAttributes.shaderName = NAME("GeometryPass");
+        materialAttributes.shaderProperties = {};
+        materialAttributes.bucket = RB_OPAQUE;
+
         if (!material.IsValid())
         {
             material = MaterialCache::GetInstance()->GetOrCreate(
                 NAME("BasicOBJMaterial"),
-                { ShaderDefinition { NAME("GeometryPass"), ShaderProperties(mesh->GetVertexAttributes()) }, RB_OPAQUE },
+                materialAttributes,
                 { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
         }
 

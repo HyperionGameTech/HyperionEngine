@@ -4,7 +4,6 @@
 
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
-#include <core/math/Vertex.hpp>
 #include <core/math/Transform.hpp>
 
 #include <core/containers/FlatSet.hpp>
@@ -81,54 +80,6 @@ struct HYP_API Ray
     bool TestTriangle(const Triangle& triangle, RayTestResults& outResults) const;
     bool TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults& outResults) const;
     bool TestTriangle(const Triangle& triangle, RayHitID hitId, const void* userData, RayTestResults& outResults) const;
-
-    Optional<RayHit> TestTriangleList(
-        const Array<Vertex>& vertices,
-        const Array<uint32>& indices,
-        const Transform& transform) const;
-
-    Optional<RayHit> TestTriangleList(
-        const Span<Triangle>& triangles,
-        const Transform& transform) const;
-
-    bool TestTriangleList(
-        const Array<Vertex>& vertices,
-        const Array<uint32>& indices,
-        const Transform& transform,
-        RayTestResults& outResults) const;
-
-    bool TestTriangleList(
-        const Span<Triangle>& triangles,
-        const Transform& transform,
-        RayTestResults& outResults) const;
-
-    bool TestTriangleList(
-        const Array<Vertex>& vertices,
-        const Array<uint32>& indices,
-        const Transform& transform,
-        RayHitID hitId,
-        RayTestResults& outResults) const;
-
-    bool TestTriangleList(
-        const Span<Triangle>& triangles,
-        const Transform& transform,
-        RayHitID hitId,
-        RayTestResults& outResults) const;
-
-    bool TestTriangleList(
-        const Array<Vertex>& vertices,
-        const Array<uint32>& indices,
-        const Transform& transform,
-        RayHitID hitId,
-        const void* userData,
-        RayTestResults& outResults) const;
-
-    bool TestTriangleList(
-        const Span<Triangle>& triangles,
-        const Transform& transform,
-        RayHitID hitId,
-        const void* userData,
-        RayTestResults& outResults) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

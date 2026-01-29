@@ -21,7 +21,7 @@
 
 #include <rendering/RenderBackend.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 
@@ -67,7 +67,7 @@ CocoaAppContext::~CocoaAppContext()
 
 Handle<ApplicationWindow> CocoaAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
-    Handle<CocoaApplicationWindow> window = CreateObject<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
+    Handle<CocoaApplicationWindow> window = MakeHandle<CocoaApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
     
     window->Initialize(windowOptions);

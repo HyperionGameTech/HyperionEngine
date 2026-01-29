@@ -14,11 +14,10 @@
 
 #include <core/Defines.hpp>
 
-#include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/Frame.hpp>
-#include <rendering/RenderBackend.hpp>
 
 #include <core/math/Mat4f.hpp>
 
@@ -36,23 +35,6 @@ struct alignas(16) ParticleShaderData
 };
 
 static_assert(sizeof(ParticleShaderData) == 64);
-
-struct alignas(16) GaussianSplattingInstanceShaderData
-{
-    Vec4f position; //   4 x 4 = 16
-    Vec4f rotation; // + 4 x 4 = 32
-    Vec4f scale;    // + 4 x 4 = 48
-    Vec4f color;    // + 4 x 4 = 64
-};
-
-static_assert(sizeof(GaussianSplattingInstanceShaderData) == 64);
-
-struct GaussianSplattingSceneShaderData
-{
-    Mat4f modelMatrix;
-};
-
-static_assert(sizeof(GaussianSplattingSceneShaderData) == 64);
 
 struct CubemapUniforms
 {
@@ -157,7 +139,7 @@ public:
     virtual void MarkDirty(uint32 index) = 0;
 
     virtual void UpdateBufferSize(uint32 frameIndex) = 0;
-    virtual void UpdateBufferData(Frame* frame) = 0;
+    virtual void UpdateBufferData(uint32 frameIndex, RenderQueue& renderQueue) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -188,7 +170,7 @@ public:
 protected:
     void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
     void CopyStagingToGpu(
-        Frame* frame,
+        uint32 frameIndex, RenderQueue& renderQueue,
         Span<GpuBuffer* const> stagingBuffers,
         Span<const uint32> chunkStarts,
         Span<const uint32> chunkEnds);
@@ -243,7 +225,7 @@ public:
     void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frameIndex)
     {
         bool wasResized = false;
-        HYP_GFX_ASSERT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
+        CheckResult(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &wasResized));
 
         if (wasResized)
         {
@@ -387,10 +369,8 @@ public:
         m_pool.EnsureGpuBufferCapacity(m_gpuBuffer, frameIndex);
     }
 
-    virtual void UpdateBufferData(Frame* frame) override
+    virtual void UpdateBufferData(uint32 frameIndex, RenderQueue& renderQueue) override
     {
-        const uint32 frameIndex = frame->GetFrameIndex();
-
         Array<uint32, RenderAllocator> chunkStarts;
         Array<uint32, RenderAllocator> chunkEnds;
         Array<GpuBuffer*, RenderAllocator> stagingBuffers;
@@ -423,7 +403,7 @@ public:
         }
 
         GpuBufferHolderBase::CopyStagingToGpu(
-            frame,
+            frameIndex, renderQueue,
             stagingBuffers.ToSpan(),
             chunkStarts.ToSpan(),
             chunkEnds.ToSpan());

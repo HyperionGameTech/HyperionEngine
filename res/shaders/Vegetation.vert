@@ -24,9 +24,9 @@ layout(location = 7) in vec4 a_bone_indices;
 
 #include "include/scene.inc"
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 
-#include "include/Skeleton.glsl"
+#include "include/Skeleton.inc"
 
 void main()
 {
@@ -60,8 +60,8 @@ void main()
     v_tangent = normalize(normal_matrix * vec4(a_tangent, 0.0)).xyz;
     v_bitangent = normalize(normal_matrix * vec4(a_bitangent, 0.0)).xyz;
 
-    v_position_ndc = camera.projection * camera.view * position;
-    v_previous_position_ndc = camera.projection * camera.previous_view * previous_position;
+    v_position_ndc = camera.viewProjMat * position;
+    v_previous_position_ndc = camera.prevViewProjMat * previous_position;
 
     gl_Position = v_position_ndc;
 }

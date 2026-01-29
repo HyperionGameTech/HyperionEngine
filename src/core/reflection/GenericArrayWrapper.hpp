@@ -74,7 +74,7 @@ struct GenericArrayWrapper
           typeInfo(&TypeInfo_Void()),
           elementTypeInfo(&TypeInfo_Void())
     {
-        Memory::MemSet(&functionTable, 0, sizeof(FunctionTable));
+        Memory::Zero(&functionTable, sizeof(FunctionTable));
     }
 
     GenericArrayWrapper(const GenericArrayWrapper& other)
@@ -133,7 +133,7 @@ struct GenericArrayWrapper
         other.typeInfo = &TypeInfo_Void();
         other.elementTypeInfo = &TypeInfo_Void();
 
-        Memory::MemSet(&other.functionTable, 0, sizeof(FunctionTable));
+        Memory::Fill(&other.functionTable, 0, sizeof(FunctionTable));
     }
 
     GenericArrayWrapper& operator=(GenericArrayWrapper&& other) noexcept
@@ -157,7 +157,7 @@ struct GenericArrayWrapper
         other.typeInfo = &TypeInfo_Void();
         other.elementTypeInfo = &TypeInfo_Void();
 
-        Memory::MemSet(&other.functionTable, 0, sizeof(FunctionTable));
+        Memory::Zero(&other.functionTable, sizeof(FunctionTable));
 
         return *this;
     }

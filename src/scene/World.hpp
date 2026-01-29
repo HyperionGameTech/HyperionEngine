@@ -123,7 +123,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), CreateObject<T>()));
+        return ObjCast<T>(AddSubsystem(TypeId::ForType<T>(), MakeHandle<T>()));
     }
 
     template <class T>
@@ -219,7 +219,7 @@ public:
             return existingSystem;
         }
 
-        return AddSystem(CreateObject<SystemType>(std::forward<Args>(args)...));
+        return AddSystem(MakeHandle<SystemType>(std::forward<Args>(args)...));
     }
 
     /*! \brief Remove a system from this world.
@@ -274,9 +274,9 @@ public:
     Span<View* const> GetViews() const;
 
     /*! \brief Gets the View responsible for collecting objects used in ray tracing. Will return nullptr if ray tracing is not enabled. */
-    HYP_FORCE_INLINE View* GetRaytracingView() const
+    HYP_FORCE_INLINE View* GetRayTracingView() const
     {
-        return m_raytracingView;
+        return m_rayTracingView;
     }
 
     /*! \brief Adds a View for processing asynchronously for this frame. */
@@ -347,7 +347,7 @@ private:
     // Views, buffered so the render thread can safely read from it
     Array<Array<View*>, FixedAllocator<RingBufferDepth>> m_viewsPerFrame;
 
-    View* m_raytracingView;
+    View* m_rayTracingView;
 
     SubsystemsMap m_subsystems;
     Array<Subsystem*> m_subsystemsArray;

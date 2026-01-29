@@ -249,7 +249,7 @@ public:
 
     HYP_FORCE_INLINE uint32 NumEnqueuedDrawCommands() const
     {
-        return uint32(m_headers[RenderApi::GetRingIndex()].Size());
+        return uint32(m_headers[GetRingIndex()].Size());
     }
 
     void Update(float delta);
@@ -262,16 +262,10 @@ private:
 
     DebugDrawerConfig m_config;
 
-    AtomicVar<bool> m_isInitialized;
-
 private:
     GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData);
 
     void ClearCommands(uint32 idx);
-
-    ShaderRef m_shader;
-    DescriptorTableRef m_descriptorTable;
-    HashMap<RenderableAttributeSet, GraphicsPipelineCacheHandle> m_graphicsPipelines;
 
     FixedArray<Array<DebugDrawCommandHeader>, RingBufferDepth> m_headers;
     FixedArray<ByteBuffer, RingBufferDepth> m_buffers;

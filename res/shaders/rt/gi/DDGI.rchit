@@ -9,8 +9,8 @@
 
 #define HYP_NO_CUBEMAP
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(DDGI, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(DDGI, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
@@ -21,7 +21,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/material.inc"
-#include "../../include/Entity.glsl"
+#include "../../include/Entity.inc"
 #include "../../include/scene.inc"
 
 #include "../../include/brdf.inc"
@@ -32,15 +32,15 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
 
 #include "../../include/rt/probe/probe_uniforms.inc"
 
-HYP_DESCRIPTOR_CBUFF(DDGIDescriptorSet, DDGIConstants) uniform CBuffer
+DECLARE_BUFFER(DDGI, DDGIConstants) uniform CBuffer
 {
     DDGIConstants ddgiConstants;
 };
 
 /* Shadows */
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+DECLARE_SRV(DDGI, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../../include/shadows.inc"
@@ -51,37 +51,25 @@ HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCube
 layout(location = 0) rayPayloadInEXT RayPayload payload;
 hitAttributeEXT vec2 attribs;
 
-struct PackedVertex
-{
-    float position_x;
-    float position_y;
-    float position_z;
-    float normal_x;
-    float normal_y;
-    float normal_z;
-    float texcoord_s;
-    float texcoord_t;
-};
-
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(DDGI, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
-HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, MeshDescriptionsBuffer) buffer MeshDescriptions
+DECLARE_UAV(DDGI, MeshDescriptionsBuffer) buffer MeshDescriptionsBuffer
 {
     MeshDescription mesh_descriptions[];
 };
 
-HYP_DESCRIPTOR_SSBO(DDGIDescriptorSet, MaterialsBuffer) readonly buffer MaterialBuffer
+DECLARE_SRV(DDGI, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material materials[];
 };
 
-HYP_DESCRIPTOR_SRV(Material, Textures) uniform texture2D textures[];
+DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 
 void main()
 {
@@ -184,7 +172,7 @@ void main()
     material_color = material.albedo;
 
     if (HAS_TEXTURE(material, AlbedoMap)) {
-        vec4 albedo_texture = SAMPLE_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
+        vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, AlbedoMap, vec2(texcoord.x, 1.0 - texcoord.y));
         
         material_color *= albedo_texture;
     }
@@ -192,7 +180,7 @@ void main()
     float metalness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_METALNESS);
 
     if (HAS_TEXTURE(material, MetalnessMap)) {
-        float metalness_sample = SAMPLE_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+        float metalness_sample = SAMPLE_MATERIAL_TEXTURE(material, MetalnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
         
         metalness = metalness_sample;
     }
@@ -200,7 +188,7 @@ void main()
     float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
 
     if (HAS_TEXTURE(material, RoughnessMap)) {
-        float roughness_sample = SAMPLE_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
+        float roughness_sample = SAMPLE_MATERIAL_TEXTURE(material, RoughnessMap, vec2(texcoord.x, 1.0 - texcoord.y)).r;
         
         roughness = roughness_sample;
     }

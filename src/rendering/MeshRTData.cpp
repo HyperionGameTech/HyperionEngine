@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/MeshRTData.hpp>
-#include <rendering/raytracing/MeshBlasBuilder.hpp>
+#include <rendering/MeshBlasBuilder.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>

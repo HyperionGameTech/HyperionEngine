@@ -5,6 +5,8 @@
 #include <core/Defines.hpp>
 #include <core/Types.hpp>
 
+#include <core/utilities/Traits.hpp>
+
 #include <type_traits>
 #include <cstring>
 #include <cstdlib>
@@ -20,9 +22,44 @@ namespace memory {
 class Memory
 {
 public:
-    HYP_FORCE_INLINE static int MemCmp(const void* lhs, const void* rhs, SizeType size)
+    template <BitwiseComparable T, BitwiseComparable U>
+    HYP_FORCE_INLINE static int Compare(const T* a, const U* b, SizeType count)
     {
-        return std::memcmp(lhs, rhs, size);
+        return std::memcmp(a, b, count);
+    }
+
+    template <BitwiseCopyable T, BitwiseCopyable U>
+    HYP_FORCE_INLINE static void* Copy(T* dest, const U* src, SizeType count)
+    {
+        return std::memcpy(dest, src, count);
+    }
+
+    template <BitwiseCopyable T, BitwiseCopyable U>
+    HYP_FORCE_INLINE static void* Move(T* dest, const U* src, SizeType size)
+    {
+        return std::memmove(dest, src, size);
+    }
+    
+    template <class T>
+    HYP_FORCE_INLINE static void* Fill(T* dest, ubyte ch, SizeType size)
+    {
+        return std::memset(dest, ch, size);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE static void* Zero(T* dest, SizeType size)
+    {
+        return std::memset(dest, 0, size);
+    }
+
+    HYP_FORCE_INLINE static void Garble(void* dest, SizeType length)
+    {
+        if (!dest || length == 0)
+        {
+            return;
+        }
+
+        std::memset(dest, 0xDEAD, length);
     }
 
     HYP_FORCE_INLINE static int StrCmp(const char* lhs, const char* rhs, SizeType length = 0)
@@ -83,38 +120,6 @@ public:
         }
 
         return std::strlen(str);
-    }
-
-    /*! \brief Alias for memset. Takes in a ubyte (unsigned char) as value,
-        To signify that only the lowest byte is copied over. */
-    static inline void* MemSet(void* dest, ubyte ch, SizeType size)
-    {
-        return std::memset(dest, ch, size);
-    }
-
-    static inline void* MemCpy(void* dest, const void* src, SizeType size)
-    {
-        return std::memcpy(dest, src, size);
-    }
-
-    static inline void* MemMove(void* dest, const void* src, SizeType size)
-    {
-        return std::memmove(dest, src, size);
-    }
-
-    static inline void* Clear(void* dest, SizeType size)
-    {
-        return std::memset(dest, 0, size);
-    }
-
-    static void Garble(void* dest, SizeType length)
-    {
-        if (!dest || length == 0)
-        {
-            return;
-        }
-
-        std::memset(dest, 0xDEAD, length);
     }
 
     template <class T, class... Args>

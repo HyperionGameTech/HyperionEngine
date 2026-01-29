@@ -31,16 +31,16 @@ public:
         uint32 layerIndex,
         uint32 numLayers);
 
-    virtual ~VulkanGpuImageView() override;
+    ~VulkanGpuImageView() override;
 
     HYP_FORCE_INLINE VkImageView GetVulkanHandle() const
     {
         return m_handle;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

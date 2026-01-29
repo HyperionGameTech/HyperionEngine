@@ -4,10 +4,10 @@
 
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/Bindless.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -19,10 +19,7 @@
 
 namespace Hyperion {
 
-static const ShaderDefinition s_defaultShaderDefinition {
-    NAME("GeometryPass"),
-    ShaderProperties(staticMeshVertexAttributes)
-};
+static const Name s_defaultShaderName = NAME("GeometryPass");
 
 static HashCode GetMaterialHashCode(
     const MaterialAttributes& attributes,
@@ -156,7 +153,7 @@ const MaterialParameters& Material::DefaultParameters()
 
 Material::Material()
     : m_attributes {
-          .shaderDefinition = s_defaultShaderDefinition,
+          .shaderName = s_defaultShaderName,
           .bucket = RB_OPAQUE,
           .fillMode = FM_FILL,
           .blendFunction = BlendFunction::None(),
@@ -173,7 +170,7 @@ Material::Material()
 Material::Material(Name name, RenderBucket rb)
     : AssetObject(name),
       m_attributes {
-          .shaderDefinition = s_defaultShaderDefinition,
+          .shaderName = s_defaultShaderName,
           .bucket = rb
       },
       m_isDynamic(false),
@@ -419,7 +416,7 @@ const Handle<Texture>& Material::GetTextureAtIndex(uint32 index) const
 
 Handle<Material> Material::Clone() const
 {
-    Handle<Material> material = CreateObject<Material>(
+    Handle<Material> material = MakeHandle<Material>(
         Name::Unique(ANSIString(*m_name) + "_dynamic"),
         m_attributes,
         m_parameters,
@@ -432,14 +429,16 @@ Handle<Material> Material::Clone() const
 }
 
 void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
-{
+{    
+    const bool useBindlessTextures = g_renderInterface->GetRenderConfig().bindlessTextures;
+
     if (proxy->material.GetUnsafe() != this)
     {
         proxy->material = MakeWeakRef(this);
     }
 
-    const bool useBindlessTextures = g_renderBackend->GetRenderConfig().bindlessTextures;
-
+    proxy->attributes = m_attributes;
+    
     MaterialShaderData& bufferData = proxy->bufferData;
 
     bufferData.albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO);
@@ -458,15 +457,17 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     bufferData.textureUsage = 0;
 
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);
-    Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
+    Memory::Fill(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
-    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources : MaxBoundTextures);
+    const uint32 numTextureSlots = MathUtil::Min(
+        MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources[BindlessStorage_Textures] : MaxBoundTextures);
+
     uint32 remainingTextureSlots = numTextureSlots;
 
     proxy->boundTextures.Clear();
 
     // unset all bound texture indices (~0u)
-    Memory::MemSet(&proxy->boundTextureIndices[0], 0xFF, sizeof(proxy->boundTextureIndices));
+    Memory::Fill(&proxy->boundTextureIndices[0], 0xFF, sizeof(proxy->boundTextureIndices));
 
     for (uint32 slot = 0; slot < uint32(m_textures.Size()); slot++)
     {
@@ -603,15 +604,15 @@ Handle<Material> MaterialCache::CreateMaterial(
     MaterialAttributes tmpAttributes;
     const MaterialAttributes* attributesPtr = &attributes;
 
-    if (!attributes.shaderDefinition)
+    if (!attributes.shaderName)
     {
         tmpAttributes = attributes;
-        tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
+        tmpAttributes.shaderName = s_defaultShaderName;
 
         attributesPtr = &tmpAttributes;
     }
 
-    Handle<Material> handle = CreateObject<Material>(
+    Handle<Material> handle = MakeHandle<Material>(
         name,
         *attributesPtr,
         parameters,
@@ -631,10 +632,10 @@ Handle<Material> MaterialCache::GetOrCreate(
     const MaterialAttributes* attributesPtr = &attributes;
     MaterialAttributes tmpAttributes;
 
-    if (!attributes.shaderDefinition)
+    if (!attributes.shaderName)
     {
         tmpAttributes = attributes;
-        tmpAttributes.shaderDefinition = s_defaultShaderDefinition;
+        tmpAttributes.shaderName = s_defaultShaderName;
 
         attributesPtr = &tmpAttributes;
     }
@@ -663,7 +664,7 @@ Handle<Material> MaterialCache::GetOrCreate(
             name = Name::Unique(ANSIString("cached_material_") + ANSIString::ToString(hc.Value()));
         }
 
-        strongRef = CreateObject<Material>(
+        strongRef = MakeHandle<Material>(
             name,
             *attributesPtr,
             parameters,

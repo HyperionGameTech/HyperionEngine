@@ -44,13 +44,14 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <scene/ComponentInterface.hpp>
 
 #include <audio/AudioManager.hpp>
 
 #if HYP_VULKAN
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #endif
 
 #if HYP_EDITOR
@@ -76,7 +77,7 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 
 HYP_EXPORT Pool* GetCurrentFramePool()
 {
-    return g_framePools[RenderApi::GetRingIndex()];
+    return g_framePools[GetRingIndex()];
 }
 
 #pragma endregion Memory Pools
@@ -94,7 +95,6 @@ Handle<Logger> g_logger;
 ShaderManager* g_shaderManager;
 MaterialCache* g_materialCache;
 SafeDeleter* g_safeDeleter;
-RenderInterface* g_renderInterface;
 ShaderCompiler* g_shaderCompiler;
 
 #ifdef HYP_EDITOR
@@ -109,7 +109,9 @@ VisThread* g_visThreadInstance;
 Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
 
 #if HYP_VULKAN
-VulkanRenderBackend* g_renderBackend;
+VulkanRenderInterface* g_renderInterface;
+#elif HYP_DX12
+DX12RenderInterface* g_renderInterface;
 #endif
 
 static void HandleFatalError(const char* message)
@@ -231,12 +233,23 @@ static void InitThreads()
 
 static void InitLogger()
 {
-    g_logger = CreateObject<Logger>();
+    g_logger = MakeHandle<Logger>();
     g_logger->fatalErrorHook = &HandleFatalError;
 
     InitObject(g_logger);
 
     LogChannelRegistrar::GetInstance().RegisterAll();
+}
+
+static void LoadShaderPropertyDatabase()
+{
+    FileBufferedReaderSource source { GetCacheDirectory() / "ShaderProperties.bin" };
+    BufferedByteReader br { &source };
+
+    if (br.IsOpen())
+    {
+        ReadShaderPropertyDatabase(br);
+    }
 }
 
 extern "C"
@@ -280,29 +293,31 @@ extern "C"
         ConsoleCommandManager::GetInstance().Initialize();
         TaskSystem::GetInstance().Start();
 
-        g_engineDriver = CreateObject<EngineDriver>();
+        g_engineDriver = MakeHandle<EngineDriver>();
 
-        g_engineStats = CreateObject<EngineStats>();
+        g_engineStats = MakeHandle<EngineStats>();
         InitObject(g_engineStats);
 
-        g_streamingManager = CreateObject<StreamingManager>();
+        g_streamingManager = MakeHandle<StreamingManager>();
         InitObject(g_streamingManager);
         g_streamingManager->Start();
 
-        g_assetManager = CreateObject<AssetManager>();
+        g_assetManager = MakeHandle<AssetManager>();
         InitObject(g_assetManager);
 
-        g_audioManager = CreateObject<AudioManager>();
+        g_audioManager = MakeHandle<AudioManager>();
         InitObject(g_audioManager);
 
 #if HYP_EDITOR
-        g_editorState = CreateObject<EditorState>();
+        g_editorState = MakeHandle<EditorState>();
         InitObject(g_editorState);
 #endif
 
         g_shaderManager = new ShaderManager;
         g_materialCache = new MaterialCache;
         g_safeDeleter = new SafeDeleter;
+
+        LoadShaderPropertyDatabase();
 
         g_shaderCompiler = new ShaderCompiler;
         if (!g_shaderCompiler->LoadShaderDefinitions())
@@ -315,11 +330,11 @@ extern "C"
         const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
 #if HYP_WINDOWS
-        g_appContext = CreateObject<Win32AppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);
 #elif HYP_MACOS
-        g_appContext = CreateObject<CocoaAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<CocoaAppContext>("Hyperion", cliArgs);
 #elif HYP_SDL
-        g_appContext = CreateObject<SDLAppContext>("Hyperion", cliArgs);
+        g_appContext = MakeHandle<SDLAppContext>("Hyperion", cliArgs);
 #else
         HYP_FAIL("AppContext not implemented for this platform");
 #endif
@@ -379,7 +394,7 @@ extern "C"
 
         g_engineDriver->FinalizeStop();
 
-        RenderApi::Shutdown();
+        CheckResult(g_renderInterface->Shutdown());
 
 #if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
@@ -418,9 +433,6 @@ extern "C"
         g_materialCache = nullptr;
 
         g_engineDriver.Reset();
-
-        delete g_renderBackend;
-        g_renderBackend = nullptr;
 
         delete g_sceneArena;
         g_sceneArena = nullptr;

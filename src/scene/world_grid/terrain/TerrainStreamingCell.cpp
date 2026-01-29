@@ -18,8 +18,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
-
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 
 #include <core/io/ByteWriter.hpp>
 
@@ -240,7 +239,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 
     meshData.CalculateNormals();
 
-    Handle<Mesh> mesh = CreateObject<Mesh>();
+    Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetMeshData(meshDesc, meshData);
 
     return mesh;

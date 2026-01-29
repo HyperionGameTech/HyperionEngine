@@ -81,8 +81,8 @@ public:
     SSRRenderer(
         SSRRendererConfig&& config,
         GBuffer* gbuffer,
-        const GpuImageViewRef& mipChainImageView,
-        const GpuImageViewRef& deferredResultImageView);
+        const GpuImageViewRef& mipChainImageView);
+
     ~SSRRenderer();
 
     HYP_FORCE_INLINE const Handle<Texture>& GetUVsTexture() const
@@ -107,9 +107,8 @@ public:
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
 private:
-    ShaderProperties GetShaderProperties() const;
+    ShaderPropertySet GetShaderProperties() const;
 
-    void CreateBlueNoiseBuffer();
     void CreatePasses();
 
     void UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup);
@@ -119,7 +118,6 @@ private:
     GBuffer* m_gbuffer;
 
     GpuImageViewRef m_mipChainImageView;
-    GpuImageViewRef m_deferredResultImageView;
 
     Handle<Texture> m_uvsTexture;
     Handle<Texture> m_sampledResultTexture;
@@ -128,8 +126,8 @@ private:
 
     Vec2u m_currentExtent;
 
-    Handle<FullScreenPass> m_writeUvs;
-    Handle<FullScreenPass> m_sampleGbuffer;
+    FullScreenPass* m_writeUvs;
+    FullScreenPass* m_sampleGbuffer;
 
     UniquePtr<TemporalBlending> m_temporalBlending;
 

@@ -2,10 +2,10 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/Mesh.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/Frame.hpp>
 #include <rendering/RenderCommand.hpp>
+#include <rendering/Mesh.hpp>
+#include <rendering/Frame.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -25,6 +25,74 @@
 namespace Hyperion {
 
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
+
+const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
+    VertexAttribute::Position | VertexAttribute::Normal
+        | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1
+        | VertexAttribute::Tangent | VertexAttribute::Bitangent;
+
+const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
+    StaticMeshVertexAttributes | VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
+
+#pragma region VertexAttribute
+
+const VertexAttribute* VertexAttribute::Attrs[] = {
+    &Position,
+    &Normal,
+    &TexCoord0,
+    &TexCoord1,
+    &Tangent,
+    &Bitangent,
+    &BoneIndices,
+    &BoneWeights,
+    nullptr
+};
+
+#pragma region VertexAttributeSet
+
+Array<const VertexAttribute*> VertexAttributeSet::BuildAttributes() const
+{
+    Array<const VertexAttribute*> attributes;
+    FOR_EACH_BIT(flagMask, i)
+    {
+        attributes.PushBack(VertexAttribute::Attrs[i]);
+    }
+
+    return attributes;
+}
+
+SizeType VertexAttributeSet::CalculateVertexSize() const
+{
+    SizeType size = 0;
+
+    FOR_EACH_BIT(flagMask, i)
+    {
+        size += VertexAttribute::Attrs[i]->size;
+    }
+
+    return size;
+}
+
+String VertexAttributeSet::ToString() const
+{
+    String result = "";
+    bool first = true;
+
+    FOR_EACH_BIT(flagMask, i)
+    {
+        if (!first)
+        {
+            result += ", ";
+        }
+
+        result += VertexAttribute::Attrs[i]->name;
+        first = false;
+    }
+
+    return result;
+}
+
+#pragma endregion VertexAttributeSet
 
 #pragma region Mesh
 
@@ -86,7 +154,10 @@ Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttrib
 }
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology)
-    : Mesh(asset, topology, staticMeshVertexAttributes | skeletonVertexAttributes)
+    : Mesh(
+          asset,
+          topology,
+          VertexAttributeSet::StaticMeshVertexAttributes | VertexAttributeSet::SkeletalMeshVertexAttributes)
 {
 }
 
@@ -95,7 +166,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
           vertexData,
           indexData,
           topology,
-          staticMeshVertexAttributes | skeletonVertexAttributes)
+          VertexAttributeSet::StaticMeshVertexAttributes | VertexAttributeSet::SkeletalMeshVertexAttributes)
 {
 }
 
@@ -117,7 +188,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 
     m_aabb = meshData.CalculateAABB();
 
-    m_meshAsset = TAssetReference<MeshAsset>(CreateObject<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
+    m_meshAsset = TAssetReference<MeshAsset>(MakeHandle<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
 }
 
 Mesh::~Mesh()
@@ -228,7 +299,7 @@ void Mesh::UploadGpuData()
 
     Array<uint32> indices;
     indices.Resize(asset->GetMeshData()->indexData.Size() / sizeof(uint32));
-    Memory::MemCpy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
+    Memory::Copy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
 
     AssertDebug(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
     AssertDebug(indices.Size() == asset->GetMeshDesc().numIndices);
@@ -258,8 +329,8 @@ void Mesh::UploadGpuData()
     // don't assign m_vertexBuffer and m_indexBuffer when render thread could be reading it.
     if (IsReady() && !IsOnThread(g_renderThread))
     {
-        vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
-        indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
+        vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
+        indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
 #ifdef HYP_DEBUG_MODE
         vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -275,7 +346,7 @@ void Mesh::UploadGpuData()
         {
             SafeDelete(std::move(m_vertexBuffer));
 
-            m_vertexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
+            m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
 
 #ifdef HYP_DEBUG_MODE
             m_vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
@@ -288,7 +359,7 @@ void Mesh::UploadGpuData()
         {
             SafeDelete(std::move(m_indexBuffer));
 
-            m_indexBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
+            m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
 #ifdef HYP_DEBUG_MODE
             m_indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
@@ -340,15 +411,15 @@ void Mesh::UploadGpuData()
             const SizeType packedBufferSize = vertices.ByteSize();
             const SizeType packedIndicesSize = indices.ByteSize();
 
-            GpuBufferRef stagingBufferVertices = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedBufferSize);
-            HYP_GFX_ASSERT(stagingBufferVertices->Create());
+            GpuBufferRef stagingBufferVertices = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedBufferSize);
+            CheckResult(stagingBufferVertices->Create());
             stagingBufferVertices->Copy(packedBufferSize, vertices.Data());
 
-            GpuBufferRef stagingBufferIndices = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-            HYP_GFX_ASSERT(stagingBufferIndices->Create());
+            GpuBufferRef stagingBufferIndices = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
+            CheckResult(stagingBufferIndices->Create());
             stagingBufferIndices->Copy(packedIndicesSize, indices.Data());
 
-            Frame* frame = g_renderBackend->GetCurrentFrame();
+            Frame* frame = g_renderInterface->GetCurrentFrame();
 
             // use prerender queue to copy from staging buffers to gpu buffers
             RenderQueue& renderQueue = frame->preRenderQueue;
@@ -431,7 +502,7 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
 
     m_aabb = meshData.CalculateAABB();
 
-    Handle<MeshAsset> asset = CreateObject<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, meshData);
+    Handle<MeshAsset> asset = MakeHandle<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, meshData);
     m_meshAsset = TAssetReference<MeshAsset>(asset);
 
     if (IsInitCalled())

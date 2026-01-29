@@ -35,7 +35,7 @@ class VulkanSwapchain final : public SwapchainBase
 
 public:
     VulkanSwapchain(VkSurfaceKHR surface, const Vec2u& extent);
-    virtual ~VulkanSwapchain() override;
+    ~VulkanSwapchain() override;
 
     HYP_FORCE_INLINE VkSwapchainKHR GetVulkanHandle() const
     {
@@ -57,16 +57,16 @@ public:
         return m_presentSemaphores[m_acquiredImageIndex];
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
     void NextFrame();
 
     void PrepareForFrame(VulkanFrame* frame);
     void PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue);
 
-    virtual RendererResult Create() override;
-    virtual void SetExtent(Vec2u newExtent) override;
-    virtual void Recreate() override;
+    RendererResult Create() override;
+    void SetExtent(Vec2u newExtent) override;
+    void Recreate() override;
 
 private:
     RendererResult ChooseSurfaceFormat();

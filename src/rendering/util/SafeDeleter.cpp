@@ -21,8 +21,9 @@ HYP_API SafeDeleter* GetSafeDeleterInstance()
     return g_safeDeleter;
 }
 
-#pragma region SafeDeleterEntry < ObjectBase*>
-SafeDeleterEntry<ObjectBase*>::SafeDeleterEntry(ObjectBase* ptr, ConstructFromHandleTag)
+#pragma region SafeDeleterEntry<Handle<ObjectBase>>
+
+SafeDeleterEntry<Handle<ObjectBase>>::SafeDeleterEntry(ObjectBase* ptr)
     : ptr(ptr)
 {
     if (ptr)
@@ -56,7 +57,7 @@ SafeDeleterEntry<ObjectBase*>::SafeDeleterEntry(ObjectBase* ptr, ConstructFromHa
     }
 }
 
-SafeDeleterEntry<ObjectBase*>::~SafeDeleterEntry()
+SafeDeleterEntry<Handle<ObjectBase>>::~SafeDeleterEntry()
 {
     // call destructor if no more strong references
     if (ptr)
@@ -74,16 +75,13 @@ SafeDeleterEntry<ObjectBase*>::~SafeDeleterEntry()
 
             ptr->~ObjectBase();
 
-#ifdef HYP_DEBUG_MODE
-            header->wasSafeDeleted = true;
-#endif
             // this will free the slot if no other weak references remain
             header->DecRefWeak();
         }
     }
 }
 
-#pragma region SafeDeleterEntry < ObjectBase*>
+#pragma region SafeDeleterEntry<Handle<ObjectBase>>
 
 #pragma region SafeDeleter
 
@@ -159,7 +157,7 @@ int SafeDeleter::Iterate(int maxIter)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    uint32 bufferIndex = RenderApi::GetRingIndex();
+    uint32 bufferIndex = GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     auto& entryList = *m_entryLists[bufferIndex];
@@ -167,7 +165,7 @@ int SafeDeleter::Iterate(int maxIter)
     Array<EntryHeader>& headers = *entryList.currHeaders;
     entryList.SwapHeaderBuffers();
 
-    const uint32 frameCounter = RenderApi::GetFrameCounter();
+    const uint32 frameCounter = GetFrameCounter();
 
     int iterCount = 0;
     for (auto it = headers.Begin(); iterCount < maxIter && it != headers.End(); ++iterCount)
@@ -220,7 +218,7 @@ int SafeDeleter::Iterate(int maxIter)
         const uint32 newSize = headers.Back().offset + headers.Back().size;
 
         // Move elements to the front of the buffer
-        Memory::MemMove(
+        Memory::Move(
             entryList.buffer.Data(),
             entryList.buffer.Data() + firstOffset,
             newSize);
@@ -290,7 +288,7 @@ void SafeDeleter::UpdateEntryListQueue()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    uint32 bufferIndex = RenderApi::GetRingIndex();
+    uint32 bufferIndex = GetRingIndex();
     AssertDebug(bufferIndex < m_entryLists.Size());
 
     auto& currentEntryList = *m_entryLists[bufferIndex];
@@ -349,7 +347,7 @@ void SafeDeleter::UpdateEntryListQueue()
             }
             else
             {
-                Memory::MemCpy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
+                Memory::Copy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
             }
 
             if (header.destructFn)
@@ -391,7 +389,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
 
     if (IsOnThread(g_simThread | g_renderThread))
     {
-        uint32 bufferIndex = RenderApi::GetRingIndex();
+        uint32 bufferIndex = GetRingIndex();
         AssertDebug(bufferIndex < m_entryLists.Size());
 
         return *m_entryLists[bufferIndex];
@@ -411,7 +409,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
     //  - desiredIdx == ~0u (not specified) OR
     //  - On render thread and desiredIdx == CURRENT idx
     // we use the CURRENT entry list
-    if (desiredIdx == ~0u || (IsOnThread(g_renderThread) && desiredIdx == RenderApi::GetRingIndex()))
+    if (desiredIdx == ~0u || (IsOnThread(g_renderThread) && desiredIdx == GetRingIndex()))
     {
         return GetCurrentEntryList(ppGuard);
     }

@@ -18,22 +18,28 @@ DOFBlur::~DOFBlur() = default;
 
 void DOFBlur::Create()
 {
-    ShaderRef blurHorizontalShader = g_shaderManager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL")) }));
-    Assert(blurHorizontalShader.IsValid());
+    m_blurHorizontalPass = MakeHandle<FullScreenPass>(
+        ShaderDesc(NAME("DOFBlurDirection"), ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL"))) } }),
+        TF_RGBA8,
+        m_extent,
+        m_gbuffer);
 
-    m_blurHorizontalPass = CreateObject<FullScreenPass>(blurHorizontalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurHorizontalPass->Create();
 
-    ShaderRef blurVerticalShader = g_shaderManager->GetOrCreate(NAME("DOFBlurDirection"), ShaderProperties({ ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL")) }));
-    Assert(blurVerticalShader.IsValid());
+    m_blurVerticalPass = MakeHandle<FullScreenPass>(
+        ShaderDesc(NAME("DOFBlurDirection"), ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL"))) } }),
+        TF_RGBA8,
+        m_extent,
+        m_gbuffer);
 
-    m_blurVerticalPass = CreateObject<FullScreenPass>(blurVerticalShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurVerticalPass->Create();
 
-    ShaderRef blurMixShader = g_shaderManager->GetOrCreate(NAME("DOFBlurMix"));
-    Assert(blurMixShader.IsValid());
+    m_blurMixPass = MakeHandle<FullScreenPass>(
+        ShaderDesc(NAME("DOFBlurMix")),
+        TF_RGBA8,
+        m_extent,
+        m_gbuffer);
 
-    m_blurMixPass = CreateObject<FullScreenPass>(blurMixShader, TF_RGBA8, m_extent, m_gbuffer);
     m_blurMixPass->Create();
 }
 
@@ -62,11 +68,9 @@ void DOFBlur::Render(Frame* frame, const RenderSetup& renderSetup)
 
     for (FullScreenPass* pass : directionalPasses)
     {
-        pass->SetPushConstants(&pushConstants, sizeof(pushConstants));
         pass->Render(frame, renderSetup);
     }
 
-    m_blurMixPass->SetPushConstants(&pushConstants, sizeof(pushConstants));
     m_blurMixPass->Render(frame, renderSetup);
 }
 

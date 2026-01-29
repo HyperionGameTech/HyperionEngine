@@ -4,7 +4,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderGroup.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -37,10 +36,6 @@ PassData::~PassData()
         delete next;
         next = nullptr;
     }
-
-    // no need to SafeDelete() the graphics pipelines as they are managed by the global graphics pipeline cache.
-
-    SafeDelete(std::move(descriptorSets));
 }
 
 int PassData::CullUnusedGraphicsPipelines(int maxIter)

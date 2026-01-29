@@ -10,10 +10,10 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 #include "../include/shared.inc"
 #include "./Shared.inc"
 
-HYP_DESCRIPTOR_SRV(DepthPyramidDescriptorSet, InImage) uniform texture2D mip_in;
-HYP_DESCRIPTOR_UAV(DepthPyramidDescriptorSet, OutImage) uniform writeonly image2D mip_out;
-HYP_DESCRIPTOR_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) uniform sampler depth_pyramid_sampler;
-HYP_DESCRIPTOR_CBUFF(DepthPyramidDescriptorSet, UniformBuffer) uniform DepthPyramidUniforms
+DECLARE_SRV(DepthPyramidDescriptorSet, InImage) uniform texture2D mip_in;
+DECLARE_UAV(DepthPyramidDescriptorSet, OutImage) uniform writeonly image2D mip_out;
+DECLARE_SAMPLER(DepthPyramidDescriptorSet, DepthPyramidSampler) uniform sampler depth_pyramid_sampler;
+DECLARE_BUFFER(DepthPyramidDescriptorSet, UniformBuffer) uniform DepthPyramidUniforms
 {
     uvec2   mip_dimensions;
     uvec2   prev_mip_dimensions;
@@ -28,7 +28,7 @@ float GetDepthAtTexel(vec2 texcoord, ivec2 offset)
         ivec2(prev_mip_dimensions) - ivec2(1)
     );
 
-    return Texture2DTexelLod(depth_pyramid_sampler, mip_in, texel_coord, 0).r;
+    return TEXEL_FETCH_2D_LOD(depth_pyramid_sampler, mip_in, texel_coord, 0).r;
 }
 
 void main()

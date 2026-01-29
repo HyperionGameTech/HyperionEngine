@@ -20,7 +20,7 @@ namespace Hyperion {
 
 class RenderableAttributeSet;
 class CachedPipelinesMap;
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
 class GraphicsPipelineCacheHandle
 {
@@ -81,31 +81,33 @@ public:
     friend struct GraphicsPipelineCacheHandle;
 
     GraphicsPipelineCache();
+    
     GraphicsPipelineCache(const GraphicsPipelineCache&) = delete;
     GraphicsPipelineCache& operator=(const GraphicsPipelineCache&) = delete;
+
     GraphicsPipelineCache(GraphicsPipelineCache&&) = delete;
     GraphicsPipelineCache& operator=(GraphicsPipelineCache&&) = delete;
+
     ~GraphicsPipelineCache();
 
-    /*! \brief Gets or creates a graphics pipeline based on the provided shader, framebuffers, and attributes.
+    /*! \brief Gets or creates a graphics pipeline based on the provided shader, render target descriptor, and attributes.
      *  Returns a pointer to the reference, do not store a strong reference to it as it will be discarded after a certain number of frames if not used.
      *  Instead, use the returned pointer to access the graphics pipeline. It's guaranteed to be valid for at least 10 frames after this method returns.
      */
-    GraphicsPipelineCacheHandle GetOrCreate(
-        const ShaderRef& shader,
-        Span<const FramebufferRef> framebuffers,
-        const RenderableAttributeSet& attributes);
+    void GetOrCreate(
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc,
+        GraphicsPipelineCacheHandle& outCacheHandle);
 
     int RunCleanupCycle(int maxIter = 10);
 
 private:
     GraphicsPipelineCacheHandle FindGraphicsPipeline(
-        const ShaderRef& shader,
-        Span<const FramebufferRef> framebuffers,
-        const RenderableAttributeSet& attributes);
+        const RenderableAttributeSet& attributes,
+        const RenderTargetDesc& renderTargetDesc);
 
     CachedPipelinesMap* m_cachedPipelines;
-    Mutex m_mutex;
+    SharedMutex m_mutex;
 };
 
 } // namespace Hyperion

@@ -13,7 +13,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Shared.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderProxy.hpp>
 
@@ -32,6 +31,9 @@ static constexpr EnumFlags<EnvProbeFlags> DefaultEnvProbeFlags[EPT_MAX] = {
     EPF_PARALLAX_CORRECTED, // reflection
     EPF_BAKED               // ambient
 };
+
+static const ShaderPropertyId s_propWriteNormals = InternShaderProperty(ShaderProperty(NAME("WRITE_NORMALS")));
+static const ShaderPropertyId s_propWriteMoments = InternShaderProperty(ShaderProperty(NAME("WRITE_MOMENTS")));
 
 static FixedArray<Mat4f, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
@@ -141,7 +143,7 @@ void EnvProbe::Init()
     {
         const BoundingBox worldBounds = GetWorldBounds();
 
-        Handle<Camera> camera = CreateObject<Camera>(
+        Handle<Camera> camera = MakeHandle<Camera>(
             90.0f,
             -int(m_dimensions.x), int(m_dimensions.y),
             m_cameraNear, m_cameraFar);
@@ -160,7 +162,7 @@ void EnvProbe::Init()
         {
             if (!m_texture)
             {
-                m_texture = CreateObject<Texture>(TextureDesc {
+                m_texture = MakeHandle<Texture>(TextureDesc {
                     TT_TEX2D,
                     TF_RGBA8,
                     Vec3u { m_dimensions, 1 },
@@ -243,51 +245,60 @@ void EnvProbe::CreateView()
     AssertDebug(m_view == nullptr);
     AssertDebug(m_camera != nullptr);
 
-    ViewOutputTargetDesc outputTargetDesc {
+    RenderTargetDesc renderTargetDesc {
         .extent = Vec2u(m_dimensions),
+        .numAttachments = 0,
         .attachments = {},
-        .numViews = 6
+        .numLayers = 6
     };
 
     if (IsReflectionProbe() || IsSkyProbe())
     {
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+        renderTargetDesc.AddAttachment(AttachmentDesc {
+            .imageType = TT_CUBEMAP,
             .format = TF_R10G10B10A2,
-            .imageType = TT_CUBEMAP,
             .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE });
+            .storeOp = StoreOperation::STORE
+        });
 
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = TF_RG16F,
+        renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TT_CUBEMAP,
+            .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
-            .storeOp = StoreOperation::STORE });
+            .storeOp = StoreOperation::STORE
+        });
 
-        outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = TF_RG16F,
+        renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TT_CUBEMAP,
+            .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
-            .clearColor = Vec4f(FLT16_MAX) });
+            .clearColor = { FLT16_MAX, FLT16_MAX }
+        });
     }
 
-    outputTargetDesc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-        .format = TF_DEPTH_32F,
+    renderTargetDesc.AddAttachment(AttachmentDesc {
         .imageType = TT_CUBEMAP,
+        .format = TF_DEPTH_32F,
         .loadOp = LoadOperation::CLEAR,
-        .storeOp = StoreOperation::STORE });
+        .storeOp = StoreOperation::STORE
+    });
 
-    ShaderDefinition shaderDefinition;
+    ShaderDesc shaderDesc;
 
     if (IsReflectionProbe())
     {
-        shaderDefinition = ShaderDefinition(NAME("RenderToCubemap"),
-            ShaderProperties(staticMeshVertexAttributes, { NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") }));
+        shaderDesc.name = NAME("RenderToCubemap");
+
+        shaderDesc.properties.Add(s_propWriteNormals);
+        shaderDesc.properties.Add(s_propWriteMoments);
     }
     else if (IsSkyProbe())
     {
-        shaderDefinition = ShaderDefinition(NAME("RenderSky"), ShaderProperties(staticMeshVertexAttributes));
+        shaderDesc.name = NAME("RenderSky");
     }
+
+    AssertDebug(shaderDesc.name.IsValid());
 
     ViewDesc viewDesc {
         .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
@@ -295,18 +306,20 @@ void EnvProbe::CreateView()
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = m_dimensions, .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
+        .renderTargetDesc = renderTargetDesc,
         .scenes = {},
         .camera = m_camera,
         .overrideAttributes = RenderableAttributeSet(
             MeshAttributes {},
             MaterialAttributes {
-                .shaderDefinition = shaderDefinition,
+                .shaderName = shaderDesc.name,
+                .shaderProperties = shaderDesc.properties,
                 .blendFunction = BlendFunction::AlphaBlending(),
-                .cullFaces = FCM_NONE })
+                .cullFaces = FCM_NONE
+            })
     };
 
-    Handle<View> view = CreateObject<View>(viewDesc);
+    Handle<View> view = MakeHandle<View>(viewDesc);
     InitObject(view);
     m_view = view;
 }
@@ -490,8 +503,8 @@ void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 
     const FixedArray<Mat4f, 6> viewMatrices = CreateCubemapMatrices(worldBounds, GetOrigin());
 
-    Memory::MemCpy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
-    Memory::MemCpy(bufferData.shData, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));
+    Memory::Copy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
+    Memory::Copy(bufferData.shData, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));
 
     bufferData.positionInGrid = m_positionInGrid;
 }
@@ -552,7 +565,7 @@ void ReflectionProbe::BakeCubemap()
 
 void SkyProbe::Init()
 {
-    m_texture = CreateObject<Texture>(TextureDesc {
+    m_texture = MakeHandle<Texture>(TextureDesc {
         TT_CUBEMAP,
         TF_RGBA16F, /// \todo smaller format
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },

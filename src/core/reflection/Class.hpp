@@ -830,7 +830,7 @@ protected:
         {
             if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
-                out = BoxedValue(CreateObject<T>());
+                out = BoxedValue(MakeHandle<T>());
 
                 return true;
             }

@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-enum ShaderModuleType : uint32;
+enum class ShaderModuleType : uint8;
 
 HYP_ENUM()
 enum class GpuImageFlags : uint32
@@ -161,31 +161,21 @@ public:
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src) = 0;
+        const GpuImage* srcImage) = 0;
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) = 0;
-
-    virtual RendererResult Blit(
-        CommandBuffer* commandBuffer,
-        const GpuImage* src,
+        const GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) = 0;
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
-        const GpuImage* src,
+        const GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) = 0;
+        const ImageSubResource& srcSubResource,
+        const ImageSubResource& dstSubResource) = 0;
 
     virtual RendererResult GenerateMipmaps(CommandBuffer* commandBuffer) = 0;
 
@@ -228,8 +218,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanGpuImage.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12GpuImage.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

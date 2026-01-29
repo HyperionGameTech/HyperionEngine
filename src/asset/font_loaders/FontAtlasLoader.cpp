@@ -186,7 +186,7 @@ AssetLoadResult FontAtlasLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to load symbol list");
     }
 
-    Handle<FontAtlas> fontAtlas = CreateObject<FontAtlas>(textureSet, cellDimensions, std::move(glyphMetrics), std::move(symbolList));
+    Handle<FontAtlas> fontAtlas = MakeHandle<FontAtlas>(textureSet, cellDimensions, std::move(glyphMetrics), std::move(symbolList));
 
     return AssetLoadResult { fontAtlas };
 }

@@ -19,8 +19,8 @@ namespace Hyperion {
 
 class Mat3f;
 
-HYP_STRUCT(Size = 64)
-class alignas(16) HYP_API Mat4f
+HYP_STRUCT()
+class HYP_API Mat4f
 {
     HYP_STRUCT_BODY(Mat4f);
 
@@ -39,9 +39,9 @@ public:
     static Mat4f LookAt(const Vec3f& dir, const Vec3f& up);
     static Mat4f LookAt(const Vec3f& pos, const Vec3f& target, const Vec3f& up);
 
-    union
+    union alignas(16)
     {
-        Vec4f rows[4];
+        float rows[4][4];
         float values[16];
     };
 
@@ -53,10 +53,10 @@ public:
     Mat4f& operator=(const Mat4f& other) = default;
 
     float Determinant() const;
-    Mat4f& Transpose();
-    Mat4f Transposed() const;
-    Mat4f& Invert();
-    Mat4f Inverted() const;
+
+    Mat4f Transpose() const;
+    Mat4f Inverse() const;
+
     Mat4f& Orthonormalize();
     Mat4f Orthonormalized() const;
 
@@ -89,12 +89,12 @@ public:
         return !operator==(other);
     }
 
-    HYP_FORCE_INLINE constexpr Vec4f& operator[](uint32 row)
+    HYP_FORCE_INLINE constexpr auto operator[](uint32 row) -> float(&)[4]
     {
         return rows[row];
     }
 
-    HYP_FORCE_INLINE constexpr const Vec4f& operator[](uint32 row) const
+    HYP_FORCE_INLINE constexpr auto operator[](uint32 row) const -> const float (&)[4]
     {
         return rows[row];
     }

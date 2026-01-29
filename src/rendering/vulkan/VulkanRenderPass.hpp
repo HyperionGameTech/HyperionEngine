@@ -7,6 +7,7 @@
 #include <rendering/vulkan/VulkanAttachment.hpp>
 
 #include <rendering/RenderObject.hpp>
+#include <rendering/Shared.hpp>
 
 #include <core/math/Vector4.hpp>
 #include <core/containers/Array.hpp>
@@ -17,37 +18,7 @@
 
 namespace Hyperion {
 
-constexpr ResourceState PreRenderResourceStates[2] = {
-    // CLEAR=0, LOAD=1
-    RS_UNDEFINED,    // CLEAR
-    RS_RENDER_TARGET // LOAD
-};
-
-constexpr ResourceState PreRenderResourceStatesDepth[2] = {
-    // CLEAR=0, LOAD=1
-    RS_UNDEFINED,    // CLEAR
-    RS_DEPTH_STENCIL // LOAD
-};
-
-constexpr ResourceState PostRenderResourceStates[RTT_MAX] = {
-    RS_UNDEFINED,       // RTT_NONE
-    RS_PRESENT,         // RTT_PRESENT
-    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
-    RS_RENDER_TARGET    // RTT_RENDER_TARGET
-};
-
-constexpr ResourceState PostRenderResourceStatesDepth[RTT_MAX] = {
-    RS_UNDEFINED,       // RTT_NONE
-    RS_DEPTH_STENCIL,   // RTT_PRESENT
-    RS_SHADER_RESOURCE, // RTT_SHADER_RESOURCE
-    RS_DEPTH_STENCIL    // RTT_RENDER_TARGET
-};
-
-enum RenderPassMode
-{
-    RENDER_PASS_INLINE = 0,
-    RENDER_PASS_SECONDARY_COMMAND_BUFFER = 1
-};
+enum class VulkanRenderPassMode : uint8;
 
 HYP_CLASS(NoScriptBindings)
 class VulkanRenderPass final : public ObjectBase
@@ -55,36 +26,44 @@ class VulkanRenderPass final : public ObjectBase
     HYP_OBJECT_BODY(VulkanRenderPass);
 
 public:
-    VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode);
-    VulkanRenderPass(RenderTargetType renderTargetType, RenderPassMode mode, uint32 numMultiviewLayers);
-    virtual ~VulkanRenderPass() override;
+    VulkanRenderPass(
+        const RenderTargetDesc& renderTargetDesc,
+        VulkanRenderPassMode renderPassMode);
+    ~VulkanRenderPass() override;
 
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
     {
         return m_handle;
     }
 
-    HYP_FORCE_INLINE RenderTargetType GetRenderTargetType() const
+    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
     {
-        return m_renderTargetType;
+        return m_renderPassMode;
+    }
+
+    HYP_FORCE_INLINE RenderTargetDesc& GetRenderTargetDesc()
+    {
+        return m_renderTargetDesc;
+    }
+
+    HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
+    {
+        return m_renderTargetDesc;
     }
 
     HYP_FORCE_INLINE bool IsMultiview() const
     {
-        return m_numMultiviewLayers > 1;
+        return m_renderTargetDesc.numLayers > 1;
     }
 
     HYP_FORCE_INLINE uint32 NumMultiviewLayers() const
     {
-        return m_numMultiviewLayers;
+        return m_renderTargetDesc.numLayers;
     }
 
-    void AddAttachment(VulkanAttachmentRef attachment);
-    bool RemoveAttachment(const VulkanAttachment* attachment);
-
-    const Array<VulkanAttachmentRef>& GetAttachments() const
+    Span<const AttachmentDesc> GetAttachmentDescs() const
     {
-        return m_renderPassAttachments;
+        return m_renderTargetDesc.attachments;
     }
 
     RendererResult Create();
@@ -99,19 +78,16 @@ private:
     {
         m_dependencies.PushBack(dependency);
     }
-
-    RenderTargetType m_renderTargetType;
-    RenderPassMode m_mode;
-    uint32 m_numMultiviewLayers;
-
-    Array<VulkanAttachmentRef> m_renderPassAttachments;
-
+    
+    RenderTargetDesc m_renderTargetDesc;
+    VulkanRenderPassMode m_renderPassMode;
+    
     Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
     Array<VkClearValue, InlineAllocator<2>> m_vkClearValues;
 
     VkRenderPass m_handle;
 
-    bool m_isRecording : 1;
+    VulkanFramebuffer* m_recordingFramebuffer;
 };
 
 using VulkanRenderPassRef = Handle<VulkanRenderPass>;

@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "VulkanSemaphore.hpp"
 #include <VulkanPch.hpp>
 
 #include <rendering/vulkan/VulkanSwapchain.hpp>
@@ -9,7 +8,8 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanSemaphore.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -22,9 +22,9 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
-static constexpr bool VulkanSwapchainUseFIFO = true;
+static constexpr bool VulkanSwapchainUseFIFO = false;
 static constexpr bool UseSrgbFormat = true;
 static constexpr bool UseHdrFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -39,7 +39,7 @@ static RendererResult AcquireNextImage(
     Assert(semaphore != nullptr && semaphore->IsCreated());
 
     VkResult vkResult = vkAcquireNextImageKHR(
-        g_renderBackend->GetDevice()->GetDevice(),
+        g_renderInterface->GetDevice()->GetDevice(),
         swapchain->GetVulkanHandle(),
         UINT64_MAX,
         semaphore->GetVulkanHandle(),
@@ -83,7 +83,7 @@ VulkanSwapchain::~VulkanSwapchain()
     SafeDelete(std::move(m_presentSemaphores));
     SafeDelete(std::move(m_framebuffers));
 
-    vkDestroySwapchainKHR(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+    vkDestroySwapchainKHR(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
 }
 
@@ -121,7 +121,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
 #ifdef HYP_DEBUG_MODE
     for (VulkanGpuImage* image : m_images)
     {
-        HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
+        Assert(image->GetResourceState() == RS_PRESENT);
     }
 #endif
 
@@ -162,9 +162,9 @@ RendererResult VulkanSwapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
-    m_supportDetails = g_renderBackend->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
+    m_supportDetails = g_renderInterface->GetDevice()->GetFeatures().QuerySwapchainSupport(m_surface);
 
-    HYP_GFX_CHECK(ChooseSurfaceFormat());
+    CheckResultOrReturn(ChooseSurfaceFormat());
 
     m_presentMode = VulkanSwapchainUseFIFO ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
     m_extent = {
@@ -194,7 +194,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.imageUsage = ImageUsageFlags;
 
     /* Graphics computations and presentation are done on separate hardware */
-    const QueueFamilyIndices& qfIndices = g_renderBackend->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qfIndices = g_renderInterface->GetDevice()->GetQueueFamilyIndices();
 
     const uint32 concurrentFamilies[] = {
         qfIndices.graphicsFamily.Get(),
@@ -224,7 +224,7 @@ RendererResult VulkanSwapchain::Create()
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = m_oldHandle;
 
-    VkResult result = vkCreateSwapchainKHR(g_renderBackend->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle);
+    VkResult result = vkCreateSwapchainKHR(g_renderInterface->GetDevice()->GetDevice(), &createInfo, nullptr, &m_handle);
 
     if (result != VK_SUCCESS)
     {
@@ -233,7 +233,7 @@ RendererResult VulkanSwapchain::Create()
 
     AssertDebug(m_images.Empty());
 
-    HYP_GFX_CHECK(RetrieveImageHandles());
+    CheckResultOrReturn(RetrieveImageHandles());
 
     AssertDebug(m_images.Any());
     AssertDebug(m_framebuffers.Empty());
@@ -246,17 +246,22 @@ RendererResult VulkanSwapchain::Create()
         AssertDebug(image && image->IsCreated());
         AssertDebug(image->GetResourceState() == RS_PRESENT);
 
-        VulkanFramebufferRef& framebuffer = m_framebuffers.PushBack(CreateObject<VulkanFramebuffer>(m_extent, RTT_PRESENT));
+        RenderTargetDesc renderTargetDesc {};
+        renderTargetDesc.extent = m_extent;
+
+        VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
         framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
-        HYP_GFX_CHECK(framebuffer->Create());
+        CheckResultOrReturn(framebuffer->Create());
+        
+        m_framebuffers.PushBack(framebuffer);
     }
 
     // Create present semaphores
     m_presentSemaphores.Resize(m_images.Size());
     for (uint32 i = 0; i < m_presentSemaphores.Size(); i++)
     {
-        m_presentSemaphores[i] = CreateObject<VulkanSemaphore>();
-        HYP_GFX_CHECK(m_presentSemaphores[i]->Create());
+        m_presentSemaphores[i] = MakeHandle<VulkanSemaphore>();
+        CheckResultOrReturn(m_presentSemaphores[i]->Create());
     }
 
     return {};
@@ -302,7 +307,7 @@ void VulkanSwapchain::Recreate()
 
     // we can now destroy the old swapchain
     vkDestroySwapchainKHR(
-        g_renderBackend->GetDevice()->GetDevice(),
+        g_renderInterface->GetDevice()->GetDevice(),
         m_oldHandle,
         nullptr);
 
@@ -325,7 +330,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     if (UseHdrFormat)
     {
         /* look for hdr format */
-        m_imageFormat = g_renderBackend->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+        m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
             { { TF_R10G10B10A2, TF_R11G11B10F, TF_RGBA16F } },
             [this](VkSurfaceFormatKHR format)
@@ -356,7 +361,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     if (UseSrgbFormat)
     {
         /* look for srgb format */
-        m_imageFormat = g_renderBackend->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+        m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
             { { TF_RGBA8_SRGB, TF_BGRA8_SRGB } },
             [this](VkSurfaceFormatKHR format)
@@ -380,7 +385,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     }
 
     /* look for non-srgb format */
-    m_imageFormat = g_renderBackend->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+    m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         m_supportDetails,
         { { TF_R11G11B10F, TF_RGBA16F, TF_RGBA8 } },
         [this](auto&& format)
@@ -406,11 +411,11 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     uint32 imageCount = 0;
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
-    vkGetSwapchainImagesKHR(g_renderBackend->GetDevice()->GetDevice(), m_handle, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(g_renderInterface->GetDevice()->GetDevice(), m_handle, &imageCount, nullptr);
 
     vkImages.Resize(imageCount);
 
-    vkGetSwapchainImagesKHR(g_renderBackend->GetDevice()->GetDevice(), m_handle, &imageCount, vkImages.Data());
+    vkGetSwapchainImagesKHR(g_renderInterface->GetDevice()->GetDevice(), m_handle, &imageCount, vkImages.Data());
 
     m_images.Resize(imageCount);
 
@@ -422,7 +427,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
             Vec3u { m_extent.x, m_extent.y, 1 }
         };
 
-        VulkanGpuImageRef image = CreateObject<VulkanGpuImage>(desc);
+        VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(desc);
 
 #ifdef HYP_DEBUG_MODE
         image->SetDebugName(NAME_FMT("SwapchainImage_{}", i));
@@ -431,31 +436,31 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
         image->m_handle = vkImages[i];
         image->m_isHandleOwned = false;
 
-        HYP_GFX_CHECK(image->Create());
+        CheckResultOrReturn(image->Create());
 
         m_images[i] = std::move(image);
     }
 
     // Transition each image to PRESENT state immediately
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderBackend->GetSingleTimeCommands();
+    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue)
         {
             for (const VulkanGpuImageRef& image : m_images)
             {
-                HYP_GFX_ASSERT(image.IsValid());
+                Assert(image.IsValid());
 
                 renderQueue << InsertBarrier(image, RS_PRESENT);
             }
         });
 
-    HYP_GFX_CHECK(singleTimeCommands->Execute());
+    CheckResultOrReturn(singleTimeCommands->Execute());
 
 #ifdef HYP_DEBUG_MODE
     // Ensure all images are in the PRESENT state
     for (VulkanGpuImage* image : m_images)
     {
-        HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
+        Assert(image->GetResourceState() == RS_PRESENT);
     }
 #endif
 

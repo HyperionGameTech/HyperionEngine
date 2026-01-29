@@ -29,7 +29,8 @@
         "Enabled": true,
         "EnvGridProbes": false
       },
-      "Irradiance": false
+      "Irradiance": false,
+      "Normals": false
     },
     "HBIL": {
       "Enabled": false

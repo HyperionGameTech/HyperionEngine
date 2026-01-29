@@ -3,12 +3,11 @@
 #pragma once
 
 #include <core/containers/FlatSet.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/ContainerBase.hpp>
+#include <core/containers/SortedArray.hpp>
 
 #include <core/utilities/Pair.hpp>
-
 #include <core/utilities/Traits.hpp>
+
 #include <core/HashCode.hpp>
 
 namespace Hyperion {
@@ -19,24 +18,22 @@ namespace containers {
  *  \tparam Key The type of keys stored in the flat map.
  *  \tparam Value The type of values stored in the flat map. */
 template <class Key, class Value>
-class FlatMap : public ContainerBase<FlatMap<Key, Value>, Key>
+class FlatMap : public SortedArray<KeyValuePair<Key, Value>>
 {
 public:
     using KeyValuePairType = KeyValuePair<Key, Value>;
 
-private:
-    Array<KeyValuePairType> m_vector;
-
 public:
     static constexpr bool isContiguous = true;
 
-    using Base = ContainerBase<FlatMap<Key, Value>, Key>;
+    using Base = SortedArray<KeyValuePairType>;
 
     using KeyType = Key;
     using ValueType = KeyValuePairType;
 
-    using Iterator = typename decltype(m_vector)::Iterator;
-    using ConstIterator = typename decltype(m_vector)::ConstIterator;
+    using Iterator = typename Base::Iterator;
+    using ConstIterator = typename Base::ConstIterator;
+
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
     FlatMap();
@@ -44,7 +41,7 @@ public:
     template <SizeType Sz>
     FlatMap(KeyValuePairType const (&items)[Sz])
     {
-        m_vector.Reserve(Sz);
+        Base::Reserve(Sz);
 
         for (auto it = items; it != items + Sz; ++it)
         {
@@ -55,7 +52,7 @@ public:
     template <SizeType Sz>
     FlatMap(KeyValuePairType (&&items)[Sz])
     {
-        m_vector.Reserve(Sz);
+        Base::Reserve(Sz);
 
         for (auto it = items; it != items + Sz; ++it)
         {
@@ -65,7 +62,7 @@ public:
 
     FlatMap(std::initializer_list<Pair<Key, Value>> initializerList)
     {
-        m_vector.Reserve(initializerList.size());
+        Base::Reserve(initializerList.size());
 
         for (const auto& it : initializerList)
         {
@@ -85,7 +82,7 @@ public:
     template <class TFindAsType>
     HYP_FORCE_INLINE auto FindAs(const TFindAsType& key) -> Iterator
     {
-        const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
+        const auto it = Base::LowerBound(key);
 
         if (it == End())
         {
@@ -98,7 +95,7 @@ public:
     template <class TFindAsType>
     HYP_FORCE_INLINE auto FindAs(const TFindAsType& key) const -> ConstIterator
     {
-        const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
+        const auto it = Base::LowerBound(key);
 
         if (it == End())
         {
@@ -133,57 +130,57 @@ public:
 
     HYP_FORCE_INLINE SizeType Size() const
     {
-        return m_vector.Size();
+        return Base::Size();
     }
 
     HYP_FORCE_INLINE KeyValuePairType* Data()
     {
-        return m_vector.Data();
+        return Base::Data();
     }
 
-    HYP_FORCE_INLINE KeyValuePairType* const Data() const
+    HYP_FORCE_INLINE const KeyValuePairType* Data() const
     {
-        return m_vector.Data();
+        return Base::Data();
     }
 
     HYP_FORCE_INLINE bool Any() const
     {
-        return m_vector.Any();
+        return Base::Any();
     }
 
     HYP_FORCE_INLINE bool Empty() const
     {
-        return m_vector.Empty();
+        return Base::Empty();
     }
 
     HYP_FORCE_INLINE void Clear()
     {
-        m_vector.Clear();
+        Base::Clear();
     }
 
     HYP_FORCE_INLINE void Reserve(SizeType size)
     {
-        m_vector.Reserve(size);
+        Base::Reserve(size);
     }
 
     HYP_FORCE_INLINE KeyValuePairType& Front()
     {
-        return m_vector.Front();
+        return Base::Front();
     }
 
     HYP_FORCE_INLINE const KeyValuePairType& Front() const
     {
-        return m_vector.Front();
+        return Base::Front();
     }
 
     HYP_FORCE_INLINE KeyValuePairType& Back()
     {
-        return m_vector.Back();
+        return Base::Back();
     }
 
     HYP_FORCE_INLINE const KeyValuePairType& Back() const
     {
-        return m_vector.Back();
+        return Base::Back();
     }
 
     HYP_NODISCARD FlatSet<Key> Keys() const;
@@ -214,7 +211,7 @@ public:
     {
         for (const auto& item : other)
         {
-            Set_Internal(Pair<Key, Value>(item));
+            Set_Internal(KeyValuePair<Key, Value>(item));
         }
 
         return *this;
@@ -273,11 +270,11 @@ public:
         return Insert(key, Value {}).first->second;
     }
 
-    HYP_DEF_STL_BEGIN_END(m_vector.Begin(), m_vector.End())
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
 
 private:
-    InsertResult Set_Internal(Pair<Key, Value>&& pair);
-    InsertResult Insert_Internal(Pair<Key, Value>&& pair);
+    InsertResult Set_Internal(KeyValuePair<Key, Value>&& pair);
+    InsertResult Insert_Internal(KeyValuePair<Key, Value>&& pair);
 };
 
 template <class Key, class Value>
@@ -287,28 +284,28 @@ FlatMap<Key, Value>::FlatMap()
 
 template <class Key, class Value>
 FlatMap<Key, Value>::FlatMap(const FlatMap& other)
-    : m_vector(other.m_vector)
+    : Base(static_cast<const Base&>(other))
 {
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::operator=(const FlatMap& other) -> FlatMap&
 {
-    m_vector = other.m_vector;
+    Base::operator=(static_cast<const Base&>(other));
 
     return *this;
 }
 
 template <class Key, class Value>
 FlatMap<Key, Value>::FlatMap(FlatMap&& other) noexcept
-    : m_vector(std::move(other.m_vector))
+    : Base(std::move(static_cast<Base&&>(other)))
 {
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::operator=(FlatMap&& other) noexcept -> FlatMap&
 {
-    m_vector = std::move(other.m_vector);
+    Base::operator=(static_cast<Base&&>(other));
 
     return *this;
 }
@@ -319,7 +316,7 @@ FlatMap<Key, Value>::~FlatMap() = default;
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Find(const Key& key) -> Iterator
 {
-    const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
+    const auto it = Base::LowerBound(key);
 
     if (it == End())
     {
@@ -332,7 +329,7 @@ auto FlatMap<Key, Value>::Find(const Key& key) -> Iterator
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Find(const Key& key) const -> ConstIterator
 {
-    const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
+    const auto it = Base::LowerBound(key);
 
     if (it == End())
     {
@@ -343,13 +340,13 @@ auto FlatMap<Key, Value>::Find(const Key& key) const -> ConstIterator
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert_Internal(Pair<Key, Value>&& pair) -> InsertResult
+auto FlatMap<Key, Value>::Insert_Internal(KeyValuePair<Key, Value>&& pair) -> InsertResult
 {
-    const auto lowerBound = m_vector.LowerBound(pair.first);
+    const auto lowerBound = Base::LowerBound(pair.first);
 
     if (lowerBound == End() || !(lowerBound->first == pair.first))
     {
-        auto it = m_vector.Insert(lowerBound, std::move(pair));
+        auto it = static_cast<Array<KeyValuePairType>&>(*this).Insert(lowerBound, std::move(pair));
 
         return { it, true };
     }
@@ -360,19 +357,19 @@ auto FlatMap<Key, Value>::Insert_Internal(Pair<Key, Value>&& pair) -> InsertResu
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Insert(const Key& key, const Value& value) -> InsertResult
 {
-    return Insert_Internal(Pair<Key, Value> { key, value });
+    return Insert_Internal(KeyValuePair<Key, Value> { key, value });
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Insert(const Key& key, Value&& value) -> InsertResult
 {
-    return Insert_Internal(Pair<Key, Value> { key, std::move(value) });
+    return Insert_Internal(KeyValuePair<Key, Value> { key, std::move(value) });
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Insert(const Pair<Key, Value>& pair) -> InsertResult
 {
-    return Insert_Internal(Pair<Key, Value>(pair));
+    return Insert_Internal(KeyValuePair<Key, Value>(pair));
 }
 
 template <class Key, class Value>
@@ -382,13 +379,13 @@ auto FlatMap<Key, Value>::Insert(Pair<Key, Value>&& pair) -> InsertResult
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Set_Internal(Pair<Key, Value>&& pair) -> InsertResult
+auto FlatMap<Key, Value>::Set_Internal(KeyValuePair<Key, Value>&& pair) -> InsertResult
 {
-    const auto lowerBound = m_vector.LowerBound(pair.first); // FlatMap<Key, Value>::Base::LowerBound(key);
+    const auto lowerBound = Base::LowerBound(pair.first);
 
     if (lowerBound == End() || !(lowerBound->first == pair.first))
     {
-        auto it = m_vector.Insert(lowerBound, std::move(pair));
+        auto it = static_cast<Array<KeyValuePairType>&>(*this).Insert(lowerBound, std::move(pair));
 
         return { it, true };
     }
@@ -401,19 +398,19 @@ auto FlatMap<Key, Value>::Set_Internal(Pair<Key, Value>&& pair) -> InsertResult
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Set(const Key& key, const Value& value) -> InsertResult
 {
-    return Set_Internal(Pair<Key, Value> { key, value });
+    return Set_Internal(KeyValuePair<Key, Value> { key, value });
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Set(const Key& key, Value&& value) -> InsertResult
 {
-    return Set_Internal(Pair<Key, Value> { key, std::move(value) });
+    return Set_Internal(KeyValuePair<Key, Value> { key, std::move(value) });
 }
 
 template <class Key, class Value>
 auto FlatMap<Key, Value>::Erase(ConstIterator it) -> Iterator
 {
-    return m_vector.Erase(it);
+    return Base::Erase(it);
 }
 
 template <class Key, class Value>

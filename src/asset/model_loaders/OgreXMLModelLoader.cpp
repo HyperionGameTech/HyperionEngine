@@ -263,7 +263,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
     BuildVertices(model);
 
-    Handle<Node> top = CreateObject<Node>();
+    Handle<Node> top = MakeHandle<Node>();
 
     Handle<Skeleton> skeleton;
 
@@ -299,7 +299,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
         MeshDesc meshDesc;
-        meshDesc.meshAttributes.vertexAttributes = staticMeshVertexAttributes;
+        meshDesc.meshAttributes.vertexAttributes = VertexAttributeSet::StaticMeshVertexAttributes;
         meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
         meshDesc.meshAttributes.topology = TOP_TRIANGLES;
         meshDesc.numVertices = uint32(model.vertices.Size());
@@ -307,7 +307,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         if (skeleton.IsValid())
         {
-            meshDesc.meshAttributes.vertexAttributes |= skeletonVertexAttributes;
+            meshDesc.meshAttributes.vertexAttributes |= VertexAttributeSet::SkeletalMeshVertexAttributes;
         }
 
         MeshData meshData;
@@ -317,7 +317,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         meshData.CalculateNormals();
 
-        Handle<Mesh> mesh = CreateObject<Mesh>();
+        Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
         mesh->SetMeshData(meshDesc, meshData);
 
@@ -327,23 +327,21 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
 
         MaterialAttributes materialAttributes {};
-        materialAttributes.bucket = RB_TRANSLUCENT;
-        materialAttributes.blendFunction = BlendFunction::AlphaBlending();
-        materialAttributes.shaderDefinition = ShaderDefinition {
-            NAME("GeometryPass"),
-            ShaderProperties(mesh->GetVertexAttributes())
-        };
+        // materialAttributes.bucket = RB_TRANSLUCENT;
+        // materialAttributes.blendFunction = BlendFunction::AlphaBlending();
+        materialAttributes.shaderName = NAME("GeometryPass");
+        materialAttributes.shaderProperties = {};
 
-        Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.8f);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.01f);
+        Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
+        // material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
+        // material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.8f);
+        // material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.01f);
 
         entity->SetLocalBounds(mesh->GetAABB());
 
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
-        Handle<Node> node = CreateObject<Node>();
+        Handle<Node> node = MakeHandle<Node>();
         node->SetName(CreateNameFromDynamicString(subMesh.name));
         node->AddChild(entity);
 

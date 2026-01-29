@@ -7,6 +7,8 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/ArrayMap.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
@@ -23,13 +25,20 @@ namespace Hyperion {
 class AsyncComputeBase
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     virtual ~AsyncComputeBase() = default;
 
     virtual bool IsSupported() const = 0;
 
-    RenderQueue renderQueue;
+    virtual bool CheckStatus() = 0;
 
-    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+    virtual void Create() = 0;
+
+    RenderQueue renderQueue;
+    uint32 lastFrame = uint32(-1);
+
+    Delegate<void> OnCompleted;
 };
 
 } // namespace Hyperion
@@ -37,7 +46,7 @@ public:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanAsyncCompute.hpp>
 #endif
 

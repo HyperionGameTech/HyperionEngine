@@ -21,28 +21,28 @@ class VulkanComputePipeline final : public ComputePipelineBase, public VulkanPip
 
 public:
     VulkanComputePipeline();
-    VulkanComputePipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
-    virtual ~VulkanComputePipeline() override;
+    explicit VulkanComputePipeline(const VulkanShaderRef& shader);
+    ~VulkanComputePipeline() override;
 
-    virtual bool IsCreated() const override
+    bool IsCreated() const override
     {
         return VulkanPipelineBase::IsCreated();
     }
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void Bind(VulkanCommandBuffer* commandBuffer) override;
+    void Bind(VulkanCommandBuffer* commandBuffer) override;
 
-    virtual void Dispatch(VulkanCommandBuffer* commandBuffer, const Vec3u& groupSize) const override;
-    virtual void DispatchIndirect(
+    void Dispatch(VulkanCommandBuffer* commandBuffer, const Vec3u& groupSize) const override;
+    void DispatchIndirect(
         VulkanCommandBuffer* commandBuffer,
         const VulkanGpuBufferRef& indirectBuffer,
         SizeType offset = 0) const override;
 
-    virtual void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, SizeType size) override;
 
 #ifdef HYP_DEBUG_MODE
-    virtual void SetDebugName(Name name) override;
+    void SetDebugName(Name name) override;
 #endif
 };
 

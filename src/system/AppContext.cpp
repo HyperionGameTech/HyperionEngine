@@ -12,11 +12,10 @@
 
 #include <core/config/Config.hpp>
 
-#include <rendering/RenderBackend.hpp>
-#include <rendering/Device.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/Device.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 
 #include <vulkan/vulkan.h>
 
@@ -29,9 +28,9 @@
 #endif
 
 #include <rendering/vulkan/VulkanInstance.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
-#include <rendering/vulkan/VulkanSwapchain.hpp>
 #endif
+
+#include <rendering/Swapchain.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -40,7 +39,7 @@
 
 #include <input/InputManager.hpp>
 
-#ifdef HYP_SDL
+#if HYP_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #endif
@@ -76,7 +75,7 @@ struct SetupWindowSwapchainAsync
         // ensure window is still valid, otherwise, cancel the task
         if (Handle<ApplicationWindow> window = windowWeak.Lock(); window.IsValid())
         {
-            if (RenderApi::IsInit())
+            if (g_renderInterface != nullptr)
             {
                 window->CreateSwapchain();
                 success = true;
@@ -95,16 +94,16 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
     : m_title(std::move(title)),
       m_size(size),
       m_hwnd(nullptr),
-      m_inputManager(CreateObject<InputManager>(this))
+      m_inputManager(MakeHandle<InputManager>(this))
 {
 }
 
 ApplicationWindow::~ApplicationWindow()
 {
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     if (m_vkSurface)
     {
-        VulkanInstance* vkInstance = g_renderBackend->GetInstance();
+        VulkanInstance* vkInstance = g_renderInterface->GetInstance();
         Assert(vkInstance != nullptr);
 
         vkDestroySurfaceKHR(vkInstance->GetInstance(), m_vkSurface, nullptr);
@@ -158,7 +157,7 @@ void ApplicationWindow::CreateSwapchain()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     AssertDebug(GetDimensions() != Vec2i::Zero());
 
     if (m_vkSurface)
@@ -166,12 +165,13 @@ void ApplicationWindow::CreateSwapchain()
         return; // already created. swapchain is set on render thread
     }
 
-    m_vkSurface = g_renderBackend->CreateSurface(this, nullptr);
+    m_vkSurface = g_renderInterface->CreateSurface(this, nullptr);
     Assert(m_vkSurface != VK_NULL_HANDLE);
+#endif
 
     if (IsOnThread(g_renderThread)) // if -RenderOnMainThread is set this will be the case
     {
-        VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+        SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
         Assert(swapchain.IsValid());
 
         m_swapchain = swapchain;
@@ -187,16 +187,13 @@ void ApplicationWindow::CreateSwapchain()
                     return;
                 }
 
-                VulkanSwapchainRef swapchain = g_renderBackend->CreateSwapchain(this, g_renderBackend->GetInstance(), m_vkSurface);
+                SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
                 Assert(swapchain.IsValid());
 
                 m_swapchain = swapchain;
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
-#else
-    HYP_NOT_IMPLEMENTED();
-#endif
 }
 
 #pragma endregion ApplicationWindow
@@ -259,7 +256,6 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
             OnCurrentWindowChanged(nullptr);
         }
 
-        SafeDelete(std::move(*it));
         m_windows.Erase(it);
     }
 }
@@ -469,7 +465,7 @@ SDLAppContext::~SDLAppContext()
 
 Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
-    Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
+    Handle<SDLApplicationWindow> window = MakeHandle<SDLApplicationWindow>(windowOptions.title, windowOptions.size);
     m_windows.PushBack(window);
 
     window->Initialize(windowOptions);
@@ -1327,7 +1323,7 @@ Win32AppContext::~Win32AppContext() = default;
 
 Handle<ApplicationWindow> Win32AppContext::CreateSystemWindow(WindowOptions windowOptions)
 {
-    Handle<Win32ApplicationWindow> window = CreateObject<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
+    Handle<Win32ApplicationWindow> window = MakeHandle<Win32ApplicationWindow>(windowOptions.title, windowOptions.dimensions);
     m_windows.PushBack(window);
 
     window->Initialize(windowOptions);
@@ -1375,6 +1371,8 @@ int Win32AppContext::PollEvents(Event& event)
 
     return 0;
 }
+
+#if HYP_VULKAN
 
 VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     Win32ApplicationWindow* window,
@@ -1466,7 +1464,7 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
     }
 
     VkResult vkResult = vkCreateWin32SurfaceKHR(
-        g_renderBackend->GetInstance()->GetInstance(),
+        g_renderInterface->GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);
@@ -1475,6 +1473,8 @@ VkSurfaceKHR Win32AppContext::CreateVulkanSurface(
 
     return surface;
 }
+
+#endif // !HYP_VULKAN
 
 #else
 

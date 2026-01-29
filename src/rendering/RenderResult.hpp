@@ -19,16 +19,16 @@ public:
     {
     }
 
-    template <auto MessageString>
-    RendererError(const StaticMessage& currentFunction, ValueWrapper<MessageString>)
-        : Error(currentFunction, ValueWrapper<MessageString>()),
+    template <auto CurrentFunctionString, auto MessageString>
+    RendererError(ValueWrapper<CurrentFunctionString>, ValueWrapper<MessageString>)
+        : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<MessageString>()),
           m_errorCode(0)
     {
     }
 
-    template <auto MessageString, class... Args>
-    RendererError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, int errorCode, Args&&... args)
-        : Error(currentFunction, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
+    template <auto CurrentFunctionString, auto MessageString, class... Args>
+    RendererError(ValueWrapper<CurrentFunctionString>, ValueWrapper<MessageString>, int errorCode, Args&&... args)
+        : Error(ValueWrapper<CurrentFunctionString>(), ValueWrapper<HYP_STATIC_STRING("[Code:{}] ").template Concat<MessageString>()>(), errorCode, std::forward<Args>(args)...),
           m_errorCode(errorCode)
     {
     }
@@ -45,52 +45,5 @@ private:
 };
 
 using RendererResult = TResult<void, RendererError>;
-
-#define HYPERION_RETURN_OK                    \
-    do                                        \
-    {                                         \
-        return ::Hyperion::RendererResult {}; \
-    }                                         \
-    while (0)
-
-#define HYPERION_PASS_ERRORS(result, outResult)        \
-    do                                                 \
-    {                                                  \
-        ::Hyperion::RendererResult _result = (result); \
-        if ((outResult) && !_result)                   \
-            (outResult) = _result;                     \
-    }                                                  \
-    while (0)
-
-/// On error, exits the current functon returning the result
-#define HYP_GFX_CHECK(result)                          \
-    do                                                 \
-    {                                                  \
-        ::Hyperion::RendererResult _result = (result); \
-        if (!_result)                                  \
-            return _result;                            \
-    }                                                  \
-    while (0)
-
-#define HYP_GFX_ASSERT(cond, ...)                                                                  \
-    do                                                                                             \
-    {                                                                                              \
-        if (HYP_UNLIKELY(!(cond)))                                                                 \
-        {                                                                                          \
-            std::printf(                                                                           \
-                "Assertion failed in renderer!\n\tCondition: " #cond "\n\tMessage: " __VA_ARGS__); \
-            HYP_PRINT_STACK_TRACE();                                                               \
-            debug::TerminateProgram();                                                             \
-        }                                                                                          \
-    }                                                                                              \
-    while (0)
-
-#define HYPERION_IGNORE_ERRORS(result)                 \
-    do                                                 \
-    {                                                  \
-        ::Hyperion::RendererResult _result = (result); \
-        (void)_result;                                 \
-    }                                                  \
-    while (0)
 
 } // namespace Hyperion

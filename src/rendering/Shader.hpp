@@ -10,7 +10,6 @@
 #include <core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/Device.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
@@ -19,71 +18,22 @@ namespace Hyperion {
 
 struct CompiledShader;
 
-struct ShaderObject
-{
-    Name srcName;
-    ByteBuffer bytes;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(srcName);
-        hc.Add(bytes);
-
-        return hc;
-    }
-};
-
-HYP_ENUM()
-enum ShaderModuleType : uint32
-{
-    SMT_UNSET = 0,
-
-    /* Graphics and general purpose shaders */
-    SMT_VERTEX,
-    SMT_FRAGMENT,
-    SMT_GEOMETRY,
-    SMT_COMPUTE,
-
-    /* Mesh shaders */
-    SMT_TASK,
-    SMT_MESH,
-
-    /* Tesselation */
-    SMT_TESS_CONTROL,
-    SMT_TESS_EVAL,
-
-    /* Raytracing hardware specific */
-    SMT_RAY_GEN,
-    SMT_RAY_INTERSECT,
-    SMT_RAY_ANY_HIT,
-    SMT_RAY_CLOSEST_HIT,
-    SMT_RAY_MISS,
-
-    SMT_MAX
-};
-
-static inline bool IsRaytracingShaderModule(ShaderModuleType type)
-{
-    return type == SMT_RAY_GEN
-        || type == SMT_RAY_INTERSECT
-        || type == SMT_RAY_ANY_HIT
-        || type == SMT_RAY_CLOSEST_HIT
-        || type == SMT_RAY_MISS;
-}
-
 HYP_CLASS(Abstract, NoScriptBindings)
 class ShaderBase : public ObjectBase
 {
     HYP_OBJECT_BODY(ShaderBase);
 
 public:
-    ShaderBase() = default;
+    ShaderBase()
+        : m_compiledShader(nullptr)
+    {
+    }
+
     virtual ~ShaderBase() override = default;
 
-    HYP_FORCE_INLINE CompiledShader* GetCompiledShader() const
+    HYP_FORCE_INLINE const CompiledShader* GetCompiledShader() const
     {
-        return m_compiledShader.Get();
+        return m_compiledShader;
     }
 
     virtual bool IsCreated() const = 0;
@@ -101,12 +51,12 @@ public:
     }
 
 protected:
-    ShaderBase(const RC<CompiledShader>& compiledShader)
+    explicit ShaderBase(const CompiledShader* compiledShader)
         : m_compiledShader(compiledShader)
     {
     }
 
-    RC<CompiledShader> m_compiledShader;
+    const CompiledShader* m_compiledShader;
     Name m_debugName;
 };
 
@@ -115,8 +65,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanShader.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12Shader.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

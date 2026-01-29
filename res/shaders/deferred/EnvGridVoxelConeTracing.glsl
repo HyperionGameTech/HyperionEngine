@@ -3,8 +3,8 @@
 
 #include "../include/brdf.inc"
 #include "../include/noise.inc"
-#include "../include/BlueNoise.glsl"
-#include "../include/Octahedron.glsl"
+#include "../include/BlueNoise.inc"
+#include "../include/Octahedron.inc"
 
 //#define HYP_VCT_USE_ROUGHNESS_SCATTERING
 

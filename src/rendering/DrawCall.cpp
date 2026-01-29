@@ -6,9 +6,10 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
-
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+
+#include <rendering/util/SafeDeleter.hpp>
 
 #include <scene/Entity.hpp>
 
@@ -19,8 +20,6 @@
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
-
-extern RenderInterface* g_renderInterface;
 
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
@@ -37,7 +36,6 @@ HYP_REGISTER_DRAW_BATCH_TYPE(EntityInstanceBatch);
 DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
     : batchAllocator(other.batchAllocator),
       renderGroup(other.renderGroup),
-      instancingDescriptorSets(std::move(other.instancingDescriptorSets)),
       drawCalls(std::move(other.drawCalls)),
       instancedDrawCalls(std::move(other.instancedDrawCalls)),
       indexMap(std::move(other.indexMap))
@@ -55,7 +53,6 @@ DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) no
 
     batchAllocator = other.batchAllocator;
     renderGroup = other.renderGroup;
-    instancingDescriptorSets = std::move(other.instancingDescriptorSets);
     drawCalls = std::move(other.drawCalls);
     instancedDrawCalls = std::move(other.instancedDrawCalls);
     indexMap = std::move(other.indexMap);
@@ -69,8 +66,6 @@ DrawCallCollection::~DrawCallCollection()
     {
         ResetDrawCalls();
     }
-
-    SafeDelete(std::move(instancingDescriptorSets));
 }
 
 void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxyMesh& renderProxy)
@@ -285,7 +280,7 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
                     "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
                     meshInstanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
 
-                Memory::MemCpy(dstPtr, srcPtr, bufferStructSize);
+                Memory::Copy(dstPtr, srcPtr, bufferStructSize);
 
                 fieldOffset += MaxEntitiesPerBatch * bufferStructSize;
             }
@@ -354,6 +349,11 @@ EntityBatchAllocatorBase::EntityBatchAllocatorBase(GpuBufferHolderBase* bufferHo
 
     m_structSize = structTypeInfo->size;
     m_structAlignment = structTypeInfo->alignment;
+}
+
+void EntityBatchAllocatorBase::ReleaseBatch(EntityInstanceBatch* batch) const
+{
+    m_bufferHolder->ReleaseIndex(batch->batchIndex);
 }
 
 EntityBatchAllocatorBase* GetEntityBatchAllocator(const TypeId& typeId)

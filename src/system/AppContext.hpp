@@ -25,7 +25,7 @@
 
 #include <input/Mouse.hpp>
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <vulkan/vulkan_core.h>
 #endif
 
@@ -42,7 +42,7 @@ using HWND = void*;
 class Game;
 class InputManager;
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 class VulkanInstance;
 class IDummyVulkanSurfaceContext;
 #endif
@@ -117,7 +117,7 @@ public:
         m_swapchain = swapchain;
     }
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     HYP_FORCE_INLINE VkSurfaceKHR GetVkSurface() const
     {
         return m_vkSurface;
@@ -169,7 +169,7 @@ protected:
     HWND m_hwnd;
     SwapchainRef m_swapchain;
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;
 #endif
 
@@ -276,7 +276,7 @@ public:
 
     int PollEvents(Event& event) override;
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
         SDLApplicationWindow* window,
         IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
@@ -350,7 +350,7 @@ public:
 
     int PollEvents(Event& event) override;
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
         Win32ApplicationWindow* window,
         IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);
@@ -448,7 +448,7 @@ public:
 
     int PollEvents(Event& event) override;
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
     static VkSurfaceKHR CreateVulkanSurface(
         CocoaApplicationWindow* window,
         IDummyVulkanSurfaceContext** ppOutDummySurfaceContext);

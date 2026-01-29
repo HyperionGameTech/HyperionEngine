@@ -15,14 +15,14 @@ layout(location = 0) out vec4 combinedDepths;
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SRV(CombineShadowMapsDescriptorSet, Src0) uniform texture2D src0;
-HYP_DESCRIPTOR_SRV(CombineShadowMapsDescriptorSet, Src1) uniform texture2D src1;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SRV(CombineShadowMaps, Src0) uniform texture2D src0;
+DECLARE_SRV(CombineShadowMaps, Src1) uniform texture2D src1;
+DECLARE_SAMPLER(CombineShadowMaps, SamplerNearest) uniform sampler sampler_nearest;
 
 void main()
 {
-    vec4 color0 = Texture2D(sampler_nearest, src0, v_texcoord);
-    vec4 color1 = Texture2D(sampler_nearest, src1, v_texcoord);
+    vec4 color0 = SAMPLE_TEXTURE_2D(sampler_nearest, src0, v_texcoord);
+    vec4 color1 = SAMPLE_TEXTURE_2D(sampler_nearest, src1, v_texcoord);
 
 #ifdef VSM
     // VSM stores as 16 bit float in each texture

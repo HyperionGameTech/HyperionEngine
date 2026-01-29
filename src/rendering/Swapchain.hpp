@@ -94,8 +94,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanSwapchain.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12Swapchain.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

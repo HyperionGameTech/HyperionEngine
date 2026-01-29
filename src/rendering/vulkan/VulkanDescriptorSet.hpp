@@ -27,7 +27,7 @@ namespace Hyperion {
 
 class VulkanDescriptorSetLayoutWrapper;
 
-struct VulkanDescriptorElementInfo
+struct VulkanCachedDescriptor
 {
     uint32 binding;
     uint32 index;
@@ -37,8 +37,33 @@ struct VulkanDescriptorElementInfo
     {
         VkDescriptorBufferInfo bufferInfo;
         VkDescriptorImageInfo imageInfo;
-        VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureInfo;
+        VkAccelerationStructureKHR accelerationStructure;
     };
+
+    bool operator==(const VulkanCachedDescriptor& other) const
+    {
+        static_assert(sizeof(VkDescriptorBufferInfo) == sizeof(VkDescriptorImageInfo));
+
+        if (binding != other.binding
+            || index != other.index
+            || descriptorType != other.descriptorType)
+        {
+            return false;
+        }
+
+        if (descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        {
+            return accelerationStructure == other.accelerationStructure;
+        }
+
+        // For buffer and image info, we can do a memory comparison
+        return Memory::Compare(&bufferInfo, &other.bufferInfo, sizeof(VkDescriptorBufferInfo)) == 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const VulkanCachedDescriptor& other) const
+    {
+        return !(*this == other);
+    }
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -46,7 +71,7 @@ class VulkanDescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(VulkanDescriptorSet);
 
-    using ElementCache = HashMap<Name, Array<VulkanDescriptorElementInfo>>;
+    using ElementCache = HashMap<Name, Array<VulkanCachedDescriptor>>;
 
 public:
     VulkanDescriptorSet(const DescriptorSetLayout& layout);
@@ -62,21 +87,23 @@ public:
         return m_vkDescriptorSetLayout;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
-    virtual void UpdateDirtyState(bool* outIsDirty = nullptr) override;
-    virtual void Update(bool force = false) override;
+    void UpdateDirtyState(bool* outIsDirty = nullptr) override;
+    void Update(bool force = false) override;
 
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, uint32 bindIndex) const override;
-    virtual void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRaytracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanGraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
 
-    virtual VulkanDescriptorSetRef Clone() const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanComputePipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRayTracingPipeline* pipeline, uint32 bindIndex) const override;
+    void Bind(VulkanCommandBuffer* commandBuffer, const VulkanRayTracingPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const override;
+
+    VulkanDescriptorSetRef Clone() const override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
@@ -86,7 +113,7 @@ protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;
-    Array<VulkanDescriptorElementInfo> m_vkDescriptorElementInfos;
+    Array<VulkanCachedDescriptor> m_pendingDescriptors;
     ElementCache m_cachedElements;
 };
 
@@ -96,8 +123,12 @@ class VulkanDescriptorTable final : public DescriptorTableBase
     HYP_OBJECT_BODY(VulkanDescriptorTable);
 
 public:
-    VulkanDescriptorTable(const DescriptorTableDeclaration* decl);
-    virtual ~VulkanDescriptorTable() override = default;
+    explicit VulkanDescriptorTable(const ShaderInputGroup* decl)
+        : DescriptorTableBase(decl)
+    {
+    }
+    
+    ~VulkanDescriptorTable() override = default;
 };
 
 } // namespace Hyperion

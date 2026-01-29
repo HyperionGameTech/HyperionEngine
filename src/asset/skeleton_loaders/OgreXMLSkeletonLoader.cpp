@@ -173,7 +173,7 @@ public:
                 }
                 else
                 {
-                    LastKeyframe().rotation = Quaternion(axis, m_keyframeAngles.Top()).Invert();
+                    LastKeyframe().rotation = Quaternion(axis, m_keyframeAngles.Top()).Inverse();
 
                     m_keyframeAngles.Pop();
                 }
@@ -256,7 +256,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         boneDesc.name = boneName;
         boneDesc.bindingTransform = bindingTransform;
 
-        Handle<Bone> bone = CreateObject<Bone>(boneName);
+        Handle<Bone> bone = MakeHandle<Bone>(boneName);
         bone->SetBindingTransform(bindingTransform);
 
         if (item.parentName.Any())
@@ -304,11 +304,11 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
     {
         const Name animationName = CreateNameFromDynamicString(animationIt.name);
 
-        Handle<Animation> animation = CreateObject<Animation>(animationName);
+        Handle<Animation> animation = MakeHandle<Animation>(animationName);
 
         for (const auto& trackIt : animationIt.tracks)
         {
-            Handle<AnimationTrack> animationTrack = CreateObject<AnimationTrack>(CreateNameFromDynamicString(trackIt.boneName));
+            Handle<AnimationTrack> animationTrack = MakeHandle<AnimationTrack>(CreateNameFromDynamicString(trackIt.boneName));
 
             for (const auto& keyframeIt : trackIt.keyframes)
             {
@@ -324,14 +324,14 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         skeletonData.animations.PushBack(animation);
     }
 
-    Handle<SkeletonAsset> skeletonAsset = CreateObject<SkeletonAsset>(
+    Handle<SkeletonAsset> skeletonAsset = MakeHandle<SkeletonAsset>(
         CreateNameFromDynamicString(state.filepath.Basename()),
         skeletonDesc,
         std::move(skeletonData));
 
     state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Skeletons", skeletonAsset);
 
-    Handle<Skeleton> skeleton = CreateObject<Skeleton>(skeletonAsset);
+    Handle<Skeleton> skeleton = MakeHandle<Skeleton>(skeletonAsset);
     skeleton->SetRootBone(rootBone);
 
     if (Bone* rootBone = skeleton->GetRootBone())

@@ -513,6 +513,13 @@ static HYP_FORCE_INLINE HYP_ENABLE_IF(isMathVectorV<T>, T) Round(const T& a)
     return T::Round(a);
 }
 
+template <class T, class U = T>
+static HYP_FORCE_INLINE HYP_ENABLE_IF(!isMathVectorV<T>, U) Round(T a, int decimalPlaces)
+{
+    const double factor = std::pow(10.0, double(decimalPlaces));
+    return U(std::round(double(a) * factor) / factor);
+}
+
 static HYP_FORCE_INLINE float Sin(float x)
 {
     return sinf(x);

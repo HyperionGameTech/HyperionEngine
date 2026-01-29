@@ -38,13 +38,13 @@ class Camera;
 
 static const Handle<NullInputHandler>& GetNullInputHandler()
 {
-    static const Handle<NullInputHandler> s_nullInputHandler = CreateObject<NullInputHandler>();
+    static const Handle<NullInputHandler> s_nullInputHandler = MakeHandle<NullInputHandler>();
     return s_nullInputHandler;
 }
 
 static const Handle<NullCameraController>& GetNullCameraController()
 {
-    static const Handle<NullCameraController> s_nullCameraController = CreateObject<NullCameraController>();
+    static const Handle<NullCameraController> s_nullCameraController = MakeHandle<NullCameraController>();
     return s_nullCameraController;
 }
 
@@ -227,7 +227,7 @@ void Camera::Init()
 
     Entity::Init();
 
-    m_streamingVolume = CreateObject<CameraStreamingVolume>();
+    m_streamingVolume = MakeHandle<CameraStreamingVolume>();
     m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
     InitObject(m_streamingVolume);
 
@@ -454,7 +454,7 @@ void Camera::SetTranslation(const Vec3f& translation)
     m_translation = translation;
     m_nextTranslation = translation;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
     {
@@ -534,7 +534,7 @@ void Camera::SetViewMatrix(const Mat4f& viewMat)
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
     m_viewMat = viewMat;
 
     UpdateViewProjectionMatrix();
@@ -553,7 +553,7 @@ void Camera::SetViewProjectionMatrix(const Mat4f& viewMat, const Mat4f& projMat)
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     m_viewMat = viewMat;
     m_projMat = projMat;
@@ -587,11 +587,11 @@ Vec4f Camera::TransformNDCToWorld(const Vec3f& ndc) const
 {
     const Vec4f clip(ndc, 1.0f);
 
-    Vec4f eye = m_projMat.Inverted() * clip;
+    Vec4f eye = m_projMat.Inverse() * clip;
     eye /= eye.w;
     // eye = Vec4f(eye.x, eye.y, -1.0f, 0.0f);
 
-    return m_viewMat.Inverted() * eye;
+    return m_viewMat.Inverse() * eye;
 }
 
 Vec3f Camera::TransformWorldToNDC(const Vec3f& world) const
@@ -655,7 +655,7 @@ void Camera::UpdateViewMatrix()
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
     {
@@ -683,7 +683,7 @@ void Camera::UpdateMatrices()
 {
     HYP_SCOPE;
 
-    m_previousViewMatrix = m_viewMat;
+    m_prevViewProjMat = m_viewProjMat;
 
     if (HasActiveCameraController())
     {
@@ -751,12 +751,22 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     CameraShaderData& bufferData = proxy->bufferData;
     bufferData.viewMat = m_viewMat;
     bufferData.projMat = m_projMat;
-    bufferData.prevViewMat = m_previousViewMatrix;
+
+    bufferData.viewProjMat = m_viewProjMat;
+
+    bufferData.inverseViewMat = m_viewMat.Inverse();
+    bufferData.inverseProjMat = m_projMat.Inverse();
+
+    bufferData.prevViewProjMat = m_prevViewProjMat;
+    
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
+    
     bufferData.cameraPosition = Vec4f(m_translation, 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
+    
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;
+    
     bufferData.cameraFov = m_fov;
 }
 

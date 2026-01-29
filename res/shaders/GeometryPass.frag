@@ -1,9 +1,12 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 #extension GL_ARB_separate_shader_objects : require
-#extension GL_EXT_nonuniform_qualifier : require
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_samplerless_texture_functions : require
+
+#ifdef HYP_FEATURES_BINDLESS_TEXTURES
+#extension GL_EXT_nonuniform_qualifier : require
+#endif
 
 #include "include/defines.inc"
 
@@ -13,103 +16,98 @@ layout(location = 2) in vec2 v_texcoord0;
 layout(location = 3) in vec2 v_texcoord1;
 layout(location = 4) in vec3 v_tangent;
 layout(location = 5) in vec3 v_bitangent;
-layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 11) in vec4 v_position_ndc;
-layout(location = 12) in vec4 v_previous_position_ndc;
-layout(location = 15) in flat uint v_object_index;
-layout(location = 16) in flat uint v_object_mask;
+layout(location = 6) in flat vec3 v_camera_position;
+layout(location = 7) in vec4 v_position_ndc;
+layout(location = 8) in vec4 v_previous_position_ndc;
+layout(location = 9) in flat uint v_object_index;
+layout(location = 10) in flat uint v_object_mask;
 
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 1) out vec4 gbuffer_normals;
 layout(location = 2) out uvec4 gbuffer_material;
 layout(location = 3) out vec2 gbuffer_velocity;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
 #define HAS_REFRACTION 1
 
-#include "include/scene.inc"
 #include "include/material.inc"
-#include "include/Entity.glsl"
+
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+#include "include/scene.inc"
+#include "include/Entity.inc"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"
 #include "include/gbuffer.inc"
 
-HYP_DESCRIPTOR_SRV(View, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture) uniform texture2D light_field_color_texture;
-HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture) uniform texture2D light_field_depth_texture;
-
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(Default, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
-HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
-
 #ifdef SHADING_TYPE_FORWARD
+
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(Default, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+#else
+DECLARE_SRV(Default, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+#endif
+
+DECLARE_SRV(Default, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+
+DECLARE_SRV(Default, GBufferMipChain) uniform texture2D gbuffer_mip_chain;
+
+DECLARE_SRV(Default, ShadowMapsTextureArray) uniform texture2DArray shadow_maps;
+DECLARE_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray point_shadow_maps;
+
 #include "include/brdf.inc"
-#include "deferred/DeferredLighting.glsl"
+#include "deferred/DeferredLighting.inc"
 #include "include/shadows.inc"
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
-{
-    EnvProbe current_env_probe;
-};
-
 #ifdef INSTANCING
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 #else
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV_DYNAMIC(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entity;
 };
 #endif
 
-/// \todo Refactor to use LightsBuffer instead
+#ifdef SHADING_TYPE_FORWARD
+DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+{
+    EnvProbe current_env_probe;
+};
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+DECLARE_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
-
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material materials[HYP_MAX_MATERIALS];
-};
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[entity.material_index % HYP_MAX_MATERIALS])
 #endif
-#else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
 #endif
 
 #if HAS_PARALLAX_MAP
@@ -148,7 +146,7 @@ void main()
 #endif
 
 #if HAS_ALBEDO_MAP
-    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
 
 #ifdef ALPHA_DISCARD
     if (albedo_texture.a < alpha_threshold)
@@ -165,7 +163,7 @@ void main()
     vec4 normals_texture = vec4(0.0);
 
 #if HAS_NORMAL_MAP
-    normals_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
+    normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
 
     N = normalize(tbn_matrix * normals_texture.xyz);
 #endif
@@ -217,10 +215,6 @@ void main()
                 vec4(0.0),
                 gbuffer_albedo,
                 vec3(ao));
-
-            // #ifdef ENV_GRID_ENABLED
-            // CalculateEnvGridIrradiance(P, N, irradiance);
-            // #endif
 
             Fd = gbuffer_albedo.rgb * irradiance * (1.0 - E) * ao;
 
@@ -293,13 +287,13 @@ void main()
 #endif
 
 #if HAS_METALNESS_MAP
-    float metalness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
+    float metalness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, MetalnessMap, texcoord).r;
 
     metalness = metalness_sample;
 #endif
 
 #if HAS_ROUGHNESS_MAP
-    float roughness_sample = SAMPLE_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
+    float roughness_sample = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, RoughnessMap, texcoord).r;
 
     roughness = roughness_sample;
 #endif
@@ -309,7 +303,7 @@ void main()
 #endif
 
 #if HAS_AO_MAP
-    ao = SAMPLE_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;
+    ao = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AoMap, texcoord).r;
 #endif
 
     // https://www.elopezr.com/temporal-aa-and-the-quest-for-the-holy-trail/

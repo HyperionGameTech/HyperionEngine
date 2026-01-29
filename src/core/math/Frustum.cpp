@@ -85,7 +85,7 @@ bool Frustum::ContainsPoint(const Vec3f& point) const
 
 Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
 {
-    const Mat4f mat = viewProj.Transposed();
+    const Mat4f mat = viewProj.Transpose();
 
     planes[0][0] = mat[0][3] - mat[0][0];
     planes[0][1] = mat[1][3] - mat[1][0];
@@ -123,7 +123,7 @@ Frustum& Frustum::SetFromViewProjectionMatrix(const Mat4f& viewProj)
     planes[5][3] = mat[3][3] + mat[3][2];
     // planes[5].Normalize();
 
-    const Mat4f clipToWorld = viewProj.Inverted();
+    const Mat4f clipToWorld = viewProj.Inverse();
 
     for (uint32 i = 0; i < 8; i++)
     {

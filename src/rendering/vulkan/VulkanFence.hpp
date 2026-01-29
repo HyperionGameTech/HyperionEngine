@@ -15,7 +15,7 @@ class VulkanFence final : public ObjectBase
 
 public:
     VulkanFence();
-    virtual ~VulkanFence() override;
+    ~VulkanFence() override;
 
     HYP_FORCE_INLINE VkFence GetVulkanHandle() const
     {
@@ -27,9 +27,9 @@ public:
         return m_lastFrameResult;
     }
 
-    RendererResult Create();
-    RendererResult Wait(bool timeoutLoop = false);
-    RendererResult Reset();
+    void Create(bool createSignaled = false);
+    void Wait(bool timeoutLoop = false);
+    void Reset();
 
 private:
     VkFence m_handle = VK_NULL_HANDLE;

@@ -6,7 +6,7 @@
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 #pragma region VulkanGpuImageView
 
@@ -42,12 +42,10 @@ VulkanGpuImageView::~VulkanGpuImageView()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyImageView(g_renderBackend->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyImageView(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
 
         m_handle = VK_NULL_HANDLE;
     }
-
-    SafeDelete(std::move(m_image));
 }
 
 bool VulkanGpuImageView::IsCreated() const
@@ -72,7 +70,7 @@ RendererResult VulkanGpuImageView::Create()
         return HYP_MAKE_ERROR(RendererError, "Mip index out of bounds");
     }
 
-    HYP_GFX_ASSERT(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
+    Assert(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
 
     VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
     viewInfo.image = static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle();
@@ -91,7 +89,7 @@ RendererResult VulkanGpuImageView::Create()
     viewInfo.subresourceRange.layerCount = m_numLayers != 0 ? m_numLayers : m_image->NumArrayLayers();
 
     VULKAN_CHECK_MSG(
-        vkCreateImageView(g_renderBackend->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
+        vkCreateImageView(g_renderInterface->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
         "Failed to create image view");
 
     return {};
@@ -115,7 +113,7 @@ void VulkanGpuImageView::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif

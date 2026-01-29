@@ -78,7 +78,7 @@ World::World(Name name, EnumFlags<WorldFlags> worldFlags)
       m_name(name),
       m_gameInstance(nullptr),
       m_worldFlags(worldFlags),
-      m_raytracingView(nullptr),
+      m_rayTracingView(nullptr),
       m_rootSynchronousExecutionGroup(nullptr)
 {
     if (m_worldFlags & WorldFlags::ALL_STREAMING_LAYER_FLAGS)
@@ -144,7 +144,7 @@ World::~World()
     }
     m_systemExecutionGroups.Clear();
 
-    m_raytracingView = nullptr;
+    m_rayTracingView = nullptr;
 
     SafeDelete(std::move(m_scenes));
     SafeDelete(std::move(m_views));
@@ -174,7 +174,7 @@ void World::Init()
     {
         if (!m_worldGrid)
         {
-            m_worldGrid = CreateObject<WorldGrid>(this);
+            m_worldGrid = MakeHandle<WorldGrid>(this);
         }
 
         InitObject(m_worldGrid);
@@ -196,29 +196,29 @@ void World::Init()
     if (CoreApi::GetGlobalConfig().Get("Rendering.RayTracing.Enabled").ToBool(false))
     {
         // dummy output target
-        ViewOutputTargetDesc outputTargetDesc {
-            .extent = Vec2u::One(),
-            .attachments = { { TF_R8 } }
-        };
+        RenderTargetDesc renderTargetDesc;
+        renderTargetDesc.extent = Vec2u::One();
+        renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
+        renderTargetDesc.numAttachments = 1;
 
-        Handle<Camera> camera = CreateObject<Camera>();
+        Handle<Camera> camera = MakeHandle<Camera>();
         camera->SetName(NAME("RayTracingViewDummyCamera"));
 
-        const ViewDesc raytracingViewDesc {
-            .flags = ViewFlags::RAYTRACING | ViewFlags::NO_DRAW_CALLS
+        const ViewDesc rayTracingViewDesc {
+            .flags = ViewFlags::RAY_TRACING | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING,
             .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
-            .outputTargetDesc = outputTargetDesc,
+            .renderTargetDesc = renderTargetDesc,
             .camera = camera
         };
 
-        Handle<View> raytracingView = CreateObject<View>(raytracingViewDesc);
-        InitObject(raytracingView);
+        Handle<View> rayTracingView = MakeHandle<View>(rayTracingViewDesc);
+        InitObject(rayTracingView);
 
-        m_raytracingView = raytracingView;
+        m_rayTracingView = rayTracingView;
 
-        m_views.PushBack(std::move(raytracingView));
+        m_views.PushBack(std::move(rayTracingView));
     }
 
     for (const Handle<Scene>& scene : m_scenes)
@@ -288,39 +288,39 @@ void World::Init()
     }
 
     if (!HasSystem<VisibilityStateUpdaterSystem>())
-        AddSystem(CreateObject<VisibilityStateUpdaterSystem>());
+        AddSystem(MakeHandle<VisibilityStateUpdaterSystem>());
     
     if (!HasSystem<LightmapSystem>())
-        AddSystem(CreateObject<LightmapSystem>());
+        AddSystem(MakeHandle<LightmapSystem>());
     
     if (!HasSystem<AnimationSystem>())
-        AddSystem(CreateObject<AnimationSystem>());
+        AddSystem(MakeHandle<AnimationSystem>());
     
     if (!HasSystem<AudioSystem>())
-        AddSystem(CreateObject<AudioSystem>());
+        AddSystem(MakeHandle<AudioSystem>());
     
     if (!HasSystem<PhysicsSystem>())
-        AddSystem(CreateObject<PhysicsSystem>());
+        AddSystem(MakeHandle<PhysicsSystem>());
 
     if (!HasSystem<ScriptSystem>())
-        AddSystem(CreateObject<ScriptSystem>());
+        AddSystem(MakeHandle<ScriptSystem>());
 
     for (const Handle<View>& view : m_views)
     {
-        if (view->m_raytracingView.GetUnsafe() != m_raytracingView)
+        if (view->m_rayTracingView.GetUnsafe() != m_rayTracingView)
         {
-            if (view->m_raytracingView)
+            if (view->m_rayTracingView)
             {
                 HYP_LOG(Scene, Warning,
-                    "View {} already has a raytracing View set! Was it added to multiple Worlds with raytracing enabled?",
+                    "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
                     view->Id());
 
-                view->m_raytracingView.Reset();
+                view->m_rayTracingView.Reset();
             }
 
-            if (m_raytracingView != nullptr)
+            if (m_rayTracingView != nullptr)
             {
-                view->m_raytracingView = m_raytracingView->WeakHandleFromThis();
+                view->m_rayTracingView = m_rayTracingView->WeakHandleFromThis();
             }
         }
 
@@ -329,7 +329,7 @@ void World::Init()
 
     if (m_worldFlags & WorldFlags::HAS_PHYSICS)
     {
-        m_physicsWorld = CreateObject<PhysicsWorld>();
+        m_physicsWorld = MakeHandle<PhysicsWorld>();
         InitObject(m_physicsWorld);
     }
 
@@ -357,7 +357,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
         {
             if (m_worldFlags & WorldFlags::HAS_PHYSICS)
             {
-                m_physicsWorld = CreateObject<PhysicsWorld>();
+                m_physicsWorld = MakeHandle<PhysicsWorld>();
                 InitObject(m_physicsWorld);
             }
             else
@@ -378,7 +378,7 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
             {
                 if (!m_worldGrid)
                 {
-                    m_worldGrid = CreateObject<WorldGrid>(this);
+                    m_worldGrid = MakeHandle<WorldGrid>(this);
                     InitObject(m_worldGrid);
                 }
             }
@@ -604,7 +604,7 @@ void World::CollectScenes(Array<Scene*, SceneAllocator>& outScenes)
 
 void World::CollectViews(Array<View*, SceneAllocator>& outViews)
 {
-    const uint32 slot = RenderApi::GetRingIndex();
+    const uint32 slot = GetRingIndex();
 
     m_viewsPerFrame[slot].Resize(m_views.Size() + m_processViews.Size());
 
@@ -962,20 +962,20 @@ void World::AddView(const Handle<View>& view)
 
     if (IsReady())
     {
-        if (view->m_raytracingView.GetUnsafe() != m_raytracingView)
+        if (view->m_rayTracingView.GetUnsafe() != m_rayTracingView)
         {
-            if (view->m_raytracingView)
+            if (view->m_rayTracingView)
             {
                 HYP_LOG(Scene, Warning,
-                    "View {} already has a raytracing View set! Was it added to multiple Worlds with raytracing enabled?",
+                    "View {} already has a rayTracing View set! Was it added to multiple Worlds with rayTracing enabled?",
                     view->Id());
 
-                view->m_raytracingView.Reset();
+                view->m_rayTracingView.Reset();
             }
 
-            if (m_raytracingView != nullptr)
+            if (m_rayTracingView != nullptr)
             {
-                view->m_raytracingView = m_raytracingView->WeakHandleFromThis();
+                view->m_rayTracingView = m_rayTracingView->WeakHandleFromThis();
             }
         }
 
@@ -1011,7 +1011,7 @@ void World::RemoveView(View* view)
 
     if (IsReady())
     {
-        view->m_raytracingView.Reset();
+        view->m_rayTracingView.Reset();
 
         // Remove all scenes from the view, if the view should collect all world scenes
         if (view->GetFlags() & ViewFlags::ALL_WORLD_SCENES)
@@ -1046,7 +1046,7 @@ Span<View* const> World::GetViews() const
     HYP_SCOPE;
     AssertOnThread(g_renderThread | g_simThread);
 
-    return m_viewsPerFrame[RenderApi::GetRingIndex()].ToSpan();
+    return m_viewsPerFrame[GetRingIndex()].ToSpan();
 }
 
 void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
@@ -1210,7 +1210,7 @@ Handle<WorldGridLayer> World::GetOrCreateStreamingLayer(Name streamingLayerName)
         return *it;
     }
 
-    Handle<WorldGridLayer> layer = CreateObject<WorldGridLayer>(streamingLayerName);
+    Handle<WorldGridLayer> layer = MakeHandle<WorldGridLayer>(streamingLayerName);
     BindStreamingDelegates(m_delegateHandlers, this, layer);
 
     m_worldGrid->AddLayer(layer);
@@ -1241,7 +1241,7 @@ void World::DeserializeStreamingLayers(const Array<WGLayerDesc, DynamicAllocator
             return;
         }
 
-        m_worldGrid = CreateObject<WorldGrid>(this);
+        m_worldGrid = MakeHandle<WorldGrid>(this);
     }
 
     m_worldGrid->SetStreamingLayersFromDescs(streamingLayers.ToSpan());

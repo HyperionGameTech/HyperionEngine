@@ -285,6 +285,31 @@ struct HashCode
         return HashCode(FNV1::DoHashBytes(_begin, _end));
     }
 
+    template <class T, SizeType Size>
+    static constexpr inline HashCode GetHashCode(const T (&elems)[Size])
+    {
+        HashCode hc;
+        for (SizeType i = 0; i < Size; i++)
+        {
+            hc = hc.Combine(HashCode::GetHashCode(elems[i]));
+        }
+
+        return hc;
+    }
+
+    template <class T>
+    static constexpr inline HashCode GetHashCode(const T* _begin, const T* _end)
+    {
+        HashCode hc;
+        while (_begin && _begin != _end)
+        {
+            hc = hc.Combine(HashCode::GetHashCode(*_begin));
+            ++_begin;
+        }
+
+        return hc;
+    }
+
     static constexpr inline HashCode GetHashCode(const HashCode& hashCode)
     {
         return hashCode;

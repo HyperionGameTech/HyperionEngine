@@ -95,6 +95,8 @@ public:
     {
 #if 0
         MaterialAttributes attributes;
+        attributes.shaderName = NAME("GeometryPass");
+
         MaterialParameters parameters = Material::DefaultParameters();
         MaterialTextures textures;
 
@@ -179,12 +181,6 @@ public:
 
         uint32 textureIndex = 0;
 
-        ShaderRef shader = g_shaderManager->GetOrCreate(
-            NAME("GeometryPass"),
-            ShaderProperties(staticMeshVertexAttributes));
-
-        attributes.shaderDefinition = shader->GetCompiledShader()->GetDefinition();
-
         for (const FBOMObject& child : in.GetChildren())
         {
             HYP_LOG(Serialization, Debug, "Material : Child TypeId: {}, TypeName: {}", child.GetType().GetNativeTypeId().Value(), child.GetType().name);
@@ -203,7 +199,7 @@ public:
         }
 #endif
 
-        Handle<Material> material = CreateObject<Material>();
+        Handle<Material> material = MakeHandle<Material>();
         BoxedValue materialData = BoxedValue(material);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Material::StaticClass(), materialData))

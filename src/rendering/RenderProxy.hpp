@@ -34,21 +34,18 @@ class ShadowMap;
 enum LightmapTextureType : uint32;
 
 HYP_STRUCT()
-struct MeshRaytracingData
+struct MeshRayTracingData
 {
-    HYP_STRUCT_BODY(MeshRaytracingData);
+    HYP_STRUCT_BODY(MeshRayTracingData);
 
     HYP_FIELD(NoScriptBindings)
     GpuBlasRef blas;
 
-    ~MeshRaytracingData();
+    ~MeshRayTracingData();
 };
 
 class IRenderProxy
 {
-protected:
-    virtual ~IRenderProxy() = default; /// \todo : Get rid of virtual dtor
-
 public:
     int version = 0;
     bool forceRebind = false;
@@ -74,9 +71,8 @@ struct alignas(16) EntityShaderData
 {
     Mat4f modelMatrix;
     Mat4f previousModelMatrix;
+    Mat3f normalMatrix;
 
-    Vec4f _pad0;
-    Vec4f _pad1;
     Vec3f worldAabbMax;
     Vec3f worldAabbMin;
 
@@ -87,17 +83,7 @@ struct alignas(16) EntityShaderData
 
     uint32 bucket;
     uint32 flags;
-    uint32 _pad3;
-    uint32 _pad4;
-
-    struct alignas(16) EntityUserData
-    {
-        Vec4u userData0;
-        Vec4u userData1;
-    } userData;
 };
-
-static_assert(sizeof(EntityShaderData) == 256);
 
 enum class LightmapElementId : uint32;
 
@@ -120,7 +106,7 @@ public:
 
     MeshInstanceData instanceData;
 
-    MeshRaytracingData raytracingData;
+    MeshRayTracingData rayTracingData;
 
     EntityShaderData bufferData {};
 
@@ -134,8 +120,7 @@ public:
             && lightmapVolume == other.lightmapVolume
             && lightmapElementId == other.lightmapElementId
             && cachedAttributes == other.cachedAttributes
-            && instanceData == other.instanceData
-            && Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) == 0;
+            && instanceData == other.instanceData;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RenderProxyMesh& other) const
@@ -148,8 +133,7 @@ public:
             || lightmapVolume != other.lightmapVolume
             || lightmapElementId != other.lightmapElementId
             || cachedAttributes != other.cachedAttributes
-            || instanceData != other.instanceData
-            || Memory::MemCmp(&bufferData, &other.bufferData, sizeof(EntityShaderData)) != 0;
+            || instanceData != other.instanceData;
     }
 };
 
@@ -183,20 +167,9 @@ public:
 
 struct alignas(16) EnvGridShaderData
 {
-    uint32 probeIndices[MaxBoundAmbientProbes];
+    // Nothing for now until we add the new env grid (baked)
 
-    Vec4f center;
-    Vec4f extent;
-    Vec4f aabbMax;
-    Vec4f aabbMin;
-
-    Vec4u density;
-
-    Vec4f voxelGridAabbMax;
-    Vec4f voxelGridAabbMin;
-
-    Vec2i lightFieldImageDimensions;
-    Vec2i irradianceOctahedronSize;
+    Vec4f dummy;
 };
 
 class RenderProxyEnvGrid final : public IRenderProxy
@@ -204,7 +177,6 @@ class RenderProxyEnvGrid final : public IRenderProxy
 public:
     WeakHandle<EnvGrid> envGrid;
     EnvGridShaderData bufferData {};
-    EnvProbe* envProbes[MaxBoundAmbientProbes];
 };
 
 struct alignas(16) LightShaderData
@@ -341,6 +313,7 @@ public:
     }
 
     WeakHandle<Material> material;
+    MaterialAttributes attributes;
     MaterialShaderData bufferData {};
     FixedArray<uint32, MaxBoundTextures> boundTextureIndices;
     Array<Handle<Texture>> boundTextures;
@@ -372,7 +345,13 @@ struct alignas(16) CameraShaderData
 {
     Mat4f viewMat;
     Mat4f projMat;
-    Mat4f prevViewMat;
+
+    Mat4f viewProjMat;
+
+    Mat4f inverseViewMat;
+    Mat4f inverseProjMat;
+
+    Mat4f prevViewProjMat;
 
     Vec4u dimensions;
     Vec4f cameraPosition;
@@ -407,6 +386,8 @@ struct ProbeRayData
 
 struct alignas(16) DDGIConstants
 {
+    Mat4f rotationMatrix;
+
     Vec4f aabbMax;
     Vec4f aabbMin;
     Vec4u probeBorder;

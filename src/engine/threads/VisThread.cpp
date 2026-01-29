@@ -22,9 +22,7 @@
 
 namespace Hyperion {
 
-namespace RenderApi {
 extern uint32 GetFrameCounter();
-} // namespace RenderApi
 
 EngineStatTimer g_visUpdateTimer("Vis/Update");
 

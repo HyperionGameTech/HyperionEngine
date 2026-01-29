@@ -42,8 +42,8 @@ public:
     SortedArray& operator=(SortedArray&& other) noexcept;
     ~SortedArray();
 
-    [[nodiscard]] Iterator Find(const T& value);
-    [[nodiscard]] ConstIterator Find(const T& value) const;
+    Iterator Find(const T& value);
+    ConstIterator Find(const T& value) const;
 
     Iterator Insert(const T& value);
     Iterator Insert(T&& value);
@@ -58,32 +58,32 @@ public:
         and if the item was found, it will be erased (and iterators will be invalidated) */
     Iterator Erase(const T& value);
 
-    [[nodiscard]] SizeType Size() const
+    SizeType Size() const
     {
         return Base::Size();
     }
 
-    [[nodiscard]] T* Data()
+    T* Data()
     {
         return Base::Data();
     }
 
-    [[nodiscard]] const T* Data() const
+    const T* Data() const
     {
         return Base::Data();
     }
 
-    [[nodiscard]] bool Empty() const
+    bool Empty() const
     {
         return Base::Empty();
     }
 
-    [[nodiscard]] bool Any() const
+    bool Any() const
     {
         return Base::Any();
     }
 
-    [[nodiscard]] bool Contains(const T& value) const
+    bool Contains(const T& value) const
     {
         return Find(value) != End();
     }
@@ -93,22 +93,22 @@ public:
         Base::Clear();
     }
 
-    [[nodiscard]] T& Front()
+    T& Front()
     {
         return Base::Front();
     }
 
-    [[nodiscard]] const T& Front() const
+    const T& Front() const
     {
         return Base::Front();
     }
 
-    [[nodiscard]] T& Back()
+    T& Back()
     {
         return Base::Back();
     }
 
-    [[nodiscard]] const T& Back() const
+    const T& Back() const
     {
         return Base::Back();
     }

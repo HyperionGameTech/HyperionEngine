@@ -44,8 +44,6 @@ public:
     HBAO& operator=(const HBAO& other) = delete;
     virtual ~HBAO() override;
 
-    virtual void Create() override;
-
     virtual void Render(Frame* frame, const RenderSetup& renderSetup) override;
 
 protected:
@@ -58,9 +56,6 @@ protected:
     {
         return false;
     }
-
-    virtual void CreateDescriptors() override;
-    virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
 

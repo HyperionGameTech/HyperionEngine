@@ -9,6 +9,8 @@
 
 #include <scene/Node.hpp>
 
+#include <core/utilities/StringUtil.hpp>
+
 #include <core/filesystem/FsUtil.hpp>
 
 #include <algorithm>
@@ -120,7 +122,7 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
                 return;
             }
 
-            const auto split = line.Split(' ');
+            const Array<String> split = line.Split(' ');
 
             if (split.Empty())
             {
@@ -131,8 +133,8 @@ PLYModel PLYModelLoader::LoadModel(LoaderState& state)
             {
                 Assert(split.Size() >= 3, "Invalid model header -- property declaration should have at least 3 elements");
 
-                const auto propertyTypeString = split[1];
-                const auto propertyName = split[2];
+                const String propertyTypeString = split[1];
+                const String propertyName = split[2];
 
                 const PLYType propertyType = StringToPLYType(propertyTypeString);
 

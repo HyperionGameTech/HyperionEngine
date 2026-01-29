@@ -4,7 +4,7 @@
 
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/Swapchain.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
@@ -32,7 +32,7 @@ static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
     GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) }, // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
     GBufferTargetDesc { GBufferFormat(TF_RGBA32) },      // material data
     GBufferTargetDesc { GBufferFormat(TF_RG16F) },       // velocity
-    GBufferTargetDesc { GBufferFormat(TF_DEPTH_32F) }    // depth
+    GBufferTargetDesc { GBufferFormat(TF_DEPTH_24) }    // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
@@ -47,13 +47,13 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
     }
     else if (const DefaultImageFormat* defaultFormat = s_targetDescs[targetName].format.TryGet<DefaultImageFormat>())
     {
-        colorFormat = g_renderBackend->GetDefaultFormat(*defaultFormat);
+        colorFormat = g_renderInterface->GetDefaultFormat(*defaultFormat);
     }
     else if (const Array<TextureFormat>* defaultFormats = s_targetDescs[targetName].format.TryGet<Array<TextureFormat>>())
     {
         for (const TextureFormat format : *defaultFormats)
         {
-            if (g_renderBackend->IsSupportedFormat(format, IS_SRV))
+            if (g_renderInterface->IsSupportedFormat(format, ImageSupport::Attachment))
             {
                 colorFormat = format;
 
@@ -106,7 +106,7 @@ void GBuffer::Create()
 
     for (const FramebufferRef& framebuffer : m_framebuffers)
     {
-        HYP_GFX_ASSERT(framebuffer->Create());
+        CheckResult(framebuffer->Create());
     }
 
     m_isCreated = true;
@@ -139,7 +139,7 @@ void GBuffer::Resize(Vec2u extent)
     {
         for (const FramebufferRef& framebuffer : m_framebuffers)
         {
-            HYP_GFX_ASSERT(framebuffer->Create());
+            CheckResult(framebuffer->Create());
         }
 
         OnGBufferResolutionChanged(m_extent);
@@ -182,9 +182,13 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     Assert(resolution.Volume() != 0);
 
-    FramebufferRef framebuffer = g_renderBackend->MakeFramebuffer(resolution);
+    RenderTargetDesc renderTargetDesc;
+    renderTargetDesc.extent = resolution;
+    renderTargetDesc.numLayers = 1;
 
-    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> AttachmentRef
+    FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+
+    auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
     {
         TextureDesc textureDesc;
         textureDesc.type = TT_TEX2D;
@@ -195,7 +199,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
         textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-        GpuImageRef gpuImage = g_renderBackend->MakeImage(textureDesc);
+        GpuImageRef gpuImage = g_renderInterface->MakeImage(textureDesc);
         gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
 
         return framebuffer->AddAttachment(
@@ -205,7 +209,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             StoreOperation::STORE);
     };
 
-    auto AddSharedAttachment = [&](uint32 binding) -> AttachmentRef
+    auto AddSharedAttachment = [&](uint32 binding) -> Attachment*
     {
         Assert(parentFramebuffer != nullptr);
 

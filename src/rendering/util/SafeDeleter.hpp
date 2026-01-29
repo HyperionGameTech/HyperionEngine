@@ -28,23 +28,20 @@ namespace Hyperion {
 
 static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to wait before deleting an object
 
-namespace RenderApi {
 HYP_API extern uint32 GetFrameCounter();
-} // namespace RenderApi
 
 template <class T>
 class SafeDeleterEntry;
 
 template <>
-class SafeDeleterEntry<ObjectBase*>
+class SafeDeleterEntry<Handle<ObjectBase>>
 {
 public:
-    enum ConstructFromHandleTag
+    HYP_API explicit SafeDeleterEntry(Handle<ObjectBase>&& handle)
+        : SafeDeleterEntry(handle.ptr)
     {
-        CONSTRUCT_FROM_HANDLE
-    };
-
-    HYP_API SafeDeleterEntry(ObjectBase* ptr, ConstructFromHandleTag);
+        handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
+    }
 
     SafeDeleterEntry(const SafeDeleterEntry&) = delete;
     SafeDeleterEntry& operator=(const SafeDeleterEntry&) = delete;
@@ -69,18 +66,58 @@ public:
     HYP_API ~SafeDeleterEntry();
 
 protected:
+    HYP_API explicit SafeDeleterEntry(ObjectBase* ptr);
+
     ObjectBase* ptr;
 };
 
 template <class T>
-class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntry<ObjectBase*>
+class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntry<Handle<ObjectBase>>
 {
 public:
-    SafeDeleterEntry(Handle<T>&& handle)
-        : SafeDeleterEntry<ObjectBase*>(handle.ptr, CONSTRUCT_FROM_HANDLE)
+    HYP_API SafeDeleterEntry(Handle<T>&& handle)
+        : SafeDeleterEntry<Handle<ObjectBase>>(handle.ptr)
     {
-        handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
+        handle.ptr = nullptr;
     }
+};
+
+template <class T>
+class SafeDeleterEntry<T*>
+{
+public:
+    explicit SafeDeleterEntry(T* ptr)
+        : ptr(ptr)
+    {
+    }
+
+    SafeDeleterEntry(const SafeDeleterEntry&) = delete;
+    SafeDeleterEntry& operator=(const SafeDeleterEntry&) = delete;
+
+    SafeDeleterEntry(SafeDeleterEntry&& other) noexcept
+        : ptr(other.ptr)
+    {
+        other.ptr = nullptr;
+    }
+
+    SafeDeleterEntry& operator=(SafeDeleterEntry&& other) noexcept
+    {
+        if (this != &other)
+        {
+            ptr = other.ptr;
+            other.ptr = nullptr;
+        }
+
+        return *this;
+    }
+
+    ~SafeDeleterEntry()
+    {
+        delete ptr;
+    }
+
+protected:
+    T* ptr;
 };
 
 /*! \brief Wrapper for a custom safe deleter type, with a ustom deleter function pointer. */
@@ -278,7 +315,7 @@ public:
 
         SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
 
-        header.fc = RenderApi::GetFrameCounter();
+        header.fc = GetFrameCounter();
 
         if constexpr (!std::is_trivially_destructible_v<SafeDeleterEntry<T>>)
         {
@@ -326,7 +363,7 @@ public:
 
         T* ptr = reinterpret_cast<T*>(list.Alloc(sizeof(T), alignof(T), header));
 
-        header.fc = RenderApi::GetFrameCounter();
+        header.fc = GetFrameCounter();
         header.destructFn = destructFn;
         header.moveFn = nullptr;
 
@@ -367,6 +404,19 @@ static inline void SafeDelete(T&& value)
     Mutex::Guard* pGuard = nullptr;
     SafeDeleterEntry<T>* ptr = GetSafeDeleterInstance()->Alloc<T>(&pGuard);
     new (ptr) SafeDeleterEntry<T>(std::forward<T>(value));
+
+    if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+    {
+        delete pGuard;
+    }
+}
+
+template <class T>
+static inline void SafeDelete(T* value)
+{
+    Mutex::Guard* pGuard = nullptr;
+    SafeDeleterEntry<std::remove_const_t<T>*>* ptr = GetSafeDeleterInstance()->Alloc<std::remove_const_t<T>*>(&pGuard);
+    new (ptr) SafeDeleterEntry<std::remove_const_t<T>*>(value);
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
     {

@@ -97,71 +97,103 @@ protected:
 
 /// Macros for class / struct body ///
 
-#define HYP_OBJECT_BODY(T, ...)                                                  \
-private:                                                                         \
-    template <class TStaticInitType>                                             \
-    friend class TClassStaticInit;                                               \
-                                                                                 \
-public:                                                                          \
-    struct ClassInfo                                                             \
-    {                                                                            \
-        using Type = T;                                                          \
-    };                                                                           \
-                                                                                 \
-    HYP_FORCE_INLINE ObjId<T> Id() const                                         \
-    {                                                                            \
-        return (ObjId<T>)(ObjectBase::Id());                                     \
-    }                                                                            \
-                                                                                 \
-    HYP_FORCE_INLINE static const Class* StaticClass()                           \
-    {                                                                            \
-        return Hyperion::GetClass<T>();                                          \
-    }                                                                            \
-                                                                                 \
-    template <class TOther>                                                      \
-    HYP_FORCE_INLINE bool IsA() const                                            \
-    {                                                                            \
-        if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>) \
-        {                                                                        \
-            return true;                                                         \
-        }                                                                        \
-        else                                                                     \
-        {                                                                        \
-            static const Class* otherClass = TOther::StaticClass();              \
-            if (!otherClass)                                                     \
-            {                                                                    \
-                return false;                                                    \
-            }                                                                    \
-            return Hyperion::IsA(otherClass, InstanceClass());                   \
-        }                                                                        \
-    }                                                                            \
-                                                                                 \
-    HYP_FORCE_INLINE bool IsA(const Class* otherClass) const                     \
-    {                                                                            \
-        if (!otherClass)                                                         \
-        {                                                                        \
-            return false;                                                        \
-        }                                                                        \
-        return Hyperion::IsA(otherClass, InstanceClass());                       \
-    }                                                                            \
-                                                                                 \
-    HYP_FORCE_INLINE Handle<T> HandleFromThis() const                            \
-    {                                                                            \
-        Handle<T> handle = Handle<T>::FromPointer(const_cast<T*>(this));         \
-                                                                                 \
-        if (!handle)                                                             \
-        {                                                                        \
-            HYP_FAIL("HandleFromThis() called in destructor!");                  \
-        }                                                                        \
-                                                                                 \
-        return handle;                                                           \
-    }                                                                            \
-                                                                                 \
-    HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const                    \
-    {                                                                            \
-        return WeakHandle<T>::FromPointer(const_cast<T*>(this));                 \
-    }                                                                            \
-                                                                                 \
+#define HYP_OBJECT_BODY(T, ...)                                                                 \
+private:                                                                                        \
+    template <class TStaticInitType>                                                            \
+    friend class TClassStaticInit;                                                              \
+                                                                                                \
+public:                                                                                         \
+    struct ClassInfo                                                                            \
+    {                                                                                           \
+        using Type = T;                                                                         \
+    };                                                                                          \
+                                                                                                \
+    void* operator new(size_t size)                                                             \
+    {                                                                                           \
+        return GetObjectContainer<T>().Allocate(size);                                          \
+    }                                                                                           \
+                                                                                                \
+    void operator delete(void* ptr)                                                             \
+    {                                                                                           \
+        GetObjectContainer<T>().Free(ptr);                                                      \
+    }                                                                                           \
+                                                                                                \
+    void* operator new(size_t size, std::align_val_t alignment)                                 \
+    {                                                                                           \
+        return GetObjectContainer<T>().Allocate(size, static_cast<SizeType>(alignment));        \
+    }                                                                                           \
+                                                                                                \
+    void operator delete(void* ptr, std::align_val_t)                                           \
+    {                                                                                           \
+        GetObjectContainer<T>().Free(ptr);                                                      \
+    }                                                                                           \
+                                                                                                \
+    void* operator new[](size_t size) = delete;                                                 \
+    void operator delete[](void* ptr) = delete;                                                 \
+                                                                                                \
+    static void* operator new(size_t, void* p) noexcept                                         \
+    {                                                                                           \
+        return p;                                                                               \
+    }                                                                                           \
+                                                                                                \
+    static void operator delete(void*, void*) noexcept                                          \
+    {                                                                                           \
+    }                                                                                           \
+                                                                                                \
+    HYP_FORCE_INLINE ObjId<T> Id() const                                                        \
+    {                                                                                           \
+        return (ObjId<T>)(ObjectBase::Id());                                                    \
+    }                                                                                           \
+                                                                                                \
+    HYP_FORCE_INLINE static const Class* StaticClass()                                          \
+    {                                                                                           \
+        return Hyperion::GetClass<T>();                                                         \
+    }                                                                                           \
+                                                                                                \
+    template <class TOther>                                                                     \
+    HYP_FORCE_INLINE bool IsA() const                                                           \
+    {                                                                                           \
+        if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>)                \
+        {                                                                                       \
+            return true;                                                                        \
+        }                                                                                       \
+        else                                                                                    \
+        {                                                                                       \
+            static const Class* otherClass = TOther::StaticClass();                             \
+            if (!otherClass)                                                                    \
+            {                                                                                   \
+                return false;                                                                   \
+            }                                                                                   \
+            return Hyperion::IsA(otherClass, InstanceClass());                                  \
+        }                                                                                       \
+    }                                                                                           \
+                                                                                                \
+    HYP_FORCE_INLINE bool IsA(const Class* otherClass) const                                    \
+    {                                                                                           \
+        if (!otherClass)                                                                        \
+        {                                                                                       \
+            return false;                                                                       \
+        }                                                                                       \
+        return Hyperion::IsA(otherClass, InstanceClass());                                      \
+    }                                                                                           \
+                                                                                                \
+    HYP_FORCE_INLINE Handle<T> HandleFromThis() const                                           \
+    {                                                                                           \
+        Handle<T> handle = Handle<T>::FromPointer(const_cast<T*>(this));                        \
+                                                                                                \
+        if (!handle)                                                                            \
+        {                                                                                       \
+            HYP_FAIL("HandleFromThis() called in destructor!");                                 \
+        }                                                                                       \
+                                                                                                \
+        return handle;                                                                          \
+    }                                                                                           \
+                                                                                                \
+    HYP_FORCE_INLINE WeakHandle<T> WeakHandleFromThis() const                                   \
+    {                                                                                           \
+        return WeakHandle<T>::FromPointer(const_cast<T*>(this));                                \
+    }                                                                                           \
+                                                                                                \
 private:
 
 #define HYP_STRUCT_BODY(T, ...)                        \

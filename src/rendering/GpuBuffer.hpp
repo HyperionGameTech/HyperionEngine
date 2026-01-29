@@ -11,7 +11,6 @@
 
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
-#include <rendering/Shader.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <core/Types.hpp>
@@ -59,7 +58,7 @@ public:
 
     HYP_FORCE_INLINE void SetRequireCpuAccessible(bool requireCpuAccessible)
     {
-        HYP_GFX_ASSERT(!IsCreated(), "Cannot set RequireCpuAccessible after the buffer has been created!");
+        Assert(!IsCreated(), "Cannot set RequireCpuAccessible after the buffer has been created!");
 
         m_requireCpuAccessible = requireCpuAccessible;
     }
@@ -99,7 +98,7 @@ public:
     virtual void Read(SizeType count, void* outPtr) const = 0;
     virtual void Read(SizeType offset, SizeType count, void* outPtr) const = 0;
 
-    virtual void Map() const = 0;
+    virtual void* Map() const = 0;
     virtual void Unmap() const = 0;
 
 protected:
@@ -128,8 +127,10 @@ protected:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12GpuBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

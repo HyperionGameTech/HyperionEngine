@@ -9,12 +9,12 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/defines.inc"
 #include "../include/shared.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler src_sampler;
+DECLARE_SAMPLER(BlurShadowMap, SamplerLinear) uniform sampler src_sampler;
 
-HYP_DESCRIPTOR_SRV(BlurShadowMapDescriptorSet, InputTexture) uniform texture2D src;
-HYP_DESCRIPTOR_UAV(BlurShadowMapDescriptorSet, OutputTexture, format = rg16f) uniform writeonly image2D dst;
+DECLARE_SRV(BlurShadowMap, InputTexture) uniform texture2D src;
+DECLARE_UAV(BlurShadowMap, OutputTexture, format = rg16f) uniform writeonly image2D dst;
 
-layout(push_constant) uniform BlurShadowMapData
+DECLARE_BUFFER(BlurShadowMap, BlurShadowMapUniforms) uniform BlurShadowMapUniforms
 {
     uvec2 image_dimensions;
     uvec2 dimensions;
@@ -44,7 +44,7 @@ void main(void)
             sample_abs = clamp(sample_abs, slice_min, slice_max);
 
             vec2 sample_texcoord = sample_abs / vec2(image_dimensions);
-            vec2 sample_value = Texture2D(src_sampler, src, saturate(sample_texcoord)).rg;
+            vec2 sample_value = SAMPLE_TEXTURE_2D(src_sampler, src, saturate(sample_texcoord)).rg;
             result += sample_value;
         }
     }

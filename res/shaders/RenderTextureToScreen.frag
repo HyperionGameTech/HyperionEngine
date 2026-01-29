@@ -12,16 +12,18 @@ layout(location = 0) out vec4 color_output;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "include/shared.inc"
-
 #include "include/scene.inc"
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_SAMPLER(RenderTextureToScreenDescriptorSet, SamplerLinear) uniform sampler sampler_linear;
+
+DECLARE_BUFFER(RenderTextureToScreenDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_SRV(RenderTextureToScreenDescriptorSet, InTexture) uniform texture2D src_image;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SRV(RenderTextureToScreenDescriptorSet, InTexture) uniform texture2D src_image;
+
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 void main()
 {
@@ -32,5 +34,5 @@ void main()
     texcoord = (texcoord * 0.5) + vec2(0.5 * float((world_shader_data.frame_counter - 1) & 1), 0.0);
 #endif
 
-    color_output = Texture2D(sampler_linear, src_image, texcoord);
+    color_output = SAMPLE_TEXTURE_2D(sampler_linear, src_image, texcoord);
 }

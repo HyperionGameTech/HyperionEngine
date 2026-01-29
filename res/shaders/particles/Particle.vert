@@ -15,7 +15,7 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 #include "../include/scene.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "./Particle.glsl"
@@ -24,17 +24,17 @@ HYP_ATTRIBUTE(2) vec2 a_texcoord0;
 #define MAX_PARTICLES 1024
 #endif
 
-HYP_DESCRIPTOR_SSBO(ParticleDescriptorSet, ParticlesBuffer, standard = std430) buffer ParticlesBuffer
+DECLARE_UAV(ParticleDescriptorSet, ParticlesBuffer, standard = std430) buffer ParticlesBuffer
 {
     ParticleShaderData instances[MAX_PARTICLES];
 };
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
+DECLARE_BUFFER(ParticleDescriptorSet, WorldsBuffer) uniform WorldsBuffer
 {
     WorldShaderData world_shader_data;
 };
 
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, CamerasBuffer) uniform CamerasBuffer
+DECLARE_BUFFER_DYNAMIC(ParticleDescriptorSet, CamerasBuffer) uniform CamerasBuffer
 {
     Camera camera;
 };
@@ -75,5 +75,5 @@ void main()
 
     v_color = instance.color;
 
-    gl_Position = camera.projection * camera.view * position;
+    gl_Position = camera.viewProjMat * position;
 }

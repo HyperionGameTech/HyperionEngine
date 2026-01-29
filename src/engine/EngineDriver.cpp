@@ -1,6 +1,5 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "Game.hpp"
 #include <HyperionPch.hpp>
 
 #include <engine/EngineDriver.hpp>
@@ -20,7 +19,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/RenderMaterial.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderCommand.hpp>
@@ -92,6 +90,8 @@ extern const CommandLineArguments& GetCommandLineArguments();
 } // namespace CoreApi
 
 EngineStatTimer g_renderTimer("Frame/Render");
+
+std::binary_semaphore g_renderThreadInit { 0 };
 
 void HandleSignal(int signum)
 {
@@ -168,7 +168,7 @@ HYP_API void EngineDriver::Init()
             /* enabled */ true });
     }
 
-    m_debugDrawer = CreateObject<DebugDrawer>();
+    m_debugDrawer = MakeHandle<DebugDrawer>();
 
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
@@ -225,7 +225,7 @@ void EngineDriver::EnqueueWorldRender(World* world)
 
     AssertDebug(world != nullptr && world->IsReady());
 
-    const uint32 slot = RenderApi::GetRingIndex();
+    const uint32 slot = GetRingIndex();
 
     auto& worldsToRender = g_renderInterface->renderWorlds[slot];
 
@@ -332,6 +332,9 @@ bool EngineDriver::StartThreads()
     success &= g_renderThreadInstance->Start();
     if (!success)
         return false;
+
+    if (g_renderThread != g_mainThread)
+        g_renderThreadInit.acquire();
 
     success &= g_simThreadInstance->Start();
     if (!success)
@@ -445,8 +448,8 @@ void EngineDriver::UpdateSim(float delta)
 
     g_streamingManager->Update(delta);
 
-    const uint32 slot = RenderApi::GetRingIndex();
-    const uint32 frameCounter = RenderApi::GetFrameCounter();
+    const uint32 slot = GetRingIndex();
+    const uint32 frameCounter = GetFrameCounter();
 
     g_renderInterface->renderWorlds[slot].Clear();
 
@@ -683,8 +686,8 @@ void EngineDriver::UpdateSim(float delta)
     }
 
     // write buffered render data
-    WorldShaderData* bufferData = RenderApi::GetWorldBufferData();
-    bufferData->frameCounter = RenderApi::GetFrameCounter();
+    WorldShaderData* bufferData = GetWorldBufferData();
+    bufferData->frameCounter = GetFrameCounter();
 
     if (m_currentWorld)
     {

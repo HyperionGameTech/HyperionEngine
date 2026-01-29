@@ -8,58 +8,44 @@
 
 layout(location = 1) in vec3 v_position;
 layout(location = 2) in vec2 v_texcoord0;
-layout(location = 7) in flat vec3 v_camera_position;
-layout(location = 15) in flat uint v_object_index;
+layout(location = 6) in flat vec3 v_camera_position;
+layout(location = 9) in flat uint v_object_index;
 
 layout(location = 0) out vec4 output_shadow;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear)
-uniform sampler sampler_linear;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest)
-uniform sampler sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-#include "include/Entity.glsl"
+#include "include/Entity.inc"
 #include "include/material.inc"
 #include "include/shared.inc"
 #include "include/packing.inc"
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
+DECLARE_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material materials[HYP_MAX_MATERIALS];
-};
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[entity.material_index])
-#endif
-#else
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
 #endif
 
 void main()
@@ -69,7 +55,7 @@ void main()
     // }
 
 #if defined(ALPHA_DISCARD) && HAS_ALBEDO_MAP
-    vec4 albedo_texture = SAMPLE_TEXTURE(CURRENT_MATERIAL, AlbedoMap, v_texcoord0);
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, v_texcoord0);
 
     if (albedo_texture.a < MATERIAL_ALPHA_DISCARD)
     {

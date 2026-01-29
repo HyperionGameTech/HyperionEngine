@@ -17,7 +17,7 @@
 
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/raytracing/RenderAccelerationStructure.hpp>
+#include <rendering/AccelerationStructure.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -38,74 +38,6 @@ void Scene_OnPostLoad(Scene& scene)
 {
     scene.SetOwnerThreadId(g_simThread);
 }
-
-#pragma region SceneValidation
-
-static SceneValidationResult MergeSceneValidationResults(
-    const SceneValidationResult& resultA,
-    const SceneValidationResult& resultB)
-{
-    SceneValidationResult result;
-
-    if (resultA.HasError())
-    {
-        result = resultA;
-    }
-
-    if (resultB.HasError())
-    {
-        if (result.HasError())
-        {
-            result = HYP_MAKE_ERROR(SceneValidationError, "{}\n{}", resultA.GetError().GetMessage(), resultB.GetError().GetMessage());
-        }
-        else
-        {
-            result = resultB;
-        }
-    }
-
-    return result;
-}
-
-static SceneValidationResult ValidateSceneLights(const Scene* scene)
-{
-    auto validateMultipleDirectionalLights = [](const Scene* scene) -> SceneValidationResult
-    {
-        int numDirectionalLights = 0;
-
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            Light* light = ObjCast<Light>(entity);
-
-            if (light->GetLightType() == LT_DIRECTIONAL)
-            {
-                ++numDirectionalLights;
-            }
-        }
-
-        if (numDirectionalLights > 1)
-        {
-            return HYP_MAKE_ERROR(SceneValidationError, "Multiple directional lights found in scene");
-        }
-
-        return {};
-    };
-
-    SceneValidationResult result;
-    result = MergeSceneValidationResults(result, validateMultipleDirectionalLights(scene));
-
-    return result;
-}
-
-SceneValidationResult SceneValidation::ValidateScene(const Scene* scene)
-{
-    SceneValidationResult result;
-    result = MergeSceneValidationResults(result, ValidateSceneLights(scene));
-
-    return result;
-}
-
-#pragma endregion SceneValidation
 
 #pragma region Scene
 
@@ -130,11 +62,11 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_ownerThreadId(ownerThreadId),
       m_world(nullptr),
       m_isAudioListener(false),
-      m_entityManager(CreateObject<EntityManager>(ownerThreadId, this)),
+      m_entityManager(MakeHandle<EntityManager>(ownerThreadId, this)),
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previousDelta(0.01667f)
 {
-    m_root = CreateObject<Node>(s_nameSceneRoot, Transform::identity, this);
+    m_root = MakeHandle<Node>(s_nameSceneRoot, Transform::identity, this);
     m_root->SetIsStatic(false);
 }
 

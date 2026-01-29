@@ -14,9 +14,7 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/StringUtil.hpp>
 
-#include <core/math/Vertex.hpp>
-
-#include <rendering/Shader.hpp>
+#include <rendering/Shared.hpp>
 
 #include <util/ini/INIFile.hpp>
 
@@ -25,16 +23,48 @@
 
 namespace Hyperion {
 
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
-enum DescriptorSlot : uint32;
+static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
+    "",                     // ShaderModuleType::None
 
-HYP_ENUM()
-enum ShaderPropertyFlags : uint32
-{
-    SPF_NONE = 0x0,
-    SPF_VERTEX_ATTRIBUTE = 0x1,
-    SPF_PERMUTATION = 0x2
+    "VSMain",               // ShaderModuleType::Vertex
+    "PSMain",               // ShaderModuleType::Pixel
+    "GSMain",               // ShaderModuleType::Geometry
+    "CSMain",               // ShaderModuleType::Compute
+
+    "TaskMain",             // ShaderModuleType::Task
+    "MeshMain",             // ShaderModuleType::Mesh
+
+    "TessControlMain",      // ShaderModuleType::TessControl
+    "TessEvalMain",         // ShaderModuleType::TessEval
+
+    "RayGenMain",           // ShaderModuleType::RayGen
+    "IntersectMain",        // ShaderModuleType::Intersect
+    "AnyHitMain",           // ShaderModuleType::AnyHit
+    "ClosestHitMain",       // ShaderModuleType::ClosestHit
+    "MissMain"              // ShaderModuleType::Miss
+};
+
+static constexpr const char* ShaderModuleTypeNames[NumShaderModuleTypes] = {
+    "",                     // ShaderModuleType::None
+
+    "VERTEX_SHADER",        // ShaderModuleType::Vertex
+    "PIXEL_SHADER",         // ShaderModuleType::Pixel
+    "GEOMETRY_SHADER",      // ShaderModuleType::Geometry
+    "COMPUTE_SHADER",       // ShaderModuleType::Compute
+
+    "TASK_SHADER",          // ShaderModuleType::Task
+    "MESH_SHADER",          // ShaderModuleType::Mesh
+
+    "TESS_CONTROL_SHADER",  // ShaderModuleType::TessControl
+    "TESS_EVAL_SHADER",     // ShaderModuleType::TessEval
+
+    "RAY_GEN_SHADER",       // ShaderModuleType::RayGen
+    "INTERSECT_SHADER",     // ShaderModuleType::Intersect
+    "ANY_HIT_SHADER",       // ShaderModuleType::AnyHit
+    "CLOSEST_HIT_SHADER",   // ShaderModuleType::ClosestHit
+    "MISS_SHADER"           // ShaderModuleType::Miss
 };
 
 HYP_ENUM()
@@ -47,1178 +77,245 @@ enum class ShaderLanguage : uint32
 HYP_ENUM()
 enum class ProcessShaderSourcePhase : uint32
 {
-    BEFORE_PREPROCESS,
-    AFTER_PREPROCESS
-};
-
-HYP_STRUCT()
-struct VertexAttributeDefinition
-{
-    HYP_STRUCT_BODY(VertexAttributeDefinition);
-
-    HYP_FIELD()
-    String name;
-
-    HYP_FIELD()
-    String typeClass;
-
-    HYP_FIELD()
-    int location = -1;
-
-    HYP_FIELD()
-    String condition;
-};
-
-HYP_STRUCT()
-struct ShaderProperty
-{
-    HYP_STRUCT_BODY(ShaderProperty);
-
-    using Value = Variant<Name, int, float>;
-
-    HYP_FIELD()
-    Name name;
-
-    HYP_FIELD()
-    ShaderPropertyFlags flags;
-
-    HYP_FIELD()
-    Value currentValue;
-
-    HYP_FIELD()
-    Array<Value> enumValues;
-
-    HYP_FIELD(Transient)
-    HashCode cachedHashCode;
-
-    ShaderProperty()
-        : flags(SPF_NONE)
-    {
-    }
-
-    explicit ShaderProperty(Name name, ShaderPropertyFlags flags = SPF_NONE)
-        : name(name),
-          flags(flags)
-    {
-        cachedHashCode = GetHashCode();
-    }
-
-    ShaderProperty(Name name, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
-        : name(name),
-          flags(flags),
-          currentValue(currentValue)
-    {
-        cachedHashCode = GetHashCode();
-    }
-
-    explicit ShaderProperty(VertexAttribute::Type vertexAttribute)
-        : name(CreateNameFromDynamicString(ANSIString("HYP_ATTRIBUTE_") + VertexAttribute::mapping.Get(vertexAttribute).name)),
-          flags(SPF_VERTEX_ATTRIBUTE),
-          currentValue(Value(CreateNameFromDynamicString(VertexAttribute::mapping.Get(vertexAttribute).name)))
-    {
-        cachedHashCode = GetHashCode();
-    }
-
-    ShaderProperty(const ShaderProperty& other)
-        : name(other.name),
-          flags(other.flags),
-          currentValue(other.currentValue),
-          enumValues(other.enumValues),
-          cachedHashCode(other.cachedHashCode)
-    {
-    }
-
-    ShaderProperty& operator=(const ShaderProperty& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        name = other.name;
-        flags = other.flags;
-        currentValue = other.currentValue;
-        enumValues = other.enumValues;
-        cachedHashCode = other.cachedHashCode;
-
-        return *this;
-    }
-
-    ShaderProperty(ShaderProperty&& other) noexcept
-        : name(other.name),
-          flags(other.flags),
-          currentValue(std::move(other.currentValue)),
-          enumValues(std::move(other.enumValues)),
-          cachedHashCode(other.cachedHashCode)
-    {
-        other.name = Name();
-        other.flags = SPF_NONE;
-        other.cachedHashCode = HashCode();
-    }
-
-    ShaderProperty& operator=(ShaderProperty&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        name = other.name;
-        flags = other.flags;
-        currentValue = std::move(other.currentValue);
-        enumValues = std::move(other.enumValues);
-        cachedHashCode = other.cachedHashCode;
-
-        other.name = Name();
-        other.flags = SPF_NONE;
-        other.cachedHashCode = HashCode();
-
-        return *this;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const ShaderProperty& other) const
-    {
-        return name == other.name;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const ShaderProperty& other) const
-    {
-        return name != other.name;
-    }
-
-    // HYP_FORCE_INLINE bool operator==(const ShaderProperty& other) const
-    // {
-    //     return cachedHashCode == other.cachedHashCode
-    //         // enum values are not included in hash code
-    //         && (!IsValueGroup() || enumValues == other.enumValues);
-    // }
-
-    // HYP_FORCE_INLINE bool operator!=(const ShaderProperty& other) const
-    // {
-    //     return !(*this == other);
-    // }
-
-    HYP_FORCE_INLINE bool operator<(const ShaderProperty& other) const
-    {
-        if (name == other.name)
-        {
-            return false;
-        }
-
-        return std::strcmp(*name, *other.name) < 0;
-    }
-
-    HYP_FORCE_INLINE bool IsValueGroup() const
-    {
-        return enumValues.Any();
-    }
-
-    HYP_FORCE_INLINE bool HasValue() const
-    {
-        return currentValue.IsValid();
-    }
-
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return name;
-    }
-
-    HYP_FORCE_INLINE ShaderPropertyFlags GetFlags() const
-    {
-        return flags;
-    }
-
-    HYP_FORCE_INLINE bool IsPermutable() const
-    {
-        return flags & SPF_PERMUTATION;
-    }
-
-    HYP_FORCE_INLINE bool IsStatic() const
-    {
-        return !IsPermutable() && !IsValueGroup();
-    }
-
-    HYP_FORCE_INLINE bool IsVertexAttribute() const
-    {
-        return flags & SPF_VERTEX_ATTRIBUTE;
-    }
-
-    HYP_FORCE_INLINE bool IsOptionalVertexAttribute() const
-    {
-        return IsVertexAttribute() && IsPermutable();
-    }
-
-    HYP_FORCE_INLINE void AddEnumValue(const Value& enumValue)
-    {
-        if (!enumValues.Contains(enumValue))
-        {
-            enumValues.PushBack(enumValue);
-        }
-    }
-
-    HYP_API String GetValueString() const;
-
-    HYP_API HashCode GetHashCode() const;
-
-    HYP_API String ToString() const;
-};
-
-HYP_STRUCT()
-class ShaderProperties
-{
-    friend class ShaderCompiler;
-
-public:
-    HYP_STRUCT_BODY(ShaderProperties);
-
-    using Iterator = typename HashSet<ShaderProperty>::Iterator;
-    using ConstIterator = typename HashSet<ShaderProperty>::ConstIterator;
-
-    ShaderProperties()
-        : m_needsHashCodeRecalculation(true)
-    {
-    }
-
-    explicit ShaderProperties(const HashSet<ShaderProperty>& props)
-        : m_needsHashCodeRecalculation(true)
-    {
-        for (const ShaderProperty& property : props)
-        {
-            Set(property, true);
-        }
-    }
-
-    template <SizeType Sz>
-    ShaderProperties(Name const (&props)[Sz])
-        : m_needsHashCodeRecalculation(true)
-    {
-        for (Name propKey : props)
-        {
-            Set(ShaderProperty(propKey, SPF_PERMUTATION), true); // default to permutable
-        }
-    }
-
-    template <SizeType Sz>
-    ShaderProperties(ShaderProperty const (&props)[Sz])
-        : m_needsHashCodeRecalculation(true)
-    {
-        for (const ShaderProperty& property : props)
-        {
-            Set(property, true);
-        }
-    }
-
-    template <SizeType Sz>
-    ShaderProperties(const VertexAttributeSet& vertexAttributes, Name const (&props)[Sz])
-        : m_requiredVertexAttributes(vertexAttributes),
-          m_needsHashCodeRecalculation(true)
-    {
-        for (Name propKey : props)
-        {
-            m_props.Insert(ShaderProperty(propKey, SPF_PERMUTATION)); // default to permutable
-        }
-    }
-
-    explicit ShaderProperties(const VertexAttributeSet& vertexAttributes)
-        : m_requiredVertexAttributes(vertexAttributes),
-          m_needsHashCodeRecalculation(true)
-    {
-    }
-
-    ShaderProperties(const ShaderProperties& other) = default;
-    ShaderProperties& operator=(const ShaderProperties& other) = default;
-
-    ShaderProperties(ShaderProperties&& other) noexcept = default;
-    ShaderProperties& operator=(ShaderProperties&& other) = default;
-
-    ~ShaderProperties() = default;
-
-    // HYP_FORCE_INLINE bool operator==(const ShaderProperties& other) const
-    // {
-    //     return (m_requiredVertexAttributes == other.m_requiredVertexAttributes) && (m_props == other.m_props);
-    // }
-
-    // HYP_FORCE_INLINE bool operator!=(const ShaderProperties& other) const
-    // {
-    //     return m_requiredVertexAttributes != other.m_requiredVertexAttributes || m_props != other.m_props;
-    // }
-
-    HYP_FORCE_INLINE bool operator==(const ShaderProperties& other) const = delete;
-    HYP_FORCE_INLINE bool operator!=(const ShaderProperties& other) const = delete;
-
-    HYP_FORCE_INLINE bool Any() const
-    {
-        return m_props.Any();
-    }
-
-    HYP_FORCE_INLINE bool Empty() const
-    {
-        return m_props.Empty();
-    }
-
-    HYP_FORCE_INLINE Iterator Find(const ShaderProperty& property)
-    {
-        return m_props.Find(property);
-    }
-
-    HYP_FORCE_INLINE ConstIterator Find(const ShaderProperty& property) const
-    {
-        return const_cast<ShaderProperties*>(this)->Find(property);
-    }
-
-    Iterator Find(StringHash name)
-    {
-        const HashCode hashCode = name.GetHashCode();
-
-        auto firstResultIt = m_props.FindByHashCode(hashCode);
-        if (firstResultIt != m_props.End())
-        {
-            return firstResultIt;
-        }
-
-        // Do a full search if not found by hash code match (e.g. ShaderProperty has a value assigned)
-        for (auto it = m_props.Begin(); it != m_props.End(); ++it)
-        {
-            if (it->name == name)
-            {
-                return it;
-            }
-        }
-
-        return m_props.End();
-    }
-
-    HYP_FORCE_INLINE ConstIterator Find(StringHash name) const
-    {
-        return const_cast<ShaderProperties*>(this)->Find(name);
-    }
-
-    HYP_FORCE_INLINE bool HasRequiredVertexAttributes(VertexAttributeSet vertexAttributes) const
-    {
-        return (m_requiredVertexAttributes & vertexAttributes) == vertexAttributes;
-    }
-
-    HYP_FORCE_INLINE bool HasRequiredVertexAttribute(VertexAttribute::Type vertexAttribute) const
-    {
-        return m_requiredVertexAttributes.Has(vertexAttribute);
-    }
-
-    HYP_FORCE_INLINE bool HasOptionalVertexAttributes(VertexAttributeSet vertexAttributes) const
-    {
-        return (m_optionalVertexAttributes & vertexAttributes) == vertexAttributes;
-    }
-
-    HYP_FORCE_INLINE bool HasOptionalVertexAttribute(VertexAttribute::Type vertexAttribute) const
-    {
-        return m_optionalVertexAttributes.Has(vertexAttribute);
-    }
-
-    HYP_FORCE_INLINE bool Has(const ShaderProperty& property) const
-    {
-        return Find(property) != m_props.End();
-    }
-
-    HYP_FORCE_INLINE bool Has(StringHash name) const
-    {
-        return Find(name) != m_props.End();
-    }
-
-    HYP_API ShaderProperties& Set(const ShaderProperty& property, bool enabled = true);
-
-    HYP_FORCE_INLINE ShaderProperties& Set(Name name, bool enabled = true, ShaderPropertyFlags flags = SPF_NONE)
-    {
-        return Set(ShaderProperty(name, flags), enabled);
-    }
-
-    /*! \brief Applies \p other properties onto this set */
-    void Merge(const ShaderProperties& other)
-    {
-        for (const ShaderProperty& property : other.m_props)
-        {
-            Set(property, true);
-        }
-
-        m_requiredVertexAttributes |= other.m_requiredVertexAttributes;
-        m_optionalVertexAttributes |= other.m_optionalVertexAttributes;
-
-        m_needsHashCodeRecalculation = true;
-    }
-
-    static ShaderProperties Merge(const ShaderProperties& a, const ShaderProperties& b)
-    {
-        ShaderProperties result(a);
-        result.Merge(b);
-
-        return result;
-    }
-
-    HYP_FORCE_INLINE const HashSet<ShaderProperty>& GetPropertySet() const
-    {
-        return m_props;
-    }
-
-    /*! \brief Adds a new permutation shader property
-     *  Permutations create new shader variants based on their values.
-     *  Many permutations will drastically increase the number of shader variants generated,
-     *  so use them sparingly. (prefer value groups or static properties where appropriate) */
-    ShaderProperties& AddPermutation(Name key)
-    {
-        const ShaderProperty shaderProperty(key, SPF_PERMUTATION);
-
-        const auto it = m_props.Find(shaderProperty);
-
-        if (it == m_props.End())
-        {
-            m_props.Insert(shaderProperty);
-        }
-        else
-        {
-            *it = shaderProperty;
-        }
-
-        m_needsHashCodeRecalculation = true;
-
-        return *this;
-    }
-
-    /*! \brief Adds a new static property with key \p key
-     *  Static properties are applied to every shader variant and do not create new permutations. */
-    ShaderProperties& AddStatic(Name key)
-    {
-        const ShaderProperty shaderProperty(key, SPF_NONE);
-
-        const auto it = m_props.Find(shaderProperty);
-
-        if (it == m_props.End())
-        {
-            m_props.Insert(shaderProperty);
-        }
-        else
-        {
-            *it = shaderProperty;
-        }
-
-        m_needsHashCodeRecalculation = true;
-
-        return *this;
-    }
-
-    /*! \brief Adds a new value group property with key \p key and possible enum values \p enumValues
-     *  Value groups create new shader variants but their values are mututally exclusive to each other.
-     *  i.e, only one value from the value group can be selected at a time. This reduces the number of
-     *  shader variants generated compared to permutations. */
-    ShaderProperties& AddValueGroup(Name key, const Array<ShaderProperty::Value>& enumValues)
-    {
-        ShaderProperty shaderProperty(key, SPF_NONE);
-
-        if (enumValues.Any())
-        {
-            shaderProperty.enumValues = enumValues;
-        }
-
-        const auto it = m_props.Find(shaderProperty);
-
-        if (it == m_props.End())
-        {
-            m_props.Insert(std::move(shaderProperty));
-        }
-        else
-        {
-            *it = std::move(shaderProperty);
-        }
-
-        m_needsHashCodeRecalculation = true;
-
-        return *this;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet GetRequiredVertexAttributes() const
-    {
-        return m_requiredVertexAttributes;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet GetOptionalVertexAttributes() const
-    {
-        return m_optionalVertexAttributes;
-    }
-
-    HYP_FORCE_INLINE VertexAttributeSet GetAllVertexAttributes() const
-    {
-        return m_requiredVertexAttributes | m_optionalVertexAttributes;
-    }
-
-    HYP_FORCE_INLINE void SetRequiredVertexAttributes(VertexAttributeSet vertexAttributes)
-    {
-        m_requiredVertexAttributes = vertexAttributes;
-        m_optionalVertexAttributes = m_optionalVertexAttributes & ~m_requiredVertexAttributes;
-
-        m_needsHashCodeRecalculation = true;
-    }
-
-    HYP_FORCE_INLINE void SetOptionalVertexAttributes(VertexAttributeSet vertexAttributes)
-    {
-        m_optionalVertexAttributes = vertexAttributes & ~m_requiredVertexAttributes;
-    }
-
-    HYP_FORCE_INLINE SizeType Size() const
-    {
-        return m_props.Size();
-    }
-
-    HYP_FORCE_INLINE Array<ShaderProperty> ToArray() const
-    {
-        return m_props.ToArray();
-    }
-
-    HYP_API String ToString() const;
-
-    HashCode GetHashCode() const
-    {
-        if (m_needsHashCodeRecalculation)
-        {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
-        }
-
-        return m_cachedHashCode;
-    }
-
-    HashCode GetPropertySetHashCode() const
-    {
-        if (m_needsHashCodeRecalculation)
-        {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
-        }
-
-        return m_cachedPropertySetHashCode;
-    }
-
-    HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
-
-private:
-    void RecalculateHashCode() const
-    {
-        HashCode hc;
-
-        // NOTE: Intentionally left out m_optionalVertexAttributes
-        // as they do not impact the final instantiated version of the shader properties.
-        // m_requiredVertexAttributes needs to be checked by the caller as we could have
-        // shader with less vertex attributes than the mesh in question has.
-
-        m_cachedPropertySetHashCode = HashCode();
-
-        Array<const ShaderProperty*> propsPtrs;
-        propsPtrs.Reserve(m_props.Size());
-
-        for (const ShaderProperty& property : m_props)
-        {
-            propsPtrs.PushBack(&property);
-        }
-
-        std::sort(propsPtrs.Begin(), propsPtrs.End(), [](const ShaderProperty* a, const ShaderProperty* b)
-            {
-                // sort by name to ensure consistent hashcode
-                return std::strcmp(*a->name, *b->name) < 0;
-            });
-
-        for (const ShaderProperty* pShaderProperty : propsPtrs)
-        {
-            m_cachedPropertySetHashCode.Add(pShaderProperty->GetHashCode());
-        }
-
-        hc.Add(m_cachedPropertySetHashCode);
-
-        m_cachedHashCode = hc;
-    }
-
-    HYP_FIELD()
-    HashSet<ShaderProperty> m_props;
-
-    HYP_FIELD()
-    VertexAttributeSet m_requiredVertexAttributes;
-
-    HYP_FIELD()
-    VertexAttributeSet m_optionalVertexAttributes;
-
-    mutable HashCode m_cachedHashCode;
-    mutable HashCode m_cachedPropertySetHashCode;
-    mutable bool m_needsHashCodeRecalculation;
-};
-
-HYP_STRUCT()
-struct HashedShaderDefinition
-{
-    HYP_STRUCT_BODY(HashedShaderDefinition);
-
-    HYP_FIELD()
-    Name name;
-
-    HYP_FIELD()
-    HashCode propertySetHash;
-
-    HYP_FIELD()
-    VertexAttributeSet requiredVertexAttributes;
-
-    HYP_FORCE_INLINE bool operator==(const HashedShaderDefinition& other) const
-    {
-        return name == other.name
-            && propertySetHash == other.propertySetHash
-            && requiredVertexAttributes == other.requiredVertexAttributes;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const HashedShaderDefinition& other) const
-    {
-        return name != other.name
-            || propertySetHash != other.propertySetHash
-            || requiredVertexAttributes != other.requiredVertexAttributes;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name.GetHashCode());
-        hc.Add(requiredVertexAttributes.GetHashCode());
-        hc.Add(propertySetHash);
-
-        return hc;
-    }
+    BEFORE_PREPROCESS, // Raw source file before any preprocessing
+    AFTER_PREPROCESS   // After preprocessor is ran the first time and inactive code behind #if/#ifdefs is stripped out.
 };
 
 HYP_ENUM()
-enum class DescriptorUsageFlags : uint32
+enum class ShaderRegister : uint8
 {
-    NONE = 0x0,
-    DYNAMIC = 0x1
+    NONE = 0,
+    SRV,
+    UAV,
+    BUFFER,
+    SAMPLER,
+    MAX
 };
 
-HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
+static constexpr uint8 NumDescriptorSlots = uint8(ShaderRegister::MAX);
+
+HYP_ENUM()
+enum class DescriptorSetDeclarationFlags : uint8
+{
+    NONE = 0x0,
+    REFERENCE = 0x1, // is this a reference to a global descriptor set declaration?
+    TEMPLATE = 0x2   // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
+};
+
+HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 HYP_STRUCT()
-struct DescriptorUsageType
+struct ShaderInput
 {
-    HYP_STRUCT_BODY(DescriptorUsageType);
+    HYP_STRUCT_BODY(ShaderInput);
+
+    using ConditionFunction = bool (*)();
+
+    HYP_FIELD(Property = "Register", Serialize = true)
+    ShaderRegister slot = ShaderRegister::NONE;
+
+    HYP_FIELD(Property = "ElementType", Serialize = true)
+    ShaderInputType type = ShaderInputType::UNSET;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
 
+    HYP_FIELD(Property = "Count", Serialize = true)
+    uint32 count = 1;
+
     HYP_FIELD(Property = "Size", Serialize = true)
-    uint32 size = ~0u;
+    uint32 size = uint32(-1);
 
-    HYP_FIELD(Property = "FieldNames", Serialize = true)
-    Array<Name> fieldNames;
+    HYP_FIELD(Property = "IsDynamic", Serialize = true)
+    bool isDynamic = false;
 
-    HYP_FIELD(Property = "FieldTypes", Serialize = true)
-    Array<DescriptorUsageType, DynamicAllocator> fieldTypes;
+    HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
+    uint32 index = ~0u;
 
-    DescriptorUsageType() = default;
-
-    DescriptorUsageType(Name name, uint32 size = ~0u)
-        : name(name),
-          size(size)
-    {
-    }
-
-    DescriptorUsageType(const DescriptorUsageType& other) = default;
-    DescriptorUsageType& operator=(const DescriptorUsageType& other) = default;
-    DescriptorUsageType(DescriptorUsageType&& other) noexcept = default;
-    DescriptorUsageType& operator=(DescriptorUsageType&& other) noexcept = default;
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return name.IsValid();
-    }
-
-    HYP_FORCE_INLINE bool HasExplicitSize() const
-    {
-        return size != ~0u;
-    }
-
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return name;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSize() const
-    {
-        return size;
-    }
-
-    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> AddField(Name fieldName, const DescriptorUsageType& type)
-    {
-        return Pair<Name, DescriptorUsageType&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
-    }
-
-    HYP_FORCE_INLINE Pair<Name, DescriptorUsageType&> GetField(SizeType index)
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE const Pair<Name, const DescriptorUsageType&> GetField(SizeType index) const
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE Optional<Pair<Name, DescriptorUsageType&>> FindField(StringHash fieldName)
-    {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
-        {
-            if (fieldNames[i] == fieldName)
-            {
-                return Pair<Name, DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
-            }
-        }
-
-        return {};
-    }
-
-    HYP_FORCE_INLINE Optional<Pair<Name, const DescriptorUsageType&>> FindField(StringHash fieldName) const
-    {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
-        {
-            if (fieldNames[i] == fieldName)
-            {
-                return Pair<Name, const DescriptorUsageType&> { fieldNames[i], fieldTypes[i] };
-            }
-        }
-
-        return {};
-    }
-
-    HYP_FORCE_INLINE bool operator<(const DescriptorUsageType& other) const
-    {
-        if (size != other.size)
-        {
-            return size < other.size;
-        }
-
-        if (fieldTypes.Size() != other.fieldTypes.Size())
-        {
-            return fieldTypes.Size() < other.fieldTypes.Size();
-        }
-
-        for (SizeType i = 0; i < fieldTypes.Size(); i++)
-        {
-            if (fieldTypes[i] != other.fieldTypes[i])
-            {
-                return fieldTypes[i] < other.fieldTypes[i];
-            }
-        }
-
-        return false;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsageType& other) const
-    {
-        return name == other.name
-            && size == other.size
-            && fieldNames == other.fieldNames
-            && fieldTypes == other.fieldTypes;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageType& other) const
-    {
-        return name != other.name
-            || size != other.size
-            || fieldNames != other.fieldNames
-            || fieldTypes != other.fieldTypes;
-    }
+    ConditionFunction cond = nullptr;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
+
+        hc.Add(slot);
+        hc.Add(type);
         hc.Add(name);
+        hc.Add(count);
         hc.Add(size);
-        hc.Add(fieldNames);
-        hc.Add(fieldTypes);
+        hc.Add(isDynamic);
+        hc.Add(index);
+
+        // cond excluded intentionally
 
         return hc;
     }
 };
 
 HYP_STRUCT()
-struct DescriptorUsage
+struct DescriptorSetDeclaration
 {
-    HYP_STRUCT_BODY(DescriptorUsage);
+    HYP_STRUCT_BODY(DescriptorSetDeclaration);
 
-    HYP_FIELD(Property = "Slot", Serialize = true)
-    DescriptorSlot slot;
+    HYP_FIELD(Property = "SetIndex", Serialize = true)
+    uint32 setIndex = ~0u;
 
-    HYP_FIELD(Property = "SetName", Serialize = true)
-    Name setName;
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name name = Name::Invalid();
 
-    HYP_FIELD(Property = "DescriptorName", Serialize = true)
-    Name descriptorName;
-
-    HYP_FIELD(Property = "Type", Serialize = true)
-    DescriptorUsageType type;
+    HYP_FIELD(Property = "Slots", Serialize = true)
+    FixedArray<Array<ShaderInput, DynamicAllocator>, NumDescriptorSlots> slots = {};
 
     HYP_FIELD(Property = "Flags", Serialize = true)
-    EnumFlags<DescriptorUsageFlags> flags;
+    EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
 
-    HYP_FIELD(Property = "Params", Serialize = true)
-    HashMap<String, String> params;
+    DescriptorSetDeclaration() = default;
 
-    DescriptorUsage()
-        : slot((DescriptorSlot)0),
-          setName(Name::Invalid()),
-          flags(DescriptorUsageFlags::NONE)
+    DescriptorSetDeclaration(uint32 setIndex, Name name)
+        : setIndex(setIndex),
+          name(name)
     {
     }
 
-    DescriptorUsage(DescriptorSlot slot, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
-        : slot(slot),
-          setName(setName),
-          descriptorName(descriptorName),
-          flags(flags),
-          params(std::move(params))
+    DescriptorSetDeclaration(const DescriptorSetDeclaration& other) = default;
+    DescriptorSetDeclaration& operator=(const DescriptorSetDeclaration& other) = default;
+    DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
+    DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
+    ~DescriptorSetDeclaration() = default;
+
+    HYP_FORCE_INLINE void AddDescriptorDeclaration(ShaderInput decl)
     {
+        AssertDebug(decl.slot != ShaderRegister::NONE && uint8(decl.slot) < NumDescriptorSlots);
+
+        decl.index = uint32(slots[uint8(decl.slot) - 1].Size());
+        slots[uint8(decl.slot) - 1].PushBack(std::move(decl));
     }
 
-    DescriptorUsage(const DescriptorUsage& other)
-        : slot(other.slot),
-          setName(other.setName),
-          descriptorName(other.descriptorName),
-          type(other.type),
-          flags(other.flags),
-          params(other.params)
-    {
-    }
+    /*! \brief Calculate a flat index for a Descriptor that is part of this set.
+        Returns -1 if not found */
+    uint32 CalculateFlatIndex(ShaderRegister slot, StringHash name) const;
 
-    DescriptorUsage& operator=(const DescriptorUsage& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        setName = other.setName;
-        descriptorName = other.descriptorName;
-        type = other.type;
-        flags = other.flags;
-        params = other.params;
-
-        return *this;
-    }
-
-    DescriptorUsage(DescriptorUsage&& other) noexcept
-        : slot(other.slot),
-          setName(std::move(other.setName)),
-          descriptorName(std::move(other.descriptorName)),
-          type(std::move(other.type)),
-          flags(other.flags),
-          params(std::move(other.params))
-    {
-    }
-
-    DescriptorUsage& operator=(DescriptorUsage&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        setName = std::move(other.setName);
-        descriptorName = std::move(other.descriptorName);
-        type = std::move(other.type);
-        flags = other.flags;
-        params = std::move(other.params);
-
-        return *this;
-    }
-
-    ~DescriptorUsage() = default;
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
-    {
-        return slot == other.slot
-            && setName == other.setName
-            && descriptorName == other.descriptorName
-            && type == other.type
-            && flags == other.flags
-            && params == other.params;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsage& other) const
-    {
-        return slot != other.slot
-            || setName != other.setName
-            || descriptorName != other.descriptorName
-            || type != other.type
-            || flags != other.flags
-            || params != other.params;
-    }
-
-    HYP_FORCE_INLINE bool operator<(const DescriptorUsage& other) const
-    {
-        if (slot != other.slot)
-        {
-            return slot < other.slot;
-        }
-
-        if (setName != other.setName)
-        {
-            return setName < other.setName;
-        }
-
-        if (descriptorName != other.descriptorName)
-        {
-            return descriptorName < other.descriptorName;
-        }
-
-        if (type != other.type)
-        {
-            return type < other.type;
-        }
-
-        if (flags != other.flags)
-        {
-            return uint32(flags) < uint32(other.flags);
-        }
-
-        return false;
-    }
-
-    HYP_FORCE_INLINE uint32 GetCount() const
-    {
-        uint32 value = 1;
-
-        auto it = params.Find("count");
-
-        if (it == params.End())
-        {
-            return value;
-        }
-
-        if (StringUtil::Parse(it->second, &value))
-        {
-            return value;
-        }
-
-        return 1;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSize() const
-    {
-        if (type.HasExplicitSize())
-        {
-            return type.size;
-        }
-
-        uint32 value = ~0u;
-
-        auto it = params.Find("size");
-
-        if (it == params.End())
-        {
-            return value;
-        }
-
-        if (StringUtil::Parse(it->second, &value))
-        {
-            return value;
-        }
-
-        return uint32(-1);
-    }
+    ShaderInput* FindDescriptorDeclaration(StringHash name) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(slot);
-        hc.Add(setName.GetHashCode());
-        hc.Add(descriptorName.GetHashCode());
-        hc.Add(type);
+
+        hc.Add(setIndex);
+        hc.Add(name);
         hc.Add(flags);
-        hc.Add(params.GetHashCode());
+
+        for (const auto& slot : slots)
+        {
+            for (const auto& decl : slot)
+            {
+                hc.Add(decl.GetHashCode());
+            }
+        }
 
         return hc;
     }
 };
 
 HYP_STRUCT()
-struct DescriptorUsageSet
+struct ShaderInputGroup
 {
-    HYP_STRUCT_BODY(DescriptorUsageSet);
+    HYP_STRUCT_BODY(ShaderInputGroup);
 
-    HYP_FIELD()
-    FlatSet<DescriptorUsage> elements;
+    HYP_FIELD(Property = "Elements", Serialize = true)
+    Array<DescriptorSetDeclaration> elements;
 
-    void BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const;
+    DescriptorSetDeclaration* FindDescriptorSetDeclaration(StringHash name) const;
+    DescriptorSetDeclaration* AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration);
 
-    HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
+    /*! \brief Get the index of a descriptor set in the table
+        \param name The name of the descriptor set
+        \return The index of the descriptor set in the table, or -1 if not found */
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(StringHash name) const
     {
-        return elements[index];
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsage& operator[](SizeType index) const
-    {
-        return elements[index];
-    }
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsageSet& other) const
-    {
-        return elements == other.elements;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageSet& other) const
-    {
-        return elements != other.elements;
-    }
-
-    HYP_FORCE_INLINE SizeType Size() const
-    {
-        return elements.Size();
-    }
-
-    HYP_FORCE_INLINE void Add(const DescriptorUsage& descriptorUsage)
-    {
-        elements.Insert(descriptorUsage);
-    }
-
-    HYP_FORCE_INLINE DescriptorUsage* Find(StringHash descriptorName)
-    {
-        auto it = elements.FindIf([descriptorName](const DescriptorUsage& descriptorUsage)
-            {
-                return descriptorUsage.descriptorName == descriptorName;
-            });
-
-        if (it == elements.End())
+        for (const auto& it : elements)
         {
-            return nullptr;
+            if (it.name == name)
+            {
+                return it.setIndex;
+            }
         }
 
-        return it;
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsage* Find(StringHash descriptorName) const
-    {
-        return const_cast<const DescriptorUsageSet*>(this)->Find(descriptorName);
-    }
-
-    HYP_FORCE_INLINE void Merge(const Array<DescriptorUsage>& other)
-    {
-        elements.Merge(other);
-    }
-
-    HYP_FORCE_INLINE void Merge(Array<DescriptorUsage>&& other)
-    {
-        elements.Merge(std::move(other));
-    }
-
-    HYP_FORCE_INLINE void Merge(const DescriptorUsageSet& other)
-    {
-        elements.Merge(other.elements);
-    }
-
-    HYP_FORCE_INLINE void Merge(DescriptorUsageSet&& other)
-    {
-        elements.Merge(std::move(other.elements));
+        return ~0u;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return elements.GetHashCode();
-    }
-};
+        HashCode hc;
 
-HYP_STRUCT()
-struct ShaderDefinition
-{
-    HYP_STRUCT_BODY(ShaderDefinition);
+        for (const DescriptorSetDeclaration& decl : elements)
+        {
+            hc.Add(decl.GetHashCode());
+        }
 
-    HYP_FIELD()
-    Name name;
-
-    HYP_FIELD()
-    ShaderProperties properties;
-
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return name;
+        return hc;
     }
 
-    HYP_FORCE_INLINE ShaderProperties& GetProperties()
+    struct DeclareSet
     {
-        return properties;
-    }
+        DeclareSet(ShaderInputGroup* table, uint32 setIndex, Name name, bool isTemplate = false)
+        {
+            AssertDebug(table != nullptr);
 
-    HYP_FORCE_INLINE const ShaderProperties& GetProperties() const
-    {
-        return properties;
-    }
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return name.IsValid();
-    }
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return name.IsValid();
-    }
-
-    HYP_FORCE_INLINE bool operator==(const ShaderDefinition& other) const
-    {
-        return GetHashCode() == other.GetHashCode();
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const ShaderDefinition& other) const
-    {
-        return GetHashCode() != other.GetHashCode();
-    }
-
-    HYP_FORCE_INLINE bool operator<(const ShaderDefinition& other) const
-    {
-        return GetHashCode() < other.GetHashCode();
-    }
-
-    HYP_FORCE_INLINE explicit operator HashedShaderDefinition() const
-    {
-        return HashedShaderDefinition { name, properties.GetPropertySetHashCode(), properties.GetRequiredVertexAttributes() };
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        // ensure they return the same hash codes so they can be compared.
-        return (operator HashedShaderDefinition()).GetHashCode();
-    }
-};
-
-struct ShaderBundleDecl // combination of shader files, .frag, .vert etc. in .ini definitions file.
-{
-    Name name;
-    String entryPointName = "main";
-    FlatMap<ShaderModuleType, String> sources;
-    ShaderProperties versions; // permutations
-
-    bool HasRTShaders() const
-    {
-        return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
+            if (table->elements.Size() <= setIndex)
             {
-                return IsRaytracingShaderModule(item.first);
-            });
-    }
+                table->elements.Resize(setIndex + 1);
+            }
 
-    bool IsComputeShader() const
-    {
-        return Every(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
-            {
-                return item.first == SMT_COMPUTE;
-            });
-    }
+            DescriptorSetDeclaration& decl = table->elements[setIndex];
+            decl.setIndex = setIndex;
+            decl.name = name;
 
-    bool HasVertexShader() const
-    {
-        return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, String>& item)
+            if (isTemplate)
             {
-                return item.first == SMT_VERTEX;
-            });
-    }
+                decl.flags |= DescriptorSetDeclarationFlags::TEMPLATE;
+            }
+        }
+    };
+
+    struct DeclareDescriptor
+    {
+        DeclareDescriptor(ShaderInputGroup* table, Name setName, ShaderInputType type, ShaderRegister slotType, Name descriptorName, ShaderInput::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        {
+            AssertDebug(table != nullptr);
+
+            uint32 setIndex = ~0u;
+
+            for (SizeType i = 0; i < table->elements.Size(); ++i)
+            {
+                if (table->elements[i].name == setName)
+                {
+                    setIndex = uint32(i);
+                    break;
+                }
+            }
+
+            AssertDebug(setIndex != ~0u, "Descriptor set {} not found", setName);
+
+            DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
+            AssertDebug(descriptorSetDecl.setIndex == setIndex);
+
+            const uint32 slotTypeIndex = uint8(slotType) - 1;
+            AssertDebug(slotTypeIndex < descriptorSetDecl.slots.Size());
+
+            const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
+
+            ShaderInput& shaderInput = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
+            shaderInput.index = slotIndex;
+            shaderInput.type = type;
+            shaderInput.slot = slotType;
+            shaderInput.name = descriptorName;
+            shaderInput.cond = cond;
+            shaderInput.size = size;
+            shaderInput.count = count;
+            shaderInput.isDynamic = isDynamic;
+        }
+    };
 };
 
 HYP_STRUCT()
@@ -1226,20 +323,32 @@ struct HYP_API CompiledShader
 {
     HYP_STRUCT_BODY(CompiledShader);
 
-    HYP_FIELD(Property = "Definition")
-    ShaderDefinition definition;
+    HYP_FIELD(Property = "Name")
+    Name name;
 
-    HYP_FIELD(Property = "DescriptorTableDeclaration", Transient) // built after load, not serialized
-    DescriptorTableDeclaration* descriptorTableDeclaration = nullptr;
+    HYP_FIELD(Property = "PropertySet")
+    ShaderPropertySet properties;
 
-    HYP_FIELD(Property = "DescriptorUsageSet")
-    DescriptorUsageSet descriptorUsageSet;
+    HYP_FIELD(Property = "VertexAttributes")
+    VertexAttributeSet vertexAttributes;
 
-    HYP_FIELD(Property = "EntryPointName")
-    String entryPointName = "main";
+    HYP_FIELD(Property = "ShaderInputGroup")
+    ShaderInputGroup inputGroup;
 
-    HYP_FIELD(Property = "Modules", Compressed)
-    FixedArray<ByteBuffer, SMT_MAX> modules;
+    HYP_FIELD(Property = "ShaderModuleTypes")
+    Array<ShaderModuleType> moduleTypes;
+
+    HYP_FIELD(Property = "ShaderModuleNames")
+    Array<String> moduleNames;
+
+    HYP_FIELD(Property = "EntryPointNames")
+    Array<String> entryPointNames;
+
+    HYP_FIELD(Property = "ShaderBlobs", Compressed)
+    Array<ByteBuffer> shaderBlobs;
+
+    HYP_FIELD(Property = "PropertySetHashCode")
+    HashCode propertySetHashCode;
 
     /// ===== Serialization only =====
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
@@ -1263,54 +372,73 @@ struct HYP_API CompiledShader
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return definition.IsValid()
-            && AnyOf(modules, &ByteBuffer::Any);
+        return name.IsValid()
+            && shaderBlobs.Any()
+            && moduleTypes.Size() == shaderBlobs.Size()
+            && moduleNames.Size() == shaderBlobs.Size()
+            && entryPointNames.Size() == shaderBlobs.Size();
     }
 
-    HYP_FORCE_INLINE Name GetName() const
+    HYP_FORCE_INLINE const ShaderInputGroup* GetDescriptorTableDeclaration() const
     {
-        return definition.name;
+        // \TODO return reference
+        return &inputGroup;
     }
 
-    HYP_FORCE_INLINE ShaderDefinition& GetDefinition()
+    void AddShaderModule(
+        ShaderModuleType moduleType,
+        UTF8StringView moduleName,
+        UTF8StringView entryPointName,
+        ByteBuffer&& shaderBlob);
+
+    void AddShaderModule(
+        ShaderModuleType moduleType,
+        UTF8StringView moduleName,
+        ByteBuffer&& shaderBlob)
     {
-        return definition;
+        AddShaderModule(moduleType, moduleName, DefaultEntryPointNames[uint8(moduleType)], std::move(shaderBlob));
     }
 
-    HYP_FORCE_INLINE const ShaderDefinition& GetDefinition() const
+    bool GetShaderModuleInfo(
+        uint32 index,
+        ShaderModuleType& outModuleType,
+        String& outModuleName,
+        String& outEntryPointName,
+        ConstByteView& outShaderBlob) const
     {
-        return definition;
-    }
+        if (!IsValid() || index < 0 || index >= moduleTypes.Size())
+        {
+            return false;
+        }
 
-    HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDescriptorTableDeclaration() const
-    {
-        return descriptorTableDeclaration;
-    }
+        outModuleType = moduleTypes[index];
+        outModuleName = moduleNames[index];
+        outEntryPointName = entryPointNames[index];
+        outShaderBlob = shaderBlobs[index].ToByteView();
 
-    HYP_FORCE_INLINE const String& GetEntryPointName() const
-    {
-        return entryPointName;
-    }
-
-    HYP_FORCE_INLINE const ShaderProperties& GetProperties() const
-    {
-        return definition.properties;
+        return true;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
-        hc.Add(definition.GetHashCode());
-        hc.Add(modules.GetHashCode());
+        hc.Add(name.GetHashCode());
+        hc.Add(properties.GetHashCode());
+        hc.Add(vertexAttributes.GetHashCode());
+        hc.Add(moduleTypes.GetHashCode());
+        hc.Add(moduleNames.GetHashCode());
+        hc.Add(entryPointNames.GetHashCode());
+        hc.Add(shaderBlobs.GetHashCode());
+        hc.Add(propertySetHashCode);
 
         return hc;
     }
 };
 
 HYP_STRUCT()
-struct CompiledShaderBatch
+struct ShaderBundle
 {
-    HYP_STRUCT_BODY(CompiledShaderBatch);
+    HYP_STRUCT_BODY(ShaderBundle);
 
     HYP_FIELD()
     Array<CompiledShader> compiledShaders;
@@ -1318,15 +446,15 @@ struct CompiledShaderBatch
     HYP_FIELD()
     Array<String> errorMessages;
 
-    CompiledShaderBatch() = default;
+    ShaderBundle() = default;
 
-    CompiledShaderBatch(const CompiledShaderBatch& other)
+    ShaderBundle(const ShaderBundle& other)
         : compiledShaders(other.compiledShaders),
           errorMessages(other.errorMessages)
     {
     }
 
-    CompiledShaderBatch& operator=(const CompiledShaderBatch& other)
+    ShaderBundle& operator=(const ShaderBundle& other)
     {
         if (this == &other)
         {
@@ -1339,13 +467,13 @@ struct CompiledShaderBatch
         return *this;
     }
 
-    CompiledShaderBatch(CompiledShaderBatch&& other) noexcept
+    ShaderBundle(ShaderBundle&& other) noexcept
         : compiledShaders(std::move(other.compiledShaders)),
           errorMessages(std::move(other.errorMessages))
     {
     }
 
-    CompiledShaderBatch& operator=(CompiledShaderBatch&& other) noexcept
+    ShaderBundle& operator=(ShaderBundle&& other) noexcept
     {
         if (this == &other)
         {
@@ -1358,7 +486,7 @@ struct CompiledShaderBatch
         return *this;
     }
 
-    ~CompiledShaderBatch() = default;
+    ~ShaderBundle() = default;
 
     HYP_FORCE_INLINE bool HasErrors() const
     {
@@ -1371,7 +499,8 @@ struct CompiledShaderBatch
     }
 };
 
-void MergeGlobalShaderProperties(ShaderProperties& out);
+void MergeGlobalShaderProperties(ShaderVariantPerms& out);
+void MergeGlobalShaderProperties(ShaderPropertySet& out);
 
 class ShaderCompiler
 {
@@ -1386,7 +515,7 @@ class ShaderCompiler
         Array<ProcessError> errors;
         Array<VertexAttributeDefinition> requiredAttributes;
         Array<VertexAttributeDefinition> optionalAttributes;
-        Array<DescriptorUsage> descriptorUsages;
+        Array<struct DescriptorUsage, DynamicAllocator> descriptorUsages;
 
         ProcessResult() = default;
         ProcessResult(const ProcessResult& other) = default;
@@ -1394,6 +523,12 @@ class ShaderCompiler
         ProcessResult(ProcessResult&& other) noexcept = default;
         ProcessResult& operator=(ProcessResult&& other) noexcept = default;
         ~ProcessResult() = default;
+    };
+
+    struct ShaderRequest
+    {
+        ShaderPropertySet properties;
+        VertexAttributeSet vertexAttributes;
     };
 
 public:
@@ -1405,12 +540,10 @@ public:
     HYP_API bool CanCompileShaders() const;
     HYP_API bool LoadShaderDefinitions(bool precompileShaders = false);
 
-    HYP_API CompiledShader GetCompiledShader(Name name);
-    HYP_API CompiledShader GetCompiledShader(Name name, const ShaderProperties& properties);
-
-    HYP_API bool GetCompiledShader(
+    HYP_API bool RequestShader(
         Name name,
-        const ShaderProperties& properties,
+        const ShaderPropertySet& properties,
+        const VertexAttributeSet& vertexAttributes,
         CompiledShader& out);
 
 private:
@@ -1420,35 +553,35 @@ private:
         ShaderLanguage language,
         const String& source,
         const String& filename,
-        const ShaderProperties& properties);
+        const ShaderVariantPerms& perm);
 
     void ParseDefinitionSection(
         const INIFile::Section& section,
-        ShaderBundleDecl& outShaderBundleDecl);
+        ShaderBundleDecl& outDecl);
 
     bool CompileBundle(
-        ShaderBundleDecl& ShaderBundleDecl,
-        CompiledShaderBatch& out)
+        ShaderBundleDecl& decl,
+        ShaderBundle& outBundle)
     {
-        return CompileBundle(ShaderBundleDecl, ShaderProperties(), out, false);
+        return CompileBundle(decl, {}, outBundle, false);
     }
 
-    bool CompileBundle(
-        ShaderBundleDecl& ShaderBundleDecl,
-        const ShaderProperties& additionalVersions,
-        CompiledShaderBatch& out,
-        bool onlyCompileRequestedVersions = false);
-
-    bool HandleCompiledShaderBatch(
-        ShaderBundleDecl& ShaderBundleDecl,
-        const ShaderProperties& additionalVersions,
+    bool HandleBundle(
+        ShaderBundleDecl& decl,
+        Optional<ShaderRequest> shaderRequest,
         const FilePath& outputFilePath,
-        CompiledShaderBatch& batch);
+        ShaderBundle& inOutBundle);
 
-    bool LoadOrCompileBatch(
+    bool CompileBundle(
+        const ShaderBundleDecl& decl,
+        Optional<ShaderRequest> shaderRequest,
+        ShaderBundle& outBundle,
+        bool onlyCompileRequested = false);
+
+    bool LoadBundle(
         Name name,
-        const ShaderProperties& additionalVersions,
-        CompiledShaderBatch& out);
+        Optional<ShaderRequest> shaderRequest,
+        ShaderBundle& outBundle);
 
     INIFile* m_definitions;
     Array<ShaderBundleDecl> m_shaderBundleDecls;

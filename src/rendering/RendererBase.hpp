@@ -56,10 +56,10 @@ struct RendererConfig : public ConfigBase<RendererConfig>
     bool pathTracer = false;
 
     HYP_FIELD(JsonPath = "RayTracing.Reflections.Enabled")
-    bool raytracingReflections = false;
+    bool rayTracingReflections = false;
 
     HYP_FIELD(JsonPath = "RayTracing.GI.Enabled")
-    bool raytracingGlobalIllumination = false;
+    bool rayTracingGlobalIllumination = false;
 
     HYP_FIELD(JsonPath = "HBAO.Enabled")
     bool hbaoEnabled = false;
@@ -69,12 +69,6 @@ struct RendererConfig : public ConfigBase<RendererConfig>
 
     HYP_FIELD(JsonPath = "SSGI.Enabled")
     bool ssgiEnabled = false;
-
-    HYP_FIELD(JsonPath = "EnvGrid.GI.Enabled")
-    bool envGridGiEnabled = false;
-
-    HYP_FIELD(JsonPath = "EnvGrid.Reflections.Enabled")
-    bool envGridRadianceEnabled = false;
 
     HYP_FIELD(JsonPath = "TAA.Enabled")
     bool taaEnabled = false;
@@ -255,9 +249,6 @@ public:
 
     WeakHandle<View> view;
     Viewport viewport;
-
-    // per-View descriptor sets
-    FixedArray<DescriptorSetRef, NumFramesInFlight> descriptorSets;
 
     CullData cullData;
 

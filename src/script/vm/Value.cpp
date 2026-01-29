@@ -38,7 +38,7 @@ static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
 static inline ValueStorage<BoxedValue> MakeGarbageValue()
 {
     ValueStorage<BoxedValue> storage;
-    Memory::MemSet(&storage, 0xFFu, sizeof(BoxedValue));
+    Memory::Fill(&storage, 0xFFu, sizeof(BoxedValue));
 
     return storage;
 }

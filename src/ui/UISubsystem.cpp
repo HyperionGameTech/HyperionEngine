@@ -29,6 +29,7 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 
 #include <rendering/renderers/UIRenderer.hpp>
@@ -63,7 +64,7 @@ struct AddUIRendererForView : RenderCommand
         {
             HYP_LOG(UI, Warning, "AddUIRendererForView: view is expired");
 
-            HYPERION_RETURN_OK;
+            return {};
         }
 
         UIRenderer* uiRenderer = PoolNew<UIRenderer>(*g_renderPool, view);
@@ -77,7 +78,7 @@ struct AddUIRendererForView : RenderCommand
 
         g_renderInterface->AddRenderer(GRT_UI, uiRenderer);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -94,7 +95,7 @@ struct RemoveUIRenderer : RenderCommand
     {
         g_renderInterface->RemoveRenderer(GRT_UI, uiRenderer);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
@@ -113,19 +114,19 @@ struct SetFinalPassImageView : RenderCommand
     {
         if (!imageView)
         {
-            imageView = g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultTexture2d);
+            imageView = g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d);
         }
 
         g_renderInterface->finalPass->SetUILayerImageView(imageView);
 
-        HYPERION_RETURN_OK;
+        return {};
     }
 };
 
 #pragma endregion Render commands
 
 UISubsystem::UISubsystem()
-    : UISubsystem(CreateObject<UIStage>())
+    : UISubsystem(MakeHandle<UIStage>())
 {
 }
 
@@ -209,21 +210,21 @@ void UISubsystem::Init()
 
     const Vec2u windowSize2 = windowSize * 2;
 
-    ViewOutputTargetDesc outputTargetDesc {
-        .extent = windowSize2,
-        .attachments = { { TF_RGBA16F }, { TF_DEPTH_32F } }
-    };
+    RenderTargetDesc renderTargetDesc;
+    renderTargetDesc.extent = windowSize2;
+    renderTargetDesc.AddAttachment({ TT_TEX2D, TF_RGBA16F });
+    renderTargetDesc.AddAttachment({ TT_TEX2D, TF_DEPTH_16 });
 
     ViewDesc viewDesc {
         .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),
         .viewport = Viewport { .extent = windowSize2, .position = Vec2i::Zero() },
-        .outputTargetDesc = outputTargetDesc,
+        .renderTargetDesc = renderTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
         .entityBatchClass = UIEntityInstanceBatch::StaticClass()
     };
 
-    m_view = CreateObject<View>(viewDesc);
+    m_view = MakeHandle<View>(viewDesc);
     InitObject(m_view);
 
     CreateFramebuffer();
@@ -260,7 +261,7 @@ void UISubsystem::Update(float delta)
     m_view->UpdateViewport();
     m_view->UpdateVisibility();
 
-    RenderProxyList& rpl = RenderApi::GetProducerProxyList(m_view);
+    RenderProxyList& rpl = GetProducerProxyList(m_view);
     rpl.BeginWrite();
     rpl.disableBuildRenderCollection = true;
     rpl.useOrdering = true;
@@ -334,7 +335,6 @@ void UISubsystem::Update(float delta)
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
-            meshProxy.bufferData.userData = reinterpret_cast<EntityShaderData::EntityUserData&>(meshComponent->userData);
         }
     }
 

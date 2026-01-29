@@ -105,7 +105,7 @@ Task<void> BakerSubsystem::EnqueueBake_Internal(const Handle<T>& source, Args&&.
         return Task<void>();
     }
 
-    Handle<BakerBase> lightmapper = CreateObject<Baker<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
+    Handle<BakerBase> lightmapper = MakeHandle<Baker<T>>(LightmapperConfig::FromConfig(), source, std::forward<Args>(args)...);
     InitObject(lightmapper);
 
     Task<void> task;

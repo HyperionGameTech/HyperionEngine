@@ -4,13 +4,13 @@
 
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderResult.hpp>
-#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderMemory.hpp>
+#include <rendering/ShaderManager.hpp>
 
 // For CompiledShader
 #include <rendering/util/ShaderCompiler.hpp>
@@ -31,7 +31,7 @@ namespace Hyperion {
 // #define HYP_GRAPHICS_PIPELINE_TIMING_DEBUG 1
 
 // discard a graphics pipeline that hasn't been used after this number of frames
-static constexpr uint32 GraphicsPipelineDiscardFrames = 32;
+static constexpr uint32 GraphicsPipelineDiscardFrames = 100;
 
 #pragma region CachedPipelinesMap
 
@@ -41,8 +41,8 @@ public:
     using Base = SparsePagedArray<GraphicsPipelineRef, 1024, RenderAllocator>;
     using RefCountMap = SparsePagedArray<int, 1024, RenderAllocator>;
 
-    using AttrMap = HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
-    using ReverseAttrMap = HashMap<uint32, RenderableAttributeSet, NodeAllocator<RenderAllocator>>;
+    using Map = HashMap<PSOCacheKey, Array<GraphicsPipelineRef*, InlineAllocator<1, RenderAllocator>>, NodeAllocator<RenderAllocator>>;
+    using ReverseMap = HashMap<SizeType, PSOCacheKey, NodeAllocator<RenderAllocator>>;
 
     CachedPipelinesMap()
         : Base()
@@ -62,24 +62,24 @@ public:
         reverseAttrMap.Clear();
     }
 
-    void Add(const RenderableAttributeSet& renderableAttributes, uint32 slot)
+    void Add(const PSOCacheKey& key, SizeType index)
     {
-        Assert(Base::HasIndex(slot));
+        Assert(Base::HasIndex(index));
 
-        GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(slot);
+        GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(index);
         Assert(graphicsPipelinePtr != nullptr);
 
-        attrMap[renderableAttributes].PushBack(graphicsPipelinePtr);
-        reverseAttrMap[slot] = renderableAttributes;
+        attrMap[key].PushBack(graphicsPipelinePtr);
+        reverseAttrMap[index] = key;
     }
 
-    void Remove(uint32 slot)
+    void Remove(SizeType index)
     {
-        Assert(Base::HasIndex(slot));
+        Assert(Base::HasIndex(index));
 
-        GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(slot);
+        GraphicsPipelineRef* graphicsPipelinePtr = &Base::Get(index);
 
-        auto reverseAttrMapIt = reverseAttrMap.Find(slot);
+        auto reverseAttrMapIt = reverseAttrMap.Find(index);
         Assert(reverseAttrMapIt != reverseAttrMap.End());
 
         auto attrMapIt = attrMap.Find(reverseAttrMapIt->second);
@@ -103,46 +103,44 @@ public:
         SafeDelete(std::move(*graphicsPipelinePtr));
     }
 
-    GraphicsPipelineCacheHandle Alloc(uint32& outSlot)
+    GraphicsPipelineCacheHandle Alloc(SizeType& outIndex)
     {
-        outSlot = idGenerator.Next();
+        outIndex = idGenerator.Next();
 
-        Assert(!Base::HasIndex(outSlot));
+        Assert(!Base::HasIndex(outIndex));
 
-        refCountMap.Set(outSlot, 0);
+        refCountMap.Set(outIndex, 0);
 
-        return GraphicsPipelineCacheHandle(&*Base::Set(outSlot, GraphicsPipelineRef::Null()));
+        return GraphicsPipelineCacheHandle(&*Base::Set(outIndex, GraphicsPipelineRef::Null()));
     }
 
-    void RemoveSlotIfUnused(uint32 slot)
+    void RemoveSlotIfUnused(SizeType index)
     {
-        Assert(slot != ~0u);
-
-        if (Base::HasIndex(slot))
+        if (Base::HasIndex(index))
         {
-            const int refCount = refCountMap.Get(slot);
+            const int refCount = refCountMap.Get(index);
 
             if (refCount <= 0)
             {
-                GraphicsPipelineRef& graphicsPipeline = Base::Get(slot);
+                GraphicsPipelineRef& graphicsPipeline = Base::Get(index);
 
                 if (graphicsPipeline != nullptr)
                 {
-                    Remove(slot);
+                    Remove(index);
                 }
 
                 // all pointers should now be invalidated.
-                Base::EraseAt(slot, /* freeMemory */ true);
+                Base::EraseAt(index, /* freeMemory */ true);
 
                 // allow this slot to be reused.
-                idGenerator.ReleaseId(slot);
+                idGenerator.ReleaseId(index);
             }
         }
     }
 
-    Span<GraphicsPipelineRef* const> Find(const RenderableAttributeSet& renderableAttributes) const
+    Span<GraphicsPipelineRef* const> Find(const PSOCacheKey& key) const
     {
-        auto attrMapIt = attrMap.Find(renderableAttributes);
+        auto attrMapIt = attrMap.Find(key);
 
         if (attrMapIt == attrMap.End())
         {
@@ -194,8 +192,8 @@ public:
 
     RefCountMap refCountMap;
 
-    AttrMap attrMap;
-    ReverseAttrMap reverseAttrMap;
+    Map attrMap;
+    ReverseMap reverseAttrMap;
 
     Iterator cleanupIterator;
 };
@@ -211,9 +209,11 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
     CachedPipelinesMap* cachedPipelines = g_renderInterface->graphicsPipelineCache->m_cachedPipelines;
     AssertDebug(cachedPipelines != nullptr);
 
+    ValueStorage<TSharedLock<SharedMutex>> lockStorage {};
+
     if (lock)
     {
-        g_renderInterface->graphicsPipelineCache->m_mutex.Lock();
+        lockStorage.Construct(g_renderInterface->graphicsPipelineCache->m_mutex);
     }
 
     const SizeType index = g_renderInterface->graphicsPipelineCache->m_cachedPipelines->IndexOf(cacheHandle.m_ptr);
@@ -224,7 +224,7 @@ void GraphicsPipelineCacheHandle::UpdateRefCount(GraphicsPipelineCacheHandle& ca
 
     if (lock)
     {
-        g_renderInterface->graphicsPipelineCache->m_mutex.Unlock();
+        lockStorage.Destruct();
     }
 }
 
@@ -301,52 +301,56 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
     delete m_cachedPipelines;
 }
 
-GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
-    const ShaderRef& shader,
-    Span<const FramebufferRef> framebuffers,
-    const RenderableAttributeSet& attributes)
+void GraphicsPipelineCache::GetOrCreate(
+    const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc,
+    GraphicsPipelineCacheHandle& outCacheHandle)
 {
     HYP_SCOPE;
 
-    if (!shader.IsValid())
-    {
-        HYP_LOG(Rendering, Error, "Shader is null or invalid!");
-
-        return {};
-    }
-
-    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(
-        shader,
-        framebuffers,
-        attributes);
+    GraphicsPipelineCacheHandle cacheHandle = FindGraphicsPipeline(attributes, renderTargetDesc);
 
     if (cacheHandle.IsAlive())
     {
-        return cacheHandle;
+        (*cacheHandle)->lastFrame = GetFrameCounter();
+
+        outCacheHandle = std::move(cacheHandle);
+        return;
     }
 
-    Proc<void(GraphicsPipeline*, uint32)> newCallback([this, attributes](GraphicsPipeline* graphicsPipeline, uint32 slot)
+    Proc<void(GraphicsPipeline*, SizeType)> newCallback([this, key = PSOCacheKey(attributes, renderTargetDesc)](GraphicsPipeline* graphicsPipeline, SizeType slot)
         {
-            Mutex::Guard guard(m_mutex);
+            TUniqueLock guard(m_mutex);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Debug, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
 #endif
             // cache it now that it's been created so it can be reused
-            m_cachedPipelines->Add(attributes, slot);
+            m_cachedPipelines->Add(key, slot);
         });
 
-    Assert(framebuffers.Size() > 0, "Cannot create a graphics pipeline with no framebuffers");
+    Assert(renderTargetDesc.numAttachments > 0,
+        "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
-    GraphicsPipelineRef graphicsPipeline = g_renderBackend->MakeGraphicsPipeline(
+    ShaderRef shader = g_shaderManager->GetOrCreate(
+        attributes.GetMaterialAttributes().shaderName,
+        attributes.GetMaterialAttributes().shaderProperties,
+        attributes.GetMeshAttributes().vertexAttributes);
+
+    Assert(shader.IsValid());
+
+    GraphicsPipelineRef graphicsPipeline = g_renderInterface->MakeGraphicsPipeline(
         shader,
-        framebuffers,
+        renderTargetDesc,
         attributes);
 
-    uint32 slot = ~0u;
+    // sanity check: newly created pipeline must match or caching will fail.
+    AssertDebug(graphicsPipeline->MatchesSignature(attributes, renderTargetDesc));
+
+    SizeType slot = SizeType(-1);
 
     cacheHandle = m_cachedPipelines->Alloc(slot);
-    Assert(cacheHandle.m_ptr != nullptr && slot != ~0u);
+    Assert(cacheHandle.m_ptr != nullptr && slot != SizeType(-1));
 
     // set new allocated slot to the graphics pipeline we just created
     *cacheHandle.m_ptr = std::move(graphicsPipeline);
@@ -354,30 +358,30 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
     struct CreateGraphicsPipelineAndAddToCache : RenderCommand
     {
         GraphicsPipeline* graphicsPipeline;
-        uint32 slot;
-        Proc<void(GraphicsPipeline*, uint32)> callback;
+        SizeType slot;
+        Proc<void(GraphicsPipeline*, SizeType)> callback;
 
         CreateGraphicsPipelineAndAddToCache(
             GraphicsPipeline* graphicsPipeline,
-            uint32 slot,
-            Proc<void(GraphicsPipeline*, uint32)>&& callback)
+            SizeType slot,
+            Proc<void(GraphicsPipeline*, SizeType)>&& callback)
             : graphicsPipeline(graphicsPipeline),
               slot(slot),
               callback(std::move(callback))
         {
-            Assert(graphicsPipeline != nullptr && slot != ~0u);
+            Assert(graphicsPipeline != nullptr && slot != SizeType(-1));
         }
 
         virtual ~CreateGraphicsPipelineAndAddToCache() override = default;
 
         virtual RendererResult operator()() override
         {
-            HYP_GFX_CHECK(graphicsPipeline->Create());
+            CheckResultOrReturn(graphicsPipeline->Create());
 
             if (callback.IsValid())
             {
                 // set initial lastFrame index so we don't delete it right away when cleaning up after the frame.
-                graphicsPipeline->lastFrame = RenderApi::GetFrameCounter();
+                graphicsPipeline->lastFrame = GetFrameCounter();
 
                 callback(graphicsPipeline, slot);
             }
@@ -388,13 +392,14 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::GetOrCreate(
 
     PUSH_RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache, *cacheHandle.m_ptr, slot, std::move(newCallback));
 
-    return cacheHandle;
+    outCacheHandle = std::move(cacheHandle);
+
+    return;
 }
 
 GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
-    const ShaderRef& shader,
-    Span<const FramebufferRef> framebuffers,
-    const RenderableAttributeSet& attributes)
+    const RenderableAttributeSet& attributes,
+    const RenderTargetDesc& renderTargetDesc)
 {
     HYP_SCOPE;
 
@@ -403,10 +408,9 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
     clock.Start();
 #endif
 
-    Mutex::Guard guard(m_mutex);
+    TSharedLock guard(m_mutex);
 
-    const RenderableAttributeSet key = attributes;
-
+    const PSOCacheKey key { attributes, renderTargetDesc };
     Span<GraphicsPipelineRef* const> pipelines = m_cachedPipelines->Find(key);
 
     if (!pipelines)
@@ -418,17 +422,11 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
         return {};
     }
 
-    const HashCode shaderHashCode = shader->GetCompiledShader()->GetHashCode();
-
     for (GraphicsPipelineRef* const pPipeline : pipelines)
     {
         Assert(pPipeline != nullptr);
 
-        if ((*pPipeline)->MatchesSignature(shader, Map(framebuffers, [](const FramebufferRef& framebuffer)
-                                                       {
-                                                           return static_cast<const Framebuffer*>(framebuffer.Get());
-                                                       }),
-                attributes))
+        if ((*pPipeline)->MatchesSignature(attributes, renderTargetDesc))
         {
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
             HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
@@ -450,9 +448,9 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const uint32 currFrame = RenderApi::GetFrameCounter();
+    const uint32 currFrame = GetFrameCounter();
 
-    Mutex::Guard guard(m_mutex);
+    TUniqueLock guard(m_mutex);
 
     m_cachedPipelines->cleanupIterator = typename CachedPipelinesMap::Iterator(
         m_cachedPipelines,
@@ -504,7 +502,10 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
                 frameDiff);
 #endif
 
-            m_cachedPipelines->Remove(m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator));
+            const SizeType index = m_cachedPipelines->IndexOf(m_cachedPipelines->cleanupIterator);
+            Assert(index != SizeType(-1));
+
+            m_cachedPipelines->Remove(index);
         }
 
         ++m_cachedPipelines->cleanupIterator;

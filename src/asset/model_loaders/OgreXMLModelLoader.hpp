@@ -4,7 +4,7 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <core/math/Vertex.hpp>
+#include <rendering/Vertex.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>

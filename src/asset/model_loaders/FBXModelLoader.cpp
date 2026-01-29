@@ -247,7 +247,7 @@ struct FBXMesh
             //     vertex.SetPosition(vertex.GetPosition() - boundsCenter);
             // }
 
-            Handle<Mesh> mesh = CreateObject<Mesh>();
+            Handle<Mesh> mesh = MakeHandle<Mesh>();
             mesh->SetName(CreateNameFromDynamicString(name));
             mesh->SetMeshData(meshDesc, meshData);
 
@@ -358,7 +358,7 @@ static bool ReadMagic(BufferedByteReader& reader)
     uint8 bytes[sizeof(HeaderBytes)];
     reader.Read(bytes, sizeof(HeaderBytes));
 
-    if (Memory::MemCmp(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
+    if (Memory::Compare(bytes, HeaderBytes, sizeof(HeaderBytes)) != 0)
     {
         return false;
     }
@@ -741,8 +741,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
     InitFBXLoaderMemory();
 
-    Handle<Node> top = CreateObject<Node>();
-    Handle<Skeleton> rootSkeleton = CreateObject<Skeleton>();
+    Handle<Node> top = MakeHandle<Node>();
+    Handle<Skeleton> rootSkeleton = MakeHandle<Skeleton>();
 
     // Include our root dir as part of the path
     const String path = state.filepath;
@@ -1296,7 +1296,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     {
                         if (const FBXObject& uvNode = (*childObject)[name]["UV"])
                         {
-                            attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_TEXCOORD0;
+                            attributes |= VertexAttribute::TexCoord0;
 
                             const SizeType count = uvNode.GetProperty(0).arrayElements.Size();
                         }
@@ -1307,7 +1307,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                         if (const FBXObject& normalsNode = (*childObject)[name]["Normals"])
                         {
-                            attributes |= VertexAttribute::MESH_INPUT_ATTRIBUTE_NORMAL;
+                            attributes |= VertexAttribute::Normal;
 
                             const FBXProperty& normalsProperty = normalsNode.GetProperty(0);
                             const uint32 numNormals = uint32(normalsProperty.arrayElements.Size()) / 3;
@@ -1363,7 +1363,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 fbxMesh.name = nodeName;
                 fbxMesh.vertices = std::move(newVertsAndIndices.first);
                 fbxMesh.indices = std::move(newVertsAndIndices.second);
-                fbxMesh.attributes = staticMeshVertexAttributes | skeletonVertexAttributes;
+                fbxMesh.attributes = VertexAttributeSet::StaticMeshVertexAttributes
+                    | VertexAttributeSet::SkeletalMeshVertexAttributes;
 
                 mapping.data.Set(std::move(fbxMesh));
             }
@@ -1572,7 +1573,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 #undef INVALID_NODE_CONNECTION
     }
 
-    Handle<Bone> rootBone = CreateObject<Bone>();
+    Handle<Bone> rootBone = MakeHandle<Bone>();
     rootSkeleton->SetRootBone(rootBone);
 
     bool foundFirstBone = false;
@@ -1593,14 +1594,14 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
             bindingTransform.SetRotation(fbxNode.localBindMatrix.ExtractRotation());
             bindingTransform.SetScale(fbxNode.localBindMatrix.ExtractScale());
 
-            Handle<Bone> bone = CreateObject<Bone>();
+            Handle<Bone> bone = MakeHandle<Bone>();
             bone->SetBindingTransform(bindingTransform);
 
             node = bone;
         }
         else
         {
-            node = CreateObject<Node>();
+            node = MakeHandle<Node>();
         }
 
         parentNode->AddChild(node);
@@ -1621,14 +1622,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
 
                 MaterialAttributes materialAttributes {};
-                materialAttributes.shaderDefinition = ShaderDefinition {
-                    NAME("GeometryPass"),
-                    ShaderProperties(mesh->GetVertexAttributes())
-                };
+                materialAttributes.shaderName = NAME("GeometryPass");
+                materialAttributes.shaderProperties = {};
+                materialAttributes.bucket = RB_OPAQUE;
 
                 Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
                     CreateNameFromDynamicString(fbxNode.name),
-                    { ShaderDefinition { NAME("GeometryPass"), ShaderProperties(mesh->GetVertexAttributes()) }, RB_OPAQUE },
+                    materialAttributes,
                     { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
 
                 Scene* scene = GetDetachedSceneForCurrentThread();
@@ -1708,7 +1708,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (getFbxObject(fbxNode.parentId, parentNode))
             {
-                fbxNode.localBindMatrix = parentNode->worldBindMatrix.Inverted() * fbxNode.localBindMatrix;
+                fbxNode.localBindMatrix = parentNode->worldBindMatrix.Inverse() * fbxNode.localBindMatrix;
             }
         }
 

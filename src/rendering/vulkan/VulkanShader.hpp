@@ -10,54 +10,38 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
+#include <rendering/Shared.hpp>
+
 #include <vulkan/vulkan.h>
 
 namespace Hyperion {
 
 struct VulkanShaderModule
 {
-    ShaderModuleType type;
-    Name srcName;
+    ShaderModuleType type = ShaderModuleType::None;
+
+    String moduleName;
     String entryPointName;
-    ByteBuffer spirv;
-    VkShaderModule handle;
 
-    VulkanShaderModule(ShaderModuleType type, Name srcName, String entryPointName)
-        : type(type),
-          srcName(srcName),
-          entryPointName(std::move(entryPointName)),
-          spirv {},
-          handle {}
-    {
-    }
+    HashCode blobHashCode;
 
-    VulkanShaderModule(ShaderModuleType type, Name srcName, String entryPointName, const ByteBuffer& spirv, VkShaderModule handle = VK_NULL_HANDLE)
-        : type(type),
-          srcName(srcName),
-          entryPointName(std::move(entryPointName)),
-          spirv(spirv),
-          handle(handle)
-    {
-    }
-
-    VulkanShaderModule(const VulkanShaderModule& other) = default;
-    ~VulkanShaderModule() = default;
+    VkShaderModule handle = VK_NULL_HANDLE;
 
     bool operator<(const VulkanShaderModule& other) const
     {
         return type < other.type;
     }
 
-    bool IsRaytracing() const
+    bool IsRayTracing() const
     {
-        return IsRaytracingShaderModule(type);
+        return IsRayTracingShaderModule(type);
     }
 };
 
 struct VulkanShaderGroup
 {
     ShaderModuleType type;
-    VkRayTracingShaderGroupCreateInfoKHR raytracingGroupCreateInfo;
+    VkRayTracingShaderGroupCreateInfoKHR rayTracingGroupCreateInfo;
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -67,13 +51,8 @@ class VulkanShader final : public ShaderBase
 
 public:
     VulkanShader();
-    VulkanShader(const RC<CompiledShader>& compiledShader);
-    virtual ~VulkanShader() override;
-
-    HYP_FORCE_INLINE const String& GetEntryPointName() const
-    {
-        return m_entryPointName;
-    }
+    explicit VulkanShader(const CompiledShader* compiledShader);
+    ~VulkanShader() override;
 
     HYP_FORCE_INLINE const Array<VulkanShaderModule>& GetShaderModules() const
     {
@@ -90,9 +69,9 @@ public:
         return m_vkShaderStages;
     }
 
-    virtual bool IsCreated() const override;
+    bool IsCreated() const override;
 
-    virtual RendererResult Create() override;
+    RendererResult Create() override;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -101,7 +80,9 @@ public:
         for (const VulkanShaderModule& shaderModule : m_shaderModules)
         {
             hc.Add(uint32(shaderModule.type));
-            hc.Add(shaderModule.spirv.GetHashCode());
+            hc.Add(shaderModule.moduleName);
+            hc.Add(shaderModule.entryPointName);
+            hc.Add(shaderModule.blobHashCode);
         }
 
         return hc;
@@ -112,14 +93,16 @@ public:
 #endif
 
 private:
-    RendererResult AttachSubShaders();
-    RendererResult AttachSubShader(ShaderModuleType type, const ShaderObject& shaderObject);
+    RendererResult AttachShaderModules();
+    RendererResult AttachShaderModule(
+        ShaderModuleType type,
+        UTF8StringView moduleName,
+        UTF8StringView entryPointName,
+        ConstByteView shaderBlobView);
 
     RendererResult CreateShaderGroups();
 
     VkPipelineShaderStageCreateInfo CreateShaderStage(const VulkanShaderModule&);
-
-    String m_entryPointName;
 
     Array<VulkanShaderModule> m_shaderModules;
     Array<VulkanShaderGroup> m_shaderGroups;

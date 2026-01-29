@@ -10,7 +10,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <VulkanAttachment.generated.inl>
 
@@ -20,59 +20,6 @@ namespace Hyperion {
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
-static VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
-{
-    const int loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
-
-    return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
-}
-
-static VkImageLayout GetFinalLayout(RenderTargetType renderTargetType, bool isDepthAttachment)
-{
-    return GetVkImageLayout(isDepthAttachment ? PostRenderResourceStatesDepth[renderTargetType] : PostRenderResourceStates[renderTargetType]);
-}
-
-static VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
-{
-    switch (loadOperation)
-    {
-    case LoadOperation::UNDEFINED:
-        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    case LoadOperation::NONE:
-        return VK_ATTACHMENT_LOAD_OP_NONE_EXT;
-    case LoadOperation::CLEAR:
-        return VK_ATTACHMENT_LOAD_OP_CLEAR;
-    case LoadOperation::LOAD:
-        return VK_ATTACHMENT_LOAD_OP_LOAD;
-    default:
-        HYP_UNREACHABLE();
-        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    }
-}
-
-static VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
-{
-    switch (storeOperation)
-    {
-    case StoreOperation::UNDEFINED:
-        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    case StoreOperation::NONE:
-        return VK_ATTACHMENT_STORE_OP_NONE_EXT;
-    case StoreOperation::STORE:
-        return VK_ATTACHMENT_STORE_OP_STORE;
-    default:
-        HYP_UNREACHABLE();
-        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    }
-}
-
-static VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
-{
-    return isDepthAttachment
-        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-}
-
 #pragma endregion Helpers
 
 #pragma region VulkanAttachment
@@ -80,16 +27,14 @@ static VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
 VulkanAttachment::VulkanAttachment(
     const VulkanGpuImageRef& image,
     const VulkanFramebufferWeakRef& framebuffer,
-    RenderTargetType renderTargetType,
-    LoadOperation loadOperation,
-    StoreOperation storeOperation,
-    BlendFunction blendFunction)
-    : AttachmentBase(image, framebuffer, loadOperation, storeOperation, blendFunction),
-      m_renderTargetType(renderTargetType),
+    VulkanRenderPassMode renderPassMode,
+    const AttachmentDesc& attachmentDesc)
+    : AttachmentBase(image, framebuffer, attachmentDesc),
+      m_renderPassMode(renderPassMode),
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
 {
-    m_imageView = CreateObject<VulkanGpuImageView>(image);
+    m_imageView = MakeHandle<VulkanGpuImageView>(image);
 }
 
 VulkanAttachment::~VulkanAttachment()
@@ -105,17 +50,17 @@ bool VulkanAttachment::IsCreated() const
 
 RendererResult VulkanAttachment::Create()
 {
-    HYP_GFX_ASSERT(m_image != nullptr);
+    Assert(m_image != nullptr && m_imageView != nullptr);
 
     m_vkAttachmentDescription = VkAttachmentDescription {
         .format = ToVkFormat(m_image->GetTextureFormat()),
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = ToVkLoadOp(m_loadOperation),
-        .storeOp = ToVkStoreOp(m_storeOperation),
-        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_loadOperation) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = IsDepthAttachment() ? ToVkStoreOp(m_storeOperation) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = GetInitialLayout(m_loadOperation, IsDepthAttachment()),
-        .finalLayout = GetFinalLayout(m_renderTargetType, IsDepthAttachment())
+        .loadOp = ToVkLoadOp(m_attachmentDesc.loadOp),
+        .storeOp = ToVkStoreOp(m_attachmentDesc.storeOp),
+        .stencilLoadOp = IsDepthAttachment() ? ToVkLoadOp(m_attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = IsDepthAttachment() ? ToVkStoreOp(m_attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = GetInitialLayout(m_attachmentDesc.loadOp, IsDepthAttachment()),
+        .finalLayout = GetFinalLayout(m_renderPassMode, IsDepthAttachment())
     };
 
     AssertDebug(HasBinding());

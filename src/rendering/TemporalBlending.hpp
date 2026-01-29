@@ -16,7 +16,7 @@ class GBuffer;
 class Texture;
 struct RenderSetup;
 
-enum TextureFormat : uint32;
+enum TextureFormat : uint8;
 
 static constexpr double DefaultTemporalBlendingFeedback = 0.8;
 
@@ -92,10 +92,9 @@ public:
 private:
     void Resize_Internal(Vec2u newSize);
 
-    void GetShaderProperties(class ShaderProperties& outProperties) const;
+    void GetShaderProperties(struct ShaderPropertySet& outProperties) const;
 
     void CreateImages();
-    void CreatePipeline();
 
     Vec2u m_extent;
     TextureFormat m_imageFormat;
@@ -104,8 +103,6 @@ private:
     GBuffer* m_gbuffer;
 
     uint16 m_blendingFrameCounter;
-
-    ComputePipelineRef m_csPerformBlending;
 
     FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
 

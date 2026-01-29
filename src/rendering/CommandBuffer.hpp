@@ -35,17 +35,6 @@ public:
     virtual void DrawIndexedIndirect(
         const GpuBuffer* buffer,
         uint32 bufferOffset) const = 0;
-
-    void ResetStencilState()
-    {
-        stencilReference = 0;
-        stencilCompareMask = 0xFF;
-        stencilWriteMask = 0xFF;
-    }
-
-    uint8 stencilReference = 0;
-    uint8 stencilCompareMask = 0xFF;
-    uint8 stencilWriteMask = 0xFF;
 };
 
 } // namespace Hyperion
@@ -53,8 +42,10 @@ public:
 #ifndef INCLUDE_FROM_RHI
 #define INCLUDE_FROM_RHI_BASE
 
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12CommandBuffer.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE

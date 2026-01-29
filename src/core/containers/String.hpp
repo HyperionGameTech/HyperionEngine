@@ -119,7 +119,7 @@ public:
         }
 
         Base::ResizeUninitialized(stringView.Size() + 1);
-        Memory::MemCpy(Base::Data(), stringView.Data(), stringView.Size() * sizeof(CharType));
+        Memory::Copy(Base::Data(), stringView.Data(), stringView.Size() * sizeof(CharType));
         Base::Data()[Base::m_size - 1] = CharType('\0'); // Null-terminate the string
     }
 
@@ -1426,7 +1426,7 @@ String<TStringType>::String(ConstByteView byteView)
     }
 
     Base::ResizeZeroed((size / sizeof(CharType)) + 1); // +1 for null char
-    Memory::MemCpy(Data(), byteView.Data(), size / sizeof(CharType));
+    Memory::Copy(Data(), byteView.Data(), size / sizeof(CharType));
 
     m_length = utf::StringLength<CharType, isUtf8>(Base::Data());
 }
@@ -1643,7 +1643,7 @@ void String<TStringType>::Append(const utilities::StringView<TStringType>& strin
 
     auto* buffer = Base::GetBuffer();
 
-    Memory::MemCpy(buffer + Base::m_size, stringView.Data(), stringView.Size() * sizeof(CharType));
+    Memory::Copy(buffer + Base::m_size, stringView.Data(), stringView.Size() * sizeof(CharType));
 
     Base::m_size += stringView.Size();
 

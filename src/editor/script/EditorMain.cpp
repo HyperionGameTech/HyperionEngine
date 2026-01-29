@@ -392,7 +392,7 @@ UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
         return UIEventHandlerResult::OK;
     }
 
-    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(sources);
+    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(sources);
     InitObject(generateLightmapsTask);
 
     generateLightmapsTask->SetScene(activeScene);
@@ -450,7 +450,7 @@ UIEventHandlerResult EditorMain::AddPointLight(const MouseEvent& event)
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddPointLight"),
         Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -531,7 +531,7 @@ UIEventHandlerResult EditorMain::AddSpotLight(const MouseEvent& event)
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddSpotLight"),
         Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -611,7 +611,7 @@ UIEventHandlerResult EditorMain::AddAreaRectLight(const MouseEvent& event)
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddAreaRectLight"),
         Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -721,7 +721,7 @@ UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddDirectionalLight"),
         Proc<EditorActionFunctions()>([light, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -760,7 +760,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    Handle<TestNativeUI> testNativeUi = CreateObject<TestNativeUI>();
+    Handle<TestNativeUI> testNativeUi = MakeHandle<TestNativeUI>();
     testNativeUi->OnAccepted.Bind([this, weakThis = MakeWeakRef(this)](AddReflectionProbeResult result)
                                 {
                                     auto impl = [this, weakThis, result]()
@@ -813,7 +813,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
 
                                         WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-                                        Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+                                        Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
                                             NAME("AddReflectionProbe"),
                                             Proc<EditorActionFunctions()>([reflectionProbe, previousFocusedNode, activeScene]() -> EditorActionFunctions
                                                 {
@@ -848,7 +848,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                                         // kickoff new lightmap generation task
 
                                         // kickoff lightmap generation for the new volume
-                                        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(Array<Handle<ObjectBase>> { reflectionProbe });
+                                        Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(Array<Handle<ObjectBase>> { reflectionProbe });
                                         InitObject(generateLightmapsTask);
 
                                         generateLightmapsTask->SetScene(activeScene);
@@ -897,13 +897,13 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
     /// \todo : Allow building a bounding box in editor before starting the task.
     BoundingBox lightmapVolumeAabb(Vec3f(-60.0f, -5.0f, -60.0f), Vec3f(60.0f, 40.0f, 60.0f));
 
-    Handle<LightmapVolume> lightmapVolume = CreateObject<LightmapVolume>(lightmapVolumeAabb);
+    Handle<LightmapVolume> lightmapVolume = MakeHandle<LightmapVolume>(lightmapVolumeAabb);
     lightmapVolume->SetName(Name::Unique("LightmapVolume"));
     InitObject(lightmapVolume);
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddLightmapVolume"),
         Proc<EditorActionFunctions()>([lightmapVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -937,7 +937,7 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
     currentProject->GetActionStack()->Push(action);
 
     // kickoff lightmap generation for the new volume
-    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = CreateObject<GenerateLightmapsEditorTask>(lightmapVolume);
+    Handle<GenerateLightmapsEditorTask> generateLightmapsTask = MakeHandle<GenerateLightmapsEditorTask>(lightmapVolume);
     InitObject(generateLightmapsTask);
 
     generateLightmapsTask->SetScene(activeScene);
@@ -988,7 +988,7 @@ UIEventHandlerResult EditorMain::AddParticleVolume(const MouseEvent& event)
     params.hasPhysics = true;
     params.lifespan = 10.0f;
 
-    Handle<ParticleVolume> particleVolume = CreateObject<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
+    Handle<ParticleVolume> particleVolume = MakeHandle<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
     InitObject(particleVolume);
 
     const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
@@ -996,7 +996,7 @@ UIEventHandlerResult EditorMain::AddParticleVolume(const MouseEvent& event)
 
     WeakHandle<Node> previousFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddParticleVolume"),
         Proc<EditorActionFunctions()>([particleVolume, previousFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -1063,14 +1063,14 @@ UIEventHandlerResult EditorMain::AddNode(const MouseEvent& event)
 
     WeakHandle<Node> currentFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<Node> node = CreateObject<Node>(NAME("New Node"));
+    Handle<Node> node = MakeHandle<Node>(NAME("New Node"));
     InitObject(node);
 
     // Calculate appropriate insertion point in front of camera
     const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
     node->SetWorldTranslation(insertionPoint);
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddNewNode"),
         Proc<EditorActionFunctions()>([node, currentFocusedNode, activeScene]() -> EditorActionFunctions
             {
@@ -1137,14 +1137,14 @@ UIEventHandlerResult EditorMain::AddEntity(const MouseEvent& event)
 
     WeakHandle<Node> currentFocusedNode = editorSubsystem->GetFocusedNode();
 
-    Handle<Entity> entity = CreateObject<Entity>(NAME("New Entity"));
+    Handle<Entity> entity = MakeHandle<Entity>(NAME("New Entity"));
     InitObject(entity);
 
     // Calculate appropriate insertion point in front of camera
     const Vec3f insertionPoint = editorSubsystem->CalculateSceneInsertionPoint(5.0f, 0.5f);
     entity->SetWorldTranslation(insertionPoint);
 
-    Handle<FunctionalEditorAction> action = CreateObject<FunctionalEditorAction>(
+    Handle<FunctionalEditorAction> action = MakeHandle<FunctionalEditorAction>(
         NAME("AddNewEntity"),
         Proc<EditorActionFunctions()>([entity, currentFocusedNode, activeScene]() -> EditorActionFunctions
             {

@@ -113,6 +113,7 @@ class HYP_API LightmapVolume final : public VolumeBase
 public:
     // maximum number of atlases per LightmapVolume
     static constexpr uint32 MaxAtlases = 4;
+    static constexpr Vec2u DefaultAtlasDimensions = Vec2u(2048, 2048);
 
     LightmapVolume();
 
@@ -140,29 +141,10 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Texture>& GetAtlasTexture(uint16 atlasIndex, LightmapTextureType type) const
-    {
-        AssertDebug(type < LTT_MAX, "Invalid LightmapTextureType!");
+    const Handle<Texture>& GetAtlasTexture(uint16 atlasIndex, LightmapTextureType type) const;
 
-        if (atlasIndex >= m_atlases.Size())
-        {
-            AssertDebug(false, "atlas index out of bounds");
-
-            return Handle<Texture>::Null();
-        }
-
-        switch (type)
-        {
-        case LTT_RADIANCE:
-            AssertDebug(atlasIndex < m_radianceAtlasTextures.Size());
-            return m_radianceAtlasTextures[atlasIndex];
-        case LTT_IRRADIANCE:
-            AssertDebug(atlasIndex < m_irradianceAtlasTextures.Size());
-            return m_irradianceAtlasTextures[atlasIndex];
-        default:
-            return Handle<Texture>::Null();
-        }
-    }
+    HYP_METHOD()
+    void SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type, const Handle<Texture>& texture);
 
     HYP_FORCE_INLINE const LightmapVolumeAtlas& GetAtlas(uint16 atlasIndex) const
     {
@@ -170,14 +152,20 @@ public:
         return m_atlases[atlasIndex];
     }
 
+    HYP_FORCE_INLINE Span<LightmapVolumeAtlas> GetAtlases()
+    {
+        return m_atlases.ToSpan();
+    }
+
+    HYP_FORCE_INLINE Span<const LightmapVolumeAtlas> GetAtlases() const
+    {
+        return m_atlases.ToSpan();
+    }
+
     /*! \brief Add a LightmapElement to this volume. */
     bool AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit = true, float downscaleLimit = 0.1f);
 
     const LightmapElement* GetElement(LightmapElementId elementId) const;
-
-#ifdef HYP_EDITOR
-    bool BuildElementTextures(const Baking::BakeData<LightmapVolume>& bakeData, LightmapElementId elementId);
-#endif
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 

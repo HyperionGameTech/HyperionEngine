@@ -31,7 +31,7 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
-        Handle<EditorProject> editorProject = CreateObject<EditorProject>();
+        Handle<EditorProject> editorProject = MakeHandle<EditorProject>();
         out = BoxedValue(editorProject);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, EditorProject::StaticClass(), out))

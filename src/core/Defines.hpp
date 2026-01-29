@@ -501,7 +501,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #pragma region GPU features
 
 #ifdef HYP_DEBUG_MODE
-#ifdef HYP_VULKAN
+#if HYP_VULKAN
 // #define HYP_VULKAN_DEBUG
 #endif
 #endif
@@ -511,8 +511,8 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #undef HYP_FEATURES_BINDLESS_TEXTURES
 #endif
 
-#ifdef HYP_FEATURES_ENABLE_RAYTRACING
-#undef HYP_FEATURES_ENABLE_RAYTRACING
+#ifdef HYP_FEATURES_ENABLE_RAY_TRACING
+#undef HYP_FEATURES_ENABLE_RAY_TRACING
 #endif
 
 #if defined(HYP_VULKAN) && HYP_VULKAN
@@ -524,7 +524,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #endif
 #endif
 #else
-#define HYP_FEATURES_ENABLE_RAYTRACING 1
+#define HYP_FEATURES_ENABLE_RAY_TRACING 1
 #define HYP_FEATURES_BINDLESS_TEXTURES 1
 
 #if defined(HYP_VULKAN) && HYP_VULKAN

@@ -101,13 +101,19 @@ add_definitions(-DSDL_MAIN_HANDLED=1)
 add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 include_directories(
-    ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/thirdparty
     ${CMAKE_SOURCE_DIR}/generated
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
     ${CMAKE_SOURCE_DIR}/src/rendering
 )
+
+if(HYP_VULKAN)
+    include_directories(${Vulkan_INCLUDE_DIRS})
+    add_definitions(-DHYP_VULKAN=1)
+elseif(HYP_DX12)
+    add_definitions(-DHYP_DX12=1)
+endif()
 
 # Normalize sources/headers to absolute paths under the root
 set(CURRENT_SOURCES "")
@@ -142,6 +148,13 @@ target_link_libraries(${BUILD_NAME} PUBLIC hyperion-asset)
 if(HYP_SDL)
     target_compile_definitions(${BUILD_NAME} PUBLIC HYP_SDL=1)
 endif()
+
 if(HYP_GLSLANG)
+    message(STATUS "Enabling GLSLANG support in rendering module")
     target_compile_definitions(${BUILD_NAME} PUBLIC HYP_GLSLANG=1)
+endif()
+
+if(HYP_DXC)
+    message(STATUS "Linking to DXC")
+    target_compile_definitions(${BUILD_NAME} PUBLIC HYP_DXC=1)
 endif()

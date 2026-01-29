@@ -21,7 +21,7 @@ HYP_DECLARE_LOG_CHANNEL(WorldGrid);
 #pragma region TerrainWorldGridLayer
 
 TerrainWorldGridLayer::TerrainWorldGridLayer()
-    : m_scene(CreateObject<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND))
+    : m_scene(MakeHandle<Scene>(NAME("TerrainScene"), SceneFlags::FOREGROUND))
 {
 }
 
@@ -39,7 +39,7 @@ void TerrainWorldGridLayer::Init()
     AssertDebug(m_scene.IsValid());
     InitObject(m_scene);
 
-    m_material = CreateObject<Material>(NAME("terrain_material"));
+    m_material = MakeHandle<Material>(NAME("terrain_material"));
     m_material->SetBucket(RB_OPAQUE);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
@@ -96,7 +96,7 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const Stre
         return Handle<StreamingCell>::Null();
     }
 
-    return CreateObject<TerrainStreamingCell>(cellInfo, m_scene, m_material);
+    return MakeHandle<TerrainStreamingCell>(cellInfo, m_scene, m_material);
 }
 
 #pragma endregion TerrainWorldGridLayer

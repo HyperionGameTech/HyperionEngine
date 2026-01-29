@@ -7,7 +7,7 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 
@@ -314,7 +314,7 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
         return HYP_MAKE_ERROR(RendererError, "Device not supported -- indices setup was not complete.");
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
@@ -329,11 +329,11 @@ RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
     createInfo.device = m_device;
     createInfo.instance = instance->GetInstance();
     createInfo.pVulkanFunctions = &vkfuncs;
-    createInfo.flags = 0 | (m_features->IsRaytracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
+    createInfo.flags = 0 | (m_features->IsRayTracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
 
     vmaCreateAllocator(&createInfo, &m_allocator);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 void VulkanDevice::DebugLogAllocatorStats() const
@@ -359,7 +359,7 @@ RendererResult VulkanDevice::DestroyAllocator()
         m_allocator = VK_NULL_HANDLE;
     }
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 RendererResult VulkanDevice::WaitIdle() const
@@ -432,13 +432,13 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     const ExtensionMap unsupportedExtensions = GetUnsupportedExtensions();
     const auto supportedExtensions = GetSupportedExtensions();
 
-    HYP_GFX_CHECK(CheckDeviceSuitable(unsupportedExtensions));
+    CheckResultOrReturn(CheckDeviceSuitable(unsupportedExtensions));
 
     // no _required_ extensions were missing (otherwise would have caused an error)
     // so for each unsupported extension, remove it from out list of extensions
     for (auto& it : unsupportedExtensions)
     {
-        HYP_GFX_ASSERT(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
+        Assert(!it.second, "Unsupported extension should not be 'required', should have failed earlier check");
 
         m_wantedExtensions.Erase(it.first);
     }
@@ -521,12 +521,12 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
     HYP_LOG(RenderingBackend, Debug, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
 
-    HYPERION_RETURN_OK;
+    return {};
 }
 
 VkQueue VulkanDevice::GetQueue(uint32 queueFamilyIndex, uint32 queueIndex)
 {
-    HYP_GFX_ASSERT(m_device != VK_NULL_HANDLE);
+    Assert(m_device != VK_NULL_HANDLE);
 
     VkQueue queue;
     vkGetDeviceQueue(m_device, queueFamilyIndex, queueIndex, &queue);
@@ -543,22 +543,34 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
     Array<VulkanDeviceQueue, InlineAllocator<4>> queues;
     Array<VulkanDeviceQueue**, InlineAllocator<4>> queueMembers;
 
-    queues.PushBack({ .type = VulkanDeviceQueueType::GRAPHICS,
-        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get() });
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::GRAPHICS,
+        .familyIndex = m_queueFamilyIndices.graphicsFamily.Get()
+    });
+
     queueMembers.PushBack(&m_queueGraphics);
 
-    queues.PushBack({ .type = VulkanDeviceQueueType::TRANSFER,
-        .familyIndex = m_queueFamilyIndices.transferFamily.Get() });
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::TRANSFER,
+        .familyIndex = m_queueFamilyIndices.transferFamily.Get()
+    });
+
     queueMembers.PushBack(&m_queueTransfer);
 
-    queues.PushBack({ .type = VulkanDeviceQueueType::COMPUTE,
-        .familyIndex = m_queueFamilyIndices.computeFamily.Get() });
+    queues.PushBack({
+        .type = VulkanDeviceQueueType::COMPUTE,
+        .familyIndex = m_queueFamilyIndices.computeFamily.Get()
+    });
+
     queueMembers.PushBack(&m_queueCompute);
 
     if (needPresentation)
     {
-        queues.PushBack({ .type = VulkanDeviceQueueType::PRESENT,
-            .familyIndex = m_queueFamilyIndices.presentFamily.Get() });
+        queues.PushBack({
+            .type = VulkanDeviceQueueType::PRESENT,
+            .familyIndex = m_queueFamilyIndices.presentFamily.Get()
+        });
+
         queueMembers.PushBack(&m_queuePresent);
     }
 

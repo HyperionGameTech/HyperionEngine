@@ -18,10 +18,8 @@ layout(location = 14) in vec2 v_cube_face_uv;
 
 layout(location = 0) out vec4 output_color;
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest)
-uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear)
-uniform sampler sampler_linear;
+DECLARE_SAMPLER(Default, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(Default, SamplerLinear) uniform sampler sampler_linear;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -31,56 +29,44 @@ uniform sampler sampler_linear;
 #include "../include/gbuffer.inc"
 #include "../include/env_probe.inc"
 #include "../include/noise.inc"
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #include "../include/packing.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
 #ifdef INSTANCING
 
-HYP_DESCRIPTOR_SSBO(Global, EntitiesBuffer) readonly buffer EntitiesBuffer
+DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 {
     Entity entities[];
 };
 
 #else
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, CurrentEntity) readonly buffer EntitiesBuffer
+DECLARE_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
 {
     Entity entity;
 };
 
 #endif
 
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentLight) readonly buffer CurrentLight
+DECLARE_SRV_DYNAMIC(Default, CurrentLight) readonly buffer CurrentLight
 {
     Light light;
 };
 
-#ifdef HYP_USE_INDEXED_ARRAY_FOR_OBJECT_DATA
-HYP_DESCRIPTOR_SSBO(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
-{
-    Material materials[HYP_MAX_MATERIALS];
-};
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL (materials[entity.material_index])
-#endif
-#else
-
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Entity, MaterialsBuffer) readonly buffer MaterialsBuffer
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) readonly buffer MaterialsBuffer
 {
     Material material;
 };
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
-#endif
 #endif
 
 #define PLANET_RADIUS 6371e3

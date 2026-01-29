@@ -21,16 +21,16 @@ layout(location = 3) in vec4 v_color;
 layout(location = 0) out vec4 gbuffer_albedo;
 layout(location = 2) out uvec4 gbuffer_material;
 
-HYP_DESCRIPTOR_SRV(ParticleDescriptorSet, ParticleTexture) uniform texture2D ParticleTexture;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler SamplerLinear;
+DECLARE_SRV(ParticleDescriptorSet, ParticleTexture) uniform texture2D ParticleTexture;
+DECLARE_SAMPLER(ParticleDescriptorSet, SamplerLinear) uniform sampler SamplerLinear;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/Entity.glsl"
+#include "../include/Entity.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 void main()
 {
-    vec4 color = Texture2D(SamplerLinear, ParticleTexture, v_texcoord0);
+    vec4 color = SAMPLE_TEXTURE_2D(SamplerLinear, ParticleTexture, v_texcoord0);
     //color *= v_color;
 
     gbuffer_albedo = color;

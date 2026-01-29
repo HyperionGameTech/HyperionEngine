@@ -8,14 +8,14 @@
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest) uniform sampler sampler_nearest;
-HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear) uniform sampler sampler_linear;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerNearest) uniform sampler sampler_nearest;
+DECLARE_SAMPLER(LightmapPathTracer, SamplerLinear) uniform sampler sampler_linear;
 
 #define texture_sampler sampler_linear
 #define HYP_SAMPLER_NEAREST sampler_nearest
 #define HYP_SAMPLER_LINEAR sampler_linear
 
-HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(RTRadianceDescriptorSet, TLAS) uniform accelerationStructureEXT tlas;
+DECLARE_ACCELERATION_STRUCTURE(LightmapPathTracer, TLAS) uniform accelerationStructureEXT tlas;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
@@ -28,31 +28,35 @@ HYP_DESCRIPTOR_ACCELERATION_STRUCTURE(RTRadianceDescriptorSet, TLAS) uniform acc
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 /// Blue noise
-HYP_DESCRIPTOR_SSBO(Global, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
+DECLARE_SRV(LightmapPathTracer, BlueNoiseBuffer) readonly buffer BlueNoiseBuffer
 {
     ivec4 sobol_256spp_256d[256 * 256 / 4];
     ivec4 scrambling_tile[128 * 128 * 8 / 4];
     ivec4 ranking_tile[128 * 128 * 8 / 4];
 };
 
-#include "../../include/BlueNoise.glsl"
+#include "../../include/BlueNoise.inc"
 #include "../../include/env_probe.inc"
 
-HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer) uniform WorldsBuffer
-{
-    WorldShaderData world_shader_data;
-};
-
-HYP_DESCRIPTOR_CBUFF_DYNAMIC(Global, EnvGridsBuffer) uniform EnvGridsBuffer
-{
-    EnvGrid env_grid;
-};
-HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvProbe
+DECLARE_SRV_DYNAMIC(LightmapPathTracer, CurrentEnvProbe) readonly buffer CurrentEnvProbe
 {
     EnvProbe current_env_probe;
 };
 
-#include "../../include/Octahedron.glsl"
+#if ENV_PROBE_CUBEMAP
+DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) uniform textureCubeArray envProbesTexture;
+#else
+DECLARE_SRV(LightmapPathTracer, EnvProbesTexture) uniform texture2DArray envProbesTexture;
+#endif
+
+DECLARE_SRV(LightmapPathTracer, EnvProbesBuffer) readonly buffer EnvProbesBuffer { EnvProbe env_probes[]; };
+
+DECLARE_BUFFER(LightmapPathTracer, WorldsBuffer) uniform WorldsBuffer
+{
+    WorldShaderData world_shader_data;
+};
+
+#include "../../include/Octahedron.inc"
 
 #define PATHTRACER
 #define LIGHTMAPPER
@@ -61,12 +65,12 @@ HYP_DESCRIPTOR_SSBO_DYNAMIC(Global, CurrentEnvProbe) readonly buffer CurrentEnvP
 
 layout(location = 0) rayPayloadEXT RayPayload payload;
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, HitsBuffer, standard = scalar) buffer HitsBuffer
+DECLARE_UAV(LightmapPathTracer, HitsBuffer, standard = scalar) buffer HitsBuffer
 {
     vec4 hits[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, Lights) uniform Lights
+DECLARE_BUFFER(LightmapPathTracer, Lights) uniform Lights
 {
     Light lights[MAX_LIGHTS];
 };
@@ -77,12 +81,12 @@ struct LightmapRay
     vec3 direction;
 };
 
-HYP_DESCRIPTOR_SSBO(RTRadianceDescriptorSet, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
+DECLARE_SRV(LightmapPathTracer, RaysBuffer, standard = scalar) readonly buffer RaysBuffer
 {
     vec4 ray_data[];
 };
 
-HYP_DESCRIPTOR_CBUFF(RTRadianceDescriptorSet, RayTracingConstants) uniform RayTracingCBuffer
+DECLARE_BUFFER(LightmapPathTracer, RayTracingConstants) uniform RayTracingCBuffer
 {
     RayTracingConstants rayTracingConstants;
 };
@@ -242,8 +246,7 @@ void main()
                 // miss -> sample environment probe if present
                 if (current_env_probe.texture_index != ~0u)
                 {
-                    uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                    vec3 env = EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], direction, 0.0).rgb;
+                    vec3 env = EnvProbeSample(sampler_linear, envProbesTexture, current_env_probe.texture_index, direction, 0.0).rgb;
                     radiance += beta * env;
                 }
                 break;
@@ -380,8 +383,7 @@ void main()
             {
                 if (current_env_probe.texture_index != ~0u)
                 {
-                    uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-                    vec3 env = EnvProbeSample(sampler_linear, env_probe_textures[probe_texture_index], direction, 0.0).rgb;
+                    vec3 env = EnvProbeSample(sampler_linear, envProbesTexture, current_env_probe.texture_index, direction, 0.0).rgb;
                     Li += beta * env;
                 }
                 break;

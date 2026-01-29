@@ -2,15 +2,15 @@
 
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
-#include <rendering/RenderMaterial.hpp>
+#include <rendering/MaterialTextureCache.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Bindless.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/DescriptorSet.hpp>
 
-#include <rendering/renderers/EnvGridRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
 #include <rendering/util/ResourceBinder.hpp>
@@ -24,9 +24,7 @@
 
 namespace Hyperion {
 
-namespace RenderApi {
 extern ResourceBinderBase* g_reflectionProbeTextureBinder;
-} // namespace RenderApi
 
 void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
 {
@@ -35,9 +33,10 @@ void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
         entity->InstanceClass()->GetName());
 
     // For now, use Entity ID as index.
-    RenderApi::AssignResourceBinding(entity, entity->Id().ToIndex());
+    AssignResourceBinding(entity, entity->Id().ToIndex());
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
 {
     AssertDebug(gpuBufferHolder != nullptr);
@@ -52,11 +51,12 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
         LookupTypeName(proxyCasted->entity.Id().GetTypeId()));
 
     proxyCasted->bufferData.entityIndex = proxyCasted->entity.Id().ToIndex();
-    proxyCasted->bufferData.materialIndex = RenderApi::RetrieveResourceBinding(proxyCasted->material);
-    proxyCasted->bufferData.skeletonIndex = RenderApi::RetrieveResourceBinding(proxyCasted->skeleton);
+    proxyCasted->bufferData.materialIndex = RetrieveResourceBinding(proxyCasted->material);
+    proxyCasted->bufferData.skeletonIndex = RetrieveResourceBinding(proxyCasted->skeleton);
 
     gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
 }
+HYP_ENABLE_OPTIMIZATION;
 
 void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 {
@@ -86,18 +86,9 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     Assert(envProbe->IsA<SkyProbe>() || envProbe->IsA<ReflectionProbe>(),
         "EnvProbe must be a SkyProbe or ReflectionProbe, but is a {}", envProbe->InstanceClass()->GetName());
 
-    if (prev != ~0u)
-    {
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("EnvProbeTextures"_sh, prev, g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
-        }
-    }
-
     if (next != ~0u)
     {
-        IRenderProxy* proxy = RenderApi::GetRenderProxy(envProbe);
+        IRenderProxy* proxy = GetRenderProxy(envProbe);
         AssertDebug(proxy != nullptr);
 
         if (!proxy)
@@ -108,14 +99,65 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
         RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
         AssertDebug(proxyCasted->envProbe.GetUnsafe() == envProbe);
 
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+        if (!proxyCasted->texture)
         {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("EnvProbeTextures"_sh, next,
-                    proxyCasted->texture != nullptr
-                        ? g_renderBackend->GetTextureImageView(MakeStrongRef(proxyCasted->texture))
-                        : g_renderBackend->GetTextureImageView(g_renderInterface->placeholderData->defaultCubemap));
+            HYP_LOG(Rendering, Warning, "No EnvProbe texture for {}", envProbe->Id());
+
+            return;
         }
+
+        // blit to the array texture
+        const GpuImageRef& srcImage = proxyCasted->texture->GetGpuImage();
+        AssertDebug(srcImage.IsValid());
+
+        const GpuImageRef& dstImage = g_renderInterface->envProbesTexture->GetGpuImage();
+        Assert(dstImage.IsValid());
+
+        Frame* currentFrame = g_renderInterface->GetCurrentFrame();
+        Assert(currentFrame != nullptr);
+
+        RenderQueue& rq = currentFrame->preRenderQueue;
+
+        rq << InsertBarrier(srcImage, RS_COPY_SRC);
+        rq << InsertBarrier(dstImage, RS_COPY_DST);
+
+        for (uint8 mipIndex = 0; mipIndex < dstImage->NumMips(); mipIndex++)
+        {
+            if (mipIndex >= srcImage->NumMips())
+            {
+                break;
+            }
+            
+            ImageSubResource srcSubResource {};
+            srcSubResource.baseMipLevel = mipIndex;
+            srcSubResource.baseArrayLayer = 0;
+            srcSubResource.numLayers = 6;
+
+            ImageSubResource dstSubResource {};
+            dstSubResource.baseMipLevel = mipIndex;
+            dstSubResource.baseArrayLayer = 6 * next;
+            dstSubResource.numLayers = 6;
+
+            const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);
+            const Vec3u dstMipExtent = dstImage->GetTextureDesc().GetMipExtent(mipIndex);
+
+            rq << Blit(
+                srcImage,
+                dstImage,
+                Rect<uint32> {
+                    0, 0,
+                    srcMipExtent.x, srcMipExtent.y
+                },
+                Rect<uint32> {
+                    0, 0,
+                    dstMipExtent.x, dstMipExtent.y
+                },
+                srcSubResource,
+                dstSubResource);
+        }
+
+        rq << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+        rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
     }
 }
 
@@ -124,7 +166,7 @@ void OnBindingChanged_EnvProbe(EnvProbe* envProbe, uint32 prev, uint32 next)
     AssertDebug(envProbe != nullptr);
     AssertDebug(envProbe->IsReady());
 
-    RenderApi::AssignResourceBinding(envProbe, next);
+    AssignResourceBinding(envProbe, next);
 }
 
 void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -137,7 +179,7 @@ void WriteBufferData_EnvProbe(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, 
 
     if (proxyCasted->envProbe.GetUnsafe()->IsA<SkyProbe>() || proxyCasted->envProbe.GetUnsafe()->IsA<ReflectionProbe>())
     {
-        const uint32 textureBinding = RenderApi::g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
+        const uint32 textureBinding = g_reflectionProbeTextureBinder->GetBindingForObject(proxyCasted->envProbe.GetUnsafe());
         Assert(textureBinding != ~0u);
 
         proxyCasted->bufferData.textureIndex = textureBinding;
@@ -150,96 +192,14 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
 {
     AssertDebug(envGrid != nullptr);
 
-    if (!envGrid->IsA<LegacyEnvGrid>())
-    {
-        return;
-    }
-
-    LegacyEnvGrid* legacyEnvGrid = static_cast<LegacyEnvGrid*>(envGrid);
-
-    RenderApi::AssignResourceBinding(envGrid, next);
-
-    switch (legacyEnvGrid->GetEnvGridType())
-    {
-    case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
-    {
-        AssertDebug(legacyEnvGrid->GetLightFieldIrradianceTexture().IsValid());
-        AssertDebug(legacyEnvGrid->GetLightFieldDepthTexture().IsValid());
-
-        /// \todo : Set based on binding index
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("LightFieldColorTexture"_sh, g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldIrradianceTexture()));
-
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("LightFieldDepthTexture"_sh, g_renderBackend->GetTextureImageView(legacyEnvGrid->GetLightFieldDepthTexture()));
-        }
-
-        break;
-    }
-    default:
-        break;
-    }
-
-    if (legacyEnvGrid->GetOptions().flags & EnvGridFlags::USE_VOXEL_GRID)
-    {
-        AssertDebug(legacyEnvGrid->GetVoxelGridTexture().IsValid());
-
-        // Set our voxel grid texture in the global descriptor set so we can use it in shaders
-        for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-        {
-            g_renderInterface->globalDescriptorTable->GetDescriptorSet("Global"_sh, frameIndex)
-                ->SetElement("VoxelGridTexture"_sh, g_renderBackend->GetTextureImageView(legacyEnvGrid->GetVoxelGridTexture()));
-        }
-    }
-}
-
-void WriteBufferData_EnvGrid(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
-{
-    AssertDebug(gpuBufferHolder != nullptr);
-    AssertDebug(idx != ~0u);
-
-    RenderProxyEnvGrid* proxyCasted = static_cast<RenderProxyEnvGrid*>(proxy);
-    AssertDebug(proxyCasted != nullptr);
-
-    EnvGrid* envGrid = proxyCasted->envGrid.GetUnsafe();
-    AssertDebug(envGrid != nullptr);
-
-    uint32 offset = 0;
-
-    for (auto it = std::begin(proxyCasted->envProbes); it != std::end(proxyCasted->envProbes); ++it)
-    {
-        EnvProbe* envProbe = *it;
-
-        // at first non-valid id, just set all remaining probe indices to -1
-        if (!envProbe)
-        {
-            std::fill(proxyCasted->bufferData.probeIndices + offset, std::end(proxyCasted->bufferData.probeIndices), ~0u);
-
-            break;
-        }
-
-        const uint32 boundIndex = RenderApi::RetrieveResourceBinding(envProbe);
-
-        if (boundIndex == ~0u)
-        {
-            HYP_LOG(Rendering, Warning, "EnvProbe {} not currently bound when writing buffer data for EnvGrid {}", envProbe->Id(), envGrid->Id());
-
-            continue;
-        }
-
-        proxyCasted->bufferData.probeIndices[offset++] = boundIndex;
-    }
-
-    gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
+    AssignResourceBinding(envGrid, next);
 }
 
 void OnBindingChanged_Light(Light* light, uint32 prev, uint32 next)
 {
     AssertDebug(light != nullptr);
 
-    RenderApi::AssignResourceBinding(light, next);
+    AssignResourceBinding(light, next);
 }
 
 void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
@@ -255,7 +215,7 @@ void WriteBufferData_Light(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRe
     // textured area lights can have a material attached
     if (proxyCasted->lightMaterial != nullptr)
     {
-        const uint32 materialBoundIndex = RenderApi::RetrieveResourceBinding(proxyCasted->lightMaterial);
+        const uint32 materialBoundIndex = RetrieveResourceBinding(proxyCasted->lightMaterial);
         AssertDebug(materialBoundIndex != ~0u, "Light uses Material {} but it is not bound", proxyCasted->lightMaterial->Id());
 
         bufferData.materialIndex = materialBoundIndex;
@@ -272,60 +232,78 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 {
     AssertOnThread(g_renderThread);
 
-    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
-    static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
+    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
 
     AssertDebug(material != nullptr);
 
-    RenderApi::AssignResourceBinding(material, next);
+    AssignResourceBinding(material, next);
 
     //// \todo : Needs to notify that mesh descriptions buffer needs to be updated for ray tracing.
 
-    if (!s_isBindlessSupported)
+    if (prev != ~0u)
     {
-        if (prev != ~0u)
+        if (g_renderInterface->materialTextureCache->imageViews.HasIndex(prev))
         {
-            g_renderInterface->materialDescriptorSetManager->Remove(prev);
+            auto& imageViews = g_renderInterface->materialTextureCache->imageViews.Get(prev);
+
+            if (imageViews.Any())
+            {
+                SafeDelete(std::move(imageViews));
+            }
+        }
+    }
+    
+    if (next != ~0u)
+    {
+        IRenderProxy* proxy = GetRenderProxy(material);
+        Assert(proxy != nullptr);
+
+        RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
+
+        auto imageViewsIt = g_renderInterface->materialTextureCache->imageViews.Emplace(next);
+        auto& imageViews = *imageViewsIt;
+
+        if (imageViews.Size() < proxyCasted->boundTextures.Size())
+        {
+            imageViews.Resize(proxyCasted->boundTextures.Size());
         }
 
-        if (next != ~0u)
+        for (uint32 i = 0; i < uint32(proxyCasted->boundTextures.Size()); i++)
         {
-            IRenderProxy* proxy = RenderApi::GetRenderProxy(material);
-            AssertDebug(proxy != nullptr);
-
-            if (!proxy)
+            if (imageViews[i].IsValid())
             {
-                return;
+                if (imageViews[i]->GetImage() == proxyCasted->boundTextures[i]->GetGpuImage())
+                {
+                    continue; // skip; already valid image view set
+                }
+                
+                // defer release until a few frames from now
+                SafeDelete(std::move(imageViews[i]));
             }
 
-            RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
-
-            g_renderInterface->materialDescriptorSetManager->Allocate(
-                next,
-                proxyCasted->boundTextureIndices.ToSpan(),
-                proxyCasted->boundTextures.ToSpan());
+            imageViews[i] = g_renderInterface->textureViewCache->GetOrCreate(proxyCasted->boundTextures[i]);
         }
     }
 }
 
 void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
 {
-    static const IRenderConfig& s_renderConfig = g_renderBackend->GetRenderConfig();
+    static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
     static const bool s_isBindlessSupported = s_renderConfig.bindlessTextures;
 
     if (s_isBindlessSupported)
     {
         if (next != ~0u)
         {
-            g_renderInterface->bindlessStorage->AddResource(texture->Id(), g_renderBackend->GetTextureImageView(MakeStrongRef(texture)));
+            g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Textures, texture->Id().ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(texture));
         }
         else
         {
-            g_renderInterface->bindlessStorage->RemoveResource(texture->Id());
+            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Textures, texture->Id().ToIndex());
         }
     }
 
-    RenderApi::AssignResourceBinding(texture, next);
+    AssignResourceBinding(texture, next);
 }
 
 } // namespace Hyperion

@@ -9,8 +9,6 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderMaterial.hpp>
-#include <rendering/RenderBackend.hpp>
 #include <rendering/Frame.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -24,6 +22,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ResourceTracker.hpp>
+#include <rendering/util/ShaderPropertyCache.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
@@ -126,15 +125,17 @@ ParallelRenderingState::~ParallelRenderingState()
 #pragma region GeometryPass
 
 namespace GeometryPass {
-namespace PropNames {
+namespace Props {
+
+/// Static property names
 
 static const Name s_nameInstancing = NAME("INSTANCING");
+static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
+static const Name s_nameSkinning = NAME("SKINNING");
 static const Name s_nameShadingType = NAME("SHADING_TYPE");
 static const Name s_nameDeferred = NAME("DEFERRED");
 static const Name s_nameForward = NAME("FORWARD");
 static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
-static const Name s_nameAlphaDiscard = NAME("ALPHA_DISCARD");
-static const Name s_nameSkinning = NAME("SKINNING");
 
 static const Name s_nameHasAlbedoMap = NAME("HAS_ALBEDO_MAP");
 static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
@@ -143,7 +144,35 @@ static const Name s_nameHasMetalnessMap = NAME("HAS_METALNESS_MAP");
 static const Name s_nameHasRoughnessMap = NAME("HAS_ROUGHNESS_MAP");
 static const Name s_nameHasAoMap = NAME("HAS_AO_MAP");
 
-} // namespace PropNames
+/// Property interning
+
+static const ShaderPropertyId s_propInstancing = InternShaderProperty(ShaderProperty(s_nameInstancing));
+static const ShaderPropertyId s_propAlphaDiscard = InternShaderProperty(ShaderProperty(s_nameAlphaDiscard));
+static const ShaderPropertyId s_propSkinning = InternShaderProperty(ShaderProperty(s_nameSkinning));
+
+// shading mode
+static const ShaderPropertyId s_propShadingTypeDeferred = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameDeferred)));
+static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameForward)));
+static const ShaderPropertyId s_propShadingTypeLightmapped = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameLightmapped)));
+
+// textures
+static const ShaderPropertyId s_propHasAlbedoMap = InternShaderProperty(ShaderProperty(s_nameHasAlbedoMap));
+static const ShaderPropertyId s_propHasNormalMap = InternShaderProperty(ShaderProperty(s_nameHasNormalMap));
+static const ShaderPropertyId s_propHasParallaxMap = InternShaderProperty(ShaderProperty(s_nameHasParallaxMap));
+static const ShaderPropertyId s_propHasMetalnessMap = InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap));
+static const ShaderPropertyId s_propHasRoughnessMap = InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap));
+static const ShaderPropertyId s_propHasAoMap = InternShaderProperty(ShaderProperty(s_nameHasAoMap));
+
+static const Pair<MaterialTextureKey, ShaderPropertyId> s_textureProperties[] = {
+    { MaterialTextureKey::ALBEDO_MAP, InternShaderProperty(ShaderProperty(s_nameHasAlbedoMap)) },
+    { MaterialTextureKey::NORMAL_MAP, InternShaderProperty(ShaderProperty(s_nameHasNormalMap)) },
+    { MaterialTextureKey::PARALLAX_MAP, InternShaderProperty(ShaderProperty(s_nameHasParallaxMap)) },
+    { MaterialTextureKey::METALNESS_MAP, InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap)) },
+    { MaterialTextureKey::ROUGHNESS_MAP, InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap)) },
+    { MaterialTextureKey::AO_MAP, InternShaderProperty(ShaderProperty(s_nameHasAoMap)) }
+};
+
+} // namespace Props
 
 // Get the stencil reference value to set for a lightmapped object,
 // based on its associated atlas index.
@@ -175,54 +204,11 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     Material* material = proxy.material;
     AssertDebug(material != nullptr);
 
-    // shading mode
-    static const ShaderProperty s_propShadingTypeDeferredDeferred = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameDeferred));
-    static const ShaderProperty s_propShadingTypeForward = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameForward));
-    static const ShaderProperty s_propShadingTypeLightmapped = ShaderProperty(Name(PropNames::s_nameShadingType), Name(PropNames::s_nameLightmapped));
-
-    // textures
-    static const ShaderProperty s_propHasAlbedoMap = ShaderProperty(PropNames::s_nameHasAlbedoMap);
-    static const ShaderProperty s_propHasNormalMap = ShaderProperty(PropNames::s_nameHasNormalMap);
-    static const ShaderProperty s_propHasParallaxMap = ShaderProperty(PropNames::s_nameHasParallaxMap);
-    static const ShaderProperty s_propHasMetalnessMap = ShaderProperty(PropNames::s_nameHasMetalnessMap);
-    static const ShaderProperty s_propHasRoughnessMap = ShaderProperty(PropNames::s_nameHasRoughnessMap);
-    static const ShaderProperty s_propHasAoMap = ShaderProperty(PropNames::s_nameHasAoMap);
-
-    static const Pair<MaterialTextureKey, ShaderProperty> s_textureProperties[] = {
-        { MaterialTextureKey::ALBEDO_MAP, ShaderProperty(PropNames::s_nameHasAlbedoMap) },
-        { MaterialTextureKey::NORMAL_MAP, ShaderProperty(PropNames::s_nameHasNormalMap) },
-        { MaterialTextureKey::PARALLAX_MAP, ShaderProperty(PropNames::s_nameHasParallaxMap) },
-        { MaterialTextureKey::METALNESS_MAP, ShaderProperty(PropNames::s_nameHasMetalnessMap) },
-        { MaterialTextureKey::ROUGHNESS_MAP, ShaderProperty(PropNames::s_nameHasRoughnessMap) },
-        { MaterialTextureKey::AO_MAP, ShaderProperty(PropNames::s_nameHasAoMap) }
-    };
-
     attributes = proxy.cachedAttributes;
 
     if (overrideAttributes)
     {
-        if (const ShaderDefinition& overrideShaderDefinition = overrideAttributes->GetShaderDefinition())
-        {
-            attributes.SetShaderDefinition(overrideShaderDefinition);
-        }
-
-        const ShaderDefinition& shaderDefinition = overrideAttributes->GetShaderDefinition().IsValid()
-            ? overrideAttributes->GetShaderDefinition()
-            : attributes.GetShaderDefinition();
-
-        // Check for varying vertex attributes on the override shader compared to the entity's vertex
-        // attributes. If there is not a match, we should switch to a version of the override shader that
-        // has matching vertex attribs.
-        const VertexAttributeSet meshVertexAttributes = attributes.GetMeshAttributes().vertexAttributes;
-
         MaterialAttributes newMaterialAttributes = overrideAttributes->GetMaterialAttributes();
-        newMaterialAttributes.shaderDefinition = shaderDefinition;
-
-        if (meshVertexAttributes != newMaterialAttributes.shaderDefinition.GetProperties().GetRequiredVertexAttributes())
-        {
-            newMaterialAttributes.shaderDefinition.properties.SetRequiredVertexAttributes(meshVertexAttributes);
-        }
-
         // do not override bucket!
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -245,6 +231,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
         if (stencilReferenceValue != (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask))
         {
+            attributes.GetMaterialAttributes().flags |= MAF_STENCIL_TEST;
             attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
             attributes.GetMaterialAttributes().stencilReference |= stencilReferenceValue;
             attributes.Invalidate();
@@ -253,71 +240,66 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     else if (attributes.GetMaterialAttributes().stencilReference & LightmapStencilMask)
     {
         attributes.GetMaterialAttributes().stencilReference &= ~LightmapStencilMask;
+
+        if (!attributes.GetMaterialAttributes().stencilReference)
+        {
+            attributes.GetMaterialAttributes().flags &= ~MAF_STENCIL_TEST;
+        }
+
         attributes.Invalidate();
     }
 
-    const ShaderDefinition& currentShaderDefinition = attributes.GetShaderDefinition();
-    const ShaderProperties& currentProperties = currentShaderDefinition.GetProperties();
+    const ShaderPropertySet& currentShaderProperties = attributes.GetShaderProperties();
 
-    ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
-    bool shaderDefinitionChanged = false;
+    ShaderPropertySet newShaderProperties = currentShaderProperties;
 
-    if (hasInstancing != shaderDefinition.GetProperties().Has(PropNames::s_nameInstancing))
+    if (hasInstancing != currentShaderProperties.Test(Props::s_propInstancing))
     {
-        shaderDefinition.GetProperties().Set(PropNames::s_nameInstancing, hasInstancing);
-        shaderDefinitionChanged = true;
+        newShaderProperties.Set(Props::s_propInstancing, hasInstancing);
     }
 
     {
-        auto shadingTypeIt = currentProperties.Find(PropNames::s_nameShadingType);
-
-        if (hasDeferredLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode == s_propShadingTypeDeferredDeferred.cachedHashCode))
+        if (hasDeferredLighting != currentShaderProperties.Test(Props::s_propShadingTypeDeferred))
         {
-            shaderDefinition.GetProperties().Set(s_propShadingTypeDeferredDeferred, hasDeferredLighting);
-            shaderDefinitionChanged = true;
+            newShaderProperties.Set(Props::s_propShadingTypeDeferred, hasDeferredLighting);
         }
 
-        if (hasForwardLighting != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode == s_propShadingTypeForward.cachedHashCode))
+        if (hasForwardLighting != currentShaderProperties.Test(Props::s_propShadingTypeForward))
         {
-            shaderDefinition.GetProperties().Set(s_propShadingTypeForward, hasForwardLighting);
-            shaderDefinitionChanged = true;
+            newShaderProperties.Set(Props::s_propShadingTypeForward, hasForwardLighting);
         }
 
-        if (hasLightmaps != (shadingTypeIt != currentProperties.End() && shadingTypeIt->cachedHashCode == s_propShadingTypeLightmapped.cachedHashCode))
+        if (hasLightmaps != currentShaderProperties.Test(Props::s_propShadingTypeLightmapped))
         {
-            shaderDefinition.GetProperties().Set(s_propShadingTypeLightmapped, hasLightmaps);
-            shaderDefinitionChanged = true;
+            newShaderProperties.Set(Props::s_propShadingTypeLightmapped, hasLightmaps);
         }
     }
 
-    if (hasAlphaDiscard != currentProperties.Has(PropNames::s_nameAlphaDiscard))
+    if (hasAlphaDiscard != currentShaderProperties.Test(Props::s_propAlphaDiscard))
     {
-        shaderDefinition.GetProperties().Set(PropNames::s_nameAlphaDiscard, hasAlphaDiscard);
-        shaderDefinitionChanged = true;
+        newShaderProperties.Set(Props::s_propAlphaDiscard, hasAlphaDiscard);
     }
 
-    if (hasSkinning != currentProperties.Has(PropNames::s_nameSkinning))
+    if (hasSkinning != currentShaderProperties.Test(Props::s_propSkinning))
     {
-        shaderDefinition.GetProperties().Set(PropNames::s_nameSkinning, hasSkinning);
-        shaderDefinitionChanged = true;
+        newShaderProperties.Set(Props::s_propSkinning, hasSkinning);
     }
 
     // update shader properties to reflect texture presence based on texture mask
-    for (const auto& [textureKey, property] : s_textureProperties)
+    for (const auto& [textureKey, property] : Props::s_textureProperties)
     {
         const bool presence = bool(attributes.GetMaterialAttributes().textureMask & uint32(textureKey));
 
-        if (presence != currentProperties.Has(property))
+        if (presence != currentShaderProperties.Test(property))
         {
-            shaderDefinition.GetProperties().Set(property, presence);
-            shaderDefinitionChanged = true;
+            newShaderProperties.Set(property, presence);
         }
     }
 
-    if (shaderDefinitionChanged)
+    if (newShaderProperties != currentShaderProperties)
     {
         // Update the shader definition in the attributes
-        attributes.SetShaderDefinition(shaderDefinition);
+        attributes.SetShaderProperties(newShaderProperties);
     }
 }
 
@@ -325,7 +307,10 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
 
 #pragma endregion GeometryPass
 
-static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, DrawCallCollectionMapping& mapping, const RenderableAttributeSet& attributes)
+static RenderGroup* CreateRenderGroup(
+    RenderCollector* renderCollector,
+    DrawCallCollectionMapping& mapping,
+    const RenderableAttributeSet& attributes)
 {
     EnumFlags<RenderGroupFlags> renderGroupFlags = RenderGroupFlags::DEFAULT;
 
@@ -337,19 +322,20 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
         renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
     }
 
-    ShaderDefinition shaderDefinition = attributes.GetShaderDefinition();
-
-    ShaderRef shader = g_shaderManager->GetOrCreate(shaderDefinition);
+    ShaderRef shader = g_shaderManager->GetOrCreate(
+        attributes.GetMaterialAttributes().shaderName,
+        attributes.GetMaterialAttributes().shaderProperties,
+        attributes.GetMeshAttributes().vertexAttributes);
 
     if (!shader.IsValid())
     {
         HYP_LOG(Rendering, Error, "Failed to create shader for RenderProxy");
 
-        return Handle<RenderGroup>::empty;
+        return nullptr;
     }
 
     // Create RenderGroup
-    Handle<RenderGroup> rg = CreateObject<RenderGroup>(shader, attributes, renderGroupFlags);
+    RenderGroup* rg = new RenderGroup(shader, attributes, renderGroupFlags);
 
     if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {
@@ -360,8 +346,17 @@ static Handle<RenderGroup> CreateRenderGroup(RenderCollector* renderCollector, D
     }
 
     mapping.drawCallCollection.batchAllocator = renderCollector->batchAllocator;
+    
+    // If parallel rendering is globally disabled, disable it for this RenderGroup
+    if (!g_renderInterface->GetRenderConfig().parallelRendering)
+    {
+        rg->flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
+    }
 
-    InitObject(rg);
+    if (!g_renderInterface->GetRenderConfig().indirectRendering)
+    {
+        rg->flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
+    }
 
     return rg;
 }
@@ -726,7 +721,8 @@ RenderCollector::~RenderCollector()
                         mapping.indirectRenderer = nullptr;
                     }
 
-                    SafeDelete(std::move(mapping.renderGroup));
+                    delete mapping.renderGroup;
+                    mapping.renderGroup = nullptr;
                 }
 
                 mappings.Clear();
@@ -777,7 +773,8 @@ void RenderCollector::Clear(bool freeMemory)
                     mapping.indirectRenderer = nullptr;
                 }
 
-                SafeDelete(std::move(mapping.renderGroup));
+                delete mapping.renderGroup;
+                mapping.renderGroup = nullptr;
             }
         }
 
@@ -868,6 +865,8 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             state->localQueues[i]->Clear();
         }
 
+        renderQueue << SetStencilState(0, 0xFF, 0x0); // reset stencil
+
         // Add render stats counts to the engine's render stats
         for (EngineStatsValueSet& valueSet : state->statValues)
         {
@@ -891,6 +890,16 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         state = state->next;
     }
 
+    // Reset draw states
+    renderQueue << SetTopology(TOP_TRIANGLES);
+    renderQueue << SetFillMode(FM_FILL);
+    renderQueue << SetFaceCullMode(FCM_BACK);
+    renderQueue << SetVertexAttributes(VertexAttributeSet::StaticMeshVertexAttributes);
+    renderQueue << SetCurrentBlendFunction(BlendFunction::None());
+    renderQueue << SetDepthWrite(true);
+    renderQueue << SetDepthTest(true);
+    renderQueue << SetStencilTest(false);
+
     parallelRenderingStateTail = nullptr;
 }
 
@@ -902,7 +911,7 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
-    static const bool s_isIndirectRenderingEnabled = g_renderBackend->GetRenderConfig().indirectRendering;
+    static const bool s_isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
     const bool performOcclusionCulling = s_isIndirectRenderingEnabled && renderSetup.passData->cullData.depthPyramidImageView != nullptr;
 
     if (performOcclusionCulling)
@@ -923,15 +932,15 @@ void RenderCollector::PerformOcclusionCulling(Frame* frame, const RenderSetup& r
                 DrawCallCollectionMapping& mapping = it.second;
                 AssertDebug(mapping.IsValid());
 
-                const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
-                AssertDebug(renderGroup.IsValid());
+                RenderGroup* renderGroup = mapping.renderGroup;
+                AssertDebug(renderGroup != nullptr);
 
                 DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
                 IndirectRenderer* indirectRenderer = mapping.indirectRenderer;
 
-                if (renderGroup->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING)
+                if (renderGroup->flags & RenderGroupFlags::OCCLUSION_CULLING)
                 {
-                    AssertDebug((renderGroup->GetFlags() & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                    AssertDebug((renderGroup->flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
                     AssertDebug(indirectRenderer != nullptr);
 
                     indirectRenderer->GetDrawState().ResetDrawState();
@@ -979,7 +988,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    Span<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>> groupsView;
+    Span<HashMap<RenderableAttributeSet, DrawCallCollectionMapping, NodeAllocator<RenderAllocator>>> groupsView;
 
     if (bucketBits == 0)
     {
@@ -1049,7 +1058,7 @@ void RenderCollector::ExecuteDrawCalls(
                 continue;
             }
 
-            const Handle<RenderGroup>& renderGroup = mapping.renderGroup;
+            RenderGroup* renderGroup = mapping.renderGroup;
             AssertDebug(renderGroup != nullptr);
 
             DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
@@ -1058,7 +1067,7 @@ void RenderCollector::ExecuteDrawCalls(
 
             ParallelRenderingState* parallelRenderingState = nullptr;
 
-            if (renderGroup->GetFlags() & RenderGroupFlags::PARALLEL_RENDERING)
+            if (renderGroup->flags & RenderGroupFlags::PARALLEL_RENDERING)
             {
                 parallelRenderingState = AcquireNextParallelRenderingState();
             }
@@ -1096,8 +1105,6 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
     {
         batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
     }
-
-    static const bool s_uniquePerMaterial = g_renderBackend->GetRenderConfig().uniqueDrawCallPerMaterial;
 
     if (bucketBits == 0)
     {
@@ -1141,7 +1148,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
         DrawCallCollectionMapping& mapping = it->second;
         AssertDebug(mapping.IsValid());
 
-        DrawCallCollection previousDrawState = std::move(mapping.drawCallCollection);
+        DrawCallCollection prevDrawCallCollection = std::move(mapping.drawCallCollection);
 
         DrawCallCollection& drawCallCollection = mapping.drawCallCollection;
         drawCallCollection.batchAllocator = batchAllocator;
@@ -1160,16 +1167,7 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
                 continue;
             }
 
-            DrawCallID drawCallId;
-
-            if (s_uniquePerMaterial)
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
-            }
-            else
-            {
-                drawCallId = DrawCallID(meshProxy->mesh->Id());
-            }
+            DrawCallID drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
 
             if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
             {
@@ -1180,10 +1178,10 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
             EntityInstanceBatch* batch = nullptr;
 
-            if (previousDrawState.IsValid())
+            if (prevDrawCallCollection.IsValid())
             {
                 // take a batch for reuse if a draw call was using one
-                if ((batch = previousDrawState.RecycleDrawBatch(drawCallId)) != nullptr)
+                if ((batch = prevDrawCallCollection.RecycleDrawBatch(drawCallId)) != nullptr)
                 {
                     const uint32 batchIndex = batch->batchIndex;
                     AssertDebug(batchIndex != ~0u);
@@ -1196,10 +1194,10 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
             drawCallCollection.PushRenderProxyInstanced(batch, drawCallId, *meshProxy);
         }
 
-        if (previousDrawState.IsValid())
+        if (prevDrawCallCollection.IsValid())
         {
             // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
-            previousDrawState.ResetDrawCalls();
+            prevDrawCallCollection.ResetDrawCalls();
         }
     }
 }
@@ -1228,7 +1226,8 @@ void RenderCollector::RemoveEmptyRenderGroups()
                 mapping.indirectRenderer = nullptr;
             }
 
-            SafeDelete(std::move(mapping.renderGroup));
+            delete mapping.renderGroup;
+            mapping.renderGroup = nullptr;
 
             it = mappings.Erase(it);
         }
@@ -1320,9 +1319,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             // Add proxy to group
             DrawCallCollectionMapping& newMapping = mappingsByBucket[newAttributes.GetMaterialAttributes().bucket][newAttributes];
 
-            Handle<RenderGroup>& rg = newMapping.renderGroup;
+            RenderGroup*& rg = newMapping.renderGroup;
 
-            if (!rg.IsValid())
+            if (!rg)
             {
                 rg = CreateRenderGroup(this, newMapping, newAttributes);
             }
@@ -1395,11 +1394,14 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             RenderableAttributeSet attributes;
             GeometryPass::BuildAttributes(*meshProxy, attributes, overrideAttributes);
 
-            // Add proxy to group
-            DrawCallCollectionMapping& mapping = mappingsByBucket[attributes.GetMaterialAttributes().bucket][attributes];
-            Handle<RenderGroup>& rg = mapping.renderGroup;
+            const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
+            AssertDebug(bucket < mappingsByBucket.Size());
 
-            if (!rg.IsValid())
+            // Add proxy to group
+            DrawCallCollectionMapping& mapping = mappingsByBucket[bucket][attributes];
+            RenderGroup*& rg = mapping.renderGroup;
+
+            if (!rg)
             {
                 rg = CreateRenderGroup(this, mapping, attributes);
             }

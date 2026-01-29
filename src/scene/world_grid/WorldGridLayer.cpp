@@ -23,7 +23,7 @@ HYP_DECLARE_LOG_CHANNEL(Streaming);
 Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCellInfo& cellInfo)
 {
     HYP_SCOPE;
-    Handle<StreamingCell> cell = CreateObject<StreamingCell>(cellInfo);
+    Handle<StreamingCell> cell = MakeHandle<StreamingCell>(cellInfo);
 
     auto objectsByCoordIt = m_objectsByCoord.Find(cellInfo.coord);
     if (objectsByCoordIt != m_objectsByCoord.End())

@@ -1,16 +1,29 @@
 #ifndef HYP_AABB_GLSL
 #define HYP_AABB_GLSL
 
+#ifdef LANG_GLSL
 const vec3 aabb_corners[8] = {
-    vec3(0.0),
+    vec3(0.0, 0.0, 0.0),
     vec3(1.0, 0.0, 0.0),
     vec3(0.0, 1.0, 0.0),
     vec3(0.0, 0.0, 1.0),
     vec3(1.0, 1.0, 0.0),
     vec3(0.0, 1.0, 1.0),
     vec3(1.0, 0.0, 1.0),
-    vec3(1.0)
+    vec3(1.0, 1.0, 1.0)
 };
+#elif defined(LANG_HLSL)
+static const float3 aabb_corners[8] = {
+    float3(0.0, 0.0, 0.0),
+    float3(1.0, 0.0, 0.0),
+    float3(0.0, 1.0, 0.0),
+    float3(0.0, 0.0, 1.0),
+    float3(1.0, 1.0, 0.0),
+    float3(0.0, 1.0, 1.0),
+    float3(1.0, 0.0, 1.0),
+    float3(1.0, 1.0, 1.0)
+};
+#endif
 
 struct AABB
 {

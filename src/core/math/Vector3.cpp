@@ -46,9 +46,9 @@ HYP_REGISTER_STATIC_CLASS(Vec3u);
 Vec3<float> math::Vec3<float>::operator*(const Mat3f& mat) const
 {
     return {
-        x * mat.values[0] + y * mat.values[3] + z * mat.values[6],
-        x * mat.values[1] + y * mat.values[4] + z * mat.values[7],
-        x * mat.values[2] + y * mat.values[5] + z * mat.values[8]
+        x * mat.rows[0][0] + y * mat.rows[1][0] + z * mat.rows[2][0],
+        x * mat.rows[0][1] + y * mat.rows[1][1] + z * mat.rows[2][1],
+        x * mat.rows[0][2] + y * mat.rows[1][2] + z * mat.rows[2][2]
     };
 }
 

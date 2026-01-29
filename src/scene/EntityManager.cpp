@@ -431,7 +431,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
     Assert(!IsLocked() && IsOnThread(m_ownerThreadId));
 
-    Handle<Entity> entity = CreateObject<Entity>();
+    Handle<Entity> entity = MakeHandle<Entity>();
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 
@@ -1277,7 +1277,6 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
     }
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void EntityManager::NotifySystemsOfEntityRemoved(Entity* entity, const ComponentMap& componentIds)
 {
     HYP_SCOPE;

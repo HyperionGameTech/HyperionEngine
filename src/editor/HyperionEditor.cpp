@@ -101,7 +101,7 @@ static const Name s_nameEditorWorld = NAME("EditorWorld");
 HyperionEditor::HyperionEditor()
     : Game()
 {
-    m_world = CreateObject<World>(s_nameEditorWorld, WorldFlags::EDITOR_WORLD);
+    m_world = MakeHandle<World>(s_nameEditorWorld, WorldFlags::EDITOR_WORLD);
 }
 
 HyperionEditor::~HyperionEditor()
@@ -110,20 +110,20 @@ HyperionEditor::~HyperionEditor()
 
 void HyperionEditor::OnLaunch_Impl()
 {
-    // m_editorSubsystem = CreateObject<EditorSubsystem>();
+    // m_editorSubsystem = MakeHandle<EditorSubsystem>();
 
     // GetWorld()->AddSubsystem(m_editorSubsystem);
 
-    // GetWorld()->GetWorldGrid()->AddLayer(CreateObject<TerrainWorldGridLayer>());
+    // GetWorld()->GetWorldGrid()->AddLayer(MakeHandle<TerrainWorldGridLayer>());
 
 #if 1
 
-    Handle<Scene> scene = CreateObject<Scene>(NAME("MyScene"));
+    Handle<Scene> scene = MakeHandle<Scene>(NAME("MyScene"));
     scene->SetSceneFlags(SceneFlags::DEFAULT);
     GetWorld()->AddScene(scene);
 
-    Handle<Camera> camera = CreateObject<Camera>();
-    camera->AddCameraController(CreateObject<FirstPersonCameraController>());
+    Handle<Camera> camera = MakeHandle<Camera>();
+    camera->AddCameraController(MakeHandle<FirstPersonCameraController>());
     camera->SetName(NAME("Camera"));
     camera->SetFOV(60.0f);
     camera->SetNear(0.1f);
@@ -134,7 +134,7 @@ void HyperionEditor::OnLaunch_Impl()
     InitObject(camera);
     scene->GetRoot()->AddChild(camera);
 
-    Handle<DirectionalLight> sun = CreateObject<DirectionalLight>();
+    Handle<DirectionalLight> sun = MakeHandle<DirectionalLight>();
     sun->SetName(NAME("SunLight"));
     sun->SetDirection(Vec3f(-0.2f, 0.8f, 0.2f).Normalize());
     sun->SetIntensity(10.0f);
@@ -149,11 +149,11 @@ void HyperionEditor::OnLaunch_Impl()
             | ViewFlags::GBUFFER
             | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .viewport = Viewport { .extent = Vec2u(camera->GetDimensions()), .position = Vec2i::Zero() },
-        .outputTargetDesc = { .extent = Vec2u(camera->GetDimensions()) },
+        .renderTargetDesc = { .extent = Vec2u(camera->GetDimensions()) },
         .camera = camera
     };
 
-    Handle<View> view = CreateObject<View>(viewDesc);
+    Handle<View> view = MakeHandle<View>(viewDesc);
     GetWorld()->AddView(view);
 
     // Test assets
@@ -198,7 +198,7 @@ void HyperionEditor::OnLaunch_Impl()
 
                     // temp: add test script component
 
-                    Handle<ScriptAsset> scriptAsset = CreateObject<ScriptAsset>(NAME("NewScript"), ScriptData());
+                    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptData());
 
                     // register the package
                     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();

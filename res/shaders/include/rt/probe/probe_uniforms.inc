@@ -8,6 +8,8 @@
 
 struct DDGIConstants
 {
+    mat4 rotationMatrix;
+
     vec4 aabb_max;
     vec4 aabb_min;
     

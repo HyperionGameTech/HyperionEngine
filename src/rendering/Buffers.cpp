@@ -2,9 +2,9 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/Buffers.hpp>
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #include <rendering/RenderQueue.hpp>
+#include <rendering/Buffers.hpp>
 #include <rendering/Frame.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -63,7 +63,7 @@ struct StagingBufferPoolImpl
 
     void Cleanup(uint32 frameIndex)
     {
-        const uint32 currFrame = RenderApi::GetFrameCounter();
+        const uint32 currFrame = GetFrameCounter();
 
         for (auto it = cachedBuffers[frameIndex].Begin(); it != cachedBuffers[frameIndex].End();)
         {
@@ -85,7 +85,7 @@ struct StagingBufferPoolImpl
 
     GpuBuffer* GetOrCreateBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize)
     {
-        const uint32 currFrame = RenderApi::GetFrameCounter();
+        const uint32 currFrame = GetFrameCounter();
 
         // unused one (different frame)
         for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
@@ -97,7 +97,7 @@ struct StagingBufferPoolImpl
                 cachedBuffer.size = bufferSize;
                 cachedBuffer.lastUsedFrame = currFrame;
 
-                HYP_GFX_ASSERT(cachedBuffer.buffer != nullptr
+                Assert(cachedBuffer.buffer != nullptr
                     && cachedBuffer.buffer->IsCreated()
                     && cachedBuffer.buffer->Size() >= bufferSize);
 
@@ -110,7 +110,7 @@ struct StagingBufferPoolImpl
         newBuffer.offset = offset;
         newBuffer.size = bufferSize;
         newBuffer.lastUsedFrame = currFrame;
-        newBuffer.buffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
+        newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
 
 #ifdef HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(HYP_NAME("StagingBufferPoolTempBuffer"));
@@ -179,14 +179,14 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
 
     const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
 
-    m_gpuBuffer = g_renderBackend->MakeGpuBuffer(bufferType, gpuBufferSize);
+    m_gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, gpuBufferSize);
     m_gpuBuffer->SetRequireCpuAccessible(m_cpuAccessible);
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
-    Assert(m_gpuBuffer->Create());
+    CheckResult(m_gpuBuffer->Create());
 }
 
 void GpuBufferHolderBase::CopyStagingToGpu(
-    Frame* frame,
+    uint32 frameIndex, RenderQueue& renderQueue,
     Span<GpuBuffer* const> stagingBuffers,
     Span<const uint32> chunkStarts,
     Span<const uint32> chunkEnds)
@@ -206,16 +206,13 @@ void GpuBufferHolderBase::CopyStagingToGpu(
     const uint32 rangeStart = chunkStarts[0];
     const uint32 rangeEnd = chunkEnds[chunkEnds.Size() - 1];
 
-    const uint32 frameIndex = frame->GetFrameIndex();
-    RenderQueue& rq = frame->preRenderQueue;
-
     AssertDebug(m_gpuBuffer != nullptr);
 
     const SizeType requiredBufferSize = rangeEnd;
 
     AssertDebug(m_gpuBuffer->Size() >= requiredBufferSize);
 
-    rq << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
+    renderQueue << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
     for (SizeType i = 0; i < stagingBuffers.Size(); i++)
     {
@@ -230,12 +227,12 @@ void GpuBufferHolderBase::CopyStagingToGpu(
             "Staging buffer size is too small! Staging buffer size = {}, required size = {}",
             stagingBuffer->Size(), chunkEnd - chunkStart);
 
-        rq << InsertBarrier(stagingBuffer, RS_COPY_SRC);
+        renderQueue << InsertBarrier(stagingBuffer, RS_COPY_SRC);
 
-        rq << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
+        renderQueue << CopyBuffer(stagingBuffer, m_gpuBuffer, 0, chunkStart, (chunkEnd - chunkStart));
     }
 
-    rq << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::SSBO ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
+    renderQueue << InsertBarrier(m_gpuBuffer, m_gpuBuffer->GetBufferType() == GpuBufferType::STORAGE_BUFFER ? RS_UNORDERED_ACCESS : RS_SHADER_RESOURCE);
 }
 
 #pragma endregion GpuBufferHolderBase

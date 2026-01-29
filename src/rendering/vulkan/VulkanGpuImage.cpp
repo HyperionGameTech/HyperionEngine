@@ -4,7 +4,7 @@
 
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
-#include <rendering/vulkan/VulkanRenderBackend.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanInstance.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
@@ -31,7 +31,7 @@ namespace Hyperion {
 
 static constexpr SizeType MaxImageBytes = 1024 * 1024 * 1024; // 1 GiB
 
-extern VulkanRenderBackend* g_renderBackend;
+extern VulkanRenderInterface* g_renderInterface;
 
 extern VkImageLayout GetVkImageLayout(ResourceState);
 extern VkAccessFlags GetVkAccessMask(ResourceState);
@@ -51,9 +51,9 @@ VulkanGpuImage::~VulkanGpuImage()
     {
         if (m_allocation != VK_NULL_HANDLE)
         {
-            HYP_GFX_ASSERT(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
+            Assert(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
 
-            vmaDestroyImage(g_renderBackend->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            vmaDestroyImage(g_renderInterface->GetDevice()->GetAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
         }
 
@@ -99,15 +99,11 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                 we'll still need to transfer into a layout primed for reading from shaders. */
 
             const ImageSubResource src {
-                .flags = m_textureDesc.IsDepthStencil()
-                    ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-                    : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
                 .baseArrayLayer = face,
                 .baseMipLevel = uint32(i - 1)
             };
 
             const ImageSubResource dst {
-                .flags = src.flags,
                 .baseArrayLayer = src.baseArrayLayer,
                 .baseMipLevel = uint32(i)
             };
@@ -116,7 +112,7 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                 commandBuffer,
                 src,
                 RS_COPY_SRC,
-                SMT_UNSET);
+                ShaderModuleType::None);
 
             if (i == int32(numMipmaps))
             {
@@ -129,14 +125,22 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
 
                 break;
             }
+            
+            VkImageAspectFlags aspectFlagBits = 0;
 
-            const VkImageAspectFlags aspectFlagBits =
-                (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-                | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-                | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0)
-                | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-                | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-                | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+            if (TextureUtils::IsDepthFormat(GetTextureFormat()))
+            {
+                aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+                if (TextureUtils::HasStencilComponent(GetTextureFormat()))
+                {
+                    aspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+                }
+            }
+            else
+            {
+                aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+            }
 
             /* Blit src -> dst */
             const VkImageBlit blit {
@@ -144,9 +148,15 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                     .aspectMask = aspectFlagBits,
                     .mipLevel = src.baseMipLevel,
                     .baseArrayLayer = src.baseArrayLayer,
-                    .layerCount = src.numLayers },
+                    .layerCount = src.numLayers
+                },
                 .srcOffsets = { { 0, 0, 0 }, { int32(helpers::MipmapSize(m_textureDesc.extent.x, i - 1)), int32(helpers::MipmapSize(m_textureDesc.extent.y, i - 1)), int32(helpers::MipmapSize(m_textureDesc.extent.z, i - 1)) } },
-                .dstSubresource = { .aspectMask = aspectFlagBits, .mipLevel = dst.baseMipLevel, .baseArrayLayer = dst.baseArrayLayer, .layerCount = dst.numLayers },
+                .dstSubresource = {
+                    .aspectMask = aspectFlagBits,
+                    .mipLevel = dst.baseMipLevel,
+                    .baseArrayLayer = dst.baseArrayLayer,
+                    .layerCount = dst.numLayers
+                },
                 .dstOffsets = { { 0, 0, 0 }, { mipWidth, mipHeight, mipDepth } }
             };
 
@@ -186,7 +196,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (!m_isHandleOwned)
     {
-        HYP_GFX_ASSERT(m_handle != VK_NULL_HANDLE, "If m_isHandleOwned is false, the image handle must not be VK_NULL_HANDLE.");
+        Assert(m_handle != VK_NULL_HANDLE, "If m_isHandleOwned is false, the image handle must not be VK_NULL_HANDLE.");
 
         return {};
     }
@@ -202,7 +212,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
     const TextureType type = GetType();
 
     const bool isAttachmentTexture = m_textureDesc.imageUsage[IU_ATTACHMENT];
-    const bool isRwTexture = m_textureDesc.imageUsage[IU_STORAGE];
+    const bool isRWTexture = m_textureDesc.imageUsage[IU_STORAGE];
     const bool isExternalMemory = m_textureDesc.imageUsage[IU_EXTERNAL];
 
     const bool isDepthStencil = m_textureDesc.IsDepthStencil();
@@ -233,7 +243,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
             | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; /* for mip chain */
     }
 
-    if (isRwTexture)
+    if (isRWTexture)
     {
         m_usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT
             | VK_IMAGE_USAGE_TRANSFER_DST_BIT
@@ -283,7 +293,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         vkImageCreateFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    RendererResult formatSupportResult = g_renderBackend->GetDevice()->GetFeatures().GetImageFormatProperties(
+    RendererResult formatSupportResult = g_renderInterface->GetDevice()->GetFeatures().GetImageFormatProperties(
         vkFormat,
         vkImageType,
         m_tiling,
@@ -293,10 +303,10 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (!formatSupportResult)
     {
-        HYP_GFX_CHECK(formatSupportResult);
+        CheckResultOrReturn(formatSupportResult);
     }
 
-    const QueueFamilyIndices& qfIndices = g_renderBackend->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qfIndices = g_renderInterface->GetDevice()->GetQueueFamilyIndices();
     const uint32 imageFamilyIndices[] = { qfIndices.graphicsFamily.Get(), qfIndices.computeFamily.Get() };
 
     VkImageCreateInfo imageInfo { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -340,7 +350,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         uint32_t memTypeIndex;
 
         VkResult res = vmaFindMemoryTypeIndexForImageInfo(
-            g_renderBackend->GetDevice()->GetAllocator(),
+            g_renderInterface->GetDevice()->GetAllocator(),
             &imageInfo, &allocInfo, &memTypeIndex);
 
         VULKAN_CHECK(res);
@@ -350,7 +360,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         poolCreateInfo.pMemoryAllocateNext = (void*)&ExportAllocInfo;
 
         VmaPool pool;
-        res = vmaCreatePool(g_renderBackend->GetDevice()->GetAllocator(), &poolCreateInfo, &pool);
+        res = vmaCreatePool(g_renderInterface->GetDevice()->GetAllocator(), &poolCreateInfo, &pool);
         VULKAN_CHECK(res); //// \todo Have to destroy this pool later!
 
         allocInfo.pool = pool;
@@ -363,7 +373,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     VULKAN_CHECK_MSG(
         vmaCreateImage(
-            g_renderBackend->GetDevice()->GetAllocator(),
+            g_renderInterface->GetDevice()->GetAllocator(),
             &imageInfo,
             &allocInfo,
             &m_handle,
@@ -414,7 +424,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         // destroy and recreate
         if (m_allocation != VK_NULL_HANDLE)
         {
-            vmaDestroyImage(g_renderBackend->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            vmaDestroyImage(g_renderInterface->GetDevice()->GetAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
         }
 
@@ -422,13 +432,13 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         m_resourceState = RS_UNDEFINED;
         m_subResourceStates.Clear();
 
-        HYP_GFX_CHECK(Create());
+        CheckResultOrReturn(Create());
 
         if (previousResourceState != RS_UNDEFINED)
         {
             SetResourceState(RS_UNDEFINED);
 
-            VulkanFrame* frame = g_renderBackend->GetCurrentFrame();
+            VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
             RenderQueue& renderQueue = frame->renderQueue;
             renderQueue << ::Hyperion::InsertBarrier(this, previousResourceState);
         }
@@ -447,13 +457,13 @@ auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
     getHandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
 
     VmaAllocationInfo allocInfo;
-    vmaGetAllocationInfo(g_renderBackend->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
+    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
     getHandleInfo.memory = allocInfo.deviceMemory;
 
     HANDLE handle;
 
     VkResult res = g_vulkanDynamicFunctions->vkGetMemoryWin32HandleKHR(
-        g_renderBackend->GetDevice()->GetDevice(),
+        g_renderInterface->GetDevice()->GetDevice(),
         &getHandleInfo,
         &handle);
 
@@ -465,13 +475,13 @@ auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
     getFdInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
 
     VmaAllocationInfo allocInfo;
-    vmaGetAllocationInfo(g_renderBackend->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
+    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
     getFdInfo.memory = allocInfo.deviceMemory;
 
     int fd;
 
     VkResult res = g_vulkanDynamicFunctions->vkGetMemoryFdKHR(
-        g_renderBackend->GetDevice()->GetDevice(),
+        g_renderInterface->GetDevice()->GetDevice(),
         &getFdInfo,
         &fd);
 
@@ -510,23 +520,12 @@ void VulkanGpuImage::InsertBarrier(
     ResourceState newState,
     ShaderModuleType shaderModuleType)
 {
-    ImageSubResourceFlagBits flags = IMAGE_SUB_RESOURCE_FLAGS_NONE;
-
-    if (m_textureDesc.IsDepthStencil())
-    {
-        flags |= IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL;
-    }
-    else
-    {
-        flags |= IMAGE_SUB_RESOURCE_FLAGS_COLOR;
-    }
-
     InsertBarrier(
         commandBuffer,
         ImageSubResource {
-            .flags = flags,
             .numLayers = ~0u,
-            .numLevels = ~0u },
+            .numLevels = ~0u
+        },
         newState,
         shaderModuleType);
 }
@@ -560,7 +559,7 @@ void VulkanGpuImage::InsertBarrier(
 
             if (it != m_subResourceStates.End())
             {
-                HYP_GFX_ASSERT(
+                Assert(
                     it->second == prevResourceState,
                     "Sub resource state mismatch for image: mip %d, layer %d",
                     mipLevel,
@@ -570,10 +569,21 @@ void VulkanGpuImage::InsertBarrier(
     }
 #endif
 
-    const VkImageAspectFlags aspectFlagBits =
-        (subResource.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (subResource.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (subResource.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+    VkImageAspectFlags aspectFlagBits = 0;
+
+    if (TextureUtils::IsDepthFormat(GetTextureFormat()))
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (TextureUtils::HasStencilComponent(GetTextureFormat()))
+        {
+            aspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
 
     VkImageSubresourceRange range {};
     range.aspectMask = aspectFlagBits;
@@ -637,29 +647,21 @@ void VulkanGpuImage::InsertBarrier(
 
 RendererResult VulkanGpuImage::Blit(
     VulkanCommandBuffer* commandBuffer,
-    const VulkanGpuImage* src)
-{
-    return Blit(
-        commandBuffer,
-        src,
-        Rect<uint32> { 0, 0, src->GetExtent().x, src->GetExtent().y },
-        Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y });
-}
-
-RendererResult VulkanGpuImage::Blit(
-    VulkanCommandBuffer* commandBuffer,
-    const VulkanGpuImage* srcImage,
-    uint32 srcMip,
-    uint32 dstMip,
-    uint32 srcFace,
-    uint32 dstFace)
+    const VulkanGpuImage* srcImage)
 {
     return Blit(
         commandBuffer,
         srcImage,
         Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y },
-        srcMip, dstMip, srcFace, dstFace);
+        ImageSubResource {
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers(),
+            .numLevels = srcImage->m_textureDesc.NumMips()
+        },
+        ImageSubResource {
+            .numLayers = m_textureDesc.NumArrayLayers(),
+            .numLevels = m_textureDesc.NumMips()
+        });
 }
 
 RendererResult VulkanGpuImage::Blit(
@@ -668,41 +670,84 @@ RendererResult VulkanGpuImage::Blit(
     Rect<uint32> srcRect,
     Rect<uint32> dstRect)
 {
-    const uint32 numLayers = MathUtil::Min(NumArrayLayers(), srcImage->NumArrayLayers());
+    return Blit(
+        commandBuffer,
+        srcImage,
+        srcRect,
+        dstRect,
+        ImageSubResource {
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers(),
+            .numLevels = srcImage->m_textureDesc.NumMips()
+        },
+        ImageSubResource {
+            .numLayers = m_textureDesc.NumArrayLayers(),
+            .numLevels = m_textureDesc.NumMips()
+        });
+}
 
-    for (uint32 face = 0; face < numLayers; face++)
+RendererResult VulkanGpuImage::Blit(
+    VulkanCommandBuffer* commandBuffer,
+    const VulkanGpuImage* srcImage,
+    Rect<uint32> srcRect,
+    Rect<uint32> dstRect,
+    const ImageSubResource& srcSubResource,
+    const ImageSubResource& dstSubResource)
+{
+    VkImageAspectFlags srcAspectFlagBits = 0;
+
+    if (TextureUtils::IsDepthFormat(srcImage->GetTextureFormat()))
     {
-        const ImageSubResource src {
-            .flags = srcImage->GetTextureDesc().IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-            .baseArrayLayer = face,
-            .baseMipLevel = 0
-        };
+        srcAspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        const ImageSubResource dst {
-            .flags = m_textureDesc.IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-            .baseArrayLayer = face,
-            .baseMipLevel = 0
-        };
+        if (TextureUtils::HasStencilComponent(srcImage->GetTextureFormat()))
+        {
+            srcAspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        srcAspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
 
-        const ResourceState srcResourceState = static_cast<const VulkanGpuImage*>(srcImage)->GetSubResourceState(src);
-        const ResourceState dstResourceState = GetSubResourceState(dst);
+    VkImageAspectFlags dstAspectFlagBits = 0;
 
-        const VkImageAspectFlags aspectFlagBits =
-            (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-            | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-            | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0)
-            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-            | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+    if (TextureUtils::IsDepthFormat(GetTextureFormat()))
+    {
+        dstAspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (TextureUtils::HasStencilComponent(GetTextureFormat()))
+        {
+            dstAspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        dstAspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+
+    // simple path; all resource states are same
+    if (m_subResourceStates.Empty() && srcImage->m_subResourceStates.Empty())
+    {
+        const ResourceState srcResourceState = srcImage->m_resourceState;
+        const ResourceState dstResourceState = m_resourceState;
+
+        AssertDebug(srcResourceState == RS_COPY_SRC);
+        AssertDebug(dstResourceState == RS_COPY_DST);
 
         VkImageBlit blit {
             .srcSubresource = {
-                .aspectMask = aspectFlagBits,
-                .mipLevel = src.baseMipLevel,
-                .baseArrayLayer = src.baseArrayLayer,
-                .layerCount = src.numLayers },
+                .aspectMask = srcAspectFlagBits,
+                .mipLevel = srcSubResource.baseMipLevel,
+                .baseArrayLayer = srcSubResource.baseArrayLayer,
+                .layerCount = srcSubResource.numLayers
+            },
             .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
-            .dstSubresource = { .aspectMask = aspectFlagBits, .mipLevel = dst.baseMipLevel, .baseArrayLayer = dst.baseArrayLayer, .layerCount = dst.numLayers },
+            .dstSubresource = {
+                .aspectMask = dstAspectFlagBits,
+                .mipLevel = dstSubResource.baseMipLevel,
+                .baseArrayLayer = dstSubResource.baseArrayLayer,
+                .layerCount = dstSubResource.numLayers
+            },
             .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }
         };
 
@@ -714,65 +759,55 @@ RendererResult VulkanGpuImage::Blit(
             GetVkImageLayout(dstResourceState),
             1, &blit,
             ToVkFilter(GetMinFilterMode()));
+
+        return {};
     }
 
-    return {};
-}
+    // complex path; per-subresource states
+    for (uint32 layerIndex = 0; layerIndex < MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer); layerIndex++)
+    {
+        for (uint32 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
+        {
+            const ResourceState srcResourceState = srcImage->GetSubResourceState(ImageSubResource {
+                .baseArrayLayer = srcSubResource.baseArrayLayer + layerIndex,
+                .baseMipLevel = srcSubResource.baseMipLevel + mipLevel
+            });
 
-RendererResult VulkanGpuImage::Blit(
-    VulkanCommandBuffer* commandBuffer,
-    const VulkanGpuImage* srcImage,
-    Rect<uint32> srcRect,
-    Rect<uint32> dstRect,
-    uint32 srcMip,
-    uint32 dstMip,
-    uint32 srcFace,
-    uint32 dstFace)
-{
-    const uint32 numLayers = MathUtil::Min(NumArrayLayers(), srcImage->NumArrayLayers());
+            const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
+                .baseArrayLayer = dstSubResource.baseArrayLayer + layerIndex,
+                .baseMipLevel = dstSubResource.baseMipLevel + mipLevel
+            });
 
-    const ImageSubResource src {
-        .flags = srcImage->GetTextureDesc().IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-        .baseArrayLayer = srcFace,
-        .baseMipLevel = srcMip
-    };
+            AssertDebug(srcResourceState == RS_COPY_SRC);
+            AssertDebug(dstResourceState == RS_COPY_DST);
 
-    const ImageSubResource dst {
-        .flags = m_textureDesc.IsDepthStencil() ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL : IMAGE_SUB_RESOURCE_FLAGS_COLOR,
-        .baseArrayLayer = dstFace,
-        .baseMipLevel = dstMip
-    };
+            VkImageBlit blit {
+                .srcSubresource = {
+                    .aspectMask = srcAspectFlagBits,
+                    .mipLevel = srcSubResource.baseMipLevel + mipLevel,
+                    .baseArrayLayer = srcSubResource.baseArrayLayer + layerIndex,
+                    .layerCount = 1
+                },
+                .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
+                .dstSubresource = {
+                    .aspectMask = dstAspectFlagBits,
+                    .mipLevel = dstSubResource.baseMipLevel + mipLevel,
+                    .baseArrayLayer = dstSubResource.baseArrayLayer + layerIndex,
+                    .layerCount = 1
+                },
+                .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }
+            };
 
-    const ResourceState srcResourceState = static_cast<const VulkanGpuImage*>(srcImage)->GetSubResourceState(src);
-    const ResourceState dstResourceState = GetSubResourceState(dst);
-
-    const VkImageAspectFlags aspectFlagBits =
-        (src.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (src.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0)
-        | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (dst.flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
-
-    VkImageBlit blit {
-        .srcSubresource = {
-            .aspectMask = aspectFlagBits,
-            .mipLevel = srcMip,
-            .baseArrayLayer = src.baseArrayLayer,
-            .layerCount = 1 },
-        .srcOffsets = { { int32(srcRect.x0), int32(srcRect.y0), 0 }, { int32(srcRect.x1), int32(srcRect.y1), 1 } },
-        .dstSubresource = { .aspectMask = aspectFlagBits, .mipLevel = dstMip, .baseArrayLayer = dst.baseArrayLayer, .layerCount = 1 },
-        .dstOffsets = { { int32(dstRect.x0), int32(dstRect.y0), 0 }, { int32(dstRect.x1), int32(dstRect.y1), 1 } }
-    };
-
-    vkCmdBlitImage(
-        commandBuffer->GetVulkanHandle(),
-        srcImage->GetVulkanHandle(),
-        GetVkImageLayout(srcResourceState),
-        m_handle,
-        GetVkImageLayout(dstResourceState),
-        1, &blit,
-        ToVkFilter(GetMinFilterMode()));
+            vkCmdBlitImage(
+                commandBuffer->GetVulkanHandle(),
+                srcImage->GetVulkanHandle(),
+                GetVkImageLayout(srcResourceState),
+                m_handle,
+                GetVkImageLayout(dstResourceState),
+                1, &blit,
+                ToVkFilter(GetMinFilterMode()));
+        }
+    }
 
     return {};
 }
@@ -784,14 +819,21 @@ void VulkanGpuImage::CopyFromBuffer(
     uint8 dstMipIndex,
     uint16 dstArrayLayer) const
 {
-    const auto flags = m_textureDesc.IsDepthStencil()
-        ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-        : IMAGE_SUB_RESOURCE_FLAGS_COLOR;
+    VkImageAspectFlags aspectFlagBits = 0;
 
-    const VkImageAspectFlags aspectFlagBits =
-        (flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+    if (m_textureDesc.IsDepthStencil())
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (TextureUtils::HasStencilComponent(m_textureDesc.format))
+        {
+            aspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
 
     // copy from staging to image
     const uint16 numArrayLayers = m_textureDesc.NumArrayLayers();
@@ -851,17 +893,24 @@ void VulkanGpuImage::CopyFromBuffer(
 
 void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuBuffer* dstBuffer) const
 {
-    HYP_GFX_ASSERT(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
-    HYP_GFX_ASSERT(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
+    Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
+    Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
+    
+    VkImageAspectFlags aspectFlagBits = 0;
 
-    const auto flags = m_textureDesc.IsDepthStencil()
-        ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
-        : IMAGE_SUB_RESOURCE_FLAGS_COLOR;
+    if (m_textureDesc.IsDepthStencil())
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
-    const VkImageAspectFlags aspectFlagBits =
-        (flags & IMAGE_SUB_RESOURCE_FLAGS_COLOR ? VK_IMAGE_ASPECT_COLOR_BIT : 0)
-        | (flags & IMAGE_SUB_RESOURCE_FLAGS_DEPTH ? VK_IMAGE_ASPECT_DEPTH_BIT : 0)
-        | (flags & IMAGE_SUB_RESOURCE_FLAGS_STENCIL ? VK_IMAGE_ASPECT_STENCIL_BIT : 0);
+        if (TextureUtils::HasStencilComponent(m_textureDesc.format))
+        {
+            aspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+    else
+    {
+        aspectFlagBits |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
 
     // copy from staging to image
     const uint32 numLayers = NumArrayLayers();
@@ -899,13 +948,13 @@ VulkanGpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) cons
             Warning,
             "Attempt to create image view on uninitialized image");
 
-        return VulkanGpuImageViewRef();
+        return VulkanGpuImageViewRef::Null();
     }
 
-    return g_renderBackend->MakeImageView(
-        HandleFromThis(),
+    return g_renderInterface->MakeImageView(
+        MakeStrongRef(this),
         0,
-        NumMips(),
+        m_textureDesc.NumMips(),
         layerIndex,
         1);
 }
@@ -925,7 +974,7 @@ void VulkanGpuImage::SetDebugName(Name name)
 
     if (m_allocation != VK_NULL_HANDLE)
     {
-        vmaSetAllocationName(g_renderBackend->GetDevice()->GetAllocator(), m_allocation, strName);
+        vmaSetAllocationName(g_renderInterface->GetDevice()->GetAllocator(), m_allocation, strName);
     }
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
@@ -933,7 +982,7 @@ void VulkanGpuImage::SetDebugName(Name name)
     objectNameInfo.objectHandle = (uint64)m_handle;
     objectNameInfo.pObjectName = strName;
 
-    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderBackend->GetDevice()->GetDevice(), &objectNameInfo);
+    g_vulkanDynamicFunctions->vkSetDebugUtilsObjectNameEXT(g_renderInterface->GetDevice()->GetDevice(), &objectNameInfo);
 }
 
 #endif
