@@ -288,7 +288,7 @@ void EnvProbe::CreateView()
 
     if (IsReflectionProbe())
     {
-        shaderDesc.name = NAME("RenderToCubemap");
+        shaderDesc.name = NAME("DrawCubemap");
 
         shaderDesc.properties.Add(s_propWriteNormals);
         shaderDesc.properties.Add(s_propWriteMoments);

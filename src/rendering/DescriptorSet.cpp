@@ -350,6 +350,7 @@ void DescriptorSetBase::DeleteElement(StringHash name, uint32 index)
         return;
     }
 
+    element->values[index] = nullptr;
     element->occupiedArrayElems.Set(index, false);
 }
 

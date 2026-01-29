@@ -180,7 +180,7 @@ void Light::CreateShadowViews()
     };
 
     ShaderDesc shaderDesc;
-    shaderDesc.name = NAME("Shadows");
+    shaderDesc.name = NAME("DrawShadowMap");
     shaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
 
     RenderTargetDesc renderTargetDesc {};
@@ -210,7 +210,7 @@ void Light::CreateShadowViews()
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;
 
-        shaderDesc.name = NAME("RenderToCubemap");
+        shaderDesc.name = NAME("DrawCubemap");
 
         shaderDesc.properties = {};
         shaderDesc.properties.Add(s_propModeShadows);
