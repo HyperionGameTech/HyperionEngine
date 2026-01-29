@@ -144,7 +144,7 @@ protected:
 
     void CreateFullScreenQuad();
 
-    void RenderPreviousTextureToScreen(Frame* frame, const RenderSetup& renderSetup);
+    void DrawHistoryTexture(Frame* frame, const RenderSetup& renderSetup);
     void CopyResultToPreviousTexture(Frame* frame, const RenderSetup& renderSetup);
     void MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup);
 
@@ -164,7 +164,7 @@ protected:
     BlendFunction m_blendFunction;
 
     UniquePtr<TemporalBlending> m_temporalBlending;
-    Handle<Texture> m_previousTexture;
+    Handle<Texture> m_historyTexture;
 
     ShaderDesc m_shaderDesc;
 
@@ -172,8 +172,7 @@ protected:
 
 private:
     void CreateTemporalBlending();
-    void CreateRenderTextureToScreenPass();
-    void CreatePreviousTexture();
+    void CreateHistoryTexture();
     void CreateMergeHalfResTexturesPass();
 
     bool m_isInitialized;

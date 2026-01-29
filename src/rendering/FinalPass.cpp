@@ -91,7 +91,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    rq << SetCurrentShader(ShaderDesc(NAME("RenderTextureToScreen")));
+    rq << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
     // Need blending to composite passes and ui
     rq << SetCurrentBlendFunction(BlendFunction(

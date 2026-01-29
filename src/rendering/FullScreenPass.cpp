@@ -182,9 +182,9 @@ const GpuImageViewRef& FullScreenPass::GetPreviousFrameColorImageView() const
         return colorAttachment->GetImageView();
     }
 
-    if (m_previousTexture.IsValid())
+    if (m_historyTexture.IsValid())
     {
-        return g_renderInterface->textureViewCache->GetOrCreate(m_previousTexture);
+        return g_renderInterface->textureViewCache->GetOrCreate(m_historyTexture);
     }
 
     return GpuImageViewRef::Null();
@@ -199,8 +199,15 @@ void FullScreenPass::Create()
     CreateFullScreenQuad();
     CreateFramebuffer();
     CreateMergeHalfResTexturesPass();
-    CreateRenderTextureToScreenPass();
     CreateTemporalBlending();
+
+    /// @NOTE: if we use temporal blending and we're not rendering at half res, we need a history texture,
+    ///        so we blit to it each frame after rendering and use it as input the next frame.
+    ///        (when using halfres, the merge pass handles history internally via checkerboarding)
+    if (UsesTemporalBlending() && !ShouldRenderHalfRes())
+    {
+        CreateHistoryTexture();
+    }
 
     m_isInitialized = true;
 }
@@ -271,8 +278,12 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
     m_temporalBlending.Reset();
 
     CreateMergeHalfResTexturesPass();
-    CreateRenderTextureToScreenPass();
     CreateTemporalBlending();
+
+    if (UsesTemporalBlending() && !ShouldRenderHalfRes())
+    {
+        CreateHistoryTexture();
+    }
 }
 
 void FullScreenPass::CreateFullScreenQuad()
@@ -379,12 +390,16 @@ void FullScreenPass::CreateTemporalBlending()
     m_temporalBlending->Create();
 }
 
-void FullScreenPass::CreatePreviousTexture()
+void FullScreenPass::CreateHistoryTexture()
 {
     Assert(m_imageFormat != TF_NONE);
 
-    // Create previous image
-    m_previousTexture = MakeHandle<Texture>(TextureDesc {
+    if (m_historyTexture.IsValid())
+    {
+        SafeDelete(std::move(m_historyTexture));
+    }
+
+    m_historyTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
         m_imageFormat,
         Vec3u { m_extent.x, m_extent.y, 1 },
@@ -393,24 +408,9 @@ void FullScreenPass::CreatePreviousTexture()
         TWM_CLAMP_TO_EDGE
     });
 
-    m_previousTexture->SetName(NAME_FMT("{}_PreviousFrameTexture", InstanceClass()->GetName()));
+    m_historyTexture->SetName(NAME_FMT("{}_FrameHistory", InstanceClass()->GetName()));
 
-    InitObject(m_previousTexture);
-}
-
-void FullScreenPass::CreateRenderTextureToScreenPass()
-{
-    HYP_SCOPE;
-
-    if (!UsesTemporalBlending())
-    {
-        return;
-    }
-
-    if (!ShouldRenderHalfRes())
-    {
-        CreatePreviousTexture();
-    }
+    InitObject(m_historyTexture);
 }
 
 void FullScreenPass::CreateMergeHalfResTexturesPass()
@@ -422,7 +422,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         return;
     }
 
-    MergeHalfResTexturesUniforms uniforms;
+    MergeHalfResTexturesUniforms uniforms {};
     uniforms.dimensions = m_extent;
 
     if (!m_mergeHalfResTexturesUniformBuffer)
@@ -442,7 +442,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
     m_mergeHalfResTexturesPass->Create();
 }
 
-void FullScreenPass::RenderPreviousTextureToScreen(Frame* frame, const RenderSetup& renderSetup)
+void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -454,7 +454,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(Frame* frame, const RenderSet
     RenderQueue& rq = frame->renderQueue;
     
     ShaderDesc shaderDesc;
-    shaderDesc.name = NAME("RenderTextureToScreen");
+    shaderDesc.name = NAME("BlitTexture");
     shaderDesc.properties.Add(s_propHalfRes);
 
     rq << SetCurrentShader(shaderDesc);
@@ -497,10 +497,10 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup
 
     RenderQueue& rq = frame->renderQueue;
 
-    Assert(m_previousTexture.IsValid());
+    Assert(m_historyTexture.IsValid());
 
     const GpuImageRef& srcImage = m_framebuffer->GetAttachment(0)->GetImage();
-    const GpuImageRef& dstImage = m_previousTexture->GetGpuImage();
+    const GpuImageRef& dstImage = m_historyTexture->GetGpuImage();
 
     rq << InsertBarrier(srcImage, RS_COPY_SRC);
     rq << InsertBarrier(dstImage, RS_COPY_DST);
@@ -628,10 +628,9 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
     RenderQueue& rq = frame->renderQueue;
 
     // render previous frame's result to screen
-    if (!m_isFirstFrame && ShouldRenderHalfRes())
+    if (!m_isFirstFrame && m_historyTexture.IsValid())
     {
-        RenderPreviousTextureToScreen(frame, renderSetup);
-        /// @FIXME: Needs to insert barrier and end render pass before continuing!
+        DrawHistoryTexture(frame, renderSetup);
     }
 
     if (ShouldRenderHalfRes())
@@ -652,7 +651,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
     ShaderDesc shaderDesc;
-    shaderDesc.name = NAME("RenderTextureToScreen");
+    shaderDesc.name = NAME("BlitTexture");
     rq << SetCurrentShader(shaderDesc);
 
     rq << SetDepthTest(false);
@@ -694,10 +693,9 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
     rq << BeginFramebuffer(m_framebuffer);
 
     // render previous frame's result to screen
-    if (!m_isFirstFrame && ShouldRenderHalfRes())
+    if (!m_isFirstFrame && m_historyTexture.IsValid())
     {
-        RenderPreviousTextureToScreen(frame, renderSetup);
-        /// @FIXME: Needs to insert barrier and end render pass before continuing!
+        DrawHistoryTexture(frame, renderSetup);
     }
 
     if (ShouldRenderHalfRes())

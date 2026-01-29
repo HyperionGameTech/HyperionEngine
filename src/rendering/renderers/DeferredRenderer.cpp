@@ -1103,10 +1103,10 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     rq << BeginFramebuffer(GetFramebuffer());
 
-    // render previous frame's result to screen
-    if (!m_isFirstFrame && ShouldRenderHalfRes())
+    // render previous frame's result to screen if doing temporal blending (and not checkerboarded)
+    if (!m_isFirstFrame && UsesTemporalBlending() && !ShouldRenderHalfRes())
     {
-        RenderPreviousTextureToScreen(frame, rs);
+        DrawHistoryTexture(frame, rs);
     }
 
     rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
@@ -1175,7 +1175,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     
         rq << SetCurrentView(renderTargetDesc, rs.view->GetViewport());
 
-        rq << SetCurrentShader(ShaderDesc(NAME("RenderTextureToScreen")));
+        rq << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
         
         // reset
         rq << SetDepthTest(false);
@@ -2096,7 +2096,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             frame->renderQueue << SetDepthWrite(false);
             frame->renderQueue << SetStencilTest(false);
 
-            frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RenderTextureToScreen")));
+            frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
             frame->renderQueue << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
             frame->renderQueue << SetShaderUniform(1, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frame->GetFrameIndex()));
