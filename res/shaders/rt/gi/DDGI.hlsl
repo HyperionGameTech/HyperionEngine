@@ -92,7 +92,7 @@ void RayGenMain()
     
     float3 origin = ProbeIndexToWorldPosition(probe_index) + direction * RAY_OFFSET;
     
-    RAY_FLAG flags = RAY_FLAG_NONE;
+    RAY_FLAG flags = RAY_FLAG_FORCE_OPAQUE;
     float tmin = RAY_OFFSET;
     float tmax = ddgiConstants.probe_distance;
     

@@ -25,6 +25,11 @@ float2 unpackUnorm2x16(uint packedVal)
     return unpacked / 65535.0;
 }
 
+float2 unpackHalf2x16(uint u)
+{
+    return float2(f16tof32(u & 0xFFFF), f16tof32(u >> 16));
+}
+
 float packUnorm4x8(float4 vec)
 {
     uint packedVal = uint(vec.x * 255.0) | (uint(vec.y * 255.0) << 8) | (uint(vec.z * 255.0) << 16) | (uint(vec.w * 255.0) << 24);
@@ -35,6 +40,11 @@ float packUnorm2x16(float2 vec)
 {
     uint packedVal = uint(vec.x * 65535.0) | (uint(vec.y * 65535.0) << 16);
     return packedVal;
+}
+
+uint packHalf2x16(float2 v)
+{
+    return (f32tof16(v.y) << 16) | f32tof16(v.x);
 }
 
 #endif
