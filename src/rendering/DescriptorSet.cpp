@@ -82,8 +82,8 @@ DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaratio
 DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
 {
     static DescriptorTableDeclaration s_decl;
-    static DescriptorTableDeclaration::DeclareSet s_globalTextureSetDecl { &s_decl, 0, NAME("GlobalTextureSet") };
-    static DescriptorTableDeclaration::DeclareSet s_globalBufferSetDecl { &s_decl, 1, NAME("GlobalBufferSet") };
+    static DescriptorTableDeclaration::DeclareSet s_BindlessResources0Decl { &s_decl, 0, NAME("BindlessResources0") };
+    static DescriptorTableDeclaration::DeclareSet s_BindlessResources1Decl { &s_decl, 1, NAME("BindlessResources1") };
 
     return s_decl;
 }

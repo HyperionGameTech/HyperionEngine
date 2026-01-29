@@ -1981,34 +1981,6 @@ void RenderInterface::CreateEnvProbesTexture()
     InitObject(envProbesTexture);
 }
 
-void RenderInterface::SetDefaultDescriptorSetElements(uint32 frameIndex)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_renderThread);
-
-    if (GetRenderConfig().bindlessTextures)
-    {
-        DescriptorSet* texturesDescriptorSet = globalDescriptorTable->GetDescriptorSet("GlobalTextureSet"_sh, frameIndex);
-        Assert(texturesDescriptorSet != nullptr);
-
-        for (uint32 textureIndex = 0; textureIndex < MaxBindlessResources; textureIndex++)
-        {
-            texturesDescriptorSet->SetElement("Textures"_sh, textureIndex, textureViewCache->GetOrCreate(placeholderData->defaultTexture2d));
-        }
-
-        if (GetRenderConfig().rayTracing)
-        {
-            DescriptorSet* buffersDescriptorSet = globalDescriptorTable->GetDescriptorSet("GlobalBufferSet"_sh, frameIndex);
-            Assert(buffersDescriptorSet != nullptr);
-
-            for (uint32 bufferIndex = 0; bufferIndex < MaxBindlessResources; bufferIndex++)
-            {
-                // @TODO needs null descriptor support
-            }
-        }
-    }
-}
-
 #pragma endregion RenderInterface
 
 namespace {

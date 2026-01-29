@@ -78,7 +78,7 @@ HYP_DESCRIPTOR_BUFFER_DYNAMIC(PathTracer, CamerasBuffer) uniform CamerasBuffer
 };
 
 // for RT, all textures are bindless
-HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) uniform texture2D textures[];
+HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 
 float CheckLightIntersection(in Light light, in vec3 position, in vec3 R)
 {

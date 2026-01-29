@@ -168,18 +168,14 @@ void RenderThread::Update()
         g_renderInterface->finalPass->Render(frame, rs);
     }
 
-    if (g_renderInterface->GetRenderConfig().bindlessTextures)
+    // update shared global descriptor sets
+    for (DescriptorSet* ds : g_renderInterface->globalDescriptorTable->GetSets()[frame->GetFrameIndex()])
     {
-        DescriptorSet* texturesDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalTextureSet"_sh, frame->GetFrameIndex());
-        texturesDescriptorSet->UpdateDirtyState();
-        texturesDescriptorSet->Update();
+        bool dirty = false;
+        ds->UpdateDirtyState(&dirty);
 
-        if (g_renderInterface->GetRenderConfig().rayTracing)
-        {
-            DescriptorSet* buffersDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBufferSet"_sh, frame->GetFrameIndex());
-            buffersDescriptorSet->UpdateDirtyState();
-            buffersDescriptorSet->Update();
-        }
+        if (dirty)
+            ds->Update();
     }
 
     g_renderInterface->UpdateBuffers(frame);

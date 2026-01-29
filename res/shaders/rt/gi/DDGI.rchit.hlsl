@@ -46,8 +46,8 @@ HYP_DESCRIPTOR_SRV(DDGI, MaterialsBuffer) StructuredBuffer<Material> materials;
 
 HYP_DESCRIPTOR_SRV(DDGI, MeshDescriptionsBuffer) StructuredBuffer<MeshDescription> mesh_descriptions;
 
-HYP_DESCRIPTOR_SRV(GlobalBufferSet, Buffers) ByteAddressBuffer buffers[];
-HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) Texture2D textures[];
+HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) Texture2D textures[];
+HYP_DESCRIPTOR_SRV(BindlessResources1, Buffers) ByteAddressBuffer buffers[];
 
 [shader("closesthit")]
 void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttributes attrib)
@@ -57,16 +57,13 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     const uint vbIndex = mesh_description.bindlessIndex * 2;
     const uint ibIndex = mesh_description.bindlessIndex * 2 + 1;
 
-    // Read index data - 3 triangles
-    uint3 index = uint3(
+    const uint3 index = uint3(
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 0),
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 4),
         buffers[ibIndex].Load(PrimitiveIndex() * 3 * 4 + 8)
     );
     
     Vertex v0, v1, v2;
-
-    // load vertex data from byte address buffer
     
     // @TODO load in bulk with Load3/Load2
     {

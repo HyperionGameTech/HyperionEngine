@@ -734,7 +734,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
             // put in bindless descriptor set
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                VulkanDescriptorSet* descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBufferSet"_sh, frameIndex);
+                VulkanDescriptorSet* descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("BindlessResources1"_sh, frameIndex);
                 Assert(descriptorSet != nullptr);
 
                 descriptorSet->SetElement("Buffers"_sh, i * 2, blas->GetGeometries()[0]->GetPackedVerticesBuffer());

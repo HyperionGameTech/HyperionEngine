@@ -357,8 +357,6 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateSphereSamplesBuffer();
     void CreateEnvProbesTexture();
-
-    void SetDefaultDescriptorSetElements(uint32 frameIndex);
 };
 
 } // namespace Hyperion

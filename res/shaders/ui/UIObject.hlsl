@@ -122,7 +122,7 @@ HYP_DESCRIPTOR_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> 
 
 #ifdef TEXTURED
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
-HYP_DESCRIPTOR_SRV(GlobalTextureSet, Textures) Texture2D textures[];
+HYP_DESCRIPTOR_SRV(BindlessResources0, Textures) Texture2D textures[];
 #else
 HYP_DESCRIPTOR_SRV(Default, AlbedoMap) Texture2D AlbedoMap;
 #endif
