@@ -154,7 +154,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const SizeType numDepthPyramidMipLevels = m_mipImageViews.Size();
+    const uint8 numDepthPyramidMipLevels = uint8(m_mipImageViews.Size());
 
     const Vec3u& imageExtent = m_depthImageView->GetImage()->GetExtent();
     const Vec3u& depthPyramidExtent = m_depthPyramid->GetExtent();
@@ -162,7 +162,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
     uint32 mipWidth = imageExtent.x,
            mipHeight = imageExtent.y;
 
-    for (uint32 mipLevel = 0; mipLevel < numDepthPyramidMipLevels; mipLevel++)
+    for (uint8 mipLevel = 0; mipLevel < numDepthPyramidMipLevels; mipLevel++)
     {
         // level 0 == write just-rendered depth image into mip 0
 
@@ -170,7 +170,10 @@ void DepthPyramidRenderer::Render(Frame* frame)
         frame->renderQueue << InsertBarrier(
             m_depthPyramid,
             RS_UNORDERED_ACCESS,
-            ImageSubResource { .baseMipLevel = mipLevel });
+            ImageSubResource {
+                .baseMipLevel = mipLevel,
+                .numLevels = 1
+            });
 
         const uint32 prevMipWidth = mipWidth,
                      prevMipHeight = mipHeight;
@@ -204,7 +207,10 @@ void DepthPyramidRenderer::Render(Frame* frame)
         frame->renderQueue << InsertBarrier(
             m_depthPyramid,
             RS_SHADER_RESOURCE,
-            ImageSubResource { .baseMipLevel = mipLevel });
+            ImageSubResource {
+                .baseMipLevel = mipLevel,
+                .numLevels = 1
+            });
     }
 
     frame->renderQueue << InsertBarrier(

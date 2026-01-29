@@ -92,7 +92,7 @@ public:
     DX12GpuImageRef MakeImage(const TextureDesc& textureDesc) override;
 
     DX12GpuImageViewRef MakeImageView(const DX12GpuImageRef& image) override;
-    DX12GpuImageViewRef MakeImageView(const DX12GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) override;
+    DX12GpuImageViewRef MakeImageView(const DX12GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers) override;
 
     DX12SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) override;
 

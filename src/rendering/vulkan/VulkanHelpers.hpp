@@ -68,6 +68,8 @@ VkImageLayout GetIntermediateLayout(bool isDepthAttachment);
 VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode);
 VkStencilOp ToVkStencilOp(StencilOp stencilOp);
 VkCompareOp ToVkCompareOp(StencilCompareOp compareOp);
+VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode);
+VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth);
 
 class VulkanSingleTimeCommands final : public SingleTimeCommands
 {

@@ -75,7 +75,7 @@ struct RenderTextureMipmapLevelsTask
 
         GpuImage* dstImage = image;
 
-        for (uint32 mipLevel = 0; mipLevel < uint32(mipImageViews.Size()); mipLevel++)
+        for (uint8 mipLevel = 0; mipLevel < uint8(mipImageViews.Size()); mipLevel++)
         {
             FullScreenPass* pass = passes[mipLevel];
             Assert(pass != nullptr);

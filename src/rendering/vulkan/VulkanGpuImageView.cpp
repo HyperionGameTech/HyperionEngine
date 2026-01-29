@@ -29,11 +29,8 @@ VulkanGpuImageView::VulkanGpuImageView(const VulkanGpuImageRef& image)
 
 VulkanGpuImageView::VulkanGpuImageView(
     const VulkanGpuImageRef& image,
-    uint32 mipIndex,
-    uint32 numMips,
-    uint32 layerIndex,
-    uint32 numLayers)
-    : GpuImageViewBase(image, mipIndex, numMips, layerIndex, numLayers),
+    const ImageSubResource& subResource)
+    : GpuImageViewBase(image, subResource),
       m_handle(VK_NULL_HANDLE)
 {
 }
@@ -60,12 +57,12 @@ RendererResult VulkanGpuImageView::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot create image view on uninitialized image");
     }
 
-    if (m_layerIndex >= m_image->NumArrayLayers())
+    if (m_subResource.baseArrayLayer >= m_image->NumArrayLayers())
     {
         return HYP_MAKE_ERROR(RendererError, "Face index out of bounds");
     }
 
-    if (m_mipIndex >= m_image->NumMips())
+    if (m_subResource.baseMipLevel >= m_image->NumMips())
     {
         return HYP_MAKE_ERROR(RendererError, "Mip index out of bounds");
     }
@@ -83,10 +80,10 @@ RendererResult VulkanGpuImageView::Create()
     viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 
     viewInfo.subresourceRange.aspectMask = ToVkImageAspect(m_image->GetTextureFormat());
-    viewInfo.subresourceRange.baseMipLevel = m_mipIndex;
-    viewInfo.subresourceRange.levelCount = m_numMips != 0 ? m_numMips : m_image->NumMips();
-    viewInfo.subresourceRange.baseArrayLayer = m_layerIndex;
-    viewInfo.subresourceRange.layerCount = m_numLayers != 0 ? m_numLayers : m_image->NumArrayLayers();
+    viewInfo.subresourceRange.baseMipLevel = m_subResource.baseMipLevel;
+    viewInfo.subresourceRange.levelCount = m_subResource.numLevels != 0 ? m_subResource.numLevels : m_image->NumMips();
+    viewInfo.subresourceRange.baseArrayLayer = m_subResource.baseArrayLayer;
+    viewInfo.subresourceRange.layerCount = m_subResource.numLayers != 0 ? m_subResource.numLayers : m_image->NumArrayLayers();
 
     VULKAN_CHECK_MSG(
         vkCreateImageView(g_renderInterface->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),

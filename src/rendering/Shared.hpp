@@ -451,7 +451,7 @@ struct TextureDesc
 {
     HYP_STRUCT_BODY(TextureDesc);
 
-    static constexpr uint32 MaxMips = 16;
+    static constexpr uint8 MaxMips = 16;
 
     HYP_FIELD(Property = "Type", Serialize)
     TextureType type = TT_TEX2D;
@@ -472,7 +472,7 @@ struct TextureDesc
     TextureWrapMode wrapMode = TWM_CLAMP_TO_EDGE;
 
     HYP_FIELD(Property = "NumLayers", Serialize)
-    uint32 numLayers = 1;
+    uint16 numLayers = 1;
 
     HYP_FIELD(Property = "ImageUsage", Serialize)
     EnumFlags<ImageUsage> imageUsage = IU_SAMPLED;
@@ -490,10 +490,10 @@ struct TextureDesc
             || filterModeMin == TFM_MINMAX_MIPMAP;
     }
 
-    uint32 NumMips() const
+    uint8 NumMips() const
     {
         return HasMipMaps()
-            ? MathUtil::Min(MaxMips, uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y, extent.z))) + 1)
+            ? MathUtil::Min(MaxMips, uint8(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y, extent.z))) + 1)
             : 1;
     }
 
@@ -549,7 +549,7 @@ struct TextureDesc
         return type == TT_TEX2D;
     }
 
-    uint32 NumArrayLayers() const
+    uint16 NumArrayLayers() const
     {
         if (IsTextureCube() || IsTextureCubeArray())
         {
@@ -1029,43 +1029,43 @@ struct MeshDescription
     uint32 numVertices;
 };
 
-static inline uint64 GetImageSubResourceKey(uint32 baseArrayLayer, uint32 baseMipLevel)
-{
-    return (uint64(baseArrayLayer) << 32) | (uint64(baseMipLevel));
-}
+struct ImageSubResource;
+
+constexpr uint64 GetImageSubResourceKey(const ImageSubResource& subResource);
 
 /* images */
 struct ImageSubResource
 {
-    uint32 baseArrayLayer = 0;
-    uint32 baseMipLevel = 0;
-    uint32 numLayers = 1;
-    uint32 numLevels = 1;
+    uint8 baseMipLevel = 0;
+    uint8 numLevels = uint8(-1);
+
+    uint16 baseArrayLayer = 0;
+    uint16 numLayers = uint16(-1);
 
     bool operator==(const ImageSubResource& other) const
     {
-        return baseArrayLayer == other.baseArrayLayer
-            && numLayers == other.numLayers
-            && baseMipLevel == other.baseMipLevel
-            && numLevels == other.numLevels;
+        return baseMipLevel == other.baseMipLevel
+            && numLevels == other.numLevels
+            && baseArrayLayer == other.baseArrayLayer
+            && numLayers == other.numLayers;
     }
 
-    uint64 GetSubResourceKey() const
+    constexpr uint64 GetSubResourceKey() const
     {
-        return GetImageSubResourceKey(baseArrayLayer, baseMipLevel);
+        return GetImageSubResourceKey(*this);
     }
 
-    HashCode GetHashCode() const
+    constexpr HashCode GetHashCode() const
     {
-        HashCode hc;
-        hc.Add(baseArrayLayer);
-        hc.Add(numLayers);
-        hc.Add(baseMipLevel);
-        hc.Add(numLevels);
-
-        return hc;
+        return HashCode::GetHashCode(GetImageSubResourceKey(*this));
     }
 };
+
+static constexpr inline uint64 GetImageSubResourceKey(const ImageSubResource& subResource)
+{
+    return uint64(subResource.baseMipLevel) | (uint64(subResource.numLevels) << 8)
+        | (uint64(subResource.baseArrayLayer) << 16) | (uint64(subResource.numLayers) << 32);
+}
 
 HYP_STRUCT()
 struct Viewport

@@ -21,30 +21,6 @@ extern VulkanRenderInterface* g_renderInterface;
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
-static VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode)
-{
-    const bool isDepth = TextureUtils::IsDepthFormat(attachmentDesc.format);
-
-    return VkAttachmentDescription {
-        .format = ToVkFormat(attachmentDesc.format),
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = ToVkLoadOp(attachmentDesc.loadOp),
-        .storeOp = ToVkStoreOp(attachmentDesc.storeOp),
-        .stencilLoadOp = isDepth ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = isDepth ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = GetInitialLayout(attachmentDesc.loadOp, isDepth),
-        .finalLayout = GetFinalLayout(renderPassMode, isDepth)
-    };
-}
-
-static VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
-{
-    return VkAttachmentReference {
-        .attachment = index,
-        .layout = GetIntermediateLayout(isDepth)
-    };
-}
-
 VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode)
     : m_renderTargetDesc(renderTargetDesc),
       m_renderPassMode(renderPassMode),
@@ -285,29 +261,50 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         currentFrame->AddRenderPass(this);
     }
 
-#ifdef HYP_DEBUG_MODE
-    // checks for valid layouts
+    // transition render targets to initial layout for render passes
     for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
     {
         VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
         AssertDebug(attachment != nullptr);
-        
-        const ResourceState expectedState = attachment->IsDepthAttachment()
-            ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
-            : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
 
-        const ResourceState currentState = attachment->GetImage()->GetResourceState();
-
-        if (expectedState != RS_UNDEFINED)
+        if (attachment->GetLoadOperation() == LoadOperation::LOAD)
         {
-            AssertDebug(
-                expectedState == currentState,
-                "Attachment expected layout {} but found {}",
-                EnumToString(expectedState),
-                EnumToString(currentState));
+            VulkanGpuImage* image = attachment->GetImage();
+
+            const ResourceState resourceState = attachment->IsDepthAttachment()
+                ? PreRenderResourceStatesDepth[1]
+                : PreRenderResourceStates[1];
+
+            if (resourceState != RS_UNDEFINED && image->GetResourceState() != resourceState)
+            {
+                image->InsertBarrier(cmd, resourceState, ShaderModuleType::Pixel);
+            }
         }
     }
-#endif
+
+//#ifdef HYP_DEBUG_MODE
+//    // checks for valid layouts
+//    for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
+//    {
+//        VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
+//        AssertDebug(attachment != nullptr);
+//        
+//        const ResourceState expectedState = attachment->IsDepthAttachment()
+//            ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
+//            : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
+//
+//        const ResourceState currentState = attachment->GetImage()->GetResourceState();
+//
+//        if (expectedState != RS_UNDEFINED)
+//        {
+//            AssertDebug(
+//                expectedState == currentState,
+//                "Attachment expected layout {} but found {}",
+//                EnumToString(expectedState),
+//                EnumToString(currentState));
+//        }
+//    }
+//#endif
 
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 

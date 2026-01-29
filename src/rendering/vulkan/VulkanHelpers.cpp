@@ -12,6 +12,8 @@
 
 #include <rendering/RenderQueue.hpp>
 
+#include <core/reflection/Enum.hpp>
+
 #include <core/utilities/DeferredScope.hpp>
 
 #include <core/math/MathUtil.hpp>
@@ -290,7 +292,9 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
     case RS_COMMON:
         if (!src)
         {
-            HYP_LOG(RenderingBackend, Warning, "Attempt to get shader stage mask for resource state but `src` was set to false. Falling back to all commands.");
+            HYP_LOG(RenderingBackend, Warning,
+                "Attempt to get shader stage mask for resource state {}, but `src` was set to false. Falling back to all commands stage mask.",
+                EnumToString(state));
 
             return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
         }
@@ -491,7 +495,7 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
 
 VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
 {
-    const int loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
+    const uint8 loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
 
     return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
 }
@@ -514,7 +518,6 @@ VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
     case LoadOperation::LOAD:
         return VK_ATTACHMENT_LOAD_OP_LOAD;
     default:
-        HYP_UNREACHABLE();
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     }
 }
@@ -530,7 +533,6 @@ VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
     case StoreOperation::STORE:
         return VK_ATTACHMENT_STORE_OP_STORE;
     default:
-        HYP_UNREACHABLE();
         return VK_ATTACHMENT_STORE_OP_DONT_CARE;
     }
 }
@@ -605,6 +607,30 @@ VkCompareOp ToVkCompareOp(StencilCompareOp compareOp)
     default:
         return VK_COMPARE_OP_ALWAYS;
     }
+}
+
+VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode)
+{
+    const bool isDepth = TextureUtils::IsDepthFormat(attachmentDesc.format);
+
+    return VkAttachmentDescription {
+        .format = ToVkFormat(attachmentDesc.format),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = ToVkLoadOp(attachmentDesc.loadOp),
+        .storeOp = ToVkStoreOp(attachmentDesc.storeOp),
+        .stencilLoadOp = isDepth ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = isDepth ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = GetInitialLayout(attachmentDesc.loadOp, isDepth),
+        .finalLayout = GetFinalLayout(renderPassMode, isDepth)
+    };
+}
+
+VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
+{
+    return VkAttachmentReference {
+        .attachment = index,
+        .layout = GetIntermediateLayout(isDepth)
+    };
 }
 
 #pragma region VulkanSingleTimeCommands

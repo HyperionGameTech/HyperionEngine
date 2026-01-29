@@ -84,10 +84,10 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
         return HYP_MAKE_ERROR(RendererError, "Cannot generate mipmaps on uninitialized image");
     }
 
-    const uint32 numLayers = NumArrayLayers();
-    const uint32 numMipmaps = NumMips();
+    const uint16 numLayers = NumArrayLayers();
+    const uint8 numMipmaps = NumMips();
 
-    for (uint32 face = 0; face < numLayers; face++)
+    for (uint16 face = 0; face < numLayers; face++)
     {
         for (int32 i = 1; i < int32(numMipmaps + 1); i++)
         {
@@ -99,13 +99,17 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                 we'll still need to transfer into a layout primed for reading from shaders. */
 
             const ImageSubResource src {
+                .baseMipLevel = uint8(i - 1),
+                .numLevels = 1,
                 .baseArrayLayer = face,
-                .baseMipLevel = uint32(i - 1)
+                .numLayers = 1
             };
 
             const ImageSubResource dst {
+                .baseMipLevel = uint8(i),
+                .numLevels = 1,
                 .baseArrayLayer = src.baseArrayLayer,
-                .baseMipLevel = uint32(i)
+                .numLayers = 1
             };
 
             InsertBarrier(
@@ -498,23 +502,6 @@ void VulkanGpuImage::SetResourceState(ResourceState newState)
     m_subResourceStates.Clear();
 }
 
-ResourceState VulkanGpuImage::GetSubResourceState(const ImageSubResource& subResource) const
-{
-    auto it = m_subResourceStates.Find(subResource.GetSubResourceKey());
-
-    if (it == m_subResourceStates.End())
-    {
-        return m_resourceState;
-    }
-
-    return it->second;
-}
-
-void VulkanGpuImage::SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
-{
-    m_subResourceStates.Set(subResource.GetSubResourceKey(), newState);
-}
-
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     ResourceState newState,
@@ -523,19 +510,22 @@ void VulkanGpuImage::InsertBarrier(
     InsertBarrier(
         commandBuffer,
         ImageSubResource {
-            .numLayers = ~0u,
-            .numLevels = ~0u
+            .numLevels = uint8(-1),
+            .numLayers = uint16(-1)
         },
         newState,
         shaderModuleType);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     const ImageSubResource& subResource,
     ResourceState newState,
     ShaderModuleType shaderModuleType)
 {
+    AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
+
     if (m_handle == VK_NULL_HANDLE)
     {
         HYP_LOG(
@@ -546,28 +536,41 @@ void VulkanGpuImage::InsertBarrier(
         return;
     }
 
-    const ResourceState prevResourceState = GetSubResourceState(subResource);
+    ResourceState currResourceState = GetSubResourceState(subResource);
 
-#ifdef HYP_DEBUG_MODE
     for (int mipLevel = int(subResource.baseMipLevel); mipLevel < int(subResource.baseMipLevel) + int(MathUtil::Min(subResource.numLevels, NumMips())); mipLevel++)
     {
         for (int arrayLayer = int(subResource.baseArrayLayer); arrayLayer < int(subResource.baseArrayLayer) + int(MathUtil::Min(subResource.numLayers, NumLayers())); arrayLayer++)
         {
-            const uint64 subResourceKey = GetImageSubResourceKey(arrayLayer, mipLevel);
+            ImageSubResource currSubResource {};
+            currSubResource.baseMipLevel = uint8(mipLevel);
+            currSubResource.numLevels = 1;
+            currSubResource.baseArrayLayer = uint16(arrayLayer);
+            currSubResource.numLayers = 1;
+
+            const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
 
             auto it = m_subResourceStates.Find(subResourceKey);
 
             if (it != m_subResourceStates.End())
             {
-                Assert(
-                    it->second == prevResourceState,
-                    "Sub resource state mismatch for image: mip %d, layer %d",
-                    mipLevel,
-                    arrayLayer);
+                // needs to match expected state we're transitioning from. (currResourceState)
+                // otherwise, we need to use VK_IMAGE_LAYOUT_UNDEFINED
+                if (currResourceState != RS_UNDEFINED && it->second != currResourceState)
+                {
+                    currResourceState = RS_UNDEFINED;
+                }
+
+                if (it->second == newState)
+                {
+                    // remove it if states will be same after transition. we will want to insert barrier
+                    m_subResourceStates.Erase(it);
+
+                    continue;
+                }
             }
         }
     }
-#endif
 
     VkImageAspectFlags aspectFlagBits = 0;
 
@@ -593,9 +596,9 @@ void VulkanGpuImage::InsertBarrier(
     range.levelCount = subResource.numLevels;
 
     VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    barrier.oldLayout = GetVkImageLayout(prevResourceState);
+    barrier.oldLayout = GetVkImageLayout(currResourceState);
     barrier.newLayout = GetVkImageLayout(newState);
-    barrier.srcAccessMask = GetVkAccessMask(prevResourceState);
+    barrier.srcAccessMask = GetVkAccessMask(currResourceState);
     barrier.dstAccessMask = GetVkAccessMask(newState);
     barrier.image = m_handle;
     barrier.subresourceRange = range;
@@ -604,30 +607,17 @@ void VulkanGpuImage::InsertBarrier(
 
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
-        GetVkShaderStageMask(prevResourceState, true, shaderModuleType),
+        GetVkShaderStageMask(currResourceState, true, shaderModuleType),
         GetVkShaderStageMask(newState, false, shaderModuleType),
         0,
         0, nullptr,
         0, nullptr,
         1, &barrier);
 
-    if (newState == m_resourceState)
-    {
-        for (int mipLevel = int(subResource.baseMipLevel); mipLevel < int(subResource.baseMipLevel) + int(MathUtil::Min(subResource.numLevels, NumMips())); mipLevel++)
-        {
-            for (int arrayLayer = int(subResource.baseArrayLayer); arrayLayer < int(subResource.baseArrayLayer) + int(MathUtil::Min(subResource.numLayers, NumLayers())); arrayLayer++)
-            {
-                const uint64 subResourceKey = GetImageSubResourceKey(arrayLayer, mipLevel);
-
-                m_subResourceStates.Erase(subResourceKey);
-            }
-        }
-
-        return;
-    }
-    else if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
+    if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumLayers())
     {
+        
         // If all subresources will be set, just set the whole resource state
         SetResourceState(newState);
 
@@ -638,12 +628,42 @@ void VulkanGpuImage::InsertBarrier(
     {
         for (int arrayLayer = int(subResource.baseArrayLayer); arrayLayer < int(subResource.baseArrayLayer) + int(MathUtil::Min(subResource.numLayers, NumLayers())); arrayLayer++)
         {
-            const uint64 subResourceKey = GetImageSubResourceKey(arrayLayer, mipLevel);
+            ImageSubResource currSubResource {};
+            currSubResource.baseMipLevel = uint8(mipLevel);
+            currSubResource.numLevels = 1;
+            currSubResource.baseArrayLayer = uint16(arrayLayer);
+            currSubResource.numLayers = 1;
 
-            m_subResourceStates.Set(subResourceKey, newState);
+            const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
+
+            auto it = m_subResourceStates.Find(subResourceKey);
+
+            if (it != m_subResourceStates.End())
+            {
+                if (newState == m_resourceState)
+                {
+                    // same state as overall image, remove from set
+                    m_subResourceStates.Erase(it);
+                }
+                else
+                {
+                    it->second = newState;
+                }
+            }
+            else if (newState != m_resourceState)
+            {
+                m_subResourceStates.Insert(subResourceKey, newState);
+            }
         }
     }
+
+    // No more remaining subresources, entire image was transitioned
+    if (m_subResourceStates.Empty())
+    {
+        SetResourceState(newState);
+    }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanGpuImage::Blit(
     VulkanCommandBuffer* commandBuffer,
@@ -655,12 +675,12 @@ RendererResult VulkanGpuImage::Blit(
         Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y },
         ImageSubResource {
-            .numLayers = srcImage->m_textureDesc.NumArrayLayers(),
-            .numLevels = srcImage->m_textureDesc.NumMips()
+            .numLevels = srcImage->m_textureDesc.NumMips(),
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers()
         },
         ImageSubResource {
-            .numLayers = m_textureDesc.NumArrayLayers(),
-            .numLevels = m_textureDesc.NumMips()
+            .numLevels = m_textureDesc.NumMips(),
+            .numLayers = m_textureDesc.NumArrayLayers()
         });
 }
 
@@ -676,12 +696,12 @@ RendererResult VulkanGpuImage::Blit(
         srcRect,
         dstRect,
         ImageSubResource {
-            .numLayers = srcImage->m_textureDesc.NumArrayLayers(),
-            .numLevels = srcImage->m_textureDesc.NumMips()
+            .numLevels = srcImage->m_textureDesc.NumMips(),
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers()
         },
         ImageSubResource {
-            .numLayers = m_textureDesc.NumArrayLayers(),
-            .numLevels = m_textureDesc.NumMips()
+            .numLevels = m_textureDesc.NumMips(),
+            .numLayers = m_textureDesc.NumArrayLayers()
         });
 }
 
@@ -764,18 +784,22 @@ RendererResult VulkanGpuImage::Blit(
     }
 
     // complex path; per-subresource states
-    for (uint32 layerIndex = 0; layerIndex < MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer); layerIndex++)
+    for (uint16 layerIndex = 0; layerIndex < MathUtil::Min(srcSubResource.numLayers, srcImage->NumArrayLayers() - srcSubResource.baseArrayLayer); layerIndex++)
     {
-        for (uint32 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
+        for (uint8 mipLevel = 0; mipLevel < MathUtil::Min(srcSubResource.numLevels, srcImage->NumMips() - srcSubResource.baseMipLevel); mipLevel++)
         {
             const ResourceState srcResourceState = srcImage->GetSubResourceState(ImageSubResource {
-                .baseArrayLayer = srcSubResource.baseArrayLayer + layerIndex,
-                .baseMipLevel = srcSubResource.baseMipLevel + mipLevel
+                .baseMipLevel = uint8(srcSubResource.baseMipLevel + mipLevel),
+                .numLevels = 1,
+                .baseArrayLayer = uint16(srcSubResource.baseArrayLayer + layerIndex),
+                .numLayers = 1
             });
 
             const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
-                .baseArrayLayer = dstSubResource.baseArrayLayer + layerIndex,
-                .baseMipLevel = dstSubResource.baseMipLevel + mipLevel
+                .baseMipLevel = uint8(dstSubResource.baseMipLevel + mipLevel),
+                .numLevels = 1,
+                .baseArrayLayer = uint16(dstSubResource.baseArrayLayer + layerIndex),
+                .numLayers = 1
             });
 
             AssertDebug(srcResourceState == RS_COPY_SRC);
@@ -784,15 +808,15 @@ RendererResult VulkanGpuImage::Blit(
             VkImageBlit blit {
                 .srcSubresource = {
                     .aspectMask = srcAspectFlagBits,
-                    .mipLevel = srcSubResource.baseMipLevel + mipLevel,
-                    .baseArrayLayer = srcSubResource.baseArrayLayer + layerIndex,
+                    .mipLevel = uint32(srcSubResource.baseMipLevel + mipLevel),
+                    .baseArrayLayer = uint32(srcSubResource.baseArrayLayer + layerIndex),
                     .layerCount = 1
                 },
                 .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
                 .dstSubresource = {
                     .aspectMask = dstAspectFlagBits,
-                    .mipLevel = dstSubResource.baseMipLevel + mipLevel,
-                    .baseArrayLayer = dstSubResource.baseArrayLayer + layerIndex,
+                    .mipLevel = uint32(dstSubResource.baseMipLevel + mipLevel),
+                    .baseArrayLayer = uint32(dstSubResource.baseArrayLayer + layerIndex),
                     .layerCount = 1
                 },
                 .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }

@@ -393,7 +393,7 @@ DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& im
     return MakeHandle<DX12GpuImageView>(image);
 }
 
-DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
+DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers)
 {
     return MakeHandle<DX12GpuImageView>(image, mipIndex, numMips, layerIndex, numLayers);
 }

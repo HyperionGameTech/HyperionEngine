@@ -277,7 +277,7 @@ public:
     virtual GpuImageRef MakeImage(const TextureDesc& textureDesc) = 0;
 
     virtual GpuImageViewRef MakeImageView(const GpuImageRef& image) = 0;
-    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers) = 0;
+    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers) = 0;
 
     virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) = 0;
 

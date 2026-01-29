@@ -9,32 +9,22 @@
 namespace Hyperion {
 
 GpuImageViewBase::GpuImageViewBase(const GpuImageRef& image)
-    : m_image(image),
-      m_mipIndex(0),
-      m_numMips(0),
-      m_layerIndex(0),
-      m_numLayers(0)
+    : m_image(image)
 {
     if (image.IsValid())
     {
         const TextureDesc& textureDesc = image->GetTextureDesc();
 
-        m_numMips = textureDesc.NumMips();
-        m_numLayers = textureDesc.NumArrayLayers();
+        m_subResource.baseMipLevel = 0;
+        m_subResource.numLevels = textureDesc.NumMips();
+        m_subResource.baseArrayLayer = 0;
+        m_subResource.numLayers = textureDesc.NumArrayLayers();
     }
 }
 
-GpuImageViewBase::GpuImageViewBase(
-    const GpuImageRef& image,
-    uint32 mipIndex,
-    uint32 numMips,
-    uint32 layerIndex,
-    uint32 numLayers)
+GpuImageViewBase::GpuImageViewBase(const GpuImageRef& image, const ImageSubResource& subResource)
     : m_image(image),
-      m_mipIndex(mipIndex),
-      m_numMips(numMips),
-      m_layerIndex(layerIndex),
-      m_numLayers(numLayers)
+      m_subResource(subResource)
 {
     if (image.IsValid())
     {
@@ -43,10 +33,10 @@ GpuImageViewBase::GpuImageViewBase(
         const int descNumMips = int(textureDesc.NumMips());
         const int descNumLayers = int(textureDesc.NumArrayLayers());
         
-        m_mipIndex = MathUtil::Max(0, MathUtil::Min(int(mipIndex), descNumMips - 1));
-        m_layerIndex = MathUtil::Max(0, MathUtil::Min(int(layerIndex), descNumLayers - 1));
-        m_numMips = MathUtil::Max(1, MathUtil::Min(int(numMips), descNumMips - int(m_mipIndex)));
-        m_numLayers = MathUtil::Max(1, MathUtil::Min(int(numLayers), descNumLayers - int(m_layerIndex)));
+        m_subResource.baseMipLevel = MathUtil::Max(0, MathUtil::Min(int(m_subResource.baseMipLevel), descNumMips - 1));
+        m_subResource.baseArrayLayer = MathUtil::Max(0, MathUtil::Min(int(m_subResource.baseArrayLayer), descNumLayers - 1));
+        m_subResource.numLevels = MathUtil::Max(1, MathUtil::Min(int(m_subResource.numLevels), descNumMips - int(m_subResource.baseMipLevel)));
+        m_subResource.numLayers = MathUtil::Max(1, MathUtil::Min(int(m_subResource.numLayers), descNumLayers - int(m_subResource.baseArrayLayer)));
     }
 }
 

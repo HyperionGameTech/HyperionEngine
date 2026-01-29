@@ -79,7 +79,7 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
-        uint32(m_atlases.Size()),
+        uint16(m_atlases.Size()),
         IU_SAMPLED | IU_STORAGE });
 
     m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));

@@ -894,9 +894,15 @@ VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageR
     return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image));
 }
 
-VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 layerIndex, uint32 numLayers)
+VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers)
 {
-    return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image), mipIndex, numMips, layerIndex, numLayers);
+    ImageSubResource subResource {};
+    subResource.baseMipLevel = mipIndex;
+    subResource.baseArrayLayer = layerIndex;
+    subResource.numLevels = numMips;
+    subResource.numLayers = numLayers;
+
+    return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image), subResource);
 }
 
 VulkanSamplerRef VulkanRenderInterface::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)

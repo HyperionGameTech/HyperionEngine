@@ -21,15 +21,8 @@ class VulkanGpuImageView final : public GpuImageViewBase
     HYP_OBJECT_BODY(VulkanGpuImageView);
 
 public:
-    VulkanGpuImageView(
-        const VulkanGpuImageRef& image);
-
-    VulkanGpuImageView(
-        const VulkanGpuImageRef& image,
-        uint32 mipIndex,
-        uint32 numMips,
-        uint32 layerIndex,
-        uint32 numLayers);
+    explicit VulkanGpuImageView(const VulkanGpuImageRef& image);
+    VulkanGpuImageView(const VulkanGpuImageRef& image, const ImageSubResource& subResource);
 
     ~VulkanGpuImageView() override;
 

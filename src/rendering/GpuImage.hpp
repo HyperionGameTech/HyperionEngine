@@ -63,17 +63,61 @@ public:
         m_resourceState = newState;
     }
 
+    ResourceState GetSubResourceState(const ImageSubResource& subResource) const
+    {
+        auto it = m_subResourceStates.Find(subResource.GetSubResourceKey());
+
+        if (it == m_subResourceStates.End())
+        {
+            return m_resourceState;
+        }
+
+        return it->second;
+    }
+
+    void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
+    {
+        const uint64 key = subResource.GetSubResourceKey();
+
+        auto it = m_subResourceStates.Find(key);
+        
+        // no sense setting it if it is the current state and non existent
+        if (newState == m_resourceState)
+        {
+            if (it != m_subResourceStates.End())
+            {
+                // so we just delete it from our map since it will be the same state as the image itself
+                m_subResourceStates.Erase(it);
+            }
+
+            return;
+        }
+
+        if (it != m_subResourceStates.End())
+        {
+            it->second = newState;
+            return;
+        }
+
+        m_subResourceStates.Set(subResource.GetSubResourceKey(), newState);
+    }
+
+    HYP_FORCE_INLINE bool HasSubResourceStates() const
+    {
+        return m_subResourceStates.Any();
+    }
+
     HYP_FORCE_INLINE TextureType GetType() const
     {
         return m_textureDesc.type;
     }
 
-    HYP_FORCE_INLINE uint32 NumLayers() const
+    HYP_FORCE_INLINE uint16 NumLayers() const
     {
         return m_textureDesc.numLayers;
     }
 
-    HYP_FORCE_INLINE uint32 NumArrayLayers() const
+    HYP_FORCE_INLINE uint16 NumArrayLayers() const
     {
         return m_textureDesc.NumArrayLayers();
     }
@@ -207,7 +251,10 @@ protected:
     }
 
     TextureDesc m_textureDesc;
-    mutable ResourceState m_resourceState;
+
+    ResourceState m_resourceState;
+    HashMap<uint64, ResourceState> m_subResourceStates;
+
     EnumFlags<GpuImageFlags> m_flags;
 
     Name m_debugName;

@@ -31,24 +31,29 @@ public:
         return m_image;
     }
 
-    HYP_FORCE_INLINE uint32 GetMipIndex() const
+    HYP_FORCE_INLINE uint8 GetMipIndex() const
     {
-        return m_mipIndex;
+        return m_subResource.baseMipLevel;
     }
 
-    HYP_FORCE_INLINE uint32 NumMips() const
+    HYP_FORCE_INLINE uint8 NumMips() const
     {
-        return m_numMips;
+        return m_subResource.numLevels;
     }
 
-    HYP_FORCE_INLINE uint32 GetLayerIndex() const
+    HYP_FORCE_INLINE uint8 GetLayerIndex() const
     {
-        return m_layerIndex;
+        return m_subResource.baseArrayLayer;
     }
 
-    HYP_FORCE_INLINE uint32 NumArrayLayers() const
+    HYP_FORCE_INLINE uint8 NumArrayLayers() const
     {
-        return m_numLayers;
+        return m_subResource.numLayers;
+    }
+
+    HYP_FORCE_INLINE const ImageSubResource& GetImageSubResource() const
+    {
+        return m_subResource;
     }
 
     virtual bool IsCreated() const = 0;
@@ -57,20 +62,10 @@ public:
 
 protected:
     explicit GpuImageViewBase(const GpuImageRef& image);
-
-    GpuImageViewBase(
-        const GpuImageRef& image,
-        uint32 mipIndex,
-        uint32 numMips,
-        uint32 layerIndex,
-        uint32 numLayers);
+    GpuImageViewBase(const GpuImageRef& image, const ImageSubResource& subResource);
 
     GpuImageRef m_image;
-    uint32 m_mipIndex;
-    uint32 m_numMips;
-    uint32 m_layerIndex;
-    uint32 m_numLayers;
-
+    ImageSubResource m_subResource;
     Name m_debugName;
 };
 

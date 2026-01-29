@@ -135,7 +135,7 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
             ImageSubResource dstSubResource {};
             dstSubResource.baseMipLevel = mipIndex;
-            dstSubResource.baseArrayLayer = 6 * next;
+            dstSubResource.baseArrayLayer = uint16(6 * next);
             dstSubResource.numLayers = 6;
 
             const Vec3u srcMipExtent = srcImage->GetTextureDesc().GetMipExtent(mipIndex);

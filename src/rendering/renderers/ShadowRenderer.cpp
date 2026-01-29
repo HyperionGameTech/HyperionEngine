@@ -251,7 +251,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
             Assert(framebufferImage.IsValid());
 
-            const uint32 numLayers = framebufferImage->NumArrayLayers();
+            const uint16 numLayers = framebufferImage->NumArrayLayers();
 
             Assert((atlasElement.layerIndex * numLayers) + numLayers <= shadowMapImage->NumArrayLayers(),
                 "Atlas element has layer index = {} and num faces = {} ({} x {} + {} = {}), but shadow map atlas has total num faces = {}",
@@ -259,17 +259,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 atlasElement.layerIndex, numLayers, numLayers, (atlasElement.layerIndex * numLayers) + numLayers,
                 shadowMapImage->NumArrayLayers());
 
-            const ImageSubResource baseSubResource {
-                .baseArrayLayer = (atlasElement.layerIndex * numLayers),
-                .baseMipLevel = 0,
-                .numLayers = numLayers,
-                .numLevels = 1
-            };
+            ImageSubResource baseSubResource {};
+            baseSubResource.baseMipLevel = 0;
+            baseSubResource.numLevels = 1;
+            baseSubResource.baseArrayLayer = (atlasElement.layerIndex * numLayers);
+            baseSubResource.numLayers = numLayers;
 
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
             frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, baseSubResource);
 
-            for (uint32 layerIndex = 0; layerIndex < numLayers; layerIndex++)
+            for (uint16 layerIndex = 0; layerIndex < numLayers; layerIndex++)
             {
                 frame->renderQueue << Blit(
                     framebufferImage,
@@ -282,15 +281,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                         atlasElement.offsetCoords.y + atlasElement.dimensions.y
                     },
                     ImageSubResource {
-                        .baseArrayLayer = layerIndex,
                         .baseMipLevel = 0,
+                        .numLevels = 1,
+                        .baseArrayLayer = layerIndex,
                         .numLayers = 1
                     },
                     ImageSubResource {
-                        .baseArrayLayer = baseSubResource.baseArrayLayer + layerIndex,
                         .baseMipLevel = baseSubResource.baseMipLevel,
-                        .numLayers = 1,
-                        .numLevels = 1
+                        .numLevels = 1,
+                        .baseArrayLayer = uint16(baseSubResource.baseArrayLayer + layerIndex),
+                        .numLayers = 1
                     }
                 );
             }
@@ -329,7 +329,15 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
         // Copy combined shadow map to the final shadow map
         frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
-        frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        frame->renderQueue << InsertBarrier(
+            shadowMapImage,
+            RS_COPY_DST,
+            ImageSubResource {
+                .baseMipLevel = 0,
+                .numLevels = 1,
+                .baseArrayLayer = uint8(atlasElement.layerIndex),
+                .numLayers = 1
+            });
 
         // copy the image
         frame->renderQueue << Blit(
@@ -343,18 +351,30 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 atlasElement.offsetCoords.y + atlasElement.dimensions.y
             },
             ImageSubResource {
+                .baseMipLevel = 0,
+                .numLevels = 1,
                 .baseArrayLayer = 0,
                 .numLayers = 1
             },
             ImageSubResource {
-                .baseArrayLayer = atlasElement.layerIndex,
+                .baseMipLevel = 0,
+                .numLevels = 1,
+                .baseArrayLayer = uint8(atlasElement.layerIndex),
                 .numLayers = 1
             }
         );
 
         // put the images back into a state for reading
         frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
-        frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        frame->renderQueue << InsertBarrier(
+            shadowMapImage,
+            RS_SHADER_RESOURCE,
+            ImageSubResource {
+                .baseMipLevel = 0,
+                .numLevels = 1,
+                .baseArrayLayer = uint8(atlasElement.layerIndex),
+                .numLayers = 1
+            });
     }
 
     if (useVsm)
@@ -391,11 +411,28 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         rq << SetShaderUniform(numShaderUniforms++, "BlurShadowMapUniforms"_sh, cacheIt->second.blurUniformBuffers[frameIndex]);
 
         // put our shadow map in a state for writing
-        rq << InsertBarrier(shadowMapImage, RS_UNORDERED_ACCESS, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        rq << InsertBarrier(
+            shadowMapImage,
+            RS_UNORDERED_ACCESS,
+            ImageSubResource {
+                .baseMipLevel = 0,
+                .numLevels = 1,
+                .baseArrayLayer = uint8(atlasElement.layerIndex),
+                .numLayers = 1
+            });
+
         rq << DispatchCompute(Vec3u { (atlasElement.dimensions.x + 7) / 8, (atlasElement.dimensions.y + 7) / 8, 1 });
 
         // put shadow map back into readable state
-        rq << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });
+        rq << InsertBarrier(
+            shadowMapImage, 
+            RS_SHADER_RESOURCE,
+            ImageSubResource {
+                .baseMipLevel = 0,
+                .numLevels = 1,
+                .baseArrayLayer = uint8(atlasElement.layerIndex),
+                .numLayers = 1
+            });
     }
 }
 

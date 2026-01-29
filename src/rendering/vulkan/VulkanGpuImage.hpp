@@ -42,9 +42,6 @@ public:
 
     void SetResourceState(ResourceState newState) override;
 
-    ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
-    void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
-
     void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         ResourceState newState,
@@ -101,8 +98,6 @@ private:
 
     VkImageTiling m_tiling = VK_IMAGE_TILING_OPTIMAL;
     VkImageUsageFlags m_usageFlags = 0;
-
-    HashMap<uint64, ResourceState> m_subResourceStates;
 
     // true if we created the VkImage, false otherwise (e.g retrieved from swapchain)
     bool m_isHandleOwned = true;

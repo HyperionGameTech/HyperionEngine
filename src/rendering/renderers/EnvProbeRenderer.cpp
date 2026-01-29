@@ -291,14 +291,14 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     uniforms.worldPosition = envProbeProxy->bufferData.worldPosition;
 
     const Vec2u extent = prefilteredEnvMap->GetExtent().GetXY();
-    const uint32 numMips = uint32(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
+    const uint8 numMips = uint8(MathUtil::FastLog2(MathUtil::Max(extent.x, extent.y))) + 1;
 
     Array<GpuBufferRef> buffers;
     buffers.Resize(numMips);
 
     frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_SHADER_RESOURCE);
 
-    for (uint32 mipIndex = 0; mipIndex < numMips; mipIndex++)
+    for (uint8 mipIndex = 0; mipIndex < numMips; mipIndex++)
     {
         const float roughness = float(mipIndex) / float(numMips - 1);
         const float perceptualRoughness = MathUtil::Round(roughness * roughness, 3);
