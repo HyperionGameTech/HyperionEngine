@@ -48,7 +48,7 @@ class World;
 class ConstantsAllocator;
 class RenderGroup;
 class DescriptorSetCache;
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 class Texture;
 class ApplicationWindow;
 class SingleTimeCommands;
@@ -261,7 +261,7 @@ public:
 
     virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) = 0;
 
-    virtual DescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) = 0;
+    virtual DescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) = 0;
 
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderRef& shader,

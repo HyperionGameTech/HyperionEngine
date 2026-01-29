@@ -695,25 +695,7 @@ void RenderGroup::PerformRendering(
         // No draw calls to render; skip pipeline / cache fetch
         return;
     }
-
-    //// Setup instancing descriptor set if "Instancing" descriptor set exists in the shader.
-    //if (drawCallCollection.instancedDrawCalls.Any() && !drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()])
-    //{
-    //    const DescriptorTableDeclaration* descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    //    Assert(descriptorTableDecl != nullptr);
-
-    //    const DescriptorSetDeclaration* instancingDescriptorSetDecl = descriptorTableDecl->FindDescriptorSetDeclaration("Instancing"_sh);
-    //    Assert(instancingDescriptorSetDecl != nullptr);
-
-    //    const GpuBufferRef& gpuBuffer = drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frame->GetFrameIndex());
-    //    Assert(gpuBuffer.IsValid());
-
-    //    DescriptorSetRef& descriptorSet = drawCallCollection.instancingDescriptorSets[frame->GetFrameIndex()];
-    //    descriptorSet = g_renderInterface->MakeDescriptorSet(DescriptorSetLayout(instancingDescriptorSetDecl));
-    //    descriptorSet->SetElement("EntityInstanceBatchesBuffer"_sh, gpuBuffer);
-    //    Assert(descriptorSet->Create());
-    //}
-
+    
     const uint8 stencilReference = renderableAttributes.GetMaterialAttributes().stencilReference;
 
     RenderQueue* pRenderQueue = &frame->renderQueue;

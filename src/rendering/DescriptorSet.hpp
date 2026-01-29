@@ -136,7 +136,7 @@ struct DescriptorSetLayoutElement
     }
 };
 
-extern DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration();
+extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 
 class DescriptorSetLayout
 {
@@ -437,7 +437,7 @@ class DescriptorTableBase : public ObjectBase
     HYP_OBJECT_BODY(DescriptorTableBase);
 
 public:
-    explicit DescriptorTableBase(const DescriptorTableDeclaration* decl);
+    explicit DescriptorTableBase(const ShaderInputGroup* decl);
 
     virtual ~DescriptorTableBase() override
     {
@@ -462,7 +462,7 @@ public:
         return m_decl != nullptr;
     }
 
-    HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDeclaration() const
+    HYP_FORCE_INLINE const ShaderInputGroup* GetDeclaration() const
     {
         return m_decl;
     }
@@ -577,7 +577,7 @@ public:
     }
 
 protected:
-    const DescriptorTableDeclaration* m_decl;
+    const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
     Name m_debugName;
@@ -599,17 +599,14 @@ protected:
 #undef INCLUDE_FROM_RHI
 #endif
 
-#define DECLARE_SET(index, name) \
-    static DescriptorTableDeclaration::DeclareSet HYP_UNIQUE_NAME(DescriptorSet_##name)(&GetStaticDescriptorTableDeclaration(), index, HYP_NAME_UNSAFE(name))
-
 #define DECLARE_SRV_COND(setName, name, type, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 #define DECLARE_UAV_COND(setName, name, type, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 #define DECLARE_BUFFER_COND(setName, name, type, count, size, isDynamic, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
 #define DECLARE_SAMPLER_COND(setName, name, type, count, cond) \
-    static DescriptorTableDeclaration::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 
 #define DECLARE_SRV(setName, name, type, count) DECLARE_SRV_COND(setName, name, type, count, true)
 #define DECLARE_UAV(setName, name, type, count) DECLARE_UAV_COND(setName, name, type, count, true)

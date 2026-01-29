@@ -822,7 +822,7 @@ VulkanDescriptorSetRef VulkanRenderInterface::MakeDescriptorSet(const Descriptor
     return descriptorSet;
 }
 
-VulkanDescriptorTableRef VulkanRenderInterface::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
+VulkanDescriptorTableRef VulkanRenderInterface::MakeDescriptorTable(const ShaderInputGroup* decl)
 {
     return MakeHandle<VulkanDescriptorTable>(decl);
 }

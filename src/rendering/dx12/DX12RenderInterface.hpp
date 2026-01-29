@@ -74,7 +74,7 @@ public:
 
     DX12DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
-    DX12DescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
+    DX12DescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) override;
 
     DX12GraphicsPipelineRef MakeGraphicsPipeline(
         const DX12ShaderRef& shader,

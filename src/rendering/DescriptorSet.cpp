@@ -61,7 +61,7 @@ uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringH
     return ~0u;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(StringHash name) const
+DescriptorSetDeclaration* ShaderInputGroup::FindDescriptorSetDeclaration(StringHash name) const
 {
     for (const DescriptorSetDeclaration& decl : elements)
     {
@@ -74,16 +74,16 @@ DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclarati
     return nullptr;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
+DescriptorSetDeclaration* ShaderInputGroup::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
 {
     return &elements.PushBack(std::move(descriptorSetDeclaration));
 }
 
-DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
+ShaderInputGroup& GetStaticDescriptorTableDeclaration()
 {
-    static DescriptorTableDeclaration s_decl;
-    static DescriptorTableDeclaration::DeclareSet s_BindlessResources0Decl { &s_decl, 0, NAME("BindlessResources0") };
-    static DescriptorTableDeclaration::DeclareSet s_BindlessResources1Decl { &s_decl, 1, NAME("BindlessResources1") };
+    static ShaderInputGroup s_decl;
+    static ShaderInputGroup::DeclareSet s_BindlessResources0Decl { &s_decl, 0, NAME("BindlessResources0") };
+    static ShaderInputGroup::DeclareSet s_BindlessResources1Decl { &s_decl, 1, NAME("BindlessResources1") };
 
     return s_decl;
 }
@@ -332,7 +332,7 @@ void DescriptorSetBase::SetElement(StringHash name, GpuTlas* ref)
 
 #pragma region DescriptorTableBase
 
-DescriptorTableBase::DescriptorTableBase(const DescriptorTableDeclaration* decl)
+DescriptorTableBase::DescriptorTableBase(const ShaderInputGroup* decl)
     : m_decl(decl)
 {
     AssertDebug(decl != nullptr);

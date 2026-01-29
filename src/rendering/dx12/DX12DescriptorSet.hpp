@@ -72,7 +72,7 @@ class DX12DescriptorTable final : public DescriptorTableBase
     HYP_OBJECT_BODY(DX12DescriptorTable);
 
 public:
-    explicit DX12DescriptorTable(const DescriptorTableDeclaration* decl)
+    explicit DX12DescriptorTable(const ShaderInputGroup* decl)
         : DescriptorTableBase(decl)
     {
     }

@@ -328,7 +328,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 
     Assert(m_shader != nullptr && m_shader->GetCompiledShader() != nullptr);
 
-    const DescriptorTableDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     Array<D3D12_ROOT_PARAMETER> rootParams;

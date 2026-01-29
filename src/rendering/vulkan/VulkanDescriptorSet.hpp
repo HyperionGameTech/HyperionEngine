@@ -123,7 +123,7 @@ class VulkanDescriptorTable final : public DescriptorTableBase
     HYP_OBJECT_BODY(VulkanDescriptorTable);
 
 public:
-    explicit VulkanDescriptorTable(const DescriptorTableDeclaration* decl)
+    explicit VulkanDescriptorTable(const ShaderInputGroup* decl)
         : DescriptorTableBase(decl)
     {
     }

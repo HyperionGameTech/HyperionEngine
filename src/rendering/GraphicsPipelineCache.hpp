@@ -20,7 +20,7 @@ namespace Hyperion {
 
 class RenderableAttributeSet;
 class CachedPipelinesMap;
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
 class GraphicsPipelineCacheHandle
 {

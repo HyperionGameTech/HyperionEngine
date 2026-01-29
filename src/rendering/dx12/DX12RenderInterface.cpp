@@ -316,7 +316,7 @@ DX12DescriptorSetRef DX12RenderInterface::MakeDescriptorSet(const DescriptorSetL
     return MakeHandle<DX12DescriptorSet>(layout);
 }
 
-DX12DescriptorTableRef DX12RenderInterface::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
+DX12DescriptorTableRef DX12RenderInterface::MakeDescriptorTable(const ShaderInputGroup* decl)
 {
     return MakeHandle<DX12DescriptorTable>(decl);
 }

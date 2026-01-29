@@ -1547,7 +1547,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     const CompiledShader* compiledShader = shader->GetCompiledShader();
     AssertDebug(compiledShader != nullptr);
 
-    const DescriptorTableDeclaration* tableDecl = compiledShader->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* tableDecl = compiledShader->GetDescriptorTableDeclaration();
     AssertDebug(tableDecl != nullptr);
 
     enum DescriptorSetStateFlags : uint8

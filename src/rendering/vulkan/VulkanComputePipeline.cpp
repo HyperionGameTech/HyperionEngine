@@ -33,7 +33,7 @@ Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanComputePipeline>(co
     VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
-    const DescriptorTableDeclaration* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     for (const DescriptorSetDeclaration& setDecl : decl->elements)

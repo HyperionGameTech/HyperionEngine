@@ -23,7 +23,7 @@
 
 namespace Hyperion {
 
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
 static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
     "",                     // ShaderModuleType::None
@@ -218,9 +218,9 @@ struct DescriptorSetDeclaration
 };
 
 HYP_STRUCT()
-struct DescriptorTableDeclaration
+struct ShaderInputGroup
 {
-    HYP_STRUCT_BODY(DescriptorTableDeclaration);
+    HYP_STRUCT_BODY(ShaderInputGroup);
 
     HYP_FIELD(Property = "Elements", Serialize = true)
     Array<DescriptorSetDeclaration> elements;
@@ -258,7 +258,7 @@ struct DescriptorTableDeclaration
 
     struct DeclareSet
     {
-        DeclareSet(DescriptorTableDeclaration* table, uint32 setIndex, Name name, bool isTemplate = false)
+        DeclareSet(ShaderInputGroup* table, uint32 setIndex, Name name, bool isTemplate = false)
         {
             AssertDebug(table != nullptr);
 
@@ -280,7 +280,7 @@ struct DescriptorTableDeclaration
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorType type, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        DeclareDescriptor(ShaderInputGroup* table, Name setName, DescriptorType type, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
         {
             AssertDebug(table != nullptr);
 
@@ -332,8 +332,8 @@ struct HYP_API CompiledShader
     HYP_FIELD(Property = "VertexAttributes")
     VertexAttributeSet vertexAttributes;
 
-    HYP_FIELD(Property = "DescriptorTableDeclaration")
-    DescriptorTableDeclaration descriptorTableDeclaration;
+    HYP_FIELD(Property = "ShaderInputGroup")
+    ShaderInputGroup inputGroup;
 
     HYP_FIELD(Property = "ShaderModuleTypes")
     Array<ShaderModuleType> moduleTypes;
@@ -379,10 +379,10 @@ struct HYP_API CompiledShader
             && entryPointNames.Size() == shaderBlobs.Size();
     }
 
-    HYP_FORCE_INLINE const DescriptorTableDeclaration* GetDescriptorTableDeclaration() const
+    HYP_FORCE_INLINE const ShaderInputGroup* GetDescriptorTableDeclaration() const
     {
         // \TODO return reference
-        return &descriptorTableDeclaration;
+        return &inputGroup;
     }
 
     void AddShaderModule(

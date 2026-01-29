@@ -15,7 +15,7 @@
 namespace Hyperion {
 
 class RenderableAttributeSet;
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
 struct PSOCacheKey
 {

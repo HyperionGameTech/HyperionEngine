@@ -126,7 +126,7 @@ public:
 
     VulkanDescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
-    VulkanDescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
+    VulkanDescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) override;
 
     VulkanGraphicsPipelineRef MakeGraphicsPipeline(
         const VulkanShaderRef& shader,

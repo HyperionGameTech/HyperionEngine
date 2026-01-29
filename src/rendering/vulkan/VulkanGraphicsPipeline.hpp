@@ -33,7 +33,7 @@
 
 namespace Hyperion {
 
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
 class VulkanFramebuffer;
 using VulkanFramebufferRef = Handle<VulkanFramebuffer>;

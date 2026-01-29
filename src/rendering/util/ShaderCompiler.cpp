@@ -132,16 +132,16 @@ String GetShaderVersionFromSource(const String& source, String& outSourceWithout
     return "#version 450";
 }
 
-static String BuildDescriptorTableDefines(ShaderLanguage language, const DescriptorTableDeclaration& descriptorTableDeclaration)
+static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderInputGroup& inputGroup)
 {
     String descriptorTableDefines;
 
     // Generate descriptor table defines
-    for (const DescriptorSetDeclaration& descriptorSetDeclaration : descriptorTableDeclaration.elements)
+    for (const DescriptorSetDeclaration& descriptorSetDeclaration : inputGroup.elements)
     {
         const DescriptorSetDeclaration* descriptorSetDeclarationPtr = &descriptorSetDeclaration;
 
-        const uint32 setIndex = descriptorTableDeclaration.GetDescriptorSetIndex(descriptorSetDeclaration.name);
+        const uint32 setIndex = inputGroup.GetDescriptorSetIndex(descriptorSetDeclaration.name);
         Assert(setIndex != -1);
 
         if (language == ShaderLanguage::GLSL)
@@ -726,7 +726,7 @@ struct DescriptorUsageSet
 {
     FlatSet<DescriptorUsage> elements;
 
-    void BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const;
+    void BuildDescriptorTableDeclaration(ShaderInputGroup& table) const;
 
     HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
     {
@@ -812,7 +812,7 @@ CompiledShader::CompiledShader(const CompiledShader& other)
     : name(other.name),
       properties(other.properties),
       vertexAttributes(other.vertexAttributes),
-      descriptorTableDeclaration(other.descriptorTableDeclaration),
+      inputGroup(other.inputGroup),
       moduleTypes(other.moduleTypes),
       moduleNames(other.moduleNames),
       entryPointNames(other.entryPointNames),
@@ -828,7 +828,7 @@ CompiledShader& CompiledShader::operator=(const CompiledShader& other)
         name = other.name;
         properties = other.properties;
         vertexAttributes = other.vertexAttributes;
-        descriptorTableDeclaration = other.descriptorTableDeclaration;
+        inputGroup = other.inputGroup;
         moduleTypes = other.moduleTypes;
         moduleNames = other.moduleNames;
         entryPointNames = other.entryPointNames;
@@ -843,7 +843,7 @@ CompiledShader::CompiledShader(CompiledShader&& other) noexcept
     : name(other.name),
       properties(other.properties),
       vertexAttributes(other.vertexAttributes),
-      descriptorTableDeclaration(std::move(other.descriptorTableDeclaration)),
+      inputGroup(std::move(other.inputGroup)),
       moduleTypes(std::move(other.moduleTypes)),
       moduleNames(std::move(other.moduleNames)),
       entryPointNames(std::move(other.entryPointNames)),
@@ -863,7 +863,7 @@ CompiledShader& CompiledShader::operator=(CompiledShader&& other) noexcept
         moduleNames = std::move(other.moduleNames);
         entryPointNames = std::move(other.entryPointNames);
         shaderBlobs = std::move(other.shaderBlobs);
-        descriptorTableDeclaration = std::move(other.descriptorTableDeclaration);
+        inputGroup = std::move(other.inputGroup);
         propertySetHashCode = other.propertySetHashCode;
     }
     return *this;
@@ -914,7 +914,7 @@ uint64 CompiledShader::GetRevisionNumber() const
 
 #pragma region DescriptorUsageSet
 
-void DescriptorUsageSet::BuildDescriptorTableDeclaration(DescriptorTableDeclaration& table) const
+void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table) const
 {
     for (const DescriptorUsage& descriptorUsage : elements)
     {
@@ -1447,7 +1447,7 @@ static ByteBuffer CompileGLSL(
 
     glslang_shader_t* shader = glslang_shader_create(&input);
 
-    DescriptorTableDeclaration table;
+    ShaderInputGroup table;
     descriptorUsages.BuildDescriptorTableDeclaration(table);
 
     String preamble = BuildDescriptorTableDefines(ShaderLanguage::GLSL, table);
@@ -1758,7 +1758,7 @@ static ByteBuffer CompileHLSL(
 {
     Assert(s_dxcCompiler && s_dxcUtils);
 
-    DescriptorTableDeclaration table;
+    ShaderInputGroup table;
     descriptorUsages.BuildDescriptorTableDeclaration(table);
 
     String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, table)
@@ -4067,8 +4067,8 @@ bool ShaderCompiler::CompileBundle(
 
             if (numErrored == 0 && numCompiled > 0)
             {
-                compiledShader.descriptorTableDeclaration = DescriptorTableDeclaration();
-                descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(compiledShader.descriptorTableDeclaration);
+                compiledShader.inputGroup = ShaderInputGroup();
+                descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(compiledShader.inputGroup);
 
                 Mutex::Guard guard(compiledShadersMutex);
                 out.compiledShaders.PushBack(std::move(compiledShader));

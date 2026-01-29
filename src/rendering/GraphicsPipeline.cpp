@@ -59,7 +59,7 @@ RendererResult GraphicsPipelineBase::Create()
 
 uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const
 {
-    const DescriptorTableDeclaration* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     if (decl == nullptr)
     {

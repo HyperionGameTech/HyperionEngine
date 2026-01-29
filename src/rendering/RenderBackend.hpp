@@ -31,7 +31,7 @@ class Texture;
 class ApplicationWindow;
 
 class DescriptorSetLayout;
-struct DescriptorTableDeclaration;
+struct ShaderInputGroup;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
