@@ -444,8 +444,10 @@ VulkanGpuTlas::~VulkanGpuTlas()
     {
         const uint32 storageId = it.second;
 
-        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Slot1, storageId * 2);       // VB
-        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Slot1, storageId * 2 + 1);   // IB
+        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);       // VB
+        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);   // IB
+
+        g_renderInterface->bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
     }
 }
 
@@ -572,8 +574,10 @@ void VulkanGpuTlas::RemoveGpuBlas(const VulkanGpuBlasRef& blas)
         {
             const uint32 storageId = storageIt->second;
 
-            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Slot1, storageId * 2);
-            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Slot1, storageId * 2 + 1);
+            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
+            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
+
+            g_renderInterface->bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
 
             m_blasToStorageId.Erase(storageIt);
         }
@@ -742,16 +746,29 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         Assert(blas->GetGeometries()[0]->GetPackedVerticesBuffer() && blas->GetGeometries()[0]->GetPackedVerticesBuffer()->IsCreated());
         Assert(blas->GetGeometries()[0]->GetPackedIndicesBuffer() && blas->GetGeometries()[0]->GetPackedIndicesBuffer()->IsCreated());
 
-        const uint32 storageId = i;
+        uint32 storageId = ~0u;
 
-        {
+        { // allocate / update resources in bindless storage
             auto storageIt = m_blasToStorageId.Find(blas.Get());
-            if (storageIt == m_blasToStorageId.End() || storageIt->second != storageId)
+            if (storageIt != m_blasToStorageId.End())
             {
+                storageId = storageIt->second;
+            }
+            else
+            {
+                storageId = g_renderInterface->bindlessStorage->AllocateId(BindlessStorage_Buffers);
+                AssertDebug(!(storageId & StorageIdDirtyBit));
+                storageId |= StorageIdDirtyBit;
+            }
+
+            if (storageId & StorageIdDirtyBit)
+            {
+                storageId &= ~StorageIdDirtyBit;
+
                 m_blasToStorageId.Set(blas.Get(), storageId);
                 
-                g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Slot1, storageId * 2, blas->GetGeometries()[0]->GetPackedVerticesBuffer());
-                g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Slot1, storageId * 2 + 1, blas->GetGeometries()[0]->GetPackedIndicesBuffer());
+                g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0]->GetPackedVerticesBuffer());
+                g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0]->GetPackedIndicesBuffer());
             }
         }
 

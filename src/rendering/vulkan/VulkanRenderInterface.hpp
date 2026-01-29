@@ -182,7 +182,7 @@ public:
 
     HYP_API RendererResult CreateDescriptorSet(
         VkDescriptorSetLayout vkDescriptorSetLayout,
-        bool isBindlessTextures, bool isBindlessBuffers,
+        bool isBindlessTextures, bool isBindlessBuffers, bool isRayTracing,
         VkDescriptorSet& outVkDescriptorSet,
         VkDescriptorPool& outVkDescriptorPool);
 

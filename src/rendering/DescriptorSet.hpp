@@ -385,7 +385,6 @@ protected:
 
         if (count == ~0u)
         {
-            count = MaxBindlessResources;
             isBindless = true;
         }
 
@@ -403,17 +402,15 @@ protected:
         {
             it = m_elements.Emplace(name).first;
         }
-
-        DescriptorSetElement& element = it->second;
-        element.values.Resize(count);
         
         // if we are a bindless descriptor then we want to NOT have occupiedArrayElems set.
-        // unless, of course, we provided a non-null placeholder value for filling bindless elems array.
-
-        if (isBindless && !placeholder)
+        if (isBindless)
         {
             return;
         }
+
+        DescriptorSetElement& element = it->second;
+        element.values.Resize(count);
 
         for (uint32 i = 0; i < count; i++)
         {

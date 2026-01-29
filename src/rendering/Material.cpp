@@ -7,6 +7,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/Bindless.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -458,7 +459,9 @@ void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(bufferData.textureIndices);
     Memory::Fill(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
-    const uint32 numTextureSlots = MathUtil::Min(MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources : MaxBoundTextures);
+    const uint32 numTextureSlots = MathUtil::Min(
+        MaterialTextures::MaxTextures, useBindlessTextures ? MaxBindlessResources[BindlessStorage_Textures] : MaxBoundTextures);
+
     uint32 remainingTextureSlots = numTextureSlots;
 
     proxy->boundTextures.Clear();

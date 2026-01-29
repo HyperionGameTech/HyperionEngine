@@ -541,19 +541,20 @@ RendererResult VulkanDescriptorSet::Create()
         return {};
     }
 
-    const bool isBindlessTextures = std::any_of(m_layout.GetElements().Begin(), m_layout.GetElements().End(), [](const KeyValuePair<Name, DescriptorSetLayoutElement>& pair)
-        {
-            return pair.second.type == ShaderInputType::IMAGE && pair.second.IsBindless();
-        });
+    bool isBindlessTextures = false;
+    bool isBindlessBuffers = false;
+    bool isRayTracing = false;
 
-    const bool isBindlessBuffers = std::any_of(m_layout.GetElements().Begin(), m_layout.GetElements().End(), [](const KeyValuePair<Name, DescriptorSetLayoutElement>& pair)
-        {
-            return pair.second.IsBuffer() || pair.second.IsBindless();
-        });
+    for (const KeyValuePair<Name, DescriptorSetLayoutElement>& pair : m_layout.GetElements())
+    {
+        isBindlessTextures |= (pair.second.type == ShaderInputType::IMAGE && pair.second.IsBindless());
+        isBindlessBuffers |= (pair.second.IsBuffer() || pair.second.IsBindless());
+        isRayTracing |= (pair.second.type == ShaderInputType::TLAS);
+    }
 
     CheckResultOrReturn(g_renderInterface->CreateDescriptorSet(
         m_vkDescriptorSetLayout,
-        isBindlessTextures, isBindlessBuffers,
+        isBindlessTextures, isBindlessBuffers, isRayTracing,
         m_handle,
         m_vkDescriptorPool));
 

@@ -24,6 +24,7 @@
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/FinalPass.hpp>
+#include <rendering/Bindless.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 
@@ -63,7 +64,8 @@ enum VulkanDescriptorPoolRequirements : uint8
     VDPR_None = 0x0,
     VDPR_BindlessTextures = 0x1,
     VDPR_BindlessBuffers = 0x2,
-    VDPR_Bindless = VDPR_BindlessTextures | VDPR_BindlessBuffers
+    VDPR_Bindless = VDPR_BindlessTextures | VDPR_BindlessBuffers,
+    VDPR_RayTracing = 0x4
 };
 
 #pragma region VulkanRenderConfig
@@ -109,7 +111,7 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         if (element.IsBindless())
         {
-            descriptorCount = MaxBindlessResources;
+            descriptorCount = 65536;
         }
 
         // if (descriptorCount > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {
@@ -382,17 +384,17 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
 {
     Array<VkDescriptorPoolSize> descriptorPoolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources : 1000 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] : 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources : 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources : 1000 }
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources[BindlessStorage_Buffers] : 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, (reqs & VDPR_BindlessBuffers) ? MaxBindlessResources[BindlessStorage_Buffers] : 1000 }
     };
 
     // only add acceleration structure descriptor type if rayTracing is supported,
     // otherwise we'll get an error when creating the descriptor pool
-    if (g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
+    if ((reqs & VDPR_RayTracing) && g_renderInterface->GetDevice()->GetFeatures().IsRayTracingSupported())
     {
         descriptorPoolSizes.PushBack({ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1 });
     }
@@ -987,7 +989,7 @@ TextureFormat VulkanRenderInterface::FindSupportedFormat(Span<TextureFormat> pos
 
 RendererResult VulkanRenderInterface::CreateDescriptorSet(
     VkDescriptorSetLayout vkDescriptorSetLayout,
-    bool isBindlessTextures, bool isBindlessBuffers,
+    bool isBindlessTextures, bool isBindlessBuffers, bool isRayTracing,
     VkDescriptorSet& outVkDescriptorSet,
     VkDescriptorPool& outVkDescriptorPool)
 {
@@ -996,6 +998,8 @@ RendererResult VulkanRenderInterface::CreateDescriptorSet(
         reqs |= VDPR_BindlessTextures;
     if (isBindlessBuffers)
         reqs |= VDPR_BindlessBuffers;
+    if (isRayTracing)
+        reqs |= VDPR_RayTracing;
 
     return m_descriptorSetManager->CreateDescriptorSet(m_instance->GetDevice(),
         vkDescriptorSetLayout, VulkanDescriptorPoolRequirements(reqs), outVkDescriptorSet, outVkDescriptorPool);

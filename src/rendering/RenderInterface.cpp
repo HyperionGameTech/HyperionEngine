@@ -977,8 +977,8 @@ RendererResult RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, resources);
     resources = nullptr;
 
-    bindlessStorage->UnsetAllResources(BindlessStorage_Slot0);
-    bindlessStorage->UnsetAllResources(BindlessStorage_Slot1);
+    bindlessStorage->UnsetAllResources(BindlessStorage_Textures);
+    bindlessStorage->UnsetAllResources(BindlessStorage_Buffers);
 
     PoolDelete(*g_renderPool, bindlessStorage);
     bindlessStorage = nullptr;

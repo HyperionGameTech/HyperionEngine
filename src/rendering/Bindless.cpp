@@ -37,13 +37,14 @@ void BindlessStorage::UnsetAllResources(BindlessStorageSlot slot)
     }
 
     m_resources[slot].Clear();
+    m_idGenerators[slot].Reset();
 }
 
 void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const Handle<ObjectBase>& resource)
 {
     AssertOnThread(g_renderThread);
 
-    Assert(index < MaxBindlessResources);
+    Assert(index < MaxBindlessResources[slot]);
     Assert(resource.IsValid());
 
     auto& resources = m_resources[slot];

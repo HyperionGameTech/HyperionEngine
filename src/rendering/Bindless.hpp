@@ -19,8 +19,8 @@ class Texture;
 
 enum BindlessStorageSlot : uint8
 {
-    BindlessStorage_Slot0,
-    BindlessStorage_Slot1,
+    BindlessStorage_Textures,
+    BindlessStorage_Buffers,
 
     BindlessStorage_Max
 };
@@ -35,6 +35,11 @@ static constexpr StringHash BindlessStorageDescriptorNames[BindlessStorage_Max] 
     "Buffers"_sh
 };
 
+static constexpr uint32 MaxBindlessResources[BindlessStorage_Max] = {
+    2048,
+    16384
+};
+
 class BindlessStorage
 {
 public:
@@ -44,6 +49,16 @@ public:
     BindlessStorage(BindlessStorage&& other) noexcept = delete;
     BindlessStorage& operator=(BindlessStorage&& other) noexcept = delete;
     ~BindlessStorage();
+
+    HYP_NODISCARD uint32 AllocateId(BindlessStorageSlot slot)
+    {
+        return m_idGenerators[slot].Next() - 1;
+    }
+
+    void ReleaseId(BindlessStorageSlot slot, uint32 id)
+    {
+        m_idGenerators[slot].ReleaseId(id + 1);
+    }
 
     void UnsetAllResources(BindlessStorageSlot slot);
 
@@ -56,6 +71,8 @@ public:
 private:
     using ResourceList = SparsePagedArray<WeakHandle<ObjectBase>, 256, RenderAllocator>;
     ResourceList m_resources[BindlessStorage_Max];
+
+    IdGenerator m_idGenerators[BindlessStorage_Max];
 };
 
 } // namespace Hyperion

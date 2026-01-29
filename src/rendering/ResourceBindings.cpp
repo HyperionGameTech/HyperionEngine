@@ -295,11 +295,11 @@ void OnBindingChanged_Texture(Texture* texture, uint32 prev, uint32 next)
     {
         if (next != ~0u)
         {
-            g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Slot0, texture->Id().ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(texture));
+            g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Textures, texture->Id().ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(texture));
         }
         else
         {
-            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Slot0, texture->Id().ToIndex());
+            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Textures, texture->Id().ToIndex());
         }
     }
 

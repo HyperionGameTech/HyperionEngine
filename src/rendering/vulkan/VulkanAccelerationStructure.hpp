@@ -293,6 +293,8 @@ public:
 #endif
 
 private:
+    static constexpr uint32 StorageIdDirtyBit = 0x80000000u;
+
     RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
 
     Array<VkAccelerationStructureGeometryKHR> GetGeometries() const;
