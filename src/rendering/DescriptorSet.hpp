@@ -354,6 +354,9 @@ public:
     void SetElement(StringHash name, uint32 index, GpuTlas* ref);
     void SetElement(StringHash name, GpuTlas* ref);
 
+    /*! \brief Only for bindless descriptors; Marks the element at \p index as invalid */
+    void DeleteElement(StringHash name, uint32 index);
+
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, uint32 bindIndex) const = 0;
     virtual void Bind(CommandBuffer* commandBuffer, const GraphicsPipeline* pipeline, const DescriptorSetOffsetMap& offsets, uint32 bindIndex) const = 0;
 

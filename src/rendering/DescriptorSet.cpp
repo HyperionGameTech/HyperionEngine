@@ -328,6 +328,31 @@ void DescriptorSetBase::SetElement(StringHash name, GpuTlas* ref)
     SetElement(name, 0, ref);
 }
 
+void DescriptorSetBase::DeleteElement(StringHash name, uint32 index)
+{
+    const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
+    Assert(layoutElement != nullptr);
+    Assert(layoutElement->IsBindless(), "Can only call DeleteElement() for bindless descriptors");
+
+    DescriptorSetElement* element = nullptr;
+
+    auto it = m_elements.Find(Name(name));
+
+    if (it == m_elements.End())
+    {
+        return;
+    }
+
+    element = &it->second;
+
+    if (!element->occupiedArrayElems.Test(index))
+    {
+        return;
+    }
+
+    element->occupiedArrayElems.Set(index, false);
+}
+
 #pragma endregion DescriptorSetBase
 
 #pragma region DescriptorTableBase

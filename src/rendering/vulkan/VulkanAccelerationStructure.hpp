@@ -304,7 +304,8 @@ private:
     RendererResult BuildMeshDescriptionsBuffer();
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
-    Array<VulkanGpuBlasRef> m_blas;
+    Array<VulkanGpuBlasRef> m_blases;
+    HashMap<VulkanGpuBlas*, uint32> m_blasToStorageId;
     VulkanGpuBufferRef m_instancesBuffer;
 };
 

@@ -16,77 +16,86 @@ BindlessStorage::~BindlessStorage()
 {
 }
 
-void BindlessStorage::UnsetAllResources()
+void BindlessStorage::UnsetAllResources(BindlessStorageSlot slot)
 {
     AssertOnThread(g_renderThread);
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("BindlessResources0"_sh, frameIndex);
+        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
         // Unset all active textures
-        for (const auto& it : m_resources)
+        for (auto it = m_resources[slot].Begin(); it != m_resources[slot].End(); ++it)
         {
-            descriptorSet->SetElement("Textures"_sh, it.first.ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
+            const uint32 index = m_resources[slot].IndexOf(it);
+
+            descriptorSet->DeleteElement(BindlessStorageDescriptorNames[slot], index);
+        }
+
+        descriptorSet->Update(true);
+    }
+
+    m_resources[slot].Clear();
+}
+
+void BindlessStorage::AddResource(BindlessStorageSlot slot, uint32 index, const Handle<ObjectBase>& resource)
+{
+    AssertOnThread(g_renderThread);
+
+    Assert(index < MaxBindlessResources);
+    Assert(resource.IsValid());
+
+    auto& resources = m_resources[slot];
+
+    if (resources.HasIndex(index) && resources.Get(index).GetUnsafe() == resource.Get())
+    {
+        // same value
+        return;
+    }
+
+    resources.Emplace(index, MakeWeakRef(resource));
+
+    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+    {
+        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
+        AssertDebug(descriptorSet.IsValid());
+
+        if (GpuImageView* imageView = ObjCast<GpuImageView>(resource.Get()))
+        {
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, imageView);
+        }
+        else if (GpuBuffer* buffer = ObjCast<GpuBuffer>(resource.Get()))
+        {
+            descriptorSet->SetElement(BindlessStorageDescriptorNames[slot], index, buffer);
+        }
+        else
+        {
+            HYP_FAIL("Invalid object type {} for bindless resources!", resource->InstanceClass()->GetName());
         }
     }
-
-    m_resources.Clear();
 }
 
-void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imageView)
+void BindlessStorage::RemoveResource(BindlessStorageSlot slot, uint32 index)
 {
     AssertOnThread(g_renderThread);
+    
+    auto& resources = m_resources[slot];
 
-    if (!id.IsValid())
+    if (!resources.HasIndex(index))
     {
         return;
     }
-
-    auto it = m_resources.Find(id);
-
-    if (it != m_resources.End())
-    {
-        return;
-    }
-
-    m_resources.Insert({ id, imageView });
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("BindlessResources0"_sh, frameIndex);
+        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet(BindlessStorageSlotNames[slot], frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        descriptorSet->SetElement("Textures"_sh, id.ToIndex(), imageView);
-    }
-}
-
-void BindlessStorage::RemoveResource(ObjId<Texture> id)
-{
-    AssertOnThread(g_renderThread);
-
-    if (!id.IsValid())
-    {
-        return;
+        descriptorSet->DeleteElement(BindlessStorageDescriptorNames[slot], index);
     }
 
-    auto it = m_resources.Find(id);
-
-    if (it == m_resources.End())
-    {
-        return;
-    }
-
-    m_resources.Erase(it);
-
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        const DescriptorSetRef& descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("BindlessResources0"_sh, frameIndex);
-        AssertDebug(descriptorSet.IsValid());
-
-        descriptorSet->SetElement("Textures"_sh, id.ToIndex(), g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->placeholderData->defaultTexture2d));
-    }
+    resources.EraseAt(index);
 }
 
 } // namespace Hyperion
