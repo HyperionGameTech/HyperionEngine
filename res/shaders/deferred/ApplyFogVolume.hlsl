@@ -135,7 +135,7 @@ DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-DECLARE_SRV(FogVolume, NoiseMap) Texture3D NoiseMap;
+DECLARE_SRV(FogVolume, NoiseMap) Texture3D<float> NoiseMap;
 DECLARE_BUFFER(FogVolume, FogVolumeUniforms) cbuffer FogVolumeUniforms
 {
     FogVolume fogVolume;

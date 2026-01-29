@@ -921,7 +921,9 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     
     if (!data.cBuffer)
     {
-        data.cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
+        data.cBuffer = g_renderInterface->MakeGpuBuffer(
+            GpuBufferType::CONSTANT_BUFFER,
+            sizeof(FogVolumeShaderData) + sizeof(LightShaderData) * MaxBoundLightsPerFogVolume);
         Assert(data.cBuffer->Create());
     }
 
