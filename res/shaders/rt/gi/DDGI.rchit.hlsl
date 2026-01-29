@@ -65,66 +65,9 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     
     Vertex v0, v1, v2;
     
-    // @TODO load in bulk with Load3/Load2
-    {
-        const uint offset = 8 * index[0];
-        v0.position = float3(
-            asfloat(buffers[vbIndex].Load(offset * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 1) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 2) * 4))
-        );
-        
-        v0.normal = float3(
-            asfloat(buffers[vbIndex].Load((offset + 3) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 4) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 5) * 4))
-        );
-        
-        v0.texcoord0 = float2(
-            asfloat(buffers[vbIndex].Load((offset + 6) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 7) * 4))
-        );
-    }
-
-    {
-        const uint offset = 8 * index[1];
-        v1.position = float3(
-            asfloat(buffers[vbIndex].Load(offset * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 1) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 2) * 4))
-        );
-        
-        v1.normal = float3(
-            asfloat(buffers[vbIndex].Load((offset + 3) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 4) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 5) * 4))
-        );
-        
-        v1.texcoord0 = float2(
-            asfloat(buffers[vbIndex].Load((offset + 6) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 7) * 4))
-        );
-    }
-    
-    {
-        const uint offset = 8 * index[2];
-        v2.position = float3(
-            asfloat(buffers[vbIndex].Load(offset * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 1) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 2) * 4))
-        );
-        
-        v2.normal = float3(
-            asfloat(buffers[vbIndex].Load((offset + 3) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 4) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 5) * 4))
-        );
-        
-        v2.texcoord0 = float2(
-            asfloat(buffers[vbIndex].Load((offset + 6) * 4)),
-            asfloat(buffers[vbIndex].Load((offset + 7) * 4))
-        );
-    }
+    LoadVertex(buffers[vbIndex], index[0], v0);
+    LoadVertex(buffers[vbIndex], index[1], v1);
+    LoadVertex(buffers[vbIndex], index[2], v2);
 
     v0.position = mul(ObjectToWorld3x4(), float4(v0.position, 1.0)).xyz;
     v1.position = mul(ObjectToWorld3x4(), float4(v1.position, 1.0)).xyz;

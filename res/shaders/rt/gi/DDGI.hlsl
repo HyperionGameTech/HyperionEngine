@@ -96,7 +96,7 @@ void RayGenMain()
     float tmin = RAY_OFFSET;
     float tmax = ddgiConstants.probe_distance;
     
-    RayPayload payload;
+    RayPayload payload = (RayPayload)0;
     payload.throughput = float4(1.0, 1.0, 1.0, 1.0);
     payload.color = float4(0.0, 0.0, 0.0, 0.0);
     payload.distance = -1.0;
@@ -104,7 +104,7 @@ void RayGenMain()
     payload.roughness = 0.0;
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     
-    uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 256);
+    uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 16);
 
     ProbeRayData ray_data[NUM_BOUNCES];
     ray_data[0].color = float4(0.0, 0.0, 0.0, 0.0);
@@ -122,7 +122,7 @@ void RayGenMain()
         ray.TMin = tmin;
         ray.TMax = tmax;
 
-        TraceRay(tlas, flags, 0xff, 0, 1, 0, ray, payload);
+        TraceRay(tlas, flags, 0xFF, 0, 1, 0, ray, payload);
 
         bounces[bounce_index].throughput = payload.throughput;
         bounces[bounce_index].emissive = payload.emissive;

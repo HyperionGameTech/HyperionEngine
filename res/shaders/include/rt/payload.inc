@@ -1,3 +1,8 @@
+#ifndef HYP_PAYLOAD
+#define HYP_PAYLOAD
+
+#include "../../include/vertex.inc"
+
 struct RayPayload
 {
 	vec4 color;
@@ -28,14 +33,41 @@ struct RayHit
 	vec3 position;
 };
 
-struct PackedVertex
+#ifdef LANG_HLSL
+
+float3 LoadFloat3(ByteAddressBuffer buffer, uint byteOffset)
 {
-    float position_x;
-    float position_y;
-    float position_z;
-    float normal_x;
-    float normal_y;
-    float normal_z;
-    float texcoord_s;
-    float texcoord_t;
-};
+    return float3(
+        asfloat(buffer.Load(byteOffset)),
+        asfloat(buffer.Load(byteOffset + 4)),
+        asfloat(buffer.Load(byteOffset + 8))
+    );
+}
+
+float2 LoadFloat2(ByteAddressBuffer buffer, uint byteOffset)
+{
+    return float2(
+        asfloat(buffer.Load(byteOffset)),
+        asfloat(buffer.Load(byteOffset + 4))
+    );
+}
+
+/// Expects layout (PACKED)
+/// struct Vertex
+/// {
+///     float3 position;
+///     float3 normal;
+///	    float2 texcoord0;
+/// };
+void LoadVertex(ByteAddressBuffer buffer, uint vertexIndex, out Vertex vertex)
+{
+    uint byteOffset = vertexIndex * 32; // sizeof(Vertex) = 32 bytes
+
+    vertex.position = LoadFloat3(buffer, byteOffset);
+    vertex.normal = LoadFloat3(buffer, byteOffset + 12);
+    vertex.texcoord0 = LoadFloat2(buffer, byteOffset + 24);
+}
+
+#endif // LANG_HLSL
+
+#endif

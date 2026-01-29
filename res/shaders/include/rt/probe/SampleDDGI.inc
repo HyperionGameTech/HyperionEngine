@@ -1,9 +1,8 @@
-#ifndef HYP_DDGI_GLSL
-#define HYP_DDGI_GLSL
+#ifndef HYP_SAMPLE_DDGI
+#define HYP_SAMPLE_DDGI
 
-#include "rt/probe/probe_uniforms.inc"
-
-#include "rt/probe/shared.inc"
+#include "./probe_uniforms.inc"
+#include "./shared.inc"
 
 vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
 {
@@ -15,7 +14,8 @@ vec4 DDGISampleIrradiance(vec3 P, vec3 N, vec3 V)
     
     vec3 alpha = clamp((P - base_probe_position) / PROBE_GRID_STEP, vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
     
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 8; i++)
+    {
         ivec3 offset = ivec3(i, i >> 1, i >> 2) & ivec3(1, 1, 1);
         ivec3 probe_grid_coord = clamp(base_grid_coord + offset, ivec3(0, 0, 0), ivec3(ddgiConstants.probe_counts.xyz) - ivec3(1, 1, 1));
         

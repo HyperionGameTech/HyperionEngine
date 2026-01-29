@@ -161,9 +161,9 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
             descriptorSetDeclarationPtr = referencedDescriptorSetDeclaration;
         }
 
-        for (const Array<DescriptorDeclaration>& descriptorDeclarations : descriptorSetDeclarationPtr->slots)
+        for (const Array<ShaderInput>& descriptorDeclarations : descriptorSetDeclarationPtr->slots)
         {
-            for (const DescriptorDeclaration& descriptorDeclaration : descriptorDeclarations)
+            for (const ShaderInput& shaderInput : descriptorDeclarations)
             {
                 descriptorTableDefines += '\t';
 
@@ -171,11 +171,11 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
                 {
                 case ShaderLanguage::GLSL:
                 {
-                    const uint32 flatIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(descriptorDeclaration.slot, descriptorDeclaration.name);
+                    const uint32 flatIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(shaderInput.slot, shaderInput.name);
                     Assert(flatIndex != uint32(-1));
 
                     descriptorTableDefines += HYP_FORMAT("#define _{}_{}_BINDING {}",
-                        descriptorSetDeclarationPtr->name, descriptorDeclaration.name,
+                        descriptorSetDeclarationPtr->name, shaderInput.name,
                         flatIndex);
 
                     break;
@@ -184,18 +184,18 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
                 {
                     char registerKey = 0;
 
-                    switch (descriptorDeclaration.slot)
+                    switch (shaderInput.slot)
                     {
-                    case DescriptorSlot::SRV: // read-only storage buffers and textures
+                    case ShaderRegister::SRV: // read-only storage buffers and textures
                         registerKey = 't';
                         break;
-                    case DescriptorSlot::UAV: // r/w storage buffers and images
+                    case ShaderRegister::UAV: // r/w storage buffers and images
                         registerKey = 'u';
                         break;
-                    case DescriptorSlot::BUFFER: // constant buffers
+                    case ShaderRegister::BUFFER: // constant buffers
                         registerKey = 'b';
                         break;
-                    case DescriptorSlot::SAMPLER: // samplers
+                    case ShaderRegister::SAMPLER: // samplers
                         registerKey = 's';
                         break;
                     default:
@@ -203,13 +203,13 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
                     }
 
 #if HYP_VULKAN
-                    const uint32 registerIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(descriptorDeclaration.slot, descriptorDeclaration.name);
+                    const uint32 registerIndex = descriptorSetDeclarationPtr->CalculateFlatIndex(shaderInput.slot, shaderInput.name);
 #elif HYP_DX12
-                    const uint32 registerIndex = descriptorDeclaration.index;
+                    const uint32 registerIndex = shaderInput.index;
 #endif
 
                     descriptorTableDefines += HYP_FORMAT("#define _{}_{}_REGISTER {}{}",
-                        descriptorSetDeclarationPtr->name, descriptorDeclaration.name,
+                        descriptorSetDeclarationPtr->name, shaderInput.name,
                         registerKey, registerIndex);
 
                     break;
@@ -512,8 +512,8 @@ struct StructureType
 
 struct DescriptorUsage
 {
-    DescriptorSlot slot;
-    DescriptorType type;
+    ShaderRegister slot;
+    ShaderInputType type;
     Name setName;
     Name descriptorName;
     StructureType structureType;
@@ -521,14 +521,14 @@ struct DescriptorUsage
     HashMap<String, String> params;
 
     DescriptorUsage()
-        : slot(DescriptorSlot::NONE),
-          type(DescriptorType::UNSET),
+        : slot(ShaderRegister::NONE),
+          type(ShaderInputType::UNSET),
           setName(Name::Invalid()),
           flags(DescriptorUsageFlags::NONE)
     {
     }
 
-    DescriptorUsage(DescriptorSlot slot, DescriptorType type, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
+    DescriptorUsage(ShaderRegister slot, ShaderInputType type, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
         : slot(slot),
           type(type),
           setName(setName),
@@ -658,10 +658,10 @@ struct DescriptorUsage
     /*! \brief Returns true if this is a constant buffer or storage buffer. */
     HYP_FORCE_INLINE bool IsBuffer() const
     {
-        return type == DescriptorType::UNIFORM_BUFFER
-            || type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
-            || type == DescriptorType::STORAGE_BUFFER
-            || type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
+        return type == ShaderInputType::UNIFORM_BUFFER
+            || type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+            || type == ShaderInputType::STORAGE_BUFFER
+            || type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
     }
 
     HYP_FORCE_INLINE uint32 GetCount() const
@@ -918,7 +918,7 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
 {
     for (const DescriptorUsage& descriptorUsage : elements)
     {
-        Assert(descriptorUsage.slot != DescriptorSlot::NONE && descriptorUsage.slot < DescriptorSlot::MAX,
+        Assert(descriptorUsage.slot != ShaderRegister::NONE && descriptorUsage.slot < ShaderRegister::MAX,
             "Descriptor usage {} has invalid slot {}",
             descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
 
@@ -956,7 +956,7 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
             descriptorSetDeclaration = table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(setIndex, descriptorUsage.setName));
         }
 
-        DescriptorDeclaration desc {};
+        ShaderInput desc {};
         desc.slot = descriptorUsage.slot;
         desc.type = descriptorUsage.type;
         desc.name = descriptorUsage.descriptorName;
@@ -2839,23 +2839,23 @@ static bool MatchesAnyToken(const String& token, std::initializer_list<const cha
     return false;
 }
 
-static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
+static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguage language, const String& declaration, EnumFlags<DescriptorUsageFlags> flags)
 {
     const String trimmed = declaration.TrimmedLeft();
     const String firstToken = ExtractFirstToken(trimmed);
 
-    auto MakeUniformBufferType = [flags]() -> DescriptorType
+    auto MakeUniformBufferType = [flags]() -> ShaderInputType
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? DescriptorType::UNIFORM_BUFFER_DYNAMIC
-            : DescriptorType::UNIFORM_BUFFER;
+            ? ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+            : ShaderInputType::UNIFORM_BUFFER;
     };
 
-    auto MakeStorageBufferType = [flags]() -> DescriptorType
+    auto MakeStorageBufferType = [flags]() -> ShaderInputType
     {
         return (flags & DescriptorUsageFlags::DYNAMIC)
-            ? DescriptorType::STORAGE_BUFFER_DYNAMIC
-            : DescriptorType::STORAGE_BUFFER;
+            ? ShaderInputType::STORAGE_BUFFER_DYNAMIC
+            : ShaderInputType::STORAGE_BUFFER;
     };
 
     if (language == ShaderLanguage::HLSL)
@@ -2878,24 +2878,24 @@ static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage
             "RWTexture1D", "RWTexture2D", "RWTexture3D",
             "RWTexture1DArray", "RWTexture2DArray" }))
         {
-            return DescriptorType::IMAGE_STORAGE;
+            return ShaderInputType::IMAGE_STORAGE;
         }
 
         if (MatchesAnyToken(firstToken, {
             "Texture1D", "Texture2D", "Texture3D",
             "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
         {
-            return DescriptorType::IMAGE;
+            return ShaderInputType::IMAGE;
         }
 
         if (MatchesAnyToken(firstToken, { "SamplerState", "SamplerComparisonState", "sampler" }))
         {
-            return DescriptorType::SAMPLER;
+            return ShaderInputType::SAMPLER;
         }
 
         if (firstToken == "RaytracingAccelerationStructure")
         {
-            return DescriptorType::TLAS;
+            return ShaderInputType::TLAS;
         }
 
         return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from HLSL declaration: '{}'", trimmed);
@@ -2930,7 +2930,7 @@ static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage
             // uniform sampler
             if (secondToken.StartsWith("sampler"))
             {
-                return DescriptorType::SAMPLER;
+                return ShaderInputType::SAMPLER;
             }
             
             // uniform texture (sampled image)
@@ -2943,7 +2943,7 @@ static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage
                 "utexture1D", "utexture2D", "utexture3D", "utextureCube",
                 "utextureBuffer" }))
             {
-                return DescriptorType::IMAGE;
+                return ShaderInputType::IMAGE;
             }
             
             // uniform (write/read)only image (storage image)
@@ -2955,7 +2955,7 @@ static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage
                     || thirdToken.StartsWith("iimage")
                     || thirdToken.StartsWith("uimage"))
                 {
-                    return DescriptorType::IMAGE_STORAGE;
+                    return ShaderInputType::IMAGE_STORAGE;
                 }
 
                 return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
@@ -2971,13 +2971,13 @@ static TResult<DescriptorType> ParseDescriptorTypeFromDeclaration(ShaderLanguage
                 "uimage1D", "uimage2D", "uimage3D",
                 "uimageBuffer", "uimageCube" }))
             {
-                return DescriptorType::IMAGE_STORAGE;
+                return ShaderInputType::IMAGE_STORAGE;
             }
 
             // uniform accelerationStructureEXT
             if (secondToken == "accelerationStructureEXT")
             {
-                return DescriptorType::TLAS;
+                return ShaderInputType::TLAS;
             }
 
             // uniform [StructName] - contant buffer
@@ -3321,28 +3321,28 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                 }
 
-                DescriptorSlot slot = DescriptorSlot::NONE;
+                ShaderRegister slot = ShaderRegister::NONE;
                 EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE;
 
                 if (commandStr == "DECLARE_SRV" || commandStr == "DECLARE_SRV_DYNAMIC")
                 {
-                    slot = DescriptorSlot::SRV;
+                    slot = ShaderRegister::SRV;
                 }
                 else if (commandStr == "DECLARE_UAV" || commandStr == "DECLARE_UAV_DYNAMIC")
                 {
-                    slot = DescriptorSlot::UAV;
+                    slot = ShaderRegister::UAV;
                 }
                 else if (commandStr == "DECLARE_BUFFER" || commandStr == "DECLARE_BUFFER_DYNAMIC")
                 {
-                    slot = DescriptorSlot::BUFFER;
+                    slot = ShaderRegister::BUFFER;
                 }
                 else if (commandStr == "DECLARE_ACCELERATION_STRUCTURE")
                 {
-                    slot = DescriptorSlot::SRV;
+                    slot = ShaderRegister::SRV;
                 }
                 else if (commandStr == "DECLARE_SAMPLER")
                 {
-                    slot = DescriptorSlot::SAMPLER;
+                    slot = ShaderRegister::SAMPLER;
                 }
                 else
                 {
@@ -3403,7 +3403,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                 }
                 
-                TResult<DescriptorType> descriptorTypeResult = ParseDescriptorTypeFromDeclaration(language, parseResult.remaining, flags);
+                TResult<ShaderInputType> descriptorTypeResult = ParseDescriptorTypeFromDeclaration(language, parseResult.remaining, flags);
 
                 if (!descriptorTypeResult)
                 {

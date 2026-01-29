@@ -385,7 +385,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
                 HYP_UNREACHABLE();
             }
 
-            for (const DescriptorDeclaration& descDecl : declarations)
+            for (const ShaderInput& descDecl : declarations)
             {
                 D3D12_DESCRIPTOR_RANGE range {};
                 range.RangeType = rangeType;

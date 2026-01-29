@@ -82,7 +82,7 @@ enum class ProcessShaderSourcePhase : uint32
 };
 
 HYP_ENUM()
-enum class DescriptorSlot : uint8
+enum class ShaderRegister : uint8
 {
     NONE = 0,
     SRV,
@@ -92,7 +92,7 @@ enum class DescriptorSlot : uint8
     MAX
 };
 
-static constexpr uint8 NumDescriptorSlots = uint8(DescriptorSlot::MAX);
+static constexpr uint8 NumDescriptorSlots = uint8(ShaderRegister::MAX);
 
 HYP_ENUM()
 enum class DescriptorSetDeclarationFlags : uint8
@@ -105,17 +105,17 @@ enum class DescriptorSetDeclarationFlags : uint8
 HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 HYP_STRUCT()
-struct DescriptorDeclaration
+struct ShaderInput
 {
-    HYP_STRUCT_BODY(DescriptorDeclaration);
+    HYP_STRUCT_BODY(ShaderInput);
 
     using ConditionFunction = bool (*)();
 
-    HYP_FIELD(Property = "Slot", Serialize = true)
-    DescriptorSlot slot = DescriptorSlot::NONE;
+    HYP_FIELD(Property = "Register", Serialize = true)
+    ShaderRegister slot = ShaderRegister::NONE;
 
     HYP_FIELD(Property = "ElementType", Serialize = true)
-    DescriptorType type = DescriptorType::UNSET;
+    ShaderInputType type = ShaderInputType::UNSET;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
@@ -164,7 +164,7 @@ struct DescriptorSetDeclaration
     Name name = Name::Invalid();
 
     HYP_FIELD(Property = "Slots", Serialize = true)
-    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, NumDescriptorSlots> slots = {};
+    FixedArray<Array<ShaderInput, DynamicAllocator>, NumDescriptorSlots> slots = {};
 
     HYP_FIELD(Property = "Flags", Serialize = true)
     EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
@@ -183,9 +183,9 @@ struct DescriptorSetDeclaration
     DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
     ~DescriptorSetDeclaration() = default;
 
-    HYP_FORCE_INLINE void AddDescriptorDeclaration(DescriptorDeclaration decl)
+    HYP_FORCE_INLINE void AddDescriptorDeclaration(ShaderInput decl)
     {
-        AssertDebug(decl.slot != DescriptorSlot::NONE && uint8(decl.slot) < NumDescriptorSlots);
+        AssertDebug(decl.slot != ShaderRegister::NONE && uint8(decl.slot) < NumDescriptorSlots);
 
         decl.index = uint32(slots[uint8(decl.slot) - 1].Size());
         slots[uint8(decl.slot) - 1].PushBack(std::move(decl));
@@ -193,9 +193,9 @@ struct DescriptorSetDeclaration
 
     /*! \brief Calculate a flat index for a Descriptor that is part of this set.
         Returns -1 if not found */
-    uint32 CalculateFlatIndex(DescriptorSlot slot, StringHash name) const;
+    uint32 CalculateFlatIndex(ShaderRegister slot, StringHash name) const;
 
-    DescriptorDeclaration* FindDescriptorDeclaration(StringHash name) const;
+    ShaderInput* FindDescriptorDeclaration(StringHash name) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -280,7 +280,7 @@ struct ShaderInputGroup
 
     struct DeclareDescriptor
     {
-        DeclareDescriptor(ShaderInputGroup* table, Name setName, DescriptorType type, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        DeclareDescriptor(ShaderInputGroup* table, Name setName, ShaderInputType type, ShaderRegister slotType, Name descriptorName, ShaderInput::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
         {
             AssertDebug(table != nullptr);
 
@@ -305,15 +305,15 @@ struct ShaderInputGroup
 
             const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
 
-            DescriptorDeclaration& descriptorDecl = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
-            descriptorDecl.index = slotIndex;
-            descriptorDecl.type = type;
-            descriptorDecl.slot = slotType;
-            descriptorDecl.name = descriptorName;
-            descriptorDecl.cond = cond;
-            descriptorDecl.size = size;
-            descriptorDecl.count = count;
-            descriptorDecl.isDynamic = isDynamic;
+            ShaderInput& shaderInput = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
+            shaderInput.index = slotIndex;
+            shaderInput.type = type;
+            shaderInput.slot = slotType;
+            shaderInput.name = descriptorName;
+            shaderInput.cond = cond;
+            shaderInput.size = size;
+            shaderInput.count = count;
+            shaderInput.isDynamic = isDynamic;
         }
     };
 };

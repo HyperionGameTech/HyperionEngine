@@ -1,4 +1,4 @@
-#include "include/defines.inc"
+#include "./include/defines.inc"
 
 #ifdef VERTEX_SHADER
 
@@ -65,10 +65,10 @@ DECLARE_SRV(DeferredPass, SSGIResultTexture) Texture2D ssgi_result;
 DECLARE_SRV(DeferredPass, RTRadianceResultTexture) Texture2D rt_radiance_final;
 DECLARE_SRV(DeferredPass, ReflectionProbeResultTexture) Texture2D reflections_texture;
 
-#include "include/gbuffer.inc"
-#include "include/material.inc"
+#include "./include/gbuffer.inc"
+#include "./include/material.inc"
 
-#include "include/scene.inc"
+#include "./include/scene.inc"
 DECLARE_BUFFER_DYNAMIC(DeferredPass, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
@@ -79,26 +79,27 @@ DECLARE_BUFFER(DeferredPass, WorldsBuffer) cbuffer WorldsBuffer
     WorldShaderData world_shader_data;
 };
 
-#include "include/PhysicalCamera.inc"
+#include "./include/PhysicalCamera.inc"
 
 #define HYP_VCT_REFLECTIONS_ENABLED 1
 #define HYP_VCT_INDIRECT_ENABLED 1
 
+#if RT_GI
+DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
+DECLARE_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
+
 #include "include/rt/probe/probe_uniforms.inc"
 
-#if RT_GI
 DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
 {
     DDGIConstants ddgiConstants;
 };
 
-DECLARE_SRV(DeferredPass, DDGIIrradianceTexture) Texture2D probe_irradiance;
-DECLARE_SRV(DeferredPass, DDGIDepthTexture) Texture2D probe_depth;
-#include "include/DDGI.inc"
+#include "include/rt/probe/SampleDDGI.inc"
 
 #endif
 
-#include "include/env_probe.inc"
+#include "./include/env_probe.inc"
 DECLARE_BUFFER_DYNAMIC(DeferredPass, EnvGridsBuffer) cbuffer EnvGridsBuffer
 {
     EnvGrid env_grid;

@@ -919,11 +919,6 @@ RendererResult RenderInterface::Initialize()
     placeholderData->Create();
     shadowMapAllocator->Initialize();
 
-    for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-    {
-        SetDefaultDescriptorSetElements(frameIndex);
-    }
-
     CreateSphereSamplesBuffer();
     CreateBlueNoiseBuffer();
     CreateEnvProbesTexture();
@@ -1607,7 +1602,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         const uint8 uniformIndex = (uint8)*currBit;
         const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
 
-        const DescriptorDeclaration* decl = nullptr;
+        const ShaderInput* decl = nullptr;
 
         const DescriptorSetDeclaration* foundSetDecl = nullptr;
 

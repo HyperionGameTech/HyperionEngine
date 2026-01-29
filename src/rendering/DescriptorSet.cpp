@@ -16,15 +16,15 @@
 namespace Hyperion {
 #pragma region DescriptorSetDeclaration
 
-DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
+ShaderInput* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
 {
-    for (uint32 slotIndex = 0; slotIndex < uint8(DescriptorSlot::MAX); slotIndex++)
+    for (uint32 slotIndex = 0; slotIndex < uint8(ShaderRegister::MAX); slotIndex++)
     {
-        for (const DescriptorDeclaration& decl : slots[slotIndex])
+        for (const ShaderInput& decl : slots[slotIndex])
         {
             if (decl.name == name)
             {
-                return const_cast<DescriptorDeclaration*>(&decl);
+                return const_cast<ShaderInput*>(&decl);
             }
         }
     }
@@ -32,9 +32,9 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Strin
     return nullptr;
 }
 
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringHash name) const
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(ShaderRegister slot, StringHash name) const
 {
-    Assert(slot != DescriptorSlot::NONE && uint8(slot) < uint8(DescriptorSlot::MAX));
+    Assert(slot != ShaderRegister::NONE && uint8(slot) < uint8(ShaderRegister::MAX));
 
     uint32 flatIndex = 0;
 
@@ -44,7 +44,7 @@ uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, StringH
         {
             uint32 declIndex = 0;
 
-            for (const DescriptorDeclaration& decl : slots[slotIndex])
+            for (const ShaderInput& decl : slots[slotIndex])
             {
                 if (decl.name == name)
                 {
@@ -113,9 +113,9 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
         Assert(m_decl != nullptr, "Invalid global descriptor set reference: {}", decl->name);
     }
 
-    for (const Array<DescriptorDeclaration>& slot : m_decl->slots)
+    for (const Array<ShaderInput>& slot : m_decl->slots)
     {
-        for (const DescriptorDeclaration& descriptor : slot)
+        for (const ShaderInput& descriptor : slot)
         {
             const uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
             Assert(descriptorIndex != ~0u);
@@ -140,8 +140,8 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     // Add to list of dynamic buffer names
     for (const auto& it : m_elements)
     {
-        if (it.second.type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
-            || it.second.type == DescriptorType::STORAGE_BUFFER_DYNAMIC)
+        if (it.second.type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+            || it.second.type == ShaderInputType::STORAGE_BUFFER_DYNAMIC)
         {
             dynamicElementsWithIndex.PushBack({ it.first, it.second.binding });
         }
@@ -187,10 +187,10 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
 
     if constexpr (std::is_base_of_v<GpuBufferBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorType::UNIFORM_BUFFER))
-            | (1u << uint32(DescriptorType::UNIFORM_BUFFER_DYNAMIC))
-            | (1u << uint32(DescriptorType::STORAGE_BUFFER))
-            | (1u << uint32(DescriptorType::STORAGE_BUFFER_DYNAMIC));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::UNIFORM_BUFFER))
+            | (1u << uint32(ShaderInputType::UNIFORM_BUFFER_DYNAMIC))
+            | (1u << uint32(ShaderInputType::STORAGE_BUFFER))
+            | (1u << uint32(ShaderInputType::STORAGE_BUFFER_DYNAMIC));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
 
@@ -217,20 +217,20 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorType::IMAGE))
-            | (1u << uint32(DescriptorType::IMAGE_STORAGE));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::IMAGE))
+            | (1u << uint32(ShaderInputType::IMAGE_STORAGE));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<SamplerBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorType::SAMPLER));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::SAMPLER));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }
     else if constexpr (std::is_base_of_v<GpuTlasBase, T>)
     {
-        static constexpr uint32 Mask = (1u << uint32(DescriptorType::TLAS));
+        static constexpr uint32 Mask = (1u << uint32(ShaderInputType::TLAS));
 
         AssertDebug(Mask & (1u << uint32(layoutElement->type)), "Layout type for {} does not match given type", Name(name));
     }

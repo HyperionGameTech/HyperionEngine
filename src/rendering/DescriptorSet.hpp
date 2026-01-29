@@ -39,7 +39,7 @@ enum class GpuBufferType : uint8;
 class IRenderProxy;
 class ObjectBase;
 
-constexpr uint32 ElementTypeToBufferType[uint32(DescriptorType::MAX)] = {
+constexpr uint32 ElementTypeToBufferType[uint32(ShaderInputType::MAX)] = {
     0,                                    // UNSET
     (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER
     (1u << uint32(GpuBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER_DYNAMIC
@@ -68,29 +68,29 @@ struct DescriptorSetElementTypeInfo;
 template <>
 struct DescriptorSetElementTypeInfo<GpuBuffer>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorType::UNIFORM_BUFFER))
-        | (1u << uint32(DescriptorType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(DescriptorType::STORAGE_BUFFER))
-        | (1u << uint32(DescriptorType::STORAGE_BUFFER_DYNAMIC));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::UNIFORM_BUFFER))
+        | (1u << uint32(ShaderInputType::UNIFORM_BUFFER_DYNAMIC))
+        | (1u << uint32(ShaderInputType::STORAGE_BUFFER))
+        | (1u << uint32(ShaderInputType::STORAGE_BUFFER_DYNAMIC));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuImageView>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorType::IMAGE))
-        | (1u << uint32(DescriptorType::IMAGE_STORAGE));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::IMAGE))
+        | (1u << uint32(ShaderInputType::IMAGE_STORAGE));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<Sampler>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorType::SAMPLER));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::SAMPLER));
 };
 
 template <>
 struct DescriptorSetElementTypeInfo<GpuTlas>
 {
-    static constexpr uint32 mask = (1u << uint32(DescriptorType::TLAS));
+    static constexpr uint32 mask = (1u << uint32(ShaderInputType::TLAS));
 };
 
 HYP_STRUCT()
@@ -99,7 +99,7 @@ struct DescriptorSetLayoutElement
     HYP_STRUCT_BODY(DescriptorSetLayoutElement);
 
     HYP_FIELD()
-    DescriptorType type = DescriptorType::UNSET;
+    ShaderInputType type = ShaderInputType::UNSET;
 
     HYP_FIELD()
     uint32 binding = ~0u; // has to be set
@@ -112,10 +112,10 @@ struct DescriptorSetLayoutElement
 
     HYP_FORCE_INLINE bool IsBuffer() const
     {
-        return type == DescriptorType::UNIFORM_BUFFER
-            || type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
-            || type == DescriptorType::STORAGE_BUFFER
-            || type == DescriptorType::STORAGE_BUFFER_DYNAMIC;
+        return type == ShaderInputType::UNIFORM_BUFFER
+            || type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+            || type == ShaderInputType::STORAGE_BUFFER
+            || type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
     }
 
     HYP_FORCE_INLINE bool IsBindless() const
@@ -248,7 +248,7 @@ public:
         return m_elements;
     }
 
-    HYP_FORCE_INLINE void AddElement(Name name, DescriptorType type, uint32 binding, uint32 count, uint32 size = ~0u)
+    HYP_FORCE_INLINE void AddElement(Name name, ShaderInputType type, uint32 binding, uint32 count, uint32 size = ~0u)
     {
         m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size });
     }
@@ -600,13 +600,13 @@ protected:
 #endif
 
 #define DECLARE_SRV_COND(setName, name, type, count, cond) \
-    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::SRV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 #define DECLARE_UAV_COND(setName, name, type, count, cond) \
-    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::UAV, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 #define DECLARE_BUFFER_COND(setName, name, type, count, size, isDynamic, cond) \
-    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::BUFFER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count, size, isDynamic)
 #define DECLARE_SAMPLER_COND(setName, name, type, count, cond) \
-    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, DescriptorSlot::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
+    static ShaderInputGroup::DeclareDescriptor HYP_UNIQUE_NAME(Descriptor_##name)(&GetStaticDescriptorTableDeclaration(), HYP_NAME_UNSAFE(setName), type, ShaderRegister::SAMPLER, HYP_NAME_UNSAFE(name), HYP_MAKE_CONST_ARG(cond), count)
 
 #define DECLARE_SRV(setName, name, type, count) DECLARE_SRV_COND(setName, name, type, count, true)
 #define DECLARE_UAV(setName, name, type, count) DECLARE_UAV_COND(setName, name, type, count, true)

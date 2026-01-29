@@ -1100,7 +1100,7 @@ struct Viewport
 };
 
 HYP_ENUM()
-enum class DescriptorType : uint32
+enum class ShaderInputType : uint32
 {
     UNSET,
     UNIFORM_BUFFER,
