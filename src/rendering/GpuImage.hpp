@@ -65,6 +65,14 @@ public:
 
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const
     {
+        if (subResource.baseArrayLayer == 0
+            && subResource.baseMipLevel == 0
+            && subResource.numLayers >= NumArrayLayers()
+            && subResource.numLevels >= NumMips())
+        {
+            return m_resourceState;
+        }
+
         auto it = m_subResourceStates.Find(subResource.GetSubResourceKey());
 
         if (it == m_subResourceStates.End())
@@ -110,11 +118,6 @@ public:
     HYP_FORCE_INLINE TextureType GetType() const
     {
         return m_textureDesc.type;
-    }
-
-    HYP_FORCE_INLINE uint16 NumLayers() const
-    {
-        return m_textureDesc.numLayers;
     }
 
     HYP_FORCE_INLINE uint16 NumArrayLayers() const

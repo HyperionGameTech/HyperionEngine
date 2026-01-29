@@ -507,12 +507,16 @@ void VulkanGpuImage::InsertBarrier(
     ResourceState newState,
     ShaderModuleType shaderModuleType)
 {
+    // entire image
+    ImageSubResource subResource {};
+    subResource.baseMipLevel = 0;
+    subResource.numLevels = NumMips();
+    subResource.baseArrayLayer = 0;
+    subResource.numLayers = NumArrayLayers();
+
     InsertBarrier(
         commandBuffer,
-        ImageSubResource {
-            .numLevels = uint8(-1),
-            .numLayers = uint16(-1)
-        },
+        subResource,
         newState,
         shaderModuleType);
 }
@@ -536,38 +540,58 @@ void VulkanGpuImage::InsertBarrier(
         return;
     }
 
-    ResourceState currResourceState = GetSubResourceState(subResource);
+    AssertDebug((subResource.baseArrayLayer + subResource.numLayers) <= NumArrayLayers()
+        || (subResource.baseArrayLayer == 0 && subResource.numLayers == uint16(-1)));
 
-    for (int mipLevel = int(subResource.baseMipLevel); mipLevel < int(subResource.baseMipLevel) + int(MathUtil::Min(subResource.numLevels, NumMips())); mipLevel++)
+    AssertDebug((subResource.baseMipLevel + subResource.numLevels) <= NumMips()
+        || (subResource.baseMipLevel == 0 && subResource.numLevels == uint8(-1)));
+
+    const uint16 maxArrayLayers = uint16(subResource.baseArrayLayer + MathUtil::Min(subResource.numLayers, NumArrayLayers()));
+    const uint8 maxMipLevels = uint8(subResource.baseMipLevel + MathUtil::Min(subResource.numLevels, NumMips()));
+    
+    ResourceState currResourceState = GetResourceState();
+
+    if (HasSubResourceStates())
     {
-        for (int arrayLayer = int(subResource.baseArrayLayer); arrayLayer < int(subResource.baseArrayLayer) + int(MathUtil::Min(subResource.numLayers, NumLayers())); arrayLayer++)
+        currResourceState = RS_UNDEFINED;
+        bool firstSubResource = true;
+
+        for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
         {
-            ImageSubResource currSubResource {};
-            currSubResource.baseMipLevel = uint8(mipLevel);
-            currSubResource.numLevels = 1;
-            currSubResource.baseArrayLayer = uint16(arrayLayer);
-            currSubResource.numLayers = 1;
-
-            const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
-
-            auto it = m_subResourceStates.Find(subResourceKey);
-
-            if (it != m_subResourceStates.End())
+            for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
             {
+                ImageSubResource currSubResource {};
+                currSubResource.baseMipLevel = mipLevel;
+                currSubResource.numLevels = 1;
+                currSubResource.baseArrayLayer = arrayLayer;
+                currSubResource.numLayers = 1;
+
+                const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
+
+                ResourceState foundResourceState;
+
+                auto it = m_subResourceStates.Find(subResourceKey);
+
+                if (it != m_subResourceStates.End())
+                {
+                    foundResourceState = it->second;
+                }
+                else
+                {
+                    foundResourceState = GetResourceState();
+                }
+                
                 // needs to match expected state we're transitioning from. (currResourceState)
-                // otherwise, we need to use VK_IMAGE_LAYOUT_UNDEFINED
-                if (currResourceState != RS_UNDEFINED && it->second != currResourceState)
+                if (firstSubResource)
+                {
+                    currResourceState = foundResourceState;
+                    firstSubResource = false;
+                }
+                else if (foundResourceState != currResourceState)
                 {
                     currResourceState = RS_UNDEFINED;
                 }
 
-                if (it->second == newState)
-                {
-                    // remove it if states will be same after transition. we will want to insert barrier
-                    m_subResourceStates.Erase(it);
-
-                    continue;
-                }
             }
         }
     }
@@ -590,10 +614,10 @@ void VulkanGpuImage::InsertBarrier(
 
     VkImageSubresourceRange range {};
     range.aspectMask = aspectFlagBits;
-    range.baseArrayLayer = subResource.baseArrayLayer;
-    range.layerCount = subResource.numLayers;
-    range.baseMipLevel = subResource.baseMipLevel;
-    range.levelCount = subResource.numLevels;
+    range.baseArrayLayer = MathUtil::Min(subResource.baseArrayLayer, NumArrayLayers() - 1);
+    range.layerCount = MathUtil::Min(subResource.numLayers, NumArrayLayers() - range.baseArrayLayer);
+    range.baseMipLevel = MathUtil::Min(subResource.baseMipLevel, NumMips() - 1);
+    range.levelCount = MathUtil::Min(subResource.numLevels, NumMips() - range.baseMipLevel);
 
     VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.oldLayout = GetVkImageLayout(currResourceState);
@@ -615,7 +639,7 @@ void VulkanGpuImage::InsertBarrier(
         1, &barrier);
 
     if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
-        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumLayers())
+        && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
     {
         
         // If all subresources will be set, just set the whole resource state
@@ -623,10 +647,10 @@ void VulkanGpuImage::InsertBarrier(
 
         return;
     }
-
-    for (int mipLevel = int(subResource.baseMipLevel); mipLevel < int(subResource.baseMipLevel) + int(MathUtil::Min(subResource.numLevels, NumMips())); mipLevel++)
+    
+    for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
     {
-        for (int arrayLayer = int(subResource.baseArrayLayer); arrayLayer < int(subResource.baseArrayLayer) + int(MathUtil::Min(subResource.numLayers, NumLayers())); arrayLayer++)
+        for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
         {
             ImageSubResource currSubResource {};
             currSubResource.baseMipLevel = uint8(mipLevel);
@@ -636,7 +660,7 @@ void VulkanGpuImage::InsertBarrier(
 
             const uint64 subResourceKey = GetImageSubResourceKey(currSubResource);
 
-            auto it = m_subResourceStates.Find(subResourceKey);
+            auto it = m_subResourceStates.Empty() ? m_subResourceStates.End() : m_subResourceStates.Find(subResourceKey);
 
             if (it != m_subResourceStates.End())
             {
@@ -652,7 +676,7 @@ void VulkanGpuImage::InsertBarrier(
             }
             else if (newState != m_resourceState)
             {
-                m_subResourceStates.Insert(subResourceKey, newState);
+                m_subResourceStates.Set(subResourceKey, newState);
             }
         }
     }

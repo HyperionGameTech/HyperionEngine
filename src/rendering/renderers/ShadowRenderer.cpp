@@ -205,8 +205,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     UpdateGpuData(light);
 
     const GpuImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();
-    Assert(shadowMapImage.IsValid());
-    Assert(atlasElement.layerIndex < shadowMapImage->NumLayers());
+    AssertDebug(shadowMapImage.IsValid());
+    AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
 
     FullScreenPass* combineShadowMapsPass = cacheIt->second.combineShadowMapsPass.Get();
 
@@ -220,10 +220,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     for (View* shadowView : lightProxy->shadowViews)
     {
         const ViewOutputTarget& outputTarget = shadowView->GetOutputTarget();
-        Assert(outputTarget.IsValid());
+        AssertDebug(outputTarget.IsValid());
 
         const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
-        Assert(framebuffer.IsValid());
+        AssertDebug(framebuffer.IsValid());
 
         RenderSetup rs = renderSetup;
         rs.view = shadowView;

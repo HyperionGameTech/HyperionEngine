@@ -771,53 +771,6 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     }
     else
     {
-        if (cmdCasted->uniform.type == ShaderUniform::UT_ImageView)
-        {
-            GpuImageView* imageView = cmdCasted->uniform.imageView;
-            AssertDebug(imageView != nullptr);
-
-            GpuImage* image = imageView->GetImage();
-
-            ImageSubResource subResource = imageView->GetImageSubResource();
-            subResource.numLayers = MathUtil::Min(subResource.numLayers - subResource.baseArrayLayer, image->NumArrayLayers());
-            subResource.numLevels = MathUtil::Min(subResource.numLevels - subResource.baseMipLevel, image->NumMips());
-
-            if (subResource.numLayers == image->NumArrayLayers()
-                && subResource.numLevels == image->NumMips()
-                && !image->HasSubResourceStates())
-            {
-                const ResourceState resourceState = image->GetResourceState();
-
-                if (resourceState != RS_SHADER_RESOURCE)
-                {
-                    // transition for shader read
-                    image->InsertBarrier(commandBuffer, RS_SHADER_RESOURCE, ShaderModuleType::None);
-                }
-            }
-            else
-            {
-                for (uint8 mipIndex = subResource.baseMipLevel; mipIndex < subResource.numLevels; mipIndex++)
-                {
-                    for (uint16 layerIndex = subResource.baseArrayLayer; layerIndex < subResource.baseArrayLayer; layerIndex++)
-                    {
-                        ImageSubResource currSubResource {};
-                        currSubResource.baseMipLevel = mipIndex;
-                        currSubResource.numLevels = 1;
-                        currSubResource.baseArrayLayer = layerIndex;
-                        currSubResource.numLayers = 1;
-
-                        const ResourceState resourceState = image->GetSubResourceState(currSubResource);
-
-                        if (resourceState != RS_SHADER_RESOURCE)
-                        {
-                            // transition for shader read
-                            image->InsertBarrier(commandBuffer, currSubResource, RS_SHADER_RESOURCE, ShaderModuleType::None);
-                        }
-                    }
-                }
-            }
-        }
-
         // unset dirty buffer offset bit if it is not a buffer
         state.dirtyBufferOffsets &= ~(1u << cmdCasted->uniformIndex);
     }

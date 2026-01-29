@@ -1593,6 +1593,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     uint8 uniformIndexToSetIndex[RenderInterface::State::MaxShaderUniforms];
     Memory::Fill(uniformIndexToSetIndex, ubyte(-1), sizeof(uniformIndexToSetIndex));
 
+    ShaderInputType uniformIndexToShaderInputType[RenderInterface::State::MaxShaderUniforms];
+    Memory::Fill(uniformIndexToShaderInputType, 0, sizeof(uniformIndexToShaderInputType));
+
     uint8 dsStates[MaxDescriptorSetsBound] = { };
     uint8 dsIndices = 0;
 
@@ -1673,6 +1676,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
 
         uniformIndexToSetIndex[uniformIndex] = setIndex;
+        uniformIndexToShaderInputType[uniformIndex] = decl->type;
 
         dsIndices |= uint8(1u << setIndex);
 
@@ -1705,6 +1709,75 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             state.dirtyBufferOffsets |= (1u << uniformIndex);
 
             //state.validUniforms &= ~(1u << uniformIndex);
+        }
+    }
+
+    // Transition images
+    FOR_EACH_BIT(state.validUniforms | state.dirtyUniforms, uniformIndex)
+    {
+        if (state.shaderUniforms[uniformIndex].type != ShaderUniform::UT_ImageView)
+            continue;
+
+        const ShaderUniform& uniform = state.shaderUniforms[uniformIndex];
+
+        const ShaderInputType inputType = uniformIndexToShaderInputType[uniformIndex];
+        AssertDebug(inputType == ShaderInputType::IMAGE || inputType == ShaderInputType::IMAGE_STORAGE);
+
+        GpuImageView* imageView = uniform.imageView;
+        AssertDebug(imageView != nullptr);
+
+        GpuImage* image = imageView->GetImage();
+
+        const ResourceState desiredResourceState = inputType == ShaderInputType::IMAGE
+            ? RS_SHADER_RESOURCE
+            : RS_UNORDERED_ACCESS;
+
+        if (image->GetResourceState() != desiredResourceState || image->HasSubResourceStates())
+        {
+            // normalize counts
+            ImageSubResource subResource = imageView->GetImageSubResource();
+            subResource.numLayers = MathUtil::Min(subResource.numLayers - subResource.baseArrayLayer, image->NumArrayLayers());
+            subResource.numLevels = MathUtil::Min(subResource.numLevels - subResource.baseMipLevel, image->NumMips());
+
+            if (subResource.numLayers == image->NumArrayLayers() && subResource.numLevels == image->NumMips())
+            {
+                image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
+            }
+            else
+            {
+                bool needsTransition = false;
+
+                for (uint8 mipIndex = subResource.baseMipLevel; mipIndex < subResource.numLevels; mipIndex++)
+                {
+                    for (uint16 layerIndex = subResource.baseArrayLayer; layerIndex < subResource.numLayers; layerIndex++)
+                    {
+                        ImageSubResource currSubResource {};
+                        currSubResource.baseMipLevel = mipIndex;
+                        currSubResource.numLevels = 1;
+                        currSubResource.baseArrayLayer = layerIndex;
+                        currSubResource.numLayers = 1;
+                        
+                        const ResourceState currResourceState = image->GetSubResourceState(currSubResource);
+
+                        if (currResourceState != desiredResourceState)
+                        {
+                            needsTransition = true;
+
+                            break;
+                        }
+                    }
+
+                    if (needsTransition)
+                    {
+                        break;
+                    }
+                }
+
+                if (needsTransition)
+                {
+                    image->InsertBarrier(commandBuffer, subResource, desiredResourceState, ShaderModuleType::None);
+                }
+            }
         }
     }
 

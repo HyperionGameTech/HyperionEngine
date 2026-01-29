@@ -172,7 +172,9 @@ void DepthPyramidRenderer::Render(Frame* frame)
             RS_UNORDERED_ACCESS,
             ImageSubResource {
                 .baseMipLevel = mipLevel,
-                .numLevels = 1
+                .numLevels = 1,
+                .baseArrayLayer = 0,
+                .numLayers = uint16(-1)
             });
 
         const uint32 prevMipWidth = mipWidth,
@@ -209,13 +211,14 @@ void DepthPyramidRenderer::Render(Frame* frame)
             RS_SHADER_RESOURCE,
             ImageSubResource {
                 .baseMipLevel = mipLevel,
-                .numLevels = 1
+                .numLevels = 1,
+                .baseArrayLayer = 0,
+                .numLayers = uint16(-1)
             });
     }
 
     frame->renderQueue << InsertBarrier(
-        m_depthPyramid,
-        RS_SHADER_RESOURCE);
+        m_depthPyramid, RS_SHADER_RESOURCE);
 
     m_isRendered = true;
 }

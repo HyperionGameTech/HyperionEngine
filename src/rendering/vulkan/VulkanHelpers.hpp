@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-enum class ShaderInputType : uint32;
+enum class ShaderInputType : uint8;
 enum class ShaderModuleType : uint8;
 
 constexpr ResourceState PreRenderResourceStates[2] = {

@@ -40,7 +40,7 @@ namespace Hyperion {
 
 #ifdef HYP_DEBUG_MODE
 constexpr bool EnableVulkanSynchronizationValidation = false;
-constexpr bool EnableVulkanVerboseValidationLogging = false;
+constexpr bool EnableVulkanVerboseValidationLogging = true;
 #endif
 
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
@@ -238,7 +238,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
-    if (String(callbackData->pMessageIdName).Contains("VUID-VkComputePipelineCreateInfo-layout-07990"))
+    if (String(callbackData->pMessageIdName).Contains("oldLayout"))
     {
         HYP_BREAKPOINT;
     }
