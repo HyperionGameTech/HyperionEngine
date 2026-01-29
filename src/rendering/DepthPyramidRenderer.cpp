@@ -66,7 +66,7 @@ void DepthPyramidRenderer::Create()
     m_depthImageView = depthAttachment->GetImageView();
     Assert(m_depthImageView.IsValid());
 
-    auto createDepthPyramidResources = [this]()
+    auto CreateDepthPyramidResources = [this]()
     {
         HYP_NAMED_SCOPE("Create depth pyramid resources");
         AssertOnThread(g_renderThread);
@@ -90,7 +90,7 @@ void DepthPyramidRenderer::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE });
-
+        m_depthPyramid->SetDebugName(NAME("DepthPyramid"));
         m_depthPyramid->Create();
 
         m_depthPyramidView = g_renderInterface->MakeImageView(m_depthPyramid);
@@ -134,7 +134,7 @@ void DepthPyramidRenderer::Create()
         }
     };
 
-    createDepthPyramidResources();
+    CreateDepthPyramidResources();
 }
 
 Vec2u DepthPyramidRenderer::GetExtent() const
@@ -174,8 +174,22 @@ void DepthPyramidRenderer::Render(Frame* frame)
                 .baseMipLevel = mipLevel,
                 .numLevels = 1,
                 .baseArrayLayer = 0,
-                .numLayers = uint16(-1)
+                .numLayers = 1
             });
+
+        //if (mipLevel != 0)
+        //{
+        //    // put prev mip into readable state
+        //    frame->renderQueue << InsertBarrier(
+        //        m_depthPyramid,
+        //        RS_SHADER_RESOURCE,
+        //        ImageSubResource {
+        //            .baseMipLevel = uint8(mipLevel - 1),
+        //            .numLevels = 1,
+        //            .baseArrayLayer = 0,
+        //            .numLayers = 1
+        //        });
+        //}
 
         const uint32 prevMipWidth = mipWidth,
                      prevMipHeight = mipHeight;
@@ -204,17 +218,6 @@ void DepthPyramidRenderer::Render(Frame* frame)
             (mipWidth + 31) / 32,
             (mipHeight + 31) / 32,
             1 });
-
-        // put this mip into readable state
-        frame->renderQueue << InsertBarrier(
-            m_depthPyramid,
-            RS_SHADER_RESOURCE,
-            ImageSubResource {
-                .baseMipLevel = mipLevel,
-                .numLevels = 1,
-                .baseArrayLayer = 0,
-                .numLayers = uint16(-1)
-            });
     }
 
     frame->renderQueue << InsertBarrier(

@@ -65,14 +65,6 @@ public:
 
     ResourceState GetSubResourceState(const ImageSubResource& subResource) const
     {
-        if (subResource.baseArrayLayer == 0
-            && subResource.baseMipLevel == 0
-            && subResource.numLayers >= NumArrayLayers()
-            && subResource.numLevels >= NumMips())
-        {
-            return m_resourceState;
-        }
-
         auto it = m_subResourceStates.Find(subResource.GetSubResourceKey());
 
         if (it == m_subResourceStates.End())
@@ -85,6 +77,9 @@ public:
 
     void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
     {
+        AssertDebug(subResource.numLayers == 1 && subResource.numLevels == 1,
+            "Cannot call SetSubResourceState() with a range; must be a single mip/layer of an image.");
+
         const uint64 key = subResource.GetSubResourceKey();
 
         auto it = m_subResourceStates.Find(key);

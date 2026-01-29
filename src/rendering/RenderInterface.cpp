@@ -1423,6 +1423,7 @@ void RenderInterface::RemoveRenderer(GlobalRendererType globalRendererType, Rend
     globalRenderers[globalRendererType].Erase(renderer);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
@@ -1731,14 +1732,17 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         const ResourceState desiredResourceState = inputType == ShaderInputType::IMAGE
             ? RS_SHADER_RESOURCE
             : RS_UNORDERED_ACCESS;
+        
+        // normalize counts
+        ImageSubResource subResource = imageView->GetImageSubResource();
+        subResource.numLayers = MathUtil::Min(subResource.numLayers, image->NumArrayLayers() - subResource.baseArrayLayer);
+        subResource.numLevels = MathUtil::Min(subResource.numLevels, image->NumMips() - subResource.baseMipLevel);
+
+        HYP_LOG_TEMP("Desire {} (mip: {} : {}) in resource state {} for {} shader input {}.", image->GetDebugName(), subResource.baseMipLevel, subResource.numLevels, EnumToString(desiredResourceState),
+            EnumToString(inputType), uniform.name);
 
         if (image->GetResourceState() != desiredResourceState || image->HasSubResourceStates())
         {
-            // normalize counts
-            ImageSubResource subResource = imageView->GetImageSubResource();
-            subResource.numLayers = MathUtil::Min(subResource.numLayers - subResource.baseArrayLayer, image->NumArrayLayers());
-            subResource.numLevels = MathUtil::Min(subResource.numLevels - subResource.baseMipLevel, image->NumMips());
-
             if (subResource.numLayers == image->NumArrayLayers() && subResource.numLevels == image->NumMips())
             {
                 image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
@@ -1747,9 +1751,9 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             {
                 bool needsTransition = false;
 
-                for (uint8 mipIndex = subResource.baseMipLevel; mipIndex < subResource.numLevels; mipIndex++)
+                for (uint8 mipIndex = subResource.baseMipLevel; mipIndex < subResource.baseMipLevel + subResource.numLevels; mipIndex++)
                 {
-                    for (uint16 layerIndex = subResource.baseArrayLayer; layerIndex < subResource.numLayers; layerIndex++)
+                    for (uint16 layerIndex = subResource.baseArrayLayer; layerIndex < subResource.baseArrayLayer + subResource.numLayers; layerIndex++)
                     {
                         ImageSubResource currSubResource {};
                         currSubResource.baseMipLevel = mipIndex;

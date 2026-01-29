@@ -238,7 +238,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
-    if (String(callbackData->pMessageIdName).Contains("oldLayout"))
+    if (String(callbackData->pMessageIdName).Contains("imageLayout"))
     {
         HYP_BREAKPOINT;
     }

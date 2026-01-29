@@ -555,9 +555,13 @@ void VulkanGpuImage::InsertBarrier(
     {
         currResourceState = RS_UNDEFINED;
         bool firstSubResource = true;
+        bool breakLoop = false;
 
         for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
         {
+            if (breakLoop)
+                break;
+
             for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
             {
                 ImageSubResource currSubResource {};
@@ -590,8 +594,10 @@ void VulkanGpuImage::InsertBarrier(
                 else if (foundResourceState != currResourceState)
                 {
                     currResourceState = RS_UNDEFINED;
-                }
+                    breakLoop = true;
 
+                    break;
+                }
             }
         }
     }
@@ -629,6 +635,10 @@ void VulkanGpuImage::InsertBarrier(
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
+    HYP_LOG_TEMP("Transition image {} {} -> {} (mip: {}, mip count: {}, array layer: {}, layer count: {})", GetDebugName(), EnumToString(currResourceState), EnumToString(newState),
+        range.baseMipLevel, range.levelCount,
+        range.baseArrayLayer, range.layerCount);
+    
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
         GetVkShaderStageMask(currResourceState, true, shaderModuleType),
@@ -664,14 +674,12 @@ void VulkanGpuImage::InsertBarrier(
 
             if (it != m_subResourceStates.End())
             {
-                if (newState == m_resourceState)
+                it->second = newState;
+
+                if (it->second == m_resourceState)
                 {
                     // same state as overall image, remove from set
                     m_subResourceStates.Erase(it);
-                }
-                else
-                {
-                    it->second = newState;
                 }
             }
             else if (newState != m_resourceState)
