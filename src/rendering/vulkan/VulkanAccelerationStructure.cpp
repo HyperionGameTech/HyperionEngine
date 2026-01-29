@@ -10,6 +10,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
+#include <rendering/vulkan/VulkanDescriptorSet.hpp>
 
 #include <rendering/Material.hpp>
 #include <rendering/Shared.hpp>
@@ -659,6 +660,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer()
     return BuildMeshDescriptionsBuffer(0u, uint32(m_blas.Size()));
 }
 
+HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 last)
 {
     if (last <= first)
@@ -713,20 +715,34 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         const VulkanGpuBlasRef& blas = m_blas[i];
 
         MeshDescription& meshDescription = meshDescriptions[i - first];
-        Memory::Fill(&meshDescription, 0, sizeof(MeshDescription));
+        meshDescription = {};
 
         Assert(blas->GetGeometries().Any(), "No geometries added to GpuBlas node %u!", i);
 
         Assert(blas->GetGeometries()[0]->GetPackedVerticesBuffer() && blas->GetGeometries()[0]->GetPackedVerticesBuffer()->IsCreated());
         Assert(blas->GetGeometries()[0]->GetPackedIndicesBuffer() && blas->GetGeometries()[0]->GetPackedIndicesBuffer()->IsCreated());
 
-        meshDescription.vertexBufferAddress = blas->GetGeometries()[0]->GetPackedVerticesBuffer()->GetBufferDeviceAddress();
-        meshDescription.indexBufferAddress = blas->GetGeometries()[0]->GetPackedIndicesBuffer()->GetBufferDeviceAddress();
+        meshDescription.bindlessIndex = i;
         meshDescription.materialIndex = blas->GetMaterialBinding();
         meshDescription.numIndices = blas->GetGeometries()[0]->NumIndices();
         meshDescription.numVertices = blas->GetGeometries()[0]->NumVertices();
-    }
 
+        AssertDebug(i * 2 + 1 < MaxBindlessResources);
+
+        if (i * 2 + 1 < MaxBindlessResources)
+        {
+            // put in bindless descriptor set
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
+            {
+                VulkanDescriptorSet* descriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBufferSet"_sh, frameIndex);
+                Assert(descriptorSet != nullptr);
+
+                descriptorSet->SetElement("Buffers"_sh, i * 2, blas->GetGeometries()[0]->GetPackedVerticesBuffer());
+                descriptorSet->SetElement("Buffers"_sh, i * 2 + 1, blas->GetGeometries()[0]->GetPackedIndicesBuffer());
+            }
+        }
+    }
+    
     Assert(m_meshDescriptionsBuffer != nullptr);
     Assert(m_meshDescriptionsBuffer->Size() >= (first + meshDescriptions.Size()) * sizeof(MeshDescription));
 
@@ -735,8 +751,11 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         meshDescriptions.Size() * sizeof(MeshDescription),
         meshDescriptions.Data());
 
+    m_meshDescriptionsBuffer->Flush(first * sizeof(MeshDescription), meshDescriptions.Size() * sizeof(MeshDescription));
+
     return RendererResult();
 }
+HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
 {
@@ -747,7 +766,7 @@ RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateState
         return Rebuild(outUpdateStateFlags);
     }
 
-    Range<uint32> dirtyRange {};
+    Range<uint32> dirtyRange = Range<uint32>::Invalid();
 
     for (uint32 i = 0; i < uint32(m_blas.Size()); i++)
     {

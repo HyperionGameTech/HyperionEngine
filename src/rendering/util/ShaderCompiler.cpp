@@ -4087,6 +4087,8 @@ bool ShaderCompiler::CompileBundle(
             HYP_LOG(ShaderCompiler, Error, "\t{}", errorMessage);
         }
 
+        HYP_BREAKPOINT_DEBUG_MODE;
+
         return false;
     }
 

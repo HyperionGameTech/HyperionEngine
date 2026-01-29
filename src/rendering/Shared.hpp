@@ -1020,12 +1020,10 @@ struct PushConstantData
 #include <core/math/Mat4f.hpp>
 
 namespace Hyperion {
-struct alignas(16) MeshDescription
-{
-    uint64 vertexBufferAddress;
-    uint64 indexBufferAddress;
 
-    uint32 _pad0;
+struct MeshDescription
+{
+    uint32 bindlessIndex;
     uint32 materialIndex;
     uint32 numIndices;
     uint32 numVertices;

@@ -32,7 +32,7 @@ HYP_DESCRIPTOR_BUFFER(DDGI, DDGIConstants) uniform CBuffer
     DDGIConstants ddgiConstants;
 };
 
-HYP_DESCRIPTOR_UAV(DDGI, ProbeRayData) buffer ProbeRayDataBuffer
+HYP_DESCRIPTOR_UAV(DDGI, ProbeRayData, standard = scalar) buffer ProbeRayDataBuffer
 {
     ProbeRayData probe_rays[];
 };

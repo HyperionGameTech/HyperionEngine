@@ -46,18 +46,6 @@ HYP_DESCRIPTOR_SRV(RTReflections, PointLightShadowMapsTextureArray) uniform text
 layout(location = 0) rayPayloadInEXT RayPayload payload;
 hitAttributeEXT vec2 attribs;
 
-struct PackedVertex
-{
-    float position_x;
-    float position_y;
-    float position_z;
-    float normal_x;
-    float normal_y;
-    float normal_z;
-    float texcoord_s;
-    float texcoord_t;
-};
-
 layout(buffer_reference, scalar) readonly buffer PackedVertexBuffer { float vertices[]; };
 layout(buffer_reference, scalar) readonly buffer IndexBuffer { uvec3 indices[]; };
 

@@ -66,7 +66,7 @@ struct Material
 
 #define MATERIAL_ALPHA_DISCARD 0.25
 
-#define HAS_TEXTURE(mat, name) bool(((mat).textureUsage & (1 << MATERIAL_TEXTURE_##name)))
+#define HAS_TEXTURE(mat, name) bool(((mat).textureUsage & (1u << MATERIAL_TEXTURE_##name)))
 
 #if defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT) // area rect light uses AlbedoMap in any case
 #define GET_TEXTURE(mat, name) textures[(mat).texture_indices[(MATERIAL_TEXTURE_##name) / 4][(MATERIAL_TEXTURE_##name) % 4]]
@@ -74,16 +74,31 @@ struct Material
 #define GET_TEXTURE(mat, name) name
 #endif
 
+
+#if defined(PIXEL_SHADER) || defined(COMPUTE_SHADER)
+
 #define SAMPLE_MATERIAL_TEXTURE(mat, name, texcoord) \
     SAMPLE_TEXTURE_2D(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
-
-#define SAMPLE_MATERIAL_TEXTURE_LOD(mat, name, texcoord, lod) \
-    SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), (lod))
 
 #define SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(mat, name, position, normal) \
     SampleTextureTriplanar(texture_sampler, GET_TEXTURE(mat, name), (position), (normal))
 
 #define SAMPLE_MATERIAL_TEXTURE_CUBE(mat, name, texcoord) \
     SAMPLE_TEXTURE_CUBE(texture_sampler, GET_TEXTURE(mat, name), (texcoord))
+
+#else // !(defined(PIXEL_SHADER) || defined(COMPUTE_SHADER))
+
+/// sampling with implicit lod is only allowed in fragment and compute shaders
+
+#define SAMPLE_MATERIAL_TEXTURE(mat, name, texcoord) \
+    SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), 0.0)
+
+#define SAMPLE_MATERIAL_TEXTURE_CUBE(mat, name, texcoord) \
+    SAMPLE_TEXTURE_CUBE_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), 0.0)
+
+#endif
+
+#define SAMPLE_MATERIAL_TEXTURE_LOD(mat, name, texcoord, lod) \
+    SAMPLE_TEXTURE_2D_LOD(texture_sampler, GET_TEXTURE(mat, name), (texcoord), (lod))
 
 #endif

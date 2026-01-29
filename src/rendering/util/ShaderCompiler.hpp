@@ -39,11 +39,11 @@ static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
     "TessControlMain",      // ShaderModuleType::TessControl
     "TessEvalMain",         // ShaderModuleType::TessEval
 
-    "RayGen",               // ShaderModuleType::RayGen
-    "Intersect",            // ShaderModuleType::Intersect
-    "AnyHit",               // ShaderModuleType::AnyHit
-    "ClosestHit",           // ShaderModuleType::ClosestHit
-    "Miss"                  // ShaderModuleType::Miss
+    "RayGenMain",           // ShaderModuleType::RayGen
+    "IntersectMain",        // ShaderModuleType::Intersect
+    "AnyHitMain",           // ShaderModuleType::AnyHit
+    "ClosestHitMain",       // ShaderModuleType::ClosestHit
+    "MissMain"              // ShaderModuleType::Miss
 };
 
 static constexpr const char* ShaderModuleTypeNames[NumShaderModuleTypes] = {

@@ -1,6 +1,7 @@
 #define DDGI
 
 #include "../../include/defines.inc"
+#include "../../include/shared.inc"
 #include "../../include/noise.inc"
 #include "../../include/packing.inc"
 
@@ -13,7 +14,6 @@ HYP_DESCRIPTOR_SAMPLER(DDGI, SamplerLinear) SamplerState sampler_linear;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/shared.inc"
 #include "../../include/scene.inc"
 #include "../../include/noise.inc"
 #include "../../include/Octahedron.inc"
@@ -92,7 +92,7 @@ void RayGenMain()
     
     float3 origin = ProbeIndexToWorldPosition(probe_index) + direction * RAY_OFFSET;
     
-    uint flags = RAY_FLAG_OPAQUE;
+    RAY_FLAG flags = RAY_FLAG_NONE;
     float tmin = RAY_OFFSET;
     float tmax = ddgiConstants.probe_distance;
     

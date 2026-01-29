@@ -111,6 +111,8 @@ vec3 GetTriplanarBlend(vec3 normal)
     return blending;
 }
 
+#if defined(PIXEL_SHADER) || defined(COMPUTE_SHADER)
+
 #ifdef LANG_GLSL
 
 vec4 SampleTextureTriplanar(sampler samp, texture2D tex, vec3 position, vec3 normal)
@@ -138,6 +140,8 @@ float4 SampleTextureTriplanar(sampler samp, Texture2D tex, float3 position, floa
 }
 
 #endif
+
+#endif // PIXEL_SHADER || COMPUTE_SHADER
 
 #define GAUSS_TABLE_SIZE 15
 

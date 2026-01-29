@@ -89,7 +89,10 @@ public:
 
 static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, const DescriptorSetLayout& layout)
 {
-    static constexpr VkDescriptorBindingFlags BindlessFlags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    // flags applied to bindless descriptor sets no matter what
+    static constexpr VkDescriptorBindingFlags BindlessFlags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
+        | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+        | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
     Array<VkDescriptorSetLayoutBinding> bindings;
     bindings.Reserve(layout.GetElements().Size());
@@ -122,7 +125,7 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         bindings.PushBack(binding);
 
-        VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+        VkDescriptorBindingFlags flags = 0;
 
         if (element.IsBindless())
         {
@@ -379,7 +382,6 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
 {
     Array<VkDescriptorPoolSize> descriptorPoolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0 },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources : 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },

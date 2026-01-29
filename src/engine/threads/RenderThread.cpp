@@ -170,9 +170,16 @@ void RenderThread::Update()
 
     if (g_renderInterface->GetRenderConfig().bindlessTextures)
     {
-        DescriptorSet* bindlessDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalTextureSet"_sh, frame->GetFrameIndex());
-        bindlessDescriptorSet->UpdateDirtyState();
-        bindlessDescriptorSet->Update();
+        DescriptorSet* texturesDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalTextureSet"_sh, frame->GetFrameIndex());
+        texturesDescriptorSet->UpdateDirtyState();
+        texturesDescriptorSet->Update();
+
+        if (g_renderInterface->GetRenderConfig().rayTracing)
+        {
+            DescriptorSet* buffersDescriptorSet = g_renderInterface->globalDescriptorTable->GetDescriptorSet("GlobalBufferSet"_sh, frame->GetFrameIndex());
+            buffersDescriptorSet->UpdateDirtyState();
+            buffersDescriptorSet->Update();
+        }
     }
 
     g_renderInterface->UpdateBuffers(frame);

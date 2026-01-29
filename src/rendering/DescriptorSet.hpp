@@ -46,12 +46,16 @@ constexpr uint32 ElementTypeToBufferType[uint32(DescriptorType::MAX)] = {
     (1u << uint32(GpuBufferType::STORAGE_BUFFER))
         | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)), // STORAGE_BUFFER
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)), // STORAGE_BUFFER
 
     (1u << uint32(GpuBufferType::STORAGE_BUFFER))
         | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GpuBufferType::STAGING_BUFFER))
-        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)),   // STORAGE_BUFFER_DYNAMIC
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_INDEX_BUFFER))
+        | (1u << uint32(GpuBufferType::RT_MESH_VERTEX_BUFFER)),  // STORAGE_BUFFER_DYNAMIC
     0,                                                           // IMAGE
     0,                                                           // IMAGE_STORAGE
     0,                                                           // SAMPLER
@@ -399,6 +403,14 @@ protected:
 
         DescriptorSetElement& element = it->second;
         element.values.Resize(count);
+        
+        // if we are a bindless descriptor then we want to NOT have occupiedArrayElems set.
+        // unless, of course, we provided a non-null placeholder value for filling bindless elems array.
+
+        if (isBindless && !placeholder)
+        {
+            return;
+        }
 
         for (uint32 i = 0; i < count; i++)
         {
