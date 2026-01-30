@@ -23,6 +23,8 @@ struct Entity
 
     uint bucket;
     uint flags;
+    uint _pad0;
+    uint _pad1;
 };
 
 #define MAX_ENTITIES_PER_INSTANCE_BATCH 60

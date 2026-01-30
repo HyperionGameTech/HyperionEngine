@@ -17,14 +17,6 @@
 
 #include "../include/env_probe.inc"
 
-DECLARE_SRV_DYNAMIC(ConvolveProbe, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
-#define current_env_probe current_env_probe_buffer[0]
-
-DECLARE_BUFFER(ConvolveProbe, SphereSamplesBuffer) cbuffer SphereSamplesBuffer
-{
-    float4 sphere_samples[4096];
-};
-
 DECLARE_SRV(ConvolveProbe, ColorTexture) TextureCube color_texture;
 
 DECLARE_SAMPLER(ConvolveProbe, SamplerLinear) SamplerState sampler_linear;
@@ -38,6 +30,8 @@ DECLARE_BUFFER(ConvolveProbe, UniformBuffer) cbuffer UniformBuffer
     uint2 in_image_dimensions;
     float4 world_position;
 };
+
+DECLARE_SRV(ConvolveProbe, SphereSamplesBuffer) StructuredBuffer<float4> SphereSamplesBuffer;
 
 float4 ConvolveProbe(uint2 local_coord, uint face)
 {
@@ -56,7 +50,7 @@ float4 ConvolveProbe(uint2 local_coord, uint face)
 
     for (int i = 0; i < num_samples; i++)
     {
-        float3 offset = sphere_samples[i % 4096].xyz;
+        float3 offset = SphereSamplesBuffer[i % 4096].xyz;
         float3 sample_dir = normalize(dir + float3(lobe_size, lobe_size, lobe_size) * offset);
 
         float4 color = SAMPLE_TEXTURE_CUBE(sampler_linear, color_texture, sample_dir);

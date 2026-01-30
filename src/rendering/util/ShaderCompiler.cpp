@@ -4,6 +4,7 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderCompiler/ShaderCompilerInternal.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
 
@@ -52,6 +53,10 @@
 #include <wrl/client.h>
 #endif
 
+#if HYP_SPIRV_REFLECT
+#include <spirv_reflect.h>
+#endif
+
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #endif
@@ -64,9 +69,14 @@
 // {5A58797D-A72C-478D-8BA2-EFC6B0EFE88E}
 //interface DECLSPEC_UUID("5A58797D-A72C-478D-8BA2-EFC6B0EFE88E") ID3D12ShaderReflection;
 DEFINE_GUID(IID_ID3D12ShaderReflection, 0x5a58797d, 0xa72c, 0x478d, 0x8b, 0xa2, 0xef, 0xc6, 0xb0, 0xef, 0xe8, 0x8e);
+
+#include <rendering/util/ShaderCompiler/ReflectHLSL.hpp>
+
 #endif
 
 namespace Hyperion {
+
+using namespace ShaderCompilerUtil;
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
@@ -365,446 +375,6 @@ static bool SatisfiesRequested(
 }
 
 #pragma endregion Helpers
-
-#pragma region Internal structures
-
-
-
-enum class DescriptorUsageFlags : uint32
-{
-    NONE = 0x0,
-    DYNAMIC = 0x1
-};
-
-HYP_MAKE_ENUM_FLAGS(DescriptorUsageFlags)
-
-struct StructureType
-{
-    Name name;
-    uint32 size = ~0u;
-    Array<Name> fieldNames;
-    Array<StructureType, DynamicAllocator> fieldTypes;
-
-    StructureType() = default;
-
-    StructureType(Name name, uint32 size = ~0u)
-        : name(name),
-          size(size)
-    {
-    }
-
-    StructureType(const StructureType& other) = default;
-    StructureType& operator=(const StructureType& other) = default;
-    StructureType(StructureType&& other) noexcept = default;
-    StructureType& operator=(StructureType&& other) noexcept = default;
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return name.IsValid();
-    }
-
-    HYP_FORCE_INLINE bool HasExplicitSize() const
-    {
-        return size != ~0u;
-    }
-
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return name;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSize() const
-    {
-        return size;
-    }
-
-    HYP_FORCE_INLINE Pair<Name, StructureType&> AddField(Name fieldName, const StructureType& type)
-    {
-        return Pair<Name, StructureType&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
-    }
-
-    HYP_FORCE_INLINE Pair<Name, StructureType&> GetField(SizeType index)
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE const Pair<Name, const StructureType&> GetField(SizeType index) const
-    {
-        return { fieldNames[index], fieldTypes[index] };
-    }
-
-    HYP_FORCE_INLINE Optional<Pair<Name, StructureType&>> FindField(StringHash fieldName)
-    {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
-        {
-            if (fieldNames[i] == fieldName)
-            {
-                return Pair<Name, StructureType&> { fieldNames[i], fieldTypes[i] };
-            }
-        }
-
-        return {};
-    }
-
-    HYP_FORCE_INLINE Optional<Pair<Name, const StructureType&>> FindField(StringHash fieldName) const
-    {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
-        {
-            if (fieldNames[i] == fieldName)
-            {
-                return Pair<Name, const StructureType&> { fieldNames[i], fieldTypes[i] };
-            }
-        }
-
-        return {};
-    }
-
-    HYP_FORCE_INLINE bool operator<(const StructureType& other) const
-    {
-        if (size != other.size)
-        {
-            return size < other.size;
-        }
-
-        if (fieldTypes.Size() != other.fieldTypes.Size())
-        {
-            return fieldTypes.Size() < other.fieldTypes.Size();
-        }
-
-        for (SizeType i = 0; i < fieldTypes.Size(); i++)
-        {
-            if (fieldTypes[i] != other.fieldTypes[i])
-            {
-                return fieldTypes[i] < other.fieldTypes[i];
-            }
-        }
-
-        return false;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const StructureType& other) const
-    {
-        return name == other.name
-            && size == other.size
-            && fieldNames == other.fieldNames
-            && fieldTypes == other.fieldTypes;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const StructureType& other) const
-    {
-        return name != other.name
-            || size != other.size
-            || fieldNames != other.fieldNames
-            || fieldTypes != other.fieldTypes;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name);
-        hc.Add(size);
-        hc.Add(fieldNames);
-        hc.Add(fieldTypes);
-
-        return hc;
-    }
-};
-
-struct DescriptorUsage
-{
-    ShaderRegister slot;
-    ShaderInputType type;
-    Name setName;
-    Name descriptorName;
-    StructureType structureType;
-    EnumFlags<DescriptorUsageFlags> flags;
-    HashMap<String, String> params;
-
-    DescriptorUsage()
-        : slot(ShaderRegister::NONE),
-          type(ShaderInputType::UNSET),
-          setName(Name::Invalid()),
-          flags(DescriptorUsageFlags::NONE)
-    {
-    }
-
-    DescriptorUsage(ShaderRegister slot, ShaderInputType type, Name setName, Name descriptorName, EnumFlags<DescriptorUsageFlags> flags = DescriptorUsageFlags::NONE, HashMap<String, String> params = {})
-        : slot(slot),
-          type(type),
-          setName(setName),
-          descriptorName(descriptorName),
-          flags(flags),
-          params(std::move(params))
-    {
-    }
-
-    DescriptorUsage(const DescriptorUsage& other)
-        : slot(other.slot),
-          type(other.type),
-          setName(other.setName),
-          descriptorName(other.descriptorName),
-          structureType(other.structureType),
-          flags(other.flags),
-          params(other.params)
-    {
-    }
-
-    DescriptorUsage& operator=(const DescriptorUsage& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        type = other.type;
-        setName = other.setName;
-        descriptorName = other.descriptorName;
-        structureType = other.structureType;
-        flags = other.flags;
-        params = other.params;
-
-        return *this;
-    }
-
-    DescriptorUsage(DescriptorUsage&& other) noexcept
-        : slot(other.slot),
-          type(other.type),
-          setName(std::move(other.setName)),
-          descriptorName(std::move(other.descriptorName)),
-          structureType(std::move(other.structureType)),
-          flags(other.flags),
-          params(std::move(other.params))
-    {
-    }
-
-    DescriptorUsage& operator=(DescriptorUsage&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        slot = other.slot;
-        type = other.type;
-        setName = std::move(other.setName);
-        descriptorName = std::move(other.descriptorName);
-        structureType = std::move(other.structureType);
-        flags = other.flags;
-        params = std::move(other.params);
-
-        return *this;
-    }
-
-    ~DescriptorUsage() = default;
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsage& other) const
-    {
-        return slot == other.slot
-            && type == other.type
-            && setName == other.setName
-            && descriptorName == other.descriptorName
-            && structureType == other.structureType
-            && flags == other.flags
-            && params == other.params;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsage& other) const
-    {
-        return slot != other.slot
-            || type != other.type
-            || setName != other.setName
-            || descriptorName != other.descriptorName
-            || structureType != other.structureType
-            || flags != other.flags
-            || params != other.params;
-    }
-
-    HYP_FORCE_INLINE bool operator<(const DescriptorUsage& other) const
-    {
-        if (slot != other.slot)
-        {
-            return slot < other.slot;
-        }
-
-        if (type != other.type)
-        {
-            return type < other.type;
-        }
-
-        if (setName != other.setName)
-        {
-            return setName < other.setName;
-        }
-
-        if (descriptorName != other.descriptorName)
-        {
-            return descriptorName < other.descriptorName;
-        }
-
-        if (structureType != other.structureType)
-        {
-            return structureType < other.structureType;
-        }
-
-        if (flags != other.flags)
-        {
-            return uint32(flags) < uint32(other.flags);
-        }
-
-        return false;
-    }
-
-    /*! \brief Returns true if this is a constant buffer or storage buffer. */
-    HYP_FORCE_INLINE bool IsBuffer() const
-    {
-        return type == ShaderInputType::UNIFORM_BUFFER
-            || type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-            || type == ShaderInputType::STORAGE_BUFFER
-            || type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
-    }
-
-    HYP_FORCE_INLINE uint32 GetCount() const
-    {
-        uint32 value = 1;
-
-        auto it = params.Find("count");
-
-        if (it == params.End())
-        {
-            return value;
-        }
-
-        if (StringUtil::Parse(it->second, &value))
-        {
-            return value;
-        }
-
-        return 1;
-    }
-
-    HYP_FORCE_INLINE uint32 GetSize() const
-    {
-        if (structureType.HasExplicitSize())
-        {
-            return structureType.size;
-        }
-
-        uint32 value = ~0u;
-
-        auto it = params.Find("size");
-
-        if (it == params.End())
-        {
-            return value;
-        }
-
-        if (StringUtil::Parse(it->second, &value))
-        {
-            return value;
-        }
-
-        return uint32(-1);
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(slot);
-        hc.Add(type);
-        hc.Add(setName.GetHashCode());
-        hc.Add(descriptorName.GetHashCode());
-        hc.Add(structureType);
-        hc.Add(flags);
-        hc.Add(params.GetHashCode());
-
-        return hc;
-    }
-};
-
-struct DescriptorUsageSet
-{
-    FlatSet<DescriptorUsage> elements;
-
-    void BuildDescriptorTableDeclaration(ShaderInputGroup& table) const;
-
-    HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
-    {
-        return elements[index];
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsage& operator[](SizeType index) const
-    {
-        return elements[index];
-    }
-
-    HYP_FORCE_INLINE bool operator==(const DescriptorUsageSet& other) const
-    {
-        return elements == other.elements;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const DescriptorUsageSet& other) const
-    {
-        return elements != other.elements;
-    }
-
-    HYP_FORCE_INLINE SizeType Size() const
-    {
-        return elements.Size();
-    }
-
-    HYP_FORCE_INLINE void Add(const DescriptorUsage& descriptorUsage)
-    {
-        elements.Insert(descriptorUsage);
-    }
-
-    HYP_FORCE_INLINE DescriptorUsage* Find(StringHash descriptorName)
-    {
-        auto it = elements.FindIf([descriptorName](const DescriptorUsage& descriptorUsage)
-            {
-                return descriptorUsage.descriptorName == descriptorName;
-            });
-
-        if (it == elements.End())
-        {
-            return nullptr;
-        }
-
-        return it;
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsage* Find(StringHash descriptorName) const
-    {
-        return const_cast<const DescriptorUsageSet*>(this)->Find(descriptorName);
-    }
-
-    HYP_FORCE_INLINE void Merge(const Array<DescriptorUsage>& other)
-    {
-        elements.Merge(other);
-    }
-
-    HYP_FORCE_INLINE void Merge(Array<DescriptorUsage>&& other)
-    {
-        elements.Merge(std::move(other));
-    }
-
-    HYP_FORCE_INLINE void Merge(const DescriptorUsageSet& other)
-    {
-        elements.Merge(other.elements);
-    }
-
-    HYP_FORCE_INLINE void Merge(DescriptorUsageSet&& other)
-    {
-        elements.Merge(std::move(other.elements));
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return elements.GetHashCode();
-    }
-};
-
-#pragma endregion Internal structures
 
 #pragma region CompiledShader
 
@@ -1447,10 +1017,10 @@ static ByteBuffer CompileGLSL(
 
     glslang_shader_t* shader = glslang_shader_create(&input);
 
-    ShaderInputGroup table;
-    descriptorUsages.BuildDescriptorTableDeclaration(table);
+    ShaderInputGroup inputGroup;
+    descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
 
-    String preamble = BuildDescriptorTableDefines(ShaderLanguage::GLSL, table);
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::GLSL, inputGroup);
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -1516,9 +1086,9 @@ static ByteBuffer CompileGLSL(
     glslang_program_SPIRV_generate_with_options(program, stage, &spvOptions);
 
 #ifdef HYP_SHADER_REFLECTION
-    Proc<void(const glslang::TType*, StructureType&)> HandleShaderStruct;
+    Proc<void(const glslang::TType*, ShaderStruct&)> HandleShaderStruct;
 
-    HandleShaderStruct = [&HandleShaderStruct](const glslang::TType* type, StructureType& outStructureType)
+    HandleShaderStruct = [&HandleShaderStruct](const glslang::TType* type, ShaderStruct& outStructureType)
     {
         if (type->isStruct())
         {
@@ -1537,7 +1107,7 @@ static ByteBuffer CompileGLSL(
 
                 auto& field = outStructureType.AddField(
                                                     CreateNameFromDynamicString(it->type->getFieldName().data()),
-                                                    StructureType(CreateNameFromDynamicString(fieldTypeName)))
+                                                    ShaderStruct(CreateNameFromDynamicString(fieldTypeName)))
                                     .second;
 
                 HandleShaderStruct(it->type, field);
@@ -1577,8 +1147,8 @@ static ByteBuffer CompileGLSL(
 
         if (refl != nullptr)
         {
-            HandleShaderStruct(refl->getType(), usage.structureType);
-            usage.structureType.size = refl->size;
+            HandleShaderStruct(refl->getType(), usage.shaderStruct);
+            usage.shaderStruct.size = refl->size;
 
             continue;
         }
@@ -1614,44 +1184,6 @@ static ByteBuffer CompileGLSL(
 #endif // HYP_GLSLANG
 
 #if HYP_DXC
-
-#if HYP_SHADER_REFLECTION
-
-static void ReflectResources(ID3D12ShaderReflection* pReflection, DescriptorUsageSet& outUsages)
-{
-    D3D12_SHADER_DESC shaderDesc;
-    pReflection->GetDesc(&shaderDesc);
-
-    for (UINT i = 0; i < shaderDesc.BoundResources; i++)
-    {
-        D3D12_SHADER_INPUT_BIND_DESC resDesc;
-        pReflection->GetResourceBindingDesc(i, &resDesc);
-
-        DescriptorUsage* descriptorUsage = outUsages.Find(CreateStringHashFromDynamicString(resDesc.Name));
-
-        if (descriptorUsage != nullptr)
-        {
-            if (resDesc.Type == D3D_SIT_CBUFFER)
-            {
-                ID3D12ShaderReflectionConstantBuffer* pCB = pReflection->GetConstantBufferByName(resDesc.Name);
-                D3D12_SHADER_BUFFER_DESC bufferDesc;
-                pCB->GetDesc(&bufferDesc);
-                
-                descriptorUsage->structureType.size = (SizeType)bufferDesc.Size;
-                
-                for (UINT j = 0; j < bufferDesc.Variables; j++)
-                {
-                    ID3D12ShaderReflectionVariable* pVar = pCB->GetVariableByIndex(j);
-                    D3D12_SHADER_VARIABLE_DESC varDesc;
-                    pVar->GetDesc(&varDesc);
-                    
-                    // TODO!!!
-                }
-            }
-        }
-    }
-}
-#endif // HYP_SHADER_REFLECTION
 
 static bool PreprocessHLSL(
     ShaderModuleType type,
@@ -1747,7 +1279,6 @@ enum class HLSLOutputType
     DXIL
 };
 
-HYP_DISABLE_OPTIMIZATION;
 static ByteBuffer CompileHLSL(
     ShaderModuleType type,
     HLSLOutputType outputType,
@@ -1758,10 +1289,10 @@ static ByteBuffer CompileHLSL(
 {
     Assert(s_dxcCompiler && s_dxcUtils);
 
-    ShaderInputGroup table;
-    descriptorUsages.BuildDescriptorTableDeclaration(table);
+    ShaderInputGroup inputGroup;
+    descriptorUsages.BuildDescriptorTableDeclaration(inputGroup);
 
-    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, table)
+    String preamble = BuildDescriptorTableDefines(ShaderLanguage::HLSL, inputGroup)
         + "\n" + BuildAttributesDefines(ShaderLanguage::HLSL, perm);
 
     String fullSource = preamble + "\n" + source;
@@ -1789,6 +1320,8 @@ static ByteBuffer CompileHLSL(
         uint32 spirvVersion;
         uint32 vulkanApiVersion;
         GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
+        
+        args.PushBack(L"-fspv-reflect");
 
         switch (vulkanApiVersion)
         {
@@ -1848,20 +1381,64 @@ static ByteBuffer CompileHLSL(
         return ByteBuffer();
     }
 
-    ComPtr<IDxcBlob> pReflectionData;
-    res = pResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
-    
-    if (SUCCEEDED(res) && pReflectionData)
-    {
-        DxcBuffer reflBuffer = { pReflectionData->GetBufferPointer(), pReflectionData->GetBufferSize(), 0 };
-        ComPtr<ID3D12ShaderReflection> pReflection;
-        s_dxcUtils->CreateReflection(&reflBuffer, IID_PPV_ARGS(&pReflection));
-
-        ReflectResources(pReflection.Get(), descriptorUsages);
-    }
-
     ComPtr<IDxcBlob> pBlob;
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
+
+    if (outputType == HLSLOutputType::DXIL)
+    {
+        if (!pResult->HasOutput(DXC_OUT_REFLECTION))
+        {
+            errorMessages.PushBack(HYP_FORMAT("Failed to generate HLSL reflection data for shader {}", filename));
+
+            return ByteBuffer();
+        }
+
+        ComPtr<IDxcBlob> pReflectionData;
+
+        res = pResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
+
+        if (FAILED(res) || pReflectionData == nullptr || pReflectionData->GetBufferSize() == 0)
+        {
+            errorMessages.PushBack(HYP_FORMAT("Failed to generate HLSL reflection data for shader {}, HRESULT: {}", filename, res));
+
+            return ByteBuffer();
+        }
+
+        DxcBuffer reflBuffer = { pReflectionData->GetBufferPointer(), pReflectionData->GetBufferSize(), 0 };
+
+        ComPtr<ID3D12ShaderReflection> pReflection;
+
+        res = s_dxcUtils->CreateReflection(&reflBuffer, IID_PPV_ARGS(&pReflection));
+
+        if (FAILED(res) || pReflection == nullptr)
+        {
+            errorMessages.PushBack(HYP_FORMAT("Failed to create HLSL reflection interface for shader {}, HRESULT: {}", filename, res));
+
+            return ByteBuffer();
+        }
+
+        ReflectDXIL(pReflection.Get(), inputGroup, errorMessages);
+    }
+#if HYP_SPIRV_REFLECT
+    else if (outputType == HLSLOutputType::SPIRV)
+    {
+        SpvReflectShaderModule spvModule;
+        SpvReflectResult spvResult = spvReflectCreateShaderModule(
+            pBlob->GetBufferSize(),
+            pBlob->GetBufferPointer(),
+            &spvModule);
+
+        if (spvResult != SPV_REFLECT_RESULT_SUCCESS)
+        {
+            errorMessages.PushBack(HYP_FORMAT("Failed to create SPIRV-Reflect module for shader {}, result: {}", filename, int(spvResult)));
+        }
+        else
+        {
+            ReflectSPIRV(&spvModule, inputGroup, errorMessages);
+            spvReflectDestroyShaderModule(&spvModule);
+        }
+    }
+#endif
 
     ByteBuffer bytecode(pBlob->GetBufferSize());
     Assert(bytecode.Size() > 0);
@@ -1871,7 +1448,6 @@ static ByteBuffer CompileHLSL(
     return bytecode;
 }
 
-HYP_ENABLE_OPTIMIZATION;
 #endif // HYP_DXC
 
 #pragma endregion SPRIV Compilation

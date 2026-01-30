@@ -105,6 +105,148 @@ enum class DescriptorSetDeclarationFlags : uint8
 HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 HYP_STRUCT()
+struct ShaderStruct
+{
+    HYP_STRUCT_BODY(ShaderStruct);
+
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name name;
+
+    HYP_FIELD(Property = "Size", Serialize = true)
+    uint32 size = ~0u;
+
+    HYP_FIELD(Property = "FieldNames", Serialize = true)
+    Array<Name> fieldNames;
+
+    HYP_FIELD(Property = "FieldTypes", Serialize = true)
+    Array<ShaderStruct, DynamicAllocator> fieldTypes;
+
+    ShaderStruct() = default;
+
+    ShaderStruct(Name name, uint32 size = ~0u)
+        : name(name),
+          size(size)
+    {
+    }
+
+    ShaderStruct(const ShaderStruct& other) = default;
+    ShaderStruct& operator=(const ShaderStruct& other) = default;
+    ShaderStruct(ShaderStruct&& other) noexcept = default;
+    ShaderStruct& operator=(ShaderStruct&& other) noexcept = default;
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return name.IsValid();
+    }
+
+    HYP_FORCE_INLINE bool HasExplicitSize() const
+    {
+        return size != ~0u;
+    }
+
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        return name;
+    }
+
+    HYP_FORCE_INLINE uint32 GetSize() const
+    {
+        return size;
+    }
+
+    HYP_FORCE_INLINE Pair<Name, ShaderStruct&> AddField(Name fieldName, const ShaderStruct& type)
+    {
+        return Pair<Name, ShaderStruct&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
+    }
+
+    HYP_FORCE_INLINE Pair<Name, ShaderStruct&> GetField(SizeType index)
+    {
+        return { fieldNames[index], fieldTypes[index] };
+    }
+
+    HYP_FORCE_INLINE const Pair<Name, const ShaderStruct&> GetField(SizeType index) const
+    {
+        return { fieldNames[index], fieldTypes[index] };
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, ShaderStruct&>> FindField(StringHash fieldName)
+    {
+        for (SizeType i = 0; i < fieldNames.Size(); i++)
+        {
+            if (fieldNames[i] == fieldName)
+            {
+                return Pair<Name, ShaderStruct&> { fieldNames[i], fieldTypes[i] };
+            }
+        }
+
+        return {};
+    }
+
+    HYP_FORCE_INLINE Optional<Pair<Name, const ShaderStruct&>> FindField(StringHash fieldName) const
+    {
+        for (SizeType i = 0; i < fieldNames.Size(); i++)
+        {
+            if (fieldNames[i] == fieldName)
+            {
+                return Pair<Name, const ShaderStruct&> { fieldNames[i], fieldTypes[i] };
+            }
+        }
+
+        return {};
+    }
+
+    HYP_FORCE_INLINE bool operator<(const ShaderStruct& other) const
+    {
+        if (size != other.size)
+        {
+            return size < other.size;
+        }
+
+        if (fieldTypes.Size() != other.fieldTypes.Size())
+        {
+            return fieldTypes.Size() < other.fieldTypes.Size();
+        }
+
+        for (SizeType i = 0; i < fieldTypes.Size(); i++)
+        {
+            if (fieldTypes[i] != other.fieldTypes[i])
+            {
+                return fieldTypes[i] < other.fieldTypes[i];
+            }
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const ShaderStruct& other) const
+    {
+        return name == other.name
+            && size == other.size
+            && fieldNames == other.fieldNames
+            && fieldTypes == other.fieldTypes;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ShaderStruct& other) const
+    {
+        return name != other.name
+            || size != other.size
+            || fieldNames != other.fieldNames
+            || fieldTypes != other.fieldTypes;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+        hc.Add(name);
+        hc.Add(size);
+        hc.Add(fieldNames);
+        hc.Add(fieldTypes);
+
+        return hc;
+    }
+};
+
+HYP_STRUCT()
 struct ShaderInput
 {
     HYP_STRUCT_BODY(ShaderInput);
@@ -129,6 +271,9 @@ struct ShaderInput
     HYP_FIELD(Property = "IsDynamic", Serialize = true)
     bool isDynamic = false;
 
+    HYP_FIELD(Property = "StructInfo", Serialize = true)
+    ShaderStruct structInfo;
+
     HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
     uint32 index = ~0u;
 
@@ -144,6 +289,7 @@ struct ShaderInput
         hc.Add(count);
         hc.Add(size);
         hc.Add(isDynamic);
+        hc.Add(structInfo);
         hc.Add(index);
 
         // cond excluded intentionally

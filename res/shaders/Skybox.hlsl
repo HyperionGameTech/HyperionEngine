@@ -1,5 +1,21 @@
 #include "include/defines.inc"
 
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "include/gbuffer.inc"
+#include "include/scene.inc"
+#include "include/Entity.inc"
+#include "include/packing.inc"
+#include "include/material.inc"
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
+#define material material_buffer[0]
+
+DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
+{
+    Camera camera;
+};
+
 #ifdef VERTEX_SHADER
 
 struct VSInput
@@ -19,18 +35,6 @@ struct VSOutput
     float3 normal : NORMAL;
     float2 texcoord0 : TEXCOORD0;
     nointerpolation uint object_index : TEXCOORD1;
-};
-
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#include "include/scene.inc"
-#include "include/Entity.inc"
-
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
-{
-    Camera camera;
 };
 
 #ifdef INSTANCING
@@ -89,25 +93,10 @@ struct PSOutput
 
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
 
-#include "include/gbuffer.inc"
-#include "include/Entity.inc"
-#include "include/packing.inc"
-
-#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS // don't want to define AlbedoMap as a 2D texture
-#include "include/material.inc"
-#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(BindlessResources0, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
 #else
 DECLARE_SRV(Default, AlbedoMap) TextureCube AlbedoMap;
-#endif
-
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
-#define material material_buffer[0]
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL material
 #endif
 
 PSOutput PSMain(PSInput input)
@@ -116,11 +105,7 @@ PSOutput PSMain(PSInput input)
 
     float3 normal = normalize(input.normal);
 
-#if defined(HYP_MATERIAL_CUBEMAP_TEXTURES) && HYP_MATERIAL_CUBEMAP_TEXTURES
-    output.gbuffer_albedo = float4(SAMPLE_MATERIAL_TEXTURE_CUBE(CURRENT_MATERIAL, AlbedoMap, input.position).rgb, 1.0);
-#else
-    output.gbuffer_albedo = float4(0.0, 0.0, 0.0, 0.0);
-#endif
+    output.gbuffer_albedo = float4(SAMPLE_MATERIAL_TEXTURE_CUBE(material, AlbedoMap, input.position).rgb, 1.0);
 
     output.gbuffer_normals = GBufferPackNormal(normal);
 

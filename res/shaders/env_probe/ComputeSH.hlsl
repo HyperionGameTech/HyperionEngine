@@ -20,7 +20,6 @@ DECLARE_SAMPLER(ComputeSH, SamplerNearest) SamplerState sampler_nearest;
 #include "../include/packing.inc"
 #include "../include/scene.inc"
 #include "../include/Octahedron.inc"
-
 #include "../include/env_probe.inc"
 
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -30,8 +29,12 @@ DECLARE_SRV(ComputeSH, EnvProbesTexture) TextureCubeArray envProbesTexture;
 #else
 DECLARE_SRV(ComputeSH, EnvProbesTexture) Texture2DArray envProbesTexture;
 #endif
-DECLARE_UAV(ComputeSH, EnvProbesBuffer) RWStructuredBuffer<EnvProbe> env_probes;
 
+#if defined(MODE_CLEAR) || defined(MODE_FINALIZE)
+DECLARE_UAV(ComputeSH, EnvProbesBuffer) RWStructuredBuffer<EnvProbe> env_probes;
+#endif
+
+#ifdef LIGHTING
 DECLARE_SRV_DYNAMIC(ComputeSH, CurrentEnvProbe) StructuredBuffer<EnvProbe> current_env_probe_buffer;
 #define current_env_probe current_env_probe_buffer[0]
 
@@ -42,15 +45,24 @@ DECLARE_SRV_DYNAMIC(ComputeSH, CurrentLight) StructuredBuffer<Light> current_lig
 #define currentLight current_light_buffer[0]
 
 #include "../include/shadows.inc"
-#include "../include/Octahedron.inc"
+#endif
 
 DECLARE_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;
+
+#if defined(MODE_BUILD_COEFFICIENTS) && defined(LIGHTING)
 DECLARE_SRV(ComputeSH, InNormalsCubemap) TextureCube cubemap_normals;
 DECLARE_SRV(ComputeSH, InDepthCubemap) TextureCube cubemap_depth;
+#endif
 
+#if defined(MODE_BUILD_COEFFICIENTS) || defined(MODE_FINALIZE) || defined(MODE_CLEAR)
 DECLARE_UAV(ComputeSH, InputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles;
-DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
+#endif
 
+#ifdef MODE_REDUCE
+DECLARE_UAV(ComputeSH, OutputSHTilesBuffer) RWStructuredBuffer<SHTile> sh_tiles_output;
+#endif
+
+#if defined(MODE_FINALIZE) || defined(MODE_REDUCE) || defined(MODE_CLEAR) || (defined(MODE_BUILD_COEFFICIENTS) && defined(LIGHTING))
 DECLARE_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
 {
     uint4 probe_grid_position;
@@ -59,27 +71,11 @@ DECLARE_BUFFER(ComputeSH, SHUniforms) cbuffer SHUniforms
     float4 world_position;
     uint env_probe_index;
 };
+#endif
 
 #if defined(MODE_BUILD_COEFFICIENTS) || defined(MODE_CLEAR)
 #define CURRENT_TILE sh_tiles[(sample_index.x * NUM_SAMPLES_Y) + sample_index.y]
 #endif
-
-float AreaIntegral(float x, float y)
-{
-    return atan2(x * y, sqrt(x * x + y * y + 1.0));
-}
-
-float TexelSolidAngle(float2 uv)
-{
-    float2 texel_size = float2(1.0, 1.0) / float2(cubemap_dimensions.xy);
-
-    float x0 = uv.x - texel_size.x;
-    float y0 = uv.y - texel_size.y;
-    float x1 = uv.x + texel_size.x;
-    float y1 = uv.y + texel_size.y;
-
-    return AreaIntegral(x0, y0) - AreaIntegral(x0, y1) - AreaIntegral(x1, y0) + AreaIntegral(x1, y1);
-}
 
 void ProjectOntoSHBands(float3 dir, out float sh[9])
 {
@@ -178,8 +174,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float4 albedo = SAMPLE_TEXTURE_CUBE(sampler_linear, cubemap_color, dir);
 
-    float3 normal = normalize(UnpackNormalVec2(SAMPLE_TEXTURE_CUBE(sampler_nearest, cubemap_normals, dir).rg));
 #ifdef LIGHTING
+    float3 normal = normalize(UnpackNormalVec2(SAMPLE_TEXTURE_CUBE(sampler_nearest, cubemap_normals, dir).rg));
     float2 dist_dist2 = SAMPLE_TEXTURE_CUBE(sampler_nearest, cubemap_depth, dir).rg;
 
     float4 position = float4(world_position.xyz + dir * dist_dist2.r, 1.0);

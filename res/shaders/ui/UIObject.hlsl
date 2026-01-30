@@ -32,8 +32,6 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
 
@@ -105,8 +103,6 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 {
     Camera camera;
 };
-
-DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 
 DECLARE_SAMPLER(Default, SamplerLinear) SamplerState sampler_linear;
 DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;

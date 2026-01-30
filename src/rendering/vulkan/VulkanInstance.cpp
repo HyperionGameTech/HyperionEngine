@@ -238,9 +238,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         break;
     }
 
-    if (String(callbackData->pMessageIdName).Contains("imageLayout"))
+    if (String(callbackData->pMessageIdName).Contains("pDescriptorSets"))
     {
-        HYP_BREAKPOINT;
+       // HYP_BREAKPOINT;
     }
 
     return VK_FALSE;

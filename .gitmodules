@@ -21,3 +21,6 @@
 [submodule "submodules/ios-cmake"]
 	path = submodules/ios-cmake
 	url = https://github.com/leetal/ios-cmake
+[submodule "submodules/SPIRV-Reflect"]
+	path = submodules/SPIRV-Reflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect

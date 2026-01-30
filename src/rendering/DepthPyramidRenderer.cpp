@@ -167,7 +167,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
         // level 0 == write just-rendered depth image into mip 0
 
         // put the mip into writeable state
-        frame->renderQueue << InsertBarrier(
+        /*frame->renderQueue << InsertBarrier(
             m_depthPyramid,
             RS_UNORDERED_ACCESS,
             ImageSubResource {
@@ -175,7 +175,7 @@ void DepthPyramidRenderer::Render(Frame* frame)
                 .numLevels = 1,
                 .baseArrayLayer = 0,
                 .numLayers = 1
-            });
+            });*/
 
         //if (mipLevel != 0)
         //{

@@ -30,11 +30,6 @@ DECLARE_BUFFER(ReflectionsPass, WorldsBuffer) cbuffer WorldsBuffer
 
 DECLARE_SRV(ReflectionsPass, BlueNoiseBuffer) StructuredBuffer<int4> BlueNoiseBuffer;
 
-DECLARE_BUFFER(ReflectionsPass, SphereSamplesBuffer) cbuffer SphereSamplesBuffer
-{
-    float4 sphere_samples[4096];
-};
-
 DECLARE_SRV(ReflectionsPass, GBufferMipChain) Texture2D gbuffer_mip_chain;
 
 #define HYP_DEFERRED_NO_RT_RADIANCE
