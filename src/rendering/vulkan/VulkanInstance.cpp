@@ -54,23 +54,23 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 
     VulkanFeatures deviceFeatures;
     
-    //// select dedicated GPU
-    //for (VkPhysicalDevice device : devices)
-    //{
-    //    deviceFeatures.SetPhysicalDevice(device);
+    // select dedicated GPU
+    for (VkPhysicalDevice device : devices)
+    {
+        deviceFeatures.SetPhysicalDevice(device);
 
-    //    if (!deviceFeatures.IsDiscreteGpu())
-    //    {
-    //        continue;
-    //    }
+        if (!deviceFeatures.IsDiscreteGpu())
+        {
+            continue;
+        }
 
-    //    if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
-    //    {
-    //        HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
+        if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
+        {
+            HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
 
-    //        return device;
-    //    }
-    //}
+            return device;
+        }
+    }
 
     // select integrated GPU
     for (VkPhysicalDevice device : devices)
