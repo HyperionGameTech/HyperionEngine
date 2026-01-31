@@ -63,14 +63,15 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     VSOutput output;
 
 #ifdef INSTANCING
-    float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], entity.model_matrix);
+    Entity currentEntity = entities[instanceId];
+    float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
 #else
     float4x4 model_matrix = entity.model_matrix;
 #endif
 
     float4 position = mul(model_matrix, float4(input.a_position, 1.0));
 
-    output.v_position = position.xyz / max(position.w, 1e-6);
+    output.v_position = position.xyz / position.w;
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);
     output.v_camera_position = camera.position.xyz;
 
