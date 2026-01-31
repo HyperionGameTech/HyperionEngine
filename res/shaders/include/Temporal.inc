@@ -1,5 +1,5 @@
-#ifndef TEMPORAL_GLSL
-#define TEMPORAL_GLSL
+#ifndef HYP_TEMPORAL
+#define HYP_TEMPORAL
 
 #include "./shared.inc"
 

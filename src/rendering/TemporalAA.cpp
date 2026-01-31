@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-struct alignas(16) TaaUniforms
+struct alignas(16) TAAConstants
 {
     Vec2u dimensions;
     Vec2u depthTextureDimensions;
@@ -47,7 +47,7 @@ TemporalAA::TemporalAA(const GpuImageViewRef& inputImageView, const Vec2u& exten
 TemporalAA::~TemporalAA()
 {
     SafeDelete(std::move(m_inputImageView));
-    SafeDelete(std::move(m_uniformBuffers));
+    SafeDelete(std::move(m_cBuffers));
 }
 
 void TemporalAA::Create()
@@ -103,43 +103,29 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    if (!m_uniformBuffers[frameIndex])
+    if (!m_cBuffers[frameIndex])
     {
-        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TaaUniforms));
-        m_uniformBuffers[frameIndex]->SetDebugName(NAME("TAA_UniformBuffer"));
-        CheckResult(m_uniformBuffers[frameIndex]->Create());
+        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TAAConstants));
+        m_cBuffers[frameIndex]->SetDebugName(NAME("TAAConstants"));
+        CheckResult(m_cBuffers[frameIndex]->Create());
     }
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
-    TaaUniforms uniforms {};
-    uniforms.dimensions = m_extent;
-    uniforms.depthTextureDimensions = Vec2u {
-        m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent().x,
-        m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent().y
-    };
-    uniforms.cameraNearFar = Vec2f {
-        cameraProxy->bufferData.cameraNear,
-        cameraProxy->bufferData.cameraFar
-    };
+    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
 
-    m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
+    TAAConstants constants {};
+    constants.dimensions = m_extent;
+    constants.depthTextureDimensions = depthTextureDimensions.GetXY();
+    constants.cameraNearFar = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
 
-    const Handle<Texture>& activeTexture = frame->GetFrameIndex() % 2 == 0
-        ? m_resultTexture
-        : m_historyTexture;
+    m_cBuffers[frameIndex]->Copy(sizeof(constants), &constants);
 
-    const Handle<Texture>& prevTexture = frame->GetFrameIndex() % 2 == 0
-        ? m_historyTexture
-        : m_resultTexture;
+    Texture* activeTexture = frame->GetFrameIndex() % 2 == 0 ? m_resultTexture : m_historyTexture;
+    Texture* prevTexture = frame->GetFrameIndex() % 2 == 0 ? m_historyTexture : m_resultTexture;
 
     frame->renderQueue << InsertBarrier(activeTexture->GetGpuImage(), RS_UNORDERED_ACCESS);
-
-    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE)
-                                             .GetGBufferAttachment(GTN_DEPTH)
-                                             ->GetImage()
-                                             ->GetExtent();
 
     frame->renderQueue << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
@@ -152,7 +138,7 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     frame->renderQueue << SetShaderUniform(5, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->renderQueue << SetShaderUniform(6, "OutColorImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
-    frame->renderQueue << SetShaderUniform(7, "UniformBuffer"_sh, m_uniformBuffers[frameIndex]);
+    frame->renderQueue << SetShaderUniform(7, "TAAConstants"_sh, m_cBuffers[frameIndex]);
 
     frame->renderQueue << DispatchCompute(Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
     frame->renderQueue << InsertBarrier(activeTexture->GetGpuImage(), RS_SHADER_RESOURCE);

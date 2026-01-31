@@ -43,7 +43,7 @@ private:
     Vec2u m_extent;
 
     GpuImageViewRef m_inputImageView;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
     GBuffer* m_gbuffer;
 
     Handle<Texture> m_resultTexture;
