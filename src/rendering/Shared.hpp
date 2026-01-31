@@ -10,6 +10,10 @@
 
 namespace Hyperion {
 
+class ObjectBase;
+
+extern uint32 RetrieveResourceBinding(const ObjectBase* resource);
+
 HYP_ENUM()
 enum ImageUsage : uint8
 {
@@ -1112,6 +1116,97 @@ enum class ShaderInputType : uint8
     SAMPLER,
     TLAS,
     MAX
+};
+
+struct ShaderDataOffset
+{
+    uint32 offset;
+    uint32 stride;
+
+    constexpr ShaderDataOffset()
+        : offset(uint32(-1)),
+          stride(uint32(-1))
+    {
+    }
+
+    constexpr ShaderDataOffset(uint32 offset, uint32 stride)
+        : offset(offset),
+          stride(stride)
+    {
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return offset != uint32(-1)
+            && stride != uint32(-1);
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return IsValid();
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return !IsValid();
+    }
+
+    HYP_FORCE_INLINE bool operator==(const ShaderDataOffset& other) const
+    {
+        return offset == other.offset
+            && stride == other.stride;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ShaderDataOffset& other) const
+    {
+        return offset != other.offset
+            || stride != other.stride;
+    }
+    
+    static constexpr ShaderDataOffset Invalid()
+    {
+        return ShaderDataOffset();
+    }
+};
+
+template <class T>
+struct TShaderDataOffset : ShaderDataOffset
+{
+    static_assert(IsPodTypeV<T>, "T must be POD to use with ShaderDataOffset");
+
+    constexpr explicit TShaderDataOffset(uint32 index)
+        : ShaderDataOffset()
+    {
+        offset = sizeof(T) * index;
+        stride = sizeof(T);
+    }
+
+    constexpr explicit TShaderDataOffset(int index)
+        : TShaderDataOffset(static_cast<uint32>(index))
+    {
+    }
+
+    explicit TShaderDataOffset(const ObjectBase* resource)
+        : ShaderDataOffset(uint32(-1), sizeof(T))
+    {
+        uint32 idx = RetrieveResourceBinding(resource);
+        AssertDebug(idx != ~0u, "Invalid resource binding returned");
+
+        if (idx != ~0u)
+        {
+            offset = sizeof(T) * idx;
+        }
+    }
+    
+    HYP_FORCE_INLINE static constexpr TShaderDataOffset Invalid()
+    {
+        return TShaderDataOffset();
+    }
+
+    HYP_FORCE_INLINE constexpr operator ShaderDataOffset() const
+    {
+        return static_cast<ShaderDataOffset>(*this);
+    }
 };
 
 HYP_STRUCT()

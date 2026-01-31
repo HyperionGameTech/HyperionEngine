@@ -192,7 +192,7 @@ static void RenderAll(
     rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     
     rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
 
@@ -202,14 +202,14 @@ static void RenderAll(
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (renderSetup.light != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
     
     if (renderSetup.envProbe != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
 
     rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
     
@@ -233,17 +233,17 @@ static void RenderAll(
 
         rq << SetShaderUniform(numDrawCallUniforms++, "CurrentEntity"_sh,
             g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
-            drawCalls.entityIds[i].ToIndex() * sizeof(EntityShaderData));
+            TShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()));
 
         rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
             g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
-            materialBoundIndex * sizeof(MaterialShaderData));
+            TShaderDataOffset<MaterialShaderData>(materialBoundIndex));
                         
         if (drawCalls.skeletons[i] != nullptr)
         {
             rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                 g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                TShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i]));
         }
         
         if (!s_useBindlessTextures)
@@ -311,22 +311,24 @@ static void RenderAll(
         EntityInstanceBatch* entityInstanceBatch = instancedDrawCalls.batches[i];
         AssertDebug(entityInstanceBatch != nullptr);
         
+        const uint32 stride = drawCallCollection.batchAllocator->GetStructSize();
+
         rq << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
             drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex),
-            entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize());
+            ShaderDataOffset(entityInstanceBatch->batchIndex * stride, stride));
 
         const uint32 materialBoundIndex = RetrieveResourceBinding(instancedDrawCalls.materials[i]);
         AssertDebug(materialBoundIndex != ~0u);
 
         rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
             g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
-            materialBoundIndex * sizeof(MaterialShaderData));
+            TShaderDataOffset<MaterialShaderData>(materialBoundIndex));
                         
         if (instancedDrawCalls.skeletons[i] != nullptr)
         {
             rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                 g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                TShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i]));
         }
         
         if (!s_useBindlessTextures)
@@ -427,7 +429,7 @@ static void RenderAll_Parallel(
     rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
     rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
 
-    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.view->GetCamera()) * sizeof(CameraShaderData));
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
     rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
 
@@ -437,14 +439,14 @@ static void RenderAll_Parallel(
     rq << SetShaderUniform(numShaderUniforms++, "PointLightShadowMapsTextureArray"_sh, g_renderInterface->shadowMapAllocator->GetPointLightShadowMapImageView());
 
     if (renderSetup.light != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.light) * sizeof(LightShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(renderSetup.light));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(0));
     
     if (renderSetup.envProbe != nullptr)
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), RetrieveResourceBinding(renderSetup.envProbe) * sizeof(EnvProbeShaderData));
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     else
-        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), 0);
+        rq << SetShaderUniform(numShaderUniforms++, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(0));
     
     rq << SetShaderUniform(numShaderUniforms++, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
@@ -483,17 +485,17 @@ static void RenderAll_Parallel(
 
                     rq << SetShaderUniform(numDrawCallUniforms++, "CurrentEntity"_sh,
                         g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex),
-                        drawCalls.entityIds[i].ToIndex() * sizeof(EntityShaderData));
+                        TShaderDataOffset<EntityShaderData>(drawCalls.entityIds[i].ToIndex()));
 
                     rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
                         g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
-                        materialBoundIndex * sizeof(MaterialShaderData));
+                        TShaderDataOffset<MaterialShaderData>(materialBoundIndex));
                         
                     if (drawCalls.skeletons[i] != nullptr)
                     {
                         rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                             g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                            RetrieveResourceBinding(drawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                            TShaderDataOffset<SkeletonShaderData>(drawCalls.skeletons[i]));
                     }
 
                     if (!s_useBindlessTextures)
@@ -583,23 +585,25 @@ static void RenderAll_Parallel(
 
                     EntityInstanceBatch* entityInstanceBatch = instancedDrawCalls.batches[i];
                     AssertDebug(entityInstanceBatch != nullptr);
+
+                    const uint32 stride = drawCallCollection.batchAllocator->GetStructSize();
         
                     rq << SetShaderUniform(numDrawCallUniforms++, "EntityInstanceBatchesBuffer"_sh,
                         drawCallCollection.batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex),
-                        entityInstanceBatch->batchIndex * drawCallCollection.batchAllocator->GetStructSize());
+                        ShaderDataOffset(entityInstanceBatch->batchIndex * stride, stride));
 
                     const uint32 materialBoundIndex = RetrieveResourceBinding(instancedDrawCalls.materials[i]);
                     AssertDebug(materialBoundIndex != ~0u);
 
                     rq << SetShaderUniform(numDrawCallUniforms++, "MaterialsBuffer"_sh,
                         g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex),
-                        materialBoundIndex * sizeof(MaterialShaderData));
+                        TShaderDataOffset<MaterialShaderData>(materialBoundIndex));
                         
                     if (instancedDrawCalls.skeletons[i] != nullptr)
                     {
                         rq << SetShaderUniform(numDrawCallUniforms++, "SkeletonsBuffer"_sh,
                             g_renderInterface->gpuBuffers[GRB_SKELETONS]->GetBuffer(frameIndex),
-                            RetrieveResourceBinding(instancedDrawCalls.skeletons[i]) * sizeof(SkeletonShaderData));
+                            TShaderDataOffset<SkeletonShaderData>(instancedDrawCalls.skeletons[i]));
                     }
                     
                     if (!s_useBindlessTextures)

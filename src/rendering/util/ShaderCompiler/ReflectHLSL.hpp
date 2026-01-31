@@ -278,8 +278,6 @@ static void ReflectSPIRV(SpvReflectShaderModule* pModule, ShaderInputGroup& inpu
 
         if (setToBindingsIt == setToBindings.End())
         {
-            outErrorMessages.PushBack(HYP_FORMAT("Set #{} has no reflection info present", setDecl.setIndex));
-
             continue;
         }
 
@@ -296,8 +294,6 @@ static void ReflectSPIRV(SpvReflectShaderModule* pModule, ShaderInputGroup& inpu
 
                 if (bindingIt == bindings.End())
                 {
-                    outErrorMessages.PushBack(HYP_FORMAT("Binding for descriptor '{}' not found in reflection info", input.name));
-
                     continue;
                 }
 

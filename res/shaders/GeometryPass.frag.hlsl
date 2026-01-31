@@ -36,7 +36,6 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "include/scene.inc"
-#include "include/Entity.inc"
 #include "include/packing.inc"
 
 #include "include/env_probe.inc"
@@ -72,12 +71,6 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.inc"
 #include "include/shadows.inc"
-#endif
-
-#ifdef INSTANCING
-DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-#else
-DECLARE_SRV_DYNAMIC(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
 #endif
 
 #ifdef SHADING_TYPE_FORWARD
@@ -123,8 +116,6 @@ PSOutput PSMain(PSInput input)
     float2 texcoord = input.texcoord0 * CURRENT_MATERIAL.uv_scale;
 
 #if HAS_PARALLAX_MAP
-    // HLSL mul(matrix, vector) uses rows of matrix.
-    // If tbn_matrix rows are T, B, N, then mul(tbn_matrix, view_vector) projects V onto T, B, N, transforming to Tangent Space.
     float3 tangent_view = mul(tbn_matrix, view_vector); 
     float2 parallax_texcoord = ParallaxMappedTexCoords(
         CURRENT_MATERIAL.parallax_height,
@@ -153,22 +144,6 @@ PSOutput PSMain(PSInput input)
 
 #if HAS_NORMAL_MAP
     normals_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, NormalMap, texcoord) * 2.0 - 1.0;
-    
-    // Transform Tangent Space Normal to World Space.
-    // Use transpose of TBN (Tanget->World).
-    // mul(vector, matrix) uses columns. tbn_matrix columns are elements of T, B, N effectively if accessed as vector*matrix in row major?
-    // tbn_matrix has T, B, N as rows.
-    // Transpose has T, B, N as cols.
-    // mul(normals_texture.xyz, tbn_matrix) -> vector * matrix.
-    // result.x = dot(v, col0) = dot(v, T) ? No.
-    // vector * matrix: v * M.
-    // [x y z] * [ R0 ] = x*R0 + y*R1 + z*R2.
-    //           [ R1 ]
-    //           [ R2 ]
-    // = x*T + y*B + z*N.
-    // This transforms Tangent Space (x,y,z params for T,B,N) to World Space.
-    // So mul(normals_texture.xyz, tbn_matrix) is correct.
-    
     N = normalize(mul(normals_texture.xyz, tbn_matrix));
 #endif
 

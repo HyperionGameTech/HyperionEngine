@@ -13,8 +13,6 @@
 
 namespace Hyperion {
 
-uint32 RetrieveResourceBinding(const ObjectBase* resource);
-
 template <class AllocatorType>
 class TRenderQueue;
 
@@ -40,37 +38,6 @@ public:
 
 protected:
     Array<Proc<void(RenderQueue& renderQueue)>> m_functions;
-};
-
-template <class T>
-struct ShaderDataOffset
-{
-    static_assert(IsPodTypeV<T>, "T must be POD to use with ShaderDataOffset");
-
-    static constexpr uint32 InvalidIndex = ~0u;
-
-    explicit ShaderDataOffset(uint32 index)
-        : index(index)
-    {
-    }
-
-    explicit ShaderDataOffset(const ObjectBase* resource, uint32 indexIfNull = InvalidIndex)
-        : index(indexIfNull)
-    {
-        if (uint32 idx = RetrieveResourceBinding(resource); idx != ~0u)
-        {
-            index = idx;
-        }
-    }
-
-    HYP_FORCE_INLINE operator uint32() const
-    {
-        AssertDebug(index != InvalidIndex);
-
-        return uint32(sizeof(T) * index);
-    }
-
-    uint32 index;
 };
 
 } // namespace Hyperion

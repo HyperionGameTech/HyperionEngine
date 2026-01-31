@@ -36,8 +36,8 @@ public:
      *  \param other The 4x4 matrix to convert from. */
     explicit Mat3f(const Mat4f& other);
 
-    Mat3f(const Mat3f& other);
-    Mat3f& operator=(const Mat3f& other);
+    Mat3f(const Mat3f& other) = default;
+    Mat3f& operator=(const Mat3f& other) = default;
 
     float Determinant() const;
 

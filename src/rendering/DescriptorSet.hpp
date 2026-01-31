@@ -289,6 +289,7 @@ struct DescriptorSetElement
     Range<uint32> dirtyRange;
     Array<ObjectBase*> values;
     Bitset occupiedArrayElems;
+    uint32 bufferStride = ~0u;
 
     HYP_FORCE_INLINE bool IsDirty() const
     {
@@ -341,9 +342,9 @@ public:
 
     bool HasElement(StringHash name) const;
 
-    void SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref);
-    void SetElement(StringHash name, uint32 index, GpuBuffer* ref);
-    void SetElement(StringHash name, GpuBuffer* ref);
+    void SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref, uint32 bufferStride = ~0u);
+    void SetElement(StringHash name, uint32 index, GpuBuffer* ref, uint32 bufferStride = ~0u);
+    void SetElement(StringHash name, GpuBuffer* ref, uint32 bufferStride = ~0u);
 
     void SetElement(StringHash name, uint32 index, GpuImageView* ref);
     void SetElement(StringHash name, GpuImageView* ref);
@@ -376,7 +377,7 @@ protected:
     }
 
     template <class T>
-    DescriptorSetElement& SetElementT(StringHash name, uint32 index, T* ref);
+    DescriptorSetElement& SetElementT(StringHash name, uint32 index, T* ref, uint32 bufferStride = ~0u);
 
     template <class T>
     void PrefillElements(Name name, uint32 count, T* placeholder = nullptr)

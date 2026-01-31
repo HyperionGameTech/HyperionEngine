@@ -1809,7 +1809,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             case ShaderUniform::UT_Buffer:
                 AssertDebug(uniform.buffer != nullptr);
 
-                ds->SetElement(uniform.name, uniform.buffer);
+                ds->SetElement(uniform.name, uniform.buffer, state.shaderUniformBufferOffsetStrides[uniformIndex]);
 
                 state.dirtyBufferOffsets |= (1u << uniformIndex);
 
@@ -1935,9 +1935,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             AssertDebug(uniform.type == ShaderUniform::UT_Buffer,
                 "Uniform {} is not a buffer, cannot use buffer offset", uniform.name);
 
-            const uint32 bufferOffset = state.shaderUniformBufferOffsets[shaderUniformIndex];
-
-            offsets.Add(uniform.name, bufferOffset);
+            offsets.Add(uniform.name, state.shaderUniformBufferOffsets[shaderUniformIndex]);
         }
 
         switch (psoType)
@@ -2017,8 +2015,9 @@ void RenderInterface::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
+    sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 4096);
     sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
+    sphereSamplesBuffer->SetRequireCpuAccessible(true);
     CheckResult(sphereSamplesBuffer->Create());
 
     Vec4f* sphereSamples = new Vec4f[4096];
@@ -2034,6 +2033,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
     }
 
     sphereSamplesBuffer->Copy(sizeof(Vec4f) * 4096, sphereSamples);
+    sphereSamplesBuffer->Flush(0, sizeof(Vec4f) * 4096);
 
     delete[] sphereSamples;
 }

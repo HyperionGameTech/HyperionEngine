@@ -174,7 +174,7 @@ bool DescriptorSetBase::HasElement(StringHash name) const
 }
 
 template <class T>
-DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, T* ref)
+DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 index, T* ref, uint32 bufferStride)
 {
     const DescriptorSetLayoutElement* layoutElement = m_layout.GetElement(name);
     AssertDebug(layoutElement != nullptr, "Invalid element: No item with name {} found", Name(name));
@@ -249,6 +249,8 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
         
         element = &it->second;
 
+        element->bufferStride = bufferStride;
+
         element->values.Resize(index + 1);
         element->values[index] = ref;
 
@@ -257,6 +259,8 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     else
     {
         element = &it->second;
+
+        element->bufferStride = bufferStride;
 
         if (!element->occupiedArrayElems.Test(index))
         {
@@ -283,19 +287,19 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
     return *element;
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuBuffer* ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuBuffer* ref, uint32 bufferStride)
 {
-    SetElementT<GpuBuffer>(name, index, ref);
+    SetElementT<GpuBuffer>(name, index, ref, bufferStride);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref)
+void DescriptorSetBase::SetElement(StringHash name, uint32 index, uint32 bufferSize, GpuBuffer* ref, uint32 bufferStride)
 {
-    SetElementT<GpuBuffer>(name, index, ref);
+    SetElementT<GpuBuffer>(name, index, ref, bufferStride);
 }
 
-void DescriptorSetBase::SetElement(StringHash name, GpuBuffer* ref)
+void DescriptorSetBase::SetElement(StringHash name, GpuBuffer* ref, uint32 bufferStride)
 {
-    SetElement(name, 0, ref);
+    SetElement(name, 0, ref, bufferStride);
 }
 
 void DescriptorSetBase::SetElement(StringHash name, uint32 index, GpuImageView* ref)

@@ -756,17 +756,26 @@ void SetShaderUniform::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 
     ShaderUniform& uniform = state.shaderUniforms[cmdCasted->uniformIndex];
 
-    if (uniform != cmdCasted->uniform || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))
+    if (uniform != cmdCasted->uniform                                   // uniform packet differs
+        || !(state.validUniforms & (1u << cmdCasted->uniformIndex)))    // previous bound is invalid
     {
         uniform = cmdCasted->uniform;
 
         state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
     }
-    
+
     if (cmdCasted->uniform.type == ShaderUniform::UT_Buffer)
     {
-        // buffer offset only updating
-        state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->bufferOffset;
+        // strides differ for buffer; needs rebind
+        if (state.shaderUniformBufferOffsetStrides[cmdCasted->uniformIndex] != cmdCasted->shaderDataOffset.stride)
+        {
+            state.dirtyUniforms |= (1u << cmdCasted->uniformIndex);
+        }
+
+        // buffer offset + stride updating
+        state.shaderUniformBufferOffsets[cmdCasted->uniformIndex] = cmdCasted->shaderDataOffset.offset;
+        state.shaderUniformBufferOffsetStrides[cmdCasted->uniformIndex] = cmdCasted->shaderDataOffset.stride;
+
         state.dirtyBufferOffsets |= (1u << cmdCasted->uniformIndex);
     }
     else

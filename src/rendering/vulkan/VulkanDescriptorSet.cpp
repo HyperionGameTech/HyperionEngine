@@ -39,7 +39,15 @@ static inline void ValidateDynamicOffset(
     const DescriptorSetLayoutElement* layoutElement,
     const DescriptorSetElement* element)
 {
-    AssertDebug(layoutElement != nullptr, "Invalid dynamic element: {}", Name(dynamicElementName));
+    if (layoutElement->type != ShaderInputType::UNIFORM_BUFFER_DYNAMIC
+        && layoutElement->type != ShaderInputType::STORAGE_BUFFER_DYNAMIC)
+    {
+        return;
+    }
+
+    Assert(layoutElement != nullptr, "Invalid dynamic element: {}", Name(dynamicElementName));
+
+    Assert(offset != ~0u, "Invalid offset set for dynamic element: {}", Name(dynamicElementName));
 
     const VkPhysicalDeviceLimits& limits = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits;
 
@@ -318,7 +326,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptor.bufferInfo = VkDescriptorBufferInfo {
                     .buffer = ref->GetVulkanHandle(),
                     .offset = 0,
-                    .range = layoutHasSize ? layoutElement->size : ref->Size()
+                    .range = element.bufferStride != ~0u ? VkDeviceSize(element.bufferStride) : VK_WHOLE_SIZE
                 };
             }
 

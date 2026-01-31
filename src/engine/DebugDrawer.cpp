@@ -738,7 +738,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     rq << SetShaderUniform(2, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
     rq << SetShaderUniform(3, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
 
-    rq << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    rq << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     rq << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     rq << SetShaderUniform(12, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     rq << SetShaderUniform(13, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
@@ -782,7 +782,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
                     rq << SetStencilTest(bool(attributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
                     rq << SetStencilFunction(attributes.GetMaterialAttributes().stencilFunction);
     
-                    rq << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)));
+                    rq << SetShaderUniform(15, "ImmediateDrawsBuffer"_sh, instanceBuffer, TShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)));
 
                     rq << CommitDrawState();
                     

@@ -25,11 +25,6 @@ Mat3f::Mat3f()
     rows[2][2] = 1.0f;
 }
 
-Mat3f::Mat3f(const Mat3f& other)
-{
-    Memory::Copy(rows, other.rows, sizeof(rows));
-}
-
 Mat3f::Mat3f(const float(&v)[9])
 {   
     Memory::Copy(rows[0].values, v + 0, sizeof(float) * 3);
@@ -50,16 +45,6 @@ Mat3f::Mat3f(const Mat4f& other)
     rows[0].values[3] = 0.0f;
     rows[1].values[3] = 0.0f;
     rows[2].values[3] = 0.0f;
-}
-
-Mat3f& Mat3f::operator=(const Mat3f& other)
-{
-    if (this != &other)
-    {
-        Memory::Copy(rows, other.rows, sizeof(rows));
-    }
-
-    return *this;
 }
 
 float Mat3f::Determinant() const
