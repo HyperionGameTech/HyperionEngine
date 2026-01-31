@@ -61,7 +61,11 @@ struct EntityInstanceBatch
 
 #ifdef INSTANCING
     #if defined(VERTEX_SHADER)
-        #define OBJECT_INDEX (entity_instance_batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
+        #ifdef LANG_HLSL
+            #define OBJECT_INDEX (entity_instance_batch.indices[instanceId >> 2][instanceId & 3])
+        #else
+            #define OBJECT_INDEX (entity_instance_batch.indices[gl_InstanceIndex >> 2][gl_InstanceIndex & 3])
+        #endif
         #define entity (entities[OBJECT_INDEX])
     #elif defined(PIXEL_SHADER)
         #define entity (entities[v_object_index])

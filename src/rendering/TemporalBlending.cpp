@@ -25,7 +25,11 @@
 
 namespace Hyperion {
 
-struct TemporalBlendingUniforms
+static const ShaderPropertyId s_propOutputRGBA8 = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8")));
+static const ShaderPropertyId s_propOutputRGBA16F = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F")));
+static const ShaderPropertyId s_propOutputRGBA32F = InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F")));
+
+struct TemporalBlendingConstants
 {
     Vec2u outputDimensions;
     Vec2u depthTextureDimensions;
@@ -111,7 +115,7 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending()
 {
-    SafeDelete(std::move(m_uniformBuffers));
+    SafeDelete(std::move(m_cBuffers));
     SafeDelete(std::move(m_inputFramebuffer));
 }
 
@@ -170,19 +174,17 @@ void TemporalBlending::GetShaderProperties(ShaderPropertySet& outProperties) con
     switch (m_imageFormat)
     {
     case TF_RGBA8:
-        outProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8"))));
+        outProperties.Add(s_propOutputRGBA8);
         break;
     case TF_RGBA16F:
-        outProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F"))));
+        outProperties.Add(s_propOutputRGBA16F);
         break;
     case TF_RGBA32F:
-        outProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F"))));
+        outProperties.Add(s_propOutputRGBA32F);
         break;
     default:
         HYP_NOT_IMPLEMENTED();
     }
-
-    static const Name s_feedbackTypes[] = { NAME("LOW"), NAME("MEDIUM"), NAME("HIGH") };
 
     outProperties.Add(InternShaderProperty(ShaderProperty(NAME("TEMPORAL_BLEND_TECHNIQUE"), int(m_technique))));
     outProperties.Add(InternShaderProperty(ShaderProperty(NAME("FEEDBACK"), float(m_feedback))));
@@ -198,7 +200,8 @@ void TemporalBlending::CreateImages()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
 
     m_resultTexture->SetName(NAME("TemporalBlendingResult"));
     InitObject(m_resultTexture);
@@ -211,7 +214,8 @@ void TemporalBlending::CreateImages()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
 
     m_historyTexture->SetName(NAME("TemporalBlendingHistory"));
     InitObject(m_historyTexture);
@@ -237,25 +241,22 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
 
     const Vec3u& extent = activeTexture->GetExtent();
 
-    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE)
-                                             .GetGBufferAttachment(GTN_DEPTH)
-                                             ->GetImage()
-                                             ->GetExtent();
+    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
 
-    // Copy uniform data to gpu buffer
-    if (!m_uniformBuffers[frame->GetFrameIndex()])
+    GpuBufferRef& cBuffer = m_cBuffers[frame->GetFrameIndex()];
+
+    if (!cBuffer)
     {
-         m_uniformBuffers[frame->GetFrameIndex()] = g_renderInterface->MakeGpuBuffer(
-                GpuBufferType::CONSTANT_BUFFER,
-                sizeof(TemporalBlendingUniforms));
-         m_uniformBuffers[frame->GetFrameIndex()]->Create();
+        cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TemporalBlendingConstants));
+        cBuffer->SetDebugName(NAME("TemporalBlendingConstants"));
+        cBuffer->Create();
     }
 
-    TemporalBlendingUniforms uniforms {};
+    TemporalBlendingConstants uniforms {};
     uniforms.outputDimensions = Vec2u { extent.x, extent.y };
     uniforms.depthTextureDimensions = Vec2u { depthTextureDimensions.x, depthTextureDimensions.y };
     uniforms.blendingFrameCounter = m_blendingFrameCounter;
-    m_uniformBuffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
+    cBuffer->Copy(sizeof(uniforms), &uniforms);
 
     ShaderPropertySet shaderProperties;
     GetShaderProperties(shaderProperties);
@@ -272,7 +273,7 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << SetShaderUniform(3, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->renderQueue << SetShaderUniform(5, "OutImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));
-    frame->renderQueue << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, m_uniformBuffers[frame->GetFrameIndex()]);
+    frame->renderQueue << SetShaderUniform(6, "TemporalBlendingUniforms"_sh, cBuffer);
     
     frame->renderQueue << SetShaderUniform(7, "GBufferDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 

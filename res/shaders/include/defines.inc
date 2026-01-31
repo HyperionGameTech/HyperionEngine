@@ -101,7 +101,7 @@
     #define SAMPLE_TEXTURE_CUBE_ARRAY_LOD(samp, tex, texcoord, lod) (tex).SampleLevel((samp), (texcoord), (lod))
 
     #define TEXEL_FETCH_2D(tex, coord) (tex).Load(int3((coord), 0))
-    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), 0), (lod))
+    #define TEXEL_FETCH_2D_LOD(samp, tex, coord, lod) (tex).Load(int3((coord), (lod)))
 
     // Utility
 

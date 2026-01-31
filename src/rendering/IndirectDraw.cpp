@@ -28,7 +28,7 @@
 
 namespace Hyperion {
 
-struct alignas(16) ObjectVisibilityUniforms
+struct alignas(16) ComputeVisibilityConstants
 {
     Vec2u depthPyramidDimensions;
     uint32 batchOffset;
@@ -175,13 +175,9 @@ static bool ResizeIfNeeded(
     return resizeHappened;
 }
 
-#pragma region Render commands
-
-#pragma endregion Render commands
-
 #pragma region IndirectDrawState
 
-static constexpr uint32 AllBitsDirty = (1u << NumFramesInFlight) - 1;
+static constexpr uint8 AllBitsDirty = (1u << NumFramesInFlight) - 1;
 
 IndirectDrawState::IndirectDrawState()
     : m_numDrawCommands(0),
@@ -366,7 +362,7 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ObjectVisibilityUniforms));
+        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
         CheckResult(m_uniformBuffers[frameIndex]->Create());
     }
@@ -442,7 +438,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
 
     uint32 numShaderUniforms = 0;
 
-    rq << SetCurrentShader(ShaderDesc(NAME("ObjectVisibility")));
+    rq << SetCurrentShader(ShaderDesc(NAME("ComputeVisibility")));
 
     rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     rq << SetShaderUniform(numShaderUniforms++, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
@@ -455,19 +451,19 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     rq << SetShaderUniform(numShaderUniforms++, "IndirectDrawCommandsBuffer"_sh, m_indirectDrawState.GetIndirectBuffer(frameIndex));
     rq << SetShaderUniform(numShaderUniforms++, "EntityInstanceBatchesBuffer"_sh, m_batchAllocator->GetGpuBufferHolder()->GetBuffer(frameIndex));
 
-    ObjectVisibilityUniforms uniforms {};
-    uniforms.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
-    uniforms.batchOffset = 0;
-    uniforms.numInstances = numInstances;
-    uniforms.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
-    m_uniformBuffers[frameIndex]->Copy(sizeof(uniforms), &uniforms);
+    ComputeVisibilityConstants constants {};
+    constants.depthPyramidDimensions = pd->depthPyramidRenderer->GetExtent();
+    constants.batchOffset = 0;
+    constants.numInstances = numInstances;
+    constants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
 
-    rq << SetShaderUniform(numShaderUniforms++, "ObjectVisibilityUniforms"_sh, m_uniformBuffers[frameIndex]);
+    m_uniformBuffers[frameIndex]->Copy(sizeof(constants), &constants);
+
+    rq << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_uniformBuffers[frameIndex]);
 
     rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 
     rq << DispatchCompute(Vec3u { numBatches, 1, 1 });
-    rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }
 
 void IndirectRenderer::RebuildDescriptors(Frame* frame)

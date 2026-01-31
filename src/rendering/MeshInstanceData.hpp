@@ -28,7 +28,7 @@ struct MeshInstanceData
     uint32 numInstances = 1;
 
     HYP_FIELD(Property = "EnableAutoInstancing", Serialize = true, Editor = true, Description = "Enable automatic instancing for this mesh instance data. If enabled, the renderer will automatically batch instances of this mesh together for rendering, regardless of the explicitly set number of instances. This can improve performance by reducing draw calls for duplicate meshes, but may consume more GPU memory if instancing is under utilized for this mesh.")
-    bool enableAutoInstancing = false;
+    bool enableAutoInstancing = true; // false;
 
     HYP_FIELD(Property = "Buffers", Serialize = true)
     Array<ByteBuffer, DynamicAllocator> buffers;

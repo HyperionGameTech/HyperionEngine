@@ -887,14 +887,18 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.lightmapVolume = lightmapElementComponent ? lightmapElementComponent->lightmapVolume.GetUnsafe() : nullptr;
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
+
+            // temp: move elsewhere
+            Mat4f transformMatrix = transformComponent->GetMatrix();
             meshProxy.instanceData = meshComponent->instanceData;
+            meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1);
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
             
-            meshProxy.bufferData.modelMatrix = transformComponent->GetMatrix();
+            meshProxy.bufferData.modelMatrix = transformMatrix;
             meshProxy.bufferData.previousModelMatrix = meshComponent->previousModelMatrix;
-            meshProxy.bufferData.normalMatrix = Mat3f(transformComponent->GetMatrix()).Inverse().Transpose();
+            meshProxy.bufferData.normalMatrix = Mat3f(transformMatrix).Inverse().Transpose();
         }
     }
 }
