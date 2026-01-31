@@ -54,6 +54,7 @@ static constexpr SizeType VulkanArenaSize = 4 * 1024 * 1024; // 4 MB for general
 TArena<RenderAllocator>* g_vulkanArena;
 
 static constexpr bool UseResetDescriptorPool = false;
+static constexpr uint32 MaxDescriptorPools = 32;
 
 namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
@@ -111,7 +112,9 @@ static VkDescriptorSetLayout CreateVkDescriptorSetLayout(VulkanDevice* device, c
 
         if (element.IsBindless())
         {
-            descriptorCount = 65536;
+            descriptorCount = element.IsBuffer()
+                ? MaxBindlessResources[BindlessStorage_Buffers]
+                : MaxBindlessResources[BindlessStorage_Textures];
         }
 
         // if (descriptorCount > 1 && !m_device->GetFeatures().SupportsDynamicDescriptorIndexing()) {
@@ -382,6 +385,11 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
 
 RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptorPoolRequirements reqs, VkDescriptorPool& outDescriptorPool)
 {
+    if (m_pools.Size() >= MaxDescriptorPools)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Cannot allocate new descriptor pool: maximum number of descriptor pools has been exceeded ({})", 0, MaxDescriptorPools);
+    }
+
     Array<VkDescriptorPoolSize> descriptorPoolSizes = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 16 },
         { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (reqs & VDPR_BindlessTextures) ? MaxBindlessResources[BindlessStorage_Textures] : 1000 },
@@ -651,9 +659,6 @@ RendererResult VulkanRenderInterface::Initialize()
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
 
-    m_defaultFormats.Set(DIF_COLOR, TF_RGBA8);
-    m_defaultFormats.Set(DIF_DEPTH, m_instance->GetDevice()->GetFeatures().FindSupportedFormat({ { TF_DEPTH_24, TF_DEPTH_32F } }, ImageSupport::Attachment));
-        
     CheckResultOrReturn(RenderInterface::Initialize());
 
     return {};

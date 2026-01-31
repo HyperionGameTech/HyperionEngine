@@ -20,8 +20,6 @@
 
 namespace Hyperion {
 
-using GBufferFormat = Variant<DefaultImageFormat, TextureFormat, Array<TextureFormat>>;
-
 HYP_ENUM()
 enum GBufferTargetName : uint32
 {

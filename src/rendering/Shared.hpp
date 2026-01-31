@@ -123,8 +123,9 @@ enum TextureFormat : uint8
     TF_DEPTH, /* begin depth */
 
     TF_DEPTH_16 = TF_DEPTH,
-    TF_DEPTH_24,
-    TF_DEPTH_32F
+    TF_DEPTH_24_S8,
+    TF_DEPTH_32F,
+    TF_DEPTH_32F_S8
 };
 
 HYP_ENUM()
@@ -212,8 +213,9 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
     case TF_BGRA8_SRGB:
         return TFB_BGRA;
     case TF_DEPTH_16:
-    case TF_DEPTH_24:
+    case TF_DEPTH_24_S8:
     case TF_DEPTH_32F:
+    case TF_DEPTH_32F_S8:
         return TFB_DEPTH;
     default:
         // undefined result
@@ -277,9 +279,11 @@ static inline constexpr uint32 BytesPerComponent(TextureFormat format)
     case TF_RG32:
     case TF_RGB32:
     case TF_RGBA32:
-    case TF_DEPTH_24:
+    case TF_DEPTH_24_S8:
     case TF_DEPTH_32F:
         return 4;
+    case TF_DEPTH_32F_S8:
+        return 8;
     case TF_R11G11B10F:
     case TF_R10G10B10A2:
         return 1; // packed; treat as 1 component (1x4)
@@ -326,7 +330,7 @@ static inline constexpr bool IsDepthFormat(TextureFormat fmt)
 
 static inline constexpr bool HasStencilComponent(TextureFormat fmt)
 {
-    return fmt == TF_DEPTH_24; // assuming 8 bits of stencil in D24S8
+    return fmt == TF_DEPTH_24_S8 || fmt == TF_DEPTH_32F_S8;
 }
 
 static inline constexpr bool IsSrgbFormat(TextureFormat fmt)
@@ -400,8 +404,9 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
     case TF_RGB32:
     case TF_RGBA32:
     case TF_DEPTH_16:
-    case TF_DEPTH_24:
+    case TF_DEPTH_24_S8:
     case TF_DEPTH_32F:
+    case TF_DEPTH_32F_S8:
     default:
         return false;
     }

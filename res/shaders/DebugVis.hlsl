@@ -211,15 +211,7 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EnvProbesBuffer) StructuredBuffer<EnvProbe
 #include "deferred/DeferredLighting.inc"
 
 #undef HYP_DEFERRED_NO_REFRACTION
-
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
-#define material material_buffer[0]
-
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-
-#ifndef CURRENT_MATERIAL
-#define CURRENT_MATERIAL material
-#endif
 
 PSOutput PSMain(PSInput input)
 {

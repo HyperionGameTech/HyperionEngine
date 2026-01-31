@@ -634,10 +634,6 @@ void VulkanGpuImage::InsertBarrier(
     barrier.subresourceRange = range;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    HYP_LOG_TEMP("Transition image {} {} -> {} (mip: {}, mip count: {}, array layer: {}, layer count: {})", GetDebugName(), EnumToString(currResourceState), EnumToString(newState),
-        range.baseMipLevel, range.levelCount,
-        range.baseArrayLayer, range.layerCount);
     
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),

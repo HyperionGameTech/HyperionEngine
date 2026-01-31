@@ -101,10 +101,12 @@ VkFormat ToVkFormat(TextureFormat fmt)
         return VK_FORMAT_B8G8R8A8_SRGB;
     case TF_DEPTH_16:
         return VK_FORMAT_D16_UNORM;
-    case TF_DEPTH_24:
+    case TF_DEPTH_24_S8:
         return VK_FORMAT_D24_UNORM_S8_UINT;
     case TF_DEPTH_32F:
         return VK_FORMAT_D32_SFLOAT;
+    case TF_DEPTH_32F_S8:
+        return VK_FORMAT_D32_SFLOAT_S8_UINT;
     default:
         break;
     }

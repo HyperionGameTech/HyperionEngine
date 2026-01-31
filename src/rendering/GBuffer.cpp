@@ -24,47 +24,40 @@ namespace Hyperion {
 
 struct GBufferTargetDesc
 {
-    GBufferFormat format;
+    TextureFormat formats[4] = { TF_NONE };
+
+    GBufferTargetDesc(std::initializer_list<TextureFormat> formatsList)
+    {
+        Assert(formatsList.size() <= std::size(formats));
+
+        for (uint32 i = 0; i < uint32(formatsList.size()); i++)
+        {
+            formats[i] = *(formatsList.begin() + i);
+        }
+    }
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { GBufferFormat(TF_RGBA16F) },     // color
-    GBufferTargetDesc { GBufferFormat(TF_R10G10B10A2) }, // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { GBufferFormat(TF_RGBA32) },      // material data
-    GBufferTargetDesc { GBufferFormat(TF_RG16F) },       // velocity
-    GBufferTargetDesc { GBufferFormat(TF_DEPTH_24) }    // depth
+    GBufferTargetDesc { TF_RGBA16F },                       // color
+    GBufferTargetDesc { TF_R10G10B10A2 },                   // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { TF_RGBA32 },                        // material data
+    GBufferTargetDesc { TF_RG16F },                         // velocity
+    GBufferTargetDesc { TF_DEPTH_24_S8, TF_DEPTH_32F_S8 }   // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
 {
-    HYP_SCOPE;
-
-    TextureFormat colorFormat = TF_NONE;
-
-    if (const TextureFormat* format = s_targetDescs[targetName].format.TryGet<TextureFormat>())
+    for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != TF_NONE; ++it)
     {
-        colorFormat = *format;
-    }
-    else if (const DefaultImageFormat* defaultFormat = s_targetDescs[targetName].format.TryGet<DefaultImageFormat>())
-    {
-        colorFormat = g_renderInterface->GetDefaultFormat(*defaultFormat);
-    }
-    else if (const Array<TextureFormat>* defaultFormats = s_targetDescs[targetName].format.TryGet<Array<TextureFormat>>())
-    {
-        for (const TextureFormat format : *defaultFormats)
+        if (g_renderInterface->IsSupportedFormat(*it, ImageSupport::Attachment))
         {
-            if (g_renderInterface->IsSupportedFormat(format, ImageSupport::Attachment))
-            {
-                colorFormat = format;
-
-                break;
-            }
+            return *it;
         }
     }
 
-    Assert(colorFormat != TF_NONE, "Invalid value set for gbuffer image format");
+    HYP_FAIL("Failed to find supported image format for gbuffer target {}", EnumToString(targetName));
 
-    return colorFormat;
+    return TF_NONE;
 }
 
 GBuffer::GBuffer(Vec2u extent)

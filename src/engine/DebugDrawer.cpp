@@ -741,8 +741,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     rq << SetShaderUniform(10, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
     rq << SetShaderUniform(11, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     rq << SetShaderUniform(12, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(13, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
-    rq << SetShaderUniform(14, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+    rq << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
 
     for (uint32 shapeIdx = 0; shapeIdx < HYP_ARRAY_SIZE(partitionedShaderData); shapeIdx++)
     {
