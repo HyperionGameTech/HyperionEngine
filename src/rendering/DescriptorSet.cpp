@@ -203,16 +203,6 @@ DescriptorSetElement& DescriptorSetBase::SetElementT(StringHash name, uint32 ind
                 (ElementTypeToBufferType[uint32(layoutElement->type)] & (1u << uint32(bufferType))),
                 "Buffer type {} is not in the allowed types for element {}",
                 uint32(bufferType), Name(name));
-
-            if (layoutElement->size != 0 && layoutElement->size != ~0u)
-            {
-                const uint32 remainder = ref->Size() % layoutElement->size;
-
-                // AssertDebug(
-                //     remainder == 0,
-                //     "Buffer size ({}) is not a multiplier of layout size ({}) for element {}",
-                //     ref->Size(), layoutElement->size, Name(name));
-            }
         }
     }
     else if constexpr (std::is_base_of_v<GpuImageViewBase, T>)

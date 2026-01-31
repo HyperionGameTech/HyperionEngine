@@ -107,9 +107,6 @@ struct DescriptorSetLayoutElement
     HYP_FIELD()
     uint32 count = 1; // Set to -1 for bindless
 
-    HYP_FIELD()
-    uint32 size = ~0u;
-
     HYP_FORCE_INLINE bool IsBuffer() const
     {
         return type == ShaderInputType::UNIFORM_BUFFER
@@ -130,7 +127,6 @@ struct DescriptorSetLayoutElement
         hc.Add(type);
         hc.Add(binding);
         hc.Add(count);
-        hc.Add(size);
 
         return hc;
     }
@@ -248,9 +244,9 @@ public:
         return m_elements;
     }
 
-    HYP_FORCE_INLINE void AddElement(Name name, ShaderInputType type, uint32 binding, uint32 count, uint32 size = ~0u)
+    HYP_FORCE_INLINE void AddElement(Name name, ShaderInputType type, uint32 binding, uint32 count)
     {
-        m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count, size });
+        m_elements.Insert(name, DescriptorSetLayoutElement { type, binding, count });
     }
 
     HYP_FORCE_INLINE const DescriptorSetLayoutElement* GetElement(StringHash name) const

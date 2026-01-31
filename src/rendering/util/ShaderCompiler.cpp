@@ -33,17 +33,11 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>
 
-#define HYP_SHADER_REFLECTION 1
-
 #if HYP_GLSLANG
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/Include/Types.h>
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/ShaderLang.h>
-
-#if HYP_SHADER_REFLECTION
-#include <glslang/MachineIndependent/reflection.h>
-#endif
 #endif
 
 #if HYP_DXC
@@ -65,18 +59,7 @@
 
 #include <ShaderCompiler.generated.inl>
 
-#if HYP_DXC
-// {5A58797D-A72C-478D-8BA2-EFC6B0EFE88E}
-//interface DECLSPEC_UUID("5A58797D-A72C-478D-8BA2-EFC6B0EFE88E") ID3D12ShaderReflection;
-DEFINE_GUID(IID_ID3D12ShaderReflection, 0x5a58797d, 0xa72c, 0x478d, 0x8b, 0xa2, 0xef, 0xc6, 0xb0, 0xef, 0xe8, 0x8e);
-
-#include <rendering/util/ShaderCompiler/ReflectHLSL.hpp>
-
-#endif
-
 namespace Hyperion {
-
-using namespace ShaderCompilerUtil;
 
 HYP_DEFINE_LOG_SUBCHANNEL(ShaderCompiler, Core);
 
@@ -1068,13 +1051,6 @@ static ByteBuffer CompileGLSL(
     glslang::TProgram* cppProgram = glslang_get_cpp_program(program);
     Assert(cppProgram != nullptr);
 
-#if HYP_SHADER_REFLECTION
-    if (!cppProgram->buildReflection(EShReflectionDefault))
-    {
-        GLSL_ERROR(Error, "Failed to build shader reflection!");
-    }
-#endif
-    
     glslang_spv_options_t spvOptions {};
     spvOptions.disable_optimizer = true;
 #ifdef HYP_DEBUG_MODE
@@ -1084,76 +1060,6 @@ static ByteBuffer CompileGLSL(
 #endif
 
     glslang_program_SPIRV_generate_with_options(program, stage, &spvOptions);
-
-#ifdef HYP_SHADER_REFLECTION
-    Proc<void(const glslang::TType*, ShaderStruct&)> HandleShaderStruct;
-
-    HandleShaderStruct = [&HandleShaderStruct](const glslang::TType* type, ShaderStruct& outStructureType)
-    {
-        if (type->isStruct())
-        {
-            for (auto it = type->getStruct()->begin(); it != type->getStruct()->end(); ++it)
-            {
-                String fieldTypeName;
-
-                if (it->type->isStruct())
-                {
-                    fieldTypeName = it->type->getTypeName().data();
-                }
-                else
-                {
-                    fieldTypeName = it->type->getCompleteString(true, false, false, true).data();
-                }
-
-                auto& field = outStructureType.AddField(
-                                                    CreateNameFromDynamicString(it->type->getFieldName().data()),
-                                                    ShaderStruct(CreateNameFromDynamicString(fieldTypeName)))
-                                    .second;
-
-                HandleShaderStruct(it->type, field);
-            }
-        }
-    };
-
-    // inject reflection info for shader inputs
-    for (DescriptorUsage& usage : descriptorUsages.elements)
-    {
-        const char* duNameString = usage.descriptorName.LookupString();
-        const int reflectionIndex = cppProgram->getReflectionIndex(duNameString);
-
-        if (reflectionIndex == -1)
-        {
-            continue;
-        }
-
-        const glslang::TObjectReflection* refl = nullptr;
-
-        if (usage.IsBuffer())
-        {
-            refl = &cppProgram->getUniformBlock(reflectionIndex);
-
-            if (!refl)
-            {
-                refl = &cppProgram->getBufferBlock(reflectionIndex);
-            }
-
-            if (!refl->getType())
-            {
-                continue;
-            }
-
-            AssertDebug(refl->getType()->getTypeName() == duNameString);
-        }
-
-        if (refl != nullptr)
-        {
-            HandleShaderStruct(refl->getType(), usage.shaderStruct);
-            usage.shaderStruct.size = refl->size;
-
-            continue;
-        }
-    }
-#endif
 
     ByteBuffer shaderModule(glslang_program_SPIRV_get_size(program) * sizeof(uint32));
     glslang_program_SPIRV_get(program, reinterpret_cast<uint32*>(shaderModule.Data()));
@@ -1383,62 +1289,6 @@ static ByteBuffer CompileHLSL(
 
     ComPtr<IDxcBlob> pBlob;
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
-
-    if (outputType == HLSLOutputType::DXIL)
-    {
-        if (!pResult->HasOutput(DXC_OUT_REFLECTION))
-        {
-            errorMessages.PushBack(HYP_FORMAT("Failed to generate HLSL reflection data for shader {}", filename));
-
-            return ByteBuffer();
-        }
-
-        ComPtr<IDxcBlob> pReflectionData;
-
-        res = pResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
-
-        if (FAILED(res) || pReflectionData == nullptr || pReflectionData->GetBufferSize() == 0)
-        {
-            errorMessages.PushBack(HYP_FORMAT("Failed to generate HLSL reflection data for shader {}, HRESULT: {}", filename, res));
-
-            return ByteBuffer();
-        }
-
-        DxcBuffer reflBuffer = { pReflectionData->GetBufferPointer(), pReflectionData->GetBufferSize(), 0 };
-
-        ComPtr<ID3D12ShaderReflection> pReflection;
-
-        res = s_dxcUtils->CreateReflection(&reflBuffer, IID_PPV_ARGS(&pReflection));
-
-        if (FAILED(res) || pReflection == nullptr)
-        {
-            errorMessages.PushBack(HYP_FORMAT("Failed to create HLSL reflection interface for shader {}, HRESULT: {}", filename, res));
-
-            return ByteBuffer();
-        }
-
-        ReflectDXIL(pReflection.Get(), inputGroup, errorMessages);
-    }
-#if HYP_SPIRV_REFLECT
-    else if (outputType == HLSLOutputType::SPIRV)
-    {
-        SpvReflectShaderModule spvModule;
-        SpvReflectResult spvResult = spvReflectCreateShaderModule(
-            pBlob->GetBufferSize(),
-            pBlob->GetBufferPointer(),
-            &spvModule);
-
-        if (spvResult != SPV_REFLECT_RESULT_SUCCESS)
-        {
-            errorMessages.PushBack(HYP_FORMAT("Failed to create SPIRV-Reflect module for shader {}, result: {}", filename, int(spvResult)));
-        }
-        else
-        {
-            ReflectSPIRV(&spvModule, inputGroup, errorMessages);
-            spvReflectDestroyShaderModule(&spvModule);
-        }
-    }
-#endif
 
     ByteBuffer bytecode(pBlob->GetBufferSize());
     Assert(bytecode.Size() > 0);

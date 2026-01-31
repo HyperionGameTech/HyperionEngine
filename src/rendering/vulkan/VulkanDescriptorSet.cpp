@@ -65,27 +65,24 @@ static inline void ValidateDynamicOffset(
             offset, Name(dynamicElementName), limits.minStorageBufferOffsetAlignment);
     }
 
-    if (layoutElement->size == 0 || layoutElement->size == ~0u)
-        return;
+    /*// Validate offset is within buffer bounds
+    if (element != nullptr && !element->values.Empty())
+    {
+        const auto firstValueIt = element->values.Begin();
+        if (firstValueIt != element->values.End())
+        {
+            VulkanGpuBuffer* buffer = ObjCast<VulkanGpuBuffer>(*firstValueIt);
 
-    //// Validate offset is within buffer bounds
-    //if (element != nullptr && !element->values.Empty())
-    //{
-    //    const auto firstValueIt = element->values.Begin();
-    //    if (firstValueIt != element->values.End())
-    //    {
-    //        VulkanGpuBuffer* buffer = ObjCast<VulkanGpuBuffer>(*firstValueIt);
+            if (buffer != nullptr)
+            {
+                const SizeType bufferSize = buffer->Size();
 
-    //        if (buffer != nullptr)
-    //        {
-    //            const SizeType bufferSize = buffer->Size();
-
-    //            AssertDebug(offset + layoutElement->size <= bufferSize,
-    //                "Dynamic offset {} + element size {} for element {} exceeds buffer size {}",
-    //                offset, layoutElement->size, Name(dynamicElementName), bufferSize);
-    //        }
-    //    }
-    //}
+                AssertDebug(offset + layoutElement->size <= bufferSize,
+                    "Dynamic offset {} + element size {} for element {} exceeds buffer size {}",
+                    offset, layoutElement->size, Name(dynamicElementName), bufferSize);
+            }
+        }
+    }*/
 }
 
 #endif
@@ -302,10 +299,6 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
         case ShaderInputType::STORAGE_BUFFER:
         case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
         {
-            const bool layoutHasSize = layoutElement->size != 0 && layoutElement->size != ~0u;
-            const bool isDynamic = layoutElement->type == ShaderInputType::UNIFORM_BUFFER_DYNAMIC
-                || layoutElement->type == ShaderInputType::STORAGE_BUFFER_DYNAMIC;
-
             for (uint32 index : element.occupiedArrayElems) // @TODO use dirtyRange to skip bits / end loop early?
             {
                 ObjectBase* ptr = element.values[index];
@@ -556,7 +549,7 @@ RendererResult VulkanDescriptorSet::Create()
     for (const KeyValuePair<Name, DescriptorSetLayoutElement>& pair : m_layout.GetElements())
     {
         isBindlessTextures |= (pair.second.type == ShaderInputType::IMAGE && pair.second.IsBindless());
-        isBindlessBuffers |= (pair.second.IsBuffer() || pair.second.IsBindless());
+        isBindlessBuffers |= (pair.second.IsBuffer() && pair.second.IsBindless());
         isRayTracing |= (pair.second.type == ShaderInputType::TLAS);
     }
 
