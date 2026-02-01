@@ -10,7 +10,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <rendering/GpuBufferHolderMap.hpp>
+#include <rendering/GlobalBuffers.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 

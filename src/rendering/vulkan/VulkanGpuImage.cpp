@@ -521,7 +521,6 @@ void VulkanGpuImage::InsertBarrier(
         shaderModuleType);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     const ImageSubResource& subResource,
@@ -691,7 +690,6 @@ void VulkanGpuImage::InsertBarrier(
         SetResourceState(newState);
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 RendererResult VulkanGpuImage::Blit(
     VulkanCommandBuffer* commandBuffer,

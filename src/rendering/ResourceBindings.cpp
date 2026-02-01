@@ -36,7 +36,6 @@ void OnBindingChanged_MeshEntity(Entity* entity, uint32 prev, uint32 next)
     AssignResourceBinding(entity, entity->Id().ToIndex());
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx, IRenderProxy* proxy)
 {
     AssertDebug(gpuBufferHolder != nullptr);
@@ -56,7 +55,6 @@ void WriteBufferData_MeshEntity(GpuBufferHolderBase* gpuBufferHolder, uint32 idx
 
     gpuBufferHolder->WriteBufferData(idx, &proxyCasted->bufferData, sizeof(proxyCasted->bufferData));
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 {

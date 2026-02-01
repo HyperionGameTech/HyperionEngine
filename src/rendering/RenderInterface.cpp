@@ -6,7 +6,7 @@
 #include <rendering/MaterialTextureCache.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/GpuBufferHolderMap.hpp>
+#include <rendering/GlobalBuffers.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/GenericPipelineCache.hpp>
@@ -1444,7 +1444,6 @@ void RenderInterface::RemoveRenderer(GlobalRendererType globalRendererType, Rend
     globalRenderers[globalRendererType].Erase(renderer);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer)
 {
     AssertDebug(commandBuffer != nullptr);
