@@ -121,9 +121,9 @@ void RenderThread::Update()
         swapchain = mainWindow->GetSwapchain();
     }
 
-    Array<World*>& worldsToRender = g_renderInterface->renderWorlds[GetRingIndex()];
+    Span<World*> worldsToRender = GetActiveWorlds();
 
-    if (worldsToRender.Any())
+    if (worldsToRender)
     {
         uint32 numViewsRendered = 0;
 
@@ -188,7 +188,7 @@ void RenderThread::Update()
     }
 
     g_renderInterface->EndFrame();
- 
+
     g_renderArena->Reset();
 }
 
@@ -196,13 +196,13 @@ void RenderThread::operator()()
 {
     AssertDebug(g_renderArena == nullptr);
     g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
-    
+
     AtExit([]()
         {
             delete g_renderArena;
             g_renderArena = nullptr;
         });
-    
+
 #if HYP_VULKAN
     g_renderInterface = new VulkanRenderInterface();
 #elif HYP_DX12

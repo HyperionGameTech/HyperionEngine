@@ -41,10 +41,12 @@
 #endif
 
 #if HYP_DXC
+#if HYP_DX12
 #include <Unknwn.h>
-#include <dxcapi.h>
 #include <d3d12shader.h>
-#include <wrl/client.h>
+#endif
+
+#include <dxcapi.h>
 #endif
 
 #if HYP_SPIRV_REFLECT
@@ -73,10 +75,8 @@ extern const GlobalConfig& GetGlobalConfig();
 // #define HYP_SHADER_COMPILER_LOGGING
 
 #if HYP_DXC
-using Microsoft::WRL::ComPtr;
-
-static ComPtr<IDxcUtils> s_dxcUtils;
-static ComPtr<IDxcCompiler3> s_dxcCompiler;
+static CComPtr<IDxcUtils> s_dxcUtils;
+static CComPtr<IDxcCompiler3> s_dxcCompiler;
 #endif
 
 #pragma region Helpers
@@ -440,7 +440,7 @@ void CompiledShader::AddShaderModule(
         const SizeType index = it - moduleTypes.Begin();
 
         Assert(index < shaderBlobs.Size() && index < entryPointNames.Size());
-        
+
         moduleNames[index] = moduleName;
         shaderBlobs[index] = std::move(shaderBlob);
         entryPointNames[index] = entryPointName;
@@ -557,7 +557,7 @@ static void GetSPIRVEnvironmentInfo(
 #endif
 
         outSpirvVersion = MathUtil::Max(outSpirvVersion, 460);
-        
+
         outVulkanVersion = MathUtil::Max(outVulkanVersion, VK_API_VERSION_1_2);
     }
 }
@@ -754,7 +754,7 @@ static bool PreprocessGLSL(
         HYP_THROW("Invalid shader type");
         break;
     }
-    
+
     uint32 spirvApiVersion;
     uint32 spirvVersion;
     uint32 vulkanApiVersion;
@@ -964,7 +964,7 @@ static ByteBuffer CompileGLSL(
 #ifndef VK_API_VERSION_1_1
     static constexpr uint32 VK_API_VERSION_1_2 = 4202496;
 #endif
-    
+
     static constexpr uint32 HYP_VULKAN_API_VERSION = VK_API_VERSION_1_2;
 #endif
 
@@ -1017,7 +1017,7 @@ static ByteBuffer CompileGLSL(
 
         return ByteBuffer();
     }
-    
+
     String preprocessed = glslang_shader_get_preprocessed_code(shader);
 
     if (!glslang_shader_parse(shader, &input))
@@ -1033,7 +1033,7 @@ static ByteBuffer CompileGLSL(
 
     glslang_program_t* program = glslang_program_create();
     glslang_program_add_shader(program, shader);
-    
+
     if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT))
     {
         GLSL_ERROR(Error, "GLSL linking failed {} {}", filename, source);
@@ -1083,7 +1083,6 @@ static ByteBuffer CompileGLSL(
             filename, preprocessed);
     }
 
-
     return shaderModule;
 }
 
@@ -1123,7 +1122,7 @@ static bool PreprocessHLSL(
 
     HRESULT hr;
 
-    ComPtr<IDxcBlobEncoding> pSource;
+    CComPtr<IDxcBlobEncoding> pSource;
     hr = s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
 
     if (FAILED(hr))
@@ -1135,9 +1134,9 @@ static bool PreprocessHLSL(
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
 
-    ComPtr<IDxcResult> pResult;
+    CComPtr<IDxcResult> pResult;
 
-    ComPtr<IDxcIncludeHandler> pIncludeHandler;
+    CComPtr<IDxcIncludeHandler> pIncludeHandler;
     hr = s_dxcUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
 
     if (FAILED(hr))
@@ -1151,11 +1150,10 @@ static bool PreprocessHLSL(
         &sourceBuffer,
         args.Data(),
         (uint32)args.Size(),
-        pIncludeHandler.Get(),
-        IID_PPV_ARGS(&pResult)
-    );
+        pIncludeHandler,
+        IID_PPV_ARGS(&pResult));
 
-    ComPtr<IDxcBlobUtf8> pErrors;
+    CComPtr<IDxcBlobUtf8> pErrors;
     pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
 
     if (pErrors && pErrors->GetStringLength() > 0)
@@ -1167,7 +1165,7 @@ static bool PreprocessHLSL(
     if (FAILED(status))
         return false;
 
-    ComPtr<IDxcBlobUtf8> pOutput;
+    CComPtr<IDxcBlobUtf8> pOutput;
     pResult->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&pOutput), nullptr);
 
     if (pOutput)
@@ -1203,7 +1201,7 @@ static ByteBuffer CompileHLSL(
 
     String fullSource = preamble + "\n" + source;
 
-    ComPtr<IDxcBlobEncoding> pSource;
+    CComPtr<IDxcBlobEncoding> pSource;
     s_dxcUtils->CreateBlobFromPinned(fullSource.Data(), (uint32)fullSource.Size(), CP_UTF8, &pSource);
 
     const WideString entryPointName = WideString(DefaultEntryPointNames[uint8(type)]);
@@ -1217,7 +1215,7 @@ static ByteBuffer CompileHLSL(
     args.PushBack(GetDXCTargetProfile(type));
 
     args.PushBack(L"-HV 2021");
-    
+
 #if HYP_VULKAN
     if (outputType == HLSLOutputType::SPIRV)
     {
@@ -1226,7 +1224,7 @@ static ByteBuffer CompileHLSL(
         uint32 spirvVersion;
         uint32 vulkanApiVersion;
         GetSPIRVEnvironmentInfo(type, spirvVersion, vulkanApiVersion);
-        
+
         args.PushBack(L"-fspv-reflect");
 
         switch (vulkanApiVersion)
@@ -1260,17 +1258,16 @@ static ByteBuffer CompileHLSL(
 #endif
 
     DxcBuffer sourceBuffer = { pSource->GetBufferPointer(), pSource->GetBufferSize(), 0 };
-    ComPtr<IDxcResult> pResult;
-    
-    HRESULT res = s_dxcCompiler->Compile(
-        &sourceBuffer, 
-        args.Data(), 
-        (uint32)args.Size(), 
-        nullptr,
-        IID_PPV_ARGS(&pResult)
-    );
+    CComPtr<IDxcResult> pResult;
 
-    ComPtr<IDxcBlobUtf8> pErrors;
+    HRESULT res = s_dxcCompiler->Compile(
+        &sourceBuffer,
+        args.Data(),
+        (uint32)args.Size(),
+        nullptr,
+        IID_PPV_ARGS(&pResult));
+
+    CComPtr<IDxcBlobUtf8> pErrors;
     pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
 
     if (pErrors && pErrors->GetStringLength() != 0)
@@ -1287,7 +1284,7 @@ static ByteBuffer CompileHLSL(
         return ByteBuffer();
     }
 
-    ComPtr<IDxcBlob> pBlob;
+    CComPtr<IDxcBlob> pBlob;
     pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), nullptr);
 
     ByteBuffer bytecode(pBlob->GetBufferSize());
@@ -1731,7 +1728,7 @@ Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
         FOR_EACH_BIT(chunk, bit)
         {
             ShaderPropertyId propertyId = ShaderPropertyId(chunkOffset + bit);
-                
+
             result.PushBack(propertyId);
         }
 
@@ -1775,10 +1772,10 @@ ShaderCompiler::ShaderCompiler()
 
 #if HYP_DXC
     if (!s_dxcUtils)
-        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), &s_dxcUtils);
+        DxcCreateInstance(CLSID_DxcUtils, __uuidof(IDxcUtils), (void**)&s_dxcUtils);
 
     if (!s_dxcCompiler)
-        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), &s_dxcCompiler);
+        DxcCreateInstance(CLSID_DxcCompiler, __uuidof(IDxcCompiler3), (void**)&s_dxcCompiler);
 #endif
 }
 
@@ -1789,8 +1786,8 @@ ShaderCompiler::~ShaderCompiler()
 #endif
 
 #if HYP_DXC
-    s_dxcUtils.Reset();
-    s_dxcCompiler.Reset();
+    s_dxcUtils.Release();
+    s_dxcCompiler.Release();
 #endif
 
     if (m_definitions)
@@ -1892,7 +1889,7 @@ void ShaderCompiler::ParseDefinitionSection(
 
             continue;
         }
-            
+
         HYP_LOG(ShaderCompiler, Warning,
             "Unknown property in shader definition file: {}\n",
             sectionIt.first);
@@ -1964,9 +1961,10 @@ bool ShaderCompiler::HandleBundle(
     const bool anyMissing = missingPerms.Any();
 
     const bool requestedFound = shaderRequest.HasValue() && inOutBundle.compiledShaders.FindIf([&shaderRequest](const CompiledShader& compiledShader)
-        {
-            return SatisfiesRequested(shaderRequest->properties, shaderRequest->vertexAttributes, compiledShader);
-        }) != inOutBundle.compiledShaders.End();
+                                                                {
+                                                                    return SatisfiesRequested(shaderRequest->properties, shaderRequest->vertexAttributes, compiledShader);
+                                                                })
+            != inOutBundle.compiledShaders.End();
 
     if (anyMissing || (shaderRequest.HasValue() && !requestedFound))
     {
@@ -2291,25 +2289,17 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
             return MakeUniformBufferType();
         }
 
-        if (MatchesAnyToken(firstToken, {
-            "StructuredBuffer", "RWStructuredBuffer",
-            "ByteAddressBuffer", "RWByteAddressBuffer",
-            "AppendStructuredBuffer", "ConsumeStructuredBuffer",
-            "Buffer", "RWBuffer" }))
+        if (MatchesAnyToken(firstToken, { "StructuredBuffer", "RWStructuredBuffer", "ByteAddressBuffer", "RWByteAddressBuffer", "AppendStructuredBuffer", "ConsumeStructuredBuffer", "Buffer", "RWBuffer" }))
         {
             return MakeStorageBufferType();
         }
 
-        if (MatchesAnyToken(firstToken, {
-            "RWTexture1D", "RWTexture2D", "RWTexture3D",
-            "RWTexture1DArray", "RWTexture2DArray" }))
+        if (MatchesAnyToken(firstToken, { "RWTexture1D", "RWTexture2D", "RWTexture3D", "RWTexture1DArray", "RWTexture2DArray" }))
         {
             return ShaderInputType::IMAGE_STORAGE;
         }
 
-        if (MatchesAnyToken(firstToken, {
-            "Texture1D", "Texture2D", "Texture3D",
-            "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
+        if (MatchesAnyToken(firstToken, { "Texture1D", "Texture2D", "Texture3D", "TextureCube", "Texture1DArray", "Texture2DArray", "TextureCubeArray" }))
         {
             return ShaderInputType::IMAGE;
         }
@@ -2347,7 +2337,7 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
         {
             return MakeStorageBufferType();
         }
-        
+
         if (firstToken == "uniform")
         {
             const String remaining = String(trimmed.Substr(firstToken.Length())).TrimmedLeft();
@@ -2358,20 +2348,13 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
             {
                 return ShaderInputType::SAMPLER;
             }
-            
+
             // uniform texture (sampled image)
-            if (MatchesAnyToken(secondToken, {
-                "texture1D", "texture2D", "texture3D", "textureCube",
-                "texture1DArray", "texture2DArray", "textureCubeArray",
-                "textureBuffer",
-                "itexture1D", "itexture2D", "itexture3D", "itextureCube",
-                "itextureBuffer",
-                "utexture1D", "utexture2D", "utexture3D", "utextureCube",
-                "utextureBuffer" }))
+            if (MatchesAnyToken(secondToken, { "texture1D", "texture2D", "texture3D", "textureCube", "texture1DArray", "texture2DArray", "textureCubeArray", "textureBuffer", "itexture1D", "itexture2D", "itexture3D", "itextureCube", "itextureBuffer", "utexture1D", "utexture2D", "utexture3D", "utextureCube", "utextureBuffer" }))
             {
                 return ShaderInputType::IMAGE;
             }
-            
+
             // uniform (write/read)only image (storage image)
             if (MatchesAnyToken(secondToken, { "readonly", "writeonly" }))
             {
@@ -2386,16 +2369,9 @@ static TResult<ShaderInputType> ParseDescriptorTypeFromDeclaration(ShaderLanguag
 
                 return HYP_MAKE_ERROR(Error, "Unable to determine descriptor type from GLSL declaration: '{}'", trimmed);
             }
-            
+
             // uniform image
-            if (MatchesAnyToken(secondToken, {
-                "image1D", "image2D", "image3D",
-                "imageCube", "image1DArray", "image2DArray", "imageCubeArray",
-                "imageBuffer",
-                "iimage1D", "iimage2D", "iimage3D",
-                "iimageBuffer", "iimageCube",
-                "uimage1D", "uimage2D", "uimage3D",
-                "uimageBuffer", "uimageCube" }))
+            if (MatchesAnyToken(secondToken, { "image1D", "image2D", "image3D", "imageCube", "image1DArray", "image2DArray", "imageCubeArray", "imageBuffer", "iimage1D", "iimage2D", "iimage3D", "iimageBuffer", "iimageCube", "uimage1D", "uimage2D", "uimage3D", "uimageBuffer", "uimageCube" }))
             {
                 return ShaderInputType::IMAGE_STORAGE;
             }
@@ -2427,28 +2403,28 @@ static String FormatDescriptorDeclaration(
     {
         String remaining = declarationBody.Trimmed();
         SizeType insertPos = remaining.FindFirstIndex(";");
-        
+
         if (insertPos == String::NotFound)
         {
             insertPos = remaining.FindFirstIndex("{");
         }
-        
+
         String declaration = (insertPos == String::NotFound) ? remaining : String(remaining.Substr(0, insertPos));
         String suffix = (insertPos == String::NotFound) ? String::empty : String(remaining.Substr(insertPos));
 
         return HYP_FORMAT("{} : register(_{}_{}_REGISTER, _{}_SPACE) {}\n",
-             declaration,
-             setName, descriptorName,
-             setName,
-             suffix);
+            declaration,
+            setName, descriptorName,
+            setName,
+            suffix);
     }
     else
     {
         String decl = "layout(";
-        
+
         if (usage.IsBuffer())
         {
-             decl += stdVersion + ", ";
+            decl += stdVersion + ", ";
         }
 
         decl += "set=_" + setName + "_SET" + ", binding=_" + setName + "_" + descriptorName + "_BINDING";
@@ -2475,11 +2451,11 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
     {
         String preprocessedSource;
         Array<String> preprocessErrorMessages;
-    
+
         bool preprocessResult = false;
-        
+
         const String preamble = BuildAttributesDefines(language, perm);
-        
+
         if (language == ShaderLanguage::GLSL)
         {
 #if HYP_GLSLANG
@@ -2497,6 +2473,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         }
         else
         {
+#if HYP_DXC
             preprocessResult = PreprocessHLSL(
                 type,
                 preamble,
@@ -2504,6 +2481,10 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 filename,
                 preprocessedSource,
                 preprocessErrorMessages);
+#else
+            preprocessErrorMessages.PushBack("HLSL preprocessing not supported in this build.");
+            preprocessResult = false;
+#endif
         }
 
         result.errors.Concat(Map(preprocessErrorMessages, [](const String& errorMessage)
@@ -2601,7 +2582,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 String attributeLocation;
 
                 Optional<String> attributeCondition;
-                
+
                 SizeType attrStringIndex = 0;
 
                 {
@@ -2828,7 +2809,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         params[key] = value;
                     }
                 }
-                
+
                 TResult<ShaderInputType> descriptorTypeResult = ParseDescriptorTypeFromDeclaration(language, parseResult.remaining, flags);
 
                 if (!descriptorTypeResult)
@@ -2848,7 +2829,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 Array<String> additionalParams;
                 String stdVersion;
-                
+
                 if (language == ShaderLanguage::GLSL)
                 {
                     stdVersion = "std140";
@@ -2875,7 +2856,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                         }
                     }
                 }
-                
+
                 result.processedSource += FormatDescriptorDeclaration(
                     language, usage, setName, descriptorName, stdVersion,
                     additionalParams, parseResult.remaining);
@@ -3105,9 +3086,9 @@ bool ShaderCompiler::CompileBundle(
     // INFO ON MERGING 'ADDITIONAL' SHADER VERSIONS (upon requesting a shader)
     // ============================================
     // if shaderRequest is set, we need to properly merge those properties with our ShaderVariant.
-    // 
+    //
     // We assume all requested properties are NOT permutable.
-    // 
+    //
     // VALUE GROUPS / ENUMS:
     // If OUTPUT=RGBA8 is added and we have in our ShaderVariant, OUTPUT={RGBA8, RGBA16F}, we need to add
     // RGBA8 to the existing `OUTPUT` ValueGroup rather than applying it to EVERY single permutation.
@@ -3235,7 +3216,7 @@ bool ShaderCompiler::CompileBundle(
 
             CompiledShader compiledShader;
             compiledShader.name = decl.name;
-            
+
             for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
             {
                 const ShaderPropertyId propertyId = InternShaderProperty(shaderProperty);
@@ -3377,7 +3358,7 @@ bool ShaderCompiler::CompileBundle(
                 }
 
                 ByteBuffer byteBuffer;
-                
+
                 if (item.language == ShaderLanguage::GLSL)
                 {
 #if HYP_GLSLANG
@@ -3392,9 +3373,9 @@ bool ShaderCompiler::CompileBundle(
                     {
                         Mutex::Guard guard(errorMessagesMutex);
                         out.errorMessages.Concat(errorMessages);
-                        
+
                         ++numErrored;
-                        
+
                         continue;
                     }
 #else
@@ -3402,7 +3383,7 @@ bool ShaderCompiler::CompileBundle(
                     out.errorMessages.EmplaceBack("Cannot compile GLSL code, glslang not linked");
 
                     ++numErrored;
-                    
+
                     continue;
 #endif
                 }
@@ -3431,9 +3412,9 @@ bool ShaderCompiler::CompileBundle(
                     {
                         Mutex::Guard guard(errorMessagesMutex);
                         out.errorMessages.Concat(errorMessages);
-                        
+
                         ++numErrored;
-                        
+
                         continue;
                     }
 
@@ -3442,7 +3423,7 @@ bool ShaderCompiler::CompileBundle(
                     out.errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
 
                     ++numErrored;
-                    
+
                     continue;
 #endif
                 }
@@ -3453,7 +3434,7 @@ bool ShaderCompiler::CompileBundle(
                     out.errorMessages.EmplaceBack("No shader IL returned");
 
                     ++numErrored;
-                    
+
                     continue;
                 }
 
@@ -3538,7 +3519,7 @@ bool ShaderCompiler::CompileBundle(
         });
 
     { // Save the shader property DB
-        
+
         const FilePath shaderPropertyDbPath = GetCacheDirectory() / "ShaderProperties.bin";
 
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };

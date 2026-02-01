@@ -91,7 +91,7 @@ struct GenericArrayWrapper;
 enum class GCIndex : uint32;
 
 static constexpr GCIndex INVALID_GC_INDEX = GCIndex(0);
-static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex(~0u);
+static constexpr GCIndex GARBAGE_GC_INDEX = GCIndex(1u << 30);
 
 // max 31 bits for index - this is the highest valid index
 static constexpr GCIndex MAX_GC_INDEX = GCIndex((1u << 31) - 1);
@@ -176,23 +176,22 @@ struct BoxedValue
 
     VariantType value;
 
-#ifdef HYP_SCRIPT
     union
     {
+#ifdef HYP_SCRIPT
         // HypScript only - object metadata
         struct
         {
             GCIndex gcIndex : 31;   // index into the pool of tracked objects
             uint8 isStaticInit : 1; // static data pool / stack data - will be 1 if init
         };
-    } extData;
 #endif
+        uint32 dummy;
+    } extData;
 
     BoxedValue()
     {
-#ifdef HYP_SCRIPT
         extData = {};
-#endif
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, BoxedValue>>>
@@ -216,9 +215,7 @@ struct BoxedValue
     BoxedValue(const BoxedValue& other)
         : value(other.value)
     {
-#ifdef HYP_SCRIPT
         extData = other.extData;
-#endif
     }
 
     BoxedValue& operator=(const BoxedValue& other)
@@ -229,9 +226,7 @@ struct BoxedValue
         }
 
         value = other.value;
-#ifdef HYP_SCRIPT
         extData = other.extData;
-#endif
 
         return *this;
     }
@@ -239,10 +234,8 @@ struct BoxedValue
     BoxedValue(BoxedValue&& other) noexcept
         : value(std::move(other.value))
     {
-#ifdef HYP_SCRIPT
         extData = other.extData;
         other.extData = {};
-#endif
     }
 
     BoxedValue& operator=(BoxedValue&& other) noexcept
@@ -253,10 +246,9 @@ struct BoxedValue
         }
 
         value = std::move(other.value);
-#ifdef HYP_SCRIPT
+
         extData = other.extData;
         other.extData = {};
-#endif
 
         return *this;
     }

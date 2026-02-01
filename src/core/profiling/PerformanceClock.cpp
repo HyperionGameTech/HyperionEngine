@@ -3,6 +3,7 @@
 #include <core/utilities/Time.hpp>
 
 #ifdef HYP_UNIX
+#include <time.h>
 #include <sys/time.h>
 #elif defined(HYP_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
@@ -25,6 +26,11 @@ static double GetPCFreq()
 {
     static double s_freq = GetPCFreq_Internal();
     return s_freq;
+}
+#elif defined(HYP_UNIX)
+static double GetPCFreq()
+{
+    return 1000.0;
 }
 #endif
 

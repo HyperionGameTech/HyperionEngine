@@ -42,7 +42,14 @@ public:
         uint32 layerIndex = 0,
         uint32 numLayers = ~0u) override;
 
-    const VulkanGpuImageViewRef& GetOrCreate(Texture* texture, const ImageSubResource& subResource) override;
+    const VulkanGpuImageViewRef& GetOrCreate(
+        Texture* texture,
+        const ImageSubResource& subResource) override;
+
+    const GpuImageViewRef& GetOrCreate(
+        Texture* texture,
+        const ImageSubResource& subResource,
+        TextureType viewTextureType) override;
 
     void RemoveTexture(const Texture* texture) override;
     void CleanupUnusedTextures() override;

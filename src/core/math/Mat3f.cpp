@@ -25,8 +25,8 @@ Mat3f::Mat3f()
     rows[2][2] = 1.0f;
 }
 
-Mat3f::Mat3f(const float(&v)[9])
-{   
+Mat3f::Mat3f(const float (&v)[9])
+{
     Memory::Copy(rows[0].values, v + 0, sizeof(float) * 3);
     Memory::Copy(rows[1].values, v + 3, sizeof(float) * 3);
     Memory::Copy(rows[2].values, v + 6, sizeof(float) * 3);
@@ -58,11 +58,9 @@ float Mat3f::Determinant() const
 
 Mat3f Mat3f::Transpose() const
 {
-    return Mat3f({
-        rows[0][0], rows[1][0], rows[2][0],
+    return Mat3f({ rows[0][0], rows[1][0], rows[2][0],
         rows[0][1], rows[1][1], rows[2][1],
-        rows[0][2], rows[1][2], rows[2][2]
-    });
+        rows[0][2], rows[1][2], rows[2][2] });
 }
 
 Mat3f Mat3f::Inverse() const
@@ -75,25 +73,26 @@ Mat3f Mat3f::Inverse() const
     result[0][0] = (rows[1][1] * rows[2][2] - rows[2][1] * rows[1][2]) * invDet;
     result[0][1] = (rows[0][2] * rows[2][1] - rows[0][1] * rows[2][2]) * invDet;
     result[0][2] = (rows[0][1] * rows[1][2] - rows[0][2] * rows[1][1]) * invDet;
-    result[0][3] = 0.0f;
 
     result[1][0] = (rows[1][2] * rows[2][0] - rows[1][0] * rows[2][2]) * invDet;
     result[1][1] = (rows[0][0] * rows[2][2] - rows[0][2] * rows[2][0]) * invDet;
     result[1][2] = (rows[1][0] * rows[0][2] - rows[0][0] * rows[1][2]) * invDet;
-    result[1][3] = 0.0f;
 
     result[2][0] = (rows[1][0] * rows[2][1] - rows[2][0] * rows[1][1]) * invDet;
     result[2][1] = (rows[2][0] * rows[0][1] - rows[0][0] * rows[2][1]) * invDet;
     result[2][2] = (rows[0][0] * rows[1][1] - rows[1][0] * rows[0][1]) * invDet;
-    result[2][3] = 0.0f;
+
+    // zero-initialize padding values so we can memcmp
+    result.rows[0].values[3] = 0.0f;
+    result.rows[1].values[3] = 0.0f;
+    result.rows[2].values[3] = 0.0f;
 
     return result;
 }
 
 Mat3f Mat3f::operator*(const Mat3f& other) const
 {
-    return Mat3f({
-        rows[0][0] * other.rows[0][0] + rows[0][1] * other.rows[1][0] + rows[0][2] * other.rows[2][0],
+    return Mat3f({ rows[0][0] * other.rows[0][0] + rows[0][1] * other.rows[1][0] + rows[0][2] * other.rows[2][0],
         rows[0][0] * other.rows[0][1] + rows[0][1] * other.rows[1][1] + rows[0][2] * other.rows[2][1],
         rows[0][0] * other.rows[0][2] + rows[0][1] * other.rows[1][2] + rows[0][2] * other.rows[2][2],
 
@@ -103,8 +102,7 @@ Mat3f Mat3f::operator*(const Mat3f& other) const
 
         rows[2][0] * other.rows[0][0] + rows[2][1] * other.rows[1][0] + rows[2][2] * other.rows[2][0],
         rows[2][0] * other.rows[0][1] + rows[2][1] * other.rows[1][1] + rows[2][2] * other.rows[2][1],
-        rows[2][0] * other.rows[0][2] + rows[2][1] * other.rows[1][2] + rows[2][2] * other.rows[2][2]
-    });
+        rows[2][0] * other.rows[0][2] + rows[2][1] * other.rows[1][2] + rows[2][2] * other.rows[2][2] });
 }
 
 Mat3f& Mat3f::operator*=(const Mat3f& other)

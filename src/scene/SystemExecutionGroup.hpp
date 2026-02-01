@@ -100,9 +100,10 @@ public:
     HYP_FORCE_INLINE bool HasSystem(const SystemBase* system) const
     {
         return m_systems.FindIf([system](const auto& item)
-            {
-                return item.second == system;
-            }) != m_systems.End();
+                   {
+                       return item.second == system;
+                   })
+            != m_systems.End();
     }
 
     /*! \brief Adds a System to the SystemExecutionGroup.
@@ -118,12 +119,12 @@ public:
 
         const auto it = m_systems.Find(s_typeId);
 
-        if (it == m_systems.End() || !it->second.IsValid())
+        if (it == m_systems.End())
         {
-            return Handle<SystemType>::empty;
+            return nullptr;
         }
 
-        return ObjCast<SystemType>(*it->second);
+        return ObjCast<SystemType>(it->second);
     }
 
     /*! \brief Removes a System from the SystemExecutionGroup.

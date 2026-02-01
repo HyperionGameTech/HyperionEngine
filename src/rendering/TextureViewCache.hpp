@@ -23,7 +23,14 @@ public:
         uint32 layerIndex = 0,
         uint32 numLayers = ~0u) = 0;
 
-    virtual const GpuImageViewRef& GetOrCreate(Texture* texture, const ImageSubResource& subResource) = 0;
+    virtual const GpuImageViewRef& GetOrCreate(
+        Texture* texture,
+        const ImageSubResource& subResource) = 0;
+
+    virtual const GpuImageViewRef& GetOrCreate(
+        Texture* texture,
+        const ImageSubResource& subResource,
+        TextureType viewTextureType) = 0;
 
     virtual void RemoveTexture(const Texture* texture) = 0;
     virtual void CleanupUnusedTextures() = 0;

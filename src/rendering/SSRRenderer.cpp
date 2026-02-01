@@ -324,8 +324,9 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
         rq << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
         m_writeUvs->RenderFullScreenQuad(frame, renderSetup);
-
         m_writeUvs->End(frame, renderSetup);
+
+        rq << InsertBarrier(m_uvsTexture->GetGpuImage(), RS_SHADER_RESOURCE);
     }
 
     { // PASS 2 -- fill color buffer using mip chain to sample based on roughness
@@ -347,7 +348,6 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
         rq << SetShaderUniform(uniformIndex++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
 
         m_sampleGbuffer->RenderFullScreenQuad(frame, renderSetup);
-
         m_sampleGbuffer->End(frame, renderSetup);
     }
 

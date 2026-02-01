@@ -218,30 +218,6 @@ void EngineDriver::SetDefaultWorld(const Handle<World>& defaultWorld)
     }
 }
 
-void EngineDriver::EnqueueWorldRender(World* world)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    AssertDebug(world != nullptr && world->IsReady());
-
-    const uint32 slot = GetRingIndex();
-
-    auto& worldsToRender = g_renderInterface->renderWorlds[slot];
-
-    if (!worldsToRender.Contains(world))
-    {
-        if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
-        {
-            // editor world gets rendered first
-            worldsToRender.PushFront(world);
-            return;
-        }
-
-        worldsToRender.PushBack(world);
-    }
-}
-
 void EngineDriver::AddWorld(const Handle<World>& world)
 {
     HYP_SCOPE;
@@ -332,9 +308,6 @@ bool EngineDriver::StartThreads()
     success &= g_renderThreadInstance->Start();
     if (!success)
         return false;
-
-    if (g_renderThread != g_mainThread)
-        g_renderThreadInit.acquire();
 
     success &= g_simThreadInstance->Start();
     if (!success)
@@ -451,16 +424,18 @@ void EngineDriver::UpdateSim(float delta)
     const uint32 slot = GetRingIndex();
     const uint32 frameCounter = GetFrameCounter();
 
-    g_renderInterface->renderWorlds[slot].Clear();
-
     Array<Scene*, SceneAllocator> scenes;
     Array<View*, SceneAllocator> views;
     Array<Subsystem*, SceneAllocator> subsystems;
 
-    Array<World*, SceneTempAllocator> simulatingWorlds;
-
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;
+
+    Array<World*, SceneTempAllocator> worldsToRender;
+    worldsToRender.Reserve(m_worlds.Size());
+
+    Array<World*, SceneTempAllocator> simulatingWorlds;
+    simulatingWorlds.Reserve(m_worlds.Size());
 
     for (uint32 i = 0; i < uint32(m_worlds.Size()); i++)
     {
@@ -491,9 +466,19 @@ void EngineDriver::UpdateSim(float delta)
         }
         // }
 
-        EnqueueWorldRender(world);
+        if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        {
+            // editor world gets rendered first
+            worldsToRender.PushFront(world);
+        }
+        else
+        {
+            worldsToRender.PushBack(world);
+        }
         // }
     }
+
+    CommitActiveWorlds(worldsToRender.ToSpan());
 
     // Update Worlds and Systems - execution order/batching defined by component descriptors on systems.
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);

@@ -5,6 +5,8 @@
 #include <core/math/Rect.hpp>
 #include <core/math/Halton.hpp>
 
+#include <core/memory/Memory.hpp>
+
 #ifndef HYP_BUILDTOOL
 #include <Mat4f.generated.inl>
 #endif

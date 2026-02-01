@@ -488,7 +488,7 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
         // we save the asset to the filesystem if:
         // the package is saved to the filesystem (not transient, has a package dir)
         // AND the asset's new filepath would differ from the current one it has (or it has never been saved)
-        //bool doSaveAsset = false;
+        // bool doSaveAsset = false;
 
         {
             TUniqueLock guard(m_mutex);
@@ -503,10 +503,10 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
             assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
-            //if (isPackageSavedInFilesystem)
+            // if (isPackageSavedInFilesystem)
             //{
-            //    // set a filepath for the asset object to be saved at, based on our package's filepath.
-            //    const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
+            //     // set a filepath for the asset object to be saved at, based on our package's filepath.
+            //     const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
             //    if (assetObject->m_manifestPath != newManifestFilepath)
             //    {
@@ -928,7 +928,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
     bool skipSavingThisPackage = false;
 
-    // If saveEvenIfNotDirty is false (default), check if we should save 
+    // If saveEvenIfNotDirty is false (default), check if we should save
     //  - if it has been saved before, we need to check if is dirty
     //    and additionally check if any individual asset objects are dirty.
     if (!saveEvenIfNotDirty && IsSaved_Internal())
@@ -1027,7 +1027,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         saveEvenIfNotDirty = true;
         skipSavingThisPackage = false;
     }
-        
+
     if (!skipSavingThisPackage)
     {
         const FilePath manifestPath = packageDir / "PackageManifest.json";
@@ -1111,7 +1111,11 @@ bool AssetPackage::HasDirtyAssetObjects() const
 {
     // assume mtx is locked
 
-    return m_assetObjects.FindIf([](AssetObject* obj) { return obj->IsDirty(); }) != m_assetObjects.End();
+    return m_assetObjects.FindIf([](AssetObject* obj)
+               {
+                   return obj->IsDirty();
+               })
+        != m_assetObjects.End();
 }
 
 void AssetPackage::AddDependency(const AssetPath& dependency)
@@ -2276,8 +2280,12 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
             outPackage->m_registry = WeakHandleFromThis();
             outPackage->m_packageDir = dir;
             outPackage->m_parentPackage = parentPackage;
-            outPackage->m_flags |= (parentPackage ? parentPackage->m_flags : 0);
             outPackage->m_isLoading = true;
+
+            if (parentPackage)
+            {
+                outPackage->m_flags |= parentPackage->m_flags;
+            }
 
             HYP_DEFER({
                 if (outPackage)

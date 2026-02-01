@@ -169,7 +169,7 @@ RendererResult VulkanRenderPass::Create()
     VkSubpassDescription subpassDescription {};
     subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescription.pDepthStencilAttachment = nullptr;
-    
+
     for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
     {
         const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
@@ -195,8 +195,7 @@ RendererResult VulkanRenderPass::Create()
                     attachmentDesc.clearColor[0],
                     attachmentDesc.clearColor[1],
                     attachmentDesc.clearColor[2],
-                    attachmentDesc.clearColor[3]
-                }
+                    attachmentDesc.clearColor[3] }
             };
         }
     }
@@ -282,29 +281,29 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         }
     }
 
-//#ifdef HYP_DEBUG_MODE
-//    // checks for valid layouts
-//    for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
-//    {
-//        VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
-//        AssertDebug(attachment != nullptr);
-//        
-//        const ResourceState expectedState = attachment->IsDepthAttachment()
-//            ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
-//            : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
-//
-//        const ResourceState currentState = attachment->GetImage()->GetResourceState();
-//
-//        if (expectedState != RS_UNDEFINED)
-//        {
-//            AssertDebug(
-//                expectedState == currentState,
-//                "Attachment expected layout {} but found {}",
-//                EnumToString(expectedState),
-//                EnumToString(currentState));
-//        }
-//    }
-//#endif
+    // #ifdef HYP_DEBUG_MODE
+    //     // checks for valid layouts
+    //     for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
+    //     {
+    //         VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
+    //         AssertDebug(attachment != nullptr);
+    //
+    //         const ResourceState expectedState = attachment->IsDepthAttachment()
+    //             ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
+    //             : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
+    //
+    //         const ResourceState currentState = attachment->GetImage()->GetResourceState();
+    //
+    //         if (expectedState != RS_UNDEFINED)
+    //         {
+    //             AssertDebug(
+    //                 expectedState == currentState,
+    //                 "Attachment expected layout {} but found {}",
+    //                 EnumToString(expectedState),
+    //                 EnumToString(currentState));
+    //         }
+    //     }
+    // #endif
 
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -320,6 +319,7 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
 
+    // handle implicit layout transitions after render pass end
     for (uint32 attachmentIndex = 0; attachmentIndex < m_recordingFramebuffer->NumAttachments(); attachmentIndex++)
     {
         VulkanAttachment* attachment = m_recordingFramebuffer->GetAttachment(attachmentIndex);

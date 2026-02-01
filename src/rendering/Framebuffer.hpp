@@ -67,8 +67,6 @@ public:
 
     virtual RendererResult Create() = 0;
 
-    virtual RendererResult Resize(Vec2u newSize) = 0;
-
     virtual Attachment* AddAttachment(Attachment* attachment) = 0;
     virtual Attachment* AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) = 0;
     virtual Attachment* AddAttachment(

@@ -22,7 +22,15 @@ class VulkanGpuImageView final : public GpuImageViewBase
 
 public:
     explicit VulkanGpuImageView(const VulkanGpuImageRef& image);
-    VulkanGpuImageView(const VulkanGpuImageRef& image, const ImageSubResource& subResource);
+
+    VulkanGpuImageView(
+        const VulkanGpuImageRef& image,
+        const ImageSubResource& subResource);
+
+    VulkanGpuImageView(
+        const VulkanGpuImageRef& image,
+        const ImageSubResource& subResource,
+        VkImageViewType viewType);
 
     ~VulkanGpuImageView() override;
 
@@ -41,6 +49,7 @@ public:
 
 private:
     VkImageView m_handle;
+    VkImageViewType m_viewType;
 };
 
 } // namespace Hyperion

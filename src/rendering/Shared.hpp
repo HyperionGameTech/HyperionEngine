@@ -1070,7 +1070,7 @@ struct ImageSubResource
     }
 };
 
-static constexpr inline uint64 GetImageSubResourceKey(const ImageSubResource& subResource)
+constexpr inline uint64 GetImageSubResourceKey(const ImageSubResource& subResource)
 {
     return uint64(subResource.baseMipLevel) | (uint64(subResource.numLevels) << 8)
         | (uint64(subResource.baseArrayLayer) << 16) | (uint64(subResource.numLayers) << 32);
@@ -1167,7 +1167,7 @@ struct ShaderDataOffset
         return offset != other.offset
             || stride != other.stride;
     }
-    
+
     static constexpr ShaderDataOffset Invalid()
     {
         return ShaderDataOffset();
@@ -1202,7 +1202,7 @@ struct TShaderDataOffset : ShaderDataOffset
             offset = sizeof(T) * idx;
         }
     }
-    
+
     HYP_FORCE_INLINE static constexpr TShaderDataOffset Invalid()
     {
         return TShaderDataOffset();
@@ -1375,9 +1375,9 @@ struct AttachmentDesc
 struct RenderTargetDesc
 {
     static constexpr uint32 MaxAttachments = 5;
-    
+
     Vec2u extent = Vec2u::One();
-    
+
     uint32 numAttachments = 0;
     AttachmentDesc attachments[MaxAttachments];
 
@@ -1480,7 +1480,7 @@ HYP_STRUCT(Serialize = "bitwise")
 struct VertexAttributeSet
 {
     HYP_STRUCT_BODY(VertexAttributeSet);
-    
+
     static const VertexAttributeSet StaticMeshVertexAttributes;
     static const VertexAttributeSet SkeletalMeshVertexAttributes;
 
@@ -2260,7 +2260,7 @@ HYP_STRUCT()
 struct ShaderPropertySet
 {
     HYP_STRUCT_BODY(ShaderPropertySet);
-    
+
     static constexpr uint32 NumChunks = 8;
     static constexpr uint32 ChunkSize = sizeof(uint64);
     static constexpr uint32 ChunkSizeBits = ChunkSize * CHAR_BIT;
@@ -2481,7 +2481,7 @@ struct ShaderDesc
     ShaderPropertySet properties;
 
     ShaderDesc() = default;
-    
+
     explicit ShaderDesc(Name name)
         : name(name),
           properties{}

@@ -89,6 +89,8 @@
 
 namespace Hyperion {
 
+// @TODO Move below to EngineDriver
+
 static_assert(RingBufferDepth <= MinSafeDeleteCycles,
     "RingBufferDepth must be less than or equal to MinSafeDeleteCycles to ensure safe deletion of resources.");
 
@@ -337,7 +339,7 @@ struct ViewData
 
     ViewData(const ViewData& other) = delete;
     ViewData& operator=(const ViewData& other) = delete;
-    
+
     ViewData(ViewData&& other) noexcept = delete;
     ViewData& operator=(ViewData&& other) noexcept = delete;
 
@@ -389,6 +391,7 @@ struct ViewFrameData
 struct FrameData
 {
     HashMap<View*, ViewFrameData*> viewFrameData;
+    Array<World*> activeWorlds;
 
     Array<RenderProxyList*> ownedLists; // render thread side owned lists
     Array<RenderProxyList*> sharedLists;
@@ -618,9 +621,9 @@ static inline void SyncResourcesT(
     std::index_sequence<Indices...>)
 {
     (SyncResources(
-        resources,
-        static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*dstResourceTrackers[Indices]),
-        static_cast<const typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*srcResourceTrackers[Indices])),
+         resources,
+         static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*dstResourceTrackers[Indices]),
+         static_cast<const typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*srcResourceTrackers[Indices])),
         ...);
 }
 
@@ -814,6 +817,23 @@ WorldShaderData* GetWorldBufferData()
     return &s_frameData[*s_threadFrameIndex].worldBufferData;
 }
 
+void CommitActiveWorlds(Span<World*> activeWorlds)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    FrameData& frameData = s_frameData[s_frameIndex[PRODUCER]];
+    frameData.activeWorlds = Array<World*>(activeWorlds);
+}
+
+Span<World*> GetActiveWorlds()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread | g_renderThread);
+
+    return s_frameData[*s_threadFrameIndex].activeWorlds.ToSpan();
+}
+
 Viewport& GetViewport(View* view)
 {
     HYP_SCOPE;
@@ -873,7 +893,7 @@ RendererResult RenderInterface::Initialize()
     HYP_LOG(Rendering, Debug, "Init() called");
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
-    
+
     gpuBuffers.buffers[GRB_WORLDS] = gpuBufferHolders->GetOrCreate<WorldShaderData, GpuBufferType::CONSTANT_BUFFER>(16, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_CAMERAS] = gpuBufferHolders->GetOrCreate<CameraShaderData, GpuBufferType::CONSTANT_BUFFER>(1024, /* cpuAccessible */ true);
     gpuBuffers.buffers[GRB_LIGHTS] = gpuBufferHolders->GetOrCreate<LightShaderData, GpuBufferType::STORAGE_BUFFER>(1024, /* cpuAccessible */ false);
@@ -1045,7 +1065,7 @@ void RenderInterface::BeginFrame()
     }
 
     const uint32 slot = s_frameIndex[CONSUMER];
-    FrameData& fd = s_frameData[slot];
+    FrameData& frameData = s_frameData[slot];
 
     constantsAllocator->OnFrameStart();
     descriptorSetCache->OnFrameStart();
@@ -1057,7 +1077,7 @@ void RenderInterface::BeginFrame()
     Array<View*, RenderTempAllocator> activeViews;
 
     // collect views for worlds enqueued to be rendered
-    for (World* world : renderWorlds[slot])
+    for (World* world : frameData.activeWorlds)
     {
         for (View* view : world->GetViews())
         {
@@ -1075,7 +1095,7 @@ void RenderInterface::BeginFrame()
     }
 
     // ensure ViewData and render-side owned lists exists
-    for (auto& it : fd.viewFrameData)
+    for (auto& it : frameData.viewFrameData)
     {
         View* view = it.first;
         ViewFrameData& vfd = *it.second;
@@ -1088,22 +1108,22 @@ void RenderInterface::BeginFrame()
             vfd.viewData->AddRef();
 
             AssertDebug(vfd.rplShared != nullptr);
-            
-            fd.ownedLists.PushBack(vfd.viewData->rplRender);
-            fd.sharedLists.PushBack(vfd.rplShared);
+
+            frameData.ownedLists.PushBack(vfd.viewData->rplRender);
+            frameData.sharedLists.PushBack(vfd.rplShared);
         }
     }
 
     // copy deps to render side owned lists
-    AssertDebug(fd.ownedLists.Size() == fd.sharedLists.Size());
+    AssertDebug(frameData.ownedLists.Size() == frameData.sharedLists.Size());
 
-    for (SizeType i = 0; i < fd.ownedLists.Size(); i++)
+    for (SizeType i = 0; i < frameData.ownedLists.Size(); i++)
     {
-        RenderProxyList* rplRender = fd.ownedLists[i];
+        RenderProxyList* rplRender = frameData.ownedLists[i];
         AssertDebug(rplRender != nullptr);
 
-        RenderProxyList* rplShared = fd.sharedLists[i];
-        
+        RenderProxyList* rplShared = frameData.sharedLists[i];
+
         // Advance render side owned lists ResourceTrackers before we copy dependencies over
         int resourceTrackerIndex = 0;
         StaticForEach<typename RenderProxyList::ResourceTrackerTypes>([rplRender, &resourceTrackerIndex]<class ResourceTrackerType>(TypeWrapper<ResourceTrackerType>)
@@ -1244,9 +1264,9 @@ void RenderInterface::BeginFrame()
         {
             continue;
         }
-        
+
         vd.rplRender->BeginRead();
-        
+
         vd.renderCollector.BuildRenderGroups(vd.view, *vd.rplRender);
 
         /// TODO: Use View's bucket mask property to pass to BuildDrawCalls().
@@ -1264,6 +1284,7 @@ void RenderInterface::EndFrame()
     const uint32 slot = s_frameIndex[CONSUMER];
 
     FrameData& frameData = s_frameData[slot];
+    frameData.activeWorlds.Clear();
 
     // cull ViewData that hasn't been written to for a while, as well as remove unused render groups.
     for (auto it = frameData.viewFrameData.Begin(); it != frameData.viewFrameData.End();)
@@ -1441,89 +1462,88 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     switch (psoType)
     {
     case PSO_Graphics:
+    {
+        GraphicsPipeline* pipeline = nullptr;
+
+        if (!state.prevGraphicsPipeline
+            || !state.prevGraphicsPipeline->MatchesSignature(
+                state.attributes,
+                state.renderTargetDesc))
         {
-            GraphicsPipeline* pipeline = nullptr;
-            
-            if (!state.prevGraphicsPipeline
-                || !state.prevGraphicsPipeline->MatchesSignature(
-                        state.attributes,
-                        state.renderTargetDesc
-                    ))
-            {
-                GraphicsPipelineCacheHandle cacheHandle;
-                
-                graphicsPipelineCache->GetOrCreate(
-                    state.attributes,
-                    state.renderTargetDesc,
-                    cacheHandle);
+            GraphicsPipelineCacheHandle cacheHandle;
 
-                pipeline = *cacheHandle;
+            graphicsPipelineCache->GetOrCreate(
+                state.attributes,
+                state.renderTargetDesc,
+                cacheHandle);
 
-                BindGraphicsPipeline bindCmd(pipeline, state.viewport);
-                BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
+            pipeline = *cacheHandle;
 
-                state.prevGraphicsPipeline = pipeline;
-                pipelineChanged = true;
-            }
-            else
-            {
-                pipeline = state.prevGraphicsPipeline;
-            }
+            BindGraphicsPipeline bindCmd(pipeline, state.viewport);
+            BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
 
-            shader = pipeline->GetShader();
+            state.prevGraphicsPipeline = pipeline;
+            pipelineChanged = true;
+        }
+        else
+        {
+            pipeline = state.prevGraphicsPipeline;
         }
 
-        break;
+        shader = pipeline->GetShader();
+    }
+
+    break;
 
     case PSO_Compute:
+    {
+        ComputePipeline* pipeline = nullptr;
+
+        if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
         {
-            ComputePipeline* pipeline = nullptr;
+            pipeline = computePipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
+            AssertDebug(pipeline != nullptr);
 
-            if (!state.prevComputePipeline || !state.prevComputePipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
-            {
-                pipeline = computePipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
-                AssertDebug(pipeline != nullptr);
+            BindComputePipeline bindCmd(pipeline);
+            BindComputePipeline::InvokeStatic(&bindCmd, commandBuffer);
 
-                BindComputePipeline bindCmd(pipeline);
-                BindComputePipeline::InvokeStatic(&bindCmd, commandBuffer);
-
-                state.prevComputePipeline = pipeline;
-                pipelineChanged = true;
-            }
-            else
-            {
-                pipeline = state.prevComputePipeline;
-            }
-
-            shader = pipeline->GetShader();
+            state.prevComputePipeline = pipeline;
+            pipelineChanged = true;
+        }
+        else
+        {
+            pipeline = state.prevComputePipeline;
         }
 
-        break;
+        shader = pipeline->GetShader();
+    }
+
+    break;
 
     case PSO_RayTracing:
+    {
+        RayTracingPipeline* pipeline = nullptr;
+
+        if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
         {
-            RayTracingPipeline* pipeline = nullptr;
+            pipeline = rayTracingPipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
+            AssertDebug(pipeline != nullptr);
 
-            if (!state.prevRayTracingPipeline || !state.prevRayTracingPipeline->MatchesSignature(ShaderDesc(state.attributes.GetShaderName(), state.attributes.GetShaderProperties())))
-            {
-                pipeline = rayTracingPipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
-                AssertDebug(pipeline != nullptr);
+            BindRayTracingPipeline bindCmd(pipeline);
+            BindRayTracingPipeline::InvokeStatic(&bindCmd, commandBuffer);
 
-                BindRayTracingPipeline bindCmd(pipeline);
-                BindRayTracingPipeline::InvokeStatic(&bindCmd, commandBuffer);
-
-                state.prevRayTracingPipeline = pipeline;
-                pipelineChanged = true;
-            }
-            else
-            {
-                pipeline = state.prevRayTracingPipeline;
-            }
-
-            shader = pipeline->GetShader();
+            state.prevRayTracingPipeline = pipeline;
+            pipelineChanged = true;
+        }
+        else
+        {
+            pipeline = state.prevRayTracingPipeline;
         }
 
-        break;
+        shader = pipeline->GetShader();
+    }
+
+    break;
 
     default:
         HYP_UNREACHABLE();
@@ -1538,7 +1558,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         // invalidate all uniforms on pipeline change
         state.dirtyUniforms |= (state.validUniforms | state.dirtyBufferOffsets);
         state.validUniforms = 0;
-        
+
         Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
     }
 
@@ -1565,7 +1585,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             {
                 const DescriptorSetDeclaration* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(dsDecl.name);
                 AssertDebug(refDsDecl != nullptr);
-                    
+
                 DescriptorSetLayout layout { refDsDecl };
                 return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
             }
@@ -1580,7 +1600,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
         }
     };
-    
+
     constexpr uint32 MaxDynamicOffsetsPerSet = 16;
     constexpr uint32 MaxDescriptorSetsBound = 4;
 
@@ -1597,7 +1617,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     ShaderInputType uniformIndexToShaderInputType[RenderInterface::State::MaxShaderUniforms];
     Memory::Fill(uniformIndexToShaderInputType, 0, sizeof(uniformIndexToShaderInputType));
 
-    uint8 dsStates[MaxDescriptorSetsBound] = { };
+    uint8 dsStates[MaxDescriptorSetsBound] = {};
     uint8 dsIndices = 0;
 
     // set up uniform index to sets mapping
@@ -1651,11 +1671,11 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             {
                 setsToBind[setIndex] = FetchDescriptorSet(*foundSetDecl, dsStates[setIndex]);
                 AssertDebug(setsToBind[setIndex] != nullptr);
-                
+
                 dsStates[setIndex] |= DSS_Dirty;
             }
         }
-        
+
         if (IS_BIT_SET(state.dirtyBufferOffsets, uniformIndex))
         {
             if (!setsToBind[setIndex])
@@ -1693,7 +1713,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             state.dirtyUniforms |= (1u << uniformIndex);
 
-            //state.validUniforms &= ~(1u << uniformIndex);
+            // state.validUniforms &= ~(1u << uniformIndex);
         }
     }
 
@@ -1709,7 +1729,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             state.dirtyBufferOffsets |= (1u << uniformIndex);
 
-            //state.validUniforms &= ~(1u << uniformIndex);
+            // state.validUniforms &= ~(1u << uniformIndex);
         }
     }
 
@@ -1732,7 +1752,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         const ResourceState desiredResourceState = inputType == ShaderInputType::IMAGE
             ? RS_SHADER_RESOURCE
             : RS_UNORDERED_ACCESS;
-        
+
         // normalize counts
         ImageSubResource subResource = imageView->GetImageSubResource();
         subResource.numLayers = MathUtil::Min(subResource.numLayers, image->NumArrayLayers() - subResource.baseArrayLayer);
@@ -1760,7 +1780,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                         currSubResource.numLevels = 1;
                         currSubResource.baseArrayLayer = layerIndex;
                         currSubResource.numLayers = 1;
-                        
+
                         const ResourceState currResourceState = image->GetSubResourceState(currSubResource);
 
                         if (currResourceState != desiredResourceState)
@@ -1870,7 +1890,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         dirtyUniforms.PushBack(Name(state.shaderUniforms[bit].name));
     }
-    
+
     Array<Name, RenderTempAllocator> validUniforms;
     validUniforms.Reserve(State::MaxShaderUniforms);
 
@@ -1878,7 +1898,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         validUniforms.PushBack(Name(state.shaderUniforms[bit].name));
     }
-    
+
     // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)
     for (uint32 setIndex = 0; setIndex < uint32(tableDecl->elements.Size()); setIndex++)
     {
@@ -1902,7 +1922,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     for (uint8 setIndex = 0; setIndex < MaxDescriptorSetsBound; setIndex++)
     {
         DescriptorSet* ds = setsToBind[setIndex];
-            
+
         if (!ds)
         {
             continue;
@@ -2041,7 +2061,7 @@ void RenderInterface::CreateSphereSamplesBuffer()
 void RenderInterface::CreateEnvProbesTexture()
 {
     TextureDesc textureDesc;
-    textureDesc.format = TF_RGBA8;
+    textureDesc.format = TF_RGBA16F;
     textureDesc.extent = Vec3u { 128, 128, 1 };
     textureDesc.imageUsage = IU_SAMPLED;
     textureDesc.type = TT_CUBEMAP_ARRAY;
@@ -2088,6 +2108,6 @@ DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, GRB_INVALID, nullptr, &s_textu
 
 DECLARE_RENDER_DATA_CONTAINER(Skeleton, RenderProxySkeleton, GRB_SKELETONS, nullptr, &s_skeletonBinder);
 
-}
+} // namespace
 
 } // namespace Hyperion

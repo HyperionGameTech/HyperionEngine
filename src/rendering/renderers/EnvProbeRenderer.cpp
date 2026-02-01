@@ -327,8 +327,11 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
         subResource.numLevels = 1;
         subResource.baseArrayLayer = 0;
         subResource.numLayers = 6;
-        
-        const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(prefilteredEnvMap, subResource);
+
+        // create the view as 2D array instead of cubemap
+        const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(
+            prefilteredEnvMap, subResource, TextureType::TT_TEX2D_ARRAY);
+
         Assert(imageView != nullptr);
 
         frame->renderQueue << InsertBarrier(prefilteredEnvMap->GetGpuImage(), RS_UNORDERED_ACCESS, subResource);
@@ -369,7 +372,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                 {
                     break;
                 }
-            
+
                 ImageSubResource srcSubResource {};
                 srcSubResource.baseMipLevel = mipIndex;
                 srcSubResource.numLevels = 1;
@@ -390,12 +393,10 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
                     dstImage,
                     Rect<uint32> {
                         0, 0,
-                        srcMipExtent.x, srcMipExtent.y
-                    },
+                        srcMipExtent.x, srcMipExtent.y },
                     Rect<uint32> {
                         0, 0,
-                        dstMipExtent.x, dstMipExtent.y
-                    },
+                        dstMipExtent.x, dstMipExtent.y },
                     srcSubResource,
                     dstSubResource);
             }
@@ -406,9 +407,8 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     }
 
     DelegateHandler* delegateHandle = new DelegateHandler();
-    *delegateHandle = frame->OnFrameEnd.Bind([
-        delegateHandle,
-        buffers = std::move(buffers)](...) mutable
+    *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle,
+                                                 buffers = std::move(buffers)](...) mutable
         {
             SafeDelete(std::move(buffers));
 
@@ -516,7 +516,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         ShaderPropertySet passShaderProperties;
         passShaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MODE"), mode)));
         passShaderProperties = passShaderProperties | shaderProperties;
-        
+
         ShaderDesc shaderDesc(NAME("ComputeSH"), passShaderProperties);
         asyncRenderQueue << SetCurrentShader(shaderDesc);
 
@@ -529,7 +529,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
         asyncRenderQueue << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
         asyncRenderQueue << SetShaderUniform(2, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
         asyncRenderQueue << SetShaderUniform(3, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()));
-        
+
         if (skyProbe)
             asyncRenderQueue << SetShaderUniform(4, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), TShaderDataOffset<EnvProbeShaderData>(skyProbe));
         else
@@ -609,11 +609,10 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
     asyncRenderQueue << InsertBarrier(g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, ShaderModuleType::Compute);
 
     asyncCompute->OnCompleted
-        .Bind([
-            asyncCompute,
-            envProbe = MakeStrongRef(envProbe),
-            shTilesBuffers = std::move(shTilesBuffers),
-            uniformBuffers = std::move(uniformBuffers)]() mutable
+        .Bind([asyncCompute,
+                  envProbe = MakeStrongRef(envProbe),
+                  shTilesBuffers = std::move(shTilesBuffers),
+                  uniformBuffers = std::move(uniformBuffers)]() mutable
             {
                 const uint32 boundIndex = RetrieveResourceBinding(envProbe);
                 Assert(boundIndex != ~0u);

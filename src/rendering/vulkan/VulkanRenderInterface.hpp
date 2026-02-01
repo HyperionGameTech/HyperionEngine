@@ -116,8 +116,8 @@ public:
 
     VulkanFrame* PrepareNextFrame() override;
 
-    VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window);
-    
+    VulkanSwapchainRef CreateSwapchain(ApplicationWindow* window) override;
+
     void PrepareSwapchain(VulkanSwapchain* swapchain) override;
     void SubmitCommandBuffers(VulkanSwapchain* swapchain) override;
     void PresentToSwapchain(VulkanSwapchain* swapchain) override;
@@ -219,4 +219,3 @@ private:
 };
 
 } // namespace Hyperion
-

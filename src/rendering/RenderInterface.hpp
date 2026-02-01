@@ -57,7 +57,6 @@ struct CompiledShader;
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
 
-
 extern ResourceBinderBase* g_meshEntityBinder;
 extern ResourceBinderBase* g_meshBinder;
 extern ResourceBinderBase* g_cameraBinder;
@@ -112,6 +111,9 @@ uint32 RetrieveResourceBinding(const ObjectBase* resource);
 void SetForceRebind(ObjectBase* resource, bool forceRebind = true);
 
 WorldShaderData* GetWorldBufferData();
+
+void CommitActiveWorlds(Span<World*> activeWorlds);
+Span<World*> GetActiveWorlds();
 
 Viewport& GetViewport(View* view);
 
@@ -182,7 +184,7 @@ public:
         ShaderUniform shaderUniforms[MaxShaderUniforms] {};
         uint32 validUniforms = 0;
         uint32 dirtyUniforms = 0;
-        
+
         uint32 shaderUniformBufferOffsets[MaxShaderUniforms] {};
         uint32 shaderUniformBufferOffsetStrides[MaxShaderUniforms] {};
         uint32 dirtyBufferOffsets = 0;
@@ -192,7 +194,7 @@ public:
         uint8 stencilReference = 0;
         uint8 stencilCompareMask = 0xFF;
         uint8 stencilWriteMask = 0x0;
-        
+
         union
         {
             GraphicsPipeline* prevGraphicsPipeline = nullptr;
@@ -201,7 +203,7 @@ public:
         };
 
         PSOType prevPsoType = PSO_Graphics;
-        
+
         void Reset()
         {
             attributes = {};
@@ -209,25 +211,25 @@ public:
             dirtyUniforms = 0;
             dirtyBufferOffsets = 0;
             renderTargetDesc = {};
-            
+
             Memory::Fill(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
 
             stencilReference = 0;
             stencilCompareMask = 0xFF;
             stencilWriteMask = 0x0;
-            
+
             prevPsoType = PSO_Graphics;
             prevGraphicsPipeline = nullptr;
         }
     };
 
     RenderInterface();
-    
+
     RenderInterface(const RenderInterface& other) = delete;
     RenderInterface& operator=(const RenderInterface& other) = delete;
 
     virtual ~RenderInterface();
-    
+
     virtual RendererResult Initialize();
     virtual RendererResult Shutdown();
 
@@ -240,7 +242,7 @@ public:
     {
         CommitPipelineState(PSO_Graphics, commandBuffer);
     }
-    
+
     void CommitPipelineState(PSOType psoType, CommandBuffer* commandBuffer);
 
     virtual const IRenderConfig& GetRenderConfig() const = 0;
@@ -330,7 +332,7 @@ public:
     Array<RendererBase*> globalRenderers[GRT_MAX];
 
     GlobalGpuBuffers gpuBuffers;
-    
+
     GpuBufferRef blueNoiseBuffer;
     GpuBufferRef sphereSamplesBuffer;
 
@@ -346,10 +348,10 @@ public:
 
     TextureViewCache* textureViewCache;
 
-    Array<World*> renderWorlds[RingBufferDepth];
+    Span<World*> worldsToRender;
 
     State state;
-    
+
     DescriptorSetCache* descriptorSetCache;
 
     struct ResourceContainer* resources;

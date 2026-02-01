@@ -46,7 +46,6 @@ struct VulkanAttachmentMap
     }
 
     RendererResult Create();
-    RendererResult Resize(Vec2u newSize);
 
     void Reset()
     {
@@ -93,8 +92,7 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 VulkanGpuImageRef(attachment->GetImage()),
-                attachment
-            });
+                attachment });
 
         return attachment;
     }
@@ -126,8 +124,7 @@ struct VulkanAttachmentMap
                 .loadOp = loadOp,
                 .storeOp = storeOp,
                 .blendFunction = BlendFunction::None(),
-                .clearColor = {}
-            });
+                .clearColor = {} });
 
         attachment->SetBinding(binding);
 
@@ -135,8 +132,7 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 image,
-                attachment
-            });
+                attachment });
 
         return attachment;
     }
@@ -195,8 +191,6 @@ public:
     bool IsCreated() const override;
 
     RendererResult Create() override;
-
-    RendererResult Resize(Vec2u newSize) override;
 
     void BeginCapture(VulkanCommandBuffer* commandBuffer) override;
     void EndCapture(VulkanCommandBuffer* commandBuffer) override;

@@ -26,7 +26,7 @@ public:
     {
     }
 
-    ~GenericPipelineCache()
+    virtual ~GenericPipelineCache()
     {
         Clear();
     }
@@ -69,9 +69,9 @@ private:
     PipelineMap m_keyToIndex;
 
     IdGenerator m_idGenerator;
-    
+
     typename PipelineStorage::Iterator m_cleanupIterator;
-    
+
     mutable SharedMutex m_mutex;
     uint32 m_discardFrames;
 };

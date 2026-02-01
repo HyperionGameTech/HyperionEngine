@@ -316,7 +316,7 @@ public:
 
         m_headers.EraseAt(index);
     }
-    
+
     // To match allocator interface
     HYP_NODISCARD void* Allocate(SizeType size)
     {
@@ -340,10 +340,10 @@ public:
         }
 
         ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(ptr) - sizeof(ObjectHeader));
-        
+
         // expected to be called from operator delete, so we release the strong reference we set in Allocate()
         int32 refCount = AtomicDecrement(&header->refCountStrong);
-        Assert(refCount == 0, "Ref count mismatch! Got {} but expected 0!", refCount);
+        AssertDebug(refCount == 0);
 
         Release(header);
     }

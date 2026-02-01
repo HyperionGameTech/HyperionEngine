@@ -23,7 +23,8 @@ extern VulkanRenderInterface* g_renderInterface;
 
 VulkanGpuImageView::VulkanGpuImageView(const VulkanGpuImageRef& image)
     : GpuImageViewBase(image),
-      m_handle(VK_NULL_HANDLE)
+      m_handle(VK_NULL_HANDLE),
+      m_viewType(VK_IMAGE_VIEW_TYPE_MAX_ENUM)
 {
 }
 
@@ -31,7 +32,18 @@ VulkanGpuImageView::VulkanGpuImageView(
     const VulkanGpuImageRef& image,
     const ImageSubResource& subResource)
     : GpuImageViewBase(image, subResource),
-      m_handle(VK_NULL_HANDLE)
+      m_handle(VK_NULL_HANDLE),
+      m_viewType(VK_IMAGE_VIEW_TYPE_MAX_ENUM)
+{
+}
+
+VulkanGpuImageView::VulkanGpuImageView(
+    const VulkanGpuImageRef& image,
+    const ImageSubResource& subResource,
+    VkImageViewType viewType)
+    : GpuImageViewBase(image, subResource),
+      m_handle(VK_NULL_HANDLE),
+      m_viewType(viewType)
 {
 }
 
@@ -69,9 +81,16 @@ RendererResult VulkanGpuImageView::Create()
 
     Assert(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
 
+    if (m_viewType == VK_IMAGE_VIEW_TYPE_MAX_ENUM)
+    {
+        m_viewType = ToVkImageViewType(m_image->GetType());
+
+        // @TODO Check compatibility between view type and image type?
+    }
+
     VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
     viewInfo.image = static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle();
-    viewInfo.viewType = ToVkImageViewType(m_image->GetType());
+    viewInfo.viewType = m_viewType;
     viewInfo.format = ToVkFormat(m_image->GetTextureFormat());
 
     viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;

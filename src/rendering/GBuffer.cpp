@@ -38,11 +38,11 @@ struct GBufferTargetDesc
 };
 
 static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
-    GBufferTargetDesc { TF_RGBA16F },                       // color
-    GBufferTargetDesc { TF_R10G10B10A2 },                   // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
-    GBufferTargetDesc { TF_RGBA32 },                        // material data
-    GBufferTargetDesc { TF_RG16F },                         // velocity
-    GBufferTargetDesc { TF_DEPTH_24_S8, TF_DEPTH_32F_S8 }   // depth
+    GBufferTargetDesc { TF_RGBA16F },                     // color
+    GBufferTargetDesc { TF_R10G10B10A2 },                 // normal: https://johnwhite3d.blogspot.com/2017/10/signed-octahedron-normal-encoding.html
+    GBufferTargetDesc { TF_RGBA32 },                      // material data
+    GBufferTargetDesc { TF_RG16F },                       // velocity
+    GBufferTargetDesc { TF_DEPTH_24_S8, TF_DEPTH_32F_S8 } // depth
 };
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
@@ -71,8 +71,6 @@ GBuffer::GBuffer(Vec2u extent)
         m_buckets[bucketIndex].SetGBuffer(this);
         m_buckets[bucketIndex].SetBucket(rb);
     }
-
-    CreateBucketFramebuffers();
 }
 
 GBuffer::~GBuffer()
@@ -97,10 +95,7 @@ void GBuffer::Create()
 
     HYP_LOG(Rendering, Debug, "Creating GBuffer with resolution {}", m_extent);
 
-    for (const FramebufferRef& framebuffer : m_framebuffers)
-    {
-        CheckResult(framebuffer->Create());
-    }
+    CreateBucketFramebuffers();
 
     m_isCreated = true;
 }
@@ -245,6 +240,8 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
             AddSharedAttachment(i);
         }
     }
+
+    CheckResult(framebuffer->Create());
 
     m_framebuffers.PushBack(framebuffer);
 

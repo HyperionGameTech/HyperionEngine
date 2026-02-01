@@ -39,7 +39,7 @@ public:
     {
         return std::memmove(dest, src, size);
     }
-    
+
     template <class T>
     HYP_FORCE_INLINE static void* Fill(T* dest, ubyte ch, SizeType size)
     {
@@ -334,6 +334,27 @@ public:
             // Use aligned allocation if alignment is greater than max alignment
             return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T) * count, alignof(T)));
         }
+    }
+
+    HYP_FORCE_INLINE static void* AllocateAligned(SizeType count, SizeType alignment)
+    {
+        return HYP_ALLOC_ALIGNED(count, alignment);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE static T* AllocateAligned(SizeType count, SizeType alignment)
+    {
+        if (count == 0)
+        {
+            return nullptr;
+        }
+
+        return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T) * count, alignment));
+    }
+
+    HYP_FORCE_INLINE static void FreeAligned(void* ptr)
+    {
+        HYP_FREE_ALIGNED(ptr);
     }
 };
 

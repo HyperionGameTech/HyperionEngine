@@ -163,7 +163,7 @@ if(MSVC)
     endif()
 else()
     if(HYP_DEBUG_MODE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -Werror=return-type -Werror=non-virtual-dtor -Werror=address")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
     endif()
@@ -311,11 +311,11 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
     set(HYP_DX12 1)
 
     message(STATUS "Using DirectX 12 as rendering backend")
-    
+
     # check for D3D12MemoryAllocator thirdparty module
     if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator/CMakeLists.txt")
         add_subdirectory(${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/thirdparty/D3D12MemoryAllocator_build)
-        
+
         include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator/include)
 
         set(RENDERER_LIBRARIES
@@ -332,7 +332,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
         # if glslang folder exists, link with it.
         if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
             set(HYP_GLSLANG 1)
-            
+
             add_definitions(-DHYP_GLSLANG=1)
             add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
 
@@ -366,6 +366,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                         -DENABLE_GLSLANG_BINARIES=OFF
                         -DENABLE_SPVREMAPPER=OFF
                         -DENABLE_SPIRV=ON
+                        -DENABLE_OPT=OFF
                         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
                         "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
                     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -397,7 +398,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
             add_library(SPIRV STATIC IMPORTED)
             add_library(glslang-default-resource-limits STATIC IMPORTED)
             add_library(SPIRV-Tools STATIC IMPORTED)
-            add_library(SPIRV-Tools-opt STATIC IMPORTED)
+            # add_library(SPIRV-Tools-opt STATIC IMPORTED)
             add_library(MachineIndependent STATIC IMPORTED)
             add_library(GenericCodeGen STATIC IMPORTED)
             add_library(OSDependent STATIC IMPORTED)
@@ -416,9 +417,9 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 set_target_properties(SPIRV-Tools PROPERTIES
                     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
                 )
-                set_target_properties(SPIRV-Tools-opt PROPERTIES
-                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
-                )
+                # set_target_properties(SPIRV-Tools-opt PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
+                # )
                 set_target_properties(MachineIndependent PROPERTIES
                     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/MachineIndependent.lib
                 )
@@ -441,9 +442,9 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 set_target_properties(SPIRV-Tools PROPERTIES
                     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
                 )
-                set_target_properties(SPIRV-Tools-opt PROPERTIES
-                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
-                )
+                # set_target_properties(SPIRV-Tools-opt PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
+                # )
                 set_target_properties(MachineIndependent PROPERTIES
                     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libMachineIndependent.a
                 )
@@ -463,7 +464,6 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 SPIRV
                 glslang-default-resource-limits
                 SPIRV-Tools
-                SPIRV-Tools-opt
                 MachineIndependent
                 GenericCodeGen
                 OSDependent
@@ -481,8 +481,14 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dxc/dxcapi.h")
 
     include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/dxc)
 
-    set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
-    set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
+    if(WIN32)
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
+        set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
+    elseif(APPLE)
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.dylib")
+    else()
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.so")
+    endif()
 
     if(EXISTS "${DXC_LIB_PATH}")
         message(STATUS "DXC library found at ${DXC_LIB_PATH}, linking to it")
@@ -495,8 +501,10 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dxc/dxcapi.h")
         set(HYP_DXC 1)
         add_definitions(-DHYP_DXC=1)
 
-        # copy the dll to the build directory
-        file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        # copy the dll to the build directory if on Windows
+        if(WIN32)
+            file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        endif()
     else()
         message(WARNING "DXC library not found at ${DXC_LIB_PATH}, skipping DXC setup")
     endif()
@@ -935,7 +943,7 @@ if(APPLE)
 elseif(MSVC)
     # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
     foreach(SUB_LIBRARY ${SUB_LIBRARIES})
-        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor") 
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
             target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
         else()
             target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})

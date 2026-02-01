@@ -87,105 +87,6 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
-    VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
-
-    if (frame != nullptr)
-    {
-        RenderQueue& renderQueue = frame->preRenderQueue;
-
-        TransitionFramebufferAttachments(renderQueue, framebuffer, attachmentDefs.ToSpan());
-
-        return {};
-    }
-
-    UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
-
-    singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
-        {
-            TransitionFramebufferAttachments(renderQueue, framebuffer, attachmentDefs.ToSpan());
-
-            return {};
-        });
-
-    return singleTimeCommands->Execute();
-}
-
-RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
-{
-    VulkanFramebufferRef framebuffer = framebufferWeak.Lock();
-    if (!framebuffer.IsValid())
-    {
-        return HYP_MAKE_ERROR(RendererError, "Framebuffer is not valid");
-    }
-
-    Array<VulkanAttachmentDef*> attachmentDefs;
-
-    for (KeyValuePair<uint32, VulkanAttachmentDef>& it : attachments)
-    {
-        VulkanAttachmentDef& def = it.second;
-
-        Assert(def.image.IsValid());
-
-        VulkanGpuImageRef newImage = def.image;
-
-        if (def.attachment->GetFramebuffer() == framebufferWeak)
-        {
-            TextureDesc textureDesc = def.image->GetTextureDesc();
-            textureDesc.extent = Vec3u { newSize.x, newSize.y, 1 };
-
-            newImage = MakeHandle<VulkanGpuImage>(textureDesc);
-            newImage->SetDebugName(def.image->GetDebugName());
-            Assert(newImage->Create());
-
-            if (def.image.IsValid())
-            {
-                SafeDelete(std::move(def.image));
-            }
-        }
-        else
-        {
-            if (def.image->GetExtent().GetXY() != newSize)
-            {
-                return HYP_MAKE_ERROR(RendererError, "Expected image to have a size matching {} but got size: {}", 0,
-                    newSize, def.image->GetExtent().GetXY());
-            }
-        }
-
-        VulkanAttachment* newAttachment = new VulkanAttachment(
-            newImage,
-            framebufferWeak,
-            framebuffer->GetRenderPassMode(),
-            def.attachment->GetAttachmentDesc());
-
-        newAttachment->SetBinding(def.attachment->GetBinding());
-
-        Assert(newAttachment->Create());
-
-        if (def.attachment != nullptr)
-        {
-            delete def.attachment;
-        }
-
-        def = VulkanAttachmentDef {
-            std::move(newImage),
-            newAttachment
-        };
-
-        attachmentDefs.PushBack(&def);
-    }
-
-    VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
-
-    // frame may be nullptr if we are creating a swapchain
-    if (frame != nullptr)
-    {
-        RenderQueue& renderQueue = frame->renderQueue;
-
-        TransitionFramebufferAttachments(renderQueue, framebuffer, attachmentDefs.ToSpan());
-
-        return {};
-    }
-
     UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue) -> RendererResult
@@ -223,7 +124,7 @@ VulkanFramebuffer::~VulkanFramebuffer()
         m_handle = VK_NULL_HANDLE;
     }
 
-    SafeDelete(std::move(m_renderPass));
+    m_renderPass.Reset();
 
     m_attachmentMap.Reset();
 }
@@ -251,7 +152,7 @@ RendererResult VulkanFramebuffer::Create()
         Assert(def.attachment != nullptr);
         m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
     }
-    
+
     m_renderPass = MakeHandle<VulkanRenderPass>(m_renderTargetDesc, m_renderPassMode);
     CheckResultOrReturn(m_renderPass->Create());
 
@@ -292,17 +193,6 @@ RendererResult VulkanFramebuffer::Create()
 
     if (shouldClearFramebuffer)
     {
-        VulkanFrame* frame = g_renderInterface->GetCurrentFrame();
-
-        // clear in current frame
-        if (frame != nullptr)
-        {
-            RenderQueue& renderQueue = frame->renderQueue;
-            renderQueue << ClearFramebuffer(this);
-
-            return {};
-        }
-
         UniquePtr<SingleTimeCommands> singleTimeCommands = g_renderInterface->GetSingleTimeCommands();
 
         singleTimeCommands->Push([this](RenderQueue& renderQueue) -> RendererResult
@@ -320,62 +210,6 @@ RendererResult VulkanFramebuffer::Create()
     }
 
     // ok
-    return {};
-}
-
-RendererResult VulkanFramebuffer::Resize(Vec2u newSize)
-{
-    if (GetExtent() == newSize)
-    {
-        return {};
-    }
-
-    m_renderTargetDesc.extent = newSize;
-
-    if (!IsCreated())
-    {
-        return {};
-    }
-
-    CheckResultOrReturn(m_attachmentMap.Resize(newSize));
-
-    if (m_handle != VK_NULL_HANDLE)
-    {
-        vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
-        m_handle = VK_NULL_HANDLE;
-    }
-
-    Array<VkImageView> attachmentImageViews;
-    attachmentImageViews.Reserve(m_attachmentMap.attachments.Size());
-
-    uint32 numLayers = 1;
-
-    for (const auto& it : m_attachmentMap.attachments)
-    {
-        Assert(it.second.attachment != nullptr);
-        Assert(it.second.attachment->GetImageView() != nullptr);
-        Assert(it.second.attachment->GetImageView()->IsCreated());
-
-        attachmentImageViews.PushBack(it.second.attachment->GetImageView()->GetVulkanHandle());
-    }
-
-    VkFramebufferCreateInfo framebufferCreateInfo { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-    framebufferCreateInfo.renderPass = m_renderPass->GetVulkanHandle();
-    framebufferCreateInfo.attachmentCount = uint32(attachmentImageViews.Size());
-    framebufferCreateInfo.pAttachments = attachmentImageViews.Data();
-    framebufferCreateInfo.width = newSize.x;
-    framebufferCreateInfo.height = newSize.y;
-    framebufferCreateInfo.layers = numLayers;
-
-    VULKAN_CHECK(vkCreateFramebuffer(
-        g_renderInterface->GetDevice()->GetDevice(),
-        &framebufferCreateInfo,
-        nullptr,
-        &m_handle));
-
-    RenderQueue& renderQueue = g_renderInterface->GetCurrentFrame()->preRenderQueue;
-    renderQueue << ClearFramebuffer(this);
-
     return {};
 }
 
@@ -411,8 +245,7 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
             .loadOp = loadOp,
             .storeOp = storeOp,
             .blendFunction = BlendFunction::None(),
-            .clearColor = { }
-        });
+            .clearColor = {} });
 
     attachment->SetBinding(binding);
 

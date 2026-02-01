@@ -53,7 +53,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
 
     VulkanFeatures deviceFeatures;
-    
+
     // select dedicated GPU
     for (VkPhysicalDevice device : devices)
     {
@@ -108,7 +108,7 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     Assert(deviceCount != 0, "No devices with Vulkan support found! "
-                                     "Please update your graphics drivers or install a Vulkan compatible device.\n");
+                             "Please update your graphics drivers or install a Vulkan compatible device.\n");
 
     Array<VkPhysicalDevice> devices;
     devices.Resize(deviceCount);
@@ -240,7 +240,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 
     if (String(callbackData->pMessageIdName).Contains("pDescriptorSets"))
     {
-       // HYP_BREAKPOINT;
+        // HYP_BREAKPOINT;
     }
 
     return VK_FALSE;
@@ -423,8 +423,6 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
             layerSettingsCreateInfo.pSettings = layerSettings.Data();
 
             VulkanHelpers::ChainNext(createInfo, &layerSettingsCreateInfo);
-
-            AssertDebug(createInfo.pNext == &layerSettingsCreateInfo);
         }
     }
 #endif

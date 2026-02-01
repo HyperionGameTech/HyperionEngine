@@ -19,13 +19,12 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <rendering/RenderBackend.hpp>
-
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_metal.h>
 
 #include <rendering/vulkan/VulkanInstance.hpp>
+#include <rendering/vulkan/VulkanRenderInterface.hpp>
 #endif
 
 namespace Hyperion {
@@ -361,7 +360,7 @@ VkSurfaceKHR CocoaAppContext::CreateVulkanSurface(
     }
 
     VkResult vkResult = vkCreateMetalSurfaceEXT(
-        g_renderBackend->GetInstance()->GetInstance(),
+        g_renderInterface->GetInstance()->GetInstance(),
         &createInfo,
         nullptr,
         &surface);

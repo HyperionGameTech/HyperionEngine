@@ -49,7 +49,20 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
     return GetOrCreate(texture, subResource);
 }
 
-const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(Texture* texture, const ImageSubResource& subResource)
+const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
+    Texture* texture,
+    const ImageSubResource& subResource)
+{
+    Assert(texture != nullptr);
+
+    // Create view to match texture type
+    return GetOrCreate(texture, subResource, texture->GetType());
+}
+
+const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
+    Texture* texture,
+    const ImageSubResource& subResource,
+    TextureType viewTextureType)
 {
     AssertOnThread(g_renderThread);
 
@@ -76,7 +89,7 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(Texture* textur
     if (it == textureImageViews.End())
     {
         VulkanGpuImageViewRef imageView = MakeHandle<VulkanGpuImageView>(
-            texture->GetGpuImage(), subResource);
+            texture->GetGpuImage(), subResource, ToVkImageViewType(viewTextureType));
 
         Assert(imageView->Create());
 

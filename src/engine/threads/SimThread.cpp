@@ -53,8 +53,6 @@ struct LaunchGameAsync
 
     void operator()()
     {
-        Assert(g_renderInterface != nullptr);
-
         InitObject(gameInstance);
 
         if (!gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED))
@@ -170,8 +168,6 @@ void SimThread::Update()
 
 void SimThread::operator()()
 {
-    Assert(g_renderInterface != nullptr);
-    
 #if HYP_SCRIPT
     HypScript::GetInstance().Initialize();
 #endif

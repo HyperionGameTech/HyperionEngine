@@ -97,12 +97,8 @@ public:
 
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     TBitset()
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_blocks(m_pAllocator)
+        : TBitset(GetDefaultAllocatorInstance<AllocatorType>(), 0)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-        m_blocks = CreateBlocks_Static_Internal<AllocatorType, 0>();
     }
 
     explicit TBitset(AllocatorType* pAllocator, uint64 value = 0);
@@ -110,12 +106,8 @@ public:
     /*! \brief Constructs a bitset from a 64-bit unsigned integer. */
     template <bool ConditionalEnable = HasDefaultAllocatorInstance<AllocatorType>, typename = std::enable_if_t<ConditionalEnable>>
     explicit TBitset(uint64 value)
-        : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-          m_blocks(m_pAllocator)
+        : TBitset(GetDefaultAllocatorInstance<AllocatorType>(), value)
     {
-        HYP_CORE_ASSERT(m_pAllocator != nullptr);
-
-        m_blocks = CreateBlocks_Internal<AllocatorType>(value);
     }
 
     TBitset(const TBitset& other);
@@ -936,9 +928,9 @@ using Bitset = DynamicBitset;
 
 } // namespace containers
 
-using containers::TBitset;
-using containers::DynamicBitset;
 using containers::Bitset;
+using containers::DynamicBitset;
+using containers::TBitset;
 
 #pragma region Bitset format helper
 
