@@ -81,7 +81,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
-    float3x3 normal_matrix = (float3x3)entity.normal_matrix;
+    float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));//(float3x3)entity.normal_matrix;
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)

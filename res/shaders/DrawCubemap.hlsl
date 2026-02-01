@@ -97,11 +97,11 @@ VSOutput VSMain(VSInput input, uint ViewId : SV_ViewID, uint instanceId : SV_Ins
 #ifdef INSTANCING
     Entity currentEntity = entities[instanceId];
     float4x4 model_matrix = mul(entity_instance_batch.transforms[instanceId], currentEntity.model_matrix);
-    float3x3 normal_matrix = (float3x3)currentEntity.normal_matrix;
+    float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #else
     Entity currentEntity = entity;
     float4x4 model_matrix = entity.model_matrix;
-    float3x3 normal_matrix = (float3x3)entity.normal_matrix;
+    float3x3 normal_matrix = transpose(inverse((float3x3)model_matrix));
 #endif
 
 #if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)

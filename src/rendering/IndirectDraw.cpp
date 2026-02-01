@@ -464,6 +464,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 
     rq << DispatchCompute(Vec3u { numBatches, 1, 1 });
+    
+    rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 }
 
 void IndirectRenderer::RebuildDescriptors(Frame* frame)

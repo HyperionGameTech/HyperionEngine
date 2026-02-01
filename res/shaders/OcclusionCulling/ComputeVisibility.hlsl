@@ -43,9 +43,9 @@ struct ObjectInstance
 
 DECLARE_SRV(ComputeVisibility, ObjectInstancesBuffer) StructuredBuffer<ObjectInstance> instances;
 
-DECLARE_UAV(ComputeVisibility, IndirectDrawCommandsBuffer) RWStructuredBuffer<IndirectDrawCommand> indirect_draw_commands;
+DECLARE_UAV(ComputeVisibility, IndirectDrawCommandsBuffer) RWStructuredBuffer<IndirectDrawCommand> drawCommands;
 
-DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWStructuredBuffer<uint4> entityInstanceBatchDataRaw;
+DECLARE_UAV(ComputeVisibility, EntityInstanceBatchesBuffer) RWStructuredBuffer<uint4> entityInstanceBatchData;
 
 DECLARE_BUFFER(ComputeVisibility, ComputeVisibilityConstants) cbuffer ComputeVisibilityConstants
 {
@@ -72,7 +72,7 @@ float GetDepthAtTexel(float2 texcoord, int mip)
     float4 value = TEXEL_FETCH_2D_LOD(
         depth_pyramid_sampler,
         depth_pyramid,
-        clamp(int2(texcoord * float2(mip_dimensions - 1)), int2(0, 0), mip_dimensions - 1),
+        clamp(int2(texcoord * float2(mip_dimensions)), (int2)0, mip_dimensions - 1),
         mip);
 
     return value.r;
@@ -165,20 +165,16 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (is_visible)
     {
         uint instance_index;
-        InterlockedAdd(indirect_draw_commands[draw_command_index].instance_count, 1u, instance_index);
+        InterlockedAdd(drawCommands[draw_command_index].instance_count, 1u, instance_index);
 
         if (object_instance.batch_index != ~0u && instance_index < MAX_ENTITIES_PER_INSTANCE_BATCH)
         {
-            uint bufferOffsetWords = object_instance.batch_index * batch_stride / 4u;
+            uint bufferOffsetWords = object_instance.batch_index * batch_stride / 4;
             // `indices` member of EntityInstanceBatch has offset of 16 bytes (4 words)
-            uint indicesOffsetWords = bufferOffsetWords + 4u + instance_index;
-
-            const uint element_index = (indicesOffsetWords >> 2);
-            const uint component_index = (indicesOffsetWords & 3u);
-            const uint value = entity_id - 1u;
+            uint indicesOffsetWords = bufferOffsetWords + 4 + instance_index;
 
             uint oldValue;
-            InterlockedExchange(entityInstanceBatchDataRaw[element_index][component_index], value, oldValue);
+            InterlockedExchange(entityInstanceBatchData[indicesOffsetWords >> 2][indicesOffsetWords & 3], entity_id - 1u, oldValue);
         }
     }
 }

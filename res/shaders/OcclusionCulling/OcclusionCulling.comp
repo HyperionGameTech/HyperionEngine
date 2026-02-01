@@ -67,7 +67,7 @@ DECLARE_UAV(ObjectVisibility, EntityInstanceBatchesBuffer, standard = scalar) bu
     uvec4 entityInstanceBatchDataRaw[];
 };
 
-DECLARE_BUFFER(ObjectVisibility, ObjectVisibilityUniforms, standard = scalar) uniform ObjectVisibilityUniforms
+DECLARE_BUFFER(ObjectVisibility, ComputeVisibilityConstants, standard = scalar) uniform ComputeVisibilityConstants
 {
     uvec2 depth_pyramid_dimensions;
     uint batch_offset;
