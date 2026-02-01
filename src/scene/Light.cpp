@@ -340,7 +340,7 @@ void Light::UpdateShadowViews()
                 shadowCamera,
                 Vec3f::Zero(), // TODO: Center around camera
                 GetPosition(),
-                50.0f, /// TODO: add proper radius for directional light.
+                45.0f, /// TODO: add proper radius for directional light.
                 m_shadowAabb);
 
             break;

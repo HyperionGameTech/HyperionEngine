@@ -33,9 +33,9 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
-static constexpr TextureFormat SsrFormat = TF_R10G10B10A2;
-static constexpr TextureFormat SsrUVsFormat = TF_RGBA16F; // store hit UVs in RG, and mask / alpha in B
-static constexpr double SsrUVsResolutionScale = 0.4;
+static constexpr TextureFormat SSRColorFormat = TF_R10G10B10A2;
+static constexpr TextureFormat SSRTraceFormat = TF_RGBA16F; // store hit UVs in RG, and mask / alpha in B
+static constexpr double TraceResolutionScale = 0.4;
 
 struct SSRUniforms
 {
@@ -188,7 +188,7 @@ void SSRRenderer::CreatePasses()
         m_sampleGbuffer = new FullScreenPass(
             ShaderDesc(NAME("SSRSampleGBuffer"), shaderProperties),
             sampleGbufferFramebuffer,
-            SsrFormat,
+            SSRColorFormat,
             m_sampledResultTexture->GetExtent().GetXY(),
             nullptr);
 
@@ -248,10 +248,10 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         // Create textures
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
             TT_TEX2D,
-            SsrUVsFormat,
+            SSRTraceFormat,
             Vec3u {
-                uint32(MathUtil::Ceil(m_currentExtent.x * SsrUVsResolutionScale)),
-                uint32(MathUtil::Ceil(m_currentExtent.y * SsrUVsResolutionScale)),
+                uint32(MathUtil::Ceil(m_currentExtent.x * TraceResolutionScale)),
+                uint32(MathUtil::Ceil(m_currentExtent.y * TraceResolutionScale)),
                 1 },
             TFM_NEAREST,
             TFM_NEAREST,
@@ -264,7 +264,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
 
         m_sampledResultTexture = MakeHandle<Texture>(TextureDesc {
             TT_TEX2D,
-            SsrFormat,
+            SSRColorFormat,
             Vec3u(m_currentExtent, 1),
             TFM_NEAREST,
             TFM_NEAREST,

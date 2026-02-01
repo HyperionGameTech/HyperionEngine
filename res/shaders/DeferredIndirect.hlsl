@@ -164,17 +164,17 @@ PSOutput PSMain(PSInput input)
 
     reflections = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, reflections_texture, texcoord);
 
-#if SSGI_ENABLED
-    const float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
-    irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
-#endif
-
 #if RT_REFLECTIONS
     CalculateRayTracingReflection(texcoord, reflections);
 #endif
 
 #if RT_GI
     irradiance += DDGISampleIrradiance(position.xyz, normal, V).rgb * DDGI_MULTIPLIER;
+#endif
+
+#if SSGI_ENABLED
+    const float4 ssgi = SAMPLE_TEXTURE_2D(HYP_SAMPLER_LINEAR, ssgi_result, texcoord);
+    irradiance = irradiance * (1.0 - ssgi.a) + (ssgi.rgb * ssgi.a);
 #endif
 
 #if HBIL_ENABLED

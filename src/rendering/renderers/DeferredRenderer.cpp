@@ -152,9 +152,9 @@ static void GetDeferredShaderProperties(
 
 #undef DEF_STATIC_CONFIGURATION_VALUE
     
-    static const ShaderPropertyId s_propHbaoEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
-    static const ShaderPropertyId s_propHbilEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
-    static const ShaderPropertyId s_propSsgiEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
+    static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
+    static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
+    static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
 
     static const ShaderPropertyId s_propRayTracingReflections = InternShaderProperty(ShaderProperty(NAME("RT_REFLECTIONS")));
     static const ShaderPropertyId s_propRayTracingGlobalIllumination = InternShaderProperty(ShaderProperty(NAME("RT_GI")));
@@ -163,15 +163,15 @@ static void GetDeferredShaderProperties(
     static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
     static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
 
-    outShaderProperties.Set(s_propHbaoEnabled, hbao);
+    outShaderProperties.Set(s_propHBAOEnabled, hbao);
 
     if (mode == DPM_INDIRECT_LIGHTING)
     {
         outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && rayTracingReflections);
         outShaderProperties.Set(s_propRayTracingGlobalIllumination, s_renderConfig.rayTracing && rayTracingGlobalIllumination);
 
-        outShaderProperties.Set(s_propHbilEnabled, hbil);
-        outShaderProperties.Set(s_propSsgiEnabled, ssgi);
+        outShaderProperties.Set(s_propHBILEnabled, hbil);
+        outShaderProperties.Set(s_propSSGIEnabled, ssgi);
     }
 
     if (s_renderConfig.rayTracing && pathTracing)
@@ -370,7 +370,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     if (m_mode == DPM_INDIRECT_LIGHTING)
     {
         if (dpd->ssgi != nullptr)
-            rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, dpd->hbao->GetFinalImageView());
+            rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->ssgi->GetFinalResultTexture()));
 
         if (dpd->rayTracingReflections != nullptr)
             rq << SetShaderUniform(numShaderUniforms++, "RTRadianceResultTexture"_sh, dpd->rayTracingReflections->GetFinalImageView());
@@ -1906,12 +1906,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 
-    const bool useHbao = m_rendererConfig.hbaoEnabled;
-    const bool useHbil = m_rendererConfig.hbilEnabled;
-    const bool useSsgi = m_rendererConfig.ssgiEnabled;
-    const bool useTAA = passData.temporalAa != nullptr && m_rendererConfig.taaEnabled;
-
-    if (useTAA)
+    if (passData.temporalAa != nullptr && m_rendererConfig.taaEnabled)
     {
         // apply jitter to camera for TAA
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
@@ -2013,12 +2008,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (useHbao || useHbil)
+    if (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled)
     {
         passData.hbao->Render(frame, rs);
     }
 
-    if (useSsgi)
+    if (m_rendererConfig.ssgiEnabled)
     {
         RenderSetup newRenderSetup = rs;
 
@@ -2174,7 +2169,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     passData.tonemapPass->Render(frame, rs);
 
-    if (useTAA)
+    if (passData.temporalAa != nullptr && m_rendererConfig.taaEnabled)
     {
         passData.temporalAa->Render(frame, rs);
     }

@@ -38,7 +38,7 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
-static constexpr TextureFormat SsgiFormat = TF_RGBA8;
+static constexpr TextureFormat SSGIFormat = TF_RGBA8;
 
 struct SSGIUniforms
 {
@@ -80,13 +80,14 @@ void SSGI::Create()
 {
     m_resultTexture = MakeHandle<Texture>(TextureDesc {
         TT_TEX2D,
-        SsgiFormat,
+        SSGIFormat,
         Vec3u(m_config.extent, 1),
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_STORAGE | IU_SAMPLED });
+        IU_STORAGE | IU_SAMPLED
+    });
 
     m_resultTexture->SetName(NAME("SSGITexture"));
 
@@ -98,9 +99,9 @@ void SSGI::Create()
     {
         m_temporalBlending = MakeUnique<TemporalBlending>(
             m_config.extent,
-            SsgiFormat,
+            SSGIFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
-            0.96,
+            0.95,
             g_renderInterface->textureViewCache->GetOrCreate(m_resultTexture),
             m_gbuffer);
 
@@ -119,7 +120,7 @@ ShaderPropertySet SSGI::GetShaderProperties() const
 {
     ShaderPropertySet shaderProperties;
 
-    switch (SsgiFormat)
+    switch (SSGIFormat)
     {
     case TF_RGBA8:
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8"))));
@@ -194,7 +195,6 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
     rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
     rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
-    rq << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, dpd->combinePass->GetFinalImageView());
 
     // Samplers
     rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());

@@ -30,9 +30,6 @@ HYP_API void ShadowCameraHelper::UpdateShadowCameraDirectional(
         aabb.min = MathUtil::Min(aabb.min, corner);
     }
 
-    aabb.max.z = radius;
-    aabb.min.z = -radius;
-
     camera->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
 
     outAabb = aabb;
