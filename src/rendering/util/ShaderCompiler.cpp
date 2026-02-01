@@ -41,9 +41,10 @@
 #endif
 
 #if HYP_DXC
-#if HYP_DX12
+#if HYP_WINDOWS
 #include <Unknwn.h>
 #include <d3d12shader.h>
+#include <atlbase.h> // for CComPtr
 #endif
 
 #include <dxcapi.h>
@@ -833,12 +834,12 @@ static bool PreprocessGLSL(
 
         char* headerNameStr = new char[path.Size() + 1];
         Memory::Fill(headerNameStr, 0, path.Size() + 1);
-        Memory::StrCpy(headerNameStr, path.Data(), path.Size());
+        Memory::Copy(headerNameStr, path.Data(), path.Size());
         result->header_name = headerNameStr;
 
         char* headerDataStr = new char[linesJoined.Size() + 1];
         Memory::Fill(headerDataStr, 0, linesJoined.Size() + 1);
-        Memory::StrCpy(headerDataStr, linesJoined.Data(), linesJoined.Size());
+        Memory::Copy(headerDataStr, linesJoined.Data(), linesJoined.Size());
         result->header_data = headerDataStr;
 
         result->header_length = linesJoined.Size();

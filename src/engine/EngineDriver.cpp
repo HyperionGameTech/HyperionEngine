@@ -309,6 +309,11 @@ bool EngineDriver::StartThreads()
     if (!success)
         return false;
 
+#if !HYP_APPLE
+    if (g_mainThread != g_renderThread)
+        g_renderThreadInit.acquire();
+#endif
+
     success &= g_simThreadInstance->Start();
     if (!success)
         return false;

@@ -20,8 +20,8 @@ class ConstantsAllocator
 
         GpuBufferRef buffer;
         uint32 frameCounter; // last used frame
-        SizeType size;
-        SizeType offset;
+        uint32 size;
+        uint32 offset;
     };
 
 public:
@@ -38,7 +38,7 @@ public:
     void OnFrameStart();
     void OnFrameEnd();
 
-    void Write(const void* src, SizeType size);
+    void Write(const void* src, uint32 size);
 
     template <class T>
     void Write(const T* src)
@@ -49,17 +49,17 @@ public:
         Write(src, sizeof(T));
     }
 
+    void Commit(GpuBuffer*& outBuffer, uint32& outOffset, uint32& outSize);
+
 private:
-    void* Allocate(SizeType size);
+    void* Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& outStartOffset);
 
-    Block* NewBlock();
+    Block* NewBlock(uint32 currentFrameCounter);
+    Block* TryGetRecycledBlock(uint32 currentFrameCounter);
 
-    void RecycleBlocks(uint32 currentFrameCounter);
-
-    LinkedList<Block*> m_blocks;
-    Array<Block*> m_currentFrameBlocks;
-    SizeType m_transactionOffset;
-    bool m_inTransaction;
+    Array<Block*, RenderAllocator> m_blocks;
+    Array<Block*, RenderAllocator> m_currentFrameBlocks;
+    TByteBuffer<RenderTempAllocator> m_scratch;
 };
 
 } // namespace Hyperion

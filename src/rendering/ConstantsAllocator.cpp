@@ -9,18 +9,18 @@
 
 namespace Hyperion {
 
-static constexpr SizeType BlockSize = 65535;
+static constexpr SizeType ConstantBufferSize = 65536;
 
 ConstantsAllocator::ConstantsAllocator()
-    : m_transactionOffset(0)
 {
 }
 
 ConstantsAllocator::~ConstantsAllocator()
 {
+    m_scratch.Clear();
+    
     for (Block* block : m_blocks)
     {
-        SafeDelete(std::move(block->buffer));
         delete block;
     }
 
@@ -28,7 +28,6 @@ ConstantsAllocator::~ConstantsAllocator()
 
     for (Block* block : m_currentFrameBlocks)
     {
-        SafeDelete(std::move(block->buffer));
         delete block;
     }
 
@@ -37,13 +36,13 @@ ConstantsAllocator::~ConstantsAllocator()
 
 void ConstantsAllocator::OnFrameStart()
 {
-    m_transactionOffset = 0;
-
-    RecycleBlocks(GetFrameCounter());
+    m_scratch.SetCapacity(2048);
 }
 
 void ConstantsAllocator::OnFrameEnd()
 {
+    m_scratch.Clear();
+
     for (Block* block : m_currentFrameBlocks)
     {
         block->offset = 0;
@@ -54,36 +53,77 @@ void ConstantsAllocator::OnFrameEnd()
     m_currentFrameBlocks.Clear();
 }
 
-void ConstantsAllocator::Write(const void* src, SizeType size)
+void ConstantsAllocator::Write(const void* src, uint32 size)
 {
     if (size == 0)
         return;
 
     AssertDebug(src != nullptr);
 
-    void* dst = Allocate(size);
-    Memory::Copy(dst, src, size);
+    const uint32 scratchOffset = uint32(m_scratch.Size());
+
+    m_scratch.SetSize(scratchOffset + size);
+
+    Memory::Copy(m_scratch.Data() + scratchOffset, reinterpret_cast<const ubyte*>(src), size);
 }
 
-void* ConstantsAllocator::Allocate(SizeType size)
+void ConstantsAllocator::Commit(GpuBuffer*& outBuffer, uint32& outOffset, uint32& outSize)
 {
-    for (Block* block : m_currentFrameBlocks)
+    if (m_scratch.Empty())
     {
-        const SizeType offset = block->offset;
+        outBuffer = nullptr;
+        outOffset = 0;
+        outSize = 0;
+        return;
+    }
 
-        if (offset + size <= block->size)
+    void* ptr = Allocate(m_scratch.Size(), outBuffer, outOffset);
+    AssertDebug(ptr != nullptr);
+
+    Memory::Copy(ptr, m_scratch.Data(), m_scratch.Size());
+
+    outSize = uint32(m_scratch.Size());
+
+    // keep memory around
+    m_scratch.SetSize(0);
+}
+
+void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& outStartOffset)
+{
+    const uint32 currentFrameCounter = GetFrameCounter();
+    
+    outBuffer = nullptr;
+    outStartOffset = 0;
+
+    if (m_currentFrameBlocks.Any())
+    {
+        Block* lastBlock = m_currentFrameBlocks.Back();
+
+        const SizeType offset = lastBlock->offset;
+
+        if (offset + size <= lastBlock->size)
         {
-            void* ptr = (void*)(reinterpret_cast<uintptr_t>(block->buffer->Map()) + offset);
+            void* ptr = (void*)(reinterpret_cast<uintptr_t>(lastBlock->buffer->Map()) + offset);
 
-            block->offset = offset + size;
+            outBuffer = lastBlock->buffer;
+            outStartOffset = lastBlock->offset;
+
+            lastBlock->offset = offset + size;
 
             return ptr;
         }
     }
 
     // allocate a new block
-    Block* newBlock = NewBlock();
+    Block* newBlock = TryGetRecycledBlock(currentFrameCounter);
+    
+    if (!newBlock)
+        newBlock = NewBlock(currentFrameCounter);
+
     Assert(size <= newBlock->size);
+    
+    outBuffer = newBlock->buffer;
+    outStartOffset = newBlock->offset;
 
     void* ptr = newBlock->buffer->Map();
 
@@ -92,28 +132,26 @@ void* ConstantsAllocator::Allocate(SizeType size)
     return ptr;
 }
 
-ConstantsAllocator::Block* ConstantsAllocator::NewBlock()
+ConstantsAllocator::Block* ConstantsAllocator::NewBlock(uint32 currentFrameCounter)
 {
     Block* newBlock = new Block;
 
-    GpuBufferRef buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, BlockSize, 256);
+    GpuBufferRef buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, ConstantBufferSize, 256);
     Assert(buffer != nullptr);
 
     Assert(buffer->Create());
 
     newBlock->buffer = std::move(buffer);
-    newBlock->frameCounter = GetFrameCounter();
-    newBlock->size = BlockSize;
+    newBlock->frameCounter = currentFrameCounter;
+    newBlock->size = ConstantBufferSize;
     newBlock->offset = 0;
 
     m_currentFrameBlocks.PushBack(newBlock);
 
-    m_transactionOffset = 0;
-
     return newBlock;
 }
 
-void ConstantsAllocator::RecycleBlocks(uint32 currentFrameCounter)
+ConstantsAllocator::Block* ConstantsAllocator::TryGetRecycledBlock(uint32 currentFrameCounter)
 {
     constexpr uint32 MinDiff = NumFramesInFlight;
 
@@ -123,6 +161,9 @@ void ConstantsAllocator::RecycleBlocks(uint32 currentFrameCounter)
 
         if (currentFrameCounter - block->frameCounter >= MinDiff)
         {
+            block->offset = 0;
+            block->frameCounter = currentFrameCounter;
+
             m_currentFrameBlocks.PushBack(block);
 
             it = m_blocks.Erase(it);
@@ -132,6 +173,8 @@ void ConstantsAllocator::RecycleBlocks(uint32 currentFrameCounter)
 
         ++it;
     }
+
+    return nullptr;
 }
 
 } // namespace Hyperion

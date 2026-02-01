@@ -364,8 +364,6 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                         -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
                         -DGLSLANG_TESTS=OFF
                         -DENABLE_GLSLANG_BINARIES=OFF
-                        -DENABLE_SPVREMAPPER=OFF
-                        -DENABLE_SPIRV=ON
                         -DENABLE_OPT=OFF
                         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
                         "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
@@ -397,7 +395,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
             add_library(glslang STATIC IMPORTED)
             add_library(SPIRV STATIC IMPORTED)
             add_library(glslang-default-resource-limits STATIC IMPORTED)
-            add_library(SPIRV-Tools STATIC IMPORTED)
+            # add_library(SPIRV-Tools STATIC IMPORTED)
             # add_library(SPIRV-Tools-opt STATIC IMPORTED)
             add_library(MachineIndependent STATIC IMPORTED)
             add_library(GenericCodeGen STATIC IMPORTED)
@@ -414,9 +412,9 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 set_target_properties(glslang-default-resource-limits PROPERTIES
                     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang-default-resource-limits.lib
                 )
-                set_target_properties(SPIRV-Tools PROPERTIES
-                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
-                )
+                # set_target_properties(SPIRV-Tools PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
+                # )
                 # set_target_properties(SPIRV-Tools-opt PROPERTIES
                 #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
                 # )
@@ -439,9 +437,9 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 set_target_properties(glslang-default-resource-limits PROPERTIES
                     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang-default-resource-limits.a
                 )
-                set_target_properties(SPIRV-Tools PROPERTIES
-                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
-                )
+                # set_target_properties(SPIRV-Tools PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
+                # )
                 # set_target_properties(SPIRV-Tools-opt PROPERTIES
                 #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
                 # )
@@ -463,7 +461,6 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 glslang
                 SPIRV
                 glslang-default-resource-limits
-                SPIRV-Tools
                 MachineIndependent
                 GenericCodeGen
                 OSDependent

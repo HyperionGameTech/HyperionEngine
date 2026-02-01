@@ -888,8 +888,8 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
 
-            // temp: move elsewhere
             Mat4f transformMatrix = transformComponent->GetMatrix();
+            
             meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1);
 
