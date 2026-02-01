@@ -44,8 +44,6 @@ struct PSInput
 struct PSOutput
 {
     float4 output_color : SV_Target0;
-    float4 output_normals : SV_Target1;
-    float4 output_positions : SV_Target2;
 };
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
@@ -214,8 +212,6 @@ PSOutput PSMain(PSInput input)
 #endif
 
     output.output_color = float4(result, 1.0);
-    output.output_normals = float4(0.0, 0.0, 0.0, 0.0);
-    output.output_positions = float4(0.0, 0.0, 0.0, 0.0);
 
     return output;
 }

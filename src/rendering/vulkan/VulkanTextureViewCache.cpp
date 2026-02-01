@@ -14,6 +14,13 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
+static uint64 CalculateImageViewHash(const ImageSubResource& subResource, TextureType viewTextureType)
+{
+    return subResource.GetHashCode()
+        .Combine(viewTextureType)
+        .Value();
+}
+
 VulkanTextureViewCache::~VulkanTextureViewCache()
 {
     for (auto& it : imageViews)
@@ -84,7 +91,9 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
     bool isLockUnique = false;
     HYP_DEFER({ if (isLockUnique) uniqueLockStorage.Destruct(); });
 
-    auto it = textureImageViews.Find(subResource);
+    const uint64 key = CalculateImageViewHash(subResource, viewTextureType);
+
+    auto it = textureImageViews.Find(key);
 
     if (it == textureImageViews.End())
     {
@@ -99,7 +108,7 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
 
         isLockUnique = true;
 
-        it = textureImageViews.Set(subResource, imageView).first;
+        it = textureImageViews.Set(key, imageView).first;
     }
 
     Assert(it->second.IsValid());

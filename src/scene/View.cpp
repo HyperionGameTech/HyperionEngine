@@ -891,7 +891,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
             meshProxy.instanceData = meshComponent->instanceData;
-            meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1);
+            //meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1);
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();

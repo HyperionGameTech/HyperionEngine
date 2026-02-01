@@ -471,14 +471,17 @@ void EngineDriver::UpdateSim(float delta)
         }
         // }
 
-        if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+        if (!worldsToRender.Contains(world))
         {
-            // editor world gets rendered first
-            worldsToRender.PushFront(world);
-        }
-        else
-        {
-            worldsToRender.PushBack(world);
+            if ((world->GetWorldFlags() & WorldFlags::EDITOR_WORLD))
+            {
+                // editor world gets rendered first
+                worldsToRender.PushFront(world);
+            }
+            else
+            {
+                worldsToRender.PushBack(world);
+            }
         }
         // }
     }

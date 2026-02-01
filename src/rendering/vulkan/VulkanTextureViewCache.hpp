@@ -22,7 +22,7 @@ class VulkanTextureViewCache final : public TextureViewCacheBase
 public:
     SharedMutex mutex;
     // map texture ID -> image views
-    SparsePagedArray<HashMap<ImageSubResource, VulkanGpuImageViewRef>, 1024> imageViews;
+    SparsePagedArray<HashMap<uint64, VulkanGpuImageViewRef>, 1024> imageViews;
     // to keep texture IDs as valid
     SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
 
