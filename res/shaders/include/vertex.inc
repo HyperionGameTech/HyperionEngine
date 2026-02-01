@@ -3,12 +3,12 @@
 
 struct Vertex
 {
-    vec3 position;
-    vec3 normal;
-    vec2 texcoord0;
-    vec2 texcoord1;
-    vec3 tangent; 
-    vec3 bitangent;
+    float3 position;
+    float3 normal;
+    float2 texcoord0;
+    float2 texcoord1;
+    float3 tangent; 
+    float3 bitangent;
 };
 
 #endif // HYP_VERTEX

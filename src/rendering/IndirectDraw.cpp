@@ -350,7 +350,7 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer()
 {
-    SafeDelete(std::move(m_uniformBuffers));
+    SafeDelete(std::move(m_cBuffers));
 }
 
 void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
@@ -362,9 +362,9 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
 
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
-        m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
-        m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
-        CheckResult(m_uniformBuffers[frameIndex]->Create());
+        m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
+        m_cBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
+        CheckResult(m_cBuffers[frameIndex]->Create());
     }
 }
 
@@ -457,9 +457,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(Frame* frame, const RenderSetu
     constants.numInstances = numInstances;
     constants.entityInstanceBatchStride = ByteUtil::AlignAs(m_batchAllocator->GetStructSize(), m_batchAllocator->GetStructAlignment());
 
-    m_uniformBuffers[frameIndex]->Copy(sizeof(constants), &constants);
+    m_cBuffers[frameIndex]->Copy(sizeof(constants), &constants);
 
-    rq << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_uniformBuffers[frameIndex]);
+    rq << SetShaderUniform(numShaderUniforms++, "ComputeVisibilityConstants"_sh, m_cBuffers[frameIndex]);
 
     rq << InsertBarrier(m_indirectDrawState.GetIndirectBuffer(frameIndex), RS_INDIRECT_ARG);
 

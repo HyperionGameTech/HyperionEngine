@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <core/Constants.hpp>
+#include <core/Types.hpp>
+
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/Array.hpp>
 
@@ -10,9 +13,6 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
-
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
 
 namespace Hyperion {
 
@@ -124,7 +124,7 @@ private:
     void RebuildDescriptors(Frame* frame);
 
     IndirectDrawState m_indirectDrawState;
-    FixedArray<GpuBufferRef, NumFramesInFlight> m_uniformBuffers;
+    FixedArray<GpuBufferRef, NumFramesInFlight> m_cBuffers;
     CullData m_cachedCullData;
     uint8 m_cachedCullDataUpdatedBits;
     EntityBatchAllocatorBase* m_batchAllocator;
