@@ -14,7 +14,7 @@
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
 
-#include <algorithm> // for std::lower_bound, std::upper_bound
+#include <algorithm>
 
 namespace Hyperion {
 
@@ -58,88 +58,52 @@ public:
     template <class T>
     auto Find(const T& value)
     {
-        auto _begin = static_cast<Container*>(this)->Begin();
-        const auto _end = static_cast<Container*>(this)->End();
-
-        for (; _begin != _end; ++_begin)
-        {
-            if (*_begin == value)
-            {
-                return _begin;
-            }
-        }
-
-        return _begin;
+        return std::find(
+            static_cast<Container*>(this)->Begin(),
+            static_cast<Container*>(this)->End(),
+            value);
     }
 
     template <class T>
     auto Find(const T& value) const
     {
-        auto _begin = static_cast<const Container*>(this)->Begin();
-        const auto _end = static_cast<const Container*>(this)->End();
-
-        for (; _begin != _end; ++_begin)
-        {
-            if (*_begin == value)
-            {
-                return _begin;
-            }
-        }
-
-        return _begin;
+        return std::find(
+            static_cast<const Container*>(this)->Begin(),
+            static_cast<const Container*>(this)->End(),
+            value);
     }
 
     template <class U>
     auto FindAs(const U& value)
     {
-        auto _begin = static_cast<Container*>(this)->Begin();
-        const auto _end = static_cast<Container*>(this)->End();
-
-        for (; _begin != _end; ++_begin)
-        {
-            if (value == *_begin)
+        return std::find_if(
+            static_cast<Container*>(this)->Begin(),
+            static_cast<Container*>(this)->End(),
+            [&value](const auto& otherValue)
             {
-                return _begin;
-            }
-        }
-
-        return _begin;
+                return otherValue == value;
+            });
     }
 
     template <class U>
     auto FindAs(const U& value) const
     {
-        auto _begin = static_cast<const Container*>(this)->Begin();
-        const auto _end = static_cast<const Container*>(this)->End();
-
-        for (; _begin != _end; ++_begin)
-        {
-            if (value == *_begin)
+        return std::find_if(
+            static_cast<const Container*>(this)->Begin(),
+            static_cast<const Container*>(this)->End(),
+            [&value](const auto& otherValue)
             {
-                return _begin;
-            }
-        }
-
-        return _begin;
+                return otherValue == value;
+            });
     }
 
     template <class Func>
     auto FindIf(Func&& pred)
     {
-        FunctionWrapper<NormalizedType<Func>> fn { std::forward<Func>(pred) };
-
-        typename Container::Iterator _begin = static_cast<Container*>(this)->Begin();
-        const typename Container::Iterator _end = static_cast<Container*>(this)->End();
-
-        for (; _begin != _end; ++_begin)
-        {
-            if (fn(*_begin))
-            {
-                return _begin;
-            }
-        }
-
-        return _begin;
+        return std::find_if(
+            static_cast<Container*>(this)->Begin(),
+            static_cast<Container*>(this)->End(),
+            FunctionWrapper<NormalizedType<Func>> { std::forward<Func>(pred) });
     }
 
     template <class Func>
@@ -147,18 +111,10 @@ public:
     {
         FunctionWrapper<NormalizedType<Func>> fn { std::forward<Func>(pred) };
 
-        typename Container::ConstIterator _begin = static_cast<const Container*>(this)->Begin();
-        const typename Container::ConstIterator _end = static_cast<const Container*>(this)->End();
-
-        for (; _begin != _end; ++_begin)
-        {
-            if (fn(*_begin))
-            {
-                return _begin;
-            }
-        }
-
-        return _begin;
+        return std::find_if(
+            static_cast<const Container*>(this)->Begin(),
+            static_cast<const Container*>(this)->End(),
+            FunctionWrapper<NormalizedType<Func>> { std::forward<Func>(pred) });
     }
 
     template <class T>
@@ -169,10 +125,7 @@ public:
         const auto _begin = static_cast<Container*>(this)->Begin();
         const auto _end = static_cast<Container*>(this)->End();
 
-        return std::lower_bound(
-            _begin,
-            _end,
-            key);
+        return std::lower_bound(_begin, _end, key);
     }
 
     template <class T>
@@ -183,10 +136,7 @@ public:
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
 
-        return std::lower_bound(
-            _begin,
-            _end,
-            key);
+        return std::lower_bound(_begin, _end, key);
     }
 
     template <class T>
@@ -197,10 +147,7 @@ public:
         const auto _begin = static_cast<Container*>(this)->Begin();
         const auto _end = static_cast<Container*>(this)->End();
 
-        return std::upper_bound(
-            _begin,
-            _end,
-            key);
+        return std::upper_bound(_begin, _end, key);
     }
 
     template <class T>
@@ -211,10 +158,7 @@ public:
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
 
-        return std::upper_bound(
-            _begin,
-            _end,
-            key);
+        return std::upper_bound(_begin, _end, key);
     }
 
     template <class T>

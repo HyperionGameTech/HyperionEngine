@@ -24,6 +24,7 @@
 #include <core/HashCode.hpp>
 
 #include <algorithm>
+#include <cstring>
 #include <utility>
 #include <cmath>
 
@@ -880,22 +881,29 @@ void Array<T, AllocatorType>::ResetOffsets()
 
     T* buffer = GetBuffer();
 
-    // shift all items to left
-    for (SizeType index = m_startOffset; index < m_size; ++index)
+    if constexpr (std::is_trivially_copyable_v<T>)
     {
-        const auto moveIndex = index - m_startOffset;
-
-        if constexpr (std::is_move_constructible_v<T>)
+        Memory::Move(buffer, buffer + m_startOffset, (m_size - m_startOffset) * sizeof(T));
+    }
+    else
+    {
+        // shift all items to left
+        for (SizeType index = m_startOffset; index < m_size; ++index)
         {
-            Memory::Construct<T>(buffer + moveIndex, std::move(buffer[index]));
-        }
-        else
-        {
-            Memory::Construct<T>(buffer + moveIndex, buffer[index]);
-        }
+            const auto moveIndex = index - m_startOffset;
 
-        // manual destructor call
-        Memory::Destruct(buffer[index]);
+            if constexpr (std::is_move_constructible_v<T>)
+            {
+                Memory::Construct<T>(buffer + moveIndex, std::move(buffer[index]));
+            }
+            else
+            {
+                Memory::Construct<T>(buffer + moveIndex, buffer[index]);
+            }
+
+            // manual destructor call
+            Memory::Destruct(buffer[index]);
+        }
     }
 
     m_size -= m_startOffset;
@@ -1352,21 +1360,35 @@ auto Array<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 
     T* buffer = GetBuffer();
 
-    for (SizeType index = dist; index < sizeOffset - 1; ++index)
+    if constexpr (std::is_trivially_copyable_v<T>)
     {
-        if constexpr (std::is_move_constructible_v<T>)
+        T* erasePtr = buffer + m_startOffset + dist;
+        const SizeType numToMove = sizeOffset - dist - 1;
+
+        if (numToMove > 0)
         {
-            Memory::Destruct(buffer[m_startOffset + index]);
-            Memory::Construct<T>(buffer + m_startOffset + index, std::move(buffer[m_startOffset + index + 1]));
-        }
-        else
-        {
-            Memory::Destruct(buffer[m_startOffset + index]);
-            Memory::Construct<T>(buffer + m_startOffset + index, buffer[m_startOffset + index + 1]);
+            Memory::Move(erasePtr, erasePtr + 1, numToMove * sizeof(T));
         }
     }
+    else
+    {
+        for (SizeType index = dist; index < sizeOffset - 1; ++index)
+        {
+            if constexpr (std::is_move_constructible_v<T>)
+            {
+                Memory::Destruct(buffer[m_startOffset + index]);
+                Memory::Construct<T>(buffer + m_startOffset + index, std::move(buffer[m_startOffset + index + 1]));
+            }
+            else
+            {
+                Memory::Destruct(buffer[m_startOffset + index]);
+                Memory::Construct<T>(buffer + m_startOffset + index, buffer[m_startOffset + index + 1]);
+            }
+        }
 
-    Memory::Destruct(buffer[m_size - 1]);
+        Memory::Destruct(buffer[m_size - 1]);
+    }
+
     --m_size;
 
     return begin + dist;
@@ -1429,29 +1451,43 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value
     HYP_CORE_ASSERT(Capacity() >= m_size + 1);
 #endif
 
-    SizeType index;
-
     T* buffer = GetBuffer();
 
-    for (index = Size(); index > dist; --index)
+    if constexpr (std::is_trivially_copyable_v<T>)
     {
-        if constexpr (std::is_move_constructible_v<T>)
-        {
-            Memory::Construct<T>(buffer + index + m_startOffset, std::move(buffer[index + m_startOffset - 1]));
-        }
-        else
-        {
-            Memory::Construct<T>(buffer + index + m_startOffset, buffer[index + m_startOffset - 1]);
-        }
+        T* insertPtr = buffer + m_startOffset + dist;
+        const SizeType numToMove = Size() - dist;
 
-        Memory::Destruct(buffer[index + m_startOffset - 1]);
+        if (numToMove > 0)
+        {
+            Memory::Move(insertPtr + 1, insertPtr, numToMove * sizeof(T));
+        }
+        Memory::Construct<T>(insertPtr, value);
     }
+    else
+    {
+        SizeType index;
 
-    Memory::Construct<T>(buffer + index + m_startOffset, value);
+        for (index = Size(); index > dist; --index)
+        {
+            if constexpr (std::is_move_constructible_v<T>)
+            {
+                Memory::Construct<T>(buffer + index + m_startOffset, std::move(buffer[index + m_startOffset - 1]));
+            }
+            else
+            {
+                Memory::Construct<T>(buffer + index + m_startOffset, buffer[index + m_startOffset - 1]);
+            }
+
+            Memory::Destruct(buffer[index + m_startOffset - 1]);
+        }
+
+        Memory::Construct<T>(buffer + index + m_startOffset, value);
+    }
 
     ++m_size;
 
-    return Begin() + index;
+    return Begin() + dist;
 }
 
 template <class T, class AllocatorType>
@@ -1488,29 +1524,43 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> 
 
     HYP_CORE_ASSERT(Capacity() >= m_size + 1);
 
-    SizeType index;
-
     T* buffer = GetBuffer();
 
-    for (index = Size(); index > dist; --index)
+    if constexpr (std::is_trivially_copyable_v<T>)
     {
-        if constexpr (std::is_move_constructible_v<T>)
+        T* insertPtr = buffer + m_startOffset + dist;
+        const SizeType numToMove = Size() - dist;
+
+        if (numToMove > 0)
         {
-            Memory::Construct<T>(buffer + index + m_startOffset, std::move(buffer[index + m_startOffset - 1]));
-        }
-        else
-        {
-            Memory::Construct<T>(buffer + index + m_startOffset, buffer[index + m_startOffset - 1]);
+            Memory::Move(insertPtr + 1, insertPtr, numToMove * sizeof(T));
         }
 
-        Memory::Destruct(buffer[index + m_startOffset - 1]);
+        Memory::Construct<T>(insertPtr, std::move(value));
     }
+    else
+    {
+        SizeType index;
+        for (index = Size(); index > dist; --index)
+        {
+            if constexpr (std::is_move_constructible_v<T>)
+            {
+                Memory::Construct<T>(buffer + index + m_startOffset, std::move(buffer[index + m_startOffset - 1]));
+            }
+            else
+            {
+                Memory::Construct<T>(buffer + index + m_startOffset, buffer[index + m_startOffset - 1]);
+            }
 
-    Memory::Construct<T>(buffer + index + m_startOffset, std::move(value));
+            Memory::Destruct(buffer[index + m_startOffset - 1]);
+        }
+
+        Memory::Construct<T>(buffer + index + m_startOffset, std::move(value));
+    }
 
     ++m_size;
 
-    return Begin() + index;
+    return Begin() + dist;
 }
 
 template <class T, class AllocatorType>
