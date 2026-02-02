@@ -581,7 +581,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
 
     Array<InsertBarrier, RenderAllocator> preRenderBarriers;
 
-    if (!framebuffer->IsDeferredRecording())
+    /*if (!framebuffer->IsDeferredRecording())
     {
         for (int i = 0; i < framebuffer->NumAttachments(); i++)
         {
@@ -593,7 +593,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
                 preRenderBarriers.PushBack(InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET));
             }
         }
-    }
+    }*/
 
     if (preRenderBarriers.Any())
     {

@@ -18,6 +18,14 @@ namespace Hyperion {
 enum class ShaderInputType : uint8;
 enum class ShaderModuleType : uint8;
 
+enum class VulkanRenderPassMode : uint8
+{
+    RenderTarget,
+    Presentation,
+
+    Max
+};
+
 constexpr ResourceState PreRenderResourceStates[2] = {
     // CLEAR=0, LOAD=1
     RS_UNDEFINED,    // CLEAR
@@ -30,20 +38,9 @@ constexpr ResourceState PreRenderResourceStatesDepth[2] = {
     RS_DEPTH_STENCIL // LOAD
 };
 
-constexpr ResourceState PostRenderResourceStates[2] = {
-    RS_SHADER_RESOURCE, // RenderTarget
+constexpr ResourceState PostRenderResourceStates[uint8(VulkanRenderPassMode::Max)] = {
+    RS_RENDER_TARGET,   // RenderTarget
     RS_PRESENT          // Presentation
-};
-
-constexpr ResourceState PostRenderResourceStatesDepth[2] = {
-    RS_SHADER_RESOURCE, // RenderTarget
-    RS_DEPTH_STENCIL    // Presentation
-};
-
-enum class VulkanRenderPassMode : uint8
-{
-    RenderTarget,
-    Presentation
 };
 
 VkIndexType ToVkIndexType(GpuElemType);

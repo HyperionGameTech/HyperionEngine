@@ -245,7 +245,8 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
             .loadOp = loadOp,
             .storeOp = storeOp,
             .blendFunction = BlendFunction::None(),
-            .clearColor = {} });
+            .clearColor = {}
+        });
 
     attachment->SetBinding(binding);
 

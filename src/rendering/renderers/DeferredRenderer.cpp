@@ -1935,7 +1935,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // render lightmap volume objects
     if (rpl.GetLightmapVolumes().NumCurrent())
     {
-        for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
+        /*for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
         {
             AttachmentBase* attachment = lightmapPassFramebuffer->GetAttachment(attachmentIndex);
 
@@ -1943,7 +1943,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             {
                 frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
             }
-        }
+        }*/
 
         // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
@@ -2053,7 +2053,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     { // combined + translucent (forward pass)
         // insert barriers for load operations where needed
-        for (int attachmentIndex = 0; attachmentIndex < translucentPassFramebuffer->NumAttachments(); attachmentIndex++)
+        /*for (int attachmentIndex = 0; attachmentIndex < translucentPassFramebuffer->NumAttachments(); attachmentIndex++)
         {
             AttachmentBase* attachment = translucentPassFramebuffer->GetAttachment(attachmentIndex);
 
@@ -2061,7 +2061,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             {
                 frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
             }
-        }
+        }*/
 
         frame->renderQueue << BeginFramebuffer(translucentPassFramebuffer);
 
@@ -2142,7 +2142,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // debug draw
     if (renderCollector.mappingsByBucket[RB_DEBUG].Any() || g_engineDriver->GetDebugDrawer()->NumEnqueuedDrawCommands() > 0)
     {
-        for (int attachmentIndex = 0; attachmentIndex < debugPassFramebuffer->NumAttachments(); attachmentIndex++)
+        /*for (int attachmentIndex = 0; attachmentIndex < debugPassFramebuffer->NumAttachments(); attachmentIndex++)
         {
             AttachmentBase* attachment = debugPassFramebuffer->GetAttachment(attachmentIndex);
 
@@ -2150,7 +2150,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             {
                 frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
             }
-        }
+        }*/
 
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
 

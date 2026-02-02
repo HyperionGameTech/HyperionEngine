@@ -1732,7 +1732,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
-    // Transition images
+    // Transition images for use in shaders
     FOR_EACH_BIT(state.validUniforms | state.dirtyUniforms, uniformIndex)
     {
         if (state.shaderUniforms[uniformIndex].type != ShaderUniform::UT_ImageView)
