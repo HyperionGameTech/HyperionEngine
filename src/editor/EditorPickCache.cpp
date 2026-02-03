@@ -157,43 +157,43 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
+    //ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
 
-    if (!resGuard)
-    {
-        HYP_LOG(Editor, Error, "Failed to get resource handle for mesh asset {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
+    //if (!resGuard)
+    //{
+    //    HYP_LOG(Editor, Error, "Failed to get resource handle for mesh asset {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
 
-        return;
-    }
+    //    return;
+    //}
 
-    const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
-    const MeshData& meshData = *mesh->GetAsset()->GetMeshData();
+    //const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
+    //const MeshData& meshData = *mesh->GetAsset()->GetMeshData();
 
-    // make sure we have enough memory
-    if (!EvictEntries(meshData.vertexData.ByteSize() + meshData.indexData.Size() + IdealHeadroom))
-    {
-        HYP_LOG(Editor, Error, "Failed to evict enough entries to add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+    //// make sure we have enough memory
+    //if (!EvictEntries(meshData.vertexData.ByteSize() + meshData.indexData.Size() + IdealHeadroom))
+    //{
+    //    HYP_LOG(Editor, Error, "Failed to evict enough entries to add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
-        return;
-    }
+    //    return;
+    //}
 
-    EditorPickCacheEntry entry {};
-    entry.frameVisible = fc;
+    //EditorPickCacheEntry entry {};
+    //entry.frameVisible = fc;
 
-    entry.positions.Resize(meshData.vertexData.Size());
-    for (SizeType i = 0; i < meshData.vertexData.Size(); ++i)
-    {
-        entry.positions[i] = meshData.vertexData[i].position;
-    }
+    //entry.positions.Resize(meshData.vertexData.Size());
+    //for (SizeType i = 0; i < meshData.vertexData.Size(); ++i)
+    //{
+    //    entry.positions[i] = meshData.vertexData[i].position;
+    //}
 
-    entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
-    Memory::Copy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+    //entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
+    //Memory::Copy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
 
-    entry.residency = ComputeResidency(entry);
+    //entry.residency = ComputeResidency(entry);
 
-    auto& set = m_impl->residencyMap[entry.residency];
-    auto iter = m_impl->cache.Emplace(mesh->Id().ToIndex(), std::move(entry));
-    set.Set(mesh->Id().ToIndex(), true);
+    //auto& set = m_impl->residencyMap[entry.residency];
+    //auto iter = m_impl->cache.Emplace(mesh->Id().ToIndex(), std::move(entry));
+    //set.Set(mesh->Id().ToIndex(), true);
 }
 
 void EditorPickCache::RemoveEntry(const Mesh* mesh)

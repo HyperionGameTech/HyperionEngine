@@ -1,0 +1,19 @@
+{
+  "$Class": "TextureAsset",
+  "TextureDesc": {
+    "Type": 0,
+    "Format": 4,
+    "Extent": [3080, 940, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "FriendlyName": "FontAtlas28",
+  "Uuid": "e81d2cc0-ff67-4cd8-a766-34f84d4b4de5",
+  "Name": "FontAtlas_2_8",
+  "Flags": 0,
+  "OriginalFilepath": ""
+}

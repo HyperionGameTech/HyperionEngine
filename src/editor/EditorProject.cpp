@@ -310,8 +310,8 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     HYP_SCOPE;
 
     // registry to load assets into
-    const Handle<AssetRegistry> registry = g_assetManager->GetAssetRegistry();
-    Assert(registry.IsValid());
+    AssetRegistry* registry = g_assetManager->GetAssetRegistry();
+    AssertDebug(registry != nullptr);
 
     FilePath dir;
     FilePath projectFilepath;

@@ -1,0 +1,19 @@
+{
+  "$Class": "TextureAsset",
+  "TextureDesc": {
+    "Type": 4,
+    "Format": 4,
+    "Extent": [4, 4, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 2,
+    "NumLayers": 1,
+    "ImageUsage": 3,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "FriendlyName": "PlaceholderTextureCube1x1Array",
+  "Uuid": "5a940b94-ae25-4d67-9da4-193628603e5c",
+  "Name": "Placeholder_Texture_Cube_1x1_Array",
+  "Flags": 0,
+  "OriginalFilepath": ""
+}

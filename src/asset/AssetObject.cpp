@@ -91,8 +91,6 @@ void AssetDataResourceBase::Initialize()
 {
     HYP_SCOPE;
 
-    Mutex::Guard guard(m_mutex);
-
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
@@ -456,14 +454,19 @@ Result AssetObject::Save(const FilePath& manifestPath)
     if (doSaveResource)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-        resource->IncRef();
-        HYP_DEFER({ resource->DecRef(); });
 
-        Mutex::Guard guard(resource->m_mutex);
+        bool doDecRef = false;
+        HYP_DEFER({ if (doDecRef) resource->DecRef(); });
 
         if (!resource->IsDataLoaded())
         {
-            return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
+            resource->IncRef();
+            doDecRef = true;
+
+            if (!resource->IsDataLoaded())
+            {
+                return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
+            }
         }
 
         // get bin path from manifest path by removing .json extension
@@ -612,6 +615,8 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
 
     if (m_manifestPath.Empty())
     {
+        HYP_BREAKPOINT_DEBUG_MODE;
+
         return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot open read stream");
     }
 

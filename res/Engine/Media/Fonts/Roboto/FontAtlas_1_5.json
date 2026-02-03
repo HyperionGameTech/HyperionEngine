@@ -1,0 +1,19 @@
+{
+  "$Class": "TextureAsset",
+  "TextureDesc": {
+    "Type": 0,
+    "Format": 4,
+    "Extent": [1660, 505, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "FriendlyName": "FontAtlas15",
+  "Uuid": "ea927d2f-33e8-47f4-9c52-a65b2ea4543d",
+  "Name": "FontAtlas_1_5",
+  "Flags": 0,
+  "OriginalFilepath": ""
+}

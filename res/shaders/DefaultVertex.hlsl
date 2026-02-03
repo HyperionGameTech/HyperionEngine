@@ -46,8 +46,8 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 #endif
 
 #ifdef SKINNING
-#include "include/Skeleton.inc"
 
+#include "include/Skeleton.inc"
 DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
 
 float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
@@ -65,6 +65,7 @@ float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
 
     return skinning;
 }
+
 #endif
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)

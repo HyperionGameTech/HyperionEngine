@@ -423,6 +423,8 @@ public:
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
 
+    void Initialize();
+
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
     void Update(float delta);
 
@@ -433,7 +435,6 @@ public:
     ScriptableDelegate<void, Handle<AssetPackage>> OnPackageRemoved;
 
 private:
-    void Init() override;
     void LoadPackagesAsync(bool loadSubpackages = false);
 
     template <class Func, class FutureType = void>
