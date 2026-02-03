@@ -53,6 +53,7 @@ public:
 
 private:
     bool EvictEntries(SizeType bytesNeeded);
+    bool HasFreeSpace(SizeType bytes);
 
     Pimpl<struct EditorPickCacheImpl> m_impl;
 };
