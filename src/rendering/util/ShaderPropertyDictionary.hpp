@@ -18,8 +18,10 @@ class ByteWriter;
 class BufferedReader;
 using BufferedByteReader = BufferedReader;
 
-void WriteShaderPropertyDatabase(ByteWriter& stream);
-void ReadShaderPropertyDatabase(BufferedByteReader& stream);
+void InitShaderPropertyDictionary();
+
+void WriteShaderPropertyDictionary(ByteWriter& stream);
+void ReadShaderPropertyDictionary(BufferedByteReader& stream);
 
 ShaderPropertyId InternShaderProperty(const ShaderProperty& property);
 bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outProperty);

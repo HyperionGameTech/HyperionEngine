@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler/ShaderCompilerInternal.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -3551,7 +3551,7 @@ bool ShaderCompiler::CompileBundle(
         const FilePath shaderPropertyDbPath = GetCacheDirectory() / "ShaderProperties.bin";
 
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
-        WriteShaderPropertyDatabase(shaderPropertyDbWriter);
+        WriteShaderPropertyDictionary(shaderPropertyDbWriter);
         shaderPropertyDbWriter.Close();
     }
 

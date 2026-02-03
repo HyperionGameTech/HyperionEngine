@@ -23,7 +23,7 @@
 #include <rendering/GBuffer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/ParticleVolume.hpp>
 #include <scene/View.hpp>

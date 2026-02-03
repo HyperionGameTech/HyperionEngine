@@ -73,7 +73,7 @@ class VulkanDescriptorSet final : public DescriptorSetBase
 {
     HYP_OBJECT_BODY(VulkanDescriptorSet);
 
-    using ElementCache = HashMap<Name, Array<VulkanCachedDescriptor>>;
+    using ElementCache = HashMap<Name, Array<VulkanCachedDescriptor>, PooledNodeAllocator<VulkanAllocator>>;
 
 public:
     static Pool* GetAllocator() { return g_vulkanPool; }
@@ -117,7 +117,7 @@ protected:
     VkDescriptorSet m_handle;
     VkDescriptorPool m_vkDescriptorPool;
     VkDescriptorSetLayout m_vkDescriptorSetLayout;
-    Array<VulkanCachedDescriptor> m_pendingDescriptors;
+    Array<VulkanCachedDescriptor, VulkanAllocator> m_pendingDescriptors;
     ElementCache m_cachedElements;
 };
 

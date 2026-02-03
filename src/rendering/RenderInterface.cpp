@@ -36,7 +36,7 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/ResourceBinder.hpp>
 
