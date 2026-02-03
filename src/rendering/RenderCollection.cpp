@@ -22,7 +22,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ResourceTracker.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>

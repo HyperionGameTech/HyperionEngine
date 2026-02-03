@@ -297,7 +297,7 @@ void VulkanSwapchain::Recreate()
 
     Array<VulkanGpuImageRef> oldImages = std::move(m_images);
     Array<VulkanFramebufferRef> oldFramebuffers = std::move(m_framebuffers);
-    Array<VulkanSemaphoreRef> oldPresentSemaphores = std::move(m_presentSemaphores);
+    Array<VulkanSemaphoreRef, VulkanAllocator> oldPresentSemaphores = std::move(m_presentSemaphores);
 
     m_oldHandle = m_handle;
     m_handle = VK_NULL_HANDLE; // so Create() knows it's a new swapchain

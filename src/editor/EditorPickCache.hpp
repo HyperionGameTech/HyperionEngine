@@ -34,8 +34,6 @@ struct EditorPickCacheEntry
 class EditorPickCache
 {
 public:
-    static constexpr SizeType MaxMemoryUsageBytes = (32 * 1024 * 1024); // 32 MiB
-
     EditorPickCache();
     EditorPickCache(const EditorPickCache&) = delete;
     EditorPickCache& operator=(const EditorPickCache&) = delete;

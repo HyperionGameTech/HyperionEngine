@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/io/ByteWriter.hpp>
@@ -14,9 +14,12 @@
 
 namespace Hyperion {
 
-static const ShaderProperty s_staticProperties[] = {
-    ShaderProperty()
-};
+// properties that are created at program initialization
+// are used to version the dictionary, as adding or removing
+// these properties will offset all subsequent runtime-added properties,
+// so we need to force a new version when that happens.
+HashCode s_staticPropertyIdHashCode {};
+static bool s_initShaderPropertyDictionary = false;
 
 struct HashedShaderProperty
 {
@@ -82,23 +85,6 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
         return id;
     }
 
-    // check static properties
-    for (SizeType i = 0; i < std::size(s_staticProperties); i++)
-    {
-        if (s_staticProperties[i] == property)
-        {
-            // found in static properties; put in map for faster access next time
-            lock.Reset();
-
-            TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
-            shaderPropertyCacheMap.Insert(hashed, static_cast<ShaderPropertyId>(i));
-
-            GetShaderPropertyReverseMap().Emplace(i, property);
-
-            return static_cast<ShaderPropertyId>(i);
-        }
-    }
-
     lock.Reset();
 
     TUniqueLock uniqueLock(GetShaderPropertyCacheMutex());
@@ -110,10 +96,15 @@ ShaderPropertyId InternShaderProperty(const ShaderProperty& property)
         return it->second;
     }
 
-    const ShaderPropertyId newId = static_cast<ShaderPropertyId>(uint32(std::size(s_staticProperties)) + shaderPropertyCacheMap.Size());
+    const ShaderPropertyId newId = static_cast<ShaderPropertyId>(shaderPropertyCacheMap.Size());
     shaderPropertyCacheMap.Insert(hashed, newId);
 
     GetShaderPropertyReverseMap().Emplace(uint32(newId), property);
+
+    if (!s_initShaderPropertyDictionary)
+    {
+        s_staticPropertyIdHashCode = s_staticPropertyIdHashCode.Combine(hashed.GetHashCode());
+    }
 
     return newId;
 }
@@ -134,11 +125,21 @@ bool GetShaderPropertyById(ShaderPropertyId propertyId, ShaderProperty& outPrope
     return true;
 }
 
-constexpr uint16 ShaderPropertyDatabaseVersion = 1;
+constexpr uint16 FormatVersion = 1;
 constexpr SizeType SizeOfHashedProperty = sizeof(HashedShaderProperty);
 constexpr SizeType SizeOfEntry = 16; // 8 + 4 + 4 bytes padding
 
-void WriteShaderPropertyDatabase(ByteWriter& stream)
+void InitShaderPropertyDictionary()
+{
+    if (s_initShaderPropertyDictionary)
+    {
+        return;
+    }
+
+    s_initShaderPropertyDictionary = true;
+}
+
+void WriteShaderPropertyDictionary(ByteWriter& stream)
 {
     TSharedLock lock(GetShaderPropertyCacheMutex());
 
@@ -153,22 +154,6 @@ void WriteShaderPropertyDatabase(ByteWriter& stream)
     const SizeType entryMapOffset = stream.Position();
 
     uint32 maxShaderId = 0;
-
-    for (uint32 i = 0; i < uint32(std::size(s_staticProperties)); i++)
-    {
-        ShaderPropertyId id = static_cast<ShaderPropertyId>(i);
-        const ShaderProperty& property = s_staticProperties[i];
-        
-        HashedShaderProperty hashed = HashedShaderProperty(property);
-
-        stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
-        stream.Write(&hashed, sizeof(HashedShaderProperty));
-        stream.Write(&id, sizeof(ShaderPropertyId));
-
-        maxShaderId = MathUtil::Max(maxShaderId, uint32(id));
-
-        visited.Add(id);
-    }
 
     // now, do runtime hashed propertyies
     for (const auto& it : GetShaderPropertyMap())
@@ -202,21 +187,23 @@ void WriteShaderPropertyDatabase(ByteWriter& stream)
     stream.Seek(headerOffset);
 
     // version
-    stream.Write<uint16>(ShaderPropertyDatabaseVersion);
+    stream.Write<uint16>(FormatVersion);
     stream.Write<uint16>(0);
     // entry count
     stream.Write<uint32>(maxShaderId + 1);
+    // static property hash
+    stream.Write<uint64>(s_staticPropertyIdHashCode.Value());
 }
 
-void ReadShaderPropertyDatabase(BufferedByteReader& stream)
+void ReadShaderPropertyDictionary(BufferedByteReader& stream)
 {
     const SizeType readOffset = stream.Position();
 
     uint16 version;
     stream.Read<uint16>(&version);
-    if (version != ShaderPropertyDatabaseVersion)
+    if (version != FormatVersion)
     {
-        HYP_LOG(Core, Error, "Shader property database version mismatch: expected {} but got {}", ShaderPropertyDatabaseVersion, version);
+        HYP_LOG(Core, Error, "Shader property dictionary format version mismatch: expected {} but got {}", FormatVersion, version);
         return;
     }
 
@@ -224,6 +211,21 @@ void ReadShaderPropertyDatabase(BufferedByteReader& stream)
 
     uint32 entryCount;
     stream.Read<uint32>(&entryCount);
+
+    uint64 staticPropertyHashValue;
+    stream.Read<uint64>(&staticPropertyHashValue);
+
+    if (staticPropertyHashValue != s_staticPropertyIdHashCode.Value())
+    {
+        HYP_LOG(Core, Warning, "Shader property dictionary static property hash mismatch: expected {} but got {}. "
+                               "This usually indicates that the static shader properties have changed since the dictionary was created.\n"
+                               "The dictionary will be removed and regenerated to mitigate potential issues.",
+            s_staticPropertyIdHashCode.Value(), staticPropertyHashValue);
+
+        stream.Seek(readOffset); // roll back to start
+
+        return;
+    }
 
     stream.Seek(readOffset + 64); // skip reserved space
     
@@ -237,7 +239,7 @@ void ReadShaderPropertyDatabase(BufferedByteReader& stream)
 
     if ((readBytes = stream.ReadBytes(bytes, entryCount * SizeOfEntry)) != entryCount * SizeOfEntry)
     {
-        HYP_LOG(Core, Error, "Shader property database is corrupt! Read {} bytes, expected {}.",
+        HYP_LOG(Core, Error, "Shader property dictionary is corrupt! Read {} bytes, expected {}.",
             readBytes, entryCount * SizeOfEntry);
 
         Memory::Free(bytes);

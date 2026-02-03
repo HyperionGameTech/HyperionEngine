@@ -25,9 +25,9 @@ namespace Hyperion {
 extern VulkanRenderInterface* g_renderInterface;
 
 template <>
-Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanRayTracingPipeline>(const VulkanRayTracingPipeline& pipeline)
+Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanRayTracingPipeline>(const VulkanRayTracingPipeline& pipeline)
 {
-    Array<VkDescriptorSetLayout> usedLayouts;
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
     VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
@@ -94,7 +94,7 @@ RendererResult VulkanRayTracingPipeline::Create()
 
     const uint32 maxSetLayouts = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
-    Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
     if (usedLayouts.Size() > maxSetLayouts)
     {
@@ -106,9 +106,11 @@ RendererResult VulkanRayTracingPipeline::Create()
 
     /* Push constants */
     const VkPushConstantRange pushConstantRanges[] = {
-        { .stageFlags = PushConstantStageFlags,
+        {
+            .stageFlags = PushConstantStageFlags,
             .offset = 0,
-            .size = uint32(g_renderInterface->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(g_renderInterface->GetDevice()->GetFeatures().PaddedSize<PushConstantData>())
+        }
     };
 
     layoutInfo.pushConstantRangeCount = ArraySize(pushConstantRanges);

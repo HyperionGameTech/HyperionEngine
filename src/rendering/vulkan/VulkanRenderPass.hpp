@@ -86,8 +86,8 @@ private:
     RenderTargetDesc m_renderTargetDesc;
     VulkanRenderPassMode m_renderPassMode;
     
-    Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
-    Array<VkClearValue, InlineAllocator<2>> m_vkClearValues;
+    Array<VkSubpassDependency, VulkanAllocator> m_dependencies;
+    Array<VkClearValue, VulkanAllocator> m_vkClearValues;
 
     VkRenderPass m_handle;
 

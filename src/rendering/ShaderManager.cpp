@@ -7,7 +7,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Shader.hpp>
 
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <core/reflection/Handle.hpp>
 

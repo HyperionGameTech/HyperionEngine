@@ -82,7 +82,7 @@ private:
     VkSurfaceFormatKHR m_surfaceFormat;
     VkPresentModeKHR m_presentMode;
     VulkanSwapchainSupportDetails m_supportDetails;
-    Array<VulkanSemaphoreRef> m_presentSemaphores;
+    Array<VulkanSemaphoreRef, VulkanAllocator> m_presentSemaphores;
 };
 
 } // namespace Hyperion

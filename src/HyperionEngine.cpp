@@ -44,7 +44,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/ComponentInterface.hpp>
 
@@ -242,14 +242,16 @@ static void InitLogger()
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
 
-static void LoadShaderPropertyDatabase()
+static void LoadShaderPropertyDictionary()
 {
+    InitShaderPropertyDictionary();
+
     FileBufferedReaderSource source { GetCacheDirectory() / "ShaderProperties.bin" };
     BufferedByteReader br { &source };
 
     if (br.IsOpen())
     {
-        ReadShaderPropertyDatabase(br);
+        ReadShaderPropertyDictionary(br);
     }
 }
 
@@ -319,7 +321,7 @@ extern "C"
         g_materialCache = new MaterialCache;
         g_safeDeleter = new SafeDeleter;
 
-        LoadShaderPropertyDatabase();
+        LoadShaderPropertyDictionary();
 
         g_shaderCompiler = new ShaderCompiler;
         if (!g_shaderCompiler->LoadShaderDefinitions())

@@ -57,7 +57,7 @@ private:
     VulkanDeviceRef m_device;
 
 #ifdef HYP_DEBUG_MODE
-    Array<const char*> m_validationLayers;
+    Array<const char*, VulkanAllocator> m_validationLayers;
     VkDebugUtilsMessengerEXT m_vkDebugMessenger;
 #endif
 };

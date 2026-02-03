@@ -24,7 +24,8 @@ static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
 
 // amount of headroom to leave in the memory pool before we start forcefully evicting entries
-constexpr SizeType IdealHeadroom = 1 * 1024 * 1024;
+constexpr SizeType IdealHeadroom = 7 * 1024 * 1024;
+constexpr SizeType MaxMemoryUsageBytes = 8 * 1024 * 1024;
 
 struct EditorPickCacheImpl
 {

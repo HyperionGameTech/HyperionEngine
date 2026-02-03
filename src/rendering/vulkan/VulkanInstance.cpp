@@ -121,9 +121,9 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 #ifdef HYP_DEBUG_MODE
 
 // Returns supported vulkan debug layers
-static Array<const char*> CheckValidationLayerSupport(Span<const char*> requestLayers)
+static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<const char*> requestLayers)
 {
-    Array<const char*> supportedLayers;
+    Array<const char*, VulkanAllocator> supportedLayers;
     supportedLayers.Reserve(requestLayers.Size());
 
     uint32 layersCount;
