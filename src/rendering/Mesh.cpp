@@ -281,7 +281,7 @@ void Mesh::UploadGpuData()
         return;
     }
 
-    gpuUploadFence.Reset();
+    gpuUploadSemaphore.Reset();
 
     ResourceGuard resGuard(*asset->GetResource());
     AssertDebug(asset->IsLoaded());
@@ -442,7 +442,7 @@ void Mesh::UploadGpuData()
                 mesh->m_indexBuffer = std::move(indexBuffer);
             }
 
-            mesh->gpuUploadFence.Signal();
+            mesh->gpuUploadSemaphore.Signal();
 
             return {};
         }
@@ -459,7 +459,7 @@ void Mesh::ReleaseGpuData()
     SafeDelete(std::move(m_vertexBuffer));
     SafeDelete(std::move(m_indexBuffer));
 
-    gpuUploadFence.Reset();
+    gpuUploadSemaphore.Reset();
 }
 
 Result Mesh::Rename(Name name)
@@ -510,7 +510,7 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
         g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
 
         // needs reupload!
-        if (m_flags[MF_VIEW_INDEPENDENT] || gpuUploadFence.IsSignaled())
+        if (m_flags[MF_VIEW_INDEPENDENT] || gpuUploadSemaphore.IsSignaled())
         {
             UploadGpuData();
         }

@@ -40,15 +40,15 @@ enum MeshFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(MeshFlags)
 
-class MeshGpuUploadFence
+class MeshGpuUploadSemaphore
 {
 public:
-    MeshGpuUploadFence() = default;
-    MeshGpuUploadFence(const MeshGpuUploadFence&) = delete;
-    MeshGpuUploadFence& operator=(const MeshGpuUploadFence&) = delete;
-    MeshGpuUploadFence(MeshGpuUploadFence&& other) noexcept = delete;
-    MeshGpuUploadFence& operator=(MeshGpuUploadFence&& other) noexcept = delete;
-    ~MeshGpuUploadFence() = default;
+    MeshGpuUploadSemaphore() = default;
+    MeshGpuUploadSemaphore(const MeshGpuUploadSemaphore&) = delete;
+    MeshGpuUploadSemaphore& operator=(const MeshGpuUploadSemaphore&) = delete;
+    MeshGpuUploadSemaphore(MeshGpuUploadSemaphore&& other) noexcept = delete;
+    MeshGpuUploadSemaphore& operator=(MeshGpuUploadSemaphore&& other) noexcept = delete;
+    ~MeshGpuUploadSemaphore() = default;
 
     HYP_FORCE_INLINE void Wait() const
     {
@@ -171,7 +171,7 @@ public:
     void UploadGpuData();
     void ReleaseGpuData();
 
-    MeshGpuUploadFence gpuUploadFence;
+    MeshGpuUploadSemaphore gpuUploadSemaphore;
 
 private:
     void Init() override;

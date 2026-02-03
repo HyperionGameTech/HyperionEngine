@@ -81,7 +81,6 @@ protected:
     virtual AnyRef GetAssetRef() = 0;
 
     WeakHandle<AssetObject> m_assetObject;
-    mutable Mutex m_mutex;
 };
 
 template <class T>

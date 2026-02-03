@@ -32,13 +32,18 @@
 
 namespace Hyperion {
 
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
+
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
 // If true, all mutation operations will be forced to run on the sim thread,
 // otherwise a mutex will be used to allow multi-threaded access.
 static constexpr bool UseSingleThread = false;
 
-static constexpr const StringHash PredefinedTransientPackageNames[] = {
+static constexpr const StringHash PredefinedPackageNames[] = {
+    "Engine"_sh,
     "$Memory"_sh,
     "$Temp"_sh,
     "$Import"_sh
@@ -155,13 +160,18 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
     return CreateNameFromDynamicString(StringUtil::ToPascalCase(friendlyNameStr, true));
 }
 
-/*! \brief Is the AssetObject located in a transient package that allows us to move it elsewhere?
- *  Only Engine-defined transient packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
+/*! \brief Is the AssetObject located in a package that allows us to move it elsewhere?
+ *  Only Engine-defined internal packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
 static bool CanRelocateTransientAsset(const AssetObject* assetObject)
 {
     if (!assetObject)
     {
         return false;
+    }
+
+    if (assetObject->GetAssetFlags() & AssetObjectFlags::TRANSIENT)
+    {
+        return false; // explicitly marked transient; don't move
     }
 
     Handle<AssetPackage> package = assetObject->GetPackage();
@@ -171,23 +181,36 @@ static bool CanRelocateTransientAsset(const AssetObject* assetObject)
         return true; // not located in any package; fine to move
     }
 
-    if (!package->IsTransient())
+    if (package->IsTransient())
     {
-        return false; // don't move if not in transient package
-    }
-
-    if (assetObject->GetAssetFlags() & AssetObjectFlags::TRANSIENT)
-    {
-        return false; // explicitly transient asset; don't move
+        return true; // if in transient package ($Import, $Memory) it is safe to move
     }
 
     const ANSIString packagePath = package->BuildPackagePath();
     const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
     const StringHash substrHash = StringHash(substr);
 
-    for (StringHash transientPackageName : PredefinedTransientPackageNames)
+    return substrHash == "$Temp"_sh;
+}
+
+/*! \brief Check if the package should automatically save assets to disk when they are initially added
+ *   to the package, rather than the standard protocol of marking the package dirty until save is invoked.
+ *   
+ *   This is to be used primarily for internal packages (e.g $Temp, Engine) */
+static bool ShouldSavePackageOnChanged(const AssetPackage& package)
+{
+    if (package.IsTransient())
     {
-        if (substrHash == transientPackageName)
+        return false;
+    }
+
+    const ANSIString packagePath = package.BuildPackagePath();
+    const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
+    const StringHash substrHash = StringHash(substr);
+
+    for (StringHash packageName : PredefinedPackageNames)
+    {
+        if (substrHash == packageName)
         {
             return true;
         }
@@ -210,12 +233,18 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
 {
     if (name.IsValid())
     {
-        // If the name starts with a '$', it's a transient package
-        const char* str = name.LookupString();
-
-        if (str[0] == '$')
+        if (name == "$Memory"_sh || name == "$Import"_sh)
         {
-            m_flags |= APF_TRANSIENT | APF_HIDDEN;
+            m_flags |= APF_HIDDEN | APF_TRANSIENT;
+        }
+        else
+        {
+            const char* str = name.LookupString();
+
+            if (str[0] == '$')
+            {
+                m_flags |= APF_HIDDEN;
+            }
         }
 
         m_name = SanitizeName(name);
@@ -238,11 +267,13 @@ void AssetPackage::Init()
     HashSet<AssetObject*> assetObjectsToSave;
 
     bool isPackageSavedInFilesystem = false;
+    bool shouldSaveAssets = false;
 
     {
         TUniqueLock guard(m_mutex);
 
         isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
+        shouldSaveAssets = ShouldSavePackageOnChanged(*this);
 
         assetObjects.Reserve(m_assetObjects.Size());
         subpackages.Reserve(m_subpackages.Size());
@@ -251,16 +282,9 @@ void AssetPackage::Init()
         {
             assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
-            if (isPackageSavedInFilesystem)
+            if (shouldSaveAssets)
             {
-                const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
-
-                if (assetObject->m_manifestPath != newManifestFilepath)
-                {
-                    assetObject->m_manifestPath = newManifestFilepath;
-
-                    assetObjectsToSave.Insert(assetObject.Get());
-                }
+                assetObjectsToSave.Insert(assetObject.Get());
             }
 
             InitObject(assetObject);
@@ -272,28 +296,42 @@ void AssetPackage::Init()
         {
             InitObject(subpackage);
 
-            OnSubpackageAdded(subpackage);
+            if (isPackageSavedInFilesystem && shouldSaveAssets)
+            {
+                FilePath subpackageDir = m_packageDir / *subpackage->GetName();
 
+                Result savePackageResult = subpackage->Save(subpackageDir, /* saveEvenIfNotDirty */ true);
+                if (savePackageResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
+                        subpackage->GetName(), BuildPackagePath(), savePackageResult.GetError().GetMessage());
+                }
+            }
+
+            OnSubpackageAdded(subpackage);
             subpackages.PushBack(subpackage);
         }
     }
 
+    if (!shouldSaveAssets && assetObjects.Any())
+    {
+        MarkDirty(); // if not saving assets right now, need to mark it to be saved later
+    }
+
     for (const Handle<AssetObject>& assetObject : assetObjects)
     {
-        // if (assetObjectsToSave.Contains(assetObject.Get()))
-        // {
-        //     AssertDebug(!assetObject->IsTransient());
+        if (shouldSaveAssets && assetObjectsToSave.Contains(assetObject.Get()))
+        {
+            AssertDebug(!assetObject->IsTransient());
+                
+            const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
-        //     // save the asset in our package
-        //     if (Result saveAssetResult = assetObject->Save(); saveAssetResult.HasError())
-        //     {
-        //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
-
-        //         continue;
-        //     }
-
-        //     assetObject->SetIsPersistentlyLoaded(false);
-        // }
+            // save the asset in our package
+            if (Result saveAssetResult = assetObject->Save(newManifestFilepath); saveAssetResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+            }
+        }
 
         OnAssetObjectAdded(assetObject, true);
 
@@ -359,13 +397,15 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
 
     Array<Handle<AssetObject>> newAssetObjects;
     HashSet<AssetObject*> assetObjectsToSave;
-
+    
+    bool shouldSaveAssets = false;
     bool isPackageSavedInFilesystem = false;
 
     {
         TUniqueLock guard(m_mutex);
-
+        
         isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
+        shouldSaveAssets = ShouldSavePackageOnChanged(*this);
 
         m_assetObjects = assetObjects;
 
@@ -375,19 +415,11 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
         {
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
-
             assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
-            if (isPackageSavedInFilesystem)
+            if (shouldSaveAssets)
             {
-                const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
-
-                if (assetObject->m_manifestPath != newManifestFilepath)
-                {
-                    assetObject->m_manifestPath = newManifestFilepath;
-
-                    assetObjectsToSave.Insert(assetObject.Get());
-                }
+                assetObjectsToSave.Insert(assetObject.Get());
             }
 
             InitObject(assetObject);
@@ -396,27 +428,25 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
         }
     }
 
-    if (!IsLoading())
+    if (!IsLoading() && !shouldSaveAssets)
         MarkDirty();
 
     for (const Handle<AssetObject>& assetObject : newAssetObjects)
     {
-        // if (assetObjectsToSave.Contains(assetObject.Get()))
-        // {
-        //     AssertDebug(!assetObject->IsTransient());
+        if (shouldSaveAssets && assetObjectsToSave.Contains(assetObject.Get()))
+        {
+            AssertDebug(!assetObject->IsTransient());
+                
+            const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
-        //     // save the file in our package
-        //     Result saveAssetResult = assetObject->Save();
+            // save the file in our package
+            Result saveAssetResult = assetObject->Save(newManifestFilepath);
 
-        //     if (saveAssetResult.HasError())
-        //     {
-        //         HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
-
-        //         continue;
-        //     }
-
-        //     assetObject->SetIsPersistentlyLoaded(false);
-        // }
+            if (saveAssetResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+            }
+        }
 
         OnAssetObjectAdded(assetObject, true);
 
@@ -477,23 +507,21 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             }
         }
     }
+    
+    bool shouldSaveAsset = false;
 
-    auto impl = [this, assetObject = MakeStrongRef(assetObject)]() -> Result
+    auto impl = [this, &shouldSaveAsset, assetObject = MakeStrongRef(assetObject)]() -> Result
     {
         assetObject->m_package = WeakHandleFromThis();
         assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
         bool isPackageSavedInFilesystem = false;
 
-        // we save the asset to the filesystem if:
-        // the package is saved to the filesystem (not transient, has a package dir)
-        // AND the asset's new filepath would differ from the current one it has (or it has never been saved)
-        // bool doSaveAsset = false;
-
         {
             TUniqueLock guard(m_mutex);
 
             isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
+            shouldSaveAsset = ShouldSavePackageOnChanged(*this);
 
             // if no name is provided for the asset, generate one
             if (!assetObject->GetName().IsValid())
@@ -502,19 +530,6 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             }
 
             assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
-
-            // if (isPackageSavedInFilesystem)
-            //{
-            //     // set a filepath for the asset object to be saved at, based on our package's filepath.
-            //     const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
-
-            //    if (assetObject->m_manifestPath != newManifestFilepath)
-            //    {
-            //        assetObject->m_manifestPath = newManifestFilepath;
-
-            //        doSaveAsset = true; // asset path changed, we need to save
-            //    }
-            //}
 
             auto existingAssetObjectIt = m_assetObjects.Find(assetObject->GetName());
 
@@ -534,13 +549,28 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
 
         InitObject(assetObject);
 
-        if (!IsLoading())
+        if (!IsLoading() && !shouldSaveAsset)
             MarkDirty();
 
         HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}'",
             assetObject->InstanceClass()->GetName(),
             assetObject->GetName(),
             BuildPackagePath());
+        
+        if (shouldSaveAsset)
+        {
+            AssertDebug(!assetObject->IsTransient());
+                
+            const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
+
+            // save the file in our package
+            Result saveAssetResult = assetObject->Save(newManifestFilepath);
+
+            if (saveAssetResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+            }
+        }
 
         OnAssetObjectAdded(assetObject, true);
 
@@ -847,12 +877,18 @@ void AssetPackage::Rename(Name name)
         return;
     }
 
-    // If the name starts with a '$', it's a transient package
-    const char* str = name.LookupString();
-
-    if (str[0] == '$')
+    if (name == "$Memory"_sh || name == "$Import"_sh)
     {
-        m_flags |= APF_TRANSIENT | APF_HIDDEN;
+        m_flags |= APF_HIDDEN | APF_TRANSIENT;
+    }
+    else
+    {
+        const char* str = name.LookupString();
+
+        if (str[0] == '$')
+        {
+            m_flags |= APF_HIDDEN;
+        }
     }
 
     name = SanitizeName(name);
@@ -917,7 +953,6 @@ Name AssetPackage::GetUniqueSubpackageName_Internal(Name baseName) const
 Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDirty)
 {
     HYP_SCOPE;
-    AssertReady();
 
     TUniqueLock guard(m_mutex);
 
@@ -1437,20 +1472,15 @@ AssetRegistry::~AssetRegistry()
     delete m_scheduler;
 }
 
-void AssetRegistry::Init()
+void AssetRegistry::Initialize()
 {
     HYP_SCOPE;
 
-    ObjectBase::Init();
-
-    SetReady(true);
-
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
+    enginePackage->Save(g_assetManager->GetBasePath());
 
-    if (Result savePackageResult = enginePackage->Save(g_assetManager->GetBasePath()); savePackageResult.HasError())
-    {
-        HYP_LOG(Assets, Error, "Failed to save 'Engine' package! Error was: {}", savePackageResult.GetError().GetMessage());
-    }
+    Handle<AssetPackage> tempPackage = GetPackageFromPath("$Temp", true);
+    tempPackage->Save(CoreApi::GetExecutablePath());
 
     Handle<AssetPackage> memoryPackage = GetPackageFromPath("$Memory", true);
 
@@ -1534,8 +1564,6 @@ void AssetRegistry::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
 
-    AssertReady();
-
     if (!m_pruneTimer.Waiting())
     {
         m_pruneTimer.NextTick();
@@ -1561,7 +1589,6 @@ template <class Func, class FutureType>
 void AssetRegistry::PostTask(Func&& fn, Task<FutureType>* pOutFuture)
 {
     HYP_SCOPE;
-    AssertReady();
 
     if (!UseSingleThread || IsOnThread(s_assetRegistryThread))
     {
@@ -1749,7 +1776,6 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
 Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool mergeIfExists)
 {
     HYP_SCOPE;
-    AssertReady();
 
     Task<Result> future;
 
@@ -1904,17 +1930,43 @@ Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool
 
             if (newParentPackage != nullptr)
             {
+                bool isSubpackageSaved = false;
+
                 {
                     TUniqueLock guard(newParentPackage->m_mutex);
 
                     package->m_parentPackage = newParentPackage;
                     package->m_flags |= newParentPackage->m_flags;
 
+                    // If parent package exists on disk, save this package:
+                    if (!newParentPackage->IsTransient() && newParentPackage->IsSaved_Internal())
+                    {
+                        FilePath subpackageDir = newParentPackage->m_packageDir / *package->GetName();
+
+                        if (ShouldSavePackageOnChanged(*newParentPackage))
+                        {
+                            Result savePackageResult = package->Save(subpackageDir, /* saveEvenIfNotDirty*/ true);
+                            if (!savePackageResult.HasError())
+                            {
+                                isSubpackageSaved = true;
+                            }
+                            else
+                            {
+                                HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
+                                    package->GetName(), newParentPackage->BuildPackagePath(), savePackageResult.GetError().GetMessage());
+                            }
+                        }
+                    }
+
                     newParentPackage->m_subpackages.Insert(package);
                     newParentPackage->OnSubpackageAdded(package);
                 }
 
-                newParentPackage->MarkDirty();
+                if (!isSubpackageSaved)
+                {
+                    // mark dirty on add if not saved via ShouldSavePackageOnChanged (recursively)
+                    package->MarkDirty();
+                }
             }
             else // top-level package
             {
@@ -2024,10 +2076,11 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
     bool createIfNotExist)
 {
     HYP_SCOPE;
-    AssertReady();
 
     Handle<AssetPackage> pkg;
+
     bool isNew = false;
+    bool isSubpackageSaved = false;
 
     if (!parentPackage)
     {
@@ -2061,8 +2114,6 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
         return pkg;
     }
 
-    Optional<FilePath> saveOutputDir; // unset if no save needed
-
     {
         TUniqueLock guard(parentPackage->m_mutex);
 
@@ -2078,7 +2129,21 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
             // If parent package exists on disk, save this package:
             if (!parentPackage->IsTransient() && parentPackage->IsSaved_Internal())
             {
-                saveOutputDir = parentPackage->m_packageDir;
+                FilePath subpackageDir = parentPackage->m_packageDir / *subpackageName;
+
+                if (ShouldSavePackageOnChanged(*parentPackage))
+                {
+                    Result savePackageResult = pkg->Save(subpackageDir, /* saveEvenIfNotDirty*/ true);
+                    if (!savePackageResult.HasError())
+                    {
+                        isSubpackageSaved = true;
+                    }
+                    else
+                    {
+                        HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
+                            pkg->GetName(), parentPackage->BuildPackagePath(), savePackageResult.GetError().GetMessage());
+                    }
+                }
             }
 
             parentPackage->m_subpackages.Insert(pkg);
@@ -2092,9 +2157,9 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
         }
     }
 
-    if (isNew && pkg)
+    if (isNew && !isSubpackageSaved && pkg)
     {
-        parentPackage->MarkDirty();
+        pkg->MarkDirty();
 
         InitObject(pkg);
     }
@@ -2105,7 +2170,6 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool recursive)
 {
     HYP_SCOPE;
-    AssertReady();
 
     if (!package)
     {
@@ -2570,7 +2634,6 @@ Name AssetRegistry::GetUniqueAssetName(const UTF8StringView& packagePath, Name b
 Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
 {
     HYP_SCOPE;
-    AssertReady();
 
     if (!assetObject.IsValid())
     {
