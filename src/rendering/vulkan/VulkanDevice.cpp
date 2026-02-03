@@ -52,7 +52,7 @@ VulkanDevice::~VulkanDevice()
 
         queue->commandPools = {};
 
-        PoolDelete(*g_renderPool, queue);
+        PoolDelete(*g_vulkanPool, queue);
     }
 
     m_queueGraphics = nullptr;
@@ -586,7 +586,7 @@ void VulkanDevice::InitQueueFamilies(VkSurfaceKHR surface)
         if (insertResult.second)
         {
             // is unique; set member
-            *ppDeviceQueue = PoolNew<VulkanDeviceQueue>(*g_renderPool, std::move(deviceQueue));
+            *ppDeviceQueue = PoolNew<VulkanDeviceQueue>(*g_vulkanPool, std::move(deviceQueue));
             AssertDebug(*ppDeviceQueue != nullptr);
 
             deviceQueue = **ppDeviceQueue; // swap out for the pooled one

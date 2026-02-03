@@ -195,7 +195,7 @@ void RenderThread::Update()
 void RenderThread::operator()()
 {
     AssertDebug(g_renderArena == nullptr);
-    g_renderArena = new TArena<RenderAllocator>(RenderArenaSize);
+    g_renderArena = new Arena(RenderArenaSize);
 
     AtExit([]()
         {

@@ -9,6 +9,8 @@
 
 #include <core/threading/AtomicVar.hpp>
 
+#include <core/memory/allocator/Allocator.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <type_traits>
@@ -25,6 +27,12 @@ struct Handle;
 template <class T>
 struct WeakHandle;
 
+namespace memory {
+class Pool;
+} // namespace memory
+
+using memory::Pool;
+
 namespace utilities {
 struct TypeId;
 } // namespace utilities
@@ -33,7 +41,6 @@ using utilities::TypeId;
 
 #ifdef HYP_DOTNET
 namespace dotnet {
-class ManagedClass;
 class ManagedObject;
 } // namespace dotnet
 #endif
@@ -62,6 +69,8 @@ public:
     {
         using Type = ObjectBase;
     };
+
+    static Pool* GetAllocator();
 
     /*! \internal */
     ObjectBase();

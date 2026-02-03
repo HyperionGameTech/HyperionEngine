@@ -59,6 +59,8 @@ public:
         return m_class;
     }
 
+    virtual void Initialize() = 0;
+
     virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) = 0;
 
     virtual void Release(ObjectHeader* header) = 0;
@@ -77,12 +79,13 @@ protected:
     /*! \brief Checks that the current thread is the pool's owning thread, or locks the global pool lock if this is the global pool.
      *  \param outGuard If this is the global pool, the lock state will be stored here so it can be released later.
      */
-    Pool* GetPool() const;
-    static void LockPoolOrThreadAssert(Pool* pool, TLockGuard<AtomicFlag>& outGuard, int flags);
+    void LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int flags);
 
     TypeId m_typeId;
     const Class* m_class;
     IdGenerator m_idGenerator;
+    Pool* m_pool;
+    AtomicFlag m_atomicFlag;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -237,9 +240,16 @@ public:
     ObjectContainer(ObjectContainer&& other) noexcept = delete;
     ObjectContainer& operator=(ObjectContainer&& other) noexcept = delete;
 
-    virtual ~ObjectContainer() override
+    ~ObjectContainer() override
     {
-        AssertDebug(m_headers.Empty(), "Destroying ObjectContainer with live objects!");
+        HYP_CORE_ASSERT(m_headers.Empty(), "Destroying ObjectContainer with live objects!");
+    }
+    
+    void Initialize() override
+    {
+        m_pool = T::GetAllocator();
+
+        HYP_CORE_ASSERT(m_pool != nullptr);
     }
 
     HYP_NODISCARD ObjectHeader* AllocateObject(SizeType size)
@@ -248,18 +258,16 @@ public:
 
         static_assert(alignof(T) <= MaxObjectAlignment, "Invalid alignment for object type T, must be <= MaxObjectAlignment");
 
-        AssertDebug(size != 0, "Object size and alignment must be set before allocating objects");
-        AssertDebug(size >= sizeof(T));
+        HYP_CORE_ASSERT(size != 0, "Object size and alignment must be set before allocating objects");
+        HYP_CORE_ASSERT(size >= sizeof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
         const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
-        Pool* pool = GetPool();
-
         TLockGuard<AtomicFlag> guard;
-        LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_ALLOCATE);
+        LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
 
-        void* mem = pool->Allocate(totalSize, MaxObjectAlignment);
+        void* mem = m_pool->Allocate(totalSize, MaxObjectAlignment);
 
         // header needs to have padding in front of it so we can get the header from the object pointer
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) - sizeof(ObjectHeader);
@@ -282,8 +290,7 @@ public:
             return nullptr;
         }
 
-        Pool* pool = GetPool();
-        LockPoolOrThreadAssert(pool, outGuard, PF_NONE);
+        LockIfNeeded(outGuard, PF_NONE);
 
         if (!m_headers.HasIndex(index))
         {
@@ -295,24 +302,22 @@ public:
 
     virtual void Release(ObjectHeader* header) override
     {
-        AssertDebug(header != nullptr);
-
-        Pool* pool = GetPool();
+        HYP_CORE_ASSERT(header != nullptr);
 
         TLockGuard<AtomicFlag> guard;
-        LockPoolOrThreadAssert(pool, guard, PF_WRITER | PF_FREE);
+        LockIfNeeded(guard, PF_WRITER | PF_FREE);
 
         const uint32 index = header->index;
-        AssertDebug(index != ~0u, "Invalid index");
+        HYP_CORE_ASSERT(index != ~0u, "Invalid index");
 
-        AssertDebug(header->refCountStrong == 0 && header->refCountWeak == 0);
+        HYP_CORE_ASSERT(header->refCountStrong == 0 && header->refCountWeak == 0);
 
         m_idGenerator.ReleaseId(index + 1);
 
         constexpr uint32 HeaderOffset = ByteUtil::AlignAs(sizeof(ObjectHeader), 16) - sizeof(ObjectHeader);
 
         void* mem = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(header) - HeaderOffset);
-        pool->Free(mem);
+        m_pool->Free(mem);
 
         m_headers.EraseAt(index);
     }
@@ -326,7 +331,7 @@ public:
     // To match allocator interface
     HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment)
     {
-        AssertDebug(alignment <= 16, "ObjectContainer does not support alignments greater than 16!");
+        HYP_CORE_ASSERT(alignment <= 16, "ObjectContainer does not support alignments greater than 16!");
 
         return Allocate(size);
     }
@@ -343,7 +348,7 @@ public:
 
         // expected to be called from operator delete, so we release the strong reference we set in Allocate()
         int32 refCount = AtomicDecrement(&header->refCountStrong);
-        AssertDebug(refCount == 0);
+        HYP_CORE_ASSERT(refCount == 0);
 
         Release(header);
     }

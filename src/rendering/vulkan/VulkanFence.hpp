@@ -8,12 +8,16 @@
 
 namespace Hyperion {
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanFence final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanFence);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanFence();
     ~VulkanFence() override;
 

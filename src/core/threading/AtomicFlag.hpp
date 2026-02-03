@@ -15,7 +15,7 @@ HYP_API extern void ThreadSleep(uint32 milliseconds);
 
 class AtomicFlag final
 {
-    static constexpr uint32 MaxSpins = 1024; // before we yield
+    static constexpr uint32 MaxSpinsBeforeYield = 16; // spin until we yield
 
     friend class TLockGuard<AtomicFlag>;
 
@@ -38,22 +38,25 @@ public:
     void Acquire() const
     {
         uint32 numSpins = 0;
-        int64 expected = 0;
 
+        int64 expected = 0;
         while (!AtomicCompareExchange(&m_value, expected, 1))
         {
-            for (int i = 0; i < 32; i++)
-            {
-                HYP_WAIT_IDLE();
-            }
-
-            if (numSpins++ >= MaxSpins)
-            {
-                ThreadSleep(0);
-                numSpins = 0;
-            }
-
             expected = 0;
+            
+            // volatile read
+            while (m_value != 0)
+            {
+                if (numSpins++ < MaxSpinsBeforeYield)
+                {
+                    HYP_WAIT_IDLE();
+                }
+                else
+                {
+                    // yield to other threads
+                    ThreadSleep(0);
+                }
+            }
         }
     }
 

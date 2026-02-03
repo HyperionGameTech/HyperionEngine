@@ -20,12 +20,16 @@ namespace Hyperion {
 
 enum class VulkanRenderPassMode : uint8;
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanRenderPass final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanRenderPass);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanRenderPass(
         const RenderTargetDesc& renderTargetDesc,
         VulkanRenderPassMode renderPassMode);

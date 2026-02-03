@@ -114,60 +114,25 @@ ObjectContainerBase* ObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
-static AtomicFlag& GetAtomicFlag()
-{
-    static AtomicFlag s_flag;
-
-    return s_flag;
-}
-
-static Pool* GetPool()
-{
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    return g_objectPool;
-#else
-    static Pool s_globalPool { 16 * 1024 * 1024 };
-    return &s_globalPool;
-#endif
-}
-
-static Pool* GetPoolForClass(const Class* cls)
-{
-    AssertDebug(cls != nullptr);
-
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    Pool* const* pool = g_enginePools[cls->GetEnginePoolName()];
-    AssertDebug(pool != nullptr && *pool != nullptr, "Engine pool not found for %u", uint32(cls->GetEnginePoolName()));
-
-    return *pool;
-#endif
-
-    return GetPool();
-}
-
 #pragma region ObjectContainerBase
 
 ObjectContainerBase::ObjectContainerBase(TypeId typeId, const Class* cls)
     : m_typeId(typeId),
-      m_class(cls)
+      m_class(cls),
+      m_pool(nullptr)
 {
-    HYP_CORE_ASSERT(typeId != TypeId::Void());
+    AssertDebug(typeId != TypeId::Void());
 }
 
-Pool* ObjectContainerBase::GetPool() const
+void ObjectContainerBase::LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int flags)
 {
-    return GetPoolForClass(m_class);
-}
-
-void ObjectContainerBase::LockPoolOrThreadAssert(Pool* pool, TLockGuard<AtomicFlag>& outGuard, int flags)
-{
-    HYP_CORE_ASSERT(pool != nullptr);
+    AssertDebug(m_pool != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-    if (HYP_LIKELY(pool == g_objectPool || (pool->GetFlags() & PF_THREAD_SAFE)))
+    if (m_pool == g_objectPool || (m_pool->GetFlags() & PF_THREAD_SAFE))
     {
 #endif
-        outGuard.Reset(GetAtomicFlag());
+        outGuard.Reset(m_atomicFlag);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         return;

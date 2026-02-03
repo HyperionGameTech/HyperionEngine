@@ -1881,6 +1881,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
+#if 0
     // For debugging:
     Array<Name, RenderTempAllocator> dirtyUniforms;
     dirtyUniforms.Reserve(State::MaxShaderUniforms);
@@ -1897,6 +1898,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         validUniforms.PushBack(Name(state.shaderUniforms[bit].name));
     }
+#endif
 
     // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)
     for (uint32 setIndex = 0; setIndex < uint32(tableDecl->elements.Size()); setIndex++)

@@ -16,6 +16,8 @@
 
 namespace Hyperion {
 
+extern Pool* g_vulkanPool;
+
 struct VulkanShaderModule
 {
     ShaderModuleType type = ShaderModuleType::None;
@@ -50,6 +52,8 @@ class VulkanShader final : public ShaderBase
     HYP_OBJECT_BODY(VulkanShader);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanShader();
     explicit VulkanShader(const CompiledShader* compiledShader);
     ~VulkanShader() override;
