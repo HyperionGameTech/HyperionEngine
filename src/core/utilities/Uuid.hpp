@@ -14,9 +14,9 @@ namespace Hyperion {
 namespace utilities {
 
 HYP_STRUCT(Serialize = "bitwise")
-struct HYP_API Uuid
+struct HYP_API UUID
 {
-    HYP_STRUCT_BODY(Uuid);
+    HYP_STRUCT_BODY(UUID);
 
     HYP_FIELD(Serialize, Property = "Data0")
     uint64 data0;
@@ -24,41 +24,41 @@ struct HYP_API Uuid
     HYP_FIELD(Serialize, Property = "Data1")
     uint64 data1;
 
-    constexpr Uuid(uint64 data0, uint64 data1)
+    constexpr UUID(uint64 data0, uint64 data1)
         : data0 { data0 },
           data1 { data1 }
     {
     }
 
-    Uuid();
-    explicit Uuid(const char* str);
+    UUID();
+    explicit UUID(const char* str);
 
-    HYP_FORCE_INLINE constexpr bool operator==(const Uuid& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const UUID& other) const
     {
         return data0 == other.data0 && data1 == other.data1;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const Uuid& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const UUID& other) const
     {
         return data0 != other.data0 || data1 != other.data1;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator<(const Uuid& other) const
+    HYP_FORCE_INLINE constexpr bool operator<(const UUID& other) const
     {
         return data0 < other.data0 || (data0 == other.data0 && data1 < other.data1);
     }
 
-    HYP_FORCE_INLINE constexpr bool operator>(const Uuid& other) const
+    HYP_FORCE_INLINE constexpr bool operator>(const UUID& other) const
     {
         return data0 > other.data0 || (data0 == other.data0 && data1 > other.data1);
     }
 
-    HYP_FORCE_INLINE constexpr bool operator<=(const Uuid& other) const
+    HYP_FORCE_INLINE constexpr bool operator<=(const UUID& other) const
     {
         return data0 < other.data0 || (data0 == other.data0 && data1 <= other.data1);
     }
 
-    HYP_FORCE_INLINE constexpr bool operator>=(const Uuid& other) const
+    HYP_FORCE_INLINE constexpr bool operator>=(const UUID& other) const
     {
         return data0 > other.data0 || (data0 == other.data0 && data1 >= other.data1);
     }
@@ -72,7 +72,7 @@ struct HYP_API Uuid
             .Combine(HashCode::GetHashCode(data1));
     }
 
-    HYP_FORCE_INLINE constexpr static Uuid Invalid()
+    HYP_FORCE_INLINE constexpr static UUID Invalid()
     {
         return { 0, 0 };
     }
@@ -80,23 +80,23 @@ struct HYP_API Uuid
 
 } // namespace utilities
 
-using utilities::Uuid;
+using utilities::UUID;
 
 // formatter
 namespace utilities {
 
 template <class StringType>
-struct Formatter<StringType, Uuid>
+struct Formatter<StringType, UUID>
 {
-    constexpr auto operator()(const Uuid& value) const
+    constexpr auto operator()(const UUID& value) const
     {
         return StringType(value.ToString());
     }
 };
 
-constexpr Uuid SwapEndian(Uuid value)
+constexpr UUID SwapEndian(UUID value)
 {
-    Uuid result = Uuid::Invalid();
+    UUID result = UUID::Invalid();
     result.data0 = SwapEndian(value.data0);
     result.data1 = SwapEndian(value.data1);
 

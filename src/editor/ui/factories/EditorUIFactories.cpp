@@ -636,7 +636,7 @@ public:
     Handle<UIObject> Create(UIObject* parent, const WeakHandle<Scene>& value) const
     {
         String sceneName = "Invalid";
-        Uuid sceneUuid = Uuid::Invalid();
+        UUID sceneUuid = UUID::Invalid();
 
         if (Handle<Scene> scene = value.Lock())
         {
@@ -645,7 +645,7 @@ public:
         }
         else
         {
-            sceneUuid = Uuid();
+            sceneUuid = UUID();
         }
 
         Handle<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));

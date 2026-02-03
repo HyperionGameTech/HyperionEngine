@@ -122,7 +122,7 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
       m_isPositionAbsolute(false),
       m_allowMaterialUpdate(false),
       m_computedDepth(0),
-      m_dataSourceElementUuid(Uuid::Invalid()),
+      m_dataSourceElementUuid(UUID::Invalid()),
       m_deferredUpdates(UIObjectUpdateType::NONE),
       m_lockedUpdates(UIObjectUpdateType::NONE)
 {

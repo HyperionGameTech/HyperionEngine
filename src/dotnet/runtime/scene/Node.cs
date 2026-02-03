@@ -29,7 +29,7 @@ namespace Hyperion
         {
         }
 
-        public Uuid Uuid
+        public UUID UUID
         {
             get
             {

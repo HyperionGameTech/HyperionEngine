@@ -193,7 +193,7 @@ public class FileBrowserDialog : UIEventHandler
 
         foreach (FileInfo fileInfo in files)
         {
-            dataSource.Push(new Uuid(), fileInfo);
+            dataSource.Push(new UUID(), fileInfo);
         }
 
         if (dataSource.Size() == 0)

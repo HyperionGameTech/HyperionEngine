@@ -11,10 +11,10 @@ UniqueId::UniqueId()
 
 UniqueId UniqueId::Generate()
 {
-    return UniqueId { Uuid {}.GetHashCode() };
+    return UniqueId { UUID {}.GetHashCode() };
 }
 
-UniqueId UniqueId::FromUUID(const Uuid& uuid)
+UniqueId UniqueId::FromUUID(const UUID& uuid)
 {
     return UniqueId { HashCode::GetHashCode(uuid.data0).Combine(HashCode::GetHashCode(uuid.data1)) };
 }

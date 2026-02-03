@@ -2176,9 +2176,9 @@ void EditorSubsystem::InitSceneOutline()
                 return UIEventHandlerResult::OK;
             }
 
-            const Uuid dataSourceElementUuid = listViewItem->GetDataSourceElementUUID();
+            const UUID dataSourceElementUuid = listViewItem->GetDataSourceElementUUID();
 
-            if (dataSourceElementUuid == Uuid::Invalid())
+            if (dataSourceElementUuid == UUID::Invalid())
             {
                 return UIEventHandlerResult::ERR;
             }
@@ -2222,7 +2222,7 @@ static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node
     {
         WeakHandle<Node> editorNodeWeak = MakeWeakRef(node);
 
-        Uuid parentNodeUuid = Uuid::Invalid();
+        UUID parentNodeUuid = UUID::Invalid();
 
         if (Node* parentNode = node->GetParent())
         {
@@ -2549,7 +2549,7 @@ void EditorSubsystem::InitDetailView()
                     nodePropertyRef.description = attr.GetString();
                 }
 
-                dataSource->Push(Uuid(), BoxedValue(std::move(nodePropertyRef)));
+                dataSource->Push(UUID(), BoxedValue(std::move(nodePropertyRef)));
             }
 
             m_editorDelegates->AddNodeWatcher(
@@ -2756,7 +2756,7 @@ void EditorSubsystem::InitActiveSceneSelection()
 
     //                             if (tag.IsValid())
     //                             {
-    //                                 const Uuid* uuid = tag.data.TryGet<Uuid>();
+    //                                 const UUID* uuid = tag.data.TryGet<UUID>();
 
     //                                 if (uuid && *uuid == scene->GetUUID())
     //                                 {
@@ -2920,7 +2920,7 @@ void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& pac
     {
         Handle<AssetPackage> parentPackage = package->GetParentPackage().Lock();
 
-        Uuid parentPackageUuid = parentPackage.IsValid() ? parentPackage->GetUUID() : Uuid::Invalid();
+        UUID parentPackageUuid = parentPackage.IsValid() ? parentPackage->GetUUID() : UUID::Invalid();
 
         dataSource->Push(package->GetUUID(), BoxedValue(package), parentPackageUuid);
     }

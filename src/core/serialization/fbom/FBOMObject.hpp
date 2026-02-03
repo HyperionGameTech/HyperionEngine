@@ -55,7 +55,7 @@ struct FBOMObjectSerialize_Impl;
 
 struct FBOMExternalObjectInfo
 {
-    Uuid libraryId = Uuid::Invalid();
+    UUID libraryId = UUID::Invalid();
     uint32 index = ~0u;
 
     HYP_FORCE_INLINE UniqueId GetUniqueID() const
@@ -65,7 +65,7 @@ struct FBOMExternalObjectInfo
 
     HYP_FORCE_INLINE bool IsLinked() const
     {
-        return libraryId != Uuid::Invalid() && index != ~0u;
+        return libraryId != UUID::Invalid() && index != ~0u;
     }
 
     HashCode GetHashCode() const

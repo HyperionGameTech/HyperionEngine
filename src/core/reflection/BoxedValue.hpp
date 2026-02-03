@@ -3443,35 +3443,35 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<Uuid>
+struct HypDataHelperDecl<UUID>
 {
 };
 
 template <>
-struct HypDataHelper<Uuid> : HypDataHelper<Any>
+struct HypDataHelper<UUID> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return value.Is<Uuid>();
+        return value.Is<UUID>();
     }
 
-    HYP_FORCE_INLINE Uuid& Get(const Any& value) const
+    HYP_FORCE_INLINE UUID& Get(const Any& value) const
     {
-        return value.Get<Uuid>();
+        return value.Get<UUID>();
     }
 
-    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Uuid& value) const
+    HYP_FORCE_INLINE void Set(BoxedValue& boxed, const UUID& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Uuid>(value));
+        HypDataHelper<Any>::Set(boxed, Any::Construct<UUID>(value));
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(const Uuid& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    HYP_FORCE_INLINE static FBOMResult Serialize(const UUID& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
         HYP_SCOPE;
 
-        outData = FBOMData::FromStruct<Uuid>(value, flags);
+        outData = FBOMData::FromStruct<UUID>(value, flags);
 
         return FBOMResult::FBOM_OK;
     }
@@ -3480,9 +3480,9 @@ struct HypDataHelper<Uuid> : HypDataHelper<Any>
     {
         HYP_SCOPE;
 
-        Uuid result;
+        UUID result;
 
-        if (FBOMResult err = data.ReadStruct<Uuid>(&result))
+        if (FBOMResult err = data.ReadStruct<UUID>(&result))
         {
             return err;
         }
