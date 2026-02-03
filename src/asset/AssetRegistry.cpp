@@ -226,8 +226,9 @@ AssetPackage::AssetPackage()
 {
 }
 
-AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
-    : m_flags(flags),
+AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags, const UUID& uuid)
+    : m_uuid(uuid),
+      m_flags(flags),
       m_isLoading(false),
       m_isDirty(false)
 {
@@ -249,6 +250,11 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
 
         m_name = SanitizeName(name);
         m_friendlyName = CreateFriendlyName(name);
+    }
+
+    if (m_uuid == UUID::Invalid())
+    {
+        m_uuid = UUID();
     }
 }
 
@@ -1476,6 +1482,8 @@ void AssetRegistry::Initialize()
 {
     HYP_SCOPE;
 
+    LoadPackagesAsync(/* loadSubpackages */ false);
+
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
     enginePackage->Save(g_assetManager->GetBasePath());
 
@@ -1483,8 +1491,6 @@ void AssetRegistry::Initialize()
     tempPackage->Save(CoreApi::GetExecutablePath());
 
     Handle<AssetPackage> memoryPackage = GetPackageFromPath("$Memory", true);
-
-    LoadPackagesAsync(/* loadSubpackages */ false);
 
 #ifdef HYP_EDITOR
     // Add transient package for imported assets in editor mode

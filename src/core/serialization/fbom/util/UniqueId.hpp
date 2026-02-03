@@ -10,7 +10,7 @@
 namespace Hyperion {
 namespace utilities {
 
-struct Uuid;
+struct UUID;
 
 class HYP_API UniqueId
 {
@@ -76,7 +76,7 @@ public:
         return UniqueId { hashCode };
     }
 
-    static UniqueId FromUUID(const Uuid& uuid);
+    static UniqueId FromUUID(const UUID& uuid);
 
 private:
     uint64 m_value;

@@ -1160,7 +1160,7 @@ Handle<Node> Node::FindChildByName(StringHash name) const
     return Handle<Node>::empty;
 }
 
-Handle<Node> Node::FindChildByUUID(const Uuid& uuid) const
+Handle<Node> Node::FindChildByUUID(const UUID& uuid) const
 {
     HYP_SCOPE;
 

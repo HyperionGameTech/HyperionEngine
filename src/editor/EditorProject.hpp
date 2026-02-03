@@ -52,7 +52,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
+    HYP_FORCE_INLINE const UUID& GetUUID() const
     {
         return m_uuid;
     }
@@ -143,7 +143,7 @@ private:
     Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
 
     HYP_FIELD(Property = "UUID")
-    Uuid m_uuid;
+    UUID m_uuid;
 
     HYP_FIELD(Property = "Name")
     Name m_name;

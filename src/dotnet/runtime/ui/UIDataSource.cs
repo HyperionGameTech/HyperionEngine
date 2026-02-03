@@ -10,7 +10,7 @@ namespace Hyperion
         {
         }
 
-        public void Push(Uuid uuid, object value, Uuid? parentUuid = null)
+        public void Push(UUID uuid, object value, UUID? parentUuid = null)
         {
             BoxedValueInternal boxedInternal = new BoxedValueInternal();
             boxedInternal.SetValue(value);
@@ -20,15 +20,15 @@ namespace Hyperion
             boxedInternal.Dispose();
         }
 
-        public void Push(Uuid uuid, ref BoxedValueInternal buffer, Uuid? parentUuid = null)
+        public void Push(UUID uuid, ref BoxedValueInternal buffer, UUID? parentUuid = null)
         {
-            Uuid parentUuidOrDefault = parentUuid ?? Uuid.Invalid;
+            UUID parentUuidOrDefault = parentUuid ?? UUID.Invalid;
 
             UIDataSourceBase_Push(NativeAddress, ref uuid, ref buffer, ref parentUuidOrDefault);
         }
 
         [DllImport("hyperion", EntryPoint = "UIDataSourceBase_Push")]
-        private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref Uuid uuid, [In] ref BoxedValueInternal data, [In] ref Uuid parentUUID);
+        private static extern void UIDataSourceBase_Push([In] IntPtr uiDataSource, [In] ref UUID uuid, [In] ref BoxedValueInternal data, [In] ref UUID parentUUID);
     }
 
     [ClassBinding(Name = "UIDataSource")]

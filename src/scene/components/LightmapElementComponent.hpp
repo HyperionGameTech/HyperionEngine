@@ -20,7 +20,7 @@ struct HYP_API LightmapElementComponent
     HYP_STRUCT_BODY(LightmapElementComponent);
 
     HYP_FIELD()
-    Uuid lightmapVolumeUuid;
+    UUID lightmapVolumeUuid;
 
     HYP_FIELD()
     LightmapElementId lightmapElementId;

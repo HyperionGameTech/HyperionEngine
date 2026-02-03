@@ -285,7 +285,7 @@ FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter* out, const FilePath& bas
 
             bufferedOutput.Write<uint8>(FBOM_OBJECT_LIBRARY_START);
 
-            bufferedOutput.Write<Uuid>(library.uuid);
+            bufferedOutput.Write<UUID>(library.uuid);
             bufferedOutput.Write<uint8>(uint8(flags));
 
             if (flags & FBOMObjectLibraryFlags::LOCATION_INLINE)
@@ -616,7 +616,7 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMObject& object, UniqueId
         HYP_CORE_ASSERT(externalObjectInfoPtr != nullptr);
         HYP_CORE_ASSERT(externalObjectInfoPtr->IsLinked());
 
-        out->Write<Uuid>(externalObjectInfoPtr->libraryId);
+        out->Write<UUID>(externalObjectInfoPtr->libraryId);
 
         // write object index as u32
         out->Write<uint32>(externalObjectInfoPtr->index);

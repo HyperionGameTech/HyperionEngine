@@ -221,7 +221,7 @@ public:
     virtual ~AssetObject();
 
     HYP_METHOD()
-    const Uuid& GetUUID() const
+    const UUID& GetUUID() const
     {
         return m_uuid;
     }
@@ -376,7 +376,7 @@ protected:
     }
 
     HYP_FIELD()
-    Uuid m_uuid;
+    UUID m_uuid;
 
     HYP_FIELD()
     Name m_name;

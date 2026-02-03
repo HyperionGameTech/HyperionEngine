@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [ClassBinding(Name="Uuid")]
+    [ClassBinding(Name="UUID")]
     [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 8)]
-    public struct Uuid
+    public struct UUID
     {
-        public static readonly Uuid Invalid = new Uuid(0, 0);
+        public static readonly UUID Invalid = new UUID(0, 0);
 
         [FieldOffset(0)]
         private ulong data0;
@@ -15,13 +15,13 @@ namespace Hyperion
         [FieldOffset(8)]
         private ulong data1;
 
-        public Uuid()
+        public UUID()
         {
             data0 = 0;
             data1 = 0;
         }
 
-        public Uuid(ulong data0, ulong data1)
+        public UUID(ulong data0, ulong data1)
         {
             this.data0 = data0;
             this.data1 = data1;

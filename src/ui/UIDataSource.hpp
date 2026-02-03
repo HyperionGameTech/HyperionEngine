@@ -175,13 +175,13 @@ class HYP_API UIDataSourceElement
 {
 public:
     template <class T, typename = std::enable_if_t<!IsBoxedValueV<T>>>
-    UIDataSourceElement(Uuid uuid, T&& value)
+    UIDataSourceElement(UUID uuid, T&& value)
         : m_uuid(uuid),
           m_value(BoxedValue(std::forward<T>(value)))
     {
     }
 
-    UIDataSourceElement(Uuid uuid, BoxedValue&& value)
+    UIDataSourceElement(UUID uuid, BoxedValue&& value)
         : m_uuid(uuid),
           m_value(std::move(value))
     {
@@ -194,7 +194,7 @@ public:
         : m_uuid(other.m_uuid),
           m_value(std::move(other.m_value))
     {
-        other.m_uuid = Uuid::Invalid();
+        other.m_uuid = UUID::Invalid();
     }
 
     UIDataSourceElement& operator=(UIDataSourceElement&& other) noexcept
@@ -204,7 +204,7 @@ public:
             m_uuid = other.m_uuid;
             m_value = std::move(other.m_value);
 
-            other.m_uuid = Uuid::Invalid();
+            other.m_uuid = UUID::Invalid();
         }
 
         return *this;
@@ -212,7 +212,7 @@ public:
 
     ~UIDataSourceElement() = default;
 
-    HYP_FORCE_INLINE Uuid GetUUID() const
+    HYP_FORCE_INLINE UUID GetUUID() const
     {
         return m_uuid;
     }
@@ -228,7 +228,7 @@ public:
     }
 
 private:
-    Uuid m_uuid;
+    UUID m_uuid;
     BoxedValue m_value;
 };
 
@@ -255,11 +255,11 @@ public:
     UIDataSourceBase& operator=(UIDataSourceBase&& other) noexcept = delete;
     virtual ~UIDataSourceBase() = default;
 
-    virtual Result Push(const Uuid& uuid, BoxedValue&& value, const Uuid& parentUuid = Uuid::Invalid()) = 0;
-    virtual const UIDataSourceElement* Get(const Uuid& uuid) const = 0;
-    virtual void Set(const Uuid& uuid, BoxedValue&& value) = 0;
-    virtual void ForceUpdate(const Uuid& uuid) = 0;
-    virtual bool Remove(const Uuid& uuid) = 0;
+    virtual Result Push(const UUID& uuid, BoxedValue&& value, const UUID& parentUuid = UUID::Invalid()) = 0;
+    virtual const UIDataSourceElement* Get(const UUID& uuid) const = 0;
+    virtual void Set(const UUID& uuid, BoxedValue&& value) = 0;
+    virtual void ForceUpdate(const UUID& uuid) = 0;
+    virtual bool Remove(const UUID& uuid) = 0;
     virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement*)> predicate) = 0;
 
     virtual Handle<UIObject> CreateUIObject(UIObject* parent, const BoxedValue& value, const BoxedValue& context) const = 0;
@@ -340,7 +340,7 @@ public:
     UIDataSource& operator=(UIDataSource&& other) noexcept = delete;
     virtual ~UIDataSource() override = default;
 
-    virtual Result Push(const Uuid& uuid, BoxedValue&& value, const Uuid& parentUuid) override
+    virtual Result Push(const UUID& uuid, BoxedValue&& value, const UUID& parentUuid) override
     {
         if (value.IsNull())
         {
@@ -359,7 +359,7 @@ public:
 
         typename Forest<UIDataSourceElement>::ConstIterator parentIt = m_values.End();
 
-        if (parentUuid != Uuid::Invalid())
+        if (parentUuid != UUID::Invalid())
         {
             parentIt = m_values.FindIf([&parentUuid](const auto& item)
                 {
@@ -377,7 +377,7 @@ public:
         return {};
     }
 
-    virtual const UIDataSourceElement* Get(const Uuid& uuid) const override
+    virtual const UIDataSourceElement* Get(const UUID& uuid) const override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -392,7 +392,7 @@ public:
         return &*it;
     }
 
-    virtual void Set(const Uuid& uuid, BoxedValue&& value) override
+    virtual void Set(const UUID& uuid, BoxedValue&& value) override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -410,7 +410,7 @@ public:
         OnChange(this);
     }
 
-    virtual void ForceUpdate(const Uuid& uuid) override
+    virtual void ForceUpdate(const UUID& uuid) override
     {
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -426,7 +426,7 @@ public:
         OnChange(this);
     }
 
-    virtual bool Remove(const Uuid& uuid) override
+    virtual bool Remove(const UUID& uuid) override
     {
         bool changed = false;
 

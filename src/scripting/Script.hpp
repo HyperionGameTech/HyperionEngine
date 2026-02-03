@@ -32,7 +32,7 @@ struct ScriptData
     HYP_STRUCT_BODY(ScriptData);
 
     HYP_FIELD(Serialize)
-    Uuid uuid;
+    UUID uuid;
 
     HYP_FIELD(Serialize)
     ScriptLanguage language = ScriptLanguage::HypScript;

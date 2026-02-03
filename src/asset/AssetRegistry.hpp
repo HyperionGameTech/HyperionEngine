@@ -74,7 +74,7 @@ class HYP_API AssetPackage final : public ObjectBase
 
 public:
     AssetPackage();
-    AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags = APF_NONE);
+    AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags = APF_NONE, const UUID& uuid = UUID::Invalid());
 
     AssetPackage(const AssetPackage& other) = delete;
     AssetPackage& operator=(const AssetPackage& other) = delete;
@@ -85,13 +85,13 @@ public:
     ~AssetPackage() = default;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
+    HYP_FORCE_INLINE const UUID& GetUUID() const
     {
         return m_uuid;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetUUID(const Uuid& uuid)
+    HYP_FORCE_INLINE void SetUUID(const UUID& uuid)
     {
         m_uuid = uuid;
     }
@@ -300,7 +300,7 @@ private:
     Name GetUniqueSubpackageName_Internal(Name baseName) const;
 
     HYP_FIELD()
-    Uuid m_uuid;
+    UUID m_uuid;
 
     HYP_FIELD()
     Name m_name;
