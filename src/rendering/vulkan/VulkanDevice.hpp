@@ -34,6 +34,8 @@ class VulkanFeatures;
 
 using ExtensionMap = HashMap<String, bool>;
 
+extern Pool* g_vulkanPool;
+
 struct QueueFamilyIndices
 {
     Optional<uint32> graphicsFamily;
@@ -56,6 +58,8 @@ class VulkanDevice final : public DeviceBase
     HYP_OBJECT_BODY(VulkanDevice);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     explicit VulkanDevice(VkPhysicalDevice physical);
 
     VulkanDevice(const VulkanDevice&) = delete;
@@ -77,7 +81,7 @@ public:
     RendererResult SetupAllocator(VulkanInstance* instance);
     RendererResult DestroyAllocator();
 
-    VmaAllocator GetAllocator() const
+    VmaAllocator GetVmaAllocator() const
     {
         return m_allocator;
     }

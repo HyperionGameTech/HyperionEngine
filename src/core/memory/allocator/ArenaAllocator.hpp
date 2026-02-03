@@ -18,7 +18,7 @@ namespace memory {
 
 struct DynamicAllocator;
 
-/*! \brief A fixed-size, bump-allocator arena for temporary allocations.
+/*! \brief A dynamically growing linear bump-allocator for transient allocations
     \details Allocates memory from a fixed buffer using a simple offset pointer (bump allocation) */
 template <class AllocatorType>
 class TArena
@@ -28,6 +28,14 @@ class TArena
       \note if the overarching allocator's maxAlign is less than 64, we have to go by that instead */
     static constexpr uint32 chunkAllocationAlignment = AllocatorType::maxAlign < 64 ? AllocatorType::maxAlign : 64;
 
+    struct Block
+    {
+        Block* next;
+
+        typename AllocatorType::template Allocation<ubyte> allocation;
+        SizeType offset;
+    };
+
 public:
     static constexpr uint32 maxAlign = 16;
 
@@ -36,11 +44,10 @@ public:
     {
     };
 
-    /*! \brief Creates a TArena with the specified fixed size.
-        \param size Total size of the arena in bytes. Must be > 0. */
-    explicit TArena(SizeType size);
+    /*! \param blockSize Size of a block. */
+    explicit TArena(SizeType blockSize);
 
-    TArena(AllocatorType* pAllocator, SizeType size);
+    TArena(AllocatorType* pAllocator, SizeType blockSize);
 
     TArena(const TArena& other) = delete;
     TArena& operator=(const TArena& other) = delete;
@@ -50,31 +57,31 @@ public:
 
     ~TArena()
     {
-        m_allocation.Free(m_pAllocator);
+        Block* block = &m_firstBlock;
+        while (block != nullptr)
+        {
+            block->allocation.Free(m_pAllocator);
+
+            Block* prev = block;
+            block = block->next;
+            
+            if (prev != &m_firstBlock)
+            {
+                prev->allocation.Free(m_pAllocator);
+                m_pAllocator->Free(prev);
+            }
+        }
     }
 
-    /*! \brief Returns the total capacity of the arena in bytes. */
-    HYP_FORCE_INLINE SizeType GetCapacity() const
-    {
-        return m_size;
-    }
-
-    /*! \brief Returns the current offset (number of bytes allocated). */
-    HYP_FORCE_INLINE SizeType GetOffset() const
-    {
-        return m_offset;
-    }
-
-    /*! \brief Returns the number of bytes remaining in the arena. */
-    HYP_FORCE_INLINE SizeType GetRemaining() const
-    {
-        return m_size - m_offset;
-    }
-
-    /*! \brief Resets the arena, allowing all memory to be re-allocated. */
+    /*! \brief Resets the arena by settings all blocks' bump pointer to 0 */
     HYP_FORCE_INLINE void Reset()
     {
-        m_offset = 0;
+        Block* block = &m_firstBlock;
+        while (block != nullptr)
+        {
+            block->offset = 0;
+            block = block->next;
+        }
     }
 
     /*! \brief Allocates memory from the arena.
@@ -86,48 +93,38 @@ public:
     /*! \brief Does nothing as individual allocations from Arena cannot be freed. This method is only here to confirm to Allocator interface. */
     void Free(void* ptr)
     {
-        // Do nothing; can't free from Arena
     }
 
 private:
     AllocatorType* m_pAllocator;
-    typename AllocatorType::template Allocation<ubyte> m_allocation;
-    SizeType m_size;
-    SizeType m_offset;
+    Block m_firstBlock;
+    SizeType m_blockSize;
 };
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(SizeType size)
+TArena<AllocatorType>::TArena(SizeType blockSize)
     : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
-      m_size(size),
-      m_offset(0)
+      m_blockSize(blockSize)
 {
     HYP_CORE_ASSERT(m_pAllocator != nullptr);
-    HYP_CORE_ASSERT(m_size > 0, "Arena size must be greater than 0");
+    HYP_CORE_ASSERT(m_blockSize > 0, "Arena blockSize must be greater than 0");
 
-    m_allocation.SetToInitialState();
-
-    if (m_size != 0)
-    {
-        m_allocation.Allocate(m_pAllocator, m_size, chunkAllocationAlignment);
-    }
+    m_firstBlock = Block {};
+    m_firstBlock.allocation.SetToInitialState();
+    m_firstBlock.allocation.Allocate(m_pAllocator, m_blockSize, chunkAllocationAlignment);
 }
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType size)
+TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType blockSize)
     : m_pAllocator(pAllocator),
-      m_size(size),
-      m_offset(0)
+      m_blockSize(blockSize)
 {
     HYP_CORE_ASSERT(m_pAllocator != nullptr);
-    HYP_CORE_ASSERT(m_size > 0, "Arena size must be greater than 0");
+    HYP_CORE_ASSERT(m_blockSize > 0, "Arena blockSize must be greater than 0");
 
-    m_allocation.SetToInitialState();
-
-    if (m_size != 0)
-    {
-        m_allocation.Allocate(m_pAllocator, m_size, chunkAllocationAlignment);
-    }
+    m_firstBlock = Block {};
+    m_firstBlock.allocation.SetToInitialState();
+    m_firstBlock.allocation.Allocate(m_pAllocator, m_blockSize, chunkAllocationAlignment);
 }
 
 template <class AllocatorType>
@@ -136,23 +133,54 @@ void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
     HYP_CORE_ASSERT(alignment != 0 && alignment <= maxAlign && ((alignment & (alignment - 1)) == 0),
         "Arena requires power-of-two, non-zero alignment and must have alignment requirement <= 16 bytes");
 
-    ubyte* base = m_allocation.GetBuffer();
+    Block* block = &m_firstBlock;
+    bool isNewBlock = false;
 
-    UIntPtr currentAddress = reinterpret_cast<UIntPtr>(base + m_offset);
-    UIntPtr alignedAddress = ByteUtil::AlignAs(currentAddress, uint32(alignment));
-    SizeType padding = alignedAddress - currentAddress;
-    SizeType totalSize = size + padding;
-
-    if (m_offset + totalSize > m_size)
+    while (block != nullptr)
     {
-        // Out of memory
-        AssertDebug(false, "Arena out of memory!");
-        return nullptr;
+        ubyte* base = block->allocation.GetBuffer();
+
+        UIntPtr currentAddress = reinterpret_cast<UIntPtr>(base + block->offset);
+        UIntPtr alignedAddress = ByteUtil::AlignAs(currentAddress, uint32(alignment));
+        SizeType padding = alignedAddress - currentAddress;
+        SizeType totalSize = size + padding;
+
+        if (block->offset + totalSize <= m_blockSize)
+        {
+            block->offset += totalSize;
+
+            return reinterpret_cast<void*>(alignedAddress);
+        }
+
+        if (!block->next)
+        {
+            if (isNewBlock)
+            {
+                break;
+            }
+
+            // allocation failed; allocate new block
+            Block* newBlock = (Block*)m_pAllocator->Allocate(sizeof(Block), alignof(Block));
+
+            new (newBlock) Block {};
+            newBlock->offset = 0;
+            newBlock->next = nullptr;
+            newBlock->allocation.SetToInitialState();
+            newBlock->allocation.Allocate(m_pAllocator, m_blockSize, chunkAllocationAlignment);
+
+            block->next = newBlock;
+
+            isNewBlock = true;
+        }
+        
+        block = block->next;
     }
 
-    m_offset += totalSize;
+#ifdef HYP_DEBUG_MODE
+    HYP_FAIL("Failed to allocate from linear memory allocator!");
+#endif
 
-    return reinterpret_cast<void*>(alignedAddress);
+    return nullptr;
 }
 
 using Arena = TArena<DynamicAllocator>;

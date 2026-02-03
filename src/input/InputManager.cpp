@@ -19,9 +19,7 @@ namespace Hyperion {
 
 static Pool& GetInputPool()
 {
-    static Pool s_inputPool(
-        1 * 1024 * 1024,
-        PF_THREAD_SAFE);
+    static Pool s_inputPool(1 * 1024 * 1024);
 
     return s_inputPool;
 }

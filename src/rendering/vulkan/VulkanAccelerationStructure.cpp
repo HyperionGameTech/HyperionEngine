@@ -311,10 +311,10 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     geometryInfo.srcAccelerationStructure = (update && !wasRebuilt) ? m_accelerationStructure : VK_NULL_HANDLE;
     geometryInfo.scratchData = { .deviceAddress = m_scratchBuffer->GetBufferDeviceAddress() };
 
-    Array<VkAccelerationStructureBuildRangeInfoKHR, VulkanAllocator> rangeInfos;
+    Array<VkAccelerationStructureBuildRangeInfoKHR, VulkanTempAllocator> rangeInfos;
     rangeInfos.Resize(geometries.Size());
 
-    Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanAllocator> rangeInfoPtrs;
+    Array<VkAccelerationStructureBuildRangeInfoKHR*, VulkanTempAllocator> rangeInfoPtrs;
     rangeInfoPtrs.Resize(geometries.Size());
 
     for (SizeType i = 0; i < geometries.Size(); i++)
@@ -649,7 +649,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
         last = uint32(m_blases.Size());
     }
 
-    Array<VkAccelerationStructureInstanceKHR, VulkanAllocator> instances;
+    Array<VkAccelerationStructureInstanceKHR, VulkanTempAllocator> instances;
     instances.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -731,7 +731,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         return RendererResult();
     }
 
-    Array<MeshDescription, VulkanAllocator> meshDescriptions;
+    Array<MeshDescription, VulkanTempAllocator> meshDescriptions;
     meshDescriptions.Resize(last - first);
 
     for (uint32 i = first; i < last; i++)
@@ -915,8 +915,8 @@ RendererResult VulkanGpuBlas::Create()
 
     RendererResult result;
 
-    Array<VkAccelerationStructureGeometryKHR, VulkanAllocator> geometries(m_geometries.Size());
-    Array<uint32, VulkanAllocator> primitiveCounts(m_geometries.Size());
+    Array<VkAccelerationStructureGeometryKHR, VulkanTempAllocator> geometries(m_geometries.Size());
+    Array<uint32, VulkanTempAllocator> primitiveCounts(m_geometries.Size());
 
     if (m_geometries.Empty())
     {

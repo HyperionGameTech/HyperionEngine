@@ -27,6 +27,8 @@ namespace Hyperion {
 
 class VulkanDescriptorSetLayoutWrapper;
 
+extern Pool* g_vulkanPool;
+
 struct VulkanCachedDescriptor
 {
     uint32 binding;
@@ -74,6 +76,8 @@ class VulkanDescriptorSet final : public DescriptorSetBase
     using ElementCache = HashMap<Name, Array<VulkanCachedDescriptor>>;
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanDescriptorSet(const DescriptorSetLayout& layout);
     ~VulkanDescriptorSet();
 

@@ -84,6 +84,7 @@ HYP_EXPORT Pool* GetCurrentFramePool()
 
 // defined in ClassDecls.cpp
 extern void InitClassDecls();
+extern void InitObjectPool();
 
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
@@ -263,7 +264,7 @@ extern "C"
         }
 
         SetCurrentThreadId(g_mainThread);
-
+        
         InitClassDecls();
 
         if (!CoreApi::Initialize(argc, argv))
@@ -273,10 +274,11 @@ extern "C"
 
         InitThreads();
         InitMemoryPools();
-        InitLogger();
         InitNameRegistry();
 
         ClassRegistry::GetInstance().Initialize();
+
+        InitLogger();
 
         const FilePath basePath = FilePath(CoreApi::GetCommandLineArguments().GetCommand()).BasePath();
         CoreApi::SetExecutablePath(basePath);

@@ -17,12 +17,14 @@
 
 namespace Hyperion {
 
+extern Pool* g_vulkanPool;
+
 class VulkanAsyncCompute final : public AsyncComputeBase
 {
     friend class VulkanRenderInterface;
 
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+    HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
 
     VulkanAsyncCompute();
     ~VulkanAsyncCompute() override;

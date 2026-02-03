@@ -58,15 +58,18 @@ struct ParallelRenderingState_Shared;
 
 struct ParallelRenderingState
 {
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
-    using LocalQueue = TRenderQueue<TArena<RenderAllocator>>;
+    using LocalQueue = TRenderQueue<Arena>;
 
     TaskBatch* taskBatch = nullptr;
 
     uint32 numBatches = 0;
 
     ParallelRenderingState_Shared* sharedData = nullptr;
+    bool ownsSharedData = false;
 
     // Non-async rendering command list - used for binding state at the start of the pass before async stuff (can only be written to from render thread)
     RenderQueue rootQueue;
@@ -84,7 +87,7 @@ struct ParallelRenderingState
 
     ParallelRenderingState* next = nullptr;
 
-    explicit ParallelRenderingState(ParallelRenderingState_Shared* sharedData);
+    ParallelRenderingState(ParallelRenderingState_Shared* sharedData, bool ownsSharedData);
 
     ParallelRenderingState(const ParallelRenderingState&) = delete;
     ParallelRenderingState& operator=(const ParallelRenderingState&) = delete;

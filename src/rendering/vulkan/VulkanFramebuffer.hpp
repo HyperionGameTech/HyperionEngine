@@ -26,6 +26,8 @@ class VulkanCommandBuffer;
 
 enum class VulkanRenderPassMode : uint8;
 
+extern Pool* g_vulkanPool;
+
 struct VulkanAttachmentDef
 {
     VulkanGpuImageRef image;
@@ -146,6 +148,8 @@ class VulkanFramebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(VulkanFramebuffer);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode);
     ~VulkanFramebuffer() override;
 

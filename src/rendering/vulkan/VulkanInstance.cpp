@@ -395,7 +395,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     constexpr VkBool32 FalseValue = VK_TRUE;
     constexpr uint32 DuplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
 
-    Array<VkLayerSettingEXT, VulkanAllocator> layerSettings;
+    Array<VkLayerSettingEXT, VulkanTempAllocator> layerSettings;
 
     VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo { VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT };
 

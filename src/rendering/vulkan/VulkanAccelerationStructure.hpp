@@ -30,14 +30,18 @@ namespace Hyperion {
 class Entity;
 class Material;
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class HYP_API VulkanAccelerationGeometry final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanAccelerationGeometry);
 
-public:
     friend class VulkanGpuTlas;
     friend class VulkanGpuBlas;
+
+public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
 
     VulkanAccelerationGeometry(
         const VulkanGpuBufferRef& packedVerticesBuffer,

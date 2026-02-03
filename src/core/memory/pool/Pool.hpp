@@ -24,7 +24,9 @@ namespace Hyperion {
 enum PoolFlags : uint32
 {
     PF_NONE = AF_NONE,
-    PF_THREAD_SAFE = AF_THREAD_SAFE
+    PF_THREAD_SAFE = AF_THREAD_SAFE,
+
+    PF_DEFAULT = PF_THREAD_SAFE
 };
 
 HYP_MAKE_ENUM_FLAGS(PoolFlags);
@@ -45,43 +47,23 @@ public:
 
     struct Block
     {
-        struct Range
-        {
-            SizeType offset;
-            SizeType size;
-
-            HYP_FORCE_INLINE bool operator<(const Range& other) const
-            {
-                return offset < other.offset;
-            }
-
-            HYP_FORCE_INLINE bool operator==(const Range& other) const
-            {
-                return offset == other.offset && size == other.size;
-            }
-        };
-
-        struct AllocHeader
-        {
-            Block* owner;
-            SizeType totalSize; // header + payload
-        };
-
         ByteBuffer buffer;
-        TlsfAllocator allocator;
 
         explicit Block(SizeType capacity);
         ~Block() = default;
-
-        void* Allocate(SizeType size, SizeType alignment);
-        void Free(void* ptr);
     };
 
-    explicit Pool(SizeType blockSize, EnumFlags<PoolFlags> flags = PF_NONE, const ThreadId& ownerThreadId = ThreadId::Invalid())
+    explicit Pool(SizeType blockSize, EnumFlags<PoolFlags> flags = PF_DEFAULT, const ThreadId& ownerThreadId = ThreadId::Invalid())
         : m_blockSize(blockSize),
           m_flags(flags),
           m_ownerThreadId(ownerThreadId)
     {
+        if (ownerThreadId.IsValid())
+        {
+            // disable PF_THREAD_SAFE if using owner thread id - will assert instead of locking
+            m_flags &= ~PF_THREAD_SAFE;
+        }
+
         HYP_CORE_ASSERT(m_blockSize > 0);
     }
 
@@ -103,6 +85,11 @@ public:
         return m_flags;
     }
 
+    HYP_FORCE_INLINE AtomicFlag& GetAtomicFlag()
+    {
+        return m_atomicFlag;
+    }
+
     /*! \brief Allocates memory from the pool with the given size and alignment. */
     HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment = 16);
 
@@ -122,6 +109,8 @@ public:
     MemoryMetrics GetMemoryMetrics() const;
 
 protected:
+    TlsfAllocator m_tlsf;
+
     LinkedList<Block> m_blocks;
     SizeType m_blockSize;
     EnumFlags<PoolFlags> m_flags;
