@@ -4,6 +4,7 @@
 
 #include <scene/System.hpp>
 #include <scene/components/LightmapElementComponent.hpp>
+#include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/EntityTag.hpp>
 
 namespace Hyperion {
@@ -31,11 +32,15 @@ private:
             ComponentDescriptor<LightmapElementComponent, ComponentAccess::READ_WRITE> {},
 
             // used to assign entities to LightmapVolumes
+            ComponentDescriptor<BoundingBoxComponent, ComponentAccess::READ> {},
             ComponentDescriptor<EntityType<LightmapVolume>, ComponentAccess::READ, false> {}
         };
     }
 
-    bool AssignLightmapVolume(Scene* scene, LightmapElementComponent& lightmapElementComponent);
+    bool AssignLightmapVolume(
+        Scene* scene,
+        LightmapElementComponent& lightmapElementComponent,
+        BoundingBoxComponent& boundingBoxComponent);
 };
 
 } // namespace Hyperion

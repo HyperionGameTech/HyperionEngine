@@ -2204,45 +2204,6 @@ void EditorSubsystem::InitSceneOutline()
         }));
 }
 
-static void AddNodeToSceneOutline(const Handle<UIListView>& listView, Node* node)
-{
-    Assert(node != nullptr);
-
-    if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
-    {
-        return;
-    }
-
-    if (!listView)
-    {
-        return;
-    }
-
-    if (UIDataSourceBase* dataSource = listView->GetDataSource())
-    {
-        WeakHandle<Node> editorNodeWeak = MakeWeakRef(node);
-
-        UUID parentNodeUuid = UUID::Invalid();
-
-        if (Node* parentNode = node->GetParent())
-        {
-            parentNodeUuid = parentNode->GetUUID();
-        }
-
-        dataSource->Push(node->GetUUID(), BoxedValue(std::move(editorNodeWeak)), parentNodeUuid);
-    }
-
-    for (Node* child : node->GetChildren())
-    {
-        if (child->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
-        {
-            continue;
-        }
-
-        AddNodeToSceneOutline(listView, child);
-    }
-};
-
 void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 {
     if (!node.IsValid())
@@ -2288,8 +2249,6 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     //            }
     //        });
 
-    AddNodeToSceneOutline(listView, node.Get());
-
     m_delegateHandlers.Remove(&node->OnChildAdded);
     m_delegateHandlers.Add(node->OnChildAdded.Bind([this, listViewWeak = listView.ToWeak()](Node* node, bool isDirect)
         {
@@ -2301,8 +2260,6 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
             }
 
             Handle<UIListView> listView = listViewWeak.Lock();
-
-            AddNodeToSceneOutline(listView, node);
         }));
 
     m_delegateHandlers.Remove(&node->OnChildRemoved);
@@ -2325,11 +2282,6 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
             {
                 return;
             }
-
-            if (UIDataSourceBase* dataSource = listView->GetDataSource())
-            {
-                dataSource->Remove(node->GetUUID());
-            }
         }));
 }
 
@@ -2346,10 +2298,6 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
     Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
     AssertDebug(listView.IsValid());
 
-    if (const Handle<UIDataSourceBase>& dataSource = listView->GetDataSource())
-    {
-        dataSource->Remove(node->GetUUID());
-    }
 
     // Keep ref alive to node to prevent it from being destroyed while we're removing the watchers
     Handle<Node> nodeCopy = node;
@@ -2438,24 +2386,6 @@ void EditorSubsystem::InitDetailView()
     m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, cls = Node::StaticClass(), detailsListViewWeak = detailsListView.ToWeak(), outlineListViewWeak = outlineListView.ToWeak()](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
         {
             m_editorDelegates->RemoveNodeWatchers("DetailView"_sh);
-
-            if (shouldSelectInOutline)
-            {
-                if (Handle<UIListView> outlineListView = outlineListViewWeak.Lock(); outlineListView.IsValid())
-                {
-                    if (node.IsValid())
-                    {
-                        if (UIListViewItem* outlineListViewItem = outlineListView->FindListViewItem(node->GetUUID()))
-                        {
-                            outlineListView->SetSelectedItem(outlineListViewItem);
-                        }
-                    }
-                    else
-                    {
-                        outlineListView->SetSelectedItem(nullptr);
-                    }
-                }
-            }
 
             Handle<UIListView> detailsListView = detailsListViewWeak.Lock();
 
@@ -2804,8 +2734,6 @@ void EditorSubsystem::InitActiveSceneSelection()
         Handle<UIMenuItem> sceneMenuItem = activeSceneMenuItem->CreateUIObject<UIMenuItem>(scene->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
         Assert(sceneMenuItem != nullptr);
 
-        sceneMenuItem->SetNodeTag(NodeTag(NAME("Scene"), scene->GetUUID()));
-
         sceneMenuItem->SetText(scene->GetName().LookupString());
 
         sceneMenuItem->OnClick
@@ -2901,75 +2829,6 @@ void EditorSubsystem::InitContentBrowser()
 
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }));
-}
-
-void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested)
-{
-    HYP_SCOPE;
-
-    Assert(package.IsValid());
-
-    HYP_LOG(Editor, Debug, "Adding package to content browser: {}", package->GetName());
-
-    if (package->IsHidden())
-    {
-        return;
-    }
-
-    if (UIDataSourceBase* dataSource = m_contentBrowserDirectoryList->GetDataSource())
-    {
-        Handle<AssetPackage> parentPackage = package->GetParentPackage().Lock();
-
-        UUID parentPackageUuid = parentPackage.IsValid() ? parentPackage->GetUUID() : UUID::Invalid();
-
-        dataSource->Push(package->GetUUID(), BoxedValue(package), parentPackageUuid);
-    }
-
-    if (nested)
-    {
-        package->ForEachSubpackage([this](const Handle<AssetPackage>& subpackage)
-            {
-                if (subpackage->IsHidden())
-                {
-                    return IterationResult::CONTINUE;
-                }
-
-                AddPackageToContentBrowser(subpackage, true);
-
-                return IterationResult::CONTINUE;
-            });
-    }
-}
-
-void EditorSubsystem::RemovePackageFromContentBrowser(AssetPackage* package)
-{
-    HYP_SCOPE;
-
-    if (!package)
-    {
-        return;
-    }
-
-    if (m_selectedPackage == package)
-    {
-        SetSelectedPackage(nullptr);
-    }
-
-    if (UIDataSourceBase* dataSource = m_contentBrowserDirectoryList->GetDataSource())
-    {
-        if (!dataSource->Remove(package->GetUUID()))
-        {
-            return;
-        }
-    }
-
-    // Remove all subpackages
-    package->ForEachSubpackage([this](const Handle<AssetPackage>& subpackage)
-        {
-            RemovePackageFromContentBrowser(subpackage.Get());
-
-            return IterationResult::CONTINUE;
-        });
 }
 
 void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
@@ -3107,7 +2966,7 @@ void EditorSubsystem::NewProject()
     InitObject(project);
 
     Handle<Scene> defaultScene = MakeHandle<Scene>();
-    defaultScene->SetName(NAME("DefaultScene"));
+    defaultScene->SetName(NAME("DefaultScene1"));
     defaultScene->SetSceneFlags(SceneFlags::DEFAULT);
     project->AddScene(defaultScene);
 

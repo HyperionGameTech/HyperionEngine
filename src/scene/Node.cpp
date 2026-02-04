@@ -1160,37 +1160,6 @@ Handle<Node> Node::FindChildByName(StringHash name) const
     return Handle<Node>::empty;
 }
 
-Handle<Node> Node::FindChildByUUID(const UUID& uuid) const
-{
-    HYP_SCOPE;
-
-    // breadth-first search
-    Queue<const Node*> queue;
-    queue.Push(this);
-
-    while (queue.Any())
-    {
-        const Node* parent = queue.Pop();
-
-        for (const Handle<Node>& child : parent->GetChildren())
-        {
-            if (!child)
-            {
-                continue;
-            }
-
-            if (child->GetUUID() == uuid)
-            {
-                return child;
-            }
-
-            queue.Push(child.Get());
-        }
-    }
-
-    return Handle<Node>::empty;
-}
-
 void Node::AddTag(NodeTag&& value)
 {
     HYP_SCOPE;

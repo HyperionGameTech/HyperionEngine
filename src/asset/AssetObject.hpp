@@ -7,7 +7,6 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
 #include <core/filesystem/FilePath.hpp>
@@ -221,12 +220,6 @@ public:
     virtual ~AssetObject();
 
     HYP_METHOD()
-    const UUID& GetUUID() const
-    {
-        return m_uuid;
-    }
-
-    HYP_METHOD()
     Name GetName() const
     {
         return m_name;
@@ -374,9 +367,6 @@ protected:
 
         return resourceCasted->GetAssetRef().TryGet<T>();
     }
-
-    HYP_FIELD()
-    UUID m_uuid;
 
     HYP_FIELD()
     Name m_name;

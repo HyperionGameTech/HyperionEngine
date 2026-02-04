@@ -486,13 +486,6 @@ public:
 
     virtual ~Node() override;
 
-    /*! \brief Get the UUID of the Node. */
-    HYP_METHOD()
-    HYP_FORCE_INLINE const UUID& GetUUID() const
-    {
-        return m_uuid;
-    }
-
     HYP_METHOD(Property = "Name", Serialize, EditOrder = 1)
     HYP_FORCE_INLINE Name GetName() const
     {
@@ -500,7 +493,7 @@ public:
     }
 
     HYP_METHOD(Property = "Name")
-    void SetName(Name name);
+    virtual void SetName(Name name);
 
     HYP_METHOD()
     bool HasName() const;
@@ -817,10 +810,6 @@ public:
     HYP_METHOD()
     Handle<Node> FindChildByName(StringHash name) const;
 
-    /*! \brief Search child nodes (breadth-first) until a node with the given UUID is found. */
-    HYP_METHOD()
-    Handle<Node> FindChildByUUID(const UUID& uuid) const;
-
     HYP_FORCE_INLINE const NodeTagSet& GetTags() const
     {
         return m_tags;
@@ -893,9 +882,6 @@ protected:
 
     HYP_FIELD(Property = "NodeTags", Serialize)
     NodeTagSet m_tags;
-
-    HYP_FIELD(Property = "UUID", EditHide, Serialize)
-    UUID m_uuid;
 };
 
 struct NodeUnlockTransformScope

@@ -123,6 +123,8 @@ public:
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume() override;
 
+    void SetName(Name name) override;
+
     HYP_FORCE_INLINE Span<const Handle<Texture>> GetAtlasTextures(LightmapTextureType type) const
     {
         AssertDebug(type < LTT_MAX);

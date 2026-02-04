@@ -34,7 +34,6 @@ HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX];
 
 HYP_ENGINE_MEMORY_DECL Pool* g_objectPool;                  // Pool for object allocations, thread safe
 HYP_ENGINE_MEMORY_DECL Pool* g_renderPool;                  // Pool for render thread general allocations
-HYP_ENGINE_MEMORY_DECL Pool* g_framePools[RingBufferDepth]; // Pools for per-frame allocations, on either game or render thread for their given frame index.
 HYP_ENGINE_MEMORY_DECL Pool* g_scenePool;                   // Pool for scene-related allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_taskPool;                    // Pool for task system allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_assetPool;                   // Pool for asset system allocations (thread safe)
@@ -73,14 +72,8 @@ using StreamingTempAllocator = AllocatorInstance<Arena, &g_streamingArena>;
 
 static void InitMemoryPools()
 {
-    g_objectPool = new Pool(ObjectPoolBlockSize, PF_NONE);
+    g_objectPool = new Pool(ObjectPoolBlockSize);
     g_renderPool = new Pool(RenderPoolBlockSize, PF_NONE, g_renderThread);
-
-    for (uint32 i = 0; i < RingBufferDepth; i++)
-    {
-        g_framePools[i] = new Pool(FramePoolBlockSize, PF_NONE);
-    }
-
     g_scenePool = new Pool(ScenePoolBlockSize);
     g_taskPool = new Pool(TaskPoolBlockSize);
     g_resourcePool = new Pool(ResourcePoolBlockSize);

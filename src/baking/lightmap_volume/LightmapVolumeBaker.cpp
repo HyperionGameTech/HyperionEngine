@@ -228,7 +228,7 @@ struct BlitAtlasElements : RenderCommand
 static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapTextureType textureType)
 {
     static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
-    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetUUID(), elementIndex, TextureTypeNames[uint32(textureType)]);
+    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, TextureTypeNames[uint32(textureType)]);
 }
 
 static void UpdateAtlasTextures(
@@ -264,7 +264,7 @@ static void UpdateAtlasTextures(
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE });
 
-        radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetUUID()));
+        radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetName()));
 
         if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()).Await(); result.HasError())
         {
@@ -286,9 +286,10 @@ static void UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE });
+                TWM_CLAMP_TO_EDGE
+            });
 
-        irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetUUID()));
+        irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetName()));
 
         if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()).Await(); result.HasError())
         {
@@ -609,7 +610,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
                 lightmapElementComponent.lightmapVolume = volume.ToWeak();
                 lightmapElementComponent.lightmapElementId = lightmapElementId;
-                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
             }
             else
             {
@@ -617,7 +617,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
                 lightmapElementComponent.lightmapVolume = volume.ToWeak();
                 lightmapElementComponent.lightmapElementId = lightmapElementId;
-                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
 
                 entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
             }

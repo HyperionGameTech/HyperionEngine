@@ -40,6 +40,15 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
             m_resourceHandles.Set(meshComponent.skeleton.Get(), ResourceGuard(*skeletonAsset->GetResource()));
         }
     }
+
+    AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);
+    animationComponent.playbackState = {
+        .animationIndex = 0,
+        .status = AnimationPlaybackStatus::PLAYING,
+        .loopMode = AnimationLoopMode::REPEAT,
+        .speed = 1.0f,
+        .currentTime = 0.0f
+    };
 }
 
 void AnimationSystem::OnEntityRemoved(Entity* entity)

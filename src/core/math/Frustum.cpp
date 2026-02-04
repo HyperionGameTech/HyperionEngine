@@ -57,6 +57,33 @@ bool Frustum::ContainsAABB(const BoundingBox& aabb) const
     return true;
 }
 
+bool Frustum::FullyContainsAABB(const BoundingBox& aabb) const
+{
+    const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
+
+    for (const Vec4f& plane : planes)
+    {
+        if (plane.Dot(Vec4f(corners[0], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[1], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[2], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[3], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[4], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[5], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[6], 1.0f)) < 0.0f)
+            return false;
+        if (plane.Dot(Vec4f(corners[7], 1.0f)) < 0.0f)
+            return false;
+    }
+
+    return true;
+}
+
 bool Frustum::ContainsBoundingSphere(const BoundingSphere& sphere) const
 {
     for (const Vec4f& plane : planes)

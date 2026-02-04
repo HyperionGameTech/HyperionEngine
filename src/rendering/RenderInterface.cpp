@@ -453,7 +453,7 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     if (!vfd)
     {
-        vfd = PoolNew<ViewFrameData>(*g_framePools[slot]);
+        vfd = new ViewFrameData;
         vfd->view = view;
 
         vfd->rplShared = view->GetRenderProxyList(slot);
@@ -974,7 +974,7 @@ RendererResult RenderInterface::Shutdown()
     {
         for (auto& it : s_frameData[i].viewFrameData)
         {
-            PoolDelete(*g_framePools[i], it.second);
+            delete it.second;
         }
 
         s_frameData[i].viewFrameData.Clear();
@@ -1332,7 +1332,7 @@ void RenderInterface::EndFrame()
                     vfd.rplShared = nullptr;
                 }
 
-                PoolDelete(*g_framePools[slot], &vfd);
+                delete &vfd;
 
                 it = frameData.viewFrameData.Erase(it);
 

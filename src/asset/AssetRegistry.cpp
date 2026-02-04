@@ -26,6 +26,8 @@
 #include <scene/Entity.hpp>
 #include <scene/EntityManager.hpp>
 
+#include <streaming/StreamingCell.hpp>
+
 #include <engine/EngineDriver.hpp>
 
 #include <AssetRegistry.generated.inl>
@@ -80,7 +82,7 @@ HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr)
     {
         const utf::Char32 c = *it;
 
-        if (!std::isalnum(int(c)) && c != '$')
+        if (!std::isalnum(int(c)) && c != '$' && c != '-' && c != '_')
         {
             newString.Append('_');
 
@@ -160,37 +162,30 @@ HYP_NODISCARD Name CreateFriendlyName(Name name)
     return CreateNameFromDynamicString(StringUtil::ToPascalCase(friendlyNameStr, true));
 }
 
-/*! \brief Is the AssetObject located in a package that allows us to move it elsewhere?
- *  Only Engine-defined internal packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
-static bool CanRelocateTransientAsset(const AssetObject* assetObject)
+static bool IsTransientAssetPath(const AssetPath& assetPath)
 {
-    if (!assetObject)
+    if (!assetPath)
     {
         return false;
     }
 
-    if (assetObject->GetAssetFlags() & AssetObjectFlags::TRANSIENT)
+    Name rootPackageName = assetPath.chain[0];
+
+    return rootPackageName == "$Temp"_sh
+        || rootPackageName == "$Memory"_sh
+        || rootPackageName == "$Import"_sh;
+}
+
+/*! \brief Is the AssetObject located in a package that allows us to move it elsewhere?
+ *  Only Engine-defined internal packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
+static bool ShouldRelocateAssetBeforeSave(const AssetObject& assetObject)
+{
+    if (assetObject.GetAssetFlags() & AssetObjectFlags::TRANSIENT)
     {
         return false; // explicitly marked transient; don't move
     }
 
-    Handle<AssetPackage> package = assetObject->GetPackage();
-
-    if (!package)
-    {
-        return true; // not located in any package; fine to move
-    }
-
-    if (package->IsTransient())
-    {
-        return true; // if in transient package ($Import, $Memory) it is safe to move
-    }
-
-    const ANSIString packagePath = package->BuildPackagePath();
-    const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
-    const StringHash substrHash = StringHash(substr);
-
-    return substrHash == "$Temp"_sh;
+    return !assetObject.IsRegistered() || IsTransientAssetPath(assetObject.GetPath());
 }
 
 /*! \brief Check if the package should automatically save assets to disk when they are initially added
@@ -226,9 +221,8 @@ AssetPackage::AssetPackage()
 {
 }
 
-AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags, const UUID& uuid)
-    : m_uuid(uuid),
-      m_flags(flags),
+AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
+    : m_flags(flags),
       m_isLoading(false),
       m_isDirty(false)
 {
@@ -250,11 +244,6 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags, const 
 
         m_name = SanitizeName(name);
         m_friendlyName = CreateFriendlyName(name);
-    }
-
-    if (m_uuid == UUID::Invalid())
-    {
-        m_uuid = UUID();
     }
 }
 
@@ -543,7 +532,7 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             {
                 if (*existingAssetObjectIt != assetObject)
                 {
-                    return HYP_MAKE_ERROR(Error, "AssetObject with name '{}' already exists in package '{}'", assetObject->GetName(), m_name);
+                    return HYP_MAKE_ERROR(Error, "AssetObject with name '{}' already exists in package '{}'", assetObject->GetName(), BuildPackagePath());
                 }
 
                 // already exists and is the same object; fine
@@ -2239,7 +2228,8 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
 
                 if (existingSubpackage != subpackage)
                 {
-                    HYP_LOG(Assets, Warning, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'", subpackage->GetName(), package->GetName(), manifestPath);
+                    HYP_LOG(Assets, Warning, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'",
+                        subpackage->GetName(), package->BuildPackagePath(), manifestPath);
                 }
             }
         });
@@ -2397,7 +2387,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
                 // Dependency package doesn't exist yet, try to load it from filesystem
                 const String relativePath = AssetPath::MakeRelativePath(AssetPath(outPackage->BuildPackagePath()), dependencyPath);
-                const FilePath dependencyManifestPath = dir / relativePath / "PackageManifest.json";
+                const FilePath dependencyManifestPath = GetResourceDirectory() / FilePath::Relative(dir / relativePath / "PackageManifest.json", GetResourceDirectory());
 
                 if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
                 {
@@ -2415,7 +2405,7 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 }
                 else
                 {
-                    HYP_LOG(Assets, Warning, "Dependency package '{}' for package '{}' not found at '{}'", dependencyPath, outPackage->GetName(), dependencyManifestPath);
+                    HYP_LOG(Assets, Error, "Dependency package '{}' for package '{}' not found at '{}'", dependencyPath, outPackage->GetName(), dependencyManifestPath);
                     continue;
                 }
             }
@@ -2544,26 +2534,20 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
                 }
             }
 
+            InitObject(outPackage);
+
+
             if (parentPackage != nullptr)
             {
-                // add subpackage
                 TUniqueLock guard(parentPackage->m_mutex);
-
-                InitObject(outPackage);
-
                 parentPackage->m_subpackages.Insert(outPackage);
                 parentPackage->OnSubpackageAdded(outPackage);
             }
             else // top-level package
             {
-                {
-                    TUniqueLock guard(m_mutex);
+                TUniqueLock guard(m_mutex);
 
-                    m_packages.Insert(outPackage);
-                }
-
-                InitObject(outPackage);
-
+                m_packages.Insert(outPackage);
                 OnPackageAdded(outPackage);
             }
 
@@ -2700,6 +2684,24 @@ void AssetRegistry::RegisterAssetsRecursively(
 
     bool shouldFollowAssetPaths = false;
 
+    auto HandleAssetReference = [this](const AssetReference& assetReference, AssetPackage& package)
+    {
+        Array<Name> chain = assetReference.GetAssetPath().GetChain();
+
+        if (chain.Size() > 1) // has at least one package in chain
+        {
+            chain.PopBack(); // remove asset name
+
+            const String packagePath = String::Join(chain, '/', &Name::ToString);
+            const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
+
+            if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(package))
+            {
+                package.AddDependency(AssetPath(packagePath));
+            }
+        }
+    };
+
     Proc<void(const Handle<AssetPackage>&, const BoxedValue&)> iterate;
     iterate = [&](const Handle<AssetPackage>& inPackage, const BoxedValue& current) -> void
     {
@@ -2758,7 +2760,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
-        if (assetObject && CanRelocateTransientAsset(assetObject))
+        if (assetObject && ShouldRelocateAssetBeforeSave(*assetObject))
         {
             const String packagePathWithSubpath = getObjectSubpath
                 ? packagePath + "/" + getObjectSubpath(*assetObject)
@@ -2769,10 +2771,14 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             Handle<AssetPackage> prevPackage = assetObject->GetPackage();
 
+            HYP_LOG(Assets, Debug, "Relocating asset {} to {}",
+                prevPackage ? prevPackage->BuildAssetPath(assetObject->GetName()).ToString() : String(),
+                newPackage->BuildPackagePath());
+
             // try to move it
             if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
             {
-                HYP_LOG(Assets, Error, "Failed to relocate transient {} {} located in package '{}' to '{}': {}",
+                HYP_LOG(Assets, Error, "Failed to relocate {} {} from temp/transient package '{}' to '{}': {}",
                     assetObject->InstanceClass()->GetName(),
                     assetObject->GetName(),
                     prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
@@ -2782,7 +2788,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                 return;
             }
 
-            HYP_LOG(Assets, Debug, "Moved {} {} located in transient package {} to {}",
+            HYP_LOG(Assets, Debug, "Moved {} {} from temp/transient package {} to {}",
                 assetObject->InstanceClass()->GetName(),
                 assetObject->GetName(),
                 prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
@@ -2797,23 +2803,13 @@ void AssetRegistry::RegisterAssetsRecursively(
         }
         else if (assetReference)
         {
-            Array<Name> chain = assetReference->GetAssetPath().GetChain();
-
-            if (chain.Size() > 1) // has at least one package in chain
-            {
-                chain.PopBack(); // remove asset name
-
-                const String packagePath = String::Join(chain, '/', &Name::ToString);
-                const Handle<AssetPackage> referencedPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
-
-                if (referencedPackage.IsValid() && !referencedPackage->IsSubpackageOf(*inPackage))
-                {
-                    inPackage->AddDependency(AssetPath(packagePath));
-                }
-            }
+            HandleAssetReference(*assetReference, *inPackage);
         }
 
         shouldFollowAssetPaths = false;
+
+        // @TODO Move array, entity, streaming cell special handlings out of this function:
+        // like some kind of handler defined per class
 
         if (current.IsArray()) // array needs special handling: iterate over elements (if possible)
         {
@@ -2872,6 +2868,21 @@ void AssetRegistry::RegisterAssetsRecursively(
             }
         }
 
+        if (current.Is<StreamingCell>())
+        {
+            const StreamingCell& streamingCell = current.Get<StreamingCell>();
+
+            for (const AssetReference& assetReference : streamingCell.GetAssetReferences())
+            {
+                if (IsTransientAssetPath(assetReference.GetAssetPath()))
+                {
+                    HYP_LOG(Assets, Error, "StreamingCell contains a reference to the asset: {}, which is in an in-memory package or the $Temp package on the filesystem.\n"
+                        "This may result in issues with loading the asset later down the line.",
+                        assetReference.GetAssetPath().ToString());
+                }
+            }
+        }
+        
         const Class* cls = GetClass(current.GetTypeId());
 
         const BoxedValue* boxed = &current;

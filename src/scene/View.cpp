@@ -45,7 +45,6 @@
 namespace Hyperion {
 
 HYP_API extern Pool* g_scenePool;
-HYP_API extern Pool* g_framePools[RingBufferDepth];
 
 #pragma region ViewOutputTarget
 

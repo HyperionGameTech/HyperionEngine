@@ -29,14 +29,6 @@ namespace Hyperion
         {
         }
 
-        public UUID UUID
-        {
-            get
-            {
-                return this.GetUUID();
-            }
-        }
-
         public Name Name
         {
             get
