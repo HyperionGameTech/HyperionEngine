@@ -98,7 +98,6 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                     entityJson["id"] = Json::JSString(HYP_FORMAT("{}", entity->Id()));
                     entityJson["refCountStrong"] = entity->GetObjectHeader_Internal()->GetRefCountStrong();
                     entityJson["refCountWeak"] = entity->GetObjectHeader_Internal()->GetRefCountWeak();
-                    entityJson["uuid"] = Json::JSString(entity->GetUUID().ToString());
                     entityJson["name"] = Json::JSString(*entity->GetName());
                     entityJson["type"] = Json::JSString(*entity->InstanceClass()->GetName());
                     entityJson["parentName"] = entity->GetParent() ? Json::Value(Json::JSString(*entity->GetParent()->GetName())) : Json::Value(Json::JSNull());
@@ -134,7 +133,8 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                                     componentJson["ui_object"] = Json::JSObject({ { "name", Json::JSString(*uiObject->GetName()) },
                                         { "type", Json::JSString(*uiObject->InstanceClass()->GetName()) },
                                         { "refCountStrong", uiObject->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
-                                        { "refCountWeak", uiObject->GetObjectHeader_Internal()->GetRefCountWeak() } });
+                                        { "refCountWeak", uiObject->GetObjectHeader_Internal()->GetRefCountWeak() }
+                                    });
                                 }
                             }
                         }

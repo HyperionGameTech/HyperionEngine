@@ -20,14 +20,14 @@ void LightmapSystem::OnEntityAdded(Entity* entity)
     SystemBase::OnEntityAdded(entity);
 
     LightmapElementComponent& lightmapElementComponent = entity->GetEntityManager()->GetComponent<LightmapElementComponent>(entity);
+    BoundingBoxComponent& boundingBoxComponent = entity->GetEntityManager()->GetComponent<BoundingBoxComponent>(entity);
 
     if (!lightmapElementComponent.lightmapVolume.IsValid())
     {
-        if (!AssignLightmapVolume(entity->GetScene(), lightmapElementComponent))
+        if (!AssignLightmapVolume(entity->GetScene(), lightmapElementComponent, boundingBoxComponent))
         {
-            HYP_LOG(Lightmap, Warning, "LightmapElementComponent of {} has volume UUID: {} could not be assigned to a LightmapVolume",
-                entity->GetName(),
-                lightmapElementComponent.lightmapVolumeUuid);
+            HYP_LOG(Lightmap, Warning, "LightmapElementComponent for Entity {} could not be associated at runtime",
+                entity->GetName());
 
             return;
         }
@@ -43,21 +43,23 @@ void LightmapSystem::Process(float delta, Span<Handle<Scene>> scenes)
 {
 }
 
-bool LightmapSystem::AssignLightmapVolume(Scene* scene, LightmapElementComponent& lightmapElementComponent)
+bool LightmapSystem::AssignLightmapVolume(
+    Scene* scene,
+    LightmapElementComponent& lightmapElementComponent,
+    BoundingBoxComponent& boundingBoxComponent)
 {
     for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(GetComponentInfos()))
     {
         LightmapVolume* lightmapVolume = ObjCast<LightmapVolume>(entity);
         Assert(lightmapVolume != nullptr);
 
-        if (lightmapVolume->GetUUID() == lightmapElementComponent.lightmapVolumeUuid
+        if (boundingBoxComponent.worldAabb.Overlaps(lightmapVolume->GetWorldBounds())
             && lightmapElementComponent.lightmapVolume.GetUnsafe() != lightmapVolume)
         {
             const LightmapElement* lightmapElement = lightmapVolume->GetElement(lightmapElementComponent.lightmapElementId);
 
             if (!lightmapElement)
             {
-                HYP_BREAKPOINT;
                 return false;
             }
 

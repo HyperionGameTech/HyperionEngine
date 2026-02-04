@@ -217,11 +217,13 @@ void RenderThread::operator()()
 
     if (m_id != g_mainThread) // !RenderOnMainThread
     {
-        while (m_isRunning.Get(MemoryOrder::RELAXED))
+        while (!m_stopRequested.Get(MemoryOrder::RELAXED))
         {
             Update();
         }
     }
+
+    m_isRunning.Set(false, MemoryOrder::RELEASE);
 }
 
 } // namespace Hyperion

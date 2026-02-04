@@ -54,6 +54,11 @@ public:
         return m_properties.deviceName;
     }
 
+    uint32 GetDeviceId() const
+    {
+        return m_properties.deviceID;
+    }
+
     const VkPhysicalDeviceProperties& GetPhysicalDeviceProperties() const
     {
         return m_properties;

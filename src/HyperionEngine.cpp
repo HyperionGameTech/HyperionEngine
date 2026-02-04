@@ -75,16 +75,10 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 #include <engine/EngineMemory.inc>
 #undef HYP_ENGINE_MEMORY_IMPLEMENTATION
 
-HYP_EXPORT Pool* GetCurrentFramePool()
-{
-    return g_framePools[GetRingIndex()];
-}
-
 #pragma endregion Memory Pools
 
 // defined in ClassDecls.cpp
 extern void InitClassDecls();
-extern void InitObjectPool();
 
 Handle<EngineDriver> g_engineDriver;
 Handle<AssetManager> g_assetManager;
@@ -461,12 +455,6 @@ extern "C"
 
         delete g_assetPool;
         g_assetPool = nullptr;
-
-        for (uint32 i = 0; i < RingBufferDepth; i++)
-        {
-            delete g_framePools[i];
-            g_framePools[i] = nullptr;
-        }
 
         delete g_renderPool;
         g_renderPool = nullptr;

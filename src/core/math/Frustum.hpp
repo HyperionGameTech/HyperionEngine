@@ -64,6 +64,8 @@ struct HYP_API Frustum
     }
 
     bool ContainsAABB(const BoundingBox& aabb) const;
+    bool FullyContainsAABB(const BoundingBox& aabb) const;
+
     bool ContainsBoundingSphere(const BoundingSphere& sphere) const;
     bool ContainsPoint(const Vec3f& point) const;
 

@@ -614,8 +614,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
                   shTilesBuffers = std::move(shTilesBuffers),
                   uniformBuffers = std::move(uniformBuffers)]() mutable
             {
-                const uint32 boundIndex = RetrieveResourceBinding(envProbe);
-                Assert(boundIndex != ~0u);
+                //const uint32 boundIndex = RetrieveResourceBinding(envProbe);
+                //Assert(boundIndex != ~0u);
 
                 // @TODO! Copy to cpu side data
 
