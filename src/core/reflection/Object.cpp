@@ -100,7 +100,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
                         .managedClass = managedClass });
                 }
 
-                scriptObjectResource->IncRef();
+                scriptObjectResource->AddReader();
             }
             else
             {

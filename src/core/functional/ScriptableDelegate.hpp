@@ -50,8 +50,8 @@ public:
     {
         HYP_CORE_ASSERT(scriptObjectResource != nullptr, "Script object resource is null!");
 
-        scriptObjectResource->IncRef();
-        HYP_DEFER({ scriptObjectResource->DecRef(); });
+        scriptObjectResource->AddReader();
+        HYP_DEFER({ scriptObjectResource->ReleaseReader(); });
 
 #ifdef HYP_DOTNET
         if (scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))

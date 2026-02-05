@@ -267,7 +267,7 @@ public:
         return m_package.Lock();
     }
 
-    HYP_FORCE_INLINE IResource* GetResource() const
+    HYP_FORCE_INLINE AssetDataResourceBase* GetResource() const
     {
         return m_resource;
     }
@@ -403,7 +403,7 @@ protected:
     WeakHandle<AssetPackage> m_package;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    IResource* m_resource;
+    AssetDataResourceBase* m_resource;
 
     HYP_FIELD(Transient)
     AssetPath m_assetPath;

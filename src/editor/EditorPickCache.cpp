@@ -146,7 +146,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
+    ResourceGuard resGuard = mesh->GetAsset()->GetResource()->GetReadScope();
 
     if (!resGuard)
     {

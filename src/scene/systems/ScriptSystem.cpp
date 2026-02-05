@@ -152,7 +152,7 @@ ScriptSystem::ScriptSystem()
                                 scriptData->hotReloadVersion = script.hotReloadVersion;
                                 scriptData->lastModifiedTimestamp = script.lastModifiedTimestamp;
 
-                                resGuard.Reset();
+                                resGuard.Release();
 
                                 EntityScripting::DeinitEntityScriptComponent(entity, scriptComponent);
 

@@ -1486,9 +1486,9 @@ bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::Objec
         return false;
     }
 
-    TResourceGuard<ScriptObjectResource> resGuard(*target->GetScriptObjectResource());
+    ResourceGuard resourceScope = target->GetScriptObjectResource()->GetReadScope();
 
-    dotnet::ManagedObject* managedObject = resGuard->GetManagedObject();
+    dotnet::ManagedObject* managedObject = target->GetScriptObjectResource()->GetManagedObject();
 
     if (!managedObject || !managedObject->IsValid())
     {
@@ -1610,7 +1610,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
             }
 
             // keep it alive
-            scriptObjectResource->IncRef();
+            scriptObjectResource->AddReader();
         }
 
         isCreated = true;
