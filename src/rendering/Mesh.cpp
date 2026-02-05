@@ -284,9 +284,9 @@ void Mesh::UploadGpuData()
     gpuUploadSemaphore.Reset();
 
     ResourceGuard resGuard(*asset->GetResource());
-    AssertDebug(asset->IsLoaded());
+    AssertDebug(asset->IsDataLoaded());
 
-    if (!asset->IsLoaded())
+    if (!asset->IsDataLoaded())
     {
         HYP_LOG(Mesh, Error, "Mesh asset for {} is not loaded in memory, cannot create GPU buffers", GetName());
 

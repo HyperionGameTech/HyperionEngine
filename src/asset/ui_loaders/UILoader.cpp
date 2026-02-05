@@ -796,7 +796,7 @@ public:
                 Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
                 InitObject(scriptAsset);
 
-                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
+                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
 
                 if (assetObjectResult)
                 {

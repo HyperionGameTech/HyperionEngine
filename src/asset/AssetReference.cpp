@@ -75,8 +75,6 @@ const Handle<AssetObject>& AssetReference::Resolve() const
         }
 
         HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
-
-        HYP_BREAKPOINT_DEBUG_MODE;
     }
 
     return Handle<AssetObject>::empty;

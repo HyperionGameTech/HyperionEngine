@@ -84,6 +84,8 @@ Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
     Extract_Internal(boxed.ToRef());
     boxed.Reset();
 
+    Assert(GetData() != nullptr);
+
     return {};
 }
 
@@ -103,7 +105,7 @@ void AssetDataResourceBase::Initialize()
 
     if (assetObject->IsTransient())
     {
-        HYP_LOG(Assets, Warning, "Transient assets cannot be loaded from disk!");
+        HYP_LOG(Assets, Warning, "Attempted to load transient asset {} from disk!", assetObject->GetPath().ToString());
 
         return;
     }
@@ -131,7 +133,7 @@ void AssetDataResourceBase::Destroy()
 
     HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
 
-    if (!GetAssetRef().HasValue())
+    if (GetData() == nullptr)
     {
         HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", assetObject->GetName());
 
@@ -182,26 +184,26 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
     FBOMWriter writer { FBOMWriterConfig {} };
 
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetType().id);
-    Assert(marshal != nullptr, "No marshal for asset type {}!", GetAssetType().name);
+    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetDataTypeInfo().id);
+    Assert(marshal != nullptr, "No marshal for asset data of type {}", GetDataTypeInfo().name);
 
     FBOMObject object;
 
-    AnyRef assetRef = GetAssetRef();
+    void* pData = GetData();
 
-    if (!assetRef)
+    if (!pData)
     {
         return HYP_MAKE_ERROR(Error, "Asset data reference is invalid!");
     }
 
-    if (FBOMResult err = marshal->Serialize(assetRef, object))
+    if (FBOMResult err = marshal->Serialize(ConstAnyRef(&GetDataTypeInfo(), pData), object))
     {
         return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
     }
 
-    Assert(object.GetType().GetNativeTypeId() == GetAssetType().id,
+    Assert(object.GetType().GetNativeTypeId() == GetDataTypeInfo().id,
         "Object must have a native TypeId associated to be deserialized properly! Expected: {}, Got serialized type: {}",
-        GetAssetType().name,
+        GetDataTypeInfo().name,
         object.GetType().ToString(true));
 
     writer.Append(std::move(object));
@@ -374,7 +376,7 @@ Result AssetObject::Rename(Name name)
     {
         Handle<AssetObject> strongThis = HandleFromThis();
 
-        if (Result result = package->RemoveAssetObject(strongThis).Await(); result.HasError())
+        if (Result result = package->RemoveAssetObject(strongThis); result.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to remove asset object '{}' from package '{}': {}", m_name, package->GetName(), result.GetError().GetMessage());
 
@@ -384,7 +386,7 @@ Result AssetObject::Rename(Name name)
         const Name prevName = m_name;
         m_name = name;
 
-        if (Result result = package->AddAssetObject(strongThis).Await(); result.HasError())
+        if (Result result = package->AddAssetObject(strongThis); result.HasError())
         {
             m_name = prevName; // revert change
 
@@ -404,16 +406,12 @@ Result AssetObject::Rename(Name name)
     return {};
 }
 
-bool AssetObject::IsLoaded() const
+bool AssetObject::IsDataLoaded() const
 {
     HYP_SCOPE;
 
-    if (!m_resource || m_resource->IsNull())
-    {
-        return false;
-    }
-
-    return static_cast<AssetDataResourceBase*>(m_resource)->IsInitialized();
+    return m_resource != nullptr && !m_resource->IsNull()
+        && static_cast<AssetDataResourceBase*>(m_resource)->IsDataLoaded();
 }
 
 bool AssetObject::IsSaved() const
@@ -613,7 +611,7 @@ Result AssetObject::Load(
             resource->Extract_Internal(binData.ToRef());
         }
 
-        AssertDebug(resource->GetAssetRef().HasValue());
+        AssertDebug(resource->GetData() != nullptr);
     }
 
     // invoke PostLoad callback
