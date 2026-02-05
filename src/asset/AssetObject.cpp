@@ -96,12 +96,12 @@ void AssetDataResourceBase::Initialize()
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
-    //    if (IsDataLoaded())
-    //    {
-    //        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
-    //
-    //        return;
-    //    }
+    if (IsDataLoaded())
+    {
+        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded in Initialize()", assetObject->GetName());
+    
+        return;
+    }
 
     if (assetObject->IsTransient())
     {
@@ -273,6 +273,25 @@ void AssetObject::Init()
     SetReady(true);
 }
 
+void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
+{
+    if (m_flags != flags)
+    {
+        const bool wasPersistent = m_flags[AssetObjectFlags::PERSISTENT];
+
+        m_flags = flags;
+
+        const bool isPersistent = m_flags[AssetObjectFlags::PERSISTENT];
+
+        if (wasPersistent != isPersistent)
+        {
+            SetPersistentRequested(isPersistent, /* setFlag */ false);
+        }
+
+        MarkDirty();
+    }
+}
+
 void AssetObject::MarkDirty()
 {
     if (m_isDirty)
@@ -288,12 +307,17 @@ void AssetObject::MarkDirty()
     }
 }
 
-void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
+void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, bool markDirty)
 {
     HYP_SCOPE;
 
-    if (setFlag)
+    if (setFlag && m_flags[AssetObjectFlags::PERSISTENT] != persistentlyLoaded)
     {
+        if (markDirty)
+        {
+            MarkDirty();
+        }
+
         m_flags[AssetObjectFlags::PERSISTENT] = persistentlyLoaded;
     }
 
@@ -313,7 +337,9 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
         return;
     }
 
-    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::PERSISTENT])
+    // if transient, we need to keep it in memory.
+    // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
+    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::PERSISTENT] && !IsTransient())
     {
         m_persistentResource.Release();
     }
@@ -328,14 +354,14 @@ void AssetObject::SetIsTransient(bool isTransient)
     if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetIsPersistentlyLoaded(true, /* setFlag */ false);
+        SetPersistentRequested(true, /* setFlag */ false);
 
         // transient assets don't have a manifest filepath as they are not saved to disk.
         m_manifestPath = FilePath();
     }
     else
     {
-        SetIsPersistentlyLoaded(m_flags[AssetObjectFlags::PERSISTENT], /* setFlag */ false);
+        SetPersistentRequested(false, /* setFlag */ false);
     }
 }
 
@@ -348,14 +374,14 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
     if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetIsPersistentlyLoaded(true, /* setFlag */ false);
+        SetPersistentRequested(true, /* setFlag */ false);
 
         // transient assets don't have a manifest filepath as they are not saved to disk.
         m_manifestPath = FilePath();
     }
     else
     {
-        SetIsPersistentlyLoaded(m_flags[AssetObjectFlags::PERSISTENT], /* setFlag */ false);
+        SetPersistentRequested(false, /* setFlag */ false);
     }
 }
 

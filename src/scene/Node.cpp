@@ -206,11 +206,24 @@ void Node::SetScene(Scene* scene)
     {
         Scene* previousScene = m_scene;
 
-#ifdef HYP_DEBUG_MODE
-        Assert(
+        AssertDebug(
             previousScene != nullptr,
-            "Previous scene is null when setting new scene for Node %s - should be set to detached world scene by default",
-            m_name.LookupString());
+            "Previous scene is null when setting new scene for Node {} - should be set to detached world scene by default",
+            m_name);
+        
+#ifdef HYP_EDITOR
+        // mark scene(s) dirty if applicable.
+        // @TODO: Determine if it came from editor changes or creation v.s runtime / scripted changes
+        // also, shouldn't mark dirty for the entire scene as it forces the whole structure to be serialized again
+        if (previousScene != nullptr && !(previousScene->GetSceneFlags() & (SceneFlags::DETACHED | SceneFlags::EDITOR)))
+        {
+            previousScene->MarkDirty();
+        }
+
+        if (scene != nullptr && !(scene->GetSceneFlags() & (SceneFlags::DETACHED | SceneFlags::EDITOR)))
+        {
+            scene->MarkDirty();
+        }
 #endif
 
         m_scene = scene;

@@ -241,22 +241,27 @@ void PlaceholderData::Create()
     {
         if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
         {
-            texture = ObjCast<Texture>(asset);
-            Assert(texture != nullptr);
-        }
-        else
-        {
-            InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
+            Handle<TextureAsset> textureAsset = ObjCast<TextureAsset>(asset);
+            Assert(textureAsset != nullptr);
 
-            texture = MakeHandle<Texture>(textureDesc, TextureData { bufferData.first });
+            texture = MakeHandle<Texture>(textureAsset);
             texture->SetName(CreateNameFromDynamicString(*name));
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());
 
             InitObject(texture);
 
-            texture->GetAsset()->SetIsPersistentlyLoaded(true);
+            return;
         }
+
+        InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
+
+        texture = MakeHandle<Texture>(textureDesc, TextureData { bufferData.first });
+        texture->SetName(CreateNameFromDynamicString(*name));
+
+        g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());
+
+        InitObject(texture);
+
+        texture->GetAsset()->SetPersistentRequested(true, /* setFlag */ true);
     };
 
     PlaceholderBufferData placeholderBufferTex2d {};
