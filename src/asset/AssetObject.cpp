@@ -126,6 +126,9 @@ void AssetDataResourceBase::Destroy()
 
     AssetObject* assetObject = m_assetObject.GetUnsafe();
 
+    AssertDebug(assetObject->IsSaved() > 0,
+        "Unloading asset data for asset that is not saved to disk, may cause problems later down the line");
+
     HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
 
     if (!GetAssetRef().HasValue())
@@ -307,7 +310,10 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
         return;
     }
 
-    m_persistentResource.Reset();
+    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::PERSISTENT])
+    {
+        m_persistentResource.Reset();
+    }
 }
 
 void AssetObject::SetIsTransient(bool isTransient)
@@ -410,6 +416,11 @@ bool AssetObject::IsLoaded() const
     return static_cast<AssetDataResourceBase*>(m_resource)->IsInitialized();
 }
 
+bool AssetObject::IsSaved() const
+{
+    return m_manifestPath.Length() > 0;
+}
+
 Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
@@ -455,13 +466,17 @@ Result AssetObject::Save(const FilePath& manifestPath)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
 
-        bool doDecRef = false;
-        HYP_DEFER({ if (doDecRef) resource->DecRef(); });
+        bool doLoadResourceBeforeSaving = !resource->IsDataLoaded();
+        HYP_DEFER({ if (doLoadResourceBeforeSaving) resource->DecRef(); });
 
-        if (!resource->IsDataLoaded())
+        if (doLoadResourceBeforeSaving)
         {
+            doLoadResourceBeforeSaving = false;
+
+            Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
+                m_name);
+
             resource->IncRef();
-            doDecRef = true;
 
             if (!resource->IsDataLoaded())
             {

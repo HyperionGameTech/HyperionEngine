@@ -328,6 +328,12 @@ public:
     }
 
     HYP_METHOD()
+    bool IsTransientByProxy() const
+    {
+        return (m_flags & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY)) == AssetObjectFlags::TRANSIENT_BY_PROXY;
+    }
+
+    HYP_METHOD()
     void SetIsTransient(bool isTransient);
 
     HYP_METHOD()
@@ -335,6 +341,9 @@ public:
 
     HYP_METHOD()
     bool IsLoaded() const;
+
+    HYP_METHOD()
+    bool IsSaved() const;
 
     HYP_METHOD()
     Result Save(const FilePath& manifestPath);

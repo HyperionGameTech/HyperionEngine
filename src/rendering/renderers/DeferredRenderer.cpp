@@ -1935,16 +1935,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // render lightmap volume objects
     if (rpl.GetLightmapVolumes().NumCurrent())
     {
-        /*for (int attachmentIndex = 0; attachmentIndex < lightmapPassFramebuffer->NumAttachments(); attachmentIndex++)
-        {
-            AttachmentBase* attachment = lightmapPassFramebuffer->GetAttachment(attachmentIndex);
-
-            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-            {
-                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
-            }
-        }*/
-
         // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
         frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
@@ -2052,17 +2042,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     { // combined + translucent (forward pass)
-        // insert barriers for load operations where needed
-        /*for (int attachmentIndex = 0; attachmentIndex < translucentPassFramebuffer->NumAttachments(); attachmentIndex++)
-        {
-            AttachmentBase* attachment = translucentPassFramebuffer->GetAttachment(attachmentIndex);
-
-            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-            {
-                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
-            }
-        }*/
-
         frame->renderQueue << BeginFramebuffer(translucentPassFramebuffer);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
@@ -2142,16 +2121,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     // debug draw
     if (renderCollector.mappingsByBucket[RB_DEBUG].Any() || g_engineDriver->GetDebugDrawer()->NumEnqueuedDrawCommands() > 0)
     {
-        /*for (int attachmentIndex = 0; attachmentIndex < debugPassFramebuffer->NumAttachments(); attachmentIndex++)
-        {
-            AttachmentBase* attachment = debugPassFramebuffer->GetAttachment(attachmentIndex);
-
-            if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-            {
-                frame->renderQueue << InsertBarrier(attachment->GetImage(), attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : RS_RENDER_TARGET);
-            }
-        }*/
-
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
