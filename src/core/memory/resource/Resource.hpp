@@ -103,11 +103,6 @@ public:
 
     virtual ResourceGuard GetWriteScope() = 0;
     virtual ResourceGuard GetReadScope() = 0;
-
-    /*! \brief Waits for ref count to be 0 and all tasks to be completed.
-     *  If any ResourceGuard objects are still alive, this will block until they are destroyed.
-     *  \note Ensure the current thread does not hold any ResourceGuard objects when calling this function, or it will deadlock. */
-    virtual void WaitForFinalization() = 0;
 };
 
 class HYP_API ResourceBase : public IResource
@@ -131,9 +126,6 @@ public:
 
     virtual ResourceGuard GetWriteScope() override final;
     virtual ResourceGuard GetReadScope() override final;
-
-    /*! \brief Wait for the resource to no longer be in loaded state */
-    virtual void WaitForFinalization() override final;
     
     void AddWriter(bool doInitialize = true);
     void ReleaseWriter(bool doDeinitialize = true);
@@ -209,9 +201,8 @@ private:
     {
         HYP_CORE_ASSERT(ptr != nullptr);
 
-        ptr->WaitForFinalization();
-
-        // Invoke the destructor
+        // Invoke the destructor.
+        // Waits for reads to complete. BEWARE, will deadlock if reading on same thread as freeing.
         ptr->~T();
 
         m_allocator.Free(ptr);
