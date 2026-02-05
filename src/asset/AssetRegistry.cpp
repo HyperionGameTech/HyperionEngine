@@ -1488,11 +1488,11 @@ void AssetPackage::MarkDirty()
     HYP_SCOPE;
 
     constexpr int MaxRecursionDepth = 32;
-    static thread_local int recursionDepth = 0;
+    static thread_local int s_recursionDepth = 0;
 
-    HYP_DEFER({ --recursionDepth; });
+    HYP_DEFER({ --s_recursionDepth; });
 
-    if (recursionDepth++ > MaxRecursionDepth)
+    if (s_recursionDepth++ > MaxRecursionDepth)
     {
         HYP_LOG(Assets, Error, "Max recursion depth reached in AssetPackage::MarkDirty for package '{}'", m_name);
 
@@ -2103,34 +2103,38 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
     bool removed = false;
 
     {
-        TSharedLock guard(package->m_mutex);
+        TUniqueLock lock(package->m_mutex);
+
+        Handle<AssetPackage> parentPackage;
 
         if (package->m_parentPackage.IsValid())
         {
-            Handle<AssetPackage> parentPackage = package->m_parentPackage.Lock();
-
-            guard.Reset();
+            parentPackage = package->m_parentPackage.Lock();
 
             if (parentPackage.IsValid())
             {
-                {
-                    TUniqueLock guard2(parentPackage->m_mutex);
+                lock.Reset(parentPackage->m_mutex);
 
-                    auto it = parentPackage->m_subpackages.Find(package->GetName());
-                    Assert(it != parentPackage->m_subpackages.End());
+                auto it = parentPackage->m_subpackages.Find(package->GetName());
+                Assert(it != parentPackage->m_subpackages.End());
 
-                    parentPackage->m_subpackages.Erase(it);
-                    parentPackage->OnSubpackageRemoved(strongPackage);
+                parentPackage->m_subpackages.Erase(it);
+                parentPackage->OnSubpackageRemoved(strongPackage);
 
-                    removed = true;
-                }
+                removed = true;
+
+                // exit lock to mark dirty or else we'll deadlock:
+                lock.Reset();
 
                 parentPackage->MarkDirty();
             }
         }
-        else
+        
+        lock.Reset();
+
+        if (!parentPackage)
         {
-            TUniqueLock guard2(m_mutex);
+            lock.Reset(m_mutex);
 
             auto it = m_packages.Find(package->GetName());
             Assert(it != m_packages.End());
@@ -2167,7 +2171,6 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
     Handle<AssetPackage> pkg;
 
-    bool isNew = false;
     bool isSubpackageSaved = false;
 
     if (!parentPackage)
@@ -2177,26 +2180,59 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
             auto packageIt = m_packages.Find(subpackageName);
 
-            if (createIfNotExist && packageIt == m_packages.End())
-            {
-                pkg = MakeHandle<AssetPackage>(subpackageName);
-                pkg->m_registry = WeakHandleFromThis();
-
-                m_packages.Insert(pkg);
-
-                isNew = true;
-            }
-            else if (packageIt != m_packages.End())
+            if (packageIt != m_packages.End())
             {
                 pkg = *packageIt;
             }
-        }
+            else
+            {
+                // Try loading from manifest path, if it exists.
+                FilePath subpackageDir = g_assetManager->GetBasePath() / *subpackageName;
+                FilePath manifestPath = subpackageDir / "PackageManifest.json";
 
-        if (isNew && pkg)
-        {
-            InitObject(pkg);
+                if (manifestPath.Exists() && !manifestPath.IsDirectory())
+                {
+                    // same here, need to break out of mutex
+                    guard.Reset();
 
-            OnPackageAdded(pkg);
+                    // note forceLoad is true here
+                    TResult<Handle<AssetPackage>> loadResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ true);
+
+                    guard.Reset(m_mutex);
+
+                    if (loadResult.HasError())
+                    {
+                        HYP_LOG(Assets, Error, "Failed to load package '{}' from manifest '{}': {}",
+                            subpackageName, manifestPath, loadResult.GetError().GetMessage());
+                    }
+                    else
+                    {
+                        pkg = std::move(*loadResult);
+
+                        if (pkg)
+                        {
+                            pkg->m_registry = WeakHandleFromThis();
+
+                            InitObject(pkg);
+
+                            m_packages.Insert(pkg);
+                        }
+                    }
+                }
+                else if (createIfNotExist)
+                {
+                    pkg = MakeHandle<AssetPackage>(subpackageName);
+                    pkg->m_registry = WeakHandleFromThis();
+
+                    InitObject(pkg);
+
+                    pkg->MarkDirty();
+
+                    m_packages.Insert(pkg);
+                }
+
+                OnPackageAdded(pkg);
+            }
         }
 
         return pkg;
@@ -2207,49 +2243,87 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(
 
         auto packageIt = parentPackage->m_subpackages.Find(subpackageName);
 
-        if (createIfNotExist && packageIt == parentPackage->m_subpackages.End())
-        {
-            pkg = MakeHandle<AssetPackage>(subpackageName);
-            pkg->m_registry = WeakHandleFromThis();
-            pkg->m_parentPackage = parentPackage;
-            pkg->m_flags |= parentPackage->m_flags;
-
-            // If parent package exists on disk, save this package:
-            if (!parentPackage->IsTransient() && parentPackage->IsSaved_Internal())
-            {
-                FilePath subpackageDir = parentPackage->m_packageDir / *subpackageName;
-
-                if (ShouldSavePackageOnChanged(*parentPackage))
-                {
-                    Result savePackageResult = pkg->Save(subpackageDir, /* saveEvenIfNotDirty*/ true);
-                    if (!savePackageResult.HasError())
-                    {
-                        isSubpackageSaved = true;
-                    }
-                    else
-                    {
-                        HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
-                            pkg->GetName(), parentPackage->BuildPackagePath(), savePackageResult.GetError().GetMessage());
-                    }
-                }
-            }
-
-            parentPackage->m_subpackages.Insert(pkg);
-            parentPackage->OnSubpackageAdded(pkg);
-
-            isNew = true;
-        }
-        else if (packageIt != m_packages.End())
+        if (packageIt != parentPackage->m_subpackages.End())
         {
             pkg = *packageIt;
         }
-    }
+        else
+        {
+            // Try load from manifest path
+            FilePath subpackageDir = parentPackage->m_packageDir / *subpackageName;
+            FilePath manifestPath = subpackageDir / "PackageManifest.json";
 
-    if (isNew && !isSubpackageSaved && pkg)
-    {
-        pkg->MarkDirty();
+            if (manifestPath.Exists() && !manifestPath.IsDirectory())
+            {
+                // need to break out of the mutex for LoadPackageFromManifest()
+                guard.Reset();
 
-        InitObject(pkg);
+                TResult<Handle<AssetPackage>> loadResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ true);
+                
+                guard.Reset(parentPackage->m_mutex);
+
+                if (loadResult.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to load subpackage '{}' from manifest '{}': {}",
+                        subpackageName, manifestPath, loadResult.GetError().GetMessage());
+                }
+                else
+                {
+                    pkg = std::move(*loadResult);
+
+                    if (pkg)
+                    {
+                        pkg->m_parentPackage = parentPackage;
+                        pkg->m_flags |= parentPackage->m_flags;
+
+                        InitObject(pkg);
+
+                        parentPackage->m_subpackages.Insert(pkg);
+                        parentPackage->OnSubpackageAdded(pkg);
+                    }
+                }
+            }
+            else if (createIfNotExist)
+            {
+                pkg = MakeHandle<AssetPackage>(subpackageName);
+                pkg->m_registry = WeakHandleFromThis();
+                pkg->m_parentPackage = parentPackage;
+                pkg->m_flags |= parentPackage->m_flags;
+
+                // If parent package exists on disk, save this package:
+                if (!parentPackage->IsTransient() && parentPackage->IsSaved_Internal())
+                {
+                    FilePath subpackageDir = parentPackage->m_packageDir / *subpackageName;
+
+                    if (ShouldSavePackageOnChanged(*parentPackage))
+                    {
+                        Result savePackageResult = pkg->Save(subpackageDir, /* saveEvenIfNotDirty*/ true);
+                        if (!savePackageResult.HasError())
+                        {
+                            isSubpackageSaved = true;
+                        }
+                        else
+                        {
+                            HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
+                                pkg->GetName(), parentPackage->BuildPackagePath(), savePackageResult.GetError().GetMessage());
+                        }
+                    }
+                }
+
+                InitObject(pkg);
+
+                parentPackage->m_subpackages.Insert(pkg);
+                parentPackage->OnSubpackageAdded(pkg);
+                
+                // exit mutex to mark dirty
+                guard.Reset();
+
+                if (!isSubpackageSaved)
+                {
+                    pkg->MarkDirty();
+                }
+            }
+        }
     }
 
     return pkg;
@@ -2619,6 +2693,8 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             }
         }
     }
+
+    outPackage->m_isLoading = false;
 
     InitObject(outPackage);
 

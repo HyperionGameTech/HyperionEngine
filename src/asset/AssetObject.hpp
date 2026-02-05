@@ -293,28 +293,16 @@ public:
     }
 
     HYP_METHOD()
-    void SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
-    {
-        const bool wasPersistent = m_flags[AssetObjectFlags::PERSISTENT];
-
-        m_flags = flags;
-
-        const bool isPersistent = m_flags[AssetObjectFlags::PERSISTENT];
-
-        if (wasPersistent != isPersistent)
-        {
-            SetIsPersistentlyLoaded(isPersistent, /* setFlag */ false);
-        }
-    }
+    void SetAssetFlags(EnumFlags<AssetObjectFlags> flags);
 
     HYP_METHOD()
-    bool IsPersistentlyLoaded() const
+    bool IsPersistent() const
     {
         return bool(m_persistentResource);
     }
 
     HYP_METHOD()
-    void SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag = true);
+    void SetPersistentRequested(bool persistentlyLoaded, bool setFlag = true, bool markDirty = true);
 
     HYP_METHOD()
     bool IsTransient() const

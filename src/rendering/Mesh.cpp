@@ -214,6 +214,8 @@ void Mesh::Init()
             // register it with transient Memory package
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
         }
+        
+        asset->SetPersistentRequested(m_flags[MF_VIEW_INDEPENDENT], /* setFlag */ true);
 
         if (m_flags[MF_VIEW_INDEPENDENT])
         {
@@ -528,12 +530,22 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     }
 
     const bool wasViewIndependent = m_flags[MF_VIEW_INDEPENDENT];
-    m_flags = flags;
 
-    if (m_flags[MF_VIEW_INDEPENDENT] && !wasViewIndependent && IsInitCalled())
+    m_flags = flags;
+    
+    const Handle<MeshAsset>& asset = GetAsset();
+
+    if (IsInitCalled() && m_flags[MF_VIEW_INDEPENDENT] != wasViewIndependent)
     {
-        UploadGpuData();
+        asset->SetPersistentRequested(m_flags[MF_VIEW_INDEPENDENT], /* setFlag */ true, /* markDirty */ false);
+
+        if (m_flags[MF_VIEW_INDEPENDENT])
+        {
+            UploadGpuData();
+        }
     }
+    
+    MarkDirty();
 }
 
 uint32 Mesh::NumIndices() const

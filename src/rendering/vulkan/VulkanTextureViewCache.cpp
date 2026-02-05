@@ -44,8 +44,13 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
         return VulkanGpuImageViewRef::Null();
     }
 
-    const uint32 maxMipLevel = texture->GetTextureDesc().NumMips() - 1;
-    const uint32 maxArrayLayer = texture->GetTextureDesc().NumArrayLayers() - 1;
+    VulkanGpuImage* gpuImage = texture->GetGpuImage();
+    AssertDebug(gpuImage != nullptr);
+
+    const TextureDesc& textureDesc = gpuImage->GetTextureDesc();
+
+    const uint32 maxMipLevel = textureDesc.NumMips() - 1;
+    const uint32 maxArrayLayer = textureDesc.NumArrayLayers() - 1;
 
     ImageSubResource subResource {};
     subResource.numLevels = MathUtil::Min(numMips, maxMipLevel + 1);
@@ -53,17 +58,21 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
     subResource.numLayers = MathUtil::Min(numLayers, maxArrayLayer + 1);
     subResource.baseArrayLayer = MathUtil::Min(layerIndex, maxArrayLayer);
 
-    return GetOrCreate(texture, subResource);
+    return GetOrCreate(texture, subResource, textureDesc.type);
 }
 
 const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
-    Texture* texture,
-    const ImageSubResource& subResource)
+    Texture* texture, const ImageSubResource& subResource)
 {
     Assert(texture != nullptr);
 
+    VulkanGpuImage* gpuImage = texture->GetGpuImage();
+    AssertDebug(gpuImage != nullptr);
+
+    const TextureDesc& textureDesc = gpuImage->GetTextureDesc();
+
     // Create view to match texture type
-    return GetOrCreate(texture, subResource, texture->GetType());
+    return GetOrCreate(texture, subResource, textureDesc.type);
 }
 
 const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
