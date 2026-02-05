@@ -51,6 +51,12 @@ static constexpr const StringHash PredefinedPackageNames[] = {
     "$Import"_sh
 };
 
+static constexpr const StringHash BaseTransientPackageNames[] = {
+    "$Memory"_sh,
+    "$Temp"_sh,
+    "$Import"_sh
+};
+
 extern HYP_API const FilePath& GetResourceDirectory();
 
 StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
@@ -171,9 +177,10 @@ static bool IsTransientAssetPath(const AssetPath& assetPath)
 
     Name rootPackageName = assetPath.chain[0];
 
-    return rootPackageName == "$Temp"_sh
-        || rootPackageName == "$Memory"_sh
-        || rootPackageName == "$Import"_sh;
+    return std::find(
+        std::begin(BaseTransientPackageNames),
+        std::end(BaseTransientPackageNames),
+        StringHash(rootPackageName)) != std::end(BaseTransientPackageNames);
 }
 
 /*! \brief Is the AssetObject located in a package that allows us to move it elsewhere?
@@ -188,6 +195,34 @@ static bool ShouldRelocateAssetBeforeSave(const AssetObject& assetObject)
     return !assetObject.IsRegistered() || IsTransientAssetPath(assetObject.GetPath());
 }
 
+template <SizeType Size>
+static bool IsPackageInList(
+    const AssetPackage& package,
+    const StringHash(&elems)[Size],
+    bool exactMatch)
+{
+    StringHash substrHash = StringHash(package.GetName());
+
+    if (!exactMatch)
+    {
+        const ANSIString packagePath = package.BuildPackagePath();
+        const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
+        substrHash = StringHash(substr);
+    }
+
+    for (SizeType i = 0; i < Size; i++)
+    {
+        StringHash packageName = elems[i];
+
+        if (substrHash == packageName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /*! \brief Check if the package should automatically save assets to disk when they are initially added
  *   to the package, rather than the standard protocol of marking the package dirty until save is invoked.
  *   
@@ -199,19 +234,69 @@ static bool ShouldSavePackageOnChanged(const AssetPackage& package)
         return false;
     }
 
-    const ANSIString packagePath = package.BuildPackagePath();
-    const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
-    const StringHash substrHash = StringHash(substr);
+    return IsPackageInList(package, PredefinedPackageNames, /* exactMatch */ false);
+}
 
-    for (StringHash packageName : PredefinedPackageNames)
+static TResult<Handle<AssetPackage>> RelocateAsset(
+    AssetRegistry& registry,
+    const Handle<AssetObject>& assetObject,
+    UTF8StringView newPackageBasePath,
+    bool preservePathStructure)
+{
+    Assert(assetObject.IsValid() && (!preservePathStructure || assetObject->IsRegistered()),
+        "Invalid asset or invalid asset path. If preserveStructure is true, the asset must already have a path assigned");
+
+    Array<Name> subpackageNames;
+
+    Handle<AssetPackage> previousPackage = assetObject->GetPackage();
+
+    if (previousPackage.IsValid())
     {
-        if (substrHash == packageName)
+        // keep a copy around in case removing it from the package invalidates the reference
+        Handle<AssetObject> assetObjectCopy = assetObject;
+
+        // remove the asset from its current package
+        if (Result removeResult = previousPackage->RemoveAssetObject(assetObject).Await(); removeResult.HasError())
         {
-            return true;
+            return HYP_MAKE_ERROR(Error, "Failed to remove asset object '{}' from package '{}': {}", assetObject->GetName(), previousPackage->GetName(), removeResult.GetError().GetMessage());
         }
     }
 
-    return false;
+    String newPath;
+
+    if (preservePathStructure)
+    {
+        Handle<AssetPackage> currentPackage = previousPackage;
+
+        while (currentPackage.IsValid() && !IsPackageInList(*currentPackage, BaseTransientPackageNames, /* exactMatch */ true))
+        {
+            subpackageNames.PushBack(currentPackage->GetName());
+            currentPackage = currentPackage->GetParentPackage().Lock();
+        }
+
+        subpackageNames.Reverse();
+
+        newPath = String(newPackageBasePath) + '/' + String::Join(subpackageNames, '/', &Name::LookupString);
+    }
+    else
+    {
+        newPath = newPackageBasePath;
+    }
+
+    HYP_LOG(Assets, Debug, "Relocating asset '{}' to: '{}'", assetObject->GetName(), newPath);
+
+    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject).Await(); registerAssetResult.HasError())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to relocate asset '{}' to '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
+    }
+
+    Handle<AssetPackage> newPackage = assetObject->GetPackage();
+    if (!newPackage.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Asset '{}' relocation did not assign a new package!", assetObject->GetName());
+    }
+
+    return newPackage;
 }
 
 #pragma region AssetPackage
@@ -275,7 +360,10 @@ void AssetPackage::Init()
 
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
-            assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
+            if (!shouldSaveAssets && !isPackageSavedInFilesystem)
+            {
+                assetObject->SetIsTransientByProxy(true);
+            }
 
             if (shouldSaveAssets)
             {
@@ -317,7 +405,7 @@ void AssetPackage::Init()
     {
         if (shouldSaveAssets && assetObjectsToSave.Contains(assetObject.Get()))
         {
-            AssertDebug(!assetObject->IsTransient());
+            AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
                 
             const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
@@ -325,6 +413,10 @@ void AssetPackage::Init()
             if (Result saveAssetResult = assetObject->Save(newManifestFilepath); saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+            }
+            else
+            {
+                assetObject->SetIsTransientByProxy(false);
             }
         }
 
@@ -410,11 +502,14 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
         {
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
-            assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
 
             if (shouldSaveAssets)
             {
                 assetObjectsToSave.Insert(assetObject.Get());
+            }
+            else if (!shouldSaveAssets && !isPackageSavedInFilesystem)
+            {
+                assetObject->SetIsTransientByProxy(true);
             }
 
             InitObject(assetObject);
@@ -430,7 +525,7 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
     {
         if (shouldSaveAssets && assetObjectsToSave.Contains(assetObject.Get()))
         {
-            AssertDebug(!assetObject->IsTransient());
+            AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
                 
             const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
@@ -440,6 +535,10 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
             if (saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+            }
+            else
+            {
+                assetObject->SetIsTransientByProxy(false);
             }
         }
 
@@ -524,7 +623,10 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
                 assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
             }
 
-            assetObject->SetIsTransientByProxy(!isPackageSavedInFilesystem);
+            if (!shouldSaveAsset && !isPackageSavedInFilesystem)
+            {
+                assetObject->SetIsTransientByProxy(true);
+            }
 
             auto existingAssetObjectIt = m_assetObjects.Find(assetObject->GetName());
 
@@ -554,7 +656,7 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
         
         if (shouldSaveAsset)
         {
-            AssertDebug(!assetObject->IsTransient());
+            AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
                 
             const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
 
@@ -564,6 +666,10 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
             if (saveAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+            }
+            else
+            {
+                assetObject->SetIsTransientByProxy(false);
             }
         }
 
@@ -2762,44 +2868,73 @@ void AssetRegistry::RegisterAssetsRecursively(
 
         if (assetObject && ShouldRelocateAssetBeforeSave(*assetObject))
         {
-            const String packagePathWithSubpath = getObjectSubpath
-                ? packagePath + "/" + getObjectSubpath(*assetObject)
-                : String(packagePath);
+            TResult<Handle<AssetPackage>> relocateResult = HYP_MAKE_ERROR(Error, "Asset relocated failed unexpectedly");
 
-            Handle<AssetPackage> newPackage = GetPackageFromPath(packagePathWithSubpath, /* createIfNotExist */ true);
-            Assert(newPackage != nullptr);
-
-            Handle<AssetPackage> prevPackage = assetObject->GetPackage();
-
-            HYP_LOG(Assets, Debug, "Relocating asset {} to {}",
-                prevPackage ? prevPackage->BuildAssetPath(assetObject->GetName()).ToString() : String(),
-                newPackage->BuildPackagePath());
-
-            // try to move it
-            if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
+            if (assetObject->IsRegistered()) // already has a path but is transient e.g $Memory/Media/Meshes/Foo; needs to be moved to NewPackage/Media/Meshes/Foo
             {
-                HYP_LOG(Assets, Error, "Failed to relocate {} {} from temp/transient package '{}' to '{}': {}",
+                relocateResult = RelocateAsset(*this, assetObject, packagePath, /* preserveStructure */ true);
+            }
+            else // Doesn't have a path; register instance with package using the passed in function to decide where to relocate it to.
+            {
+                const String packagePathWithSubpath = getObjectSubpath
+                    ? packagePath + "/" + getObjectSubpath(*assetObject)
+                    : String(packagePath);
+
+                relocateResult = RelocateAsset(*this, assetObject, packagePathWithSubpath, /* preserveStructure */ false);
+
+#if 0
+                Handle<AssetPackage> newPackage = GetPackageFromPath(packagePathWithSubpath, /* createIfNotExist */ true);
+                Assert(newPackage != nullptr);
+
+                Handle<AssetPackage> prevPackage = assetObject->GetPackage();
+
+                HYP_LOG(Assets, Debug, "Relocating asset {} to {}",
+                    prevPackage ? prevPackage->BuildAssetPath(assetObject->GetName()).ToString() : String(),
+                    newPackage->BuildPackagePath());
+
+                // try to move it
+                if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to relocate {} {} from temp/transient package '{}' to '{}': {}",
+                        assetObject->InstanceClass()->GetName(),
+                        assetObject->GetName(),
+                        prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
+                        newPackage->BuildPackagePath(),
+                        result.GetError().GetMessage());
+
+                    return;
+                }
+
+                HYP_LOG(Assets, Debug, "Moved {} {} from temp/transient package {} to {}",
                     assetObject->InstanceClass()->GetName(),
                     assetObject->GetName(),
                     prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
-                    newPackage->BuildPackagePath(),
-                    result.GetError().GetMessage());
+                    newPackage->BuildPackagePath());
 
+                if (!newPackage->IsSubpackageOf(*inPackage))
+                {
+                    inPackage->AddDependency(AssetPath(packagePathWithSubpath));
+                }
+
+                parentPackage = std::move(newPackage);
+            }
+            
+            if (relocateResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to asset: {}", relocateResult.GetError().GetMessage());
                 return;
             }
 
-            HYP_LOG(Assets, Debug, "Moved {} {} from temp/transient package {} to {}",
-                assetObject->InstanceClass()->GetName(),
-                assetObject->GetName(),
-                prevPackage ? prevPackage->BuildPackagePath() : "<no package>",
-                newPackage->BuildPackagePath());
+            Handle<AssetPackage> newPackage = std::move(*relocateResult);
 
             if (!newPackage->IsSubpackageOf(*inPackage))
             {
-                inPackage->AddDependency(AssetPath(packagePathWithSubpath));
+                inPackage->AddDependency(AssetPath(newPackage->BuildPackagePath()));
             }
 
             parentPackage = std::move(newPackage);
+#endif
+            }
         }
         else if (assetReference)
         {

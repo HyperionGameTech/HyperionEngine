@@ -251,6 +251,12 @@ Array<WGLayerDesc> WorldGrid::GetStreamingLayerDescs() const
             for (const AssetReference& assetReference : assetReferences)
             {
                 layerDesc.objects.PushBack(WGObject { coord, assetReference.GetAssetPath() });
+
+                // temp debug
+                if (assetReference.GetAssetPath().ToString().Contains("MeshAsset"))
+                {
+                    HYP_BREAKPOINT;
+                }
             }
         }
     }

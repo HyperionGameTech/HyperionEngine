@@ -374,6 +374,8 @@ void BakerBase::Build()
 
 void BakerBase::DispatchJobs()
 {
+    return; // TEMP
+
     if (ShouldSplitIntoJobs())
     {
         const BakeDataBase& bakeData = GetBakeData();
@@ -458,6 +460,8 @@ void BakerBase::Update(float delta)
 
     if (m_queue.Empty())
     {
+        OnCompleted();
+
         return;
     }
 
@@ -497,8 +501,6 @@ void BakerBase::Update(float delta)
 
             if (m_queue.Empty())
             {
-                OnCompleted();
-
                 return;
             }
 

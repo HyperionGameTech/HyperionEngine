@@ -231,22 +231,22 @@ Result EditorProject::SaveAs(FilePath filepath)
         }
     }
 
-    { // register objects under PkgName/Objects
-        Handle<AssetPackage> objectsSubpackage = g_assetManager->GetAssetRegistry()->GetSubpackage(
-            m_package,
-            NAME("Objects"),
-            /* createIfNotExist */ true);
-
-        Assert(objectsSubpackage.IsValid());
-
+    {
         g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-            objectsSubpackage->BuildPackagePath(),
+            m_package->BuildPackagePath(),
             BoxedValue(AnyRef(*this)),
             /* forceRelocation */ false,
             [](const AssetObject& assetObject) -> String
             {
+                // debugging
+                if (assetObject.InstanceClass()->GetName() == "MeshAsset"_sh)
+                {
+                    HYP_BREAKPOINT;
+                }
+                
+                // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
                 //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
-                return HYP_FORMAT("Types/{}", assetObject.InstanceClass()->GetName());
+                return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
             });
     }
 

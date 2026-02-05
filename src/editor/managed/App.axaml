@@ -19,6 +19,7 @@
             <Color x:Key="Color.Text">#FFD7DDE3</Color>
             <Color x:Key="Color.TextMuted">#FF9AA4AE</Color>
             <Color x:Key="Color.Warning">#FFFFC661</Color>
+            <Color x:Key="Color.MenuHover">#FF2A2E33</Color>
 
             <!--  Brushes  -->
             <SolidColorBrush x:Key="Brush.Background" Color="{StaticResource Color.Background}" />
@@ -31,6 +32,7 @@
             <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Color.Text}" />
             <SolidColorBrush x:Key="Brush.TextMuted" Color="{StaticResource Color.TextMuted}" />
             <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" />
+            <SolidColorBrush x:Key="Brush.MenuHover" Color="{StaticResource Color.MenuHover}" />
 
             <!--  Compact Metrics  -->
             <Thickness x:Key="Thickness.ControlPadding">6,4</Thickness>
@@ -77,9 +79,23 @@
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
 		    <Setter Property="FontFamily" Value="Segoe UI, Helvetica, Arial, sans-serif" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
-        <Style Selector="MenuItem:over">
-            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+        <Style Selector="MenuItem /template/ Border#PART_PopupBorder">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="MenuItem:over /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <!-- Top-level menu items -->
+        <Style Selector="MenuItem:over:selected /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{StaticResource Brush.MenuHover}" />
+            <Setter Property="CornerRadius" Value="4" />
         </Style>
 
         <!--  TabControl  -->
