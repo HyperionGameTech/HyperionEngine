@@ -187,8 +187,8 @@ public:
         ForEach(set, std::forward<Callback>(callback));
     }
 
-    Task<Result> AddAssetObject(const Handle<AssetObject>& assetObject);
-    Task<Result> RemoveAssetObject(const Handle<AssetObject>& assetObject);
+    Result AddAssetObject(const Handle<AssetObject>& assetObject);
+    Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
     Handle<AssetObject> GetAssetObject(StringHash assetName) const;
 
@@ -198,7 +198,7 @@ public:
      *  After successful merge, the source package will be empty.
      *  \param package The package to merge into this one.
      *  \return Result indicating success or failure of the merge operation. */
-    Task<Result> MergePackage(const Handle<AssetPackage>& package);
+    Result MergePackage(const Handle<AssetPackage>& package);
 
     HYP_METHOD()
     String BuildPackagePath() const;
@@ -361,7 +361,7 @@ public:
      *  \param package The package to add
      *  \param mergeIfExists If true, and a package with the same name already exists, the contents of the given package will be merged into the existing package.
      *  \return Result indicating success or failure of the operation. */
-    Task<Result> AddPackage(const Handle<AssetPackage>& package, bool mergeIfExists = false);
+    Result AddPackage(const Handle<AssetPackage>& package, bool mergeIfExists = false);
 
     HYP_METHOD()
     void RemovePackage(AssetPackage* package);
@@ -384,7 +384,7 @@ public:
     HYP_METHOD()
     void LoadSubpackages(const Handle<AssetPackage>& parentPackage, bool recursive);
 
-    Task<TResult<Handle<AssetPackage>>> LoadPackageFromManifest(
+    TResult<Handle<AssetPackage>> LoadPackageFromManifest(
         const FilePath& manifestPath,
         bool loadSubpackages,
         bool forceLoad);
@@ -392,7 +392,7 @@ public:
     HYP_METHOD()
     Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;
 
-    Task<Result> RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
+    Result RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
 
     /*! \brief Registers `target` if it is a subclass of AssetObject and registers all
      *  of its members that are subclasses of AssetObject as well, recursively.

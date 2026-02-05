@@ -256,7 +256,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
         Handle<AssetObject> assetObjectCopy = assetObject;
 
         // remove the asset from its current package
-        if (Result removeResult = previousPackage->RemoveAssetObject(assetObject).Await(); removeResult.HasError())
+        if (Result removeResult = previousPackage->RemoveAssetObject(assetObject); removeResult.HasError())
         {
             return HYP_MAKE_ERROR(Error, "Failed to remove asset object '{}' from package '{}': {}", assetObject->GetName(), previousPackage->GetName(), removeResult.GetError().GetMessage());
         }
@@ -285,7 +285,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
 
     HYP_LOG(Assets, Debug, "Relocating asset '{}' to: '{}'", assetObject->GetName(), newPath);
 
-    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject).Await(); registerAssetResult.HasError())
+    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject); registerAssetResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to relocate asset '{}' to '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
     }
@@ -346,21 +346,23 @@ void AssetPackage::Init()
 
     HashSet<AssetObject*> assetObjectsToSave;
 
+    bool isLoading = false;
     bool isPackageSavedInFilesystem = false;
     bool shouldSaveAssets = false;
 
     {
         TUniqueLock guard(m_mutex);
 
+        isLoading = IsLoading();
         isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
-        shouldSaveAssets = ShouldSavePackageOnChanged(*this);
+        shouldSaveAssets = ShouldSavePackageOnChanged(*this) && !isLoading;
 
         assetObjects.Reserve(m_assetObjects.Size());
         subpackages.Reserve(m_subpackages.Size());
 
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
-            if (!shouldSaveAssets && !isPackageSavedInFilesystem)
+            if (!shouldSaveAssets && !isPackageSavedInFilesystem && !isLoading)
             {
                 assetObject->SetIsTransientByProxy(true);
             }
@@ -396,7 +398,7 @@ void AssetPackage::Init()
         }
     }
 
-    if (!shouldSaveAssets && assetObjects.Any())
+    if (!shouldSaveAssets && !isLoading && assetObjects.Any())
     {
         MarkDirty(); // if not saving assets right now, need to mark it to be saved later
     }
@@ -485,14 +487,16 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
     Array<Handle<AssetObject>> newAssetObjects;
     HashSet<AssetObject*> assetObjectsToSave;
     
+    bool isLoading = false;
     bool shouldSaveAssets = false;
     bool isPackageSavedInFilesystem = false;
 
     {
         TUniqueLock guard(m_mutex);
         
+        isLoading = IsLoading();
         isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
-        shouldSaveAssets = ShouldSavePackageOnChanged(*this);
+        shouldSaveAssets = ShouldSavePackageOnChanged(*this) && !isLoading;
 
         m_assetObjects = assetObjects;
 
@@ -518,12 +522,18 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
         }
     }
 
-    if (!IsLoading() && !shouldSaveAssets)
+    if (!isLoading && !shouldSaveAssets)
+    {
         MarkDirty();
+    }
 
     for (const Handle<AssetObject>& assetObject : newAssetObjects)
     {
-        if (shouldSaveAssets && assetObjectsToSave.Contains(assetObject.Get()))
+        if (isLoading)
+        {
+            assetObject->SetIsTransientByProxy(false);
+        }
+        else if (shouldSaveAssets && assetObjectsToSave.Contains(assetObject.Get()))
         {
             AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
                 
@@ -554,25 +564,19 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
     }
 }
 
-Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
+Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
 {
     HYP_SCOPE;
 
     if (!assetObject.IsValid())
     {
-        Task<Result> future;
-        future.Fulfill(HYP_MAKE_ERROR(Error, "AssetObject is invalid"));
-
-        return future;
+        return HYP_MAKE_ERROR(Error, "AssetObject is invalid");
     }
 
     if (assetObject->m_package.GetUnsafe() == this)
     {
         // already added, fine
-        Task<Result> future;
-        future.Fulfill(Result {});
-
-        return future;
+        return {};
     }
 
     if (assetObject->IsRegistered())
@@ -587,193 +591,152 @@ Task<Result> AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject
                 currentPackage->BuildPackagePath(),
                 BuildPackagePath());
 
-            if (Result result = currentPackage->RemoveAssetObject(assetObject).Await(); result.HasError())
+            if (Result result = currentPackage->RemoveAssetObject(assetObject); result.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to remove AssetObject {} from package {}! Error was: {}",
                     assetObject->GetName(),
                     currentPackage->BuildPackagePath(),
                     result.GetError().GetMessage());
 
-                Task<Result> future;
-                future.Fulfill(result);
-
-                return future;
+                return result;
             }
         }
     }
-    
+
+    assetObject->m_package = WeakHandleFromThis();
+    assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
+
+    bool isLoading = false;
+    bool isPackageSavedInFilesystem = false;
     bool shouldSaveAsset = false;
 
-    auto impl = [this, &shouldSaveAsset, assetObject = MakeStrongRef(assetObject)]() -> Result
     {
-        assetObject->m_package = WeakHandleFromThis();
-        assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
+        TUniqueLock guard(m_mutex);
 
-        bool isPackageSavedInFilesystem = false;
+        isLoading = IsLoading();
+        isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
+        shouldSaveAsset = ShouldSavePackageOnChanged(*this) && !isLoading;
 
+        // if no name is provided for the asset, generate one
+        if (!assetObject->GetName().IsValid())
         {
-            TUniqueLock guard(m_mutex);
-
-            isPackageSavedInFilesystem = !IsTransient() && IsSaved_Internal();
-            shouldSaveAsset = ShouldSavePackageOnChanged(*this);
-
-            // if no name is provided for the asset, generate one
-            if (!assetObject->GetName().IsValid())
-            {
-                assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
-            }
-
-            if (!shouldSaveAsset && !isPackageSavedInFilesystem)
-            {
-                assetObject->SetIsTransientByProxy(true);
-            }
-
-            auto existingAssetObjectIt = m_assetObjects.Find(assetObject->GetName());
-
-            if (existingAssetObjectIt != m_assetObjects.End())
-            {
-                if (*existingAssetObjectIt != assetObject)
-                {
-                    return HYP_MAKE_ERROR(Error, "AssetObject with name '{}' already exists in package '{}'", assetObject->GetName(), BuildPackagePath());
-                }
-
-                // already exists and is the same object; fine
-                return {};
-            }
-
-            m_assetObjects.Insert({ assetObject });
+            assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
         }
 
-        InitObject(assetObject);
-
-        if (!IsLoading() && !shouldSaveAsset)
-            MarkDirty();
-
-        HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}'",
-            assetObject->InstanceClass()->GetName(),
-            assetObject->GetName(),
-            BuildPackagePath());
-        
-        if (shouldSaveAsset)
+        if (!shouldSaveAsset && !isPackageSavedInFilesystem && !isLoading)
         {
-            AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
-                
-            const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
-
-            // save the file in our package
-            Result saveAssetResult = assetObject->Save(newManifestFilepath);
-
-            if (saveAssetResult.HasError())
-            {
-                HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
-            }
-            else
-            {
-                assetObject->SetIsTransientByProxy(false);
-            }
+            assetObject->SetIsTransientByProxy(true);
         }
 
-        OnAssetObjectAdded(assetObject, true);
+        auto existingAssetObjectIt = m_assetObjects.Find(assetObject->GetName());
 
-        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
-
-        while (parentPackage.IsValid())
+        if (existingAssetObjectIt != m_assetObjects.End())
         {
-            parentPackage->OnAssetObjectAdded(assetObject, false);
-            parentPackage = parentPackage->GetParentPackage().Lock();
+            if (*existingAssetObjectIt != assetObject)
+            {
+                return HYP_MAKE_ERROR(Error, "AssetObject with name '{}' already exists in package '{}'", assetObject->GetName(), BuildPackagePath());
+            }
+
+            // already exists and is the same object; fine
+            return {};
         }
 
-        return {};
-    };
-
-    Task<Result> future;
-
-    if (IsInitCalled())
-    {
-        Assert(m_registry.IsValid());
-
-        Handle<AssetRegistry> registry = m_registry.Lock();
-        Assert(registry != nullptr);
-
-        registry->PostTask(std::move(impl), &future);
-    }
-    else
-    {
-        future.Fulfill(impl());
+        m_assetObjects.Insert({ assetObject });
     }
 
-    return future;
+    InitObject(assetObject);
+
+    if (isLoading)
+    {
+        assetObject->SetIsTransientByProxy(false);
+    }
+    else if (!shouldSaveAsset)
+    {
+        MarkDirty();
+    }
+
+    HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}'",
+        assetObject->InstanceClass()->GetName(),
+        assetObject->GetName(),
+        BuildPackagePath());
+    
+    if (shouldSaveAsset)
+    {
+        AssertDebug(!assetObject->IsTransient() || assetObject->IsTransientByProxy());
+            
+        const FilePath newManifestFilepath = m_packageDir / *assetObject->GetName() + ".json";
+
+        // save the file in our package
+        Result saveAssetResult = assetObject->Save(newManifestFilepath);
+
+        if (saveAssetResult.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+        }
+        else
+        {
+            assetObject->SetIsTransientByProxy(false);
+        }
+    }
+
+    OnAssetObjectAdded(assetObject, true);
+
+    Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+    while (parentPackage.IsValid())
+    {
+        parentPackage->OnAssetObjectAdded(assetObject, false);
+        parentPackage = parentPackage->GetParentPackage().Lock();
+    }
+
+    return {};
 }
 
-Task<Result> AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
+Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
 {
     HYP_SCOPE;
 
     if (!assetObject)
     {
-        Task<Result> future;
-        future.Fulfill(HYP_MAKE_ERROR(Error, "AssetObject is invalid"));
-
-        return future;
+        return HYP_MAKE_ERROR(Error, "AssetObject is invalid");
     }
 
-    auto impl = [this, assetObject = MakeStrongRef(assetObject)]() -> Result
     {
+        TUniqueLock guard(m_mutex);
+
+        auto it = m_assetObjects.Find(assetObject->GetName());
+
+        if (it == m_assetObjects.End())
         {
-            TUniqueLock guard(m_mutex);
-
-            auto it = m_assetObjects.Find(assetObject->GetName());
-
-            if (it == m_assetObjects.End())
-            {
-                return HYP_MAKE_ERROR(Error, "AssetObject '{}' not found in package '{}'", assetObject->GetName(), m_name);
-            }
-
-            m_assetObjects.Erase(it);
-
-            assetObject->m_package.Reset();
-            assetObject->m_assetPath = {};
+            return HYP_MAKE_ERROR(Error, "AssetObject '{}' not found in package '{}'", assetObject->GetName(), m_name);
         }
 
-        MarkDirty();
+        m_assetObjects.Erase(it);
 
-        OnAssetObjectRemoved(assetObject, true);
-
-        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
-
-        while (parentPackage.IsValid())
-        {
-            parentPackage->OnAssetObjectRemoved(assetObject, false);
-            parentPackage = parentPackage->GetParentPackage().Lock();
-        }
-
-        HYP_LOG(Assets, Debug, "Removed {} '{}' from package '{}'",
-            assetObject->InstanceClass()->GetName(),
-            assetObject->GetName(),
-            BuildPackagePath());
-
-        /// TODO: remove the file
-
-        return {};
-    };
-
-    Task<Result> future;
-
-    if (IsInitCalled())
-    {
-        Assert(m_registry.IsValid());
-
-        Handle<AssetRegistry> registry = m_registry.Lock();
-        Assert(registry != nullptr);
-
-        registry->PostTask(std::move(impl), &future);
-    }
-    else
-    {
-        future.Fulfill(impl());
+        assetObject->m_package.Reset();
+        assetObject->m_assetPath = {};
     }
 
-    return future;
+    MarkDirty();
+
+    OnAssetObjectRemoved(assetObject, true);
+
+    Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+    while (parentPackage.IsValid())
+    {
+        parentPackage->OnAssetObjectRemoved(assetObject, false);
+        parentPackage = parentPackage->GetParentPackage().Lock();
+    }
+
+    HYP_LOG(Assets, Debug, "Removed {} '{}' from package '{}'",
+        assetObject->InstanceClass()->GetName(),
+        assetObject->GetName(),
+        BuildPackagePath());
+
+    /// TODO: remove the file
+
+    return {};
 }
 
 Handle<AssetObject> AssetPackage::GetAssetObject(StringHash assetName) const
@@ -795,134 +758,107 @@ Handle<AssetObject> AssetPackage::GetAssetObject(StringHash assetName) const
     return *it;
 }
 
-Task<Result> AssetPackage::MergePackage(const Handle<AssetPackage>& package)
+Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
 {
     HYP_SCOPE;
 
     if (!package.IsValid())
     {
-        Task<Result> future;
-        future.Fulfill(HYP_MAKE_ERROR(Error, "Package is invalid"));
-
-        return future;
+        return HYP_MAKE_ERROR(Error, "Package is invalid");
     }
 
     if (package == this)
     {
-        Task<Result> future;
-        future.Fulfill(HYP_MAKE_ERROR(Error, "Cannot merge package '{}' into itself", m_name));
-
-        return future;
+        return HYP_MAKE_ERROR(Error, "Cannot merge package '{}' into itself", m_name);
     }
 
-    auto impl = [this, package = MakeStrongRef(package)]() -> Result
-    {
-        HashSet<Name> currentAssetNames;
-        ForEachAssetObject([&](const Handle<AssetObject>& asset)
-            {
-                currentAssetNames.Insert(asset->GetName());
-
-                return IterationResult::CONTINUE;
-            });
-
-        Array<Handle<AssetObject>> assets;
-        package->ForEachAssetObject([&](const Handle<AssetObject>& asset)
-            {
-                assets.PushBack(asset);
-
-                return IterationResult::CONTINUE;
-            });
-
-        // Remove assets from the package and add them to the new package - renaming if necessary to avoid name clashes
-        for (const Handle<AssetObject>& asset : assets)
+    HashSet<Name> currentAssetNames;
+    ForEachAssetObject([&](const Handle<AssetObject>& asset)
         {
-            if (!asset.IsValid())
+            currentAssetNames.Insert(asset->GetName());
+
+            return IterationResult::CONTINUE;
+        });
+
+    Array<Handle<AssetObject>> assets;
+    package->ForEachAssetObject([&](const Handle<AssetObject>& asset)
+        {
+            assets.PushBack(asset);
+
+            return IterationResult::CONTINUE;
+        });
+
+    // Remove assets from the package and add them to the new package - renaming if necessary to avoid name clashes
+    for (const Handle<AssetObject>& asset : assets)
+    {
+        if (!asset.IsValid())
+        {
+            continue;
+        }
+
+        Name desiredName = asset->GetName();
+
+        // check if name is already taken in destination package
+        if (currentAssetNames.Contains(desiredName))
+        {
+            Name uniqueName = GetUniqueAssetName(desiredName);
+
+            if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
             {
-                continue;
-            }
-
-            Name desiredName = asset->GetName();
-
-            // check if name is already taken in destination package
-            if (currentAssetNames.Contains(desiredName))
-            {
-                Name uniqueName = GetUniqueAssetName(desiredName);
-
-                if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
-                {
-                    HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
-
-                    continue;
-                }
-            }
-
-            if (Result removeResult = package->RemoveAssetObject(asset).Await(); removeResult.HasError())
-            {
-                HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), package->GetName(), removeResult.GetError().GetMessage());
+                HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
 
                 continue;
             }
-
-            if (Result addResult = AddAssetObject(asset).Await(); addResult.HasError())
-            {
-                HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), GetName(), addResult.GetError().GetMessage());
-            }
         }
 
-        Handle<AssetPackage> strongThis = MakeStrongRef(this);
-
-        // needed for GetPackageFromPath() / GetSubpackage().
-        /// \todo : Refactor to call these methods on AssetPackage directly?
-        Handle<AssetRegistry> registry = m_registry.Lock();
-        Assert(registry != nullptr);
-
-        Optional<Error> mergeError;
-
-        package->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
-            {
-                if (!sub)
-                {
-                    return IterationResult::CONTINUE;
-                }
-
-                Handle<AssetPackage> dest = registry->GetSubpackage(strongThis, sub->GetName(), /* createIfNotExist */ true);
-                Assert(dest != nullptr);
-
-                if (Result mergeResult = dest->MergePackage(sub).Await(); mergeResult.HasError())
-                {
-                    mergeError = mergeResult.GetError();
-
-                    return IterationResult::STOP;
-                }
-
-                return IterationResult::CONTINUE;
-            });
-
-        if (mergeError.HasValue())
+        if (Result removeResult = package->RemoveAssetObject(asset); removeResult.HasError())
         {
-            return *mergeError;
+            HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), package->GetName(), removeResult.GetError().GetMessage());
+
+            continue;
         }
 
-        return {};
-    };
-
-    Task<Result> future;
-
-    if (IsInitCalled())
-    {
-        Assert(m_registry.IsValid());
-
-        Handle<AssetRegistry> registry = m_registry.Lock();
-        Assert(registry != nullptr);
-
-        registry->PostTask(std::move(impl), &future);
-    }
-    else
-    {
-        future.Fulfill(impl());
+        if (Result addResult = AddAssetObject(asset); addResult.HasError())
+        {
+            HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), GetName(), addResult.GetError().GetMessage());
+        }
     }
 
-    return future;
+    Handle<AssetPackage> strongThis = MakeStrongRef(this);
+
+    // needed for GetPackageFromPath() / GetSubpackage().
+    /// \todo : Refactor to call these methods on AssetPackage directly?
+    Handle<AssetRegistry> registry = m_registry.Lock();
+    Assert(registry != nullptr);
+
+    Optional<Error> mergeError;
+
+    package->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
+        {
+            if (!sub)
+            {
+                return IterationResult::CONTINUE;
+            }
+
+            Handle<AssetPackage> dest = registry->GetSubpackage(strongThis, sub->GetName(), /* createIfNotExist */ true);
+            Assert(dest != nullptr);
+
+            if (Result mergeResult = dest->MergePackage(sub); mergeResult.HasError())
+            {
+                mergeError = mergeResult.GetError();
+
+                return IterationResult::STOP;
+            }
+
+            return IterationResult::CONTINUE;
+        });
+
+    if (mergeError.HasValue())
+    {
+        return *mergeError;
+    }
+
+    return {};
 }
 
 String AssetPackage::BuildPackagePath() const
@@ -1776,7 +1712,7 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 
                 if (manifestPath.Exists() && !manifestPath.IsDirectory())
                 {
-                    TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, loadSubpackages, /* forceLoad */ false).Await();
+                    TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, loadSubpackages, /* forceLoad */ false);
 
                     // build virtual package path from filesystem path
                     if (subpackageResult.HasError())
@@ -1874,220 +1810,212 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
     }
 }
 
-Task<Result> AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool mergeIfExists)
+Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool mergeIfExists)
 {
     HYP_SCOPE;
 
-    Task<Result> future;
+    if (!package.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Package is invalid");
+    }
 
-    PostTask([this, package = MakeStrongRef(package), mergeIfExists]() -> Result
+    const String packagePath = package->BuildPackagePath();
+    Handle<AssetPackage> existing = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
+
+    if (existing.IsValid())
+    {
+        if (existing == package)
         {
-            if (!package.IsValid())
-            {
-                return HYP_MAKE_ERROR(Error, "Package is invalid");
-            }
-
-            const String packagePath = package->BuildPackagePath();
-            Handle<AssetPackage> existing = GetPackageFromPath(packagePath, /* createIfNotExist */ false);
-
-            if (existing.IsValid())
-            {
-                if (existing == package)
-                {
-                    // already added, return early
-                    return {};
-                }
-
-                if (!mergeIfExists)
-                {
-                    return HYP_MAKE_ERROR(Error, "Package with path '{}' already exists", packagePath);
-                }
-
-                /// TODO: Refactor to use `MergePackage` when AssetRegistry is not needed for `GetSubpackage()`
-                Proc<void(const Handle<AssetPackage>&, const Handle<AssetPackage>&)> mergeInto;
-
-                mergeInto = [this, &mergeInto](const Handle<AssetPackage>& dest, const Handle<AssetPackage>& src)
-                {
-                    if (!dest.IsValid() || !src.IsValid())
-                    {
-                        return;
-                    }
-
-                    HashSet<Name> destAssetNames;
-                    dest->ForEachAssetObject([&](const Handle<AssetObject>& asset)
-                        {
-                            destAssetNames.Insert(asset->GetName());
-
-                            return IterationResult::CONTINUE;
-                        });
-
-                    // Move asset objects
-                    Array<Handle<AssetObject>> assets;
-                    src->ForEachAssetObject([&](const Handle<AssetObject>& asset)
-                        {
-                            assets.PushBack(asset);
-
-                            return IterationResult::CONTINUE;
-                        });
-
-                    for (const Handle<AssetObject>& asset : assets)
-                    {
-                        if (!asset.IsValid())
-                        {
-                            continue;
-                        }
-
-                        Name desiredName = asset->GetName();
-
-                        // check if name is already taken in destination package
-                        if (destAssetNames.Contains(desiredName))
-                        {
-                            Name uniqueName = dest->GetUniqueAssetName(desiredName);
-
-                            if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
-                            {
-                                HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
-
-                                continue;
-                            }
-                        }
-
-                        if (Result removeResult = src->RemoveAssetObject(asset).Await(); removeResult.HasError())
-                        {
-                            HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), src->GetName(), removeResult.GetError().GetMessage());
-
-                            continue;
-                        }
-
-                        // Add to destination
-                        Result addResult = dest->AddAssetObject(asset).Await();
-                        if (addResult.HasError())
-                        {
-                            HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), dest->GetName(), addResult.GetError().GetMessage());
-                        }
-                    }
-
-                    Array<Handle<AssetPackage>> subpackages;
-                    src->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
-                        {
-                            subpackages.PushBack(sub);
-
-                            return IterationResult::CONTINUE;
-                        });
-
-                    for (const Handle<AssetPackage>& sub : subpackages)
-                    {
-                        if (!sub)
-                        {
-                            continue;
-                        }
-
-                        Handle<AssetPackage> destSubpackage = GetSubpackage(dest, sub->GetName(), /* createIfNotExist */ true);
-                        Assert(destSubpackage != nullptr);
-
-                        mergeInto(destSubpackage, sub);
-                    }
-                };
-
-                mergeInto(existing, package);
-
-                // update reference
-                // package = existing;
-
-                return {};
-            }
-
-            Handle<AssetPackage> newParentPackage;
-            if (Handle<AssetPackage> prevParentPackage = package->GetParentPackage().Lock(); prevParentPackage != nullptr)
-            {
-                const String parentPackagePath = prevParentPackage->BuildPackagePath();
-
-                newParentPackage = GetPackageFromPath(parentPackagePath, /* createIfNotExist */ true);
-                Assert(newParentPackage != nullptr);
-            }
-
-            // to call OnPackageAdded with
-            Array<Handle<AssetPackage>> addedPackages;
-
-            Proc<void(Handle<AssetPackage>)> initializePackage;
-            initializePackage = [this, &initializePackage, &addedPackages](const Handle<AssetPackage>& pkg)
-            {
-                Assert(pkg != nullptr);
-
-                pkg->m_registry = MakeWeakRef(this);
-
-                addedPackages.PushBack(pkg);
-
-                for (const Handle<AssetPackage>& sub : pkg->m_subpackages)
-                {
-                    sub->m_parentPackage = pkg;
-                    sub->m_flags |= pkg->m_flags;
-
-                    initializePackage(sub);
-                }
-            };
-
-            initializePackage(package);
-
-            if (newParentPackage != nullptr)
-            {
-                bool isSubpackageSaved = false;
-
-                {
-                    TUniqueLock guard(newParentPackage->m_mutex);
-
-                    package->m_parentPackage = newParentPackage;
-                    package->m_flags |= newParentPackage->m_flags;
-
-                    // If parent package exists on disk, save this package:
-                    if (!newParentPackage->IsTransient() && newParentPackage->IsSaved_Internal())
-                    {
-                        FilePath subpackageDir = newParentPackage->m_packageDir / *package->GetName();
-
-                        if (ShouldSavePackageOnChanged(*newParentPackage))
-                        {
-                            Result savePackageResult = package->Save(subpackageDir, /* saveEvenIfNotDirty*/ true);
-                            if (!savePackageResult.HasError())
-                            {
-                                isSubpackageSaved = true;
-                            }
-                            else
-                            {
-                                HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
-                                    package->GetName(), newParentPackage->BuildPackagePath(), savePackageResult.GetError().GetMessage());
-                            }
-                        }
-                    }
-
-                    newParentPackage->m_subpackages.Insert(package);
-                    newParentPackage->OnSubpackageAdded(package);
-                }
-
-                if (!isSubpackageSaved)
-                {
-                    // mark dirty on add if not saved via ShouldSavePackageOnChanged (recursively)
-                    package->MarkDirty();
-                }
-            }
-            else // top-level package
-            {
-                TUniqueLock guard(m_mutex);
-
-                m_packages.Insert(package);
-            }
-
-            for (const Handle<AssetPackage>& pkg : addedPackages)
-            {
-                InitObject(pkg);
-
-                OnPackageAdded(pkg);
-            }
-
+            // already added, return early
             return {};
-        },
-        &future);
+        }
 
-    return future;
+        if (!mergeIfExists)
+        {
+            return HYP_MAKE_ERROR(Error, "Package with path '{}' already exists", packagePath);
+        }
+
+        /// TODO: Refactor to use `MergePackage` when AssetRegistry is not needed for `GetSubpackage()`
+        Proc<void(const Handle<AssetPackage>&, const Handle<AssetPackage>&)> mergeInto;
+
+        mergeInto = [this, &mergeInto](const Handle<AssetPackage>& dest, const Handle<AssetPackage>& src)
+        {
+            if (!dest.IsValid() || !src.IsValid())
+            {
+                return;
+            }
+
+            HashSet<Name> destAssetNames;
+            dest->ForEachAssetObject([&](const Handle<AssetObject>& asset)
+                {
+                    destAssetNames.Insert(asset->GetName());
+
+                    return IterationResult::CONTINUE;
+                });
+
+            // Move asset objects
+            Array<Handle<AssetObject>> assets;
+            src->ForEachAssetObject([&](const Handle<AssetObject>& asset)
+                {
+                    assets.PushBack(asset);
+
+                    return IterationResult::CONTINUE;
+                });
+
+            for (const Handle<AssetObject>& asset : assets)
+            {
+                if (!asset.IsValid())
+                {
+                    continue;
+                }
+
+                Name desiredName = asset->GetName();
+
+                // check if name is already taken in destination package
+                if (destAssetNames.Contains(desiredName))
+                {
+                    Name uniqueName = dest->GetUniqueAssetName(desiredName);
+
+                    if (Result renameResult = asset->Rename(uniqueName); renameResult.HasError())
+                    {
+                        HYP_LOG(Assets, Warning, "Failed to rename asset '{}' during merge: {}", desiredName, renameResult.GetError().GetMessage());
+
+                        continue;
+                    }
+                }
+
+                if (Result removeResult = src->RemoveAssetObject(asset); removeResult.HasError())
+                {
+                    HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), src->GetName(), removeResult.GetError().GetMessage());
+
+                    continue;
+                }
+
+                // Add to destination
+                Result addResult = dest->AddAssetObject(asset);
+                if (addResult.HasError())
+                {
+                    HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), dest->GetName(), addResult.GetError().GetMessage());
+                }
+            }
+
+            Array<Handle<AssetPackage>> subpackages;
+            src->ForEachSubpackage([&](const Handle<AssetPackage>& sub)
+                {
+                    subpackages.PushBack(sub);
+
+                    return IterationResult::CONTINUE;
+                });
+
+            for (const Handle<AssetPackage>& sub : subpackages)
+            {
+                if (!sub)
+                {
+                    continue;
+                }
+
+                Handle<AssetPackage> destSubpackage = GetSubpackage(dest, sub->GetName(), /* createIfNotExist */ true);
+                Assert(destSubpackage != nullptr);
+
+                mergeInto(destSubpackage, sub);
+            }
+        };
+
+        mergeInto(existing, package);
+
+        // update reference
+        // package = existing;
+
+        return {};
+    }
+
+    Handle<AssetPackage> newParentPackage;
+    if (Handle<AssetPackage> prevParentPackage = package->GetParentPackage().Lock(); prevParentPackage != nullptr)
+    {
+        const String parentPackagePath = prevParentPackage->BuildPackagePath();
+
+        newParentPackage = GetPackageFromPath(parentPackagePath, /* createIfNotExist */ true);
+        Assert(newParentPackage != nullptr);
+    }
+
+    // to call OnPackageAdded with
+    Array<Handle<AssetPackage>> addedPackages;
+
+    Proc<void(Handle<AssetPackage>)> InitializePackage;
+    InitializePackage = [this, &InitializePackage, &addedPackages](const Handle<AssetPackage>& pkg)
+    {
+        Assert(pkg != nullptr);
+
+        pkg->m_registry = MakeWeakRef(this);
+
+        addedPackages.PushBack(pkg);
+
+        for (const Handle<AssetPackage>& sub : pkg->m_subpackages)
+        {
+            sub->m_parentPackage = pkg;
+            sub->m_flags |= pkg->m_flags;
+
+            InitializePackage(sub);
+        }
+    };
+
+    InitializePackage(package);
+
+    if (newParentPackage != nullptr)
+    {
+        bool isSubpackageSaved = false;
+
+        {
+            TUniqueLock guard(newParentPackage->m_mutex);
+
+            package->m_parentPackage = newParentPackage;
+            package->m_flags |= newParentPackage->m_flags;
+
+            // If parent package exists on disk, save this package:
+            if (!newParentPackage->IsTransient() && newParentPackage->IsSaved_Internal())
+            {
+                FilePath subpackageDir = newParentPackage->m_packageDir / *package->GetName();
+
+                if (ShouldSavePackageOnChanged(*newParentPackage))
+                {
+                    Result savePackageResult = package->Save(subpackageDir, /* saveEvenIfNotDirty*/ true);
+                    if (!savePackageResult.HasError())
+                    {
+                        isSubpackageSaved = true;
+                    }
+                    else
+                    {
+                        HYP_LOG(Assets, Error, "Failed to save subpackage {} of {}: {}",
+                            package->GetName(), newParentPackage->BuildPackagePath(), savePackageResult.GetError().GetMessage());
+                    }
+                }
+            }
+
+            newParentPackage->m_subpackages.Insert(package);
+            newParentPackage->OnSubpackageAdded(package);
+        }
+
+        if (!isSubpackageSaved)
+        {
+            // mark dirty on add if not saved via ShouldSavePackageOnChanged (recursively)
+            package->MarkDirty();
+        }
+    }
+    else // top-level package
+    {
+        TUniqueLock guard(m_mutex);
+
+        m_packages.Insert(package);
+    }
+
+    for (const Handle<AssetPackage>& pkg : addedPackages)
+    {
+        InitObject(pkg);
+
+        OnPackageAdded(pkg);
+    }
+
+    return {};
 }
 
 void AssetRegistry::RemovePackage(AssetPackage* package)
@@ -2106,60 +2034,57 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
         return;
     }
 
-    PostTask([this, package = MakeStrongRef(package)]()
+    package->m_registry.Reset();
+
+    Handle<AssetPackage> strongPackage = MakeStrongRef(package);
+
+    bool removed = false;
+
+    {
+        TSharedLock guard(package->m_mutex);
+
+        if (package->m_parentPackage.IsValid())
         {
-            package->m_registry.Reset();
+            Handle<AssetPackage> parentPackage = package->m_parentPackage.Lock();
 
-            Handle<AssetPackage> strongPackage = MakeStrongRef(package);
+            guard.Reset();
 
-            bool removed = false;
-
+            if (parentPackage.IsValid())
             {
-                TSharedLock guard(package->m_mutex);
-
-                if (package->m_parentPackage.IsValid())
                 {
-                    Handle<AssetPackage> parentPackage = package->m_parentPackage.Lock();
+                    TUniqueLock guard2(parentPackage->m_mutex);
 
-                    guard.Reset();
+                    auto it = parentPackage->m_subpackages.Find(package->GetName());
+                    Assert(it != parentPackage->m_subpackages.End());
 
-                    if (parentPackage.IsValid())
-                    {
-                        {
-                            TUniqueLock guard2(parentPackage->m_mutex);
-
-                            auto it = parentPackage->m_subpackages.Find(package->GetName());
-                            Assert(it != parentPackage->m_subpackages.End());
-
-                            parentPackage->m_subpackages.Erase(it);
-                            parentPackage->OnSubpackageRemoved(strongPackage);
-
-                            removed = true;
-                        }
-
-                        parentPackage->MarkDirty();
-                    }
-                }
-                else
-                {
-                    TUniqueLock guard2(m_mutex);
-
-                    auto it = m_packages.Find(package->GetName());
-                    Assert(it != m_packages.End());
-
-                    m_packages.Erase(it);
+                    parentPackage->m_subpackages.Erase(it);
+                    parentPackage->OnSubpackageRemoved(strongPackage);
 
                     removed = true;
                 }
-            }
 
-            if (removed)
-            {
-                OnPackageRemoved(strongPackage);
-
-                return;
+                parentPackage->MarkDirty();
             }
-        });
+        }
+        else
+        {
+            TUniqueLock guard2(m_mutex);
+
+            auto it = m_packages.Find(package->GetName());
+            Assert(it != m_packages.End());
+
+            m_packages.Erase(it);
+
+            removed = true;
+        }
+    }
+
+    if (removed)
+    {
+        OnPackageRemoved(strongPackage);
+
+        return;
+    }
 }
 
 Handle<AssetPackage> AssetRegistry::GetPackageFromPath(const UTF8StringView& path, bool createIfNotExist)
@@ -2284,64 +2209,61 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
         return;
     }
 
-    PostTask([this, package = MakeStrongRef(package), recursive]()
+    if (package->m_packageDir.Length() == 0 || !package->m_packageDir.Exists() || !package->m_packageDir.IsDirectory())
+    {
+        return;
+    }
+
+    for (const FilePath& subdirectory : package->m_packageDir.GetSubdirectories())
+    {
+        const FilePath manifestPath = subdirectory / "PackageManifest.json";
+
+        if (!manifestPath.Exists() || manifestPath.IsDirectory())
         {
-            if (package->m_packageDir.Length() == 0 || !package->m_packageDir.Exists() || !package->m_packageDir.IsDirectory())
-            {
-                return;
-            }
+            continue;
+        }
 
-            for (const FilePath& subdirectory : package->m_packageDir.GetSubdirectories())
-            {
-                const FilePath manifestPath = subdirectory / "PackageManifest.json";
+        TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ false);
 
-                if (!manifestPath.Exists() || manifestPath.IsDirectory())
-                {
-                    continue;
-                }
+        if (subpackageResult.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", manifestPath, subpackageResult.GetError().GetMessage());
 
-                TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(manifestPath, /* loadSubpackages */ false, /* forceLoad */ false).Await();
+            continue;
+        }
 
-                if (subpackageResult.HasError())
-                {
-                    HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", manifestPath, subpackageResult.GetError().GetMessage());
+        Handle<AssetPackage> subpackage = std::move(*subpackageResult);
 
-                    continue;
-                }
+        if (!subpackage.IsValid())
+        {
+            HYP_LOG(Assets, Error, "Subpackage at path '{}' is invalid!", subdirectory);
 
-                Handle<AssetPackage> subpackage = std::move(*subpackageResult);
+            continue;
+        }
 
-                if (!subpackage.IsValid())
-                {
-                    HYP_LOG(Assets, Error, "Subpackage at path '{}' is invalid!", subdirectory);
+        if (!subpackage->GetName().IsValid())
+        {
+            HYP_LOG(Assets, Error, "Subpackage at path '{}' has an invalid name!", subdirectory);
 
-                    continue;
-                }
+            continue;
+        }
 
-                if (!subpackage->GetName().IsValid())
-                {
-                    HYP_LOG(Assets, Error, "Subpackage at path '{}' has an invalid name!", subdirectory);
+        subpackage->m_parentPackage = package;
+        subpackage->m_flags |= package->m_flags;
 
-                    continue;
-                }
+        // Add to our package
+        Handle<AssetPackage> existingSubpackage = GetSubpackage(package, subpackage->GetName(), /* createIfNotExist */ true);
+        Assert(existingSubpackage != nullptr);
 
-                subpackage->m_parentPackage = package;
-                subpackage->m_flags |= package->m_flags;
-
-                // Add to our package
-                Handle<AssetPackage> existingSubpackage = GetSubpackage(package, subpackage->GetName(), /* createIfNotExist */ true);
-                Assert(existingSubpackage != nullptr);
-
-                if (existingSubpackage != subpackage)
-                {
-                    HYP_LOG(Assets, Warning, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'",
-                        subpackage->GetName(), package->BuildPackagePath(), manifestPath);
-                }
-            }
-        });
+        if (existingSubpackage != subpackage)
+        {
+            HYP_LOG(Assets, Warning, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'",
+                subpackage->GetName(), package->BuildPackagePath(), manifestPath);
+        }
+    }
 }
 
-Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
+TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
     const FilePath& manifestPath,
     bool loadSubpackages,
     bool forceLoad)
@@ -2350,318 +2272,309 @@ Task<TResult<Handle<AssetPackage>>> AssetRegistry::LoadPackageFromManifest(
 
     HYP_LOG(Assets, Debug, "Loading package from manifest path: {}", manifestPath);
 
-    Task<TResult<Handle<AssetPackage>>> future;
+    Handle<AssetPackage> outPackage;
 
-    PostTask([this, manifestPath = manifestPath, loadSubpackages, forceLoad]() -> TResult<Handle<AssetPackage>>
+    if (!manifestPath.Exists() || manifestPath.IsDirectory())
+    {
+        return HYP_MAKE_ERROR(Error, "Manifest file '{}' does not exist or is not a file", manifestPath);
+    }
+
+    const FilePath dir = manifestPath.BasePath();
+
+    FileBufferedReaderSource manifestSource { manifestPath };
+    BufferedReader manifestStream { &manifestSource };
+
+    if (!manifestStream.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
+    }
+
+    Json::ParseResult parseResult = Json::Parse(manifestStream);
+
+    manifestStream.Close();
+
+    if (!parseResult.ok)
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to parse manifest JSON: {}", parseResult.message);
+    }
+
+    if (!parseResult.value.IsObject())
+    {
+        return HYP_MAKE_ERROR(Error, "Package manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
+    }
+
+    const String packagePath = parseResult.value.Get("Path").ToString().ToUtf8();
+    const String packageName = parseResult.value.Get("Name").ToString().ToUtf8();
+
+    if (packagePath.Empty() || packageName.Empty())
+    {
+        return HYP_MAKE_ERROR(Error, "Package manifest JSON does not contain a valid 'Path' or 'Name' field");
+    }
+
+    if (!forceLoad)
+    {
+        // try to get existing package if not forcing load
+        if (Handle<AssetPackage> existingPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false); existingPackage.IsValid())
         {
-            Handle<AssetPackage> outPackage;
+            return existingPackage;
+        }
+    }
 
-            if (!manifestPath.Exists() || manifestPath.IsDirectory())
+    Handle<AssetPackage> parentPackage;
+
+    {
+        // Have to create package first so we can deserialize into it
+        // we also need to load all parent packages until we reach a package that already exists.
+
+        // build parent packages first
+        Array<String> parentPackageParts = packagePath.Split('/');
+        parentPackageParts.PopBack(); // remove last part (our own package name)
+
+        // get parent package path
+        if (parentPackageParts.Any())
+        {
+            const String parentPackagePathString = String::Join(parentPackageParts, '/');
+
+            // check if parent package already exists first
+            parentPackage = GetPackageFromPath(parentPackagePathString, /* createIfNotExist */ false);
+
+            if (!parentPackage)
             {
-                return HYP_MAKE_ERROR(Error, "Manifest file '{}' does not exist or is not a file", manifestPath);
-            }
+                const String relativePath = AssetPath::MakeRelativePath(AssetPath(packagePath), AssetPath(parentPackagePathString));
 
-            const FilePath dir = manifestPath.BasePath();
+                // make filepath for parent package manifest
+                const FilePath parentManifestPath = dir / relativePath / "PackageManifest.json";
 
-            FileBufferedReaderSource manifestSource { manifestPath };
-            BufferedReader manifestStream { &manifestSource };
+                HYP_LOG(Assets, Debug, "Loading parent package '{}' for package at '{}' from manifest '{}'", parentPackagePathString, packagePath, parentManifestPath);
 
-            if (!manifestStream.IsOpen())
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
-            }
-
-            Json::ParseResult parseResult = Json::Parse(manifestStream);
-
-            manifestStream.Close();
-
-            if (!parseResult.ok)
-            {
-                return HYP_MAKE_ERROR(Error, "Failed to parse manifest JSON: {}", parseResult.message);
-            }
-
-            if (!parseResult.value.IsObject())
-            {
-                return HYP_MAKE_ERROR(Error, "Package manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
-            }
-
-            const String packagePath = parseResult.value.Get("Path").ToString().ToUtf8();
-            const String packageName = parseResult.value.Get("Name").ToString().ToUtf8();
-
-            if (packagePath.Empty() || packageName.Empty())
-            {
-                return HYP_MAKE_ERROR(Error, "Package manifest JSON does not contain a valid 'Path' or 'Name' field");
-            }
-
-            if (!forceLoad)
-            {
-                // try to get existing package if not forcing load
-                if (Handle<AssetPackage> existingPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false); existingPackage.IsValid())
+                // attempt to load parent package from manifest
+                if (TResult<Handle<AssetPackage>> parentPackageResult = LoadPackageFromManifest(parentManifestPath, /* loadSubpackages */ false, /* forceLoad */ true); parentPackageResult.HasError())
                 {
-                    return existingPackage;
-                }
-            }
-
-            Handle<AssetPackage> parentPackage;
-
-            {
-                // Have to create package first so we can deserialize into it
-                // we also need to load all parent packages until we reach a package that already exists.
-
-                // build parent packages first
-                Array<String> parentPackageParts = packagePath.Split('/');
-                parentPackageParts.PopBack(); // remove last part (our own package name)
-
-                // get parent package path
-                if (parentPackageParts.Any())
-                {
-                    const String parentPackagePathString = String::Join(parentPackageParts, '/');
-
-                    // check if parent package already exists first
-                    parentPackage = GetPackageFromPath(parentPackagePathString, /* createIfNotExist */ false);
-
-                    if (!parentPackage)
-                    {
-                        const String relativePath = AssetPath::MakeRelativePath(AssetPath(packagePath), AssetPath(parentPackagePathString));
-
-                        // make filepath for parent package manifest
-                        const FilePath parentManifestPath = dir / relativePath / "PackageManifest.json";
-
-                        HYP_LOG(Assets, Debug, "Loading parent package '{}' for package at '{}' from manifest '{}'", parentPackagePathString, packagePath, parentManifestPath);
-
-                        // attempt to load parent package from manifest
-                        if (TResult<Handle<AssetPackage>> parentPackageResult = LoadPackageFromManifest(parentManifestPath, /* loadSubpackages */ false, /* forceLoad */ true).Await(); parentPackageResult.HasError())
-                        {
-                            return HYP_MAKE_ERROR(Error, "Failed to load parent package '{}' for package at '{}' from manifest '{}': {}", parentPackagePathString, packagePath, parentManifestPath, parentPackageResult.GetError().GetMessage());
-                        }
-                        else
-                        {
-                            parentPackage = *parentPackageResult;
-                        }
-                    }
-                }
-            }
-
-            outPackage = MakeHandle<AssetPackage>(CreateNameFromDynamicString(packageName));
-            outPackage->m_registry = WeakHandleFromThis();
-            outPackage->m_packageDir = dir;
-            outPackage->m_parentPackage = parentPackage;
-            outPackage->m_isLoading = true;
-
-            if (parentPackage)
-            {
-                outPackage->m_flags |= parentPackage->m_flags;
-            }
-
-            HYP_DEFER({
-                if (outPackage)
-                {
-                    outPackage->m_isLoading = false;
-                }
-            });
-
-            {
-                BoxedValue packageData = BoxedValue(outPackage);
-
-                if (!JSONToObject(parseResult.value.AsObject(), outPackage->InstanceClass(), packageData))
-                {
-                    HYP_LOG(Assets, Error, "Failed to deserialize package manifest JSON for package at '{}'", manifestPath);
-
-                    return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
-                }
-            }
-
-            // Load dependency packages first (always, regardless of loadSubpackages flag)
-            // Dependencies must be loaded before assets to ensure all referenced assets via AssetReferences exist in the registry
-            for (const AssetPath& dependencyPath : outPackage->GetDependencies())
-            {
-                if (!dependencyPath.IsValid())
-                {
-                    HYP_LOG(Assets, Warning, "Invalid dependency path in package '{}'", outPackage->GetName());
-                    continue;
-                }
-
-                HYP_LOG(Assets, Debug, "Loading dependency package '{}' for package '{}'", dependencyPath, outPackage->GetName());
-
-                Handle<AssetPackage> dependencyPackage = GetPackageFromPath(dependencyPath.ToString(), /* createIfNotExist */ false);
-
-                if (dependencyPackage != nullptr)
-                {
-                    HYP_LOG(Assets, Debug, "Dependency package '{}' already loaded!", dependencyPath);
-                    continue;
-                }
-
-                // Dependency package doesn't exist yet, try to load it from filesystem
-                const String relativePath = AssetPath::MakeRelativePath(AssetPath(outPackage->BuildPackagePath()), dependencyPath);
-                const FilePath dependencyManifestPath = GetResourceDirectory() / FilePath::Relative(dir / relativePath / "PackageManifest.json", GetResourceDirectory());
-
-                if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
-                {
-                    HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
-
-                    TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false, /* forceLoad */ true).Await();
-
-                    if (dependencyPackageResult.HasError())
-                    {
-                        HYP_LOG(Assets, Error, "Failed to load dependency package '{}' from manifest '{}': {}", dependencyPath, dependencyManifestPath, dependencyPackageResult.GetError().GetMessage());
-                        continue;
-                    }
-
-                    dependencyPackage = std::move(*dependencyPackageResult);
+                    return HYP_MAKE_ERROR(Error, "Failed to load parent package '{}' for package at '{}' from manifest '{}': {}", parentPackagePathString, packagePath, parentManifestPath, parentPackageResult.GetError().GetMessage());
                 }
                 else
                 {
-                    HYP_LOG(Assets, Error, "Dependency package '{}' for package '{}' not found at '{}'", dependencyPath, outPackage->GetName(), dependencyManifestPath);
-                    continue;
+                    parentPackage = *parentPackageResult;
                 }
             }
+        }
+    }
 
-            // get asset manifest ifles
-            Array<FilePath> assetFiles;
+    outPackage = MakeHandle<AssetPackage>(CreateNameFromDynamicString(packageName));
+    outPackage->m_registry = WeakHandleFromThis();
+    outPackage->m_packageDir = dir;
+    outPackage->m_parentPackage = parentPackage;
+    outPackage->m_isLoading = true;
 
-            for (const FilePath& path : dir.GetAllFilesInDirectory())
+    if (parentPackage)
+    {
+        outPackage->m_flags |= parentPackage->m_flags;
+    }
+
+    HYP_DEFER({
+        if (outPackage)
+        {
+            outPackage->m_isLoading = false;
+        }
+    });
+
+    {
+        BoxedValue packageData = BoxedValue(outPackage);
+
+        if (!JSONToObject(parseResult.value.AsObject(), outPackage->InstanceClass(), packageData))
+        {
+            HYP_LOG(Assets, Error, "Failed to deserialize package manifest JSON for package at '{}'", manifestPath);
+
+            return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
+        }
+    }
+
+    // Load dependency packages first (always, regardless of loadSubpackages flag)
+    // Dependencies must be loaded before assets to ensure all referenced assets via AssetReferences exist in the registry
+    for (const AssetPath& dependencyPath : outPackage->GetDependencies())
+    {
+        if (!dependencyPath.IsValid())
+        {
+            HYP_LOG(Assets, Warning, "Invalid dependency path in package '{}'", outPackage->GetName());
+            continue;
+        }
+
+        HYP_LOG(Assets, Debug, "Loading dependency package '{}' for package '{}'", dependencyPath, outPackage->GetName());
+
+        Handle<AssetPackage> dependencyPackage = GetPackageFromPath(dependencyPath.ToString(), /* createIfNotExist */ false);
+
+        if (dependencyPackage != nullptr)
+        {
+            HYP_LOG(Assets, Debug, "Dependency package '{}' already loaded!", dependencyPath);
+            continue;
+        }
+
+        // Dependency package doesn't exist yet, try to load it from filesystem
+        const String relativePath = AssetPath::MakeRelativePath(AssetPath(outPackage->BuildPackagePath()), dependencyPath);
+        const FilePath dependencyManifestPath = GetResourceDirectory() / FilePath::Relative(dir / relativePath / "PackageManifest.json", GetResourceDirectory());
+
+        if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
+        {
+            HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
+
+            TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false, /* forceLoad */ true);
+
+            if (dependencyPackageResult.HasError())
             {
-                if (path.GetExtension() != "json")
-                {
-                    continue;
-                }
-
-                if (path.Basename() == "PackageManifest.json")
-                {
-                    // Skip the package manifest itself
-                    continue;
-                }
-
-                assetFiles.PushBack(path);
+                HYP_LOG(Assets, Error, "Failed to load dependency package '{}' from manifest '{}': {}", dependencyPath, dependencyManifestPath, dependencyPackageResult.GetError().GetMessage());
+                continue;
             }
 
-            // load AssetObjects from manifest files in this package
-            if (assetFiles.Any())
+            dependencyPackage = std::move(*dependencyPackageResult);
+        }
+        else
+        {
+            HYP_LOG(Assets, Error, "Dependency package '{}' for package '{}' not found at '{}'", dependencyPath, outPackage->GetName(), dependencyManifestPath);
+            continue;
+        }
+    }
+
+    // get asset manifest ifles
+    Array<FilePath> assetFiles;
+
+    for (const FilePath& path : dir.GetAllFilesInDirectory())
+    {
+        if (path.GetExtension() != "json")
+        {
+            continue;
+        }
+
+        if (path.Basename() == "PackageManifest.json")
+        {
+            // Skip the package manifest itself
+            continue;
+        }
+
+        assetFiles.PushBack(path);
+    }
+
+    // load AssetObjects from manifest files in this package
+    if (assetFiles.Any())
+    {
+        Array<Handle<AssetObject>> assetObjects;
+        assetObjects.Resize(assetFiles.Size());
+
+        // load assets in parallel
+        TaskSystem::GetInstance().ParallelForEach(assetFiles, [&assetObjects](const FilePath& entry, uint32 index, uint32 batchIndex) -> void
             {
-                Array<Handle<AssetObject>> assetObjects;
-                assetObjects.Resize(assetFiles.Size());
+                FileBufferedReaderSource manifestSource { entry };
+                BufferedReader manifestStream { &manifestSource };
 
-                // load assets in parallel
-                TaskSystem::GetInstance().ParallelForEach(assetFiles, [&assetObjects](const FilePath& entry, uint32 index, uint32 batchIndex) -> void
-                    {
-                        FileBufferedReaderSource manifestSource { entry };
-                        BufferedReader manifestStream { &manifestSource };
+                const FilePath binPath = entry.StripExtension();
 
-                        const FilePath binPath = entry.StripExtension();
+                BufferedReader* dataStream = nullptr;
+                FileBufferedReaderSource* dataSource = nullptr;
 
-                        BufferedReader* dataStream = nullptr;
-                        FileBufferedReaderSource* dataSource = nullptr;
-
-                        if (binPath.Exists() && !binPath.IsDirectory())
-                        {
-                            dataSource = new FileBufferedReaderSource { binPath };
-                            dataStream = new BufferedReader { dataSource };
-                        }
-
-                        HYP_DEFER({
-                            if (dataStream)
-                            {
-                                dataStream->Close();
-                                delete dataStream;
-                            }
-
-                            if (dataSource)
-                            {
-                                delete dataSource;
-                            }
-                        });
-
-                        Handle<AssetObject> assetObject;
-
-                        if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
-                        {
-                            HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
-
-                            return;
-                        }
-
-                        assetObject->m_manifestPath = entry;
-
-                        assetObjects[index] = std::move(assetObject);
-                    });
-
-                for (const Handle<AssetObject>& assetObject : assetObjects)
+                if (binPath.Exists() && !binPath.IsDirectory())
                 {
-                    if (!assetObject)
+                    dataSource = new FileBufferedReaderSource { binPath };
+                    dataStream = new BufferedReader { dataSource };
+                }
+
+                HYP_DEFER({
+                    if (dataStream)
                     {
-                        continue;
+                        dataStream->Close();
+                        delete dataStream;
                     }
 
-                    // ensure we call PostLoad on the original thread we called this from (or the sim thread if UseSingleThread is true)
-                    assetObject->InstanceClass()->PostLoad(assetObject.Get());
-
-                    if (Result addAssetResult = outPackage->AddAssetObject(assetObject).Await(); addAssetResult.HasError())
+                    if (dataSource)
                     {
-                        HYP_LOG(Assets, Error, "Failed to add asset to package '{}': {}", outPackage->GetName(), addAssetResult.GetError().GetMessage());
-
-                        continue;
+                        delete dataSource;
                     }
-                }
-            }
+                });
 
-            // Load subpackages after assets (if requested)
-            // Each subpackage will be loaded with loadSubpackages=true to recursively load their children
-            if (loadSubpackages)
-            {
-                for (const FilePath& subdirectory : dir.GetSubdirectories())
+                Handle<AssetObject> assetObject;
+
+                if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
                 {
-                    for (const FilePath& entry : subdirectory.GetAllFilesInDirectory())
+                    HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
+
+                    return;
+                }
+
+                assetObject->m_manifestPath = entry;
+
+                assetObjects[index] = std::move(assetObject);
+            });
+
+        for (const Handle<AssetObject>& assetObject : assetObjects)
+        {
+            if (!assetObject)
+            {
+                continue;
+            }
+
+            // ensure we call PostLoad on the original thread we called this from (or the sim thread if UseSingleThread is true)
+            assetObject->InstanceClass()->PostLoad(assetObject.Get());
+
+            if (Result addAssetResult = outPackage->AddAssetObject(assetObject); addAssetResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to add asset to package '{}': {}", outPackage->GetName(), addAssetResult.GetError().GetMessage());
+
+                continue;
+            }
+        }
+    }
+
+    // Load subpackages after assets (if requested)
+    // Each subpackage will be loaded with loadSubpackages=true to recursively load their children
+    if (loadSubpackages)
+    {
+        for (const FilePath& subdirectory : dir.GetSubdirectories())
+        {
+            for (const FilePath& entry : subdirectory.GetAllFilesInDirectory())
+            {
+                if (entry.Basename() == "PackageManifest.json")
+                {
+                    // Load WITH sub-subpackages recursively
+                    TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(entry, /* loadSubpackages */ true, /* forceLoad */ false);
+
+                    if (subpackageResult.HasError())
                     {
-                        if (entry.Basename() == "PackageManifest.json")
-                        {
-                            // Load WITH sub-subpackages recursively
-                            TResult<Handle<AssetPackage>> subpackageResult = LoadPackageFromManifest(entry, /* loadSubpackages */ true, /* forceLoad */ false).Await();
-
-                            if (subpackageResult.HasError())
-                            {
-                                HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", entry, subpackageResult.GetError().GetMessage());
-                                break;
-                            }
-
-                            Handle<AssetPackage> subpackage = std::move(*subpackageResult);
-
-                            if (subpackage.IsValid())
-                            {
-                                subpackage->m_parentPackage = outPackage;
-                                subpackage->m_flags |= outPackage->m_flags;
-
-                                outPackage->m_subpackages.Insert(subpackage);
-                                outPackage->OnSubpackageAdded(subpackage);
-                            }
-
-                            break;
-                        }
+                        HYP_LOG(Assets, Error, "Failed to load subpackage from manifest '{}': {}", entry, subpackageResult.GetError().GetMessage());
+                        break;
                     }
+
+                    Handle<AssetPackage> subpackage = std::move(*subpackageResult);
+
+                    if (subpackage.IsValid())
+                    {
+                        subpackage->m_parentPackage = outPackage;
+                        subpackage->m_flags |= outPackage->m_flags;
+
+                        outPackage->m_subpackages.Insert(subpackage);
+                        outPackage->OnSubpackageAdded(subpackage);
+                    }
+
+                    break;
                 }
             }
+        }
+    }
 
-            InitObject(outPackage);
+    InitObject(outPackage);
 
+    if (parentPackage != nullptr)
+    {
+        TUniqueLock guard(parentPackage->m_mutex);
+        parentPackage->m_subpackages.Insert(outPackage);
+        parentPackage->OnSubpackageAdded(outPackage);
+    }
+    else // top-level package
+    {
+        TUniqueLock guard(m_mutex);
 
-            if (parentPackage != nullptr)
-            {
-                TUniqueLock guard(parentPackage->m_mutex);
-                parentPackage->m_subpackages.Insert(outPackage);
-                parentPackage->OnSubpackageAdded(outPackage);
-            }
-            else // top-level package
-            {
-                TUniqueLock guard(m_mutex);
+        m_packages.Insert(outPackage);
+        OnPackageAdded(outPackage);
+    }
 
-                m_packages.Insert(outPackage);
-                OnPackageAdded(outPackage);
-            }
-
-            return outPackage;
-        },
-        &future);
-
-    return future;
+    return outPackage;
 }
 
 Handle<AssetPackage> AssetRegistry::GetPackageFromPath_Internal(const UTF8StringView& path, AssetRegistryPathType pathType, bool createIfNotExist, String& outAssetName)
@@ -2727,47 +2640,36 @@ Name AssetRegistry::GetUniqueAssetName(const UTF8StringView& packagePath, Name b
     return package->GetUniqueAssetName(baseName);
 }
 
-Task<Result> AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
+Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
 {
     HYP_SCOPE;
 
     if (!assetObject.IsValid())
     {
-        Task<Result> future;
-        future.Fulfill(HYP_MAKE_ERROR(Error, "AssetObject is invalid"));
-
-        return future;
+        return HYP_MAKE_ERROR(Error, "AssetObject is invalid");
     }
 
-    Task<Result> future;
+    Array<String> pathStringSplit = String(path).Split('/', '\\');
 
-    PostTask([this, pathString = String(path), assetObject = MakeStrongRef(assetObject)]() mutable -> Result
+    String pathString = String::Join(pathStringSplit, '/');
+
+    AssetRegistryPathType pathType = AssetRegistryPathType::PACKAGE;
+
+    Handle<AssetPackage> assetPackage;
+
+    {
+        String assetName;
+        assetPackage = GetPackageFromPath_Internal(pathString, pathType, /* createIfNotExist */ true, assetName);
+
+        if (pathType == AssetRegistryPathType::ASSET)
         {
-            Array<String> pathStringSplit = pathString.Split('/', '\\');
+            const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
 
-            pathString = String::Join(pathStringSplit, '/');
+            assetObject->m_name = assetPackage->GetUniqueAssetName(baseName);
+        }
+    }
 
-            AssetRegistryPathType pathType = AssetRegistryPathType::PACKAGE;
-
-            Handle<AssetPackage> assetPackage;
-
-            {
-                String assetName;
-                assetPackage = GetPackageFromPath_Internal(pathString, pathType, /* createIfNotExist */ true, assetName);
-
-                if (pathType == AssetRegistryPathType::ASSET)
-                {
-                    const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
-
-                    assetObject->m_name = assetPackage->GetUniqueAssetName(baseName);
-                }
-            }
-
-            return assetPackage->AddAssetObject(assetObject).Await();
-        },
-        &future);
-
-    return future;
+    return assetPackage->AddAssetObject(assetObject);
 }
 
 void AssetRegistry::RegisterAssetsRecursively(
@@ -2893,7 +2795,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                     newPackage->BuildPackagePath());
 
                 // try to move it
-                if (Result result = newPackage->AddAssetObject(assetObject).Await(); result.HasError())
+                if (Result result = newPackage->AddAssetObject(assetObject); result.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to relocate {} {} from temp/transient package '{}' to '{}': {}",
                         assetObject->InstanceClass()->GetName(),
@@ -3096,7 +2998,7 @@ void AssetRegistry::RegisterAssetsRecursively(
         {
             if (forceRelocation || !assetObject->IsRegistered())
             {
-                if (Result result = parentPackage->AddAssetObject(assetObject).Await(); result.HasError())
+                if (Result result = parentPackage->AddAssetObject(assetObject); result.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
                 }

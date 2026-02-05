@@ -76,8 +76,9 @@ protected:
 
     virtual bool IsDataLoaded() const = 0;
 
-    virtual const TypeInfo& GetAssetType() const = 0;
-    virtual AnyRef GetAssetRef() = 0;
+    virtual const TypeInfo& GetDataTypeInfo() const = 0;
+
+    virtual void* GetData() = 0;
 
     WeakHandle<AssetObject> m_assetObject;
 };
@@ -121,6 +122,16 @@ public:
         return m_data != nullptr;
     }
 
+    virtual const TypeInfo& GetDataTypeInfo() const override
+    {
+        return TypeOf<NormalizedType<T>>();
+    }
+
+    virtual void* GetData() override
+    {
+        return m_data;
+    }
+
 protected:
     virtual void Unload_Internal() override
     {
@@ -141,22 +152,6 @@ protected:
         {
             m_data = PoolNew<T>(*g_assetPool, ref.Get<T>());
         }
-    }
-
-    virtual const TypeInfo& GetAssetType() const override
-    {
-        AnyRef assetRef = const_cast<AssetDataResource*>(this)->GetAssetRef();
-        if (!assetRef)
-        {
-            return TypeInfo_Void();
-        }
-
-        return *assetRef.GetTypeInfo();
-    }
-
-    virtual AnyRef GetAssetRef() override
-    {
-        return AnyRef(m_data);
     }
 
     T* m_data;
@@ -340,7 +335,7 @@ public:
     void SetIsTransientByProxy(bool isTransientByProxy);
 
     HYP_METHOD()
-    bool IsLoaded() const;
+    bool IsDataLoaded() const;
 
     HYP_METHOD()
     bool IsSaved() const;
@@ -366,15 +361,30 @@ protected:
     template <class T>
     T* GetResourceData() const
     {
+        static_assert(std::is_same_v<T, NormalizedType<T>>);
+
         if (!m_resource || m_resource->IsNull())
         {
             return nullptr;
         }
 
-        AssetDataResourceBase* resourceCasted = static_cast<AssetDataResourceBase*>(m_resource);
-        AssertDebug(TypeInfo_GetId(resourceCasted->GetAssetType()) == TypeInfo_GetId(TypeOf<T>()), "Type mismatch!");
+        AssetDataResourceBase* resourceCastedBase = static_cast<AssetDataResourceBase*>(m_resource);
 
-        return resourceCasted->GetAssetRef().TryGet<T>();
+        const bool isExpectedType = TypeInfo_GetId(resourceCastedBase->GetDataTypeInfo()) == TypeIdOf<T>();
+
+        AssertDebug(isExpectedType, "Type mismatch! Expected: {} but got: {}",
+            TypeInfo_GetName(resourceCastedBase->GetDataTypeInfo()),
+            TypeInfo_GetName(TypeOf<T>()));
+
+        if (!isExpectedType)
+        {
+            return nullptr;
+        }
+        
+        AssetDataResource<T>* resourceCasted = static_cast<AssetDataResource<T>*>(m_resource);
+        AssertDebug(resourceCasted->GetData() != nullptr);
+
+        return static_cast<T*>(resourceCasted->GetData());
     }
 
     HYP_FIELD()
