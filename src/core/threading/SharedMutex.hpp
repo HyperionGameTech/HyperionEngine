@@ -121,6 +121,11 @@ public:
         AtomicSub(&m_value, 2);
     }
 
+    volatile int64* GetInternalValuePtr() const
+    {
+        return &m_value;
+    }
+
 private:
     mutable volatile int64 m_value;
 };

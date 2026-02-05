@@ -49,7 +49,7 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
             continue;
         }
 
-        ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
+        ResourceGuard resGuard = mesh->GetAsset()->GetResource()->GetReadScope();
 
         if (!resGuard)
         {

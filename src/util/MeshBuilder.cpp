@@ -268,7 +268,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
 
     MeshData newMeshData = *meshData;
 
-    resGuard.Reset();
+    resGuard.Release();
 
     for (Vertex& vertex : newMeshData.vertexData)
     {
@@ -345,7 +345,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
 
     for (ResourceGuard& resGuard : resourceHandles)
     {
-        resGuard.Reset();
+        resGuard.Release();
     }
 
     MeshDesc mergedMeshDesc;

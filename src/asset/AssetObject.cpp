@@ -224,7 +224,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 #pragma region AssetObject
 
 AssetObject::AssetObject()
-    : m_resource(&GetNullResource()),
+    : m_resource {},
       m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr),
       m_isDirty(false)
@@ -233,7 +233,7 @@ AssetObject::AssetObject()
 
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
-      m_resource(&GetNullResource()),
+      m_resource {},
       m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr),
       m_isDirty(false)
@@ -243,7 +243,7 @@ AssetObject::AssetObject(Name name)
 AssetObject::~AssetObject()
 {
     // need to release before freeing resource or we'll deadlock
-    m_persistentResource.Reset();
+    m_persistentResource.Release();
 
     if (m_resource != nullptr && !m_resource->IsNull())
     {
@@ -265,7 +265,8 @@ void AssetObject::Init()
 
         if ((m_flags[AssetObjectFlags::PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
         {
-            m_persistentResource = ResourceGuard(*m_resource);
+            m_persistentResource = m_resource->GetReadScope();
+            Assert(m_persistentResource);
         }
     }
 
@@ -300,7 +301,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
     {
         if (!m_persistentResource && m_resource && !m_resource->IsNull())
         {
-            m_persistentResource = ResourceGuard(*m_resource);
+            m_persistentResource = m_resource->GetReadScope();
             Assert(m_persistentResource);
         }
 
@@ -314,7 +315,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
 
     if (!persistentlyLoaded && !m_flags[AssetObjectFlags::PERSISTENT])
     {
-        m_persistentResource.Reset();
+        m_persistentResource.Release();
     }
 }
 
@@ -465,7 +466,8 @@ Result AssetObject::Save(const FilePath& manifestPath)
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
 
         bool doLoadResourceBeforeSaving = !resource->IsDataLoaded();
-        HYP_DEFER({ if (doLoadResourceBeforeSaving) resource->DecRef(); });
+
+        ResourceGuard resGuard;
 
         if (doLoadResourceBeforeSaving)
         {
@@ -474,7 +476,7 @@ Result AssetObject::Save(const FilePath& manifestPath)
             Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
                 m_name);
 
-            resource->IncRef();
+            resGuard = resource->GetReadScope();
 
             if (!resource->IsDataLoaded())
             {

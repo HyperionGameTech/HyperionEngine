@@ -86,8 +86,8 @@ public:
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid ScriptComponent Object"));
         }
 
-        scriptComponent->scriptObjectResource->IncRef();
-        HYP_DEFER({ scriptComponent->scriptObjectResource->DecRef(); });
+        scriptComponent->scriptObjectResource->AddReader();
+        HYP_DEFER({ scriptComponent->scriptObjectResource->ReleaseReader(); });
 
 #ifdef HYP_DOTNET
         if (scriptComponent->scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
