@@ -237,6 +237,18 @@ static bool ShouldSavePackageOnChanged(const AssetPackage& package)
     return IsPackageInList(package, PredefinedPackageNames, /* exactMatch */ false);
 }
 
+/*! \brief Check if we should rename assets that have names that are already used within the package.
+ *  if returns true, asset `Foo` will be renamed to `Foo1` if there is already an asset named `Foo` in the package. */
+static bool ShouldUniquifyAssetNames(const AssetPackage& package)
+{
+    // predefined packages
+    const ANSIString packagePath = package.BuildPackagePath();
+    const ANSIStringView substr = packagePath.Substr(0, packagePath.FindFirstIndex('/'));
+    StringHash substrHash = substr;
+
+    return substrHash != "Engine"_sh;
+}
+
 static TResult<Handle<AssetPackage>> RelocateAsset(
     AssetRegistry& registry,
     const Handle<AssetObject>& assetObject,
@@ -798,8 +810,10 @@ Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
 
         Name desiredName = asset->GetName();
 
+        const bool renameOnNameClash = ShouldUniquifyAssetNames(*this);
+
         // check if name is already taken in destination package
-        if (currentAssetNames.Contains(desiredName))
+        if (renameOnNameClash && currentAssetNames.Contains(desiredName))
         {
             Name uniqueName = GetUniqueAssetName(desiredName);
 
@@ -813,14 +827,37 @@ Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
 
         if (Result removeResult = package->RemoveAssetObject(asset); removeResult.HasError())
         {
-            HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), package->GetName(), removeResult.GetError().GetMessage());
+            HYP_LOG(Assets, Error, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), package->GetName(), removeResult.GetError().GetMessage());
 
             continue;
         }
 
+        if (!renameOnNameClash)
+        {
+            if (currentAssetNames.Contains(desiredName))
+            {
+                Handle<AssetObject> existingAssetObject = GetAssetObject(desiredName);
+
+                // only try to remove if it actually exists and is valid, otherwise we don't care
+                if (existingAssetObject.IsValid())
+                {
+                    // remove old asset and overwrite it
+                    Result removeResult = RemoveAssetObject(existingAssetObject);
+
+                    if (removeResult.HasError())
+                    {
+                        HYP_LOG(Assets, Error, "Failed to remove clashing asset with name '{}' from package: '{}' during merge: {}",
+                            asset->GetName(), GetName(), removeResult.GetError().GetMessage());
+
+                        continue; // skip adding
+                    }
+                }
+            }
+        }
+
         if (Result addResult = AddAssetObject(asset); addResult.HasError())
         {
-            HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), GetName(), addResult.GetError().GetMessage());
+            HYP_LOG(Assets, Error, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), GetName(), addResult.GetError().GetMessage());
         }
     }
 
@@ -1871,8 +1908,10 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
 
                 Name desiredName = asset->GetName();
 
+                const bool renameOnNameClash = ShouldUniquifyAssetNames(*dest);
+
                 // check if name is already taken in destination package
-                if (destAssetNames.Contains(desiredName))
+                if (renameOnNameClash && destAssetNames.Contains(desiredName))
                 {
                     Name uniqueName = dest->GetUniqueAssetName(desiredName);
 
@@ -1889,6 +1928,29 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
                     HYP_LOG(Assets, Warning, "Failed to remove asset '{}' from source package '{}' during merge: {}", asset->GetName(), src->GetName(), removeResult.GetError().GetMessage());
 
                     continue;
+                }
+
+                if (!renameOnNameClash)
+                {
+                    if (destAssetNames.Contains(desiredName))
+                    {
+                        Handle<AssetObject> existingAssetObject = dest->GetAssetObject(desiredName);
+
+                        // only try to remove if it actually exists and is valid, otherwise we don't care
+                        if (existingAssetObject.IsValid())
+                        {
+                            // remove old asset and overwrite it
+                            Result removeResult = dest->RemoveAssetObject(existingAssetObject);
+
+                            if (removeResult.HasError())
+                            {
+                                HYP_LOG(Assets, Error, "Failed to remove clashing asset with name '{}' from package: '{}' during merge: {}",
+                                    asset->GetName(), dest->GetName(), removeResult.GetError().GetMessage());
+
+                                continue; // skip adding
+                            }
+                        }
+                    }
                 }
 
                 // Add to destination
@@ -2665,7 +2727,34 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
         {
             const Name baseName = assetName.Any() ? CreateNameFromDynamicString(assetName) : NAME("Unnamed");
 
-            assetObject->m_name = assetPackage->GetUniqueAssetName(baseName);
+            assetObject->m_name = baseName;
+        }
+    }
+
+    const Name desiredName = assetObject->GetName();
+    const bool renameOnNameClash = ShouldUniquifyAssetNames(*assetPackage);
+
+    if (assetPackage->HasAssetWithName(desiredName))
+    {
+        if (renameOnNameClash)
+        {
+            const Name uniqueName = assetPackage->GetUniqueAssetName(desiredName);
+
+            if (Result renameResult = assetObject->Rename(uniqueName); renameResult.HasError())
+            {
+                return renameResult;
+            }
+        }
+        else
+        {
+            if (Handle<AssetObject> existingAssetObject = assetPackage->GetAssetObject(desiredName); existingAssetObject.IsValid())
+            {
+                // remove old asset and overwrite it
+                if (Result removeResult = assetPackage->RemoveAssetObject(existingAssetObject); removeResult.HasError())
+                {
+                    return removeResult;
+                }
+            }
         }
     }
 

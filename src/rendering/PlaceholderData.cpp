@@ -237,7 +237,7 @@ void PlaceholderData::Create()
         }
     };
 
-    auto loadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
         if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
         {
@@ -263,7 +263,7 @@ void PlaceholderData::Create()
     PlaceholderBufferData placeholderBufferTex3d {};
     PlaceholderBufferData placeholderBufferCubemap {};
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultTexture2d,
         "Engine/Media/Textures",
         "Placeholder_Texture_2D_1x1",
@@ -279,7 +279,7 @@ void PlaceholderData::Create()
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultTexture3d,
         "Engine/Media/Textures",
         "Placeholder_Texture_3D_1x1x1",
@@ -295,7 +295,7 @@ void PlaceholderData::Create()
         placeholderBufferTex3d,
         &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultCubemap,
         "Engine/Media/Textures",
         "Placeholder_Texture_Cube_1x1",
@@ -311,7 +311,7 @@ void PlaceholderData::Create()
         placeholderBufferCubemap,
         &FillPlaceholderBuffer_Cubemap<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultTexture2dArray,
         "Engine/Media/Textures",
         "Placeholder_Texture_2D_1x1_Array",
@@ -327,7 +327,7 @@ void PlaceholderData::Create()
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultCubemapArray,
         "Engine/Media/Textures",
         "Placeholder_Texture_Cube_1x1_Array",

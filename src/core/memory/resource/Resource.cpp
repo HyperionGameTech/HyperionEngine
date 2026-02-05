@@ -152,6 +152,8 @@ ResourceBase::ResourceBase()
 
 ResourceBase::~ResourceBase()
 {
+    HYP_NAMED_SCOPE("Wait for readers to finish with resource");
+
     AddWriter(/* doInitialize */ false);
     
     // waits for all reads to complete, but don't unlock
@@ -165,14 +167,6 @@ ResourceGuard ResourceBase::GetWriteScope()
 ResourceGuard ResourceBase::GetReadScope()
 {
     return ResourceGuard { *this, ResourceGuard::Read };
-}
-
-void ResourceBase::WaitForFinalization()
-{
-    AddWriter(/* doInitialize */ false);
-    // waits for all reads to complete
-
-    ReleaseWriter(/* doDeinitialize */ false);
 }
 
 void ResourceBase::AddWriter(bool doInitialize)
@@ -352,11 +346,6 @@ public:
     ResourceGuard GetReadScope()
     {
         return ResourceGuard {};
-    }
-
-    virtual void WaitForFinalization() override
-    {
-        // Do nothing
     }
 };
 
