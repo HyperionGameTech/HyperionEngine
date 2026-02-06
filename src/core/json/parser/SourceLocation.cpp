@@ -2,7 +2,7 @@
 
 #include <core/json/parser/SourceLocation.hpp>
 
-namespace Hyperion::Json {
+namespace Hyperion::JSON {
 
 const SourceLocation SourceLocation::eof(-1, -1, "<eof>");
 
@@ -44,4 +44,4 @@ bool SourceLocation::operator==(const SourceLocation& other) const
     return m_line == other.m_line && m_column == other.m_column && m_filename == other.m_filename && m_line == other.m_line;
 }
 
-} // namespace Hyperion::Json
+} // namespace Hyperion::JSON

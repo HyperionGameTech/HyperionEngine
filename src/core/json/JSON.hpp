@@ -17,7 +17,7 @@ namespace Hyperion {
 
 class BufferedReader;
 
-namespace Json {
+namespace JSON {
 
 class SourceFile;
 
@@ -865,5 +865,5 @@ HYP_API ParseResult Parse(const String& jsonString);
 HYP_API ParseResult Parse(BufferedReader& reader);
 HYP_API ParseResult Parse(const SourceFile& sourceFile);
 
-} // namespace Json
+} // namespace JSON
 } // namespace Hyperion

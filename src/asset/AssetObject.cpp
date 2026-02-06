@@ -10,7 +10,7 @@
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/reflection/HypDataJSONHelpers.hpp>
+#include <core/reflection/SerializeHelpers.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
@@ -525,7 +525,7 @@ Result AssetObject::Save(const FilePath& manifestPath)
 
     // no longer dirty
     AtomicExchange(&m_isDirty, 0);
-    
+
     OnDirtyStateChanged(false);
 
     return {};
@@ -535,11 +535,11 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    Json::JSObject manifestJson;
+    JSON::JSObject manifestJson;
 
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
 
-    stream.WriteString(Json::Value(std::move(manifestJson)).ToString(true).ToUtf8());
+    stream.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
     return {};
 }
@@ -561,7 +561,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
 
-    Json::ParseResult parseResult = Json::Parse(manifestStream);
+    JSON::ParseResult parseResult = JSON::Parse(manifestStream);
 
     manifestStream.Close(); // not needed anymore
 
@@ -575,8 +575,8 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Asset manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
     }
 
-    Json::JSObject jsonObject = std::move(parseResult.value.AsObject());
-    Json::Value classNameValue = jsonObject["$Class"];
+    JSON::JSObject jsonObject = std::move(parseResult.value.AsObject());
+    JSON::Value classNameValue = jsonObject["$Class"];
 
     if (!classNameValue.IsString())
     {
@@ -623,7 +623,7 @@ Result AssetObject::Load(
     // remove class property
     jsonObject.Erase("$Class");
 
-    if (!JSONToObject(jsonObject, cls, targetData))
+    if (!ObjectFromJSON(jsonObject, cls, targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }

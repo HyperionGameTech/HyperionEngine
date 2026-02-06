@@ -6,7 +6,7 @@
 #include <sstream>
 #include <cstdlib>
 
-namespace Hyperion::Json {
+namespace Hyperion::JSON {
 
 using namespace utf;
 
@@ -663,4 +663,4 @@ bool Lexer::SkipWhitespace()
     return hadNewline;
 }
 
-} // namespace Hyperion::Json
+} // namespace Hyperion::JSON

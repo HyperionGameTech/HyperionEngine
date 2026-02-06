@@ -2,7 +2,7 @@
 
 #include <core/json/parser/TokenStream.hpp>
 
-namespace Hyperion::Json {
+namespace Hyperion::JSON {
 
 TokenStream::TokenStream(const TokenStreamInfo& info)
     : m_position(0),
@@ -10,4 +10,4 @@ TokenStream::TokenStream(const TokenStreamInfo& info)
 {
 }
 
-} // namespace Hyperion::Json
+} // namespace Hyperion::JSON

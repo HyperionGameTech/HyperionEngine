@@ -14,7 +14,7 @@
 
 #include <core/threading/Scheduler.hpp>
 
-#include <core/reflection/HypDataJSONHelpers.hpp>
+#include <core/reflection/SerializeHelpers.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Property.hpp>
 
@@ -1294,13 +1294,13 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    Json::JSObject manifestJson;
+    JSON::JSObject manifestJson;
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
 
     // need to set virtual path property for loading
     manifestJson["Path"] = *BuildPackagePath();
 
-    stream.WriteString(Json::Value(std::move(manifestJson)).ToString(true).ToUtf8());
+    stream.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
     return {};
 }
@@ -2531,7 +2531,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
         return HYP_MAKE_ERROR(Error, "Failed to open manifest file '{}'", manifestPath);
     }
 
-    Json::ParseResult parseResult = Json::Parse(manifestStream);
+    JSON::ParseResult parseResult = JSON::Parse(manifestStream);
 
     manifestStream.Close();
 
@@ -2623,7 +2623,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
     {
         BoxedValue packageData = BoxedValue(outPackage);
 
-        if (!JSONToObject(parseResult.value.AsObject(), outPackage->InstanceClass(), packageData))
+        if (!ObjectFromJSON(parseResult.value.AsObject(), outPackage->InstanceClass(), packageData))
         {
             HYP_LOG(Assets, Error, "Failed to deserialize package manifest JSON for package at '{}'", manifestPath);
 
