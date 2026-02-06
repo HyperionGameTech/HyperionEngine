@@ -238,9 +238,10 @@ public:
 
     /*! \brief For transient packages, removes any asset objects and subpackages that are
      *   no longer referenced outside of the package itself.
+     *   \param outRemovedPackages an array that will hold handles of the packages that were removed
      *   \param outShouldDestroy If provided, will be set to true if the package is now empty and should be destroyed.
      */
-    void Prune(bool* outShouldDestroy = nullptr);
+    void Prune(Array<Handle<AssetPackage>>& outRemovedPackages, bool* outShouldDestroy = nullptr);
 
     HYP_METHOD(Property = "IsDirty", Transient)
     HYP_FORCE_INLINE bool IsDirty() const
