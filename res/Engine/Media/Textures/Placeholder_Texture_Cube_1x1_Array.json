@@ -11,8 +11,8 @@
     "ImageUsage": 3,
     "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   },
-  "FriendlyName": "PlaceholderTextureCube1x1Array",
   "Name": "Placeholder_Texture_Cube_1x1_Array",
-  "Flags": 0,
+  "FriendlyName": "PlaceholderTextureCube1x1Array",
+  "AssetFlags": 0,
   "OriginalFilepath": ""
 }

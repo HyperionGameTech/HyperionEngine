@@ -11,8 +11,8 @@
     "ImageUsage": 3,
     "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   },
-  "FriendlyName": "PlaceholderTexture2D1x1",
   "Name": "Placeholder_Texture_2D_1x1",
-  "Flags": 0,
+  "FriendlyName": "PlaceholderTexture2D1x1",
+  "AssetFlags": 0,
   "OriginalFilepath": ""
 }

@@ -11,8 +11,8 @@
     "NumVertices": 150,
     "NumIndices": 576
   },
-  "FriendlyName": "SphereDebugDrawShapeMeshAsset",
   "Name": "SphereDebugDrawShape_MeshAsset",
-  "Flags": 0,
+  "FriendlyName": "SphereDebugDrawShapeMeshAsset",
+  "AssetFlags": 0,
   "OriginalFilepath": ""
 }

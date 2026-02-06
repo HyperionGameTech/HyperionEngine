@@ -4,7 +4,6 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
-#include <core/containers/HashSet.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -20,14 +19,16 @@
 
 #include <core/Name.hpp>
 
-#include <scene/EntityTag.hpp>
-
 #include <core/math/Transform.hpp>
 #include <core/math/Ray.hpp>
 #include <core/math/BoundingBox.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
+
+#include <scene/EntityTag.hpp>
+
+#include <asset/AssetObject.hpp>
 
 namespace Hyperion {
 
@@ -38,7 +39,7 @@ class Entity;
 class EditorDelegates;
 
 HYP_ENUM()
-enum NodeFlags : uint32
+enum class NodeFlags : uint32
 {
     NONE = 0x0,
 
@@ -305,7 +306,7 @@ public:
 };
 
 HYP_CLASS(PostLoad = "Node_OnPostLoad")
-class HYP_API Node : public ObjectBase
+class HYP_API Node : public AssetObject
 {
     friend class Scene;
     friend class Entity;
@@ -485,15 +486,6 @@ public:
     Node& operator=(Node&& other) noexcept = delete;
 
     virtual ~Node() override;
-
-    HYP_METHOD(Property = "Name", Serialize, EditOrder = 1)
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    HYP_METHOD(Property = "Name")
-    virtual void SetName(Name name);
 
     HYP_METHOD()
     bool HasName() const;

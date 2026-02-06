@@ -11,8 +11,8 @@
     "ImageUsage": 1,
     "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   },
-  "FriendlyName": "FontAtlas15",
   "Name": "FontAtlas_1_5",
-  "Flags": 0,
+  "FriendlyName": "FontAtlas15",
+  "AssetFlags": 0,
   "OriginalFilepath": ""
 }

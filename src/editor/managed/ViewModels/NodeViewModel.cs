@@ -53,6 +53,8 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isExpanded, value);
         }
 
+        public bool IsDirty => _node.Dirty;
+
         private DelegateHandler? _onChildAdded;
         private DelegateHandler? _onChildRemoved;
 

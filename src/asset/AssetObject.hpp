@@ -214,12 +214,13 @@ public:
 
     virtual ~AssetObject();
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "Name", Serialize, EditOrder = 1)
     Name GetName() const
     {
         return m_name;
     }
 
+    HYP_METHOD(Property = "Name")
     HYP_FORCE_INLINE void SetName(Name name)
     {
         (void)Rename(name);
@@ -231,7 +232,7 @@ public:
     HYP_METHOD()
     bool IsDirty() const
     {
-        return m_isDirty;
+        return AtomicAdd(&m_isDirty, 0) != 0;
     }
 
     HYP_METHOD()
@@ -286,13 +287,13 @@ public:
         return m_package.IsValid();
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "AssetFlags", Serialize)
     EnumFlags<AssetObjectFlags> GetAssetFlags() const
     {
         return m_flags;
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "AssetFlags")
     void SetAssetFlags(EnumFlags<AssetObjectFlags> flags);
 
     HYP_METHOD()
@@ -344,6 +345,11 @@ public:
 protected:
     void Init() override;
 
+    virtual void OnDirtyStateChanged(bool isDirty)
+    {
+        // do nothing by default
+    }
+
     Result SaveManifest(ByteWriter& stream) const;
 
     template <class T>
@@ -375,13 +381,13 @@ protected:
         return static_cast<T*>(resourceCasted->GetData());
     }
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "Name")
     Name m_name;
 
     HYP_FIELD(Property = "FriendlyName")
     Name m_friendlyName;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "AssetFlags")
     EnumFlags<AssetObjectFlags> m_flags;
 
     HYP_FIELD()
@@ -406,7 +412,7 @@ protected:
     ResourceGuard m_persistentResource;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    bool m_isDirty;
+    mutable volatile int32 m_isDirty;
 };
 
 } // namespace Hyperion

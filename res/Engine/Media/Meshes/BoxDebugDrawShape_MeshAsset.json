@@ -11,8 +11,8 @@
     "NumVertices": 24,
     "NumIndices": 36
   },
-  "FriendlyName": "BoxDebugDrawShapeMeshAsset",
   "Name": "BoxDebugDrawShape_MeshAsset",
-  "Flags": 0,
+  "FriendlyName": "BoxDebugDrawShapeMeshAsset",
+  "AssetFlags": 0,
   "OriginalFilepath": ""
 }

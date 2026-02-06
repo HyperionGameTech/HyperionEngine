@@ -11,8 +11,8 @@
     "NumVertices": 4,
     "NumIndices": 6
   },
-  "FriendlyName": "PlaneDebugDrawShapeMeshAsset",
   "Name": "PlaneDebugDrawShape_MeshAsset",
-  "Flags": 0,
+  "FriendlyName": "PlaneDebugDrawShapeMeshAsset",
+  "AssetFlags": 0,
   "OriginalFilepath": ""
 }

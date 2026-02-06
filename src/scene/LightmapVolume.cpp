@@ -61,11 +61,6 @@ LightmapVolume::~LightmapVolume()
     SafeDelete(std::move(m_irradianceAtlasTextures));
 }
 
-void LightmapVolume::SetName(Name name)
-{
-    VolumeBase::SetName(name);
-}
-
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
 {
     HYP_SCOPE;

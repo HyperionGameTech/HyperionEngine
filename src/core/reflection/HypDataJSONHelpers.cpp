@@ -28,6 +28,9 @@
 #include <asset/AssetReference.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
+
+// temp
+#include <scene/Scene.hpp>
 #endif
 
 namespace Hyperion {
@@ -48,6 +51,7 @@ static thread_local HashSet<Pair<TypeId, const void*>> s_serializedObjects;
 // otherwise we won't know to deserialize it as a Dog.
 static constexpr bool ForceWriteClassNamesWhenTypesDiffer = true;
 
+HYP_DISABLE_OPTIMIZATION;
 bool HypDataToJSON(
     const BoxedValue& value,
     Json::Value& outJson,
@@ -95,8 +99,10 @@ bool HypDataToJSON(
         isAssetObject = true;
     }
 
-    if (isAssetObject && assetReference.IsValid() && opts.saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
+    if (isAssetObject && opts.saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
     {
+        AssertDebug(assetReference.IsValid(), "Serializing invalid asset reference");
+
         return HypDataToJSON(BoxedValue(assetReference), outJson, opts);
     }
 
