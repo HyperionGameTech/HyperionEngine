@@ -23,7 +23,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "Node")]
-    public class Node : ObjectBase
+    public class Node : AssetObject
     {
         public Node()
         {
@@ -50,6 +50,14 @@ namespace Hyperion
             set
             {
                 this.SetNodeFlags(value);
+            }
+        }
+
+        public bool Dirty
+        {
+            get
+            {
+                return this.IsDirty();
             }
         }
 

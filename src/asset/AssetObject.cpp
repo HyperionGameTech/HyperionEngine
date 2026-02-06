@@ -227,7 +227,7 @@ AssetObject::AssetObject()
     : m_resource {},
       m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr),
-      m_isDirty(false)
+      m_isDirty(0)
 {
 }
 
@@ -236,7 +236,7 @@ AssetObject::AssetObject(Name name)
       m_resource {},
       m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr),
-      m_isDirty(false)
+      m_isDirty(0)
 {
 }
 
@@ -294,16 +294,10 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 
 void AssetObject::MarkDirty()
 {
-    if (m_isDirty)
+    int32 expected = 0;
+    if (AtomicCompareExchange(&m_isDirty, expected, 1))
     {
-        return;
-    }
-
-    m_isDirty = true;
-
-    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
-    {
-        package->MarkDirty();
+        OnDirtyStateChanged(true);
     }
 }
 
@@ -430,6 +424,8 @@ Result AssetObject::Rename(Name name)
         m_friendlyName = CreateFriendlyName(name);
     }
 
+    MarkDirty();
+
     return {};
 }
 
@@ -526,6 +522,11 @@ Result AssetObject::Save(const FilePath& manifestPath)
     // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load
     // something that doesn't exist.
     m_manifestPath = manifestPath;
+
+    // no longer dirty
+    AtomicExchange(&m_isDirty, 0);
+    
+    OnDirtyStateChanged(false);
 
     return {};
 }

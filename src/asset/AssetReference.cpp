@@ -39,7 +39,10 @@ const AssetPath& AssetReference::GetAssetPath() const
         const Handle<AssetObject>& assetObject = m_data.GetUnchecked<Handle<AssetObject>>();
         AssertDebug(assetObject != nullptr);
 
-        return assetObject->GetPath();
+        const AssetPath& assetPath = assetObject->GetPath();
+        AssertDebug(assetPath.IsValid());
+
+        return assetPath;
     }
 
 #ifdef HYP_DEBUG_MODE
@@ -51,7 +54,10 @@ const AssetPath& AssetReference::GetAssetPath() const
     }
 #endif
 
-    return m_data.GetUnchecked<AssetPath>();
+    const AssetPath& assetPath = m_data.GetUnchecked<AssetPath>();
+    AssertDebug(assetPath.IsValid());
+
+    return assetPath;
 }
 
 const Handle<AssetObject>& AssetReference::Resolve() const

@@ -25,6 +25,7 @@
 
 #include <scene/Entity.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/Scene.hpp>
 
 #include <streaming/StreamingCell.hpp>
 

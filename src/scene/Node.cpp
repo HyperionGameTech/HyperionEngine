@@ -122,16 +122,6 @@ void Node::Init()
     SetReady(true);
 }
 
-void Node::SetName(Name name)
-{
-    if (m_name == name)
-    {
-        return;
-    }
-
-    m_name = name;
-}
-
 bool Node::HasName() const
 {
     return m_name.IsValid();
@@ -154,6 +144,8 @@ void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)
     {
         OnMobilityChanged(isStatic);
     }
+
+    MarkDirty();
 }
 
 bool Node::IsOrHasParent(const Node* node) const
@@ -211,22 +203,9 @@ void Node::SetScene(Scene* scene)
             "Previous scene is null when setting new scene for Node {} - should be set to detached world scene by default",
             m_name);
         
-#ifdef HYP_EDITOR
-        // mark scene(s) dirty if applicable.
-        // @TODO: Determine if it came from editor changes or creation v.s runtime / scripted changes
-        // also, shouldn't mark dirty for the entire scene as it forces the whole structure to be serialized again
-        if (previousScene != nullptr && !(previousScene->GetSceneFlags() & (SceneFlags::DETACHED | SceneFlags::EDITOR)))
-        {
-            previousScene->MarkDirty();
-        }
-
-        if (scene != nullptr && !(scene->GetSceneFlags() & (SceneFlags::DETACHED | SceneFlags::EDITOR)))
-        {
-            scene->MarkDirty();
-        }
-#endif
-
         m_scene = scene;
+
+        MarkDirty();
 
         for (const Handle<Node>& child : m_childNodes)
         {
@@ -265,7 +244,7 @@ void Node::OnMobilityChanged(bool isStatic)
                 continue;
             }
 
-            child->SetNodeFlags(child->GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+            child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
         }
     }
     else
@@ -277,9 +256,11 @@ void Node::OnMobilityChanged(bool isStatic)
                 continue;
             }
 
-            child->SetNodeFlags(child->GetNodeFlags() | MOBILITY_STATIC_BY_PROXY);
+            child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MOBILITY_STATIC_BY_PROXY);
         }
     }
+
+    MarkDirty();
 }
 
 void Node::OnAttachedToNode(Node* node)
@@ -290,11 +271,11 @@ void Node::OnAttachedToNode(Node* node)
 
     if (m_parentNode->IsStatic())
     {
-        SetNodeFlags(GetNodeFlags() | MOBILITY_STATIC_BY_PROXY);
+        SetNodeFlags(GetNodeFlags() | NodeFlags::MOBILITY_STATIC_BY_PROXY);
     }
     else
     {
-        SetNodeFlags(GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+        SetNodeFlags(GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
     }
 }
 
@@ -302,19 +283,19 @@ void Node::OnDetachedFromNode(Node* node)
 {
     Assert(node != nullptr);
 
-    SetNodeFlags(GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+    SetNodeFlags(GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
 
     m_parentNode = nullptr;
 }
 
 void Node::OnNodeAttached(Node* node)
 {
-    // Do nothing
+    MarkDirty();
 }
 
 void Node::OnNodeDetached(Node* node)
 {
-    // Do nothing
+    MarkDirty();
 }
 
 void Node::SetChildren(const NodeList& children)
@@ -554,7 +535,7 @@ Handle<Node> Node::Select(ANSIStringView selector) const
 
     char ch;
 
-    char buffer[256];
+    char buffer[256] {};
     uint32 bufferIndex = 0;
 
     const Node* searchNode = this;
@@ -738,6 +719,9 @@ void Node::SetLocalTransform(const Transform& transform)
 
     m_localTransform = transform;
 
+    // @TODO Only if in editor
+    MarkDirty();
+
     UpdateWorldTransform();
 }
 
@@ -779,6 +763,9 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
     }
 
     m_localBounds = aabb;
+    
+    // @TODO Only if in editor
+    MarkDirty();
 }
 
 BoundingBox Node::GetLocalBoundsWithChildren() const
@@ -1177,14 +1164,30 @@ void Node::AddTag(NodeTag&& value)
 {
     HYP_SCOPE;
 
-    m_tags.Add(std::move(value));
+    if (!m_tags.Contains(value.name))
+    {
+        m_tags.Add(std::move(value));
+
+        // @TODO Only if in editor
+        MarkDirty();
+    }
 }
 
 bool Node::RemoveTag(StringHash key)
 {
     HYP_SCOPE;
 
-    return m_tags.Remove(key);
+    bool removed = m_tags.Remove(key);
+
+    if (removed)
+    {
+        // @TODO Only if in editor
+        MarkDirty();
+
+        return true;
+    }
+    
+    return false;
 }
 
 const NodeTag& Node::GetTag(StringHash key) const
