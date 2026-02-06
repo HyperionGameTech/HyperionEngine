@@ -421,6 +421,9 @@ void Light::OnTransformUpdated()
 
     Entity::OnTransformUpdated();
 
+    BoundingBox aabb = GetAABB();
+    Entity::SetLocalBounds(m_type == LT_DIRECTIONAL ? aabb : (aabb + (GetWorldTranslation() * -1.0f)));
+
     m_position = GetWorldTranslation();
 
     if (m_type == LT_DIRECTIONAL)

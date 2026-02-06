@@ -99,6 +99,8 @@ public:
     virtual void LockTransform() override;
     virtual void UnlockTransform() override;
 
+    virtual void SetLocalBounds(const BoundingBox& aabb) override;
+
     const int* GetRenderProxyVersionPtr() const
     {
         return &m_renderProxyVersion;

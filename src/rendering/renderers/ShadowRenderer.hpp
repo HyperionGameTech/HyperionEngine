@@ -21,6 +21,8 @@ class HYP_API ShadowRendererPassData : public PassData
 
 public:
     virtual ~ShadowRendererPassData() override;
+
+    Array<Mat4f, InlineAllocator<2>> prevCameraMatrices;
 };
 
 struct ShadowRendererPassDataExt : PassDataExt
