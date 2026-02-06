@@ -517,8 +517,22 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
 
         for (const Handle<AssetObject>& assetObject : m_assetObjects)
         {
+            AssertDebug(assetObject.IsValid());
+
+            if (!assetObject.IsValid())
+            {
+                continue;
+            }
+
+            if (!assetObject->GetName().IsValid())
+            {
+                assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
+            }
+
             assetObject->m_package = WeakHandleFromThis();
             assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
+            
+            AssertDebug(assetObject->m_assetPath.IsValid());
 
             if (shouldSaveAssets)
             {
@@ -617,7 +631,6 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
     }
 
     assetObject->m_package = WeakHandleFromThis();
-    assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
     bool isLoading = false;
     bool isPackageSavedInFilesystem = false;
@@ -631,10 +644,12 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
         shouldSaveAsset = ShouldSavePackageOnChanged(*this) && !isLoading;
 
         // if no name is provided for the asset, generate one
-        if (!assetObject->GetName().IsValid())
+        if (!assetObject->m_name.IsValid())
         {
             assetObject->m_name = GetUniqueAssetName_Internal(assetObject->InstanceClass()->GetName());
         }
+        
+        assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
         if (!shouldSaveAsset && !isPackageSavedInFilesystem && !isLoading)
         {
@@ -653,7 +668,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             // already exists and is the same object; fine
             return {};
         }
-
+        
         m_assetObjects.Insert({ assetObject });
     }
 
@@ -919,6 +934,7 @@ AssetPath AssetPackage::BuildAssetPath(Name assetName) const
 
     if (!assetName.IsValid())
     {
+        HYP_BREAKPOINT;
         return {};
     }
 
@@ -939,6 +955,8 @@ AssetPath AssetPackage::BuildAssetPath(Name assetName) const
 
     AssetPath assetPath;
     assetPath.SetChain(chain);
+
+    AssertDebug(assetPath.IsValid());
 
     return assetPath;
 }
@@ -969,19 +987,89 @@ void AssetPackage::Rename(Name name)
     name = SanitizeName(name);
     Name friendlyName = CreateFriendlyName(name);
 
-    TSharedLock guard(m_mutex);
+    TSharedLock thisPackageSharedLock(m_mutex);
+
+    const Name oldName = m_name;
+
+    Handle<AssetPackage> strongThis = MakeStrongRef(this);
+
+    Handle<AssetRegistry> registry = m_registry.Lock();
+    AssertDebug(registry.IsValid());
+
+    auto UpdateAssetPaths = [this]()
+    {
+        for (const Handle<AssetObject>& assetObject : m_assetObjects)
+        {
+            AssertDebug(assetObject.IsValid());
+
+            if (!assetObject.IsValid())
+            {
+                continue;
+            }
+
+            AssertDebug(assetObject->m_package.GetUnsafe() == this);
+
+            assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
+        }
+    };
 
     // make sure we have a unique asset name within parent package
     if (Handle<AssetPackage> parentPackage = m_parentPackage.Lock(); parentPackage.IsValid())
     {
-        TSharedLock guard2(parentPackage->m_mutex);
-        name = GetUniqueName(name, parentPackage->m_subpackages);
+        { // remove the package first. need to do this since we hash by name.
+            TUniqueLock parentPackageLock(parentPackage->m_mutex);
+            parentPackage->m_subpackages.Erase(oldName);
+        }
+
+        parentPackage->OnSubpackageRemoved(strongThis);
+        registry->OnPackageRemoved(strongThis);
+
+        { // re-lock
+            thisPackageSharedLock.Reset();
+            m_mutex.LockWriter();
+
+            TUniqueLock parentPackageLock(parentPackage->m_mutex);
+            m_name = GetUniqueName(name, parentPackage->m_subpackages);
+
+            m_friendlyName = friendlyName;
+
+            UpdateAssetPaths();
+
+            m_mutex.UnlockWriter();
+
+            parentPackage->m_subpackages.Add(strongThis);
+        }
+
+        parentPackage->OnSubpackageAdded(strongThis);
+        registry->OnPackageAdded(strongThis);
     }
+    else // top-level package
+    {
+        {
+            TUniqueLock registryLock(registry->m_mutex);
+            registry->m_packages.Erase(oldName);
+        }
 
-    m_name = name;
-    m_friendlyName = friendlyName;
+        registry->OnPackageRemoved(strongThis);
 
-    /// \todo Update AssetObject TRANSIENT_BY_PROXY flags if changed
+        {
+            thisPackageSharedLock.Reset();
+            m_mutex.LockWriter();
+
+            TUniqueLock registryLock(registry->m_mutex);
+            m_name = GetUniqueName(name, registry->m_packages);
+
+            m_friendlyName = friendlyName;
+
+            UpdateAssetPaths();
+
+            m_mutex.UnlockWriter();
+
+            registry->m_packages.Add(strongThis);
+        }
+
+        registry->OnPackageAdded(strongThis);
+    }
 }
 
 bool AssetPackage::HasAssetWithName(Name assetName) const
@@ -1348,7 +1436,7 @@ void AssetPackage::SetRelativeDependencies(const Array<String>& relativePaths)
         MarkDirty();
 }
 
-void AssetPackage::Prune(bool* outShouldDestroy)
+void AssetPackage::Prune(Array<Handle<AssetPackage>>& outRemovedPackages, bool* outShouldDestroy)
 {
     HYP_SCOPE;
 
@@ -1425,7 +1513,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
 
         for (const Handle<AssetPackage>& subpackage : subpackagesToPrune)
         {
-            subpackage->Prune();
+            subpackage->Prune(outRemovedPackages);
         }
 
         {
@@ -1462,7 +1550,7 @@ void AssetPackage::Prune(bool* outShouldDestroy)
     {
         MarkDirty();
 
-        for (const Handle<AssetPackage>& subpackage : subpackagesToDelete)
+        for (Handle<AssetPackage>& subpackage : subpackagesToDelete)
         {
             OnSubpackageRemoved(subpackage);
 
@@ -1474,6 +1562,8 @@ void AssetPackage::Prune(bool* outShouldDestroy)
 
                 parentPackage = parentPackage->GetParentPackage().Lock();
             }
+
+            outRemovedPackages.PushBack(std::move(subpackage));
         }
     }
 
@@ -1611,18 +1701,32 @@ void AssetRegistry::PruneTransientPackages()
                         return;
                     }
 
+                    Array<Handle<AssetPackage>> removedSubpackages;
+
                     bool shouldDestroy = false;
-                    package->Prune(&shouldDestroy);
+                    package->Prune(removedSubpackages, &shouldDestroy);
+                    
+                    Handle<AssetRegistry> registry = weakThis.Lock();
+                    AssertDebug(registry.IsValid());
+
+                    if (!registry.IsValid())
+                    {
+                        return;
+                    }
+
+                    // we broadcast OnPackageRemoved() even when subpackages are removed
+                    if (removedSubpackages.Any())
+                    {
+                        for (Handle<AssetPackage>& subpackage : removedSubpackages)
+                        {
+                            registry->OnPackageRemoved(subpackage);
+                        }
+                    }
 
                     if (ShouldRemoveEmptyRootPackages && shouldDestroy)
                     {
-                        Handle<AssetRegistry> registry = weakThis.Lock();
-
-                        if (registry)
-                        {
-                            // Remove the now empty package from the registry
-                            registry->RemovePackage(package);
-                        }
+                        // Remove the now empty package from the registry
+                        registry->RemovePackage(package);
                     }
                 });
         }
@@ -2114,12 +2218,13 @@ void AssetRegistry::RemovePackage(AssetPackage* package)
 
             if (parentPackage.IsValid())
             {
-                lock.Reset(parentPackage->m_mutex);
-
                 auto it = parentPackage->m_subpackages.Find(package->GetName());
                 Assert(it != parentPackage->m_subpackages.End());
 
                 parentPackage->m_subpackages.Erase(it);
+                
+                lock.Reset(parentPackage->m_mutex);
+
                 parentPackage->OnSubpackageRemoved(strongPackage);
 
                 removed = true;

@@ -35,10 +35,6 @@
 
 namespace Hyperion {
 
-struct SaveAssetsAsReferencesContext
-{
-};
-
 struct LoadAssetsFromReferencesContext
 {
 };
@@ -99,7 +95,7 @@ bool HypDataToJSON(
         isAssetObject = true;
     }
 
-    if (isAssetObject && opts.saveAssetObjectsAsReferences && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
+    if (isAssetObject && opts.saveAssetObjectsAsReferences)
     {
         AssertDebug(assetReference.IsValid(), "Serializing invalid asset reference");
 
@@ -461,10 +457,6 @@ bool HypDataToJSON(
         });
 
         Json::JSObject jsonObject;
-
-#if defined(HYPERION_ENGINE) && HYPERION_ENGINE
-        GlobalContextScope contextScope { SaveAssetsAsReferencesContext() };
-#endif
 
         if (!ObjectToJSON(cls, value, jsonObject, opts))
         {
