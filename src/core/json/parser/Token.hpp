@@ -5,7 +5,7 @@
 #include <core/json/parser/SourceLocation.hpp>
 #include <core/containers/String.hpp>
 
-namespace Hyperion::Json {
+namespace Hyperion::JSON {
 
 enum TokenClass
 {
@@ -99,4 +99,4 @@ private:
     SourceLocation m_location;
 };
 
-} // namespace Hyperion::Json
+} // namespace Hyperion::JSON

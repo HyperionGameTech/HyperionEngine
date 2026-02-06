@@ -53,9 +53,9 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
     const bool onlyOrphanNodes = args["orphans"].ToBool(false);
 
-    Json::JSObject json;
+    JSON::JSObject json;
 
-    Json::JSArray entityManagersJson;
+    JSON::JSArray entityManagersJson;
 
     World* currentWorld = g_engineDriver->GetCurrentWorld();
     if (!currentWorld)
@@ -70,12 +70,12 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
         const Handle<EntityManager>& entityManager = scene->GetEntityManager();
         AssertDebug(entityManager != nullptr);
 
-        Json::JSObject entityManagerJson;
+        JSON::JSObject entityManagerJson;
 
         entityManagerJson["scene"] = scene->GetName().LookupString();
         entityManagerJson["ownerThreadId"] = entityManager->GetOwnerThreadId().GetName().LookupString();
 
-        Json::JSArray entityManagerEntitiesJson;
+        JSON::JSArray entityManagerEntitiesJson;
 
         // HYP_LOG(LogEntities, Info, "Logging entities for scene {}", entityManager->GetScene()->GetName());
 
@@ -94,18 +94,18 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                         }
                     }
 
-                    Json::JSObject entityJson;
-                    entityJson["id"] = Json::JSString(HYP_FORMAT("{}", entity->Id()));
+                    JSON::JSObject entityJson;
+                    entityJson["id"] = JSON::JSString(HYP_FORMAT("{}", entity->Id()));
                     entityJson["refCountStrong"] = entity->GetObjectHeader_Internal()->GetRefCountStrong();
                     entityJson["refCountWeak"] = entity->GetObjectHeader_Internal()->GetRefCountWeak();
-                    entityJson["name"] = Json::JSString(*entity->GetName());
-                    entityJson["type"] = Json::JSString(*entity->InstanceClass()->GetName());
-                    entityJson["parentName"] = entity->GetParent() ? Json::Value(Json::JSString(*entity->GetParent()->GetName())) : Json::Value(Json::JSNull());
-                    entityJson["parentId"] = entity->GetParent() ? Json::Value(Json::JSString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : Json::Value(Json::JSNull());
-                    entityJson["sceneId"] = entity->GetScene() ? Json::Value(Json::JSString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : Json::Value(Json::JSNull());
-                    entityJson["sceneName"] = entity->GetScene() ? Json::Value(Json::JSString(*entity->GetScene()->GetName())) : Json::Value(Json::JSNull());
+                    entityJson["name"] = JSON::JSString(*entity->GetName());
+                    entityJson["type"] = JSON::JSString(*entity->InstanceClass()->GetName());
+                    entityJson["parentName"] = entity->GetParent() ? JSON::Value(JSON::JSString(*entity->GetParent()->GetName())) : JSON::Value(JSON::JSNull());
+                    entityJson["parentId"] = entity->GetParent() ? JSON::Value(JSON::JSString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : JSON::Value(JSON::JSNull());
+                    entityJson["sceneId"] = entity->GetScene() ? JSON::Value(JSON::JSString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : JSON::Value(JSON::JSNull());
+                    entityJson["sceneName"] = entity->GetScene() ? JSON::Value(JSON::JSString(*entity->GetScene()->GetName())) : JSON::Value(JSON::JSNull());
 
-                    Json::JSArray componentsJson;
+                    JSON::JSArray componentsJson;
 
                     for (const auto& it : *entityManager->GetAllComponents(entity))
                     {
@@ -119,7 +119,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                             continue;
                         }
 
-                        Json::JSObject componentJson;
+                        JSON::JSObject componentJson;
                         componentJson["type"] = *componentInterface->GetTypeInfo().name;
                         componentJson["id"] = uint32(componentId);
 
@@ -130,8 +130,8 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                             {
                                 if (Handle<UIObject> uiObject = uiComponent->uiObject.Lock())
                                 {
-                                    componentJson["ui_object"] = Json::JSObject({ { "name", Json::JSString(*uiObject->GetName()) },
-                                        { "type", Json::JSString(*uiObject->InstanceClass()->GetName()) },
+                                    componentJson["ui_object"] = JSON::JSObject({ { "name", JSON::JSString(*uiObject->GetName()) },
+                                        { "type", JSON::JSString(*uiObject->InstanceClass()->GetName()) },
                                         { "refCountStrong", uiObject->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
                                         { "refCountWeak", uiObject->GetObjectHeader_Internal()->GetRefCountWeak() }
                                     });
@@ -173,7 +173,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
     }
 
     FileByteWriter writer(filepath.Data());
-    writer.WriteString(Json::Value(json).ToString(true).ToUtf8());
+    writer.WriteString(JSON::Value(json).ToString(true).ToUtf8());
     writer.Close();
 
     return {};

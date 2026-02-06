@@ -51,7 +51,7 @@ enum class CommandLineArgumentType : uint8
 
 namespace cli {
 
-using CommandLineArgumentValue = Json::Value;
+using CommandLineArgumentValue = JSON::Value;
 
 class CommandLineParser;
 struct CommandLineArgumentDefinition;
@@ -100,7 +100,7 @@ public:
         const String& description = String::empty,
         EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
         CommandLineArgumentType type = CommandLineArgumentType::STRING,
-        const CommandLineArgumentValue& defaultValue = Json::Undefined());
+        const CommandLineArgumentValue& defaultValue = JSON::Undefined());
 
     // Add an enum argument
     CommandLineArgumentDefinitions& Add(
@@ -109,7 +109,7 @@ public:
         const String& description = String::empty,
         EnumFlags<CommandLineArgumentFlags> flags = CommandLineArgumentFlags::NONE,
         const Optional<Array<String>>& enumValues = {},
-        const CommandLineArgumentValue& defaultValue = Json::Undefined());
+        const CommandLineArgumentValue& defaultValue = JSON::Undefined());
 
     CommandLineArgumentDefinition* Find(UTF8StringView key) const;
 

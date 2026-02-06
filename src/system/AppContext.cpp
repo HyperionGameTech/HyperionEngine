@@ -212,7 +212,7 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
     if (m_name.Empty())
     {
-        if (Json::Value configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
+        if (JSON::Value configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
         {
             m_name = CoreApi::GetGlobalConfig().Get("App.Name").ToString().ToAnsi();
         }

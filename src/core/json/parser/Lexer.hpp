@@ -9,7 +9,7 @@
 
 #include <util/UTF8.hpp>
 
-namespace Hyperion::Json {
+namespace Hyperion::JSON {
 
 class Lexer
 {
@@ -55,4 +55,4 @@ private:
     bool SkipWhitespace();
 };
 
-} // namespace Hyperion::Json
+} // namespace Hyperion::JSON

@@ -101,7 +101,7 @@ public:
 
     HYP_API Optional<const Glyph::Metrics&> GetGlyphMetrics(FontFace::WChar symbol) const;
 
-    HYP_API Json::Value GenerateMetadataJSON(const String& outputDirectory) const;
+    HYP_API JSON::Value GenerateMetadataJSON(const String& outputDirectory) const;
 
 private:
     Vec2i FindMaxDimensions(const RC<FontFace>& face) const;

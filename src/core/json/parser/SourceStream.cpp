@@ -3,7 +3,7 @@
 #include <core/json/parser/SourceStream.hpp>
 #include <core/debug/Debug.hpp>
 
-namespace Hyperion::Json {
+namespace Hyperion::JSON {
 
 SourceStream::SourceStream(const SourceFile* file)
     : m_file(file),
@@ -149,4 +149,4 @@ void SourceStream::Read(char* ptr, SizeType numBytes)
     }
 }
 
-} // namespace Hyperion::Json
+} // namespace Hyperion::JSON

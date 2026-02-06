@@ -15,15 +15,15 @@
 #include <core/reflection/BoxedValue.hpp>
 
 namespace Hyperion {
-namespace Json {
+namespace JSON {
 
-static const Value s_undefined = Json::JSUndefined();
-static const Value s_null = Json::JSNull();
-static const Value s_emptyObject = Json::JSObject();
-static const Value s_emptyArray = Json::JSArray();
-static const Value s_emptyString = Json::JSString();
-static const Value s_true = Json::JSBoolean(true);
-static const Value s_false = Json::JSBoolean(false);
+static const Value s_undefined = JSON::JSUndefined();
+static const Value s_null = JSON::JSNull();
+static const Value s_emptyObject = JSON::JSObject();
+static const Value s_emptyArray = JSON::JSArray();
+static const Value s_emptyString = JSON::JSString();
+static const Value s_true = JSON::JSBoolean(true);
+static const Value s_false = JSON::JSBoolean(false);
 
 #pragma region Helpers
 
@@ -682,7 +682,7 @@ public:
 
     Value Parse()
     {
-        Json::Value value = ParseValue();
+        JSON::Value value = ParseValue();
 
         // Should not have any tokens left
         if (m_tokenStream->HasNext())
@@ -1291,5 +1291,5 @@ ParseResult Parse(const SourceFile& sourceFile)
 
 #pragma endregion JSON
 
-} // namespace Json
+} // namespace JSON
 } // namespace Hyperion
