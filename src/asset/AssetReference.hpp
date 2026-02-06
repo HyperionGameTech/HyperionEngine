@@ -58,12 +58,22 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const AssetReference& other) const
     {
+        if (other.IsValid() != IsValid())
+        {
+            return false;
+        }
+
+        if (!IsValid())
+        {
+            return true;
+        }
+
         return GetAssetPath() == other.GetAssetPath();
     }
 
     HYP_FORCE_INLINE bool operator!=(const AssetReference& other) const
     {
-        return GetAssetPath() != other.GetAssetPath();
+        return !(*this == other);
     }
 
     bool IsValid() const

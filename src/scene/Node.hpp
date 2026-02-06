@@ -846,9 +846,6 @@ protected:
     HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers
 
-    HYP_FIELD(Property = "Name")
-    Name m_name;
-
     HYP_FIELD(Property = "NodeFlags", Serialize)
     EnumFlags<NodeFlags> m_nodeFlags;
 

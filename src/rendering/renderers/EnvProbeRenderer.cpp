@@ -156,7 +156,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
     {
         if (!renderSetup.light)
         {
-            HYP_LOG(Rendering, Warning, "No directional light bound while rendering SkyProbe {} in view {}", envProbe->Id(), view->Id());
+            HYP_LOG_ONCE(Rendering, Warning, "No directional light bound while rendering SkyProbe {} in view {}", envProbe->Id(), view->Id());
 
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();
 
@@ -165,7 +165,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
 
         if (renderSetup.light->GetLightType() != LT_DIRECTIONAL)
         {
-            HYP_LOG(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}",
+            HYP_LOG_ONCE(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}",
                 renderSetup.light->Id(), view->Id());
 
             pd->cachedLightDirIntensity = MathUtil::NaN<Vec4f>();

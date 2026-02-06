@@ -44,7 +44,7 @@ extern Handle<EditorState> g_editorState;
 
 void Node_OnPostLoad(Node& node)
 {
-    node.SetScene(GetDetachedSceneForThread(g_simThread));
+    //node.SetScene(GetDetachedSceneForThread(g_simThread));
 }
 
 #pragma region NodeTag
@@ -76,7 +76,7 @@ String NodeTag::ToString() const
 // In practice it only really shows up on UI objects where UIObject holds a reference to a Node.
 
 Node::Node(Name name, const Transform& localTransform, Scene* scene)
-    : m_name(name),
+    : AssetObject(name),
       m_nodeFlags(NodeFlags::DEFAULT),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
