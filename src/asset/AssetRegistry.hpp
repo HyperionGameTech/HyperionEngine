@@ -55,12 +55,11 @@ using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunctio
 using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction>;
 
 HYP_ENUM()
-enum AssetPackageFlags : uint32
+enum class AssetPackageFlags : uint32
 {
-    APF_NONE = 0x0,
-    APF_TRANSIENT = 0x1, //!< Not saved to disk
-    APF_HIDDEN = 0x2, //!< Hide in content browser
-    APF_LOADING = 0x4 //!< currently in loading state
+    None = 0x0,
+    Transient = 0x1,    //!< Not saved to disk
+    Hidden = 0x2        //!< Hide in content browser
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
@@ -74,7 +73,8 @@ class HYP_API AssetPackage final : public ObjectBase
 
 public:
     AssetPackage();
-    AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags = APF_NONE);
+
+    explicit AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags = AssetPackageFlags::None);
 
     AssetPackage(const AssetPackage& other) = delete;
     AssetPackage& operator=(const AssetPackage& other) = delete;
@@ -114,19 +114,19 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsTransient() const
     {
-        return m_flags[APF_TRANSIENT];
+        return m_flags[AssetPackageFlags::Transient];
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsHidden() const
     {
-        return m_flags[APF_HIDDEN];
+        return m_flags[AssetPackageFlags::Hidden];
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsLoading() const
     {
-        return m_isLoading;
+        return (AtomicAdd(&m_stateFlags, 0) & SF_Loading) != 0;
     }
 
     HYP_FORCE_INLINE const WeakHandle<AssetRegistry>& GetRegistry() const
@@ -190,8 +190,6 @@ public:
     Result AddAssetObject(const Handle<AssetObject>& assetObject);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
-    Handle<AssetObject> GetAssetObject(StringHash assetName) const;
-
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
      *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
@@ -207,7 +205,7 @@ public:
     AssetPath BuildAssetPath(Name assetName) const;
 
     HYP_METHOD()
-    bool HasAssetWithName(Name assetName) const;
+    bool HasAssetWithName(StringHash assetName) const;
 
     HYP_METHOD()
     Name GetUniqueAssetName(Name baseName) const;
@@ -246,7 +244,7 @@ public:
     HYP_METHOD(Property = "IsDirty", Transient)
     HYP_FORCE_INLINE bool IsDirty() const
     {
-        return m_isDirty.Get(MemoryOrder::ACQUIRE);
+        return (AtomicAdd(&m_stateFlags, 0) & SF_Dirty) != 0;
     }
 
     HYP_METHOD(Property = "IsSaved", Transient)
@@ -255,9 +253,6 @@ public:
         TSharedLock guard(m_mutex);
         return IsSaved_Internal();
     }
-
-    HYP_METHOD()
-    void MarkDirty();
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
@@ -273,6 +268,13 @@ public:
 
 private:
     void Init() override;
+
+    Handle<AssetObject> GetAssetObject(UTF8StringView assetName, bool attemptLoading);
+
+    void MarkDirty();
+
+    void WaitUntilLoaded();
+    void SignalLoaded();
 
     HYP_FORCE_INLINE bool IsSaved_Internal() const
     {
@@ -300,8 +302,13 @@ private:
     HYP_FIELD(Transient)
     Array<AssetPath> m_dependencies;
 
-    HYP_FIELD(NoScriptBindings, Transient)
-    bool m_isLoading;
+    enum StateFlags : int32
+    {
+        SF_Dirty = 0x1,
+        SF_Loading = 0x2
+    };
+
+    mutable volatile int32 m_stateFlags;
 
     WeakHandle<AssetRegistry> m_registry;
     WeakHandle<AssetPackage> m_parentPackage;
@@ -310,7 +317,10 @@ private:
     FilePath m_packageDir;
 
     SharedMutex m_mutex;
-    mutable AtomicVar<bool> m_isDirty;
+
+    mutable Mutex m_loadedMutex;
+    ConditionVariable m_loadedCV;
+    ThreadId m_loadingThreadId;
 };
 
 enum class AssetRegistryPathType : uint8
@@ -374,13 +384,17 @@ public:
     }
 
     HYP_METHOD()
-    Handle<AssetPackage> GetPackageFromPath(const UTF8StringView& path, bool createIfNotExist = true);
+    Handle<AssetPackage> GetPackageFromPath(
+        const UTF8StringView& path,
+        bool createIfNotExist = true,
+        bool requireLoaded = true);
 
     HYP_METHOD()
-    Handle<AssetPackage> GetSubpackage(
+    Handle<AssetPackage> GetPackage(
         const Handle<AssetPackage>& parentPackage,
-        Name subpackageName,
-        bool createIfNotExist = true);
+        const UTF8StringView& subpackageName,
+        bool createIfNotExist = true,
+        bool requireLoaded = true);
 
     HYP_METHOD()
     void LoadSubpackages(const Handle<AssetPackage>& parentPackage, bool recursive);
@@ -407,7 +421,7 @@ public:
         bool forceRelocation = false,
         ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr);
 
-    Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path) const;
+    Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path, bool attemptLoading = true) const;
 
     void Initialize();
 
@@ -430,9 +444,13 @@ private:
 
     Handle<AssetPackage> GetPackageFromPath_Internal(
         const UTF8StringView& path,
-        AssetRegistryPathType pathType,
         bool createIfNotExist,
-        String& outAssetName);
+        bool requireLoaded);
+
+    Handle<AssetObject> GetAssetFromPath_Internal(
+        const UTF8StringView& path,
+        String& outAssetName,
+        bool attemptLoading);
 
     HYP_FIELD(Serialize = true)
     String m_rootPath;

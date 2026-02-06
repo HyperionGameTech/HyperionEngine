@@ -40,6 +40,10 @@ class ProcRef;
 
 using functional::ProcRef;
 
+namespace JSON {
+class Object;
+} // namespace JSON
+
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
@@ -338,9 +342,10 @@ public:
     Result OpenBinaryReadStream(BufferedReader& stream) const;
 
     static Result Load(
-        BufferedReader& manifestStream,
+        JSON::Object& manifestData,
         BufferedReader* binStream, // optional
-        Handle<AssetObject>& outAssetObject);
+        Handle<AssetObject>& outAssetObject,
+        bool callOnPostLoad = true);
 
 protected:
     void Init() override;

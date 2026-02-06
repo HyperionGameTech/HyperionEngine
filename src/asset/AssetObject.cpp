@@ -545,38 +545,19 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 }
 
 Result AssetObject::Load(
-    BufferedReader& manifestStream,
+    JSON::Object& manifestData,
     BufferedReader* binStream,
-    Handle<AssetObject>& outAssetObject)
+    Handle<AssetObject>& outAssetObject,
+    bool callOnPostLoad)
 {
     HYP_SCOPE;
-
-    if (!manifestStream.IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Manifest stream is not open");
-    }
 
     if (binStream && !binStream->IsOpen())
     {
         return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
 
-    JSON::ParseResult parseResult = JSON::Parse(manifestStream);
-
-    manifestStream.Close(); // not needed anymore
-
-    if (!parseResult.ok)
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to parse manifest JSON: {}", parseResult.message);
-    }
-
-    if (!parseResult.value.IsObject())
-    {
-        return HYP_MAKE_ERROR(Error, "Asset manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
-    }
-
-    JSON::Object jsonObject = std::move(parseResult.value.AsObject());
-    JSON::Value classNameValue = jsonObject["$Class"];
+    JSON::Value classNameValue = manifestData["$Class"];
 
     if (!classNameValue.IsString())
     {
@@ -621,9 +602,9 @@ Result AssetObject::Load(
     const bool useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
 
     // remove class property
-    jsonObject.Erase("$Class");
+    manifestData.Erase("$Class");
 
-    if (!ObjectFromJSON(jsonObject, cls, targetData))
+    if (!ObjectFromJSON(manifestData, cls, targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
@@ -643,8 +624,11 @@ Result AssetObject::Load(
         AssertDebug(resource->GetData() != nullptr);
     }
 
-    // invoke PostLoad callback
-    targetAssetObject->InstanceClass()->PostLoad(targetAssetObject);
+    if (callOnPostLoad)
+    {
+        // invoke PostLoad callback
+        targetAssetObject->InstanceClass()->PostLoad(targetAssetObject);
+    }
 
     outAssetObject = MakeStrongRef(targetAssetObject);
 
