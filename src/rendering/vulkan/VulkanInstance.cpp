@@ -111,7 +111,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         {
             HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
             
-            gpuConfig.Set("System.SelectedGpu.Index", JSON::JSNumber(deviceIndex));
+            gpuConfig.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
 
             CoreApi::UpdateGlobalConfig(gpuConfig);
 
@@ -139,7 +139,7 @@ static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
         {
             HYP_LOG(RenderingBackend, Info, "Select integrated device {}", deviceFeatures.GetDeviceName());
             
-            gpuConfig.Set("System.SelectedGpu.Index", JSON::JSNumber(deviceIndex));
+            gpuConfig.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
 
             CoreApi::UpdateGlobalConfig(gpuConfig);
 

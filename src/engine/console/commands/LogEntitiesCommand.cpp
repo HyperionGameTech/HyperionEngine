@@ -53,9 +53,9 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
     const bool onlyOrphanNodes = args["orphans"].ToBool(false);
 
-    JSON::JSObject json;
+    JSON::Object json;
 
-    JSON::JSArray entityManagersJson;
+    JSON::JArray entityManagersJson;
 
     World* currentWorld = g_engineDriver->GetCurrentWorld();
     if (!currentWorld)
@@ -70,12 +70,12 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
         const Handle<EntityManager>& entityManager = scene->GetEntityManager();
         AssertDebug(entityManager != nullptr);
 
-        JSON::JSObject entityManagerJson;
+        JSON::Object entityManagerJson;
 
         entityManagerJson["scene"] = scene->GetName().LookupString();
         entityManagerJson["ownerThreadId"] = entityManager->GetOwnerThreadId().GetName().LookupString();
 
-        JSON::JSArray entityManagerEntitiesJson;
+        JSON::JArray entityManagerEntitiesJson;
 
         // HYP_LOG(LogEntities, Info, "Logging entities for scene {}", entityManager->GetScene()->GetName());
 
@@ -94,18 +94,18 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                         }
                     }
 
-                    JSON::JSObject entityJson;
-                    entityJson["id"] = JSON::JSString(HYP_FORMAT("{}", entity->Id()));
+                    JSON::Object entityJson;
+                    entityJson["id"] = JSON::JString(HYP_FORMAT("{}", entity->Id()));
                     entityJson["refCountStrong"] = entity->GetObjectHeader_Internal()->GetRefCountStrong();
                     entityJson["refCountWeak"] = entity->GetObjectHeader_Internal()->GetRefCountWeak();
-                    entityJson["name"] = JSON::JSString(*entity->GetName());
-                    entityJson["type"] = JSON::JSString(*entity->InstanceClass()->GetName());
-                    entityJson["parentName"] = entity->GetParent() ? JSON::Value(JSON::JSString(*entity->GetParent()->GetName())) : JSON::Value(JSON::JSNull());
-                    entityJson["parentId"] = entity->GetParent() ? JSON::Value(JSON::JSString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : JSON::Value(JSON::JSNull());
-                    entityJson["sceneId"] = entity->GetScene() ? JSON::Value(JSON::JSString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : JSON::Value(JSON::JSNull());
-                    entityJson["sceneName"] = entity->GetScene() ? JSON::Value(JSON::JSString(*entity->GetScene()->GetName())) : JSON::Value(JSON::JSNull());
+                    entityJson["name"] = JSON::JString(*entity->GetName());
+                    entityJson["type"] = JSON::JString(*entity->InstanceClass()->GetName());
+                    entityJson["parentName"] = entity->GetParent() ? JSON::Value(JSON::JString(*entity->GetParent()->GetName())) : JSON::Value(JSON::JSNull());
+                    entityJson["parentId"] = entity->GetParent() ? JSON::Value(JSON::JString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : JSON::Value(JSON::JSNull());
+                    entityJson["sceneId"] = entity->GetScene() ? JSON::Value(JSON::JString(HYP_FORMAT("{}", entity->GetScene()->Id()))) : JSON::Value(JSON::JSNull());
+                    entityJson["sceneName"] = entity->GetScene() ? JSON::Value(JSON::JString(*entity->GetScene()->GetName())) : JSON::Value(JSON::JSNull());
 
-                    JSON::JSArray componentsJson;
+                    JSON::JArray componentsJson;
 
                     for (const auto& it : *entityManager->GetAllComponents(entity))
                     {
@@ -119,7 +119,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                             continue;
                         }
 
-                        JSON::JSObject componentJson;
+                        JSON::Object componentJson;
                         componentJson["type"] = *componentInterface->GetTypeInfo().name;
                         componentJson["id"] = uint32(componentId);
 
@@ -130,8 +130,8 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                             {
                                 if (Handle<UIObject> uiObject = uiComponent->uiObject.Lock())
                                 {
-                                    componentJson["ui_object"] = JSON::JSObject({ { "name", JSON::JSString(*uiObject->GetName()) },
-                                        { "type", JSON::JSString(*uiObject->InstanceClass()->GetName()) },
+                                    componentJson["ui_object"] = JSON::Object({ { "name", JSON::JString(*uiObject->GetName()) },
+                                        { "type", JSON::JString(*uiObject->InstanceClass()->GetName()) },
                                         { "refCountStrong", uiObject->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
                                         { "refCountWeak", uiObject->GetObjectHeader_Internal()->GetRefCountWeak() }
                                     });

@@ -363,15 +363,15 @@ private:
         probingPaths.PushBack(FilePath::Relative(m_basePath, currentPath));
 
         // clang-format off
-        const JSON::Value runtimeConfigJson(JSON::JSObject {
+        const JSON::Value runtimeConfigJson(JSON::Object {
             {
-                "runtimeOptions", JSON::JSObject({
+                "runtimeOptions", JSON::Object({
                     { "tfm", "net9.0" },
-                    { "framework", JSON::JSObject({
+                    { "framework", JSON::Object({
                         { "name", "Microsoft.NETCore.App" },
                         { "version", "9.0.3" } })
                     },
-                    { "additionalProbingPaths", JSON::JSArray(probingPaths) }
+                    { "additionalProbingPaths", JSON::JArray(probingPaths) }
                 })
             }
         });

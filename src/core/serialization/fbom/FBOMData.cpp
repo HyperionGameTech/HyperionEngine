@@ -256,7 +256,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -270,7 +270,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -284,7 +284,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -298,7 +298,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -312,7 +312,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -326,7 +326,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -340,7 +340,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -354,7 +354,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -368,7 +368,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -382,7 +382,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -396,7 +396,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSBoolean(value);
+        outJson = value;
 
         return {};
     }
@@ -410,7 +410,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        outJson = JSON::JSString(std::move(str));
+        outJson = JSON::JString(std::move(str));
 
         return {};
     }
@@ -424,7 +424,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        JSON::JSArray arrayJson;
+        JSON::JArray arrayJson;
 
         for (SizeType i = 0; i < array.Size(); i++)
         {
@@ -452,7 +452,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
             return err;
         }
 
-        JSON::JSObject objectJson;
+        JSON::Object objectJson;
 
         for (const auto& it : object.GetProperties())
         {
@@ -504,7 +504,7 @@ FBOMData FBOMData::FromJSON(const JSON::Value& jsonValue)
     {
         FBOMArray array;
 
-        const JSON::JSArray& jsonArray = jsonValue.AsArray();
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
 
         if (jsonArray.Any())
         {
@@ -526,11 +526,11 @@ FBOMData FBOMData::FromJSON(const JSON::Value& jsonValue)
     {
         FBOMObject object;
 
-        const JSON::JSObject& jsonObject = jsonValue.AsObject();
+        const JSON::Object& jsonObject = jsonValue.AsObject();
 
         if (jsonObject.Any())
         {
-            for (const Pair<JSON::JSString, JSON::Value>& pair : jsonObject)
+            for (const Pair<JSON::JString, JSON::Value>& pair : jsonObject)
             {
                 object.SetProperty(pair.first.ToAnsi(), FBOMData::FromJSON(pair.second));
             }

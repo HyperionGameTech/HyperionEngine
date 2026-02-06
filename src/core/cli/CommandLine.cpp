@@ -46,7 +46,7 @@ static void AppendCommandLineArgumentValue(
             }
             else
             {
-                JSON::JSArray array;
+                JSON::JArray array;
                 array.PushBack(std::move(it->second));
                 array.PushBack(std::move(value));
 
@@ -122,7 +122,7 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
         // If string, allow unquoted on parse error
         if (type == CommandLineArgumentType::STRING)
         {
-            return JSON::Value(JSON::JSString(str));
+            return JSON::Value(JSON::JString(str));
         }
 
         HYP_LOG(CommandLine, Error, "Failed to parse argument \"{}\": {}", str, parseResult.message);
@@ -170,7 +170,7 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
         return JSON::Value(value.ToBool());
     case CommandLineArgumentType::ENUM:
     {
-        JSON::JSString stringValue = value.ToString();
+        JSON::JString stringValue = value.ToString();
 
         const Array<String>* enumValues = definition.enumValues.TryGet();
 

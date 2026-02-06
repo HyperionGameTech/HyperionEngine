@@ -1294,7 +1294,7 @@ Result AssetPackage::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    JSON::JSObject manifestJson;
+    JSON::Object manifestJson;
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
 
     // need to set virtual path property for loading

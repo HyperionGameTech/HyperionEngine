@@ -535,7 +535,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    JSON::JSObject manifestJson;
+    JSON::Object manifestJson;
 
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
 
@@ -575,7 +575,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Asset manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
     }
 
-    JSON::JSObject jsonObject = std::move(parseResult.value.AsObject());
+    JSON::Object jsonObject = std::move(parseResult.value.AsObject());
     JSON::Value classNameValue = jsonObject["$Class"];
 
     if (!classNameValue.IsString())
