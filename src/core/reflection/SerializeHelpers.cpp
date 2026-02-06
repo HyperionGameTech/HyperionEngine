@@ -106,7 +106,7 @@ bool BoxedToJSON(
 
     if (value.Is<bool>(/* strict */ true))
     {
-        outJson = JSON::JSBoolean(value.Get<bool>());
+        outJson = value.Get<bool>();
 
         return true;
     }
@@ -114,7 +114,7 @@ bool BoxedToJSON(
 #define DO_NUMERIC_TYPE(T)                        \
     if (value.Is<T>(/* strict */ true))           \
     {                                             \
-        outJson = JSON::JSNumber(value.Get<T>()); \
+        outJson = JSON::Number(value.Get<T>()); \
                                                   \
         return true;                              \
     }
@@ -144,7 +144,7 @@ bool BoxedToJSON(
 
     if (value.Is<String>())
     {
-        outJson = JSON::JSString(value.Get<String>());
+        outJson = JSON::JString(value.Get<String>());
 
         return true;
     }
@@ -157,7 +157,7 @@ bool BoxedToJSON(
 
         const int size = handler->GetNumComponents();
 
-        JSON::JSArray jsonArray;
+        JSON::JArray jsonArray;
         jsonArray.Reserve(size);
 
         for (int i = 0; i < size; i++)
@@ -194,7 +194,7 @@ bool BoxedToJSON(
         const int rows = handler->GetNumRows();
         const int columns = handler->GetNumColumns();
 
-        JSON::JSArray jsonArray;
+        JSON::JArray jsonArray;
         jsonArray.Resize(rows * columns);
 
         for (int r = 0; r < rows; r++)
@@ -229,7 +229,7 @@ bool BoxedToJSON(
     {
         const UUID& uuid = value.Get<UUID>();
 
-        outJson = JSON::JSString(uuid.ToString());
+        outJson = JSON::JString(uuid.ToString());
 
         return true;
     }
@@ -238,7 +238,7 @@ bool BoxedToJSON(
     {
         const Name name = value.Get<Name>();
 
-        outJson = JSON::JSString(name.LookupString());
+        outJson = JSON::JString(name.LookupString());
 
         return true;
     }
@@ -251,7 +251,7 @@ bool BoxedToJSON(
 
         const SizeType size = handler->GetSize(value);
 
-        JSON::JSArray jsonArray;
+        JSON::JArray jsonArray;
         jsonArray.Reserve(size);
 
         for (SizeType i = 0; i < size; i++)
@@ -300,7 +300,7 @@ bool BoxedToJSON(
 
         const SizeType size = handler->GetSize(value);
 
-        JSON::JSArray jsonArray;
+        JSON::JArray jsonArray;
         jsonArray.Reserve(size);
 
         // Use iterator to traverse set elements
@@ -374,7 +374,7 @@ bool BoxedToJSON(
                 HYP_LOG(Core, Warning, "Enum value {} of type {} is too large to be represented as a JSON number without loss of precision", value.Get<uint64>(), typeInfo.name);
             }
 
-            outJson = JSON::JSNumber(value.Get<uint64>());
+            outJson = JSON::Number(value.Get<uint64>());
 
             return true;
         }
@@ -388,7 +388,7 @@ bool BoxedToJSON(
                 HYP_LOG(Core, Warning, "Enum value {} of type {} is too large to be represented as a JSON number without loss of precision", value.Get<int64>(), typeInfo.name);
             }
 
-            outJson = JSON::JSNumber(value.Get<int64>());
+            outJson = JSON::Number(value.Get<int64>());
 
             return true;
         }
@@ -455,7 +455,7 @@ bool BoxedToJSON(
             s_serializedObjects.Erase(pair);
         });
 
-        JSON::JSObject jsonObject;
+        JSON::Object jsonObject;
 
         if (!ObjectToJSON(cls, value, jsonObject, opts))
         {
@@ -475,7 +475,7 @@ bool BoxedToJSON(
 bool ObjectToJSON(
     const Class* cls,
     const BoxedValue& target,
-    JSON::JSObject& outJson,
+    JSON::Object& outJson,
     ToJSONOptions opts)
 {
     if (opts.writeClassNamesRecursively)
@@ -510,7 +510,7 @@ bool ObjectToJSON(
 
                     if (jsonValue.IsObject())
                     {
-                        JSON::JSObject& jsonObject = jsonValue.AsObject();
+                        JSON::Object& jsonObject = jsonValue.AsObject();
                         std::swap(outJson, jsonObject);
                         outJson.MergeDeep(jsonObject);
 
@@ -651,7 +651,7 @@ bool ObjectToJSON(
                     JSON::Value temp(std::move(outJson));
                     temp.Set(path, jsonValue);
 
-                    JSON::JSObject& obj = temp.AsObject();
+                    JSON::Object& obj = temp.AsObject();
 
                     outJson = std::move(obj);
                 }
@@ -732,7 +732,7 @@ bool ObjectToJSON(
     return true;
 }
 
-bool ObjectFromJSON(const JSON::JSObject& jsonObject, const Class* targetClass, BoxedValue& target)
+bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target)
 {
     auto resolveMember = [&target](const IMember& member, const JSON::Value& value) -> bool
     {
@@ -968,7 +968,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSNumber number = jsonValue.AsNumber();
+        const JSON::Number number = jsonValue.AsNumber();
 
         if (typeInfo.id == TypeId::ForType<int8>())
         {
@@ -1093,7 +1093,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSNumber number = jsonValue.AsNumber();
+        const JSON::Number number = jsonValue.AsNumber();
 
         if (typeInfo.id == TypeId::ForType<Float16>())
         {
@@ -1223,7 +1223,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSString& jsonString = jsonValue.AsString();
+        const JSON::JString& jsonString = jsonValue.AsString();
 
         if (jsonString.Size() != 36)
         {
@@ -1265,7 +1265,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSArray& jsonArray = jsonValue.AsArray();
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
 
         if (jsonArray.Size() != vectorHandler->GetNumComponents())
         {
@@ -1326,7 +1326,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSArray& jsonArray = jsonValue.AsArray();
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
 
         if (jsonArray.Size() != matrixHandler->GetNumRows() * matrixHandler->GetNumColumns())
         {
@@ -1372,7 +1372,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSArray& jsonArray = jsonValue.AsArray();
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
 
         const TypeInfo* elementTypeInfo = typeInfo.extendedInfo.GetElementType();
 
@@ -1437,7 +1437,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        const JSON::JSArray& jsonArray = jsonValue.AsArray();
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
 
         const TypeInfo* elementTypeInfo = typeInfo.extendedInfo.GetElementType();
 

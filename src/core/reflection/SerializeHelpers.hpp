@@ -23,7 +23,7 @@ using utilities::TypeInfo;
 namespace JSON {
 
 class Value;
-class JSObject;
+class Object;
 
 } // namespace JSON
 
@@ -67,7 +67,7 @@ bool BoxedToJSON(
 bool ObjectToJSON(
     const Class* cls,
     const BoxedValue& target,
-    JSON::JSObject& outJson,
+    JSON::Object& outJson,
     ToJSONOptions opts = ToJSONOptions {});
 
 /*! \brief Converts a JSON value to BoxedValue
@@ -88,6 +88,6 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
  *  \param target The output BoxedValue object.
  *  \return True if deserialization was successful, false otherwise.
  */
-bool ObjectFromJSON(const JSON::JSObject& jsonObject, const Class* targetClass, BoxedValue& target);
+bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target);
 
 } // namespace Hyperion

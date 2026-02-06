@@ -32,13 +32,13 @@ static const ConfigurationValue s_invalidConfigValue {};
 #pragma region ConfigurationTable
 
 ConfigurationTable::ConfigurationTable()
-    : m_rootObject(JSON::JSObject())
+    : m_rootObject(JSON::Object())
 {
 }
 
 ConfigurationTable::ConfigurationTable(const String& configName, const String& subobjectPath)
     : m_subobjectPath(subobjectPath.Any() ? subobjectPath : Optional<String> {}),
-      m_rootObject(JSON::JSObject()),
+      m_rootObject(JSON::Object()),
       m_name(configName)
 {
     // try to read from config file
@@ -184,7 +184,7 @@ ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
 
     if (!targetObject.IsObject())
     {
-        targetObject = JSON::JSObject();
+        targetObject = JSON::Object();
     }
 
     targetObject.AsObject().MergeDeep(otherSubobject.AsObject());
@@ -233,7 +233,7 @@ JSON::Value& ConfigurationTable::GetSubobject()
 
         if (!subobject->IsObject())
         {
-            *subobject = JSON::JSObject();
+            *subobject = JSON::Object();
         }
     }
 
@@ -316,7 +316,7 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
         return false;
     }
 
-    JSON::JSObject jsonObject;
+    JSON::Object jsonObject;
 
     if (ObjectToJSON(cls, targetHypData, jsonObject))
     {

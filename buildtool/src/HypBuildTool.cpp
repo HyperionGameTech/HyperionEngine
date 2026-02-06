@@ -1880,7 +1880,7 @@ int main(int argc, char** argv)
 
         if (parseResult.GetValue().Contains("ExcludeDirectories"))
         {
-            const JSON::JSArray excludeDirectoriesJson = parseResult.GetValue()["ExcludeDirectories"].ToArray();
+            const JSON::JArray excludeDirectoriesJson = parseResult.GetValue()["ExcludeDirectories"].ToArray();
 
             for (const JSON::Value& value : excludeDirectoriesJson)
             {
@@ -1890,7 +1890,7 @@ int main(int argc, char** argv)
 
         if (parseResult.GetValue().Contains("ExcludeFiles"))
         {
-            const JSON::JSArray excludeFilesJson = parseResult.GetValue()["ExcludeFiles"].ToArray();
+            const JSON::JArray excludeFilesJson = parseResult.GetValue()["ExcludeFiles"].ToArray();
 
             for (const JSON::Value& value : excludeFilesJson)
             {

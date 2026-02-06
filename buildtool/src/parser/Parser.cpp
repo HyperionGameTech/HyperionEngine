@@ -373,7 +373,7 @@ QualifiedName::ToString(bool includeNamespace) const
 
 void ASTUnaryExpr::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTUnaryExpr";
 
     JSON::Value exprJson;
@@ -400,7 +400,7 @@ String ASTUnaryExpr::ToString() const
 
 void ASTBinExpr::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTBinExpr";
 
     JSON::Value leftJson;
@@ -423,7 +423,7 @@ String ASTBinExpr::ToString() const
 
 void ASTTernaryExpr::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTTernaryExpr";
 
     JSON::Value trueExprJson;
@@ -448,16 +448,16 @@ String ASTTernaryExpr::ToString() const
 
 void ASTLiteralString::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTLiteralString";
-    object["value"] = JSON::JSString(value);
+    object["value"] = JSON::JString(value);
 
     out = std::move(object);
 }
 
 void ASTLiteralInt::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTLiteralInt";
     object["value"] = value;
 
@@ -471,7 +471,7 @@ String ASTLiteralInt::ToString() const
 
 void ASTLiteralFloat::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTLiteralFloat";
     object["value"] = value;
 
@@ -485,7 +485,7 @@ String ASTLiteralFloat::ToString() const
 
 void ASTLiteralBool::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTLiteralBool";
     object["value"] = value;
 
@@ -494,17 +494,17 @@ void ASTLiteralBool::ToJSON(JSON::Value& out) const
 
 void ASTIdentifier::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTIdentifier";
 
-    JSON::JSObject typeNameJson;
+    JSON::Object typeNameJson;
     typeNameJson["is_global"] = name.isGlobal;
 
-    JSON::JSArray typeNamePartsArray;
+    JSON::JArray typeNamePartsArray;
 
     for (const String& part : name.parts)
     {
-        typeNamePartsArray.PushBack(JSON::JSString(part));
+        typeNamePartsArray.PushBack(JSON::JString(part));
     }
 
     typeNameJson["parts"] = std::move(typeNamePartsArray);
@@ -521,10 +521,10 @@ String ASTIdentifier::ToString() const
 
 void ASTInitializerExpr::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTInitializerExpr";
 
-    JSON::JSArray valuesArray;
+    JSON::JArray valuesArray;
 
     for (const RC<ASTExpr>& value : values)
     {
@@ -559,7 +559,7 @@ String ASTInitializerExpr::ToString() const
 
 void ASTTemplateArgument::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTTemplateArgument";
 
     if (type)
@@ -834,7 +834,7 @@ String ASTType::FormatDecl(const String& declName, bool useCsharpSyntax) const
 
 void ASTType::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTType";
 
     object["is_const"] = isConst;
@@ -885,14 +885,14 @@ void ASTType::ToJSON(JSON::Value& out) const
 
     if (typeName.HasValue())
     {
-        JSON::JSObject typeNameJson;
+        JSON::Object typeNameJson;
         typeNameJson["is_global"] = typeName->isGlobal;
 
-        JSON::JSArray typeNamePartsArray;
+        JSON::JArray typeNamePartsArray;
 
         for (const String& part : typeName->parts)
         {
-            typeNamePartsArray.PushBack(JSON::JSString(part));
+            typeNamePartsArray.PushBack(JSON::JString(part));
         }
 
         typeNameJson["parts"] = std::move(typeNamePartsArray);
@@ -902,7 +902,7 @@ void ASTType::ToJSON(JSON::Value& out) const
 
     if (isTemplate)
     {
-        JSON::JSArray templateArgumentsArray;
+        JSON::JArray templateArgumentsArray;
 
         for (const RC<ASTTemplateArgument>& templateArgument : templateArguments)
         {
@@ -924,7 +924,7 @@ String ASTType::ToString() const
 
 void ASTMemberDecl::ToJSON(JSON::Value& out) const
 {
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTMemberDecl";
 
     object["name"] = name;
@@ -1086,7 +1086,7 @@ void ASTFunctionType::ToJSON(JSON::Value& out) const
     JSON::Value typeJson;
     ASTType::ToJSON(typeJson);
 
-    JSON::JSObject object;
+    JSON::Object object;
     object["node_type"] = "ASTFunctionType";
 
     object["is_const_method"] = isConstMethod;
@@ -1102,7 +1102,7 @@ void ASTFunctionType::ToJSON(JSON::Value& out) const
     returnType->ToJSON(returnTypeJson);
     object["return_type"] = std::move(returnTypeJson);
 
-    JSON::JSArray parametersArray;
+    JSON::JArray parametersArray;
 
     for (const RC<ASTMemberDecl>& parameter : parameters)
     {
@@ -1113,7 +1113,7 @@ void ASTFunctionType::ToJSON(JSON::Value& out) const
 
     object["parameters"] = std::move(parametersArray);
 
-    out = JSON::JSObject(typeJson.ToObject()).Merge(std::move(object));
+    out = JSON::Object(typeJson.ToObject()).Merge(std::move(object));
 }
 
 String ASTFunctionType::ToString() const

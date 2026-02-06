@@ -110,7 +110,7 @@ bool Initialize(int argc, char** argv)
 
     if (JSON::Value configArgs = config.Get("App.Args"))
     {
-        JSON::JSString configArgsString = configArgs.ToString();
+        JSON::JString configArgsString = configArgs.ToString();
         Array<String> configArgsStringSplit = Map(
             configArgsString.Split(' '),
             [](auto&& str)
