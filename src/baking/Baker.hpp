@@ -250,7 +250,10 @@ public:
 
     virtual const TypeInfo& GetInnerType() const = 0;
 
-    bool IsComplete() const;
+    bool IsComplete() const
+    {
+        return m_isComplete;
+    }
 
     void Initialize();
     void Update(float delta);
@@ -324,6 +327,8 @@ protected:
     PerformanceClock m_bakingClock;
     double m_lastProgressPercent;
     Array<Pair<double, double>> m_progressSamples;
+
+    bool m_isComplete;
 };
 
 template <class T>

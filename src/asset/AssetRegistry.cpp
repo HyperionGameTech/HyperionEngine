@@ -2595,49 +2595,53 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
         Array<Handle<AssetObject>> assetObjects;
         assetObjects.Resize(assetFiles.Size());
 
-        // load assets in parallel
-        TaskSystem::GetInstance().ParallelForEach(assetFiles, [&assetObjects](const FilePath& entry, uint32 index, uint32 batchIndex) -> void
+        //// load assets in parallel
+        //TaskSystem::GetInstance().ParallelForEach(assetFiles, [&assetObjects](const FilePath& entry, uint32 index, uint32) -> void
+        //    {
+        for (uint32 index = 0; index < uint32(assetFiles.Size()); index++)
+        {
+            const FilePath& entry = assetFiles[index];
+
+            FileBufferedReaderSource manifestSource { entry };
+            BufferedReader manifestStream { &manifestSource };
+
+            const FilePath binPath = entry.StripExtension();
+
+            BufferedReader* dataStream = nullptr;
+            FileBufferedReaderSource* dataSource = nullptr;
+
+            if (binPath.Exists() && !binPath.IsDirectory())
             {
-                FileBufferedReaderSource manifestSource { entry };
-                BufferedReader manifestStream { &manifestSource };
+                dataSource = new FileBufferedReaderSource { binPath };
+                dataStream = new BufferedReader { dataSource };
+            }
 
-                const FilePath binPath = entry.StripExtension();
-
-                BufferedReader* dataStream = nullptr;
-                FileBufferedReaderSource* dataSource = nullptr;
-
-                if (binPath.Exists() && !binPath.IsDirectory())
+            HYP_DEFER({
+                if (dataStream)
                 {
-                    dataSource = new FileBufferedReaderSource { binPath };
-                    dataStream = new BufferedReader { dataSource };
+                    dataStream->Close();
+                    delete dataStream;
                 }
 
-                HYP_DEFER({
-                    if (dataStream)
-                    {
-                        dataStream->Close();
-                        delete dataStream;
-                    }
-
-                    if (dataSource)
-                    {
-                        delete dataSource;
-                    }
-                });
-
-                Handle<AssetObject> assetObject;
-
-                if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
+                if (dataSource)
                 {
-                    HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
-
-                    return;
+                    delete dataSource;
                 }
-
-                assetObject->m_manifestPath = entry;
-
-                assetObjects[index] = std::move(assetObject);
             });
+
+            Handle<AssetObject> assetObject;
+
+            if (Result loadAssetResult = AssetObject::Load(manifestStream, dataStream, assetObject); loadAssetResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
+
+                continue;
+            }
+
+            assetObject->m_manifestPath = entry;
+
+            assetObjects[index] = std::move(assetObject);
+        }
 
         for (const Handle<AssetObject>& assetObject : assetObjects)
         {

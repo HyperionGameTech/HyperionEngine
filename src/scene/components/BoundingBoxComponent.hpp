@@ -7,7 +7,7 @@
 
 namespace Hyperion {
 
-HYP_STRUCT(Component, Editor = false)
+HYP_STRUCT(Component, Editor = false, Serialize = false)
 struct BoundingBoxComponent
 {
     HYP_STRUCT_BODY(BoundingBoxComponent);

@@ -307,7 +307,7 @@ void EditorGizmoBase::SetFocusedNode(const Handle<Node>& focusedNode)
         return;
     }
 
-    m_node->SetWorldTranslation(focusedNode->GetWorldBounds().GetCenter());
+    m_node->SetWorldTranslation(focusedNode->GetWorldTranslation());
 }
 
 void EditorGizmoBase::OnDragStart(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node, const Vec3f& hitpoint)

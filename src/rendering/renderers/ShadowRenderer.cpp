@@ -217,8 +217,11 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
 
-    for (View* shadowView : lightProxy->shadowViews)
+    for (uint32 shadowViewIndex = 0; shadowViewIndex < uint32(lightProxy->shadowViews.Size()); shadowViewIndex++)
     {
+        View* shadowView = lightProxy->shadowViews[shadowViewIndex];
+        AssertDebug(shadowView != nullptr);
+
         const ViewOutputTarget& outputTarget = shadowView->GetOutputTarget();
         AssertDebug(outputTarget.IsValid());
 
@@ -236,11 +239,23 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         rpl.BeginRead();
         renderProxyLists.PushBack(&rpl);
 
-        // /// \todo Add OR shadow matrix changed check! or simply invalidate on change and check if invalidated?
-        if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate() && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
+        if (pd->prevCameraMatrices.Size() <= shadowViewIndex)
+        {
+            pd->prevCameraMatrices.Resize(shadowViewIndex + 1);
+        }
+        
+        const bool isMatrixDirty = pd->prevCameraMatrices[shadowViewIndex] != lightProxy->bufferData.shadowMatrix;
+
+        if (!isMatrixDirty
+            && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
+            && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
         {
             continue;
         }
+
+        // @TODO: Octree transforms hash check?
+
+        pd->prevCameraMatrices[shadowViewIndex] = lightProxy->bufferData.shadowMatrix;
 
         RenderCollector& renderCollector = GetRenderCollector(shadowView);
         renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT) | (1u << RB_LIGHTMAP)));

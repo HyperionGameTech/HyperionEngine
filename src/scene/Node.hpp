@@ -558,7 +558,7 @@ public:
      *   \param aabb The bounding box to set
      *   \note Calls to RefreshEntityTransform() will override this value. */
     HYP_METHOD(Property = "LocalBounds")
-    void SetLocalBounds(const BoundingBox& aabb);
+    virtual void SetLocalBounds(const BoundingBox& aabb);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
      *  \param node The Node to be added as achild of this Node
