@@ -344,8 +344,7 @@ public:
     static Result Load(
         JSON::Object& manifestData,
         BufferedReader* binStream, // optional
-        Handle<AssetObject>& outAssetObject,
-        bool callOnPostLoad = true);
+        Handle<AssetObject>& outAssetObject);
 
 protected:
     void Init() override;
