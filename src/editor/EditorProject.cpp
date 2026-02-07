@@ -25,7 +25,7 @@
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/reflection/Class.hpp>
-#include <core/reflection/SerializeHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -266,9 +266,13 @@ Result EditorProject::SaveAs(FilePath filepath)
     m_lastSavedTime = Time::Now();
 
     const FilePath projectFilepath = filepath / (String(*m_name) + ".hypproject");
+    
+    ToJSONOptions opts;
+    opts.skipTransientProperties = true;
+    opts.writeClassNames = true;
 
     JSON::Object projectJson;
-    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson))
+    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson, opts))
     {
         return HYP_MAKE_ERROR(Error, "Failed to save project!");
     }
@@ -335,6 +339,42 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return HYP_MAKE_ERROR(Error, "Project file does not exist: {}", projectFilepath);
     }
 
+    Handle<EditorProject> project;
+
+    {
+        FileBufferedReaderSource source { projectFilepath };
+        BufferedReader reader { &source };
+
+        if (!reader.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
+        }
+
+        JSON::ParseResult parseResult = JSON::Parse(String(reader.ReadBytes().ToByteView()));
+
+        if (!parseResult.ok)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to parse project file at {}: {}", projectFilepath, parseResult.message);
+        }
+
+        JSON::Value projectJson = parseResult.value;
+
+        if (!projectJson.IsObject())
+        {
+            return HYP_MAKE_ERROR(Error, "Project file data is invalid!");
+        }
+
+        BoxedValue boxed;
+        if (!ObjectFromJSON(projectJson.AsObject(), EditorProject::StaticClass(), boxed))
+        {
+            return HYP_MAKE_ERROR(Error, "Project file data could not be imported. Check the log for details.");
+        }
+
+        Assert(boxed.Is<Handle<EditorProject>>());
+
+        project = std::move(boxed.Get<Handle<EditorProject>>());
+    }
+
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
     const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
@@ -345,33 +385,11 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return loadPackageResult.GetError();
     }
 
-    Handle<AssetPackage> rootPackage = std::move(*loadPackageResult);
+    project->m_package = std::move(*loadPackageResult);
 
-    Handle<EditorProject> project;
-
-    {
-        FBOMObject projectObject;
-
-        FBOMReader reader {
-            FBOMReaderConfig { .basePath = dir }
-        };
-
-        if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to read project data: {}", err.message);
-        }
-
-        Optional<Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
-
-        if (!projectOpt)
-        {
-            return HYP_MAKE_ERROR(Error, "Internal error: Deserialized object is not an EditorProject");
-        }
-
-        project = *projectOpt;
-    }
-
-    project->m_package = rootPackage;
+    // set transient properties
+    project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();
+    project->m_filepath = projectFilepath;
 
     InitObject(project);
 

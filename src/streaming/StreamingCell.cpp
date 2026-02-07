@@ -79,12 +79,16 @@ void StreamingCell::OnStreamStart_Impl()
                 InstanceClass()->GetName(),
                 m_cellInfo.coord);
 
-            if (!assetReference.Resolve())
+            const Handle<AssetObject>& assetObject = assetReference.Resolve();
+
+            if (!assetObject.IsValid())
             {
                 HYP_LOG(Streaming, Warning, "Failed to resolve AssetReference {} in OnStreamStart", assetReference.GetAssetPath().ToString());
 
                 continue;
             }
+
+            assetObject->InstanceClass()->PostLoad(assetObject);
         }
     }
 }

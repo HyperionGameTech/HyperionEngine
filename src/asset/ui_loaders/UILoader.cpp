@@ -38,7 +38,7 @@
 
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/SerializeHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/functional/Delegate.hpp>
 

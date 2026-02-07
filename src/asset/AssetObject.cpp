@@ -10,7 +10,7 @@
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/reflection/SerializeHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
@@ -537,7 +537,11 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
     JSON::Object manifestJson;
 
-    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
+    ToJSONOptions opts;
+    opts.skipTransientProperties = true;
+    opts.writeClassNames = true;
+
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, opts);
 
     stream.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
