@@ -541,7 +541,7 @@ namespace Hyperion
             return true;
         }
 
-        public bool Compile(ref ScriptData scriptData)
+        public bool Compile(ref ScriptDesc scriptData)
         {
             string moduleName;
             int hotReloadVersion;

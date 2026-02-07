@@ -788,7 +788,7 @@ public:
             {
                 ScriptComponent scriptComponent {};
 
-                ScriptData scriptData {};
+                ScriptDesc scriptData {};
                 scriptData.language = ScriptLanguage::CSharp;
                 Memory::StrCpy(scriptData.assemblyPath.Data(), assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
                 Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
@@ -825,7 +825,7 @@ public:
             {
                 ScriptComponent scriptComponent {};
 
-                ScriptData scriptData {};
+                ScriptDesc scriptData {};
                 scriptData.language = ScriptLanguage::HypScript;
                 Memory::StrCpy(scriptData.path.Data(), pathIt->second.Data(), ArraySize(scriptData.path));
                 Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
@@ -839,7 +839,7 @@ public:
             {
                 ScriptComponent scriptComponent {};
 
-                ScriptData scriptData {};
+                ScriptDesc scriptData {};
                 scriptData.language = ScriptLanguage::Native;
                 Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
 
