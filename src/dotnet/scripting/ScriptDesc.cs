@@ -23,9 +23,9 @@ namespace Hyperion
         CSharp = 1
     }
 
-    [ClassBinding(Name = "ScriptData")]
+    [ClassBinding(Name = "ScriptDesc")]
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct ScriptData
+    public unsafe struct ScriptDesc
     {
         private Guid guid;
 
@@ -156,7 +156,7 @@ namespace Hyperion
     {
         private IntPtr ptr;
 
-        public ScriptInstance(ScriptData script)
+        public ScriptInstance(ScriptDesc script)
         {
             this.ptr = ScriptData_AllocateNativeObject(ref script);
         }
@@ -229,14 +229,14 @@ namespace Hyperion
             }
         }
 
-        public unsafe ref ScriptData Get()
+        public unsafe ref ScriptDesc Get()
         {
             if (!IsValid)
             {
                 throw new InvalidOperationException("ScriptInstance is not initialized");
             }
 
-            return ref System.Runtime.CompilerServices.Unsafe.AsRef<ScriptData>(ptr.ToPointer());
+            return ref System.Runtime.CompilerServices.Unsafe.AsRef<ScriptDesc>(ptr.ToPointer());
         }
 
         public void UpdateState()
@@ -246,7 +246,7 @@ namespace Hyperion
                 return;
             }
 
-            ref ScriptData scriptData = ref Get();
+            ref ScriptDesc scriptData = ref Get();
 
             if (!File.Exists(scriptData.Path))
             {
@@ -265,9 +265,9 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ScriptData_AllocateNativeObject")]
-        private static extern IntPtr ScriptData_AllocateNativeObject([In] ref ScriptData inScriptData);
+        private static extern IntPtr ScriptData_AllocateNativeObject([In] ref ScriptDesc inScriptData);
 
         [DllImport("hyperion", EntryPoint = "ScriptData_FreeNativeObject")]
-        private static extern void ScriptData_FreeNativeObject([In] ref ScriptData inScriptData);
+        private static extern void ScriptData_FreeNativeObject([In] ref ScriptDesc inScriptData);
     }
 }

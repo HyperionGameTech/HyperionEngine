@@ -18,18 +18,13 @@
 
 namespace Hyperion {
 
-struct ScriptDesc
-{
-    FilePath path;
-};
-
 static constexpr SizeType scriptMaxPathLength = 1024;
 static constexpr SizeType scriptMaxClassNameLength = 1024;
 
 HYP_STRUCT()
-struct ScriptData
+struct ScriptDesc
 {
-    HYP_STRUCT_BODY(ScriptData);
+    HYP_STRUCT_BODY(ScriptDesc);
 
     HYP_FIELD(Serialize)
     UUID uuid;
@@ -70,7 +65,7 @@ struct ScriptData
     }
 };
 
-static_assert(std::is_standard_layout_v<ScriptData>, "ScriptData struct must be standard layout");
-static_assert(std::is_trivially_copyable_v<ScriptData>, "ScriptData struct must be a trivial type");
+static_assert(std::is_standard_layout_v<ScriptDesc>, "ScriptDesc struct must be standard layout");
+static_assert(std::is_trivially_copyable_v<ScriptDesc>, "ScriptDesc struct must be a trivial type");
 
 } // namespace Hyperion

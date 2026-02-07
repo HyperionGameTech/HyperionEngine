@@ -974,7 +974,7 @@ public:
                     Handle<AssetPackage> scriptsPackage = assetRegistry->GetPackageFromPath("Scripts", true);
                     Assert(scriptsPackage.IsValid());
 
-                    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptData());
+                    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
 
                     /// \todo : better name for script asset
                     Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset).Await();
@@ -988,7 +988,7 @@ public:
 
                     ResourceGuard resGuard(*scriptAsset->GetResource());
                     
-                    ScriptData* scriptData = scriptAsset->GetScriptData();
+                    ScriptDesc* scriptData = scriptAsset->GetScriptData();
                     Assert(scriptData != nullptr);
 
                     Handle<AssetObject> assetObject = assetObjectResult.GetValue();
