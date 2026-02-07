@@ -37,7 +37,7 @@ HYP_ENGINE_MEMORY_DECL Pool* g_renderPool;                  // Pool for render t
 HYP_ENGINE_MEMORY_DECL Pool* g_scenePool;                   // Pool for scene-related allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_taskPool;                    // Pool for task system allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_assetPool;                   // Pool for asset system allocations (thread safe)
-HYP_ENGINE_MEMORY_DECL Pool* g_resourcePool;                // Pool for IResource-derived allocations (thread safe)
+HYP_ENGINE_MEMORY_DECL Pool* g_resourcePool;                // Pool for paged data allocations (thread safe)
 HYP_ENGINE_MEMORY_DECL Pool* g_streamingPool;               // Pool for streaming system allocations (thread safe)
 
 #if HYP_VULKAN

@@ -324,37 +324,4 @@ void ResourceBase::ReleaseReader()
 
 #pragma endregion ResourceBase
 
-#pragma region NullResource
-
-class NullResource final : public IResource
-{
-public:
-    NullResource() = default;
-    NullResource(NullResource&& other) noexcept = default;
-    virtual ~NullResource() override = default;
-
-    virtual bool IsNull() const override
-    {
-        return true;
-    }
-
-    ResourceGuard GetWriteScope()
-    {
-        return ResourceGuard {};
-    }
-
-    ResourceGuard GetReadScope()
-    {
-        return ResourceGuard {};
-    }
-};
-
-HYP_API IResource& GetNullResource()
-{
-    static NullResource s_nullResource;
-    return s_nullResource;
-}
-
-#pragma endregion NullResource
-
 } // namespace Hyperion

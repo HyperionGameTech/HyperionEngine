@@ -66,7 +66,11 @@ public:
     Result LoadFromStream(BufferedReader& stream);
 
 protected:
-    AssetDataResourceBase() = default;
+    AssetDataResourceBase()
+        : m_assetObject(nullptr),
+          m_hasData(false)
+    {
+    }
 
     virtual void Initialize() override final;
     virtual void Destroy() override final;
@@ -78,32 +82,35 @@ protected:
 
     virtual void Extract_Internal(AnyRef ref) = 0;
 
-    virtual bool IsDataLoaded() const = 0;
+    HYP_FORCE_INLINE bool IsDataLoaded() const
+    {
+        return m_hasData;
+    }
 
     virtual const TypeInfo& GetDataTypeInfo() const = 0;
 
     virtual void* GetData() = 0;
 
-    WeakHandle<AssetObject> m_assetObject;
+    AssetObject* m_assetObject;
+    bool m_hasData;
 };
 
 template <class T>
 class AssetDataResource final : public AssetDataResourceBase
 {
 public:
-    AssetDataResource()
-        : m_data(nullptr)
-    {
-    }
+    AssetDataResource() = default;
 
     AssetDataResource(const T& data)
-        : m_data(PoolNew<T>(*g_assetPool, data))
     {
+        m_dataStorage.Construct(data);
+        m_hasData = true;
     }
 
     AssetDataResource(T&& data)
-        : m_data(PoolNew<T>(*g_assetPool, std::move(data)))
     {
+        m_dataStorage.Construct(std::move(data));
+        m_hasData = true;
     }
 
     AssetDataResource(const AssetDataResource&) = delete;
@@ -114,16 +121,11 @@ public:
 
     virtual ~AssetDataResource() override
     {
-        if (m_data != nullptr)
+        if (m_hasData)
         {
-            PoolDelete(*g_assetPool, m_data);
-            m_data = nullptr;
+            m_hasData = false;
+            m_dataStorage.Destruct();
         }
-    }
-
-    virtual bool IsDataLoaded() const override
-    {
-        return m_data != nullptr;
     }
 
     virtual const TypeInfo& GetDataTypeInfo() const override
@@ -133,32 +135,35 @@ public:
 
     virtual void* GetData() override
     {
-        return m_data;
+        return m_hasData ? m_dataStorage.GetPointer() : nullptr;
     }
 
 protected:
     virtual void Unload_Internal() override
     {
-        if (m_data)
+        if (m_hasData)
         {
-            PoolDelete(*g_assetPool, m_data);
-            m_data = nullptr;
+            m_hasData = false;
+
+            m_dataStorage.Destruct();
         }
     }
 
     virtual void Extract_Internal(AnyRef ref) override
     {
-        if (m_data != nullptr)
+        if (m_hasData)
         {
-            *m_data = ref.Get<T>();
+            m_dataStorage.Get() = ref.Get<T>();
         }
         else
         {
-            m_data = PoolNew<T>(*g_assetPool, ref.Get<T>());
+            m_dataStorage.Construct(ref.Get<T>());
+
+            m_hasData = true;
         }
     }
 
-    T* m_data;
+    ValueStorage<T> m_dataStorage;
 };
 
 HYP_ENUM()
@@ -177,23 +182,17 @@ class HYP_API AssetObject : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 
-    template <class T>
-    static ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>& GetPool()
-    {
-        static ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>* pool = ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>::GetInstance();
-        return *pool;
-    }
-
 protected:
     template <class T>
     void SetData(T&& data)
     {
-        static ResourceMemoryPool<AssetDataResource<NormalizedType<T>>>& pool = GetPool<T>();
+        if (m_resource)
+        {
+            PoolDelete(*g_assetPool, m_resource);
+        }
 
-        m_pool = &pool;
-
-        m_resource = pool.Allocate(std::forward<T>(data));
-        static_cast<AssetDataResource<NormalizedType<T>>*>(m_resource)->m_assetObject = WeakHandleFromThis();
+        m_resource = PoolNew<AssetDataResource<NormalizedType<T>>>(*g_assetPool, std::forward<T>(data));
+        m_resource->m_assetObject = this;
     }
 
 public:
@@ -361,7 +360,7 @@ protected:
     {
         static_assert(std::is_same_v<T, NormalizedType<T>>);
 
-        if (!m_resource || m_resource->IsNull())
+        if (!m_resource)
         {
             return nullptr;
         }
@@ -408,9 +407,6 @@ protected:
 
     HYP_FIELD(Transient)
     FilePath m_manifestPath;
-
-    HYP_FIELD(NoScriptBindings, Transient)
-    IResourceMemoryPool* m_pool;
 
     HYP_FIELD(NoScriptBindings, Transient)
     ResourceGuard m_persistentResource;

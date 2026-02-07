@@ -44,11 +44,13 @@ HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
 
-static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet& entityAttributes, const Optional<RenderableAttributeSet>& overrideAttributes)
+static RenderableAttributeSet GetMergedRenderableAttributes(
+    const RenderableAttributeSet& inAttributes,
+    const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: GetMergedRenderableAttributes");
 
-    RenderableAttributeSet attributes = entityAttributes;
+    RenderableAttributeSet attributes = inAttributes;
 
     if (overrideAttributes.HasValue())
     {
@@ -57,12 +59,18 @@ static RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttr
         newMaterialAttributes.bucket = attributes.GetMaterialAttributes().bucket;
 
         attributes.SetMaterialAttributes(newMaterialAttributes);
+
+        AssertDebug(attributes.GetShaderName().IsValid());
     }
 
     return attributes;
 }
 
-static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderProxyList& rpl, const Array<Pair<ObjId<Entity>, int>>& meshEntityOrdering, const Optional<RenderableAttributeSet>& overrideAttributes)
+static void BuildRenderGroupsOrdered(
+    RenderCollector& renderCollector,
+    RenderProxyList& rpl,
+    const Array<Pair<ObjId<Entity>, int>>& meshEntityOrdering,
+    const Optional<RenderableAttributeSet>& overrideAttributes)
 {
     renderCollector.Clear(/* freeMemory */ false);
 
@@ -90,7 +98,10 @@ static void BuildRenderGroupsOrdered(RenderCollector& renderCollector, RenderPro
             continue;
         }
 
-        RenderableAttributeSet attributes = GetMergedRenderableAttributes(RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() }, overrideAttributes);
+        // @FIXME Thread safe?
+        RenderableAttributeSet attributes = GetMergedRenderableAttributes(
+            RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() },
+            overrideAttributes);
 
         if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP); albedoTexture.IsValid())
         {

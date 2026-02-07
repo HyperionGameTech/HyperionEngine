@@ -25,7 +25,6 @@ class ManagedObject;
 struct ObjectReference;
 } // namespace dotnet
 
-class IResource;
 class ObjectContainerBase;
 
 struct MemberVariant;
