@@ -287,7 +287,10 @@
                             </TreeView.ItemContainerTheme>
                             <TreeView.ItemTemplate>
                                 <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
-                                    <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
+                                        <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                    </StackPanel>
                                 </TreeDataTemplate>
                             </TreeView.ItemTemplate>
                         </TreeView>

@@ -38,7 +38,7 @@
 
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
-#include <core/reflection/HypDataJSONHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/functional/Delegate.hpp>
 
@@ -371,10 +371,10 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String& str)
     return {};
 }
 
-static Json::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& outData)
+static JSON::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& outData)
 {
     // Read string as JSON
-    Json::ParseResult parseResult = Json::Parse(str);
+    JSON::ParseResult parseResult = JSON::Parse(str);
 
     if (!parseResult.ok)
     {
@@ -661,11 +661,11 @@ public:
                 auto HandleFoundMember = [uiObject](const IMember& member, const String& str) -> bool
                 {
                     BoxedValue boxed;
-                    Json::ParseResult jsonParseResult = Json::Parse(str);
+                    JSON::ParseResult jsonParseResult = JSON::Parse(str);
 
                     if (jsonParseResult.ok)
                     {
-                        if (!JSONToHypData(jsonParseResult.value, member.GetTypeInfo(), boxed))
+                        if (!BoxedFromJSON(jsonParseResult.value, member.GetTypeInfo(), boxed))
                         {
                             HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of Class \"{}\" from JSON",
                                 member.GetName(), uiObject->GetName());
@@ -796,7 +796,7 @@ public:
                 Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
                 InitObject(scriptAsset);
 
-                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset).Await();
+                Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
 
                 if (assetObjectResult)
                 {

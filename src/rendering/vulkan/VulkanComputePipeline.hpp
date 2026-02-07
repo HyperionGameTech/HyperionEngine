@@ -14,12 +14,16 @@
 
 namespace Hyperion {
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanComputePipeline final : public ComputePipelineBase, public VulkanPipelineBase
 {
     HYP_OBJECT_BODY(VulkanComputePipeline);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanComputePipeline();
     explicit VulkanComputePipeline(const VulkanShaderRef& shader);
     ~VulkanComputePipeline() override;

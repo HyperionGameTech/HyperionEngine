@@ -91,24 +91,32 @@ namespace Hyperion.Editor.ViewModels
             {
                 Logger.Log(LogType.Debug, "Package added: {0}", package.Name);
 
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (!package.Hidden)
-                    {
-                        Packages.Add(new AssetPackageViewModel(package));
+            if (!package.Hidden)
+            {
+                    WeakReference<AssetPackage> weakPackage = new(package);
 
-                        OnPropertyChanged(nameof(Packages));
-                    }
-                });
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        AssetPackage? package = null;
+                        if (weakPackage.TryGetTarget(out package))
+                        {
+                            Packages.Add(new AssetPackageViewModel(package));
+                        }
+                    });
+
+                    OnPropertyChanged(nameof(Packages));
+                }
             });
 
             _onPackageRemovedHandler = registry.GetOnPackageRemovedDelegate().Bind((AssetPackage package) =>
             {
                 Logger.Log(LogType.Debug, "Package removed: {0}", package.Name);
 
+                ObjIdBase removedPackageId = package.Id;
+
                 Dispatcher.UIThread.Post(() =>
                 {
-                    AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package == package);
+                    AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package.Id == removedPackageId);
 
                     if (packageViewModel != null)
                     {

@@ -64,7 +64,7 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
         Unmap();
     }
 
-    vmaDestroyBuffer(g_renderInterface->GetDevice()->GetAllocator(), m_handle, m_vmaAllocation);
+    vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), m_handle, m_vmaAllocation);
 
     m_handle = VK_NULL_HANDLE;
     m_vmaAllocation = VK_NULL_HANDLE;
@@ -140,7 +140,7 @@ void* VulkanGpuBuffer::Map() const
 
     Assert(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
-    vmaMapMemory(g_renderInterface->GetDevice()->GetAllocator(), m_vmaAllocation, &m_mapping);
+    vmaMapMemory(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, &m_mapping);
 
     return m_mapping;
 }
@@ -152,7 +152,7 @@ void VulkanGpuBuffer::Unmap() const
         return;
     }
 
-    vmaUnmapMemory(g_renderInterface->GetDevice()->GetAllocator(), m_vmaAllocation);
+    vmaUnmapMemory(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation);
     m_mapping = nullptr;
 }
 
@@ -165,7 +165,7 @@ void VulkanGpuBuffer::Flush(SizeType offset, SizeType count)
 
     AssertDebug(offset + count <= Size());
 
-    VkResult result = vmaFlushAllocation(g_renderInterface->GetDevice()->GetAllocator(), m_vmaAllocation, offset, count);
+    VkResult result = vmaFlushAllocation(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, offset, count);
     Assert(result == VK_SUCCESS);
 }
 
@@ -177,10 +177,10 @@ bool VulkanGpuBuffer::IsCreated() const
 bool VulkanGpuBuffer::IsCpuAccessible() const
 {
     VmaAllocationInfo info {};
-    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetAllocator(), m_vmaAllocation, &info);
+    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, &info);
 
     VkMemoryPropertyFlags flags = 0;
-    vmaGetMemoryTypeProperties(g_renderInterface->GetDevice()->GetAllocator(), info.memoryType, &flags);
+    vmaGetMemoryTypeProperties(g_renderInterface->GetDevice()->GetVmaAllocator(), info.memoryType, &flags);
 
     return (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 }
@@ -367,7 +367,7 @@ RendererResult VulkanGpuBuffer::Create()
     {
         VULKAN_CHECK_MSG(
             vmaCreateBufferWithAlignment(
-                g_renderInterface->GetDevice()->GetAllocator(),
+                g_renderInterface->GetDevice()->GetVmaAllocator(),
                 &createInfo,
                 &allocInfo,
                 m_alignment,
@@ -380,7 +380,7 @@ RendererResult VulkanGpuBuffer::Create()
     {
         VULKAN_CHECK_MSG(
             vmaCreateBuffer(
-                g_renderInterface->GetDevice()->GetAllocator(),
+                g_renderInterface->GetDevice()->GetVmaAllocator(),
                 &createInfo,
                 &allocInfo,
                 &m_handle,
@@ -450,7 +450,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             {
                 VulkanBufferDeleter* bufferDeleter = reinterpret_cast<VulkanBufferDeleter*>(ptr);
 
-                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
+                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
             },
             &guard);
 
@@ -523,7 +523,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
 
     VULKAN_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
-            g_renderInterface->GetDevice()->GetAllocator(),
+            g_renderInterface->GetDevice()->GetVmaAllocator(),
             &bufferCreateInfo,
             &allocationCreateInfo,
             &memoryTypeIndex),
@@ -561,7 +561,7 @@ void VulkanGpuBuffer::SetDebugName(Name name)
 
     if (m_vmaAllocation != VK_NULL_HANDLE)
     {
-        vmaSetAllocationName(g_renderInterface->GetDevice()->GetAllocator(), m_vmaAllocation, strName);
+        vmaSetAllocationName(g_renderInterface->GetDevice()->GetVmaAllocator(), m_vmaAllocation, strName);
     }
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };

@@ -58,9 +58,34 @@ struct VSOutput
     nointerpolation uint v_object_index : TEXCOORD3;
 };
 
+#ifdef SKINNING
+
+#include "include/Skeleton.inc"
+DECLARE_SRV_DYNAMIC(Default, SkeletonsBuffer) StructuredBuffer<Skeleton> skeletons;
+
+float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
+{
+    float4x4 skinning = (float4x4)0;
+
+    int index0 = min(bone_indices.x, HYP_MAX_BONES - 1);
+    skinning += bone_weights.x * skeletons[0].bones[index0];
+    int index1 = min(bone_indices.y, HYP_MAX_BONES - 1);
+    skinning += bone_weights.y * skeletons[0].bones[index1];
+    int index2 = min(bone_indices.z, HYP_MAX_BONES - 1);
+    skinning += bone_weights.z * skeletons[0].bones[index2];
+    int index3 = min(bone_indices.w, HYP_MAX_BONES - 1);
+    skinning += bone_weights.w * skeletons[0].bones[index3];
+
+    return skinning;
+}
+
+#endif
+
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
+    
+    float4 position;
 
 #ifdef INSTANCING
     Entity currentEntity = entities[instanceId];
@@ -69,7 +94,13 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float4x4 model_matrix = entity.model_matrix;
 #endif
 
-    float4 position = mul(model_matrix, float4(input.a_position, 1.0));
+#if defined(SKINNING) && defined(HYP_ATTRIBUTE_a_bone_indices) && defined(HYP_ATTRIBUTE_a_bone_weights)
+    float4x4 skinning_matrix = CreateSkinningMatrix((int4)input.a_bone_indices, input.a_bone_weights);
+
+    position = mul(model_matrix, mul(skinning_matrix, float4(input.a_position, 1.0)));
+#else
+    position = mul(model_matrix, float4(input.a_position, 1.0));
+#endif
 
     output.v_position = position.xyz / position.w;
     output.v_texcoord0 = float2(input.a_texcoord0.x, 1.0 - input.a_texcoord0.y);

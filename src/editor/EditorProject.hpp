@@ -52,12 +52,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
-    {
-        return m_uuid;
-    }
-
-    HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
@@ -142,16 +136,13 @@ private:
 
     Name GetNextDefaultProjectName_Impl(const String& defaultProjectName) const;
 
-    HYP_FIELD(Property = "UUID")
-    Uuid m_uuid;
-
     HYP_FIELD(Property = "Name")
     Name m_name;
 
-    HYP_FIELD(Property = "LastSavedTime")
+    HYP_FIELD(Property = "LastSavedTime", Transient)
     Time m_lastSavedTime;
 
-    HYP_FIELD(Property = "FilePath")
+    HYP_FIELD(Property = "FilePath", Transient)
     FilePath m_filepath;
 
     HYP_FIELD(Property = "GameInstance")

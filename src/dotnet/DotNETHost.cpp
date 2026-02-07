@@ -357,21 +357,21 @@ private:
 
         const FilePath currentPath = FilePath::Current();
 
-        Array<Json::Value> probingPaths;
+        Array<JSON::Value> probingPaths;
 
         probingPaths.PushBack(FilePath::Relative(GetLibraryPath(), currentPath));
         probingPaths.PushBack(FilePath::Relative(m_basePath, currentPath));
 
         // clang-format off
-        const Json::Value runtimeConfigJson(Json::JSObject {
+        const JSON::Value runtimeConfigJson(JSON::Object {
             {
-                "runtimeOptions", Json::JSObject({
+                "runtimeOptions", JSON::Object({
                     { "tfm", "net9.0" },
-                    { "framework", Json::JSObject({
+                    { "framework", JSON::Object({
                         { "name", "Microsoft.NETCore.App" },
                         { "version", "9.0.3" } })
                     },
-                    { "additionalProbingPaths", Json::JSArray(probingPaths) }
+                    { "additionalProbingPaths", JSON::JArray(probingPaths) }
                 })
             }
         });

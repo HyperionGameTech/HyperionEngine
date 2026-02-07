@@ -36,6 +36,8 @@ const Class* g_clsObjectBase = nullptr;
 HYP_API extern const Class* g_clsObjectBase;
 #endif
 
+HYP_API extern Pool* g_objectPool;
+
 #pragma region ObjectInitializerGuardBase
 
 ObjectInitializerGuardBase::ObjectInitializerGuardBase(TypedObjPtr ptr)
@@ -98,7 +100,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
                         .managedClass = managedClass });
                 }
 
-                scriptObjectResource->IncRef();
+                scriptObjectResource->AddReader();
             }
             else
             {
@@ -256,6 +258,11 @@ dotnet::ManagedObject* ObjectBase::GetManagedObject() const
     return m_scriptObjectResource ? m_scriptObjectResource->GetManagedObject() : nullptr;
 }
 #endif
+
+Pool* ObjectBase::GetAllocator()
+{
+    return g_objectPool;
+}
 
 #pragma endregion ObjectBase
 

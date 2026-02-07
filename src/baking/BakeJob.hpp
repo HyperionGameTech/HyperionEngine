@@ -73,7 +73,7 @@ public:
         return m_params;
     }
 
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
+    HYP_FORCE_INLINE const UUID& GetUUID() const
     {
         return m_uuid;
     }
@@ -180,7 +180,7 @@ protected:
 
     BakeJobParams m_params;
 
-    Uuid m_uuid;
+    UUID m_uuid;
 
     Array<uint32> m_texelIndices; // flattened texel indices, flattened so that meshes are grouped together
 

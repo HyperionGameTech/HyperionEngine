@@ -8,6 +8,7 @@
 #include <scene/EntityManager.hpp>
 
 #include <scene/components/LightmapElementComponent.hpp>
+#include <scene/components/BoundingBoxComponent.hpp>
 
 #ifdef HYP_EDITOR
 #include <baking/BakerSubsystem.hpp>
@@ -222,12 +223,26 @@ void LightmapVolume::OnAddedToWorld(World* world)
 {
     VolumeBase::OnAddedToWorld(world);
 
+    const BoundingBox worldBounds = GetWorldBounds();
+
     for (Scene* scene : world->GetScenes())
     {
-        for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
+        // No two LightmapVolumes should overlap in the world
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ))
         {
-            if (lightmapElementComponent.lightmapVolumeUuid == m_uuid
-                && !lightmapElementComponent.lightmapVolume.IsValid())
+            LightmapVolume* otherLightmapVolume = static_cast<LightmapVolume*>(entity);
+
+            if (otherLightmapVolume->GetWorldBounds().Overlaps(worldBounds))
+            {
+                HYP_LOG(Scene, Error, "LightmapVolume {} overlaps with other LightmapVolume {}! This could cause incorrect lightmaps to be applied to entities in the scene!",
+                    otherLightmapVolume->GetName(),
+                    GetName());
+            }
+        }
+
+        for (auto [entity, lightmapElementComponent, boundingBoxComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
+        {
+            if (!lightmapElementComponent.lightmapVolume.IsValid() && boundingBoxComponent.worldAabb.Overlaps(worldBounds))
             {
                 lightmapElementComponent.lightmapVolume = MakeWeakRef(this);
 
@@ -245,8 +260,7 @@ void LightmapVolume::OnRemovedFromWorld(World* world)
     {
         for (auto [entity, lightmapElementComponent] : scene->GetEntityManager()->GetEntitySet<LightmapElementComponent>().GetScopedView(DataAccessFlags::ACCESS_RW))
         {
-            if (lightmapElementComponent.lightmapVolumeUuid == m_uuid
-                && lightmapElementComponent.lightmapVolume.IsValid())
+            if (lightmapElementComponent.lightmapVolume.GetUnsafe() == this)
             {
                 lightmapElementComponent.lightmapVolume.Reset();
 

@@ -16,6 +16,8 @@
 
 namespace Hyperion {
 
+extern Pool* g_vulkanPool;
+
 struct VulkanShaderModule
 {
     ShaderModuleType type = ShaderModuleType::None;
@@ -50,21 +52,23 @@ class VulkanShader final : public ShaderBase
     HYP_OBJECT_BODY(VulkanShader);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanShader();
     explicit VulkanShader(const CompiledShader* compiledShader);
     ~VulkanShader() override;
 
-    HYP_FORCE_INLINE const Array<VulkanShaderModule>& GetShaderModules() const
+    HYP_FORCE_INLINE const Array<VulkanShaderModule, VulkanAllocator>& GetShaderModules() const
     {
         return m_shaderModules;
     }
 
-    HYP_FORCE_INLINE const Array<VulkanShaderGroup>& GetShaderGroups() const
+    HYP_FORCE_INLINE const Array<VulkanShaderGroup, VulkanAllocator>& GetShaderGroups() const
     {
         return m_shaderGroups;
     }
 
-    HYP_FORCE_INLINE const Array<VkPipelineShaderStageCreateInfo>& GetVulkanShaderStages() const
+    HYP_FORCE_INLINE const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& GetVulkanShaderStages() const
     {
         return m_vkShaderStages;
     }
@@ -104,10 +108,10 @@ private:
 
     VkPipelineShaderStageCreateInfo CreateShaderStage(const VulkanShaderModule&);
 
-    Array<VulkanShaderModule> m_shaderModules;
-    Array<VulkanShaderGroup> m_shaderGroups;
+    Array<VulkanShaderModule, VulkanAllocator> m_shaderModules;
+    Array<VulkanShaderGroup, VulkanAllocator> m_shaderGroups;
 
-    Array<VkPipelineShaderStageCreateInfo> m_vkShaderStages;
+    Array<VkPipelineShaderStageCreateInfo, VulkanAllocator> m_vkShaderStages;
 };
 
 } // namespace Hyperion

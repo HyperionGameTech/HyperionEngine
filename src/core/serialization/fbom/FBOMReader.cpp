@@ -471,7 +471,7 @@ FBOMMarshalerBase* FBOMReader::GetMarshalForType(const FBOMType& type) const
     return FBOM::GetInstance().GetMarshal(type.name);
 }
 
-FBOMResult FBOMReader::RequestExternalObject(FBOMLoadContext& context, Uuid libraryId, uint32 index, FBOMObject& outObject)
+FBOMResult FBOMReader::RequestExternalObject(FBOMLoadContext& context, UUID libraryId, uint32 index, FBOMObject& outObject)
 {
     const auto it = context.objectLibraries.Find(libraryId);
 
@@ -655,7 +655,7 @@ FBOMResult FBOMReader::ReadObjectLibrary(FBOMLoadContext& context, BufferedReade
     }
     else if (flags & uint8(FBOMObjectLibraryFlags::LOCATION_EXTERNAL))
     {
-        // read file with Uuid as name
+        // read file with UUID as name
 
         // Read the relative path string
         String relativePath;
@@ -1072,7 +1072,7 @@ FBOMResult FBOMReader::ReadObject(
     }
     case FBOMDataLocation::LOC_EXT_REF:
     {
-        Uuid libraryId = Uuid::Invalid();
+        UUID libraryId = UUID::Invalid();
         reader->Read(&libraryId);
         CheckEndianness(libraryId);
 

@@ -50,9 +50,6 @@
 
 namespace Hyperion {
 
-static constexpr SizeType VulkanArenaSize = 4 * 1024 * 1024; // 4 MB for general transient allocations
-TArena<RenderAllocator>* g_vulkanArena;
-
 static constexpr bool UseResetDescriptorPool = false;
 static constexpr uint32 MaxDescriptorPools = 32;
 
@@ -620,9 +617,7 @@ RendererResult VulkanRenderInterface::Initialize()
     const bool enableDebugLayers = false;
 #endif
 
-    g_vulkanArena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, VulkanArenaSize);
-
-    m_instance = PoolNew<VulkanInstance>(*g_renderPool);
+    m_instance = PoolNew<VulkanInstance>(*g_vulkanPool);
     CheckResultOrReturn(m_instance->Initialize(enableDebugLayers));
 
     VulkanDeviceQueue* deviceQueue = GetDevice()->GetPresentQueue();
@@ -688,11 +683,8 @@ RendererResult VulkanRenderInterface::Shutdown()
 
     CheckResult(m_instance->GetDevice()->WaitIdle());
 
-    PoolDelete(*g_renderPool, m_instance);
+    PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
-
-    PoolDelete(*g_renderPool, g_vulkanArena);
-    g_vulkanArena = nullptr;
 
     return {};
 }

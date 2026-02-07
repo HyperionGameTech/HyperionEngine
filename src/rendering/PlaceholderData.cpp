@@ -237,33 +237,38 @@ void PlaceholderData::Create()
         }
     };
 
-    auto loadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
         if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
         {
-            texture = ObjCast<Texture>(asset);
-            Assert(texture != nullptr);
-        }
-        else
-        {
-            InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
+            Handle<TextureAsset> textureAsset = ObjCast<TextureAsset>(asset);
+            Assert(textureAsset != nullptr);
 
-            texture = MakeHandle<Texture>(textureDesc, TextureData { bufferData.first });
+            texture = MakeHandle<Texture>(textureAsset);
             texture->SetName(CreateNameFromDynamicString(*name));
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());
 
             InitObject(texture);
 
-            texture->GetAsset()->SetIsPersistentlyLoaded(true);
+            return;
         }
+
+        InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
+
+        texture = MakeHandle<Texture>(textureDesc, TextureData { bufferData.first });
+        texture->SetName(CreateNameFromDynamicString(*name));
+
+        g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());
+
+        InitObject(texture);
+
+        texture->GetAsset()->SetPersistentRequested(true, /* setFlag */ true);
     };
 
     PlaceholderBufferData placeholderBufferTex2d {};
     PlaceholderBufferData placeholderBufferTex3d {};
     PlaceholderBufferData placeholderBufferCubemap {};
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultTexture2d,
         "Engine/Media/Textures",
         "Placeholder_Texture_2D_1x1",
@@ -279,7 +284,7 @@ void PlaceholderData::Create()
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultTexture3d,
         "Engine/Media/Textures",
         "Placeholder_Texture_3D_1x1x1",
@@ -295,7 +300,7 @@ void PlaceholderData::Create()
         placeholderBufferTex3d,
         &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultCubemap,
         "Engine/Media/Textures",
         "Placeholder_Texture_Cube_1x1",
@@ -311,7 +316,7 @@ void PlaceholderData::Create()
         placeholderBufferCubemap,
         &FillPlaceholderBuffer_Cubemap<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultTexture2dArray,
         "Engine/Media/Textures",
         "Placeholder_Texture_2D_1x1_Array",
@@ -327,7 +332,7 @@ void PlaceholderData::Create()
         placeholderBufferTex2d,
         &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
 
-    loadOrInitTexture(
+    LoadOrInitTexture(
         defaultCubemapArray,
         "Engine/Media/Textures",
         "Placeholder_Texture_Cube_1x1_Array",

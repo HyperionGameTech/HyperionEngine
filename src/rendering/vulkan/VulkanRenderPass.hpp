@@ -20,12 +20,16 @@ namespace Hyperion {
 
 enum class VulkanRenderPassMode : uint8;
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanRenderPass final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanRenderPass);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanRenderPass(
         const RenderTargetDesc& renderTargetDesc,
         VulkanRenderPassMode renderPassMode);
@@ -82,8 +86,8 @@ private:
     RenderTargetDesc m_renderTargetDesc;
     VulkanRenderPassMode m_renderPassMode;
     
-    Array<VkSubpassDependency, InlineAllocator<2>> m_dependencies;
-    Array<VkClearValue, InlineAllocator<2>> m_vkClearValues;
+    Array<VkSubpassDependency, VulkanAllocator> m_dependencies;
+    Array<VkClearValue, VulkanAllocator> m_vkClearValues;
 
     VkRenderPass m_handle;
 

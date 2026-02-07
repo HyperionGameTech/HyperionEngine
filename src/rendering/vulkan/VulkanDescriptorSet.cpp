@@ -464,10 +464,10 @@ void VulkanDescriptorSet::Update(bool force)
         return;
     }
 
-    Array<VkWriteDescriptorSet, VulkanAllocator> vkWriteDescriptorSets;
+    Array<VkWriteDescriptorSet, VulkanTempAllocator> vkWriteDescriptorSets;
     vkWriteDescriptorSets.Resize(m_pendingDescriptors.Size());
 
-    Array<VkWriteDescriptorSetAccelerationStructureKHR, VulkanAllocator> vkWriteDescriptorSetAccelerationStructures;
+    Array<VkWriteDescriptorSetAccelerationStructureKHR, VulkanTempAllocator> vkWriteDescriptorSetAccelerationStructures;
 
     for (SizeType i = 0; i < vkWriteDescriptorSets.Size(); i++)
     {

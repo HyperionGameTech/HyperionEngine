@@ -23,12 +23,16 @@ namespace Hyperion {
 
 enum class VulkanRenderPassMode : uint8;
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanAttachment final : public AttachmentBase
 {
     HYP_OBJECT_BODY(VulkanAttachment);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanAttachment(
         const VulkanGpuImageRef& image,
         const VulkanFramebufferWeakRef& framebuffer,

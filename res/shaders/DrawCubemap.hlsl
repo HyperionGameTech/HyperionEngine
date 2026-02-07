@@ -72,6 +72,7 @@ float4x4 CreateSkinningMatrix(int4 bone_indices, float4 bone_weights)
 
     return skinning;
 }
+
 #endif
 
 float4x4 LookAt(float3 pos, float3 target, float3 up)

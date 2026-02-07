@@ -76,7 +76,7 @@ String NodeTag::ToString() const
 // In practice it only really shows up on UI objects where UIObject holds a reference to a Node.
 
 Node::Node(Name name, const Transform& localTransform, Scene* scene)
-    : m_name(name),
+    : AssetObject(name),
       m_nodeFlags(NodeFlags::DEFAULT),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
@@ -122,16 +122,6 @@ void Node::Init()
     SetReady(true);
 }
 
-void Node::SetName(Name name)
-{
-    if (m_name == name)
-    {
-        return;
-    }
-
-    m_name = name;
-}
-
 bool Node::HasName() const
 {
     return m_name.IsValid();
@@ -154,6 +144,8 @@ void Node::SetNodeFlags(EnumFlags<NodeFlags> flags)
     {
         OnMobilityChanged(isStatic);
     }
+
+    MarkDirty();
 }
 
 bool Node::IsOrHasParent(const Node* node) const
@@ -206,14 +198,14 @@ void Node::SetScene(Scene* scene)
     {
         Scene* previousScene = m_scene;
 
-#ifdef HYP_DEBUG_MODE
-        Assert(
+        AssertDebug(
             previousScene != nullptr,
-            "Previous scene is null when setting new scene for Node %s - should be set to detached world scene by default",
-            m_name.LookupString());
-#endif
-
+            "Previous scene is null when setting new scene for Node {} - should be set to detached world scene by default",
+            m_name);
+        
         m_scene = scene;
+
+        MarkDirty();
 
         for (const Handle<Node>& child : m_childNodes)
         {
@@ -252,7 +244,7 @@ void Node::OnMobilityChanged(bool isStatic)
                 continue;
             }
 
-            child->SetNodeFlags(child->GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+            child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
         }
     }
     else
@@ -264,9 +256,11 @@ void Node::OnMobilityChanged(bool isStatic)
                 continue;
             }
 
-            child->SetNodeFlags(child->GetNodeFlags() | MOBILITY_STATIC_BY_PROXY);
+            child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MOBILITY_STATIC_BY_PROXY);
         }
     }
+
+    MarkDirty();
 }
 
 void Node::OnAttachedToNode(Node* node)
@@ -277,11 +271,11 @@ void Node::OnAttachedToNode(Node* node)
 
     if (m_parentNode->IsStatic())
     {
-        SetNodeFlags(GetNodeFlags() | MOBILITY_STATIC_BY_PROXY);
+        SetNodeFlags(GetNodeFlags() | NodeFlags::MOBILITY_STATIC_BY_PROXY);
     }
     else
     {
-        SetNodeFlags(GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+        SetNodeFlags(GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
     }
 }
 
@@ -289,19 +283,19 @@ void Node::OnDetachedFromNode(Node* node)
 {
     Assert(node != nullptr);
 
-    SetNodeFlags(GetNodeFlags() & ~MOBILITY_STATIC_BY_PROXY);
+    SetNodeFlags(GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
 
     m_parentNode = nullptr;
 }
 
 void Node::OnNodeAttached(Node* node)
 {
-    // Do nothing
+    MarkDirty();
 }
 
 void Node::OnNodeDetached(Node* node)
 {
-    // Do nothing
+    MarkDirty();
 }
 
 void Node::SetChildren(const NodeList& children)
@@ -541,7 +535,7 @@ Handle<Node> Node::Select(ANSIStringView selector) const
 
     char ch;
 
-    char buffer[256];
+    char buffer[256] {};
     uint32 bufferIndex = 0;
 
     const Node* searchNode = this;
@@ -725,6 +719,9 @@ void Node::SetLocalTransform(const Transform& transform)
 
     m_localTransform = transform;
 
+    // @TODO Only if in editor
+    MarkDirty();
+
     UpdateWorldTransform();
 }
 
@@ -766,6 +763,9 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
     }
 
     m_localBounds = aabb;
+    
+    // @TODO Only if in editor
+    MarkDirty();
 }
 
 BoundingBox Node::GetLocalBoundsWithChildren() const
@@ -1160,49 +1160,34 @@ Handle<Node> Node::FindChildByName(StringHash name) const
     return Handle<Node>::empty;
 }
 
-Handle<Node> Node::FindChildByUUID(const Uuid& uuid) const
-{
-    HYP_SCOPE;
-
-    // breadth-first search
-    Queue<const Node*> queue;
-    queue.Push(this);
-
-    while (queue.Any())
-    {
-        const Node* parent = queue.Pop();
-
-        for (const Handle<Node>& child : parent->GetChildren())
-        {
-            if (!child)
-            {
-                continue;
-            }
-
-            if (child->GetUUID() == uuid)
-            {
-                return child;
-            }
-
-            queue.Push(child.Get());
-        }
-    }
-
-    return Handle<Node>::empty;
-}
-
 void Node::AddTag(NodeTag&& value)
 {
     HYP_SCOPE;
 
-    m_tags.Add(std::move(value));
+    if (!m_tags.Contains(value.name))
+    {
+        m_tags.Add(std::move(value));
+
+        // @TODO Only if in editor
+        MarkDirty();
+    }
 }
 
 bool Node::RemoveTag(StringHash key)
 {
     HYP_SCOPE;
 
-    return m_tags.Remove(key);
+    bool removed = m_tags.Remove(key);
+
+    if (removed)
+    {
+        // @TODO Only if in editor
+        MarkDirty();
+
+        return true;
+    }
+    
+    return false;
 }
 
 const NodeTag& Node::GetTag(StringHash key) const

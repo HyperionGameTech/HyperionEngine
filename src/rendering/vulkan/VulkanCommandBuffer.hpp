@@ -29,6 +29,8 @@ class VulkanPipelineBase;
 
 constexpr uint32 MaxVulkanDynamicOffsets = 16;
 
+extern Pool* g_vulkanPool;
+
 struct VulkanCachedDescriptorSetBinding
 {
     VkDescriptorSet descriptorSet;
@@ -72,6 +74,8 @@ class VulkanCommandBuffer final : public CommandBufferBase
     HYP_OBJECT_BODY(VulkanCommandBuffer);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     friend class VulkanFramebuffer;
     friend class VulkanDescriptorSet;
 

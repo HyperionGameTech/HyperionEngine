@@ -1129,20 +1129,20 @@ public:
     HYP_METHOD(Property = "DataSource")
     void SetDataSource(const Handle<UIDataSourceBase>& dataSource);
 
-    /*! \brief Gets the Uuid of the associated data source element (if applicable).
-     *  Otherwise, returns an empty Uuid.
+    /*! \brief Gets the UUID of the associated data source element (if applicable).
+     *  Otherwise, returns an empty UUID.
      *
-     * \return The Uuid of the associated data source element. */
-    HYP_FORCE_INLINE Uuid GetDataSourceElementUUID() const
+     * \return The UUID of the associated data source element. */
+    HYP_FORCE_INLINE UUID GetDataSourceElementUUID() const
     {
         return m_dataSourceElementUuid;
     }
 
-    /*! \brief Sets the Uuid of the associated data source element.
-     *  \internal This is used by a parent UIObject to set the Uuid of the associated data source element.
+    /*! \brief Sets the UUID of the associated data source element.
+     *  \internal This is used by a parent UIObject to set the UUID of the associated data source element.
      *
-     *  \param dataSourceElementUuid The Uuid of the associated data source element. */
-    HYP_FORCE_INLINE void SetDataSourceElementUUID(Uuid dataSourceElementUuid)
+     *  \param dataSourceElementUuid The UUID of the associated data source element. */
+    HYP_FORCE_INLINE void SetDataSourceElementUUID(UUID dataSourceElementUuid)
     {
         m_dataSourceElementUuid = dataSourceElementUuid;
     }
@@ -1416,7 +1416,7 @@ protected:
     DelegateHandler m_dataSourceOnElementRemoveHandler;
     DelegateHandler m_dataSourceOnElementUpdateHandler;
 
-    Uuid m_dataSourceElementUuid;
+    UUID m_dataSourceElementUuid;
 
     EnumFlags<UIObjectUpdateType> m_deferredUpdates;
     EnumFlags<UIObjectUpdateType> m_lockedUpdates;

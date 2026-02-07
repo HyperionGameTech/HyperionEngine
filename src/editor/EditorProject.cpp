@@ -5,6 +5,8 @@
 #include <editor/EditorProject.hpp>
 #include <editor/EditorActionStack.hpp>
 
+#include <engine/Game.hpp>
+
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
@@ -15,8 +17,6 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <engine/Game.hpp>
-
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMDeserializedObject.hpp>
@@ -25,6 +25,7 @@
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/reflection/Class.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -231,22 +232,16 @@ Result EditorProject::SaveAs(FilePath filepath)
         }
     }
 
-    { // register objects under PkgName/Objects
-        Handle<AssetPackage> objectsSubpackage = g_assetManager->GetAssetRegistry()->GetSubpackage(
-            m_package,
-            NAME("Objects"),
-            /* createIfNotExist */ true);
-
-        Assert(objectsSubpackage.IsValid());
-
+    {
         g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-            objectsSubpackage->BuildPackagePath(),
+            m_package->BuildPackagePath(),
             BoxedValue(AnyRef(*this)),
             /* forceRelocation */ false,
             [](const AssetObject& assetObject) -> String
             {
+                // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
                 //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
-                return HYP_FORMAT("Types/{}", assetObject.InstanceClass()->GetName());
+                return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
             });
     }
 
@@ -270,39 +265,37 @@ Result EditorProject::SaveAs(FilePath filepath)
     const Time previousLastSavedTime = m_lastSavedTime;
     m_lastSavedTime = Time::Now();
 
-    const FilePath projectFilepath = filepath / (String(*m_name) + ".hypproj");
+    const FilePath projectFilepath = filepath / (String(*m_name) + ".hypproject");
+    
+    ToJSONOptions opts;
+    opts.skipTransientProperties = true;
+    opts.writeClassNames = true;
 
-    FileByteWriter byteWriter(projectFilepath);
-    HYP_DEFER({ byteWriter.Close(); });
-
-    FBOMWriter writer { FBOMWriterConfig {} };
-    writer.Append(*this);
-
-    if (FBOMResult err = writer.Emit(&byteWriter); !err.IsOK())
+    JSON::Object projectJson;
+    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson, opts))
     {
-        m_lastSavedTime = previousLastSavedTime;
-
-        return HYP_MAKE_ERROR(Error, "Failed to write project to disk at '{}': {}", projectFilepath, err.message);
+        return HYP_MAKE_ERROR(Error, "Failed to save project!");
     }
 
-    Result result;
+    FileByteWriter wri(projectFilepath);
+    HYP_DEFER({ wri.Close(); });
 
+    wri.WriteString(JSON::Value(projectJson).ToString(true));
+    wri.Close();
+
+    m_lastSavedTime = previousLastSavedTime;
+
+    if (Result packageSaveResult = m_package->Save(filepath / *m_name); packageSaveResult.HasError())
     {
-        if (Result packageSaveResult = m_package->Save(filepath / *m_name); packageSaveResult.HasError())
-        {
-            result = packageSaveResult;
-        }
+        return packageSaveResult;
     }
 
-    if (result)
-    {
-        // Update m_filepath when save was successful.
-        m_filepath = filepath;
+    // Update m_filepath when save was successful.
+    m_filepath = filepath;
 
-        OnProjectSaved(HandleFromThis());
-    }
+    OnProjectSaved(MakeStrongRef(this));
 
-    return result;
+    return {};
 }
 
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
@@ -310,8 +303,8 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     HYP_SCOPE;
 
     // registry to load assets into
-    const Handle<AssetRegistry> registry = g_assetManager->GetAssetRegistry();
-    Assert(registry.IsValid());
+    AssetRegistry* registry = g_assetManager->GetAssetRegistry();
+    AssertDebug(registry != nullptr);
 
     FilePath dir;
     FilePath projectFilepath;
@@ -322,7 +315,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
         for (const FilePath& file : filepath.GetAllFilesInDirectory())
         {
-            if (file.EndsWith(".hypproj"))
+            if (file.EndsWith(".hypproject"))
             {
                 projectFilepath = file;
 
@@ -346,43 +339,57 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
         return HYP_MAKE_ERROR(Error, "Project file does not exist: {}", projectFilepath);
     }
 
+    Handle<EditorProject> project;
+
+    {
+        FileBufferedReaderSource source { projectFilepath };
+        BufferedReader reader { &source };
+
+        if (!reader.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open project file: {}", projectFilepath);
+        }
+
+        JSON::ParseResult parseResult = JSON::Parse(String(reader.ReadBytes().ToByteView()));
+
+        if (!parseResult.ok)
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to parse project file at {}: {}", projectFilepath, parseResult.message);
+        }
+
+        JSON::Value projectJson = parseResult.value;
+
+        if (!projectJson.IsObject())
+        {
+            return HYP_MAKE_ERROR(Error, "Project file data is invalid!");
+        }
+
+        BoxedValue boxed;
+        if (!ObjectFromJSON(projectJson.AsObject(), EditorProject::StaticClass(), boxed))
+        {
+            return HYP_MAKE_ERROR(Error, "Project file data could not be imported. Check the log for details.");
+        }
+
+        Assert(boxed.Is<Handle<EditorProject>>());
+
+        project = std::move(boxed.Get<Handle<EditorProject>>());
+    }
+
     const FilePath packageDir = dir / FilePath(projectFilepath.StripExtension()).Basename();
     const FilePath packageManifestPath = packageDir / "PackageManifest.json";
 
-    TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true, /* forceLoad */ true).Await();
+    TResult<Handle<AssetPackage>> loadPackageResult = registry->LoadPackageFromManifest(packageManifestPath, /* loadSubpackages */ true, /* forceLoad */ true);
 
     if (loadPackageResult.HasError())
     {
         return loadPackageResult.GetError();
     }
 
-    Handle<AssetPackage> rootPackage = std::move(*loadPackageResult);
+    project->m_package = std::move(*loadPackageResult);
 
-    Handle<EditorProject> project;
-
-    {
-        FBOMObject projectObject;
-
-        FBOMReader reader {
-            FBOMReaderConfig { .basePath = dir }
-        };
-
-        if (FBOMResult err = reader.LoadFromFile(projectFilepath, projectObject); !err.IsOK())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to read project data: {}", err.message);
-        }
-
-        Optional<Handle<EditorProject>&> projectOpt = projectObject.m_deserializedObject->TryGet<Handle<EditorProject>>();
-
-        if (!projectOpt)
-        {
-            return HYP_MAKE_ERROR(Error, "Internal error: Deserialized object is not an EditorProject");
-        }
-
-        project = *projectOpt;
-    }
-
-    project->m_package = rootPackage;
+    // set transient properties
+    project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();
+    project->m_filepath = projectFilepath;
 
     InitObject(project);
 

@@ -169,7 +169,7 @@ EngineStats::EngineStats()
 {
     // init pool
     AssertDebug(g_statPool == nullptr);
-    g_statPool = new Pool(StatPoolBlockSize, PF_THREAD_SAFE, ThreadId::Invalid());
+    g_statPool = new Pool(StatPoolBlockSize);
 
     m_impl = MakePimpl<EngineStatsRecorderImpl>();
 

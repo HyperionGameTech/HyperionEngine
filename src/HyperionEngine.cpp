@@ -44,7 +44,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/ComponentInterface.hpp>
 
@@ -74,11 +74,6 @@ HYP_DECLARE_LOG_CHANNEL(Engine);
 #define HYP_ENGINE_MEMORY_IMPLEMENTATION 1
 #include <engine/EngineMemory.inc>
 #undef HYP_ENGINE_MEMORY_IMPLEMENTATION
-
-HYP_EXPORT Pool* GetCurrentFramePool()
-{
-    return g_framePools[GetRingIndex()];
-}
 
 #pragma endregion Memory Pools
 
@@ -241,14 +236,16 @@ static void InitLogger()
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
 
-static void LoadShaderPropertyDatabase()
+static void LoadShaderPropertyDictionary()
 {
+    InitShaderPropertyDictionary();
+
     FileBufferedReaderSource source { GetCacheDirectory() / "ShaderProperties.bin" };
     BufferedByteReader br { &source };
 
     if (br.IsOpen())
     {
-        ReadShaderPropertyDatabase(br);
+        ReadShaderPropertyDictionary(br);
     }
 }
 
@@ -263,7 +260,7 @@ extern "C"
         }
 
         SetCurrentThreadId(g_mainThread);
-
+        
         InitClassDecls();
 
         if (!CoreApi::Initialize(argc, argv))
@@ -273,10 +270,11 @@ extern "C"
 
         InitThreads();
         InitMemoryPools();
-        InitLogger();
         InitNameRegistry();
 
         ClassRegistry::GetInstance().Initialize();
+
+        InitLogger();
 
         const FilePath basePath = FilePath(CoreApi::GetCommandLineArguments().GetCommand()).BasePath();
         CoreApi::SetExecutablePath(basePath);
@@ -317,7 +315,7 @@ extern "C"
         g_materialCache = new MaterialCache;
         g_safeDeleter = new SafeDeleter;
 
-        LoadShaderPropertyDatabase();
+        LoadShaderPropertyDictionary();
 
         g_shaderCompiler = new ShaderCompiler;
         if (!g_shaderCompiler->LoadShaderDefinitions())
@@ -457,12 +455,6 @@ extern "C"
 
         delete g_assetPool;
         g_assetPool = nullptr;
-
-        for (uint32 i = 0; i < RingBufferDepth; i++)
-        {
-            delete g_framePools[i];
-            g_framePools[i] = nullptr;
-        }
 
         delete g_renderPool;
         g_renderPool = nullptr;

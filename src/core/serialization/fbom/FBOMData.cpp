@@ -245,7 +245,7 @@ void FBOMData::SetBytes(SizeType count, const void* data)
     m_bytes.SetData(count, data);
 }
 
-FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) const
+FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) const
 {
     if (IsInt8())
     {
@@ -256,7 +256,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -270,7 +270,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -284,7 +284,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -298,7 +298,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -312,7 +312,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -326,7 +326,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -340,7 +340,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -354,7 +354,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -368,7 +368,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -382,7 +382,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSNumber(value);
+        outJson = JSON::Number(value);
 
         return {};
     }
@@ -396,7 +396,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSBoolean(value);
+        outJson = value;
 
         return {};
     }
@@ -410,7 +410,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        outJson = Json::JSString(std::move(str));
+        outJson = JSON::JString(std::move(str));
 
         return {};
     }
@@ -424,11 +424,11 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        Json::JSArray arrayJson;
+        JSON::JArray arrayJson;
 
         for (SizeType i = 0; i < array.Size(); i++)
         {
-            Json::Value elementJson;
+            JSON::Value elementJson;
 
             if (FBOMResult err = array.GetElement(i).ToJSON(context, elementJson))
             {
@@ -452,11 +452,11 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
             return err;
         }
 
-        Json::JSObject objectJson;
+        JSON::Object objectJson;
 
         for (const auto& it : object.GetProperties())
         {
-            Json::Value valueJson;
+            JSON::Value valueJson;
 
             if (FBOMResult err = it.second.ToJSON(context, valueJson))
             {
@@ -474,7 +474,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, Json::Value& outJson) cons
     return { FBOMResult::FBOM_ERR, "Data could not be converted to JSON" };
 }
 
-FBOMData FBOMData::FromJSON(const Json::Value& jsonValue)
+FBOMData FBOMData::FromJSON(const JSON::Value& jsonValue)
 {
     if (jsonValue.IsNumber())
     {
@@ -504,14 +504,14 @@ FBOMData FBOMData::FromJSON(const Json::Value& jsonValue)
     {
         FBOMArray array;
 
-        const Json::JSArray& jsonArray = jsonValue.AsArray();
+        const JSON::JArray& jsonArray = jsonValue.AsArray();
 
         if (jsonArray.Any())
         {
             Array<FBOMData> elements;
             elements.Reserve(jsonArray.Size());
 
-            for (const Json::Value& element : jsonArray)
+            for (const JSON::Value& element : jsonArray)
             {
                 elements.EmplaceBack(FBOMData::FromJSON(element));
             }
@@ -526,11 +526,11 @@ FBOMData FBOMData::FromJSON(const Json::Value& jsonValue)
     {
         FBOMObject object;
 
-        const Json::JSObject& jsonObject = jsonValue.AsObject();
+        const JSON::Object& jsonObject = jsonValue.AsObject();
 
         if (jsonObject.Any())
         {
-            for (const Pair<Json::JSString, Json::Value>& pair : jsonObject)
+            for (const Pair<JSON::JString, JSON::Value>& pair : jsonObject)
             {
                 object.SetProperty(pair.first.ToAnsi(), FBOMData::FromJSON(pair.second));
             }
@@ -542,7 +542,7 @@ FBOMData FBOMData::FromJSON(const Json::Value& jsonValue)
     return FBOMData();
 }
 
-FBOMData::FBOMData(const Json::Value& jsonValue)
+FBOMData::FBOMData(const JSON::Value& jsonValue)
     : FBOMData(FromJSON(jsonValue))
 {
 }

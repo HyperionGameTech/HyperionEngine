@@ -636,16 +636,10 @@ public:
     Handle<UIObject> Create(UIObject* parent, const WeakHandle<Scene>& value) const
     {
         String sceneName = "Invalid";
-        Uuid sceneUuid = Uuid::Invalid();
 
         if (Handle<Scene> scene = value.Lock())
         {
             sceneName = scene->GetName().LookupString();
-            sceneUuid = scene->GetUUID();
-        }
-        else
-        {
-            sceneUuid = Uuid();
         }
 
         Handle<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
@@ -1199,26 +1193,5 @@ public:
 };
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(AssetPackage, AssetPackageUIElementFactory);
-
-class AssetObjectUIElementFactory : public UIElementFactory<AssetObject>
-{
-public:
-    Handle<UIObject> Create(UIObject* parent, const AssetObject& value) const
-    {
-        Handle<UIText> text = parent->CreateUIObject<UIText>();
-        text->SetText(value.GetName().LookupString());
-
-        parent->SetNodeTag(NodeTag(NAME("AssetObject"), value.GetUUID()));
-
-        return text;
-    }
-
-    void Update(UIObject* uiObject, const AssetObject& value) const
-    {
-        uiObject->SetText(value.GetName().LookupString());
-    }
-};
-
-HYP_DEFINE_UI_ELEMENT_FACTORY(AssetObject, AssetObjectUIElementFactory);
 
 } // namespace Hyperion

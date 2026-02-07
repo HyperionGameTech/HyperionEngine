@@ -8,7 +8,7 @@
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/StaticField.hpp>
-#include <core/reflection/HypDataJSONHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/utilities/Format.hpp>
 #include <core/reflection/TypeInfo.hpp>
@@ -32,13 +32,13 @@ static const ConfigurationValue s_invalidConfigValue {};
 #pragma region ConfigurationTable
 
 ConfigurationTable::ConfigurationTable()
-    : m_rootObject(Json::JSObject())
+    : m_rootObject(JSON::Object())
 {
 }
 
 ConfigurationTable::ConfigurationTable(const String& configName, const String& subobjectPath)
     : m_subobjectPath(subobjectPath.Any() ? subobjectPath : Optional<String> {}),
-      m_rootObject(Json::JSObject()),
+      m_rootObject(JSON::Object()),
       m_name(configName)
 {
     // try to read from config file
@@ -124,7 +124,7 @@ FilePath ConfigurationTable::GetFilePath() const
     return configPath;
 }
 
-Result ConfigurationTable::Read(Json::Value& outValue) const
+Result ConfigurationTable::Read(JSON::Value& outValue) const
 {
     const FilePath configPath = GetFilePath();
 
@@ -141,7 +141,7 @@ Result ConfigurationTable::Read(Json::Value& outValue) const
         return HYP_MAKE_ERROR(Error, "Failed to open configuration file at {}", configPath);
     }
 
-    Json::ParseResult parseResult = Json::Parse(String(reader.ReadBytes().ToByteView()));
+    JSON::ParseResult parseResult = JSON::Parse(String(reader.ReadBytes().ToByteView()));
 
     if (!parseResult.ok)
     {
@@ -153,7 +153,7 @@ Result ConfigurationTable::Read(Json::Value& outValue) const
     return {};
 }
 
-Result ConfigurationTable::Write(const Json::Value& value) const
+Result ConfigurationTable::Write(const JSON::Value& value) const
 {
     const String valueString = value.ToString(true);
 
@@ -171,20 +171,20 @@ ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
         return *this;
     }
 
-    const Json::Value& otherSubobject = other.GetSubobject();
+    const JSON::Value& otherSubobject = other.GetSubobject();
 
     if (!otherSubobject.IsObject())
     {
         return *this;
     }
 
-    Json::Value& targetObject = other.m_subobjectPath.HasValue()
+    JSON::Value& targetObject = other.m_subobjectPath.HasValue()
         ? *m_rootObject.Get(*other.m_subobjectPath, /* createIntermediateObjects */ true)
         : m_rootObject;
 
     if (!targetObject.IsObject())
     {
-        targetObject = Json::JSObject();
+        targetObject = JSON::Object();
     }
 
     targetObject.AsObject().MergeDeep(otherSubobject.AsObject());
@@ -223,9 +223,9 @@ bool ConfigurationTable::Save()
     return true;
 }
 
-Json::Value& ConfigurationTable::GetSubobject()
+JSON::Value& ConfigurationTable::GetSubobject()
 {
-    Json::Value* subobject = &m_rootObject;
+    JSON::Value* subobject = &m_rootObject;
 
     if (m_subobjectPath.HasValue())
     {
@@ -233,16 +233,16 @@ Json::Value& ConfigurationTable::GetSubobject()
 
         if (!subobject->IsObject())
         {
-            *subobject = Json::JSObject();
+            *subobject = JSON::Object();
         }
     }
 
     return *subobject;
 }
 
-const Json::Value& ConfigurationTable::GetSubobject() const
+const JSON::Value& ConfigurationTable::GetSubobject() const
 {
-    const Json::Value* subobject = &m_rootObject;
+    const JSON::Value* subobject = &m_rootObject;
 
     if (m_subobjectPath.HasValue())
     {
@@ -250,7 +250,7 @@ const Json::Value& ConfigurationTable::GetSubobject() const
 
         if (!subobject->IsObject())
         {
-            subobject = &Json::EmptyObject();
+            subobject = &JSON::EmptyObject();
         }
     }
 
@@ -307,18 +307,18 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
     HYP_CORE_ASSERT(cls != nullptr);
     HYP_CORE_ASSERT(ptr != nullptr);
 
-    BoxedValue targetHypData = BoxedValue(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
+    BoxedValue target = BoxedValue(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
 
-    if (!JSONToObject(GetSubobject().AsObject(), cls, targetHypData))
+    if (!ObjectFromJSON(GetSubobject().AsObject(), cls, target))
     {
         HYP_LOG(Config, Error, "Failed to deserialize JSON to instance of Class \"{}\"", cls->GetName());
 
         return false;
     }
 
-    Json::JSObject jsonObject;
+    JSON::Object jsonObject;
 
-    if (ObjectToJSON(cls, targetHypData, jsonObject))
+    if (ObjectToJSON(cls, target, jsonObject))
     {
         jsonObject.Merge(GetSubobject().AsObject());
 

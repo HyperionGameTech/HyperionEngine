@@ -155,7 +155,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         }
 
         sor = AllocateResource<ScriptObjectResource>(scriptComponent.nativeObject);
-        sor->IncRef();
+        sor->AddReader();
 
         const Class* nativeClass = scriptComponent.nativeObject->InstanceClass();
         AssertDebug(nativeClass != nullptr);
@@ -203,7 +203,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 FreeResource<ScriptObjectResource>(sor);
                 sor = nullptr;
 
-                ResourceGuard resGuard(*scriptAsset->GetResource());
+                ResourceGuard resGuard = scriptAsset->GetResource()->GetReadScope();
 
                 if (!scriptComponent.assembly)
                 {
@@ -255,7 +255,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     Assert(object != nullptr);
 
                     sor = AllocateResource<ScriptObjectResource>(object, classPtr);
-                    sor->IncRef();
+                    sor->AddReader();
 
                     HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
 
@@ -298,7 +298,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                     if (scriptComponent.scriptObjectResource)
                     {
-                        scriptComponent.scriptObjectResource->DecRef();
+                        scriptComponent.scriptObjectResource->ReleaseReader();
 
                         FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
                         scriptComponent.scriptObjectResource = nullptr;
@@ -321,7 +321,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 FreeResource<ScriptObjectResource>(sor);
                 sor = nullptr;
 
-                ResourceGuard resGuard(*scriptAsset->GetResource());
+                ResourceGuard resGuard = scriptAsset->GetResource()->GetReadScope();
 
                 // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
                 FilePath path = FilePath::Join(CoreApi::GetExecutablePath(), scriptData->path.Data());
@@ -369,7 +369,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 hs.Run(instance);
 
                 sor = AllocateResource<ScriptObjectResource>(instance, BoxedValue());
-                sor->IncRef();
+                sor->AddReader();
 
                 if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
                 {
@@ -387,7 +387,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 {
                     if (scriptComponent.scriptObjectResource)
                     {
-                        scriptComponent.scriptObjectResource->DecRef();
+                        scriptComponent.scriptObjectResource->ReleaseReader();
 
                         FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
                         scriptComponent.scriptObjectResource = nullptr;
@@ -435,7 +435,7 @@ void EntityScripting::DeinitEntityScriptComponent(Entity* entity, ScriptComponen
     {
         InvokeScriptMethod("Destroy", scriptComponent);
 
-        sor->DecRef();
+        sor->ReleaseReader();
 
         FreeResource<ScriptObjectResource>(sor);
         sor = nullptr;

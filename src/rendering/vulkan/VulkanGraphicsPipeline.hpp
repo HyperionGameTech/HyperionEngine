@@ -43,12 +43,16 @@ class VulkanRenderPass;
 using VulkanRenderPassRef = Handle<VulkanRenderPass>;
 using VulkanRenderPassWeakRef = WeakHandle<VulkanRenderPass>;
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanGraphicsPipeline final : public GraphicsPipelineBase, public VulkanPipelineBase
 {
     HYP_OBJECT_BODY(VulkanGraphicsPipeline);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanGraphicsPipeline();
     explicit VulkanGraphicsPipeline(const VulkanShaderRef& shader);
     ~VulkanGraphicsPipeline();

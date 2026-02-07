@@ -267,19 +267,25 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
 
                 continue;
             }
+            
+            boneDesc.parentName = CreateNameFromDynamicString(item.parentName);
 
-            if (rootBone->GetName() == StringHash(item.parentName))
+            if (rootBone->GetBoneName() == item.parentName)
             {
-                boneDesc.parentName = rootBone->GetName();
-
                 rootBone->AddChild(bone);
 
                 continue;
             }
 
-            if (Handle<Bone> parentBone = ObjCast<Bone>(rootBone->FindChildByName(StringHash(item.parentName))); parentBone.IsValid())
+            auto parentBoneIt = std::find_if(rootBone->GetDescendants().begin(), rootBone->GetDescendants().end(), [parentName = item.parentName](Node* node)
+                {
+                    return node->IsA(Bone::StaticClass())
+                        && static_cast<Bone*>(node)->GetBoneName() == parentName;
+                });
+
+            if (parentBoneIt != rootBone->GetDescendants().end())
             {
-                boneDesc.parentName = parentBone->GetName();
+                Bone* parentBone = static_cast<Bone*>(*parentBoneIt);
 
                 parentBone->AddChild(bone);
 

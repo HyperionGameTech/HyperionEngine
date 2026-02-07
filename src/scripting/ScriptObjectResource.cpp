@@ -283,7 +283,7 @@ HYP_API void Object_IncScriptObjectRef(ObjectBase* ptr)
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
         scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
     {
-        scriptObjectResource->IncRef();
+        scriptObjectResource->AddReader();
     }
 }
 
@@ -292,7 +292,7 @@ HYP_API void Object_DecScriptObjectRef(ObjectBase* ptr)
     if (ScriptObjectResource* scriptObjectResource = ptr->GetScriptObjectResource();
         scriptObjectResource && scriptObjectResource->GetScriptLanguageMask() & (1u << uint32(ScriptLanguage::CSharp)))
     {
-        scriptObjectResource->DecRef();
+        scriptObjectResource->ReleaseReader();
     }
 }
 

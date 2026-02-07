@@ -21,12 +21,16 @@ namespace Hyperion {
 
 struct VulkanDeviceQueue;
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanFrame final : public FrameBase
 {
     HYP_OBJECT_BODY(VulkanFrame);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanFrame();
     explicit VulkanFrame(uint32 frameIndex);
 
@@ -68,7 +72,7 @@ private:
     using VulkanRenderPassesSet = HashSet<
         VulkanRenderPass*,
         &KeyBy_Identity<VulkanRenderPass*>,
-        NodeAllocator<VulkanAllocator>>;
+        NodeAllocator<VulkanTempAllocator>>;
 
     struct VulkanSwapchainData
     {
@@ -81,7 +85,7 @@ private:
     VulkanFence* m_queueSubmitFence;
     VulkanRenderPassesSet m_renderPasses;
 
-    HashMap<const VulkanSwapchain*, VulkanSwapchainData> m_swapchainData;
+    HashMap<const VulkanSwapchain*, VulkanSwapchainData, PooledNodeAllocator<VulkanAllocator>> m_swapchainData;
 };
 
 } // namespace Hyperion

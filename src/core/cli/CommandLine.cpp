@@ -46,11 +46,11 @@ static void AppendCommandLineArgumentValue(
             }
             else
             {
-                Json::JSArray array;
+                JSON::JArray array;
                 array.PushBack(std::move(it->second));
                 array.PushBack(std::move(value));
 
-                it->second = Json::Value(std::move(array));
+                it->second = JSON::Value(std::move(array));
             }
         }
         else
@@ -77,7 +77,7 @@ static void AppendCommandLineArgumentValue(
 
 const CommandLineArgumentValue& CommandLineArguments::operator[](UTF8StringView key) const
 {
-    static const CommandLineArgumentValue emptyValue = Json::JSUndefined();
+    static const CommandLineArgumentValue emptyValue = JSON::JSUndefined();
 
     const auto it = Find(key);
 
@@ -114,15 +114,15 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
 {
     const CommandLineArgumentType type = definition.type;
 
-    Json::ParseResult parseResult = Json::Parse(str);
-    Json::Value value = std::move(parseResult.value);
+    JSON::ParseResult parseResult = JSON::Parse(str);
+    JSON::Value value = std::move(parseResult.value);
 
     if (!parseResult.ok)
     {
         // If string, allow unquoted on parse error
         if (type == CommandLineArgumentType::STRING)
         {
-            return Json::Value(Json::JSString(str));
+            return JSON::Value(JSON::JString(str));
         }
 
         HYP_LOG(CommandLine, Error, "Failed to parse argument \"{}\": {}", str, parseResult.message);
@@ -133,19 +133,19 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
     switch (type)
     {
     case CommandLineArgumentType::STRING:
-        return Json::Value(value.ToString());
+        return JSON::Value(value.ToString());
     case CommandLineArgumentType::INTEGER:
     {
         int32 valueInt;
 
         if (value.IsNumber())
         {
-            return Json::Value(value.ToInt32());
+            return JSON::Value(value.ToInt32());
         }
 
         if (!StringUtil::Parse(value.ToString(), &valueInt))
         {
-            return Json::Value(valueInt);
+            return JSON::Value(valueInt);
         }
 
         return HYP_MAKE_ERROR(Error, "Failed to parse integer argument");
@@ -156,21 +156,21 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
 
         if (value.IsNumber())
         {
-            return Json::Value(value.ToDouble());
+            return JSON::Value(value.ToDouble());
         }
 
         if (!StringUtil::Parse(value.ToString(), &valueDouble))
         {
-            return Json::Value(valueDouble);
+            return JSON::Value(valueDouble);
         }
 
         return HYP_MAKE_ERROR(Error, "Failed to parse float argument");
     }
     case CommandLineArgumentType::BOOLEAN:
-        return Json::Value(value.ToBool());
+        return JSON::Value(value.ToBool());
     case CommandLineArgumentType::ENUM:
     {
-        Json::JSString stringValue = value.ToString();
+        JSON::JString stringValue = value.ToString();
 
         const Array<String>* enumValues = definition.enumValues.TryGet();
 
@@ -184,7 +184,7 @@ TResult<CommandLineArgumentValue> CommandLineArguments::ParseArgumentValue(const
             return HYP_MAKE_ERROR(Error, "Not a valid value for argument");
         }
 
-        return Json::Value(std::move(stringValue));
+        return JSON::Value(std::move(stringValue));
     }
     }
 

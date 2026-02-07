@@ -112,7 +112,8 @@ BakerBase::BakerBase(LightmapperConfig&& config, ObjectBase* source, const Handl
       m_numJobs(0),
       m_initialNumJobs(0),
       m_updateTimer { 1.0 }, // every second
-      m_lastProgressPercent(0.0)
+      m_lastProgressPercent(0.0),
+      m_isComplete(false)
 {
     AssertDebug(m_source != nullptr);
 }
@@ -156,11 +157,6 @@ uint32 BakerBase::MaxTexelsPerFrame() const
 
         return dimensions.Volume() * NumTexelSamples();
     }
-}
-
-bool BakerBase::IsComplete() const
-{
-    return m_numJobs == 0;
 }
 
 void BakerBase::Initialize()
@@ -434,6 +430,8 @@ void BakerBase::DispatchJobs()
         AddJob(std::move(job));
     }
 
+    m_isComplete = false;
+
     m_initialNumJobs = m_numJobs;
 
     m_bakingClock.Start();
@@ -458,6 +456,8 @@ void BakerBase::Update(float delta)
 
     if (m_queue.Empty())
     {
+        OnCompleted();
+
         return;
     }
 
@@ -497,8 +497,6 @@ void BakerBase::Update(float delta)
 
             if (m_queue.Empty())
             {
-                OnCompleted();
-
                 return;
             }
 
@@ -629,6 +627,7 @@ void BakerBase::HandleCompletedJob(BakeJobBase* job)
 void BakerBase::OnCompleted()
 {
     m_bakingClock.Stop();
+    m_isComplete = true;
 
     OnCompleted_Internal();
 

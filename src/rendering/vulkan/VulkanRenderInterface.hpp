@@ -89,7 +89,7 @@ HYP_API extern VulkanDynamicFunctions* g_vulkanDynamicFunctions;
 class IDummyVulkanSurfaceContext
 {
 public:
-    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+    HYP_DEF_POOL_NEW_DELETE(g_vulkanPool);
 
     virtual ~IDummyVulkanSurfaceContext() = default;
 };

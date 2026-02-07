@@ -124,7 +124,7 @@ public:
         ShowOpenFileDialog(
             "Select the project to open",
             dir,
-            { "hypproj" },
+            { "hypproject" },
             /* allowMultiple */ false, /* allowDirectories */ true,
             [weakSubsystem = MakeWeakRef(subsystem)](TResult<Array<FilePath>>&& result) mutable
             {

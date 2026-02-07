@@ -4,7 +4,6 @@
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
-#include <core/containers/HashSet.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -20,14 +19,16 @@
 
 #include <core/Name.hpp>
 
-#include <scene/EntityTag.hpp>
-
 #include <core/math/Transform.hpp>
 #include <core/math/Ray.hpp>
 #include <core/math/BoundingBox.hpp>
 
 #include <core/HashCode.hpp>
 #include <core/Types.hpp>
+
+#include <scene/EntityTag.hpp>
+
+#include <asset/AssetObject.hpp>
 
 namespace Hyperion {
 
@@ -38,7 +39,7 @@ class Entity;
 class EditorDelegates;
 
 HYP_ENUM()
-enum NodeFlags : uint32
+enum class NodeFlags : uint32
 {
     NONE = 0x0,
 
@@ -79,7 +80,7 @@ struct NodeTag
         Vec2u, Vec3u, Vec4u,
         String,
         Name,
-        Uuid>;
+        UUID>;
 
     HYP_FIELD(Property = "Name", Serialize = true)
     Name name;
@@ -305,7 +306,7 @@ public:
 };
 
 HYP_CLASS(PostLoad = "Node_OnPostLoad")
-class HYP_API Node : public ObjectBase
+class HYP_API Node : public AssetObject
 {
     friend class Scene;
     friend class Entity;
@@ -486,22 +487,6 @@ public:
 
     virtual ~Node() override;
 
-    /*! \brief Get the Uuid of the Node. */
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Uuid& GetUUID() const
-    {
-        return m_uuid;
-    }
-
-    HYP_METHOD(Property = "Name", Serialize, EditOrder = 1)
-    HYP_FORCE_INLINE Name GetName() const
-    {
-        return m_name;
-    }
-
-    HYP_METHOD(Property = "Name")
-    void SetName(Name name);
-
     HYP_METHOD()
     bool HasName() const;
 
@@ -565,7 +550,7 @@ public:
      *   \param aabb The bounding box to set
      *   \note Calls to RefreshEntityTransform() will override this value. */
     HYP_METHOD(Property = "LocalBounds")
-    void SetLocalBounds(const BoundingBox& aabb);
+    virtual void SetLocalBounds(const BoundingBox& aabb);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
      *  \param node The Node to be added as achild of this Node
@@ -817,10 +802,6 @@ public:
     HYP_METHOD()
     Handle<Node> FindChildByName(StringHash name) const;
 
-    /*! \brief Search child nodes (breadth-first) until a node with the given Uuid is found. */
-    HYP_METHOD()
-    Handle<Node> FindChildByUUID(const Uuid& uuid) const;
-
     HYP_FORCE_INLINE const NodeTagSet& GetTags() const
     {
         return m_tags;
@@ -865,9 +846,6 @@ protected:
     HYP_METHOD(Property = "Children", NoScriptBindings, Serialize)
     void SetChildren(const NodeList& children); // use setter so we can manage parent pointers
 
-    HYP_FIELD(Property = "Name")
-    Name m_name;
-
     HYP_FIELD(Property = "NodeFlags", Serialize)
     EnumFlags<NodeFlags> m_nodeFlags;
 
@@ -893,9 +871,6 @@ protected:
 
     HYP_FIELD(Property = "NodeTags", Serialize)
     NodeTagSet m_tags;
-
-    HYP_FIELD(Property = "Uuid", EditHide, Serialize)
-    Uuid m_uuid;
 };
 
 struct NodeUnlockTransformScope

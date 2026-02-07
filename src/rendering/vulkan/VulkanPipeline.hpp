@@ -10,11 +10,15 @@
 namespace Hyperion {
 
 template <class PipelineType>
-Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts(const PipelineType& pipeline);
+Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts(const PipelineType& pipeline);
+
+extern Pool* g_vulkanPool;
 
 class VulkanPipelineBase
 {
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanPipelineBase();
     ~VulkanPipelineBase();
 

@@ -212,7 +212,7 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
     if (m_name.Empty())
     {
-        if (Json::Value configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
+        if (JSON::Value configAppName = CoreApi::GetGlobalConfig().Get("App.Name"))
         {
             m_name = CoreApi::GetGlobalConfig().Get("App.Name").ToString().ToAnsi();
         }
@@ -1135,6 +1135,8 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 {
     Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
     AssertDebug(window != nullptr);
+
+    HYP_LOG_TEMP("Handle window event {}", msg);
 
     Event event;
     if (HandleWindowEvent(window, event, hWnd, msg, wParam, lParam))

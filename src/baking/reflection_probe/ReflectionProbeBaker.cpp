@@ -71,9 +71,9 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     Texture::GenerateMipmaps(textureDesc, textureData);
 
     Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, std::move(textureData));
-    cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetUUID()));
+    cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetName()));
 
-    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", cubemap->GetAsset()).Await(); result.HasError())
+    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", cubemap->GetAsset()); result.HasError())
     {
         HYP_LOG(Lightmap, Error, "Failed to register radiance texture '{}' with asset registry: {}", cubemap->GetName(), result.GetError().GetMessage());
     }

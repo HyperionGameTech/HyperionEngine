@@ -146,7 +146,7 @@ FilePath AssetManager::GetBasePath() const
 {
     Mutex::Guard guard(m_assetCollectorsMutex);
 
-    if (Handle<AssetCollector> assetCollector = m_baseAssetCollector.Lock())
+    if (Handle<AssetCollector> assetCollector = m_baseAssetCollector.Lock(); assetCollector.IsValid())
     {
         return assetCollector->GetBasePath();
     }
@@ -350,7 +350,7 @@ void AssetManager::Init()
     RegisterDefaultLoaders();
 
     m_assetRegistry = MakeHandle<AssetRegistry>();
-    InitObject(m_assetRegistry);
+    m_assetRegistry->Initialize();
 
     m_threadPool->Start();
 

@@ -5,19 +5,22 @@
 namespace Hyperion {
 namespace memory {
 
+template <class AllocatorType, AllocatorType** GlobalInstance>
+struct AllocatorInstance;
+
 class Pool;
 
 template <class AllocatorType>
 class TArena;
 
-template <class AllocatorType, AllocatorType** GlobalInstance>
-struct AllocatorInstance;
+using Arena = TArena<DynamicAllocator>;
 
 } // namespace memory
 
 using memory::AllocatorInstance;
 using memory::Pool;
 using memory::TArena;
+using memory::Arena;
 
 namespace threading {
 class ThreadId;

@@ -53,7 +53,7 @@ VulkanGpuImage::~VulkanGpuImage()
         {
             Assert(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
 
-            vmaDestroyImage(g_renderInterface->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
         }
 
@@ -354,7 +354,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         uint32_t memTypeIndex;
 
         VkResult res = vmaFindMemoryTypeIndexForImageInfo(
-            g_renderInterface->GetDevice()->GetAllocator(),
+            g_renderInterface->GetDevice()->GetVmaAllocator(),
             &imageInfo, &allocInfo, &memTypeIndex);
 
         VULKAN_CHECK(res);
@@ -364,7 +364,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         poolCreateInfo.pMemoryAllocateNext = (void*)&ExportAllocInfo;
 
         VmaPool pool;
-        res = vmaCreatePool(g_renderInterface->GetDevice()->GetAllocator(), &poolCreateInfo, &pool);
+        res = vmaCreatePool(g_renderInterface->GetDevice()->GetVmaAllocator(), &poolCreateInfo, &pool);
         VULKAN_CHECK(res); //// \todo Have to destroy this pool later!
 
         allocInfo.pool = pool;
@@ -377,7 +377,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     VULKAN_CHECK_MSG(
         vmaCreateImage(
-            g_renderInterface->GetDevice()->GetAllocator(),
+            g_renderInterface->GetDevice()->GetVmaAllocator(),
             &imageInfo,
             &allocInfo,
             &m_handle,
@@ -428,7 +428,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         // destroy and recreate
         if (m_allocation != VK_NULL_HANDLE)
         {
-            vmaDestroyImage(g_renderInterface->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
         }
 
@@ -461,7 +461,7 @@ auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
     getHandleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
 
     VmaAllocationInfo allocInfo;
-    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
+    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetVmaAllocator(), m_allocation, &allocInfo);
     getHandleInfo.memory = allocInfo.deviceMemory;
 
     HANDLE handle;
@@ -1024,7 +1024,7 @@ void VulkanGpuImage::SetDebugName(Name name)
 
     if (m_allocation != VK_NULL_HANDLE)
     {
-        vmaSetAllocationName(g_renderInterface->GetDevice()->GetAllocator(), m_allocation, strName);
+        vmaSetAllocationName(g_renderInterface->GetDevice()->GetVmaAllocator(), m_allocation, strName);
     }
 
     VkDebugUtilsObjectNameInfoEXT objectNameInfo { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };

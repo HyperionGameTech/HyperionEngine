@@ -108,9 +108,9 @@ bool Initialize(int argc, char** argv)
 
     GlobalConfig config { "GlobalConfig" };
 
-    if (Json::Value configArgs = config.Get("App.Args"))
+    if (JSON::Value configArgs = config.Get("App.Args"))
     {
-        Json::JSString configArgsString = configArgs.ToString();
+        JSON::JString configArgsString = configArgs.ToString();
         Array<String> configArgsStringSplit = Map(
             configArgsString.Split(' '),
             [](auto&& str)

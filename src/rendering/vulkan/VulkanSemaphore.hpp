@@ -8,12 +8,16 @@
 
 namespace Hyperion {
 
+extern Pool* g_vulkanPool;
+
 HYP_CLASS(NoScriptBindings)
 class VulkanSemaphore final : public ObjectBase
 {
     HYP_OBJECT_BODY(VulkanSemaphore);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanSemaphore();
     ~VulkanSemaphore() override;
 

@@ -20,11 +20,13 @@ namespace Hyperion {
 class VulkanTextureViewCache final : public TextureViewCacheBase
 {
 public:
+    using TextureImageViewMap = HashMap<uint64, VulkanGpuImageViewRef, PooledNodeAllocator<VulkanAllocator>>;
+
     SharedMutex mutex;
     // map texture ID -> image views
-    SparsePagedArray<HashMap<uint64, VulkanGpuImageViewRef>, 1024> imageViews;
+    SparsePagedArray<TextureImageViewMap, 32, VulkanAllocator> imageViews;
     // to keep texture IDs as valid
-    SparsePagedArray<WeakHandle<Texture>, 1024> weakTextureHandles;
+    SparsePagedArray<WeakHandle<Texture>, 32, VulkanAllocator> weakTextureHandles;
 
     typename decltype(weakTextureHandles)::Iterator cleanupIterator;
 

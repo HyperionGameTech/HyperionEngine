@@ -288,12 +288,12 @@ Optional<const Glyph::Metrics&> FontAtlas::GetGlyphMetrics(FontFace::WChar symbo
     return m_glyphMetrics[index];
 }
 
-Json::Value FontAtlas::GenerateMetadataJSON(const String& outputDirectory) const
+JSON::Value FontAtlas::GenerateMetadataJSON(const String& outputDirectory) const
 {
-    Json::JSObject value;
+    JSON::Object value;
 
-    Json::JSObject atlasesValue;
-    Json::JSObject pixelSizesValue;
+    JSON::Object atlasesValue;
+    JSON::Object pixelSizesValue;
 
     uint32 mainAtlasKey = uint32(-1);
 
@@ -315,35 +315,35 @@ Json::Value FontAtlas::GenerateMetadataJSON(const String& outputDirectory) const
     }
 
     atlasesValue["pixel_sizes"] = std::move(pixelSizesValue);
-    atlasesValue["main"] = Json::JSNumber(mainAtlasKey);
+    atlasesValue["main"] = JSON::Number(mainAtlasKey);
 
     value["atlases"] = std::move(atlasesValue);
 
-    value["cell_dimensions"] = Json::JSObject {
-        { "width", Json::JSNumber(m_cellDimensions.x) },
-        { "height", Json::JSNumber(m_cellDimensions.y) }
+    value["cell_dimensions"] = JSON::Object {
+        { "width", JSON::Number(m_cellDimensions.x) },
+        { "height", JSON::Number(m_cellDimensions.y) }
     };
 
-    Json::JSArray metricsArray;
+    JSON::JArray metricsArray;
 
     for (const Glyph::Metrics& metric : m_glyphMetrics)
     {
-        metricsArray.PushBack(Json::JSObject {
-            { "width", Json::JSNumber(metric.width) },
-            { "height", Json::JSNumber(metric.height) },
-            { "bearing_x", Json::JSNumber(metric.bearingX) },
-            { "bearing_y", Json::JSNumber(metric.bearingY) },
-            { "advance", Json::JSNumber(metric.advance) },
-            { "image_position", Json::JSObject { { "x", Json::JSNumber(metric.imagePosition.x) }, { "y", Json::JSNumber(metric.imagePosition.y) } } } });
+        metricsArray.PushBack(JSON::Object {
+            { "width", JSON::Number(metric.width) },
+            { "height", JSON::Number(metric.height) },
+            { "bearing_x", JSON::Number(metric.bearingX) },
+            { "bearing_y", JSON::Number(metric.bearingY) },
+            { "advance", JSON::Number(metric.advance) },
+            { "image_position", JSON::Object { { "x", JSON::Number(metric.imagePosition.x) }, { "y", JSON::Number(metric.imagePosition.y) } } } });
     }
 
     value["metrics"] = std::move(metricsArray);
 
-    Json::JSArray symbolListArray;
+    JSON::JArray symbolListArray;
 
     for (const auto& symbol : m_symbolList)
     {
-        symbolListArray.PushBack(Json::JSNumber(symbol));
+        symbolListArray.PushBack(JSON::Number(symbol));
     }
 
     value["symbol_list"] = std::move(symbolListArray);

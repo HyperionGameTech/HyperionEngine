@@ -12,9 +12,4 @@
 
 namespace Hyperion {
 
-/*! \brief Temporary Vulkan memory arena for fast allocations during rendering. */
-extern TArena<RenderAllocator>* g_vulkanArena;
-
-using VulkanAllocator = AllocatorInstance<TArena<RenderAllocator>, &g_vulkanArena>;
-
 } // namespace Hyperion

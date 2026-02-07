@@ -43,51 +43,110 @@ constexpr bool EnableVulkanSynchronizationValidation = false;
 constexpr bool EnableVulkanVerboseValidationLogging = false;
 #endif
 
+namespace CoreApi {
+extern void UpdateGlobalConfig(const ConfigurationTable& mergeValues);
+extern const GlobalConfig& GetGlobalConfig();
+} // namespace CoreApi
+
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 {
     if (!devices.Size())
     {
         return VK_NULL_HANDLE;
     }
+    
+    ConfigurationTable gpuConfig = CoreApi::GetGlobalConfig();
+
+    const ConfigurationValue& cfgSelectedGpuIndex = gpuConfig.Get("System.SelectedGpu.Index");
 
     VulkanFeatures::DeviceRequirementsResult deviceRequirementsResult(VulkanFeatures::DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "No device found");
-
     VulkanFeatures deviceFeatures;
 
-    // select dedicated GPU
+    Array<VkPhysicalDevice, VulkanTempAllocator> validDevices;
+    validDevices.Reserve(devices.Size());
+    
     for (VkPhysicalDevice device : devices)
+    {
+        deviceFeatures.SetPhysicalDevice(device);
+
+        if (deviceFeatures.IsDiscreteGpu() || deviceFeatures.IsIntegratedGpu())
+        {
+            validDevices.PushBack(device);
+        }
+    }
+    
+    if (cfgSelectedGpuIndex.IsNumber() && cfgSelectedGpuIndex.AsNumber() < validDevices.Size())
+    {
+        for (uint32 deviceIndex = 0; deviceIndex < uint32(validDevices.Size()); deviceIndex++)
+        {
+            if (deviceIndex == cfgSelectedGpuIndex.ToUInt32())
+            {
+                deviceFeatures.SetPhysicalDevice(validDevices[deviceIndex]);
+
+                if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
+                {
+                    HYP_LOG(RenderingBackend, Info, "Select {} device {}", deviceFeatures.IsDiscreteGpu() ? "discrete" : "integrated", deviceFeatures.GetDeviceName());
+
+                    return validDevices[deviceIndex];
+                }
+            }
+        }
+    }
+
+    uint32 deviceIndex = 0;
+
+    // select dedicated GPU
+    for (VkPhysicalDevice device : validDevices)
     {
         deviceFeatures.SetPhysicalDevice(device);
 
         if (!deviceFeatures.IsDiscreteGpu())
         {
+            ++deviceIndex;
+
             continue;
         }
 
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
             HYP_LOG(RenderingBackend, Info, "Select discrete device {}", deviceFeatures.GetDeviceName());
+            
+            gpuConfig.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
+
+            CoreApi::UpdateGlobalConfig(gpuConfig);
 
             return device;
         }
+        
+        ++deviceIndex;
     }
 
+    deviceIndex = 0;
+
     // select integrated GPU
-    for (VkPhysicalDevice device : devices)
+    for (VkPhysicalDevice device : validDevices)
     {
         deviceFeatures.SetPhysicalDevice(device);
 
         if (!deviceFeatures.IsIntegratedGpu())
         {
+            ++deviceIndex;
+
             continue;
         }
 
         if ((deviceRequirementsResult = deviceFeatures.SatisfiesMinimumRequirements()))
         {
-            HYP_LOG(RenderingBackend, Info, "Select non-discrete device {}", deviceFeatures.GetDeviceName());
+            HYP_LOG(RenderingBackend, Info, "Select integrated device {}", deviceFeatures.GetDeviceName());
+            
+            gpuConfig.Set("System.SelectedGpu.Index", JSON::Number(deviceIndex));
+
+            CoreApi::UpdateGlobalConfig(gpuConfig);
 
             return device;
         }
+        
+        ++deviceIndex;
     }
 
     VkPhysicalDevice device = devices[0];
@@ -121,9 +180,9 @@ static Array<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
 #ifdef HYP_DEBUG_MODE
 
 // Returns supported vulkan debug layers
-static Array<const char*> CheckValidationLayerSupport(Span<const char*> requestLayers)
+static Array<const char*, VulkanAllocator> CheckValidationLayerSupport(Span<const char*> requestLayers)
 {
-    Array<const char*> supportedLayers;
+    Array<const char*, VulkanAllocator> supportedLayers;
     supportedLayers.Reserve(requestLayers.Size());
 
     uint32 layersCount;
@@ -395,7 +454,7 @@ RendererResult VulkanInstance::Initialize(bool enableDebugLayers)
     constexpr VkBool32 FalseValue = VK_TRUE;
     constexpr uint32 DuplicateMessageLimit = EnableVulkanVerboseValidationLogging ? 0 : 10;
 
-    Array<VkLayerSettingEXT, VulkanAllocator> layerSettings;
+    Array<VkLayerSettingEXT, VulkanTempAllocator> layerSettings;
 
     VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo { VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT };
 

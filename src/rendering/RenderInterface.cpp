@@ -36,7 +36,7 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/ResourceBinder.hpp>
 
@@ -453,7 +453,7 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     if (!vfd)
     {
-        vfd = PoolNew<ViewFrameData>(*g_framePools[slot]);
+        vfd = new ViewFrameData;
         vfd->view = view;
 
         vfd->rplShared = view->GetRenderProxyList(slot);
@@ -974,7 +974,7 @@ RendererResult RenderInterface::Shutdown()
     {
         for (auto& it : s_frameData[i].viewFrameData)
         {
-            PoolDelete(*g_framePools[i], it.second);
+            delete it.second;
         }
 
         s_frameData[i].viewFrameData.Clear();
@@ -1332,7 +1332,7 @@ void RenderInterface::EndFrame()
                     vfd.rplShared = nullptr;
                 }
 
-                PoolDelete(*g_framePools[slot], &vfd);
+                delete &vfd;
 
                 it = frameData.viewFrameData.Erase(it);
 
@@ -1881,6 +1881,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
+#if 0
     // For debugging:
     Array<Name, RenderTempAllocator> dirtyUniforms;
     dirtyUniforms.Reserve(State::MaxShaderUniforms);
@@ -1897,6 +1898,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
         validUniforms.PushBack(Name(state.shaderUniforms[bit].name));
     }
+#endif
 
     // now, we need to rebind sets that have NOT been modified (for example, in case of the first binding of graphics pipeline)
     for (uint32 setIndex = 0; setIndex < uint32(tableDecl->elements.Size()); setIndex++)

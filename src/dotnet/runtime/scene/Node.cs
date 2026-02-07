@@ -23,18 +23,10 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "Node")]
-    public class Node : ObjectBase
+    public class Node : AssetObject
     {
         public Node()
         {
-        }
-
-        public Uuid Uuid
-        {
-            get
-            {
-                return this.GetUUID();
-            }
         }
 
         public Name Name
@@ -58,6 +50,14 @@ namespace Hyperion
             set
             {
                 this.SetNodeFlags(value);
+            }
+        }
+
+        public bool Dirty
+        {
+            get
+            {
+                return this.IsDirty();
             }
         }
 

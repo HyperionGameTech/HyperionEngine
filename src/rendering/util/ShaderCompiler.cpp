@@ -3,7 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler/ShaderCompilerInternal.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -281,56 +281,83 @@ static String BuildAttributesDefines(
     return preamble;
 }
 
-void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
-{
-    static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
-
 #if HYP_VULKAN
-    constexpr int VulkanVersion = HYP_VULKAN_API_VERSION;
-    inOutPerm.Set(ShaderProperty(NAME("HYP_VULKAN"), VulkanVersion));
+static const ShaderPropertyId s_propVulkan = InternShaderProperty(ShaderProperty(NAME("HYP_VULKAN"), int(HYP_VULKAN_API_VERSION)));
 #endif
 
-#if defined(HYP_WINDOWS)
-    inOutPerm.Set(ShaderProperty(NAME("HYP_WINDOWS")));
-#elif defined(HYP_LINUX)
-    inOutPerm.Set(ShaderProperty(NAME("HYP_LINUX")));
-#elif defined(HYP_MACOS)
-    inOutPerm.Set(ShaderProperty(NAME("HYP_MACOS")));
-#elif defined(HYP_IOS)
-    inOutPerm.Set(ShaderProperty(NAME("HYP_IOS")));
+#if HYP_WINDOWS
+static const ShaderPropertyId s_propWindows = InternShaderProperty(ShaderProperty(NAME("HYP_WINDOWS")));
+#elif HYP_LINUX
+static const ShaderPropertyId s_propLinux = InternShaderProperty(ShaderProperty(NAME("HYP_LINUX")));
+#elif HYP_MACOS
+static const ShaderPropertyId s_propMacOS = InternShaderProperty(ShaderProperty(NAME("HYP_MACOS")));
+#elif HYP_IOS
+static const ShaderPropertyId s_propIOS = InternShaderProperty(ShaderProperty(NAME("HYP_IOS")));
 #endif
 
-    inOutPerm.Set(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), ShaderProperty::Value(int(NumGBufferTargets))));
+static const ShaderPropertyId s_propNumGBufferTextures = InternShaderProperty(ShaderProperty(NAME("NUM_GBUFFER_TEXTURES"), int(NumGBufferTargets)));
 
-    if (g_renderInterface->GetRenderConfig().bindlessTextures)
-        inOutPerm.Set(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
+static const ShaderPropertyId s_propBindlessTextures = InternShaderProperty(ShaderProperty(NAME("HYP_FEATURES_BINDLESS_TEXTURES")));
 
-    if (s_globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
-        inOutPerm.Set(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
-
-    if (s_globalConfig.Get("Rendering.Debug.Irradiance").ToBool(false))
-        inOutPerm.Set(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
-
-    if (s_globalConfig.Get("Rendering.Debug.Velocity").ToBool(false))
-        inOutPerm.Set(ShaderProperty(NAME("DEBUG_VELOCITY")));
-
-    if (s_globalConfig.Get("Rendering.Debug.Normals").ToBool(false))
-        inOutPerm.Set(ShaderProperty(NAME("DEBUG_NORMALS")));
-
-    // inOutPerm.Set(ShaderProperty("HYP_MAX_SHADOW_MAPS"));
-    // inOutPerm.Set(ShaderProperty("HYP_MAX_BONES"));
-}
+static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
+static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+static const ShaderPropertyId s_propDebugVelocity = InternShaderProperty(ShaderProperty(NAME("DEBUG_VELOCITY")));
+static const ShaderPropertyId s_propDebugNormals = InternShaderProperty(ShaderProperty(NAME("DEBUG_NORMALS")));
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
-    ShaderVariantPerms perm;
-    MergeGlobalShaderProperties(perm);
+#if HYP_VULKAN
+    out.Add(s_propVulkan);
+#endif
 
-    for (const ShaderProperty& property : perm.GetPropertySet())
+#if HYP_WINDOWS
+    out.Add(s_propWindows);
+#elif HYP_LINUX
+    out.Add(s_propLinux);
+#elif HYP_MACOS
+    out.Add(s_propMacOS);
+#elif HYP_IOS
+    out.Add(s_propIOS);
+#endif
+
+    out.Add(s_propNumGBufferTextures);
+
+    const GlobalConfig& globalConfig = CoreApi::GetGlobalConfig();
+
+    if (g_renderInterface->GetRenderConfig().bindlessTextures)
+        out.Add(s_propBindlessTextures);
+
+    if (globalConfig.Get("Rendering.Debug.Reflections").ToBool(false))
+        out.Add(s_propDebugReflections);
+
+    if (globalConfig.Get("Rendering.Debug.Irradiance").ToBool(false))
+        out.Add(s_propDebugIrradiance);
+
+    if (globalConfig.Get("Rendering.Debug.Velocity").ToBool(false))
+        out.Add(s_propDebugVelocity);
+
+    if (globalConfig.Get("Rendering.Debug.Normals").ToBool(false))
+        out.Add(s_propDebugNormals);
+}
+
+void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
+{
+    ShaderPropertySet props;
+    MergeGlobalShaderProperties(props);
+
+    for (const ShaderPropertyId& propertyId : props.ToArray())
     {
-        const ShaderPropertyId propertyId = InternShaderProperty(property);
+        ShaderProperty property;
+        if (!GetShaderPropertyById(propertyId, property))
+        {
+            HYP_LOG(ShaderCompiler, Warning,
+                "Failed to get global shader property for id {} when merging global shader properties.",
+                uint32(propertyId));
 
-        out.Add(propertyId);
+            continue;
+        }
+
+        inOutPerm.Set(property);
     }
 }
 
@@ -3524,7 +3551,7 @@ bool ShaderCompiler::CompileBundle(
         const FilePath shaderPropertyDbPath = GetCacheDirectory() / "ShaderProperties.bin";
 
         FileByteWriter shaderPropertyDbWriter { shaderPropertyDbPath };
-        WriteShaderPropertyDatabase(shaderPropertyDbWriter);
+        WriteShaderPropertyDictionary(shaderPropertyDbWriter);
         shaderPropertyDbWriter.Close();
     }
 

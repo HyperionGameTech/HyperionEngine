@@ -22,7 +22,7 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ResourceTracker.hpp>
-#include <rendering/util/ShaderPropertyCache.hpp>
+#include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/View.hpp>
@@ -59,12 +59,14 @@ static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
 // Holds shared data for ParallelRenderingState instances to reduce memory usage
 struct ParallelRenderingState_Shared
 {
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
-    static constexpr SizeType LocalQueueArenaSize = 1 * 1024 * 1024;
+    static constexpr SizeType LocalQueueArenaSize = 64 * 1024;
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
-    FixedArray<TArena<RenderAllocator>*, MaxBatches> arenas;
+    FixedArray<Arena*, MaxBatches> arenas;
     FixedArray<LocalQueue*, MaxBatches> localQueues;
 
     ParallelRenderingState_Shared()
@@ -75,7 +77,7 @@ struct ParallelRenderingState_Shared
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            TArena<RenderAllocator>* arena = PoolNew<TArena<RenderAllocator>>(*g_renderPool, LocalQueueArenaSize);
+            Arena* arena = PoolNew<Arena>(*g_renderPool, LocalQueueArenaSize);
             arenas[i] = arena;
 
             localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, arena);
@@ -99,10 +101,20 @@ struct ParallelRenderingState_Shared
             }
         }
     }
+
+    void Reset()
+    {
+        for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
+        {
+            localQueues[i]->Clear();
+            arenas[i]->Reset();
+        }
+    }
 };
 
-ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sharedData)
-    : sharedData(sharedData)
+ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sharedData, bool ownsSharedData)
+    : sharedData(sharedData),
+      ownsSharedData(ownsSharedData)
 {
     Assert(sharedData != nullptr);
 
@@ -114,9 +126,9 @@ ParallelRenderingState::ParallelRenderingState(ParallelRenderingState_Shared* sh
 
 ParallelRenderingState::~ParallelRenderingState()
 {
-    if (sharedData)
+    if (ownsSharedData)
     {
-        PoolDelete(*g_renderPool, sharedData);
+        delete sharedData;
     }
 }
 
@@ -702,7 +714,7 @@ RenderCollector::~RenderCollector()
 
                     ParallelRenderingState* nextState = state->next;
 
-                    PoolDelete(*g_renderPool, state);
+                    delete state;
 
                     state = nextState;
                 }
@@ -796,9 +808,9 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     {
         if (!parallelRenderingStateHead)
         {
-            ParallelRenderingState_Shared* sharedData = PoolNew<ParallelRenderingState_Shared>(*g_renderPool);
+            ParallelRenderingState_Shared* sharedData =  new ParallelRenderingState_Shared;
 
-            parallelRenderingStateHead = PoolNew<ParallelRenderingState>(*g_renderPool, sharedData);
+            parallelRenderingStateHead = new ParallelRenderingState(sharedData, true);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
@@ -817,9 +829,9 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 
         if (!next)
         {
-            ParallelRenderingState_Shared* sharedData = PoolNew<ParallelRenderingState_Shared>(*g_renderPool); // temp
+            ParallelRenderingState_Shared* sharedData = new ParallelRenderingState_Shared;//curr->sharedData;
 
-            ParallelRenderingState* newParallelRenderingState = PoolNew<ParallelRenderingState>(*g_renderPool, sharedData);
+            ParallelRenderingState* newParallelRenderingState = new ParallelRenderingState(sharedData, true);
 
             TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
 
@@ -875,10 +887,7 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
             valueSet = {}; // Reset counts after adding for next use
         }
 
-        for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
-        {
-            state->sharedData->arenas[i]->Reset();
-        }
+        state->sharedData->Reset();
 
         state->drawCalls.Clear();
         state->drawCallProcs.Clear();

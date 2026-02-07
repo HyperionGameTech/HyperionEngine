@@ -7,7 +7,6 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <core/utilities/Uuid.hpp>
 #include <core/utilities/Result.hpp>
 
 #include <core/filesystem/FilePath.hpp>
@@ -40,6 +39,10 @@ class ProcRef;
 } // namespace functional
 
 using functional::ProcRef;
+
+namespace JSON {
+class Object;
+} // namespace JSON
 
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
@@ -77,11 +80,11 @@ protected:
 
     virtual bool IsDataLoaded() const = 0;
 
-    virtual const TypeInfo& GetAssetType() const = 0;
-    virtual AnyRef GetAssetRef() = 0;
+    virtual const TypeInfo& GetDataTypeInfo() const = 0;
+
+    virtual void* GetData() = 0;
 
     WeakHandle<AssetObject> m_assetObject;
-    mutable Mutex m_mutex;
 };
 
 template <class T>
@@ -123,6 +126,16 @@ public:
         return m_data != nullptr;
     }
 
+    virtual const TypeInfo& GetDataTypeInfo() const override
+    {
+        return TypeOf<NormalizedType<T>>();
+    }
+
+    virtual void* GetData() override
+    {
+        return m_data;
+    }
+
 protected:
     virtual void Unload_Internal() override
     {
@@ -143,22 +156,6 @@ protected:
         {
             m_data = PoolNew<T>(*g_assetPool, ref.Get<T>());
         }
-    }
-
-    virtual const TypeInfo& GetAssetType() const override
-    {
-        AnyRef assetRef = const_cast<AssetDataResource*>(this)->GetAssetRef();
-        if (!assetRef)
-        {
-            return TypeInfo_Void();
-        }
-
-        return *assetRef.GetTypeInfo();
-    }
-
-    virtual AnyRef GetAssetRef() override
-    {
-        return AnyRef(m_data);
     }
 
     T* m_data;
@@ -221,18 +218,13 @@ public:
 
     virtual ~AssetObject();
 
-    HYP_METHOD()
-    const Uuid& GetUUID() const
-    {
-        return m_uuid;
-    }
-
-    HYP_METHOD()
+    HYP_METHOD(Property = "Name", Serialize, EditOrder = 1)
     Name GetName() const
     {
         return m_name;
     }
 
+    HYP_METHOD(Property = "Name")
     HYP_FORCE_INLINE void SetName(Name name)
     {
         (void)Rename(name);
@@ -244,7 +236,7 @@ public:
     HYP_METHOD()
     bool IsDirty() const
     {
-        return m_isDirty;
+        return AtomicAdd(&m_isDirty, 0) != 0;
     }
 
     HYP_METHOD()
@@ -280,7 +272,7 @@ public:
         return m_package.Lock();
     }
 
-    HYP_FORCE_INLINE IResource* GetResource() const
+    HYP_FORCE_INLINE AssetDataResourceBase* GetResource() const
     {
         return m_resource;
     }
@@ -299,40 +291,34 @@ public:
         return m_package.IsValid();
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "AssetFlags", Serialize)
     EnumFlags<AssetObjectFlags> GetAssetFlags() const
     {
         return m_flags;
     }
 
-    HYP_METHOD()
-    void SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
-    {
-        const bool wasPersistent = m_flags[AssetObjectFlags::PERSISTENT];
-
-        m_flags = flags;
-
-        const bool isPersistent = m_flags[AssetObjectFlags::PERSISTENT];
-
-        if (wasPersistent != isPersistent)
-        {
-            SetIsPersistentlyLoaded(isPersistent, /* setFlag */ false);
-        }
-    }
+    HYP_METHOD(Property = "AssetFlags")
+    void SetAssetFlags(EnumFlags<AssetObjectFlags> flags);
 
     HYP_METHOD()
-    bool IsPersistentlyLoaded() const
+    bool IsPersistent() const
     {
         return bool(m_persistentResource);
     }
 
     HYP_METHOD()
-    void SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag = true);
+    void SetPersistentRequested(bool persistentlyLoaded, bool setFlag = true, bool markDirty = true);
 
     HYP_METHOD()
     bool IsTransient() const
     {
         return bool(m_flags & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY));
+    }
+
+    HYP_METHOD()
+    bool IsTransientByProxy() const
+    {
+        return (m_flags & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY)) == AssetObjectFlags::TRANSIENT_BY_PROXY;
     }
 
     HYP_METHOD()
@@ -342,7 +328,10 @@ public:
     void SetIsTransientByProxy(bool isTransientByProxy);
 
     HYP_METHOD()
-    bool IsLoaded() const;
+    bool IsDataLoaded() const;
+
+    HYP_METHOD()
+    bool IsSaved() const;
 
     HYP_METHOD()
     Result Save(const FilePath& manifestPath);
@@ -353,39 +342,56 @@ public:
     Result OpenBinaryReadStream(BufferedReader& stream) const;
 
     static Result Load(
-        BufferedReader& manifestStream,
+        JSON::Object& manifestData,
         BufferedReader* binStream, // optional
         Handle<AssetObject>& outAssetObject);
 
 protected:
     void Init() override;
 
+    virtual void OnDirtyStateChanged(bool isDirty)
+    {
+        // do nothing by default
+    }
+
     Result SaveManifest(ByteWriter& stream) const;
 
     template <class T>
     T* GetResourceData() const
     {
+        static_assert(std::is_same_v<T, NormalizedType<T>>);
+
         if (!m_resource || m_resource->IsNull())
         {
             return nullptr;
         }
 
-        AssetDataResourceBase* resourceCasted = static_cast<AssetDataResourceBase*>(m_resource);
-        AssertDebug(TypeInfo_GetId(resourceCasted->GetAssetType()) == TypeInfo_GetId(TypeOf<T>()), "Type mismatch!");
+        AssetDataResourceBase* resourceCastedBase = static_cast<AssetDataResourceBase*>(m_resource);
 
-        return resourceCasted->GetAssetRef().TryGet<T>();
+        const bool isExpectedType = TypeInfo_GetId(resourceCastedBase->GetDataTypeInfo()) == TypeIdOf<T>();
+
+        AssertDebug(isExpectedType, "Type mismatch! Expected: {} but got: {}",
+            TypeInfo_GetName(resourceCastedBase->GetDataTypeInfo()),
+            TypeInfo_GetName(TypeOf<T>()));
+
+        if (!isExpectedType)
+        {
+            return nullptr;
+        }
+        
+        AssetDataResource<T>* resourceCasted = static_cast<AssetDataResource<T>*>(m_resource);
+        AssertDebug(resourceCasted->GetData() != nullptr);
+
+        return static_cast<T*>(resourceCasted->GetData());
     }
 
-    HYP_FIELD()
-    Uuid m_uuid;
-
-    HYP_FIELD()
+    HYP_FIELD(Property = "Name")
     Name m_name;
 
     HYP_FIELD(Property = "FriendlyName")
     Name m_friendlyName;
 
-    HYP_FIELD()
+    HYP_FIELD(Property = "AssetFlags")
     EnumFlags<AssetObjectFlags> m_flags;
 
     HYP_FIELD()
@@ -395,7 +401,7 @@ protected:
     WeakHandle<AssetPackage> m_package;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    IResource* m_resource;
+    AssetDataResourceBase* m_resource;
 
     HYP_FIELD(Transient)
     AssetPath m_assetPath;
@@ -410,7 +416,7 @@ protected:
     ResourceGuard m_persistentResource;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    bool m_isDirty;
+    mutable volatile int32 m_isDirty;
 };
 
 } // namespace Hyperion

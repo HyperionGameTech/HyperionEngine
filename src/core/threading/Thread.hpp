@@ -117,6 +117,11 @@ public:
         return m_isRunning.Get(MemoryOrder::RELAXED);
     }
 
+    bool IsStopping() const
+    {
+        return m_stopRequested.Get(MemoryOrder::RELAXED);
+    }
+
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);
 

@@ -417,7 +417,7 @@ public:
 private:
     HYP_FORCE_INLINE ErrorType& GetError_NonConst()
     {
-        static const ErrorType nullError;
+        static const ErrorType s_nullError;
 
         if (HasError())
         {
@@ -425,7 +425,7 @@ private:
         }
         else
         {
-            return const_cast<ErrorType&>(nullError);
+            return const_cast<ErrorType&>(s_nullError);
         }
     }
 
@@ -518,7 +518,7 @@ public:
 
     HYP_FORCE_INLINE const ErrorType& GetError() const
     {
-        static const ErrorType nullError;
+        static const ErrorType s_nullError;
 
         if (HasError())
         {
@@ -526,7 +526,7 @@ public:
         }
         else
         {
-            return nullError;
+            return s_nullError;
         }
     }
 

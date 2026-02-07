@@ -55,6 +55,7 @@ const Name g_attrJsonPath = NAME("jsonpath");
 const Name g_attrJsonIgnore = NAME("jsonignore");
 const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
 const Name g_attrFollowAssetPath = NAME("followassetpath");
+const Name g_attrSaveAsReference = NAME("saveasreference");
 
 const Name g_attrEditor = NAME("editor");
 const Name g_attrEditorOnly = NAME("editoronly");
@@ -675,7 +676,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
 {
     // needs to be set after name is set
     m_typeInfo = (m_flags & ClassFlags::DYNAMIC) ? TypeInfo::ForDynamicClass(this) : &TypeInfo::ForClass(this);
-    AssertDebug(m_typeInfo != nullptr);
+    HYP_CORE_ASSERT(m_typeInfo != nullptr);
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
     // objects pool
@@ -709,7 +710,7 @@ Class::Class(TypeId typeId, Name name, int staticIndex, uint32 numDescendants, N
     // initialize properties containers
     for (MemberVariant& member : members)
     {
-        Assert(member.internal != nullptr);
+        HYP_CORE_ASSERT(member.internal != nullptr);
 
         switch (member.internal->GetMemberType())
         {
@@ -801,8 +802,6 @@ Class::~Class()
 
 void Class::Initialize()
 {
-    HYP_LOG(Object, Info, "Initializing Class \"{}\"", m_name);
-
     AssertDebug(m_typeInfo != nullptr);
 
     m_serializationMode = ClassSerializationMode::DEFAULT;
@@ -880,11 +879,11 @@ void Class::Initialize()
             m_parent = GetClass(m_parentName);
         }
 
-        AssertDebug(m_parent != nullptr, "Invalid parent class: {}", m_parentName);
+        HYP_CORE_ASSERT(m_parent != nullptr, "Invalid parent class: {}", m_parentName);
 
         if (!IsDynamic())
         {
-            AssertDebug(!m_parent->IsDynamic(), "Non-dynamic Class cannot have a dynamic parent class!");
+            HYP_CORE_ASSERT(!m_parent->IsDynamic(), "Non-dynamic Class cannot have a dynamic parent class!");
         }
     }
 
@@ -942,8 +941,8 @@ void Class::Initialize()
                 findGetterIt != it.second.End() ? static_cast<Method*>(*findGetterIt) : nullptr,
                 findSetterIt != it.second.End() ? static_cast<Method*>(*findSetterIt) : nullptr);
 
-            AssertDebug(property->m_ownerClass && property->m_ownerClass->IsBaseOf(this));
-            AssertDebug(!GetProperty(property->GetName(), /* deep */ false), "Property with name \"{}\" already exists in class \"{}\"", *property->GetName(), *GetName());
+            HYP_CORE_ASSERT(property->m_ownerClass && property->m_ownerClass->IsBaseOf(this));
+            HYP_CORE_ASSERT(!GetProperty(property->GetName(), /* deep */ false), "Property with name \"{}\" already exists in class \"{}\"", *property->GetName(), *GetName());
 
             m_properties.PushBack(property);
             m_propertiesByName.Set(property->GetName(), property);
@@ -1488,9 +1487,9 @@ bool DynamicClassInstance::GetManagedObject(const void* objectPtr, dotnet::Objec
         return false;
     }
 
-    TResourceGuard<ScriptObjectResource> resGuard(*target->GetScriptObjectResource());
+    ResourceGuard resourceScope = target->GetScriptObjectResource()->GetReadScope();
 
-    dotnet::ManagedObject* managedObject = resGuard->GetManagedObject();
+    dotnet::ManagedObject* managedObject = target->GetScriptObjectResource()->GetManagedObject();
 
     if (!managedObject || !managedObject->IsValid())
     {
@@ -1612,7 +1611,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
             }
 
             // keep it alive
-            scriptObjectResource->IncRef();
+            scriptObjectResource->AddReader();
         }
 
         isCreated = true;

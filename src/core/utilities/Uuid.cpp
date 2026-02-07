@@ -25,7 +25,7 @@ static uint64 RandomNumber()
     return distribution(s_randomEngine);
 }
 
-Uuid::Uuid()
+UUID::UUID()
     : data0 { RandomNumber() },
       data1 { RandomNumber() }
 {
@@ -35,7 +35,7 @@ Uuid::Uuid()
     data1 |= 0x8000000000000000;
 }
 
-Uuid::Uuid(const char* str)
+UUID::UUID(const char* str)
 {
     SizeType len = Memory::StrLen(str);
 
@@ -76,7 +76,7 @@ Uuid::Uuid(const char* str)
     data1 = data[1];
 }
 
-String Uuid::ToString() const
+String UUID::ToString() const
 {
     union
     {

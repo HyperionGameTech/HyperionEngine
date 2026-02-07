@@ -122,7 +122,7 @@ UIObject::UIObject(const ThreadId& ownerThreadId)
       m_isPositionAbsolute(false),
       m_allowMaterialUpdate(false),
       m_computedDepth(0),
-      m_dataSourceElementUuid(Uuid::Invalid()),
+      m_dataSourceElementUuid(UUID::Invalid()),
       m_deferredUpdates(UIObjectUpdateType::NONE),
       m_lockedUpdates(UIObjectUpdateType::NONE)
 {
@@ -3066,13 +3066,13 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
 
     AssertOnOwnerThread();
 
-    BoxedValue uiObjectHypData;
-    if (!cls->CreateInstance(uiObjectHypData))
+    BoxedValue uiObjectBoxed;
+    if (!cls->CreateInstance(uiObjectBoxed))
     {
         return Handle<UIObject>::empty;
     }
 
-    if (!uiObjectHypData.IsValid())
+    if (!uiObjectBoxed.IsValid())
     {
         return Handle<UIObject>::empty;
     }
@@ -3087,7 +3087,7 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
     entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
-    Handle<UIObject> uiObject = std::move(uiObjectHypData).Get<Handle<UIObject>>();
+    Handle<UIObject> uiObject = std::move(uiObjectBoxed).Get<Handle<UIObject>>();
     Assert(uiObject != nullptr);
 
     uiObject->m_spawnParent = WeakHandleFromThis();

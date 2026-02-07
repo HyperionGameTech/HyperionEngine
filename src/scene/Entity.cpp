@@ -355,6 +355,17 @@ void Entity::UnlockTransform()
     Node::UnlockTransform();
 }
 
+void Entity::SetLocalBounds(const BoundingBox& aabb)
+{
+    Node::SetLocalBounds(aabb);
+
+    if (EntityManager* entityManager = GetEntityManager())
+    {
+        BoundingBoxComponent& boundingBoxComponent = entityManager->GetComponent<BoundingBoxComponent>(this);
+        boundingBoxComponent.worldAabb = GetWorldBounds();
+    }
+}
+
 void Entity::OnTransformUpdated()
 {
     HYP_SCOPE;

@@ -10,7 +10,7 @@
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/reflection/HypDataJSONHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMMarshaler.hpp>
@@ -84,6 +84,8 @@ Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
     Extract_Internal(boxed.ToRef());
     boxed.Reset();
 
+    Assert(GetData() != nullptr);
+
     return {};
 }
 
@@ -91,21 +93,19 @@ void AssetDataResourceBase::Initialize()
 {
     HYP_SCOPE;
 
-    Mutex::Guard guard(m_mutex);
-
     Handle<AssetObject> assetObject = m_assetObject.Lock();
     Assert(assetObject.IsValid());
 
-    //    if (IsDataLoaded())
-    //    {
-    //        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded", assetObject->GetName());
-    //
-    //        return;
-    //    }
+    if (IsDataLoaded())
+    {
+        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded in Initialize()", assetObject->GetName());
+    
+        return;
+    }
 
     if (assetObject->IsTransient())
     {
-        HYP_LOG(Assets, Warning, "Transient assets cannot be loaded from disk!");
+        HYP_LOG(Assets, Warning, "Attempted to load transient asset {} from disk!", assetObject->GetPath().ToString());
 
         return;
     }
@@ -128,9 +128,12 @@ void AssetDataResourceBase::Destroy()
 
     AssetObject* assetObject = m_assetObject.GetUnsafe();
 
+    AssertDebug(assetObject->IsSaved() > 0,
+        "Unloading asset data for asset that is not saved to disk, may cause problems later down the line");
+
     HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
 
-    if (!GetAssetRef().HasValue())
+    if (GetData() == nullptr)
     {
         HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", assetObject->GetName());
 
@@ -181,26 +184,26 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
     FBOMWriter writer { FBOMWriterConfig {} };
 
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetType().id);
-    Assert(marshal != nullptr, "No marshal for asset type {}!", GetAssetType().name);
+    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetDataTypeInfo().id);
+    Assert(marshal != nullptr, "No marshal for asset data of type {}", GetDataTypeInfo().name);
 
     FBOMObject object;
 
-    AnyRef assetRef = GetAssetRef();
+    void* pData = GetData();
 
-    if (!assetRef)
+    if (!pData)
     {
         return HYP_MAKE_ERROR(Error, "Asset data reference is invalid!");
     }
 
-    if (FBOMResult err = marshal->Serialize(assetRef, object))
+    if (FBOMResult err = marshal->Serialize(ConstAnyRef(&GetDataTypeInfo(), pData), object))
     {
         return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
     }
 
-    Assert(object.GetType().GetNativeTypeId() == GetAssetType().id,
+    Assert(object.GetType().GetNativeTypeId() == GetDataTypeInfo().id,
         "Object must have a native TypeId associated to be deserialized properly! Expected: {}, Got serialized type: {}",
-        GetAssetType().name,
+        GetDataTypeInfo().name,
         object.GetType().ToString(true));
 
     writer.Append(std::move(object));
@@ -221,26 +224,26 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 #pragma region AssetObject
 
 AssetObject::AssetObject()
-    : m_resource(&GetNullResource()),
+    : m_resource {},
       m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr),
-      m_isDirty(false)
+      m_isDirty(0)
 {
 }
 
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
-      m_resource(&GetNullResource()),
+      m_resource {},
       m_flags(AssetObjectFlags::NONE),
       m_pool(nullptr),
-      m_isDirty(false)
+      m_isDirty(0)
 {
 }
 
 AssetObject::~AssetObject()
 {
     // need to release before freeing resource or we'll deadlock
-    m_persistentResource.Reset();
+    m_persistentResource.Release();
 
     if (m_resource != nullptr && !m_resource->IsNull())
     {
@@ -262,34 +265,53 @@ void AssetObject::Init()
 
         if ((m_flags[AssetObjectFlags::PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
         {
-            m_persistentResource = ResourceGuard(*m_resource);
+            m_persistentResource = m_resource->GetReadScope();
+            Assert(m_persistentResource);
         }
     }
 
     SetReady(true);
 }
 
-void AssetObject::MarkDirty()
+void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 {
-    if (m_isDirty)
+    if (m_flags != flags)
     {
-        return;
-    }
+        const bool wasPersistent = m_flags[AssetObjectFlags::PERSISTENT];
 
-    m_isDirty = true;
+        m_flags = flags;
 
-    if (Handle<AssetPackage> package = m_package.Lock(); package.IsValid())
-    {
-        package->MarkDirty();
+        const bool isPersistent = m_flags[AssetObjectFlags::PERSISTENT];
+
+        if (wasPersistent != isPersistent)
+        {
+            SetPersistentRequested(isPersistent, /* setFlag */ false);
+        }
+
+        MarkDirty();
     }
 }
 
-void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
+void AssetObject::MarkDirty()
+{
+    int32 expected = 0;
+    if (AtomicCompareExchange(&m_isDirty, expected, 1))
+    {
+        OnDirtyStateChanged(true);
+    }
+}
+
+void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, bool markDirty)
 {
     HYP_SCOPE;
 
-    if (setFlag)
+    if (setFlag && m_flags[AssetObjectFlags::PERSISTENT] != persistentlyLoaded)
     {
+        if (markDirty)
+        {
+            MarkDirty();
+        }
+
         m_flags[AssetObjectFlags::PERSISTENT] = persistentlyLoaded;
     }
 
@@ -297,7 +319,7 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
     {
         if (!m_persistentResource && m_resource && !m_resource->IsNull())
         {
-            m_persistentResource = ResourceGuard(*m_resource);
+            m_persistentResource = m_resource->GetReadScope();
             Assert(m_persistentResource);
         }
 
@@ -309,7 +331,12 @@ void AssetObject::SetIsPersistentlyLoaded(bool persistentlyLoaded, bool setFlag)
         return;
     }
 
-    m_persistentResource.Reset();
+    // if transient, we need to keep it in memory.
+    // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
+    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::PERSISTENT] && !IsTransient())
+    {
+        m_persistentResource.Release();
+    }
 }
 
 void AssetObject::SetIsTransient(bool isTransient)
@@ -321,14 +348,14 @@ void AssetObject::SetIsTransient(bool isTransient)
     if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetIsPersistentlyLoaded(true, /* setFlag */ false);
+        SetPersistentRequested(true, /* setFlag */ false);
 
         // transient assets don't have a manifest filepath as they are not saved to disk.
         m_manifestPath = FilePath();
     }
     else
     {
-        SetIsPersistentlyLoaded(m_flags[AssetObjectFlags::PERSISTENT], /* setFlag */ false);
+        SetPersistentRequested(false, /* setFlag */ false);
     }
 }
 
@@ -341,14 +368,14 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
     if (IsTransient())
     {
         // needs to be kept in memory if transient
-        SetIsPersistentlyLoaded(true, /* setFlag */ false);
+        SetPersistentRequested(true, /* setFlag */ false);
 
         // transient assets don't have a manifest filepath as they are not saved to disk.
         m_manifestPath = FilePath();
     }
     else
     {
-        SetIsPersistentlyLoaded(m_flags[AssetObjectFlags::PERSISTENT], /* setFlag */ false);
+        SetPersistentRequested(false, /* setFlag */ false);
     }
 }
 
@@ -370,7 +397,7 @@ Result AssetObject::Rename(Name name)
     {
         Handle<AssetObject> strongThis = HandleFromThis();
 
-        if (Result result = package->RemoveAssetObject(strongThis).Await(); result.HasError())
+        if (Result result = package->RemoveAssetObject(strongThis); result.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to remove asset object '{}' from package '{}': {}", m_name, package->GetName(), result.GetError().GetMessage());
 
@@ -380,7 +407,7 @@ Result AssetObject::Rename(Name name)
         const Name prevName = m_name;
         m_name = name;
 
-        if (Result result = package->AddAssetObject(strongThis).Await(); result.HasError())
+        if (Result result = package->AddAssetObject(strongThis); result.HasError())
         {
             m_name = prevName; // revert change
 
@@ -397,19 +424,22 @@ Result AssetObject::Rename(Name name)
         m_friendlyName = CreateFriendlyName(name);
     }
 
+    MarkDirty();
+
     return {};
 }
 
-bool AssetObject::IsLoaded() const
+bool AssetObject::IsDataLoaded() const
 {
     HYP_SCOPE;
 
-    if (!m_resource || m_resource->IsNull())
-    {
-        return false;
-    }
+    return m_resource != nullptr && !m_resource->IsNull()
+        && static_cast<AssetDataResourceBase*>(m_resource)->IsDataLoaded();
+}
 
-    return static_cast<AssetDataResourceBase*>(m_resource)->IsInitialized();
+bool AssetObject::IsSaved() const
+{
+    return m_manifestPath.Length() > 0;
 }
 
 Result AssetObject::Save(const FilePath& manifestPath)
@@ -456,14 +486,24 @@ Result AssetObject::Save(const FilePath& manifestPath)
     if (doSaveResource)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-        resource->IncRef();
-        HYP_DEFER({ resource->DecRef(); });
 
-        Mutex::Guard guard(resource->m_mutex);
+        bool doLoadResourceBeforeSaving = !resource->IsDataLoaded();
 
-        if (!resource->IsDataLoaded())
+        ResourceGuard resGuard;
+
+        if (doLoadResourceBeforeSaving)
         {
-            return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
+            doLoadResourceBeforeSaving = false;
+
+            Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
+                m_name);
+
+            resGuard = resource->GetReadScope();
+
+            if (!resource->IsDataLoaded())
+            {
+                return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
+            }
         }
 
         // get bin path from manifest path by removing .json extension
@@ -483,6 +523,11 @@ Result AssetObject::Save(const FilePath& manifestPath)
     // something that doesn't exist.
     m_manifestPath = manifestPath;
 
+    // no longer dirty
+    AtomicExchange(&m_isDirty, 0);
+
+    OnDirtyStateChanged(false);
+
     return {};
 }
 
@@ -490,48 +535,32 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 {
     HYP_SCOPE;
 
-    Json::JSObject manifestJson;
+    JSON::Object manifestJson;
 
-    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, { .skipTransientProperties = true, .writeClassNames = true });
+    ToJSONOptions opts;
+    opts.skipTransientProperties = true;
+    opts.writeClassNames = true;
 
-    stream.WriteString(Json::Value(std::move(manifestJson)).ToString(true).ToUtf8());
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, opts);
+
+    stream.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
     return {};
 }
 
 Result AssetObject::Load(
-    BufferedReader& manifestStream,
+    JSON::Object& manifestData,
     BufferedReader* binStream,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
-
-    if (!manifestStream.IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Manifest stream is not open");
-    }
 
     if (binStream && !binStream->IsOpen())
     {
         return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
     }
 
-    Json::ParseResult parseResult = Json::Parse(manifestStream);
-
-    manifestStream.Close(); // not needed anymore
-
-    if (!parseResult.ok)
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to parse manifest JSON: {}", parseResult.message);
-    }
-
-    if (!parseResult.value.IsObject())
-    {
-        return HYP_MAKE_ERROR(Error, "Asset manifest JSON must be an object, but got value: {}", parseResult.value.ToString());
-    }
-
-    Json::JSObject jsonObject = std::move(parseResult.value.AsObject());
-    Json::Value classNameValue = jsonObject["$Class"];
+    JSON::Value classNameValue = manifestData["$Class"];
 
     if (!classNameValue.IsString())
     {
@@ -576,9 +605,9 @@ Result AssetObject::Load(
     const bool useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
 
     // remove class property
-    jsonObject.Erase("$Class");
+    manifestData.Erase("$Class");
 
-    if (!JSONToObject(jsonObject, cls, targetData))
+    if (!ObjectFromJSON(manifestData, cls, targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
@@ -595,11 +624,8 @@ Result AssetObject::Load(
             resource->Extract_Internal(binData.ToRef());
         }
 
-        AssertDebug(resource->GetAssetRef().HasValue());
+        AssertDebug(resource->GetData() != nullptr);
     }
-
-    // invoke PostLoad callback
-    targetAssetObject->InstanceClass()->PostLoad(targetAssetObject);
 
     outAssetObject = MakeStrongRef(targetAssetObject);
 
@@ -612,6 +638,8 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
 
     if (m_manifestPath.Empty())
     {
+        HYP_BREAKPOINT_DEBUG_MODE;
+
         return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot open read stream");
     }
 

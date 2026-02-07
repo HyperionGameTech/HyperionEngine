@@ -6,6 +6,7 @@
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/ConditionVariable.hpp>
+#include <core/threading/SharedMutex.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -21,10 +22,77 @@ namespace Hyperion {
 
 HYP_API extern Pool* g_resourcePool;
 
+class ResourceBase;
+
 class IResourceMemoryPool;
 
 template <class T>
 class ResourceMemoryPool;
+
+struct ResourceGuard
+{
+    enum
+    {
+        Read = 0x1,
+        Write = 0x2
+    };
+    
+    ResourceBase* resource;
+    int mask;
+
+    ResourceGuard()
+        : resource(nullptr),
+          mask(0)
+    {
+    }
+
+    explicit ResourceGuard(ResourceBase& resource, int mask = Read);
+
+    ResourceGuard(const ResourceGuard& other);
+    ResourceGuard& operator=(const ResourceGuard& other);
+    
+    ResourceGuard(ResourceGuard&& other) noexcept;
+    ResourceGuard& operator=(ResourceGuard&& other) noexcept;
+
+    ~ResourceGuard();
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return resource != nullptr && mask != 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return !bool(*this);
+    }
+
+    void Release();
+};
+
+template <class T>
+struct TResourceGuard : ResourceGuard
+{
+    TResourceGuard()
+        : ResourceGuard()
+    {
+    }
+
+    explicit TResourceGuard(T& resource, int mask = Read)
+        : ResourceGuard(resource, mask)
+    {
+    }
+
+    T& operator->() const
+    {
+        return *static_cast<T*>(resource);
+    }
+
+    T* operator*() const
+    {
+        return static_cast<T*>(resource);
+    }
+};
+
 
 class IResource
 {
@@ -33,13 +101,8 @@ public:
 
     virtual bool IsNull() const = 0;
 
-    virtual int IncRef() = 0;
-    virtual int DecRef() = 0;
-
-    /*! \brief Waits for ref count to be 0 and all tasks to be completed.
-     *  If any ResourceGuard objects are still alive, this will block until they are destroyed.
-     *  \note Ensure the current thread does not hold any ResourceGuard objects when calling this function, or it will deadlock. */
-    virtual void WaitForFinalization() const = 0;
+    virtual ResourceGuard GetWriteScope() = 0;
+    virtual ResourceGuard GetReadScope() = 0;
 };
 
 class HYP_API ResourceBase : public IResource
@@ -49,6 +112,8 @@ protected:
     ~ResourceBase();
 
 public:
+    friend struct ResourceGuard;
+
     ResourceBase(const ResourceBase& other) = delete;
     ResourceBase& operator=(const ResourceBase& other) = delete;
     ResourceBase(ResourceBase&& other) noexcept = delete;
@@ -59,25 +124,25 @@ public:
         return false;
     }
 
-    virtual int IncRef() override final;
-    virtual int DecRef() override final;
+    virtual ResourceGuard GetWriteScope() override final;
+    virtual ResourceGuard GetReadScope() override final;
+    
+    void AddWriter(bool doInitialize = true);
+    void ReleaseWriter(bool doDeinitialize = true);
 
-    /*! \brief Wait for the resource to no longer be in loaded state */
-    virtual void WaitForFinalization() const override final;
-
-    bool IsInitialized() const;
+    void AddReader();
+    void ReleaseReader();
 
 protected:
     virtual void Initialize() = 0;
     virtual void Destroy() = 0;
 
-protected:
-    int m_refCount;
-
 private:
-    ConditionVariable m_isAliveCV;
-    mutable Mutex m_mutex;
-    mutable volatile int32 m_isAlive;
+    volatile int64 m_state;
+
+    mutable Mutex m_initMutex;
+    ConditionVariable m_initCV;
+    bool m_isInitialized;
 };
 
 class IResourceMemoryPool
@@ -136,9 +201,8 @@ private:
     {
         HYP_CORE_ASSERT(ptr != nullptr);
 
-        ptr->WaitForFinalization();
-
-        // Invoke the destructor
+        // Invoke the destructor.
+        // Waits for reads to complete. BEWARE, will deadlock if reading on same thread as freeing.
         ptr->~T();
 
         m_allocator.Free(ptr);
@@ -165,211 +229,5 @@ HYP_FORCE_INLINE static void FreeResource(T* ptr)
 }
 
 HYP_API IResource& GetNullResource();
-
-class ResourceGuard
-{
-public:
-    ResourceGuard()
-        : m_resource(&GetNullResource())
-    {
-    }
-
-    /*! \brief Construct a ResourceGuard using the given resource. The resource will have its ref count incremented if it is not null. */
-    ResourceGuard(IResource& resource)
-        : m_resource(&resource)
-    {
-        if (!resource.IsNull())
-        {
-            resource.IncRef();
-        }
-    }
-
-    ResourceGuard(const ResourceGuard& other)
-        : m_resource(other.m_resource)
-    {
-        if (!m_resource->IsNull())
-        {
-            m_resource->IncRef();
-        }
-    }
-
-    ResourceGuard& operator=(const ResourceGuard& other)
-    {
-        if (this == &other || m_resource == other.m_resource)
-        {
-            return *this;
-        }
-
-        if (!m_resource->IsNull())
-        {
-            m_resource->DecRef();
-        }
-
-        m_resource = other.m_resource;
-
-        if (!m_resource->IsNull())
-        {
-            m_resource->IncRef();
-        }
-
-        return *this;
-    }
-
-    ResourceGuard(ResourceGuard&& other) noexcept
-        : m_resource(other.m_resource)
-    {
-        other.m_resource = &GetNullResource();
-    }
-
-    ResourceGuard& operator=(ResourceGuard&& other) noexcept
-    {
-        if (this == &other || m_resource == other.m_resource)
-        {
-            return *this;
-        }
-
-        if (!m_resource->IsNull())
-        {
-            m_resource->DecRef();
-        }
-
-        m_resource = other.m_resource;
-        other.m_resource = &GetNullResource();
-
-        return *this;
-    }
-
-    ~ResourceGuard()
-    {
-        if (!m_resource->IsNull())
-        {
-            m_resource->DecRef();
-        }
-    }
-
-    void Reset()
-    {
-        if (!m_resource->IsNull())
-        {
-            m_resource->DecRef();
-
-            m_resource = &GetNullResource();
-        }
-    }
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return !m_resource->IsNull();
-    }
-
-    HYP_FORCE_INLINE bool operator!() const
-    {
-        return m_resource->IsNull();
-    }
-
-    HYP_FORCE_INLINE bool operator==(const ResourceGuard& other) const
-    {
-        return m_resource == other.m_resource;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const ResourceGuard& other) const
-    {
-        return m_resource != other.m_resource;
-    }
-
-    HYP_FORCE_INLINE IResource* operator->() const
-    {
-        return m_resource;
-    }
-
-    HYP_FORCE_INLINE IResource& operator*() const
-    {
-        HYP_CORE_ASSERT(!m_resource->IsNull());
-
-        return *m_resource;
-    }
-
-protected:
-    IResource* m_resource;
-};
-
-template <class ResourceType>
-class TResourceGuard : public ResourceGuard
-{
-public:
-    TResourceGuard() = default;
-
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<ResourceGuard, NormalizedType<T>>>>
-    TResourceGuard(T& resource)
-        : ResourceGuard(static_cast<IResource&>(resource))
-    {
-    }
-
-    TResourceGuard(const TResourceGuard& other)
-        : ResourceGuard(static_cast<const ResourceGuard&>(other))
-    {
-    }
-
-    TResourceGuard& operator=(const TResourceGuard& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        ResourceGuard::operator=(static_cast<const ResourceGuard&>(other));
-
-        return *this;
-    }
-
-    TResourceGuard(TResourceGuard&& other) noexcept
-        : ResourceGuard(static_cast<ResourceGuard&&>(std::move(other)))
-    {
-    }
-
-    TResourceGuard& operator=(TResourceGuard&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        ResourceGuard::operator=(static_cast<ResourceGuard&&>(std::move(other)));
-
-        return *this;
-    }
-
-    ~TResourceGuard() = default;
-
-    HYP_FORCE_INLINE ResourceType* Get() const
-    {
-        static_assert(std::is_base_of_v<IResource, ResourceType>);
-
-        if (m_resource->IsNull())
-        {
-            return nullptr;
-        }
-
-        // can safely cast to ResourceType since we know it's not NullResource
-        return static_cast<ResourceType*>(m_resource);
-    }
-
-    HYP_FORCE_INLINE ResourceType* operator->() const
-    {
-        return Get();
-    }
-
-    HYP_FORCE_INLINE ResourceType& operator*() const
-    {
-        ResourceType* ptr = Get();
-
-        if (!ptr)
-        {
-            HYP_FAIL("Dereferencing null resource handle!");
-        }
-
-        return *ptr;
-    }
-};
 
 } // namespace Hyperion

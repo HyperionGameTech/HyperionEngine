@@ -40,6 +40,8 @@ public:
         int64 expected = 0;
         while (!AtomicCompareExchange(&m_value, expected, 1))
         {
+            expected = 0;
+            
             // volatile read
             while (m_value != 0)
             {
@@ -117,6 +119,11 @@ public:
     void UnlockReader() const
     {
         AtomicSub(&m_value, 2);
+    }
+
+    volatile int64* GetInternalValuePtr() const
+    {
+        return &m_value;
     }
 
 private:

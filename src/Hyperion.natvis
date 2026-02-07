@@ -343,7 +343,7 @@
   </Type>
   
   <!-- Just display inner data of a Value -->
-  <Type Name="Hyperion::Json::Value">
+  <Type Name="Hyperion::JSON::Value">
     <DisplayString>{{ Value={m_inner} }}</DisplayString>
     <Expand>
       <ExpandedItem>m_inner</ExpandedItem>
@@ -462,25 +462,22 @@
   </Type>
   
   <Type Name="Hyperion::AssetPath">
+    <DisplayString>{chain,hv}</DisplayString>
     <Expand>
       <CustomListItems>
         <Variable Name="current" InitialValue="chain" />
         <Variable Name="first" InitialValue="true" />
         
         <Loop>
-          <Break Condition="current == nullptr || current-&gt;hashCode == 0" />
-          
-          <If Condition="first == false">
-            <Item Name="[.]">"." </Item>
-          </If>
+          <Break Condition="current-&gt;hashCode == 0" />
           
           <If Condition="first == true">
             <Exec>first = false</Exec>
           </If>
           
-          <Item>Name: current</Item>
+          <Item>(current),na</Item>
           
-          <Exec>current = current-&gt;next</Exec>
+          <Exec>current = current + 1</Exec>
         </Loop>
       </CustomListItems>
     </Expand>

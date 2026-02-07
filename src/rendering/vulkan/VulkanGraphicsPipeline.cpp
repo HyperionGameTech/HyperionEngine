@@ -29,9 +29,9 @@ namespace Hyperion {
 extern VulkanRenderInterface* g_renderInterface;
 
 template <>
-Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(const VulkanGraphicsPipeline& pipeline)
+Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanGraphicsPipeline>(const VulkanGraphicsPipeline& pipeline)
 {
-    Array<VkDescriptorSetLayout> usedLayouts;
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
     VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
@@ -318,7 +318,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     const uint32 maxSetLayouts = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
-    Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts = GetVkDescriptorSetLayouts(*this);
 
     for (VkDescriptorSetLayout vkDescriptorSetLayout : usedLayouts)
     {

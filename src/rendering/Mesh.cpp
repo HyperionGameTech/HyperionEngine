@@ -214,6 +214,8 @@ void Mesh::Init()
             // register it with transient Memory package
             g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
         }
+        
+        asset->SetPersistentRequested(m_flags[MF_VIEW_INDEPENDENT], /* setFlag */ true);
 
         if (m_flags[MF_VIEW_INDEPENDENT])
         {
@@ -281,12 +283,12 @@ void Mesh::UploadGpuData()
         return;
     }
 
-    gpuUploadFence.Reset();
+    gpuUploadSemaphore.Reset();
 
     ResourceGuard resGuard(*asset->GetResource());
-    AssertDebug(asset->IsLoaded());
+    AssertDebug(asset->IsDataLoaded());
 
-    if (!asset->IsLoaded())
+    if (!asset->IsDataLoaded())
     {
         HYP_LOG(Mesh, Error, "Mesh asset for {} is not loaded in memory, cannot create GPU buffers", GetName());
 
@@ -442,7 +444,7 @@ void Mesh::UploadGpuData()
                 mesh->m_indexBuffer = std::move(indexBuffer);
             }
 
-            mesh->gpuUploadFence.Signal();
+            mesh->gpuUploadSemaphore.Signal();
 
             return {};
         }
@@ -459,7 +461,7 @@ void Mesh::ReleaseGpuData()
     SafeDelete(std::move(m_vertexBuffer));
     SafeDelete(std::move(m_indexBuffer));
 
-    gpuUploadFence.Reset();
+    gpuUploadSemaphore.Reset();
 }
 
 Result Mesh::Rename(Name name)
@@ -510,7 +512,7 @@ void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
         g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Meshes", asset);
 
         // needs reupload!
-        if (m_flags[MF_VIEW_INDEPENDENT] || gpuUploadFence.IsSignaled())
+        if (m_flags[MF_VIEW_INDEPENDENT] || gpuUploadSemaphore.IsSignaled())
         {
             UploadGpuData();
         }
@@ -528,12 +530,22 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     }
 
     const bool wasViewIndependent = m_flags[MF_VIEW_INDEPENDENT];
-    m_flags = flags;
 
-    if (m_flags[MF_VIEW_INDEPENDENT] && !wasViewIndependent && IsInitCalled())
+    m_flags = flags;
+    
+    const Handle<MeshAsset>& asset = GetAsset();
+
+    if (IsInitCalled() && m_flags[MF_VIEW_INDEPENDENT] != wasViewIndependent)
     {
-        UploadGpuData();
+        asset->SetPersistentRequested(m_flags[MF_VIEW_INDEPENDENT], /* setFlag */ true, /* markDirty */ false);
+
+        if (m_flags[MF_VIEW_INDEPENDENT])
+        {
+            UploadGpuData();
+        }
     }
+    
+    MarkDirty();
 }
 
 uint32 Mesh::NumIndices() const

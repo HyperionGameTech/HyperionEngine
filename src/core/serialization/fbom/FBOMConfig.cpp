@@ -8,9 +8,9 @@ namespace Hyperion::serialization {
 
 #pragma region FBOMWriterConfig
 
-void FBOMWriterConfig::SaveToJSON(Json::Value& outJson) const
+void FBOMWriterConfig::SaveToJSON(JSON::Value& outJson) const
 {
-    Json::JSObject object = {
+    JSON::Object object = {
         { "enableStaticData", enableStaticData },
         { "compressStaticData", compressStaticData }
     };
@@ -18,14 +18,14 @@ void FBOMWriterConfig::SaveToJSON(Json::Value& outJson) const
     outJson = object;
 }
 
-bool FBOMWriterConfig::LoadFromJSON(const Json::Value& json)
+bool FBOMWriterConfig::LoadFromJSON(const JSON::Value& json)
 {
     if (!json.IsObject())
     {
         return false;
     }
 
-    Json::JSObject object = json.AsObject();
+    JSON::Object object = json.AsObject();
 
     enableStaticData = object["enableStaticData"].ToBool();
     compressStaticData = object["compressStaticData"].ToBool();
@@ -37,9 +37,9 @@ bool FBOMWriterConfig::LoadFromJSON(const Json::Value& json)
 
 #pragma region FBOMReaderConfig
 
-void FBOMReaderConfig::SaveToJSON(Json::Value& outJson) const
+void FBOMReaderConfig::SaveToJSON(JSON::Value& outJson) const
 {
-    Json::JSObject object = {
+    JSON::Object object = {
         { "continueOnExternalLoadError", continueOnExternalLoadError },
         { "basePath", basePath }
     };
@@ -47,14 +47,14 @@ void FBOMReaderConfig::SaveToJSON(Json::Value& outJson) const
     outJson = object;
 }
 
-bool FBOMReaderConfig::LoadFromJSON(const Json::Value& json)
+bool FBOMReaderConfig::LoadFromJSON(const JSON::Value& json)
 {
     if (!json.IsObject())
     {
         return false;
     }
 
-    Json::JSObject object = json.AsObject();
+    JSON::Object object = json.AsObject();
 
     continueOnExternalLoadError = object[u"continueOnExternalLoadError"].ToBool();
     basePath = object[u"basePath"].ToString();

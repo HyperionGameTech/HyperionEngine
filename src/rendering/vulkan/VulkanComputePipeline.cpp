@@ -26,9 +26,9 @@ namespace Hyperion {
 extern VulkanRenderInterface* g_renderInterface;
 
 template <>
-Array<VkDescriptorSetLayout> GetVkDescriptorSetLayouts<VulkanComputePipeline>(const VulkanComputePipeline& pipeline)
+Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanComputePipeline>(const VulkanComputePipeline& pipeline)
 {
-    Array<VkDescriptorSetLayout> usedLayouts;
+    Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
     VulkanShader* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
@@ -125,7 +125,8 @@ RendererResult VulkanComputePipeline::Create()
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const Array<VkDescriptorSetLayout> usedLayouts = GetVkDescriptorSetLayouts(*this);
+    const Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts = GetVkDescriptorSetLayouts(*this);
+
     const uint32 maxSetLayouts = g_renderInterface->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     if (usedLayouts.Size() > maxSetLayouts)
@@ -149,7 +150,7 @@ RendererResult VulkanComputePipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
     }
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& stages = m_shader->GetVulkanShaderStages();
 
     if (stages.Size() == 0)
     {

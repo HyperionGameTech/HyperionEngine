@@ -15,15 +15,15 @@
 #include <core/reflection/BoxedValue.hpp>
 
 namespace Hyperion {
-namespace Json {
+namespace JSON {
 
-static const Value s_undefined = Json::JSUndefined();
-static const Value s_null = Json::JSNull();
-static const Value s_emptyObject = Json::JSObject();
-static const Value s_emptyArray = Json::JSArray();
-static const Value s_emptyString = Json::JSString();
-static const Value s_true = Json::JSBoolean(true);
-static const Value s_false = Json::JSBoolean(false);
+static const Value s_undefined = JSON::JSUndefined();
+static const Value s_null = JSON::JSNull();
+static const Value s_emptyObject = JSON::Object();
+static const Value s_emptyArray = JSON::JArray();
+static const Value s_emptyString = JSON::JString();
+static const Value s_true = true;
+static const Value s_false = false;
 
 #pragma region Helpers
 
@@ -58,10 +58,10 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
     return tokens;
 }
 
-static JSString GetIndentationString(uint32 depth)
+static JString GetIndentationString(uint32 depth)
 {
     // Preallocate indentation strings
-    static const FixedArray<JSString, 10> PreallocatedIndentationStrings {
+    static const FixedArray<JString, 10> PreallocatedIndentationStrings {
         "",
         "  ",
         "    ",
@@ -79,7 +79,7 @@ static JSString GetIndentationString(uint32 depth)
         return PreallocatedIndentationStrings[depth];
     }
 
-    JSString indentation = PreallocatedIndentationStrings[PreallocatedIndentationStrings.Size() - 1];
+    JString indentation = PreallocatedIndentationStrings[PreallocatedIndentationStrings.Size() - 1];
 
     for (uint32 i = PreallocatedIndentationStrings.Size(); i <= depth; i++)
     {
@@ -139,7 +139,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
 
         if (createIntermediateObjects && (value.IsUndefined() || value.IsNull()))
         {
-            value = JSObject();
+            value = Object();
         }
 
         elementSubscriptWrapper = JSONSubscriptWrapper<T> { &value };
@@ -187,7 +187,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
 
         if (createIntermediateObjects && (value.IsUndefined() || value.IsNull()))
         {
-            value = JSObject();
+            value = Object();
         }
 
         JSONSubscriptWrapper<T> elementSubscriptWrapper { &value };
@@ -253,65 +253,65 @@ bool JSONSubscriptWrapper<Value>::IsUndefined() const
     return !value || value->IsUndefined();
 }
 
-JSString& JSONSubscriptWrapper<Value>::AsString() const
+JString& JSONSubscriptWrapper<Value>::AsString() const
 {
     HYP_CORE_ASSERT(IsString());
 
     return value->AsString();
 }
 
-JSString JSONSubscriptWrapper<Value>::ToString() const
+JString JSONSubscriptWrapper<Value>::ToString() const
 {
     if (!value)
     {
-        return JSString::empty;
+        return JString::empty;
     }
 
     return value->ToString();
 }
 
-JSNumber JSONSubscriptWrapper<Value>::AsNumber() const
+Number JSONSubscriptWrapper<Value>::AsNumber() const
 {
     HYP_CORE_ASSERT(IsNumber());
 
     return value->AsNumber();
 }
 
-JSNumber JSONSubscriptWrapper<Value>::ToNumber() const
+Number JSONSubscriptWrapper<Value>::ToNumber() const
 {
     if (!value)
     {
-        return JSNumber(0.0);
+        return Number(0.0);
     }
 
     return value->ToNumber();
 }
 
-JSBoolean JSONSubscriptWrapper<Value>::AsBool() const
+bool JSONSubscriptWrapper<Value>::AsBool() const
 {
     HYP_CORE_ASSERT(IsBool());
 
     return value->AsBool();
 }
 
-JSBoolean JSONSubscriptWrapper<Value>::ToBool() const
+bool JSONSubscriptWrapper<Value>::ToBool() const
 {
     if (!value)
     {
-        return JSBoolean(false);
+        return false;
     }
 
     return value->ToBool();
 }
 
-JSArray& JSONSubscriptWrapper<Value>::AsArray() const
+JArray& JSONSubscriptWrapper<Value>::AsArray() const
 {
     HYP_CORE_ASSERT(IsArray());
 
     return value->AsArray();
 }
 
-const JSArray& JSONSubscriptWrapper<Value>::ToArray() const
+const JArray& JSONSubscriptWrapper<Value>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
@@ -321,14 +321,14 @@ const JSArray& JSONSubscriptWrapper<Value>::ToArray() const
     return value->AsArray();
 }
 
-JSObject& JSONSubscriptWrapper<Value>::AsObject() const
+Object& JSONSubscriptWrapper<Value>::AsObject() const
 {
     HYP_CORE_ASSERT(IsObject());
 
     return value->AsObject();
 }
 
-const JSObject& JSONSubscriptWrapper<Value>::ToObject() const
+const Object& JSONSubscriptWrapper<Value>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
@@ -374,7 +374,7 @@ JSONSubscriptWrapper<Value> JSONSubscriptWrapper<Value>::operator[](UTF8StringVi
 
     if (value->IsObject())
     {
-        JSObject& asObject = value->AsObject();
+        Object& asObject = value->AsObject();
 
         auto it = asObject.FindAs(key);
 
@@ -506,65 +506,65 @@ bool JSONSubscriptWrapper<const Value>::IsUndefined() const
     return !value || value->IsUndefined();
 }
 
-const JSString& JSONSubscriptWrapper<const Value>::AsString() const
+const JString& JSONSubscriptWrapper<const Value>::AsString() const
 {
     HYP_CORE_ASSERT(IsString());
 
     return value->AsString();
 }
 
-JSString JSONSubscriptWrapper<const Value>::ToString() const
+JString JSONSubscriptWrapper<const Value>::ToString() const
 {
     if (!value)
     {
-        return JSString::empty;
+        return JString::empty;
     }
 
     return value->ToString();
 }
 
-JSNumber JSONSubscriptWrapper<const Value>::AsNumber() const
+Number JSONSubscriptWrapper<const Value>::AsNumber() const
 {
     HYP_CORE_ASSERT(IsNumber());
 
     return value->AsNumber();
 }
 
-JSNumber JSONSubscriptWrapper<const Value>::ToNumber() const
+Number JSONSubscriptWrapper<const Value>::ToNumber() const
 {
     if (!value)
     {
-        return JSNumber(0.0);
+        return Number(0.0);
     }
 
     return value->ToNumber();
 }
 
-JSBoolean JSONSubscriptWrapper<const Value>::AsBool() const
+bool JSONSubscriptWrapper<const Value>::AsBool() const
 {
     HYP_CORE_ASSERT(IsBool());
 
     return value->AsBool();
 }
 
-JSBoolean JSONSubscriptWrapper<const Value>::ToBool() const
+bool JSONSubscriptWrapper<const Value>::ToBool() const
 {
     if (!value)
     {
-        return JSBoolean(false);
+        return false;
     }
 
     return value->ToBool();
 }
 
-const JSArray& JSONSubscriptWrapper<const Value>::AsArray() const
+const JArray& JSONSubscriptWrapper<const Value>::AsArray() const
 {
     HYP_CORE_ASSERT(IsArray());
 
     return value->AsArray();
 }
 
-const JSArray& JSONSubscriptWrapper<const Value>::ToArray() const
+const JArray& JSONSubscriptWrapper<const Value>::ToArray() const
 {
     if (!value || !value->IsArray())
     {
@@ -574,14 +574,14 @@ const JSArray& JSONSubscriptWrapper<const Value>::ToArray() const
     return value->AsArray();
 }
 
-const JSObject& JSONSubscriptWrapper<const Value>::AsObject() const
+const Object& JSONSubscriptWrapper<const Value>::AsObject() const
 {
     HYP_CORE_ASSERT(IsObject());
 
     return value->AsObject();
 }
 
-const JSObject& JSONSubscriptWrapper<const Value>::ToObject() const
+const Object& JSONSubscriptWrapper<const Value>::ToObject() const
 {
     if (!value || !value->IsObject())
     {
@@ -600,7 +600,7 @@ JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<const Value>::operator[](
 
     if (value->IsArray())
     {
-        const JSArray& asArray = value->AsArray();
+        const JArray& asArray = value->AsArray();
 
         if (index >= asArray.Size())
         {
@@ -622,7 +622,7 @@ JSONSubscriptWrapper<const Value> JSONSubscriptWrapper<const Value>::operator[](
 
     if (value->IsObject())
     {
-        const JSObject& asObject = value->AsObject();
+        const Object& asObject = value->AsObject();
 
         auto it = asObject.FindAs(key);
 
@@ -682,7 +682,7 @@ public:
 
     Value Parse()
     {
-        Json::Value value = ParseValue();
+        JSON::Value value = ParseValue();
 
         // Should not have any tokens left
         if (m_tokenStream->HasNext())
@@ -757,7 +757,7 @@ private:
         return "";
     }
 
-    JSNumber ParseNumber()
+    Number ParseNumber()
     {
         Token token = Match(TokenClass::TK_INTEGER, true);
 
@@ -768,20 +768,20 @@ private:
 
         if (!token)
         {
-            return JSNumber(0);
+            return Number(0);
         }
 
         std::istringstream ss(token.GetValue().Data());
 
-        JSNumber value;
+        Number value;
         ss >> value;
 
         return value;
     }
 
-    JSArray ParseArray()
+    JArray ParseArray()
     {
-        JSArray array;
+        JArray array;
 
         if (Token token = Expect(TokenClass::TK_OPEN_BRACKET, true))
         {
@@ -802,9 +802,9 @@ private:
         return array;
     }
 
-    JSObject ParseObject()
+    Object ParseObject()
     {
-        JSObject object;
+        Object object;
 
         if (Token token = Expect(TokenClass::TK_OPEN_BRACE, true))
         {
@@ -957,27 +957,27 @@ private:
 
 #pragma region Value
 
-Value::Value(const JSArray& array)
-    : m_inner(JSArrayRef::Construct(array))
+Value::Value(const JArray& array)
+    : m_inner(JArrayRef::Construct(array))
 {
 }
 
-Value::Value(JSArray&& array)
-    : m_inner(JSArrayRef::Construct(std::move(array)))
+Value::Value(JArray&& array)
+    : m_inner(JArrayRef::Construct(std::move(array)))
 {
 }
 
-Value::Value(const JSObject& object)
-    : m_inner(JSObjectRef::Construct(object))
+Value::Value(const Object& object)
+    : m_inner(ObjectRef::Construct(object))
 {
 }
 
-Value::Value(JSObject&& object)
-    : m_inner(JSObjectRef::Construct(std::move(object)))
+Value::Value(Object&& object)
+    : m_inner(ObjectRef::Construct(std::move(object)))
 {
 }
 
-const JSObject& Value::ToObject() const
+const Object& Value::ToObject() const
 {
     if (IsObject())
     {
@@ -987,12 +987,12 @@ const JSObject& Value::ToObject() const
     return s_emptyObject.AsObject();
 }
 
-JSString Value::ToString(bool representation, uint32 depth) const
+JString Value::ToString(bool representation, uint32 depth) const
 {
     return ToString_Internal(representation, depth);
 }
 
-JSString Value::ToString_Internal(bool representation, uint32 depth) const
+JString Value::ToString_Internal(bool representation, uint32 depth) const
 {
     static thread_local HashSet<const Value*> s_serializedObjects;
 
@@ -1036,7 +1036,7 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
     if (IsNumber())
     {
         // Format string
-        const JSNumber number = AsNumber();
+        const Number number = AsNumber();
 
         const bool isInteger = MathUtil::Fract(number) < MathUtil::epsilonD;
 
@@ -1080,9 +1080,9 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
 
     if (IsArray())
     {
-        const JSArray& asArray = AsArray();
+        const JArray& asArray = AsArray();
 
-        JSString result = "[";
+        JString result = "[";
 
         for (SizeType index = 0; index < asArray.Size(); index++)
         {
@@ -1101,9 +1101,9 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
 
     if (IsObject())
     {
-        const JSObject& asObject = AsObject();
+        const Object& asObject = AsObject();
 
-        Array<const KeyValuePair<JSString, Value>*> members;
+        Array<const KeyValuePair<JString, Value>*> members;
         members.Reserve(asObject.Size());
 
         for (const auto& member : asObject)
@@ -1111,10 +1111,10 @@ JSString Value::ToString_Internal(bool representation, uint32 depth) const
             members.PushBack(&member);
         }
 
-        const JSString indentation = GetIndentationString(depth);
-        const JSString propertyIndentation = GetIndentationString(depth + 1);
+        const JString indentation = GetIndentationString(depth);
+        const JString propertyIndentation = GetIndentationString(depth + 1);
 
-        JSString result = "{";
+        JString result = "{";
 
         for (SizeType index = 0; index < members.Size(); index++)
         {
@@ -1291,5 +1291,5 @@ ParseResult Parse(const SourceFile& sourceFile)
 
 #pragma endregion JSON
 
-} // namespace Json
+} // namespace JSON
 } // namespace Hyperion

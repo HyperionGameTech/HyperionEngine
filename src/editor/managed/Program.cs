@@ -22,6 +22,10 @@ namespace Hyperion.Editor
             => AppBuilder.Configure<App>()
                 .UsePlatformDetect()
                 .With(new MacOSPlatformOptions { ShowInDock = true })
+                .With(new Win32PlatformOptions
+                {
+                    OverlayPopups = true
+                })
                 .With(new VulkanOptions
                 {
                     VulkanInstanceCreationOptions = new()
@@ -29,8 +33,6 @@ namespace Hyperion.Editor
                         UseDebug = true
                     }
                 })
-                .UseSkia()
-                .WithInterFont()
                 .LogToTrace();
     }
 }

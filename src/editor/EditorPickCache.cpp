@@ -23,14 +23,13 @@ extern uint32 GetFrameCounter();
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
 
-// amount of headroom to leave in the memory pool before we start forcefully evicting entries
-constexpr SizeType IdealHeadroom = 1 * 1024 * 1024;
+constexpr SizeType IdealHeadroom = 4 * 1024 * 1024;
+constexpr SizeType MaxMemoryUsageBytes = 64 * 1024 * 1024;
 
 struct EditorPickCacheImpl
 {
     // uses SparsePagedArray so iterators remain valid even when entries are evicted
-    using Cache = SparsePagedArray<EditorPickCacheEntry, 32, EpcAllocator>;
-
+    using Cache = SparsePagedArray<EditorPickCacheEntry, 32>;
     using ResidencySet = Bitset;
 
     Cache cache;
@@ -46,15 +45,6 @@ struct EditorPickCacheImpl
 
 static int ComputeResidency(const EditorPickCacheEntry& entry)
 {
-    // Simple residency computation based on number of vertices and indices
-    const SizeType vertexCount = entry.positions.Size();
-    const SizeType indexCount = entry.indices.Size();
-
-    if (vertexCount == 0 || indexCount == 0)
-    {
-        return 0;
-    }
-
     const int fc = GetFrameCounter();
 
     int residency = MinResidency;
@@ -156,7 +146,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    ResourceGuard resGuard(*mesh->GetAsset()->GetResource());
+    ResourceGuard resGuard = mesh->GetAsset()->GetResource()->GetReadScope();
 
     if (!resGuard)
     {
@@ -168,10 +158,10 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
     const MeshData& meshData = *mesh->GetAsset()->GetMeshData();
 
-    // make sure we have enough memory
-    if (!EvictEntries(meshData.vertexData.ByteSize() + meshData.indexData.Size() + IdealHeadroom))
+    // make sure we have enough memory before adding, otherwise fail
+    if (!HasFreeSpace((meshData.vertexData.Size() * sizeof(Vec3f)) + meshData.indexData.Size()))
     {
-        HYP_LOG(Editor, Error, "Failed to evict enough entries to add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+        HYP_LOG(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
         return;
     }
@@ -311,6 +301,13 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
     }
 
     return currentMemoryUsageBytes <= targetMemoryUsageBytes;
+}
+
+bool EditorPickCache::HasFreeSpace(SizeType bytes)
+{
+    const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
+
+    return metrics[MemoryMetrics::MM_BYTES_USED] <= MaxMemoryUsageBytes - bytes;
 }
 
 void EditorPickCache::Update(float delta)

@@ -275,7 +275,7 @@ struct CreateTextureGpuImage : RenderCommand
             renderQueue << InsertBarrier(image, initialState);
         }
 
-        resGuard.Reset();
+        resGuard.Release();
 
         return {};
     }

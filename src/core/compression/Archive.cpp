@@ -62,7 +62,7 @@ Archive ArchiveBuilder::Build() const
         m_uncompressedBuffer.Data(),
         uncompressedSize);
 
-    Assert(compressResult == Z_OK, "zlib compression failed with error %d", compressResult);
+    Assert(compressResult == Z_OK, "zlib compression failed with error {}", compressResult);
 
     compressedBuffer.SetSize(compressedSize);
 #else

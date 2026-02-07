@@ -645,8 +645,8 @@ struct ShaderBundle
     }
 };
 
-void MergeGlobalShaderProperties(ShaderVariantPerms& out);
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
+void MergeGlobalShaderProperties(ShaderVariantPerms& out);
 
 class ShaderCompiler
 {

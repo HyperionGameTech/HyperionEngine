@@ -42,15 +42,21 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
 
                 for (const AssetReference& assetReference : cell->GetAssetReferences())
                 {
-                    AssertDebug(assetReference.IsLoaded());
-
                     const Handle<AssetObject>& obj = assetReference.Resolve();
-                    AssertDebug(obj != nullptr);
 
-                    objs.PushBack(obj.Get());
+                    AssertDebug(obj.IsValid(), "Could not resolve AssetReference: {}",
+                        assetReference.GetAssetPath().ToString());
+
+                    if (obj.IsValid())
+                    {
+                        objs.PushBack(obj.Get());
+                    }
                 }
-
-                OnStreamingObjectsLoaded(cell, objs);
+                
+                if (objs.Any())
+                {
+                    OnStreamingObjectsLoaded(cell, objs);
+                }
             })
         .Detach();
 
@@ -62,15 +68,21 @@ Handle<StreamingCell> WorldGridLayer::CreateStreamingCell_Impl(const StreamingCe
 
                 for (const AssetReference& assetReference : cell->GetAssetReferences())
                 {
-                    AssertDebug(assetReference.IsLoaded());
-
                     const Handle<AssetObject>& obj = assetReference.Resolve();
-                    AssertDebug(obj != nullptr);
 
-                    objs.PushBack(obj.Get());
+                    AssertDebug(obj.IsValid(), "Could not resolve AssetReference: {}",
+                        assetReference.GetAssetPath().ToString());
+
+                    if (obj.IsValid())
+                    {
+                        objs.PushBack(obj.Get());
+                    }
                 }
 
-                OnStreamingObjectsUnloaded(cell, objs);
+                if (objs.Any())
+                {
+                    OnStreamingObjectsUnloaded(cell, objs);
+                }
             })
         .Detach();
 
@@ -88,11 +100,18 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
         return;
     }
 
+    // Temp debug
+    if (assetObject->InstanceClass()->GetName() == "MeshAsset"_sh)
+    {
+        HYP_BREAKPOINT;
+    }
+
     if (!assetObject->IsRegistered())
     {
-        // register in $Temp package if not already registered
         // When AssetRegistry::RegisterAssetsRecursively is called, these will be moved to their proper packages/paths (i.e project package)
-        g_assetManager->GetAssetRegistry()->RegisterAsset(HYP_FORMAT("$Temp/{}", assetObject->GetUUID()), MakeStrongRef(assetObject));
+        g_assetManager->GetAssetRegistry()->RegisterAsset(
+            HYP_FORMAT("$Memory/Objects/Types/{}", assetObject->InstanceClass()->GetName()),
+            MakeStrongRef(assetObject));
     }
 
     /// \todo How will we update if the obj moves to a different path in editor?? - FIXME when we add some Delegate like OnAssetPathChanged to AssetObject

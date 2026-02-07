@@ -29,6 +29,8 @@ class VulkanRayTracingPipeline final : public RayTracingPipelineBase, public Vul
     HYP_OBJECT_BODY(VulkanRayTracingPipeline);
 
 public:
+    static Pool* GetAllocator() { return g_vulkanPool; }
+
     VulkanRayTracingPipeline();
     explicit VulkanRayTracingPipeline(const VulkanShaderRef& shader);
     ~VulkanRayTracingPipeline() override;
@@ -68,7 +70,7 @@ private:
         VkStridedDeviceAddressRegionKHR callable {};
     } m_shaderBindingTableEntries;
 
-    using ShaderBindingTableMap = HashMap<ShaderModuleType, ShaderBindingTableEntry>;
+    using ShaderBindingTableMap = HashMap<ShaderModuleType, ShaderBindingTableEntry, NodeAllocator<VulkanAllocator>>;
 
     RendererResult CreateShaderBindingTables(VulkanShader* shader);
     RendererResult CreateShaderBindingTableEntry(uint32 numShaders, ShaderBindingTableEntry& out);

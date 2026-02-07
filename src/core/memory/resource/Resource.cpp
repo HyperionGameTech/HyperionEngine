@@ -39,95 +39,286 @@ IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId typeId, UniquePtr<IRes
 
 #pragma endregion Memory Pool
 
+#pragma region ResourceGuard
+
+ResourceGuard::ResourceGuard(ResourceBase& resource, int mask)
+    : resource(&resource),
+      mask(mask)
+{
+    if (mask & Write)
+    {
+        resource.AddWriter();
+    }
+    else
+    {
+        resource.AddReader();
+    }
+}
+
+ResourceGuard::ResourceGuard(const ResourceGuard& other)
+    : resource(other.resource),
+      mask(other.mask)
+{
+    if (resource)
+    {
+        if (mask & Write)
+        {
+            resource->AddWriter();
+        }
+        else
+        {
+            resource->AddReader();
+        }
+    }
+}
+
+ResourceGuard& ResourceGuard::operator=(const ResourceGuard& other)
+{
+    if (this == &other)
+        return *this;
+
+    Release();
+
+    AssertDebug(!(other.mask & Write), "Would cause deadlock!");
+
+    resource = other.resource;
+    mask = other.mask;
+    
+    if (resource != nullptr)
+    {
+        if (mask & Write)
+        {
+            resource->AddWriter();
+        }
+        else
+        {
+            resource->AddReader();
+        }
+    }
+
+    return *this;
+}
+    
+ResourceGuard::ResourceGuard(ResourceGuard&& other) noexcept
+    : resource(other.resource),
+      mask(other.mask)
+{
+    other.resource = nullptr;
+}
+
+ResourceGuard& ResourceGuard::operator=(ResourceGuard&& other) noexcept
+{
+    Release();
+
+    resource = other.resource;
+    mask = other.mask;
+
+    other.resource = nullptr;
+
+    return *this;
+}
+
+ResourceGuard::~ResourceGuard()
+{
+    Release();
+}
+
+void ResourceGuard::Release()
+{
+    if (resource != nullptr)
+    {
+        if (mask & Write)
+        {
+            resource->ReleaseWriter();
+        }
+        else
+        {
+            resource->ReleaseReader();
+        }
+
+        resource = nullptr;
+    }
+}
+
+#pragma endregion ResourceGuard
+
 #pragma region ResourceBase
 
 ResourceBase::ResourceBase()
-    : m_refCount(0),
-      m_isAlive(0)
+    : m_state(0),
+      m_isInitialized(false)
 {
 }
 
 ResourceBase::~ResourceBase()
 {
-    // Ensure that the resources are no longer being used
-    HYP_CORE_ASSERT(m_refCount == 0, "Resource destroyed while still in use, was WaitForFinalization() called?");
+    HYP_NAMED_SCOPE("Wait for readers to finish with resource");
+
+    AddWriter(/* doInitialize */ false);
+    
+    // waits for all reads to complete, but don't unlock
 }
 
-bool ResourceBase::IsInitialized() const
+ResourceGuard ResourceBase::GetWriteScope()
 {
-    return 0 < AtomicAdd(&m_isAlive, 0);
+    return ResourceGuard { *this, ResourceGuard::Write };
 }
 
-int ResourceBase::IncRef()
+ResourceGuard ResourceBase::GetReadScope()
 {
-    HYP_SCOPE;
-
-    Mutex::Guard guard(m_mutex);
-
-    if (++m_refCount == 1)
-    {
-
-        if (AtomicAdd(&m_isAlive, 0) == 0)
-        {
-            HYP_NAMED_SCOPE("Initializing Resource - Initialization");
-
-            Initialize();
-
-            AtomicExchange(&m_isAlive, 1);
-
-            m_isAliveCV.NotifyAll();
-        }
-    }
-    else
-    {
-        // Ensure its alive if we're not the one initializing
-        while (AtomicAdd(&m_isAlive, 0) == 0)
-        {
-            m_isAliveCV.Wait(m_mutex);
-        }
-    }
-
-    return m_refCount;
+    return ResourceGuard { *this, ResourceGuard::Read };
 }
 
-int ResourceBase::DecRef()
+void ResourceBase::AddWriter(bool doInitialize)
 {
-    HYP_SCOPE;
+    uint32 numSpins = 0;
 
-    Mutex::Guard guard(m_mutex);
-
-    if (--m_refCount == 0)
+    int64 expected = 0;
+    while (!AtomicCompareExchange(&m_state, expected, 1))
     {
-        int32 expected = 1;
-        if (AtomicCompareExchange(&m_isAlive, expected, 0))
+        expected = 0;
+            
+        // volatile read
+        while (m_state != 0)
         {
-            HYP_NAMED_SCOPE("Destroying Resource");
-
-            Destroy();
-
-            m_isAliveCV.NotifyAll();
+            if (numSpins++ < 16)
+            {
+                HYP_WAIT_IDLE();
+            }
+            else
+            {
+                // yield to other threads
+                ThreadSleep(0);
+            }
         }
     }
 
-    if (HYP_UNLIKELY(m_refCount < 0))
+    if (doInitialize)
     {
-        HYP_LOG(Resource, Fatal, "Resource ref count is negative! This is a bug in the code that uses this resource, please report it.\n\t"
-                                 "Resource ref count: {}, address: {}",
-            m_refCount, (void*)this);
-    }
+        Mutex::Guard initGuard(m_initMutex);
 
-    return m_refCount;
+        Initialize();
+
+        m_isInitialized = true;
+    }
 }
 
-void ResourceBase::WaitForFinalization() const
+void ResourceBase::ReleaseWriter(bool doDeinitialize)
 {
-    HYP_SCOPE;
-
-    Mutex::Guard guard(m_mutex);
-
-    while (AtomicAdd(&m_isAlive, 0))
+    if (doDeinitialize)
     {
-        m_isAliveCV.Wait(m_mutex);
+        Mutex::Guard initGuard(m_initMutex);
+
+        Assert(m_isInitialized);
+
+        Destroy();
+
+        m_isInitialized = false;
+    }
+
+    AtomicBitAnd(&m_state, ~0x1);
+}
+
+void ResourceBase::AddReader()
+{
+    uint32 numSpins = 0;
+
+    union
+    {
+        int64 state;
+        uint64 ustate;
+    };
+
+    auto MaybeInitialize = [this](int64 state)
+    {
+        bool isInitializedLocal = false;
+
+        if (state == 0)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            isInitializedLocal = m_isInitialized;
+
+            if (!isInitializedLocal)
+            {
+                // need to do initialize here, since we're the first reader
+                m_isInitialized = true;
+                isInitializedLocal = true;
+
+                Initialize();
+
+                m_initCV.NotifyAll();
+            }
+        }
+
+        if (!isInitializedLocal)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            // wait for initialization to complete
+            while (!m_isInitialized)
+            {
+                m_initCV.Wait(m_initMutex);
+            }
+        }
+    };
+        
+    // first pass: optimistic read
+    if ((m_state & 0x1) == 0)
+    {
+        state = AtomicAdd(&m_state, 2);
+
+        if ((state & 0x1) == 0)
+        {
+            MaybeInitialize(state);
+
+            return;
+        }
+
+        AtomicSub(&m_state, 2);
+    }
+
+    while (true)
+    {
+        // failed, wait for writer to release
+        if (m_state & 0x1)
+        {
+            if (numSpins++ < 16)
+            {
+                HYP_WAIT_IDLE();
+            }
+            else
+            {
+                ThreadSleep(0);
+            }
+
+            continue;
+        }
+
+        state = AtomicAdd(&m_state, 2);
+
+        if ((state & 0x1) == 0)
+        {
+            MaybeInitialize(state);
+
+            return;
+        }
+
+        AtomicSub(&m_state, 2);
+    }
+}
+
+void ResourceBase::ReleaseReader()
+{
+    Mutex::Guard initGuard(m_initMutex);
+
+    if (m_isInitialized && AtomicSub(&m_state, 2) == 2)
+    {
+        Destroy();
+
+        m_isInitialized = false;
     }
 }
 
@@ -147,19 +338,14 @@ public:
         return true;
     }
 
-    virtual int IncRef() override
+    ResourceGuard GetWriteScope()
     {
-        return 0;
+        return ResourceGuard {};
     }
 
-    virtual int DecRef() override
+    ResourceGuard GetReadScope()
     {
-        return 0;
-    }
-
-    virtual void WaitForFinalization() const override
-    {
-        // Do nothing
+        return ResourceGuard {};
     }
 };
 

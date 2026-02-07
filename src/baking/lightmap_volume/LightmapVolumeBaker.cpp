@@ -168,7 +168,7 @@ struct BlitAtlasElements : RenderCommand
 
                                     if (package)
                                     {
-                                        if (Result removeAssetResult = package->RemoveAssetObject(prevTextureAsset).Await(); removeAssetResult.HasError())
+                                        if (Result removeAssetResult = package->RemoveAssetObject(prevTextureAsset); removeAssetResult.HasError())
                                         {
                                             HYP_LOG(Lightmap, Error, "Failed to remove previous texture asset {} from package {}: {}",
                                                 prevTextureAsset->GetName(),
@@ -192,7 +192,7 @@ struct BlitAtlasElements : RenderCommand
 
                                 if (package)
                                 {
-                                    if (Result result = package->AddAssetObject(newTextureAsset).Await(); result.HasError())
+                                    if (Result result = package->AddAssetObject(newTextureAsset); result.HasError())
                                     {
                                         HYP_LOG(Lightmap, Error, "Failed to add texture asset '{}' to package {}: {}",
                                             newTextureAsset->GetName(),
@@ -205,7 +205,7 @@ struct BlitAtlasElements : RenderCommand
 
                                 if (!package)
                                 {
-                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset).Await(); result.HasError())
+                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset); result.HasError())
                                     {
                                         HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", newTextureAsset->GetName(), result.GetError().GetMessage());
                                     }
@@ -228,7 +228,7 @@ struct BlitAtlasElements : RenderCommand
 static Name GenerateElementTextureName(LightmapVolume* lmv, uint32 elementIndex, LightmapTextureType textureType)
 {
     static constexpr const char* TextureTypeNames[uint32(LTT_MAX)] = { "R", "I" };
-    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetUUID(), elementIndex, TextureTypeNames[uint32(textureType)]);
+    return NAME_FMT("LightmapVolumeTexture_{}_{}_{}", lmv->GetName(), elementIndex, TextureTypeNames[uint32(textureType)]);
 }
 
 static void UpdateAtlasTextures(
@@ -264,9 +264,9 @@ static void UpdateAtlasTextures(
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE });
 
-        radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetUUID()));
+        radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetName()));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()).Await(); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", radianceTexture->GetName(), result.GetError().GetMessage());
         }
@@ -286,11 +286,12 @@ static void UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE });
+                TWM_CLAMP_TO_EDGE
+            });
 
-        irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetUUID()));
+        irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetName()));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()).Await(); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
         }
@@ -609,7 +610,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
                 lightmapElementComponent.lightmapVolume = volume.ToWeak();
                 lightmapElementComponent.lightmapElementId = lightmapElementId;
-                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
             }
             else
             {
@@ -617,7 +617,6 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
                 lightmapElementComponent.lightmapVolume = volume.ToWeak();
                 lightmapElementComponent.lightmapElementId = lightmapElementId;
-                lightmapElementComponent.lightmapVolumeUuid = volume->GetUUID();
 
                 entityManager->AddComponent<LightmapElementComponent>(entity, std::move(lightmapElementComponent));
             }
