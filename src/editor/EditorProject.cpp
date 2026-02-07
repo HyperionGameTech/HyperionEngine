@@ -5,6 +5,8 @@
 #include <editor/EditorProject.hpp>
 #include <editor/EditorActionStack.hpp>
 
+#include <engine/Game.hpp>
+
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
@@ -15,8 +17,6 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <engine/Game.hpp>
-
 #include <core/serialization/fbom/FBOMWriter.hpp>
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMDeserializedObject.hpp>
@@ -25,6 +25,7 @@
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/reflection/Class.hpp>
+#include <core/reflection/SerializeHelpers.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -264,39 +265,33 @@ Result EditorProject::SaveAs(FilePath filepath)
     const Time previousLastSavedTime = m_lastSavedTime;
     m_lastSavedTime = Time::Now();
 
-    const FilePath projectFilepath = filepath / (String(*m_name) + ".hypproj");
+    const FilePath projectFilepath = filepath / (String(*m_name) + ".hypproject");
 
-    FileByteWriter byteWriter(projectFilepath);
-    HYP_DEFER({ byteWriter.Close(); });
-
-    FBOMWriter writer { FBOMWriterConfig {} };
-    writer.Append(*this);
-
-    if (FBOMResult err = writer.Emit(&byteWriter); !err.IsOK())
+    JSON::Object projectJson;
+    if (!ObjectToJSON(EditorProject::StaticClass(), BoxedValue(MakeStrongRef(this)), projectJson))
     {
-        m_lastSavedTime = previousLastSavedTime;
-
-        return HYP_MAKE_ERROR(Error, "Failed to write project to disk at '{}': {}", projectFilepath, err.message);
+        return HYP_MAKE_ERROR(Error, "Failed to save project!");
     }
 
-    Result result;
+    FileByteWriter wri(projectFilepath);
+    HYP_DEFER({ wri.Close(); });
 
+    wri.WriteString(JSON::Value(projectJson).ToString(true));
+    wri.Close();
+
+    m_lastSavedTime = previousLastSavedTime;
+
+    if (Result packageSaveResult = m_package->Save(filepath / *m_name); packageSaveResult.HasError())
     {
-        if (Result packageSaveResult = m_package->Save(filepath / *m_name); packageSaveResult.HasError())
-        {
-            result = packageSaveResult;
-        }
+        return packageSaveResult;
     }
 
-    if (result)
-    {
-        // Update m_filepath when save was successful.
-        m_filepath = filepath;
+    // Update m_filepath when save was successful.
+    m_filepath = filepath;
 
-        OnProjectSaved(HandleFromThis());
-    }
+    OnProjectSaved(MakeStrongRef(this));
 
-    return result;
+    return {};
 }
 
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
@@ -316,7 +311,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
         for (const FilePath& file : filepath.GetAllFilesInDirectory())
         {
-            if (file.EndsWith(".hypproj"))
+            if (file.EndsWith(".hypproject"))
             {
                 projectFilepath = file;
 
