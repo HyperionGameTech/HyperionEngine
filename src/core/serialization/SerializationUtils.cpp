@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/SerializeHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/json/JSON.hpp>
 
@@ -734,7 +734,7 @@ bool ObjectToJSON(
 
 bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, BoxedValue& target)
 {
-    auto resolveMember = [&target](const IMember& member, const JSON::Value& value) -> bool
+    auto ResolveMember = [&target](const IMember& member, const JSON::Value& value) -> bool
     {
         switch (member.GetMemberType())
         {
@@ -799,8 +799,21 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
 
     const Class* instanceClass = target.GetTypeInfo()->GetClass();
 
+    if (!instanceClass)
+    {
+        instanceClass = targetClass;
+    }
+
     if (instanceClass != nullptr)
     {
+        if (target.IsNull())
+        {
+            if (!instanceClass->CreateInstance(target, /* allowAbstract */ false))
+            {
+                return false;
+            }
+        }
+
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         GlobalContextScope contextScope { LoadAssetsFromReferencesContext() };
 #endif
@@ -823,7 +836,7 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
                 continue;
             }
 
-            const String& path = pathAttribute.GetString();
+            UTF8StringView path = pathAttribute.GetString();
 
             auto value = jsonObjectValue.Get(path);
 
@@ -847,7 +860,7 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
 
         for (const KeyValuePair<int, const IMember*>& pair : sortedMembers)
         {
-            if (!resolveMember(*pair.second, *jsonObjectValue.Get(pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString()).value))
+            if (!ResolveMember(*pair.second, *jsonObjectValue.Get(pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString()).value))
             {
                 HYP_LOG(Core, Warning, "Failed to resolve JSON path \"{}\" for Class \"{}\"", pair.second->GetAttribute(Attributes::g_attrJsonPath).GetString(), instanceClass->GetName());
                 continue;
@@ -898,7 +911,7 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
 
         for (const KeyValuePair<int, const IMember*>& pair : sortedMembers)
         {
-            if (!resolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
+            if (!ResolveMember(*pair.second, *jsonObjectValue.Get(*pair.second->GetName()).value))
             {
                 HYP_LOG(Core, Warning, "Failed to resolve member \"{}\" for Class \"{}\"", pair.second->GetName(), instanceClass->GetName());
                 continue;

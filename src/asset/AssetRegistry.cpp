@@ -14,7 +14,7 @@
 
 #include <core/threading/Scheduler.hpp>
 
-#include <core/reflection/SerializeHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/Property.hpp>
 
@@ -3066,9 +3066,6 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
                 continue;
             }
-
-            // ensure we call PostLoad on the original thread we called this from (or the sim thread if UseSingleThread is true)
-            assetObject->InstanceClass()->PostLoad(assetObject.Get());
         }
     }
 

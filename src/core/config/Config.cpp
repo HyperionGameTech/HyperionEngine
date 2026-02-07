@@ -8,7 +8,7 @@
 #include <core/reflection/Property.hpp>
 #include <core/reflection/Field.hpp>
 #include <core/reflection/StaticField.hpp>
-#include <core/reflection/SerializeHelpers.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <core/utilities/Format.hpp>
 #include <core/reflection/TypeInfo.hpp>
@@ -307,9 +307,9 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
     HYP_CORE_ASSERT(cls != nullptr);
     HYP_CORE_ASSERT(ptr != nullptr);
 
-    BoxedValue targetHypData = BoxedValue(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
+    BoxedValue target = BoxedValue(AnyRef(cls->GetTypeInfo(), const_cast<void*>(ptr)));
 
-    if (!ObjectFromJSON(GetSubobject().AsObject(), cls, targetHypData))
+    if (!ObjectFromJSON(GetSubobject().AsObject(), cls, target))
     {
         HYP_LOG(Config, Error, "Failed to deserialize JSON to instance of Class \"{}\"", cls->GetName());
 
@@ -318,7 +318,7 @@ bool ConfigurationTable::SetClassFields(const Class* cls, const void* ptr)
 
     JSON::Object jsonObject;
 
-    if (ObjectToJSON(cls, targetHypData, jsonObject))
+    if (ObjectToJSON(cls, target, jsonObject))
     {
         jsonObject.Merge(GetSubobject().AsObject());
 
