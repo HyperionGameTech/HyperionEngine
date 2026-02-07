@@ -205,7 +205,7 @@ struct BlitAtlasElements : RenderCommand
 
                                 if (!package)
                                 {
-                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset); result.HasError())
+                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset, AddAssetConflictMode::ReplaceExisting); result.HasError())
                                     {
                                         HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", newTextureAsset->GetName(), result.GetError().GetMessage());
                                     }
@@ -266,7 +266,7 @@ static void UpdateAtlasTextures(
 
         radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetName()));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset()); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset(), AddAssetConflictMode::ReplaceExisting); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", radianceTexture->GetName(), result.GetError().GetMessage());
         }
@@ -291,7 +291,7 @@ static void UpdateAtlasTextures(
 
         irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetName()));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset()); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset(), AddAssetConflictMode::ReplaceExisting); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
         }

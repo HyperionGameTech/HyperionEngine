@@ -298,7 +298,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
 
     HYP_LOG(Assets, Debug, "Relocating asset '{}' to: '{}'", assetObject->GetName(), newPath);
 
-    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject); registerAssetResult.HasError())
+    if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject, AddAssetConflictMode::FailOnConflict); registerAssetResult.HasError())
     {
         return HYP_MAKE_ERROR(Error, "Failed to relocate asset '{}' to '{}': {}", assetObject->GetName(), newPath, registerAssetResult.GetError().GetMessage());
     }
@@ -3173,7 +3173,10 @@ Name AssetRegistry::GetUniqueAssetName(const UTF8StringView& packagePath, Name b
     return package->GetUniqueAssetName(baseName);
 }
 
-Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject)
+Result AssetRegistry::RegisterAsset(
+    const UTF8StringView& path,
+    const Handle<AssetObject>& assetObject,
+    AddAssetConflictMode conflictMode)
 {
     HYP_SCOPE;
 
@@ -3195,7 +3198,8 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
     }
 
     const String desiredName = assetObject->GetName().LookupString();
-    const bool renameOnNameClash = ShouldUniquifyAssetNames(*assetPackage);
+    const bool renameOnNameClash = conflictMode == AddAssetConflictMode::GenerateNewName
+        || (conflictMode != AddAssetConflictMode::ReplaceExisting && ShouldUniquifyAssetNames(*assetPackage));
 
     if (assetPackage->HasAssetWithName(StringHash(desiredName)))
     {
@@ -3208,7 +3212,7 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
                 return renameResult;
             }
         }
-        else
+        else if (conflictMode == AddAssetConflictMode::ReplaceExisting)
         {
             if (Handle<AssetObject> existingAssetObject = assetPackage->GetAssetObject(desiredName, /* attemptLoading */ false); existingAssetObject.IsValid())
             {
@@ -3218,6 +3222,12 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
                     return removeResult;
                 }
             }
+        }
+        else if (conflictMode == AddAssetConflictMode::FailOnConflict)
+        {
+            // return error
+            return HYP_MAKE_ERROR(Error, "Could not register, asset with name {} already exists at path {}",
+                desiredName, path);
         }
     }
 
@@ -3262,8 +3272,8 @@ void AssetRegistry::RegisterAssetsRecursively(
         }
     };
 
-    Proc<void(const Handle<AssetPackage>&, const BoxedValue&)> iterate;
-    iterate = [&](const Handle<AssetPackage>& inPackage, const BoxedValue& current) -> void
+    Proc<void(const Handle<AssetPackage>&, const BoxedValue&)> Iterate;
+    Iterate = [&](const Handle<AssetPackage>& inPackage, const BoxedValue& current) -> void
     {
         Assert(inPackage != nullptr);
 
@@ -3368,7 +3378,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                     continue;
                 }
 
-                iterate(parentPackage, boxed);
+                Iterate(parentPackage, boxed);
             }
 
             return;
@@ -3394,7 +3404,7 @@ void AssetRegistry::RegisterAssetsRecursively(
                             continue;
                         }
 
-                        iterate(parentPackage, BoxedValue(componentRef));
+                        Iterate(parentPackage, BoxedValue(componentRef));
                     }
                 }
             }
@@ -3490,7 +3500,7 @@ void AssetRegistry::RegisterAssetsRecursively(
 
             shouldFollowAssetPaths = member.GetAttribute(Attributes::g_attrFollowAssetPath).GetBool();
 
-            iterate(parentPackage, memberData);
+            Iterate(parentPackage, memberData);
         }
 
         if (assetObject != nullptr)
@@ -3508,7 +3518,7 @@ void AssetRegistry::RegisterAssetsRecursively(
     Handle<AssetPackage> rootPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ true);
     Assert(rootPackage.IsValid());
 
-    iterate(rootPackage, target);
+    Iterate(rootPackage, target);
 }
 
 #pragma endregion AssetRegistry
