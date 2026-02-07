@@ -94,7 +94,7 @@ bool BoxedToJSON(
         isAssetObject = true;
     }
 
-    if (isAssetObject && opts.saveAssetObjectsAsReferences)
+    if (isAssetObject && opts.saveAssetsAsReferences >= ToJSONOptions::SaveAssetsAsReferencesMode::UnlessOtherwiseSpecified)
     {
         AssertDebug(assetReference.IsValid(), "Serializing invalid asset reference");
 
@@ -278,6 +278,11 @@ bool BoxedToJSON(
                 newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
             }
 
+            if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
+            {
+                newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
+            }
+
             JSON::Value jsonValue;
             if (!BoxedToJSON(element, jsonValue, newOpts))
             {
@@ -337,6 +342,11 @@ bool BoxedToJSON(
             if (newOpts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always)
             {
                 newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+            }
+
+            if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
+            {
+                newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
             }
 
             JSON::Value jsonValue;
@@ -435,6 +445,11 @@ bool BoxedToJSON(
             newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
         }
 
+        if (newOpts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes)
+        {
+            newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
+        }
+
         return BoxedToJSON(BoxedValue(activeValue), outJson, newOpts);
     }
 
@@ -472,11 +487,7 @@ bool BoxedToJSON(
     return false;
 }
 
-bool ObjectToJSON(
-    const Class* cls,
-    const BoxedValue& target,
-    JSON::Object& outJson,
-    ToJSONOptions opts)
+bool ObjectToJSON(const Class* cls, const BoxedValue& target, JSON::Object& outJson, ToJSONOptions opts)
 {
     if (opts.writeClassNamesRecursively)
     {
@@ -585,6 +596,11 @@ bool ObjectToJSON(
                     newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
                 }
 
+                if (opts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes && !property->GetAttribute(Attributes::g_attrSaveAsReference).GetBool(true))
+                {
+                    newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
+                }
+
                 JSON::Value jsonValue;
 
                 if (!BoxedToJSON(value, jsonValue, newOpts))
@@ -630,6 +646,11 @@ bool ObjectToJSON(
                 if (opts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always && !field->GetAttribute(Attributes::g_attrFollowAssetPath).GetBool())
                 {
                     newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+                }
+
+                if (opts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes && !field->GetAttribute(Attributes::g_attrSaveAsReference).GetBool(true))
+                {
+                    newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
                 }
 
                 JSON::Value jsonValue;
@@ -679,6 +700,11 @@ bool ObjectToJSON(
                 if (opts.followAssetPaths != ToJSONOptions::FollowAssetPathsMode::Always && !staticField->GetAttribute(Attributes::g_attrFollowAssetPath).GetBool())
                 {
                     newOpts.followAssetPaths = ToJSONOptions::FollowAssetPathsMode::Never;
+                }
+
+                if (opts.saveAssetsAsReferences != ToJSONOptions::SaveAssetsAsReferencesMode::Yes && !staticField->GetAttribute(Attributes::g_attrSaveAsReference).GetBool(true))
+                {
+                    newOpts.saveAssetsAsReferences = ToJSONOptions::SaveAssetsAsReferencesMode::No;
                 }
 
                 JSON::Value jsonValue;

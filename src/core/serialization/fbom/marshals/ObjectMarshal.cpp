@@ -167,7 +167,9 @@ FBOMResult ObjectMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 
     // If we have an asset reference to serialize, we serialize that instead of the actual object inline.
     // This will reduce duplication and file sizes.
-    if (isAssetObject && assetReference.IsValid() && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
+    if (isAssetObject
+        && assetReference.IsValid()
+        && IsGlobalContextActive<SaveAssetsAsReferencesContext>())
     {
         return Serialize(ConstAnyRef(assetReference), out);
     }

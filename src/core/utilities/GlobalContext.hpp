@@ -20,7 +20,6 @@ namespace utilities {
 
 class GlobalContextRegistry;
 
-HYP_API Pool* GetGlobalContextPoolForCurrentThread();
 HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread();
 
 class GlobalContextHolderBase
@@ -29,8 +28,7 @@ class GlobalContextHolderBase
 
 protected:
     GlobalContextHolderBase()
-        : m_pool(GetGlobalContextPoolForCurrentThread()),
-          m_pFnDestructor(nullptr)
+        : m_pFnDestructor(nullptr)
     {
     }
 
@@ -44,7 +42,7 @@ public:
                 m_pFnDestructor(m_stack[i - 1]);
             }
 
-            m_pool->Free(m_stack[i - 1]);
+            free(m_stack[i - 1]);
         }
     }
 
@@ -62,11 +60,10 @@ public:
             m_pFnDestructor(m_stack.Back());
         }
 
-        m_pool->Free(m_stack.PopBack());
+        free(m_stack.PopBack());
     }
 
 protected:
-    Pool* m_pool;
     Array<void*> m_stack;
     void (*m_pFnDestructor)(void*);
 };
@@ -142,7 +139,7 @@ public:
     template <class... Args>
     void Push(Args&&... args)
     {
-        void* mem = m_pool->Allocate(sizeof(ContextType), alignof(ContextType));
+        void* mem = malloc(sizeof(ContextType));
         HYP_CORE_ASSERT(mem != nullptr);
 
         m_stack.PushBack(new (mem) ContextType(std::forward<Args>(args)...));

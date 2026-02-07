@@ -8,10 +8,6 @@
 
 #include <core/Types.hpp>
 
-#if defined(HYP_USE_CTTI) && HYP_USE_CTTI
-#include <ctti/nameof.hpp>
-#endif
-
 namespace Hyperion {
 
 // tuple forward declaration
@@ -134,10 +130,6 @@ constexpr auto ParseTypeName()
 template <class T>
 constexpr auto TypeName()
 {
-#if defined(HYP_USE_CTTI) && HYP_USE_CTTI
-    constexpr auto cttiName = ctti::nameof<T>();
-    return StaticString<cttiName.size() + 1>(cttiName.begin(), cttiName.end());
-#else
     constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
 
 #ifdef HYP_CLANG_OR_GCC
@@ -157,7 +149,6 @@ constexpr auto TypeName()
 #endif
 
     return ParseTypeName<substr, false>();
-#endif
 }
 
 /*! \brief Returns the name of the type T as a StaticString. Removes the namespace from the name (e.g. Hyperion::Task<int, int> -> Task<int, int>).
