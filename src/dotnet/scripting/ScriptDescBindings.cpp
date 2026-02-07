@@ -8,23 +8,23 @@ using namespace Hyperion;
 
 extern "C"
 {
-    HYP_EXPORT ScriptDesc* ScriptData_AllocateNativeObject(ScriptDesc* pScriptData)
+    HYP_EXPORT ScriptDesc* ScriptDesc_AllocateNativeObject(ScriptDesc* scriptDesc)
     {
-        if (!pScriptData)
+        if (!scriptDesc)
         {
             return nullptr;
         }
 
-        return new ScriptDesc(*pScriptData);
+        return new ScriptDesc(*scriptDesc);
     }
 
-    HYP_EXPORT void ScriptData_FreeNativeObject(ScriptDesc* pScriptData)
+    HYP_EXPORT void ScriptDesc_FreeNativeObject(ScriptDesc* scriptDesc)
     {
-        if (!pScriptData)
+        if (!scriptDesc)
         {
             return;
         }
 
-        delete pScriptData;
+        delete scriptDesc;
     }
 } // extern "C"

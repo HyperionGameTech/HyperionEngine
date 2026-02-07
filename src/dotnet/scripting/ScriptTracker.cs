@@ -78,28 +78,28 @@ namespace Hyperion
                 // just testing for now
                 if (scriptCompiler != null)
                 {
-                    ref ScriptDesc scriptData = ref entry.Value.Get();
+                    ref ScriptDesc scriptDesc = ref entry.Value.Get();
 
                     try
                     {
-                        if (scriptCompiler.Compile(ref scriptData))
+                        if (scriptCompiler.Compile(ref scriptDesc))
                         {
-                            scriptData.CompileStatus |= ScriptCompileStatus.Compiled;
+                            scriptDesc.CompileStatus |= ScriptCompileStatus.Compiled;
                         }
                         else
                         {
-                            scriptData.CompileStatus |= ScriptCompileStatus.Errored;
+                            scriptDesc.CompileStatus |= ScriptCompileStatus.Errored;
                         }
                     }
                     catch (Exception e)
                     {
                         Logger.Log(logChannel, LogType.Error, "Error compiling script {0}: {1}", entry.Key, e.Message);
 
-                        scriptData.CompileStatus |= ScriptCompileStatus.Errored;
+                        scriptDesc.CompileStatus |= ScriptCompileStatus.Errored;
                     }
 
-                    scriptData.CompileStatus &= ~ScriptCompileStatus.Processing;
-                    scriptData.CompileStatus &= ~ScriptCompileStatus.Dirty;
+                    scriptDesc.CompileStatus &= ~ScriptCompileStatus.Processing;
+                    scriptDesc.CompileStatus &= ~ScriptCompileStatus.Dirty;
                 }
                 else
                 {

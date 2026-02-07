@@ -788,12 +788,12 @@ public:
             {
                 ScriptComponent scriptComponent {};
 
-                ScriptDesc scriptData {};
-                scriptData.language = ScriptLanguage::CSharp;
-                Memory::StrCpy(scriptData.assemblyPath.Data(), assemblyIt->second.Data(), ArraySize(scriptData.assemblyPath));
-                Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
+                ScriptDesc scriptDesc {};
+                scriptDesc.language = ScriptLanguage::CSharp;
+                Memory::StrCpy(scriptDesc.assemblyPath.Data(), assemblyIt->second.Data(), ArraySize(scriptDesc.assemblyPath));
+                Memory::StrCpy(scriptDesc.className.Data(), classIt->second.Data(), ArraySize(scriptDesc.className));
 
-                Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptData.assemblyPath.Data()), scriptData);
+                Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(CreateNameFromDynamicString(scriptDesc.assemblyPath.Data()), scriptDesc);
                 InitObject(scriptAsset);
 
                 Result assetObjectResult = m_state->assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
@@ -825,10 +825,10 @@ public:
             {
                 ScriptComponent scriptComponent {};
 
-                ScriptDesc scriptData {};
-                scriptData.language = ScriptLanguage::HypScript;
-                Memory::StrCpy(scriptData.path.Data(), pathIt->second.Data(), ArraySize(scriptData.path));
-                Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
+                ScriptDesc scriptDesc {};
+                scriptDesc.language = ScriptLanguage::HypScript;
+                Memory::StrCpy(scriptDesc.path.Data(), pathIt->second.Data(), ArraySize(scriptDesc.path));
+                Memory::StrCpy(scriptDesc.className.Data(), classIt->second.Data(), ArraySize(scriptDesc.className));
 
                 // \todo Check EntityScripting.cpp for reference implementation
             }
@@ -839,9 +839,9 @@ public:
             {
                 ScriptComponent scriptComponent {};
 
-                ScriptDesc scriptData {};
-                scriptData.language = ScriptLanguage::Native;
-                Memory::StrCpy(scriptData.className.Data(), classIt->second.Data(), ArraySize(scriptData.className));
+                ScriptDesc scriptDesc {};
+                scriptDesc.language = ScriptLanguage::Native;
+                Memory::StrCpy(scriptDesc.className.Data(), classIt->second.Data(), ArraySize(scriptDesc.className));
 
                 const String className = classIt->second;
 

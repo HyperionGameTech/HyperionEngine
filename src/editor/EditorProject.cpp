@@ -252,7 +252,7 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     FilePath dir;
 
-    if (filepath.EndsWith(".hypproject"))
+    if (filepath.GetExtension().Any())
     {
         dir = filepath.BasePath();
     }
@@ -294,14 +294,12 @@ Result EditorProject::SaveAs(FilePath filepath)
     wri.Close();
 
     m_lastSavedTime = previousLastSavedTime;
+    m_filepath = filepath;
 
-    if (Result packageSaveResult = m_package->Save(filepath / *m_name); packageSaveResult.HasError())
+    if (Result packageSaveResult = m_package->Save(dir / *m_name); packageSaveResult.HasError())
     {
         return packageSaveResult;
     }
-
-    // Update m_filepath when save was successful.
-    m_filepath = filepath;
 
     OnProjectSaved(MakeStrongRef(this));
 

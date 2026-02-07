@@ -325,7 +325,8 @@ static Result ReadManifest(BufferedReader& stream, const FilePath& manifestPath,
 
     if (!manifestJson.IsObject())
     {
-        return HYP_MAKE_ERROR(Error, "Manifest JSON is not a valid JSON object");
+        return HYP_MAKE_ERROR(Error, "Manifest JSON at path {} is not a valid JSON object:\n{}",
+            manifestPath, manifestJson.ToString(true));
     }
 
     outManifestData = std::move(manifestJson.AsObject());
@@ -408,6 +409,9 @@ void AssetPackage::Init()
             {
                 assetObjectsToSave.Insert(assetObject.Get());
             }
+            
+            assetObject->m_package = WeakHandleFromThis();
+            assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
             InitObject(assetObject);
 
@@ -506,8 +510,6 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
 
     for (const Handle<AssetObject>& assetObject : previousAssetObjects)
     {
-        assetObject->m_package.Reset();
-
         OnAssetObjectRemoved(assetObject, true);
 
         Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
@@ -517,6 +519,8 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
             parentPackage->OnAssetObjectRemoved(assetObject, false);
             parentPackage = parentPackage->GetParentPackage().Lock();
         }
+        
+        assetObject->m_package.Reset();
     }
 
     previousAssetObjects.Clear();
@@ -658,8 +662,6 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
         }
     }
 
-    assetObject->m_package = WeakHandleFromThis();
-
     FilePath packageDir;
 
     bool isLoading = false;
@@ -682,6 +684,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
         }
         
         assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
+        assetObject->m_package = WeakHandleFromThis();
 
         if (!shouldSaveAsset && !isPackageSavedInFilesystem && !isLoading)
         {
@@ -701,7 +704,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             return {};
         }
         
-        m_assetObjects.Insert({ assetObject });
+        m_assetObjects.Insert(assetObject);
 
         if (isLoading)
         {
@@ -883,11 +886,27 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
                     return Handle<AssetObject>::empty;
                 }
 
-                // put the asset into the package
-                TUniqueLock packageLock(m_mutex);
+                assetObject->m_package = WeakHandleFromThis();
+                assetObject->m_assetPath = BuildAssetPath(assetObject->m_name);
 
-                auto insertResult = m_assetObjects.Insert(assetObject);
-                AssertDebug(insertResult.second, "Asset already added to package while loading?");
+                { // put the asset into the package
+                    TUniqueLock packageLock(m_mutex);
+
+                    auto insertResult = m_assetObjects.Insert(assetObject);
+                    AssertDebug(insertResult.second, "Asset already added to package while loading?");
+                }
+
+                InitObject(assetObject);
+
+                OnAssetObjectAdded(assetObject, true);
+                
+                Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+                while (parentPackage.IsValid())
+                {
+                    parentPackage->OnAssetObjectAdded(assetObject, false);
+                    parentPackage = parentPackage->GetParentPackage().Lock();
+                }
 
                 return assetObject;
             }
@@ -3164,11 +3183,16 @@ Result AssetRegistry::RegisterAsset(const UTF8StringView& path, const Handle<Ass
     }
 
     Array<String> pathStringSplit = String(path).Split('/', '\\');
-
     String pathString = String::Join(pathStringSplit, '/');
 
     Handle<AssetPackage> assetPackage = GetPackageFromPath_Internal(pathString, /* createIfNotExist */ true, /* requireLoaded */ false);
     AssertDebug(assetPackage.IsValid());
+
+    // check if it is already in that package
+    if (assetObject->m_package.GetUnsafe() == assetPackage.Get())
+    {
+        return {}; // ok
+    }
 
     const String desiredName = assetObject->GetName().LookupString();
     const bool renameOnNameClash = ShouldUniquifyAssetNames(*assetPackage);
