@@ -1,30 +1,26 @@
 #include <core/utilities/GlobalContext.hpp>
 
+#include <core/threading/Thread.hpp>
+#include <core/threading/Threads.hpp>
+#include <core/threading/ThreadLocalStorage.hpp>
+
+#include <core/functional/Proc.hpp>
+
 namespace Hyperion {
 namespace utilities {
 
 #pragma region GlobalContextRegistry
 
-static constexpr SizeType PoolBlockSize = 4096;
+static thread_local GlobalContextRegistry* s_globalContextRegistry;
+static thread_local ValueStorage<GlobalContextRegistry> s_globalContextRegistryStorage;
 
-static thread_local GlobalContextRegistry* s_globalContextRegistry = nullptr;
-static thread_local Pool* s_globalContextPool = nullptr;
-
-HYP_API Pool* GetGlobalContextPoolForCurrentThread()
-{
-    if (!s_globalContextPool)
-    {
-        s_globalContextPool = new Pool(/* blockSize */ PoolBlockSize);
-    }
-
-    return s_globalContextPool;
-}
+static_assert(std::is_trivially_destructible_v<decltype(s_globalContextRegistryStorage)>);
 
 HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
 {
     if (!s_globalContextRegistry)
     {
-        s_globalContextRegistry = new GlobalContextRegistry();
+        s_globalContextRegistry = new (&s_globalContextRegistryStorage.Get()) GlobalContextRegistry;
     }
 
     return s_globalContextRegistry;
@@ -45,12 +41,6 @@ GlobalContextRegistry::~GlobalContextRegistry()
     if (s_globalContextRegistry == this)
     {
         s_globalContextRegistry = nullptr;
-    }
-
-    if (s_globalContextPool)
-    {
-        delete s_globalContextPool;
-        s_globalContextPool = nullptr;
     }
 }
 

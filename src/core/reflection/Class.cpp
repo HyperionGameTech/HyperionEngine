@@ -55,6 +55,7 @@ const Name g_attrJsonPath = NAME("jsonpath");
 const Name g_attrJsonIgnore = NAME("jsonignore");
 const Name g_attrScriptableDelegate = NAME("scriptabledelegate");
 const Name g_attrFollowAssetPath = NAME("followassetpath");
+const Name g_attrSaveAsReference = NAME("saveasreference");
 
 const Name g_attrEditor = NAME("editor");
 const Name g_attrEditorOnly = NAME("editoronly");

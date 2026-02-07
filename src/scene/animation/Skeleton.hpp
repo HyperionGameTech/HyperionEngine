@@ -102,7 +102,7 @@ private:
     HYP_METHOD(Property = "SkeletonAsset")
     void SetSkeletonAsset(const AssetReference& assetReference);
 
-    HYP_FIELD(Property = "RootBone")
+    HYP_FIELD(Property = "RootBone", SaveAsReference = false)
     Handle<Bone> m_rootBone;
 
     TAssetReference<SkeletonAsset> m_skeletonAsset;

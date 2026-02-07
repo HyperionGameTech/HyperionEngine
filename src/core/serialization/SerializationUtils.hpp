@@ -36,10 +36,18 @@ struct ToJSONOptions
         Always
     };
 
+    enum class SaveAssetsAsReferencesMode : int
+    {
+        No,
+        UnlessOtherwiseSpecified,
+        Yes
+    };
+
     bool skipTransientProperties = true;
-    bool saveAssetObjectsAsReferences = true;
     bool writeClassNames = false;
     bool writeClassNamesRecursively = false;
+
+    SaveAssetsAsReferencesMode saveAssetsAsReferences = SaveAssetsAsReferencesMode::UnlessOtherwiseSpecified;
     FollowAssetPathsMode followAssetPaths = FollowAssetPathsMode::MatchingAttribute;
 };
 

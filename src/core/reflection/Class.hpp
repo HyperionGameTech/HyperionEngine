@@ -990,6 +990,7 @@ HYP_API extern const Name g_attrJsonPath;
 HYP_API extern const Name g_attrJsonIgnore;
 HYP_API extern const Name g_attrScriptableDelegate;
 HYP_API extern const Name g_attrFollowAssetPath;
+HYP_API extern const Name g_attrSaveAsReference;
 
 /// ===== Editor-specific attributes =====
 HYP_API extern const Name g_attrEditor;        //!< legacy (deprecated) indicates that a property is editable in the editor
