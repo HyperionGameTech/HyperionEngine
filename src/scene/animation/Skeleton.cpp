@@ -83,10 +83,12 @@ Bone* Skeleton::FindBone(StringHash name) const
         return nullptr;
     }
 
-    if (m_rootBone->GetName() == name)
+    if (m_rootBone->GetBoneName() == name)
     {
         return static_cast<Bone*>(m_rootBone.Get());
     }
+
+    // @TODO Profile this
 
     for (Node* node : m_rootBone->GetDescendants())
     {
@@ -102,7 +104,7 @@ Bone* Skeleton::FindBone(StringHash name) const
             continue;
         }
 
-        if (bone->GetName() == name)
+        if (bone->GetBoneName() == name)
         {
             return bone;
         }
