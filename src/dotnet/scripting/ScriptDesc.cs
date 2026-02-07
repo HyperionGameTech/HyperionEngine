@@ -156,9 +156,9 @@ namespace Hyperion
     {
         private IntPtr ptr;
 
-        public ScriptInstance(ScriptDesc script)
+        public ScriptInstance(ScriptDesc scriptDesc)
         {
-            this.ptr = ScriptData_AllocateNativeObject(ref script);
+            this.ptr = ScriptDesc_AllocateNativeObject(ref scriptDesc);
         }
 
         public ScriptInstance(IntPtr ptr)
@@ -170,7 +170,7 @@ namespace Hyperion
         {
             if (IsValid)
             {
-                ScriptData_FreeNativeObject(ref Get());
+                ScriptDesc_FreeNativeObject(ref Get());
             }
         }
 
@@ -246,28 +246,28 @@ namespace Hyperion
                 return;
             }
 
-            ref ScriptDesc scriptData = ref Get();
+            ref ScriptDesc scriptDesc = ref Get();
 
-            if (!File.Exists(scriptData.Path))
+            if (!File.Exists(scriptDesc.Path))
             {
-                scriptData.CompileStatus |= ScriptCompileStatus.Errored;
+                scriptDesc.CompileStatus |= ScriptCompileStatus.Errored;
 
                 return;
             }
 
-            ulong lastModifiedTimestamp = (ulong)(new FileInfo(scriptData.Path).LastWriteTimeUtc - new DateTime(1970, 1, 1)).TotalSeconds;
+            ulong lastModifiedTimestamp = (ulong)(new FileInfo(scriptDesc.Path).LastWriteTimeUtc - new DateTime(1970, 1, 1)).TotalSeconds;
 
-            if (lastModifiedTimestamp > scriptData.LastModifiedTimestamp)
+            if (lastModifiedTimestamp > scriptDesc.LastModifiedTimestamp)
             {
-                scriptData.CompileStatus |= ScriptCompileStatus.Dirty;
-                scriptData.LastModifiedTimestamp = lastModifiedTimestamp;
+                scriptDesc.CompileStatus |= ScriptCompileStatus.Dirty;
+                scriptDesc.LastModifiedTimestamp = lastModifiedTimestamp;
             }
         }
 
-        [DllImport("hyperion", EntryPoint = "ScriptData_AllocateNativeObject")]
-        private static extern IntPtr ScriptData_AllocateNativeObject([In] ref ScriptDesc inScriptData);
+        [DllImport("hyperion", EntryPoint = "ScriptDesc_AllocateNativeObject")]
+        private static extern IntPtr ScriptDesc_AllocateNativeObject([In] ref ScriptDesc scriptDesc);
 
-        [DllImport("hyperion", EntryPoint = "ScriptData_FreeNativeObject")]
-        private static extern void ScriptData_FreeNativeObject([In] ref ScriptDesc inScriptData);
+        [DllImport("hyperion", EntryPoint = "ScriptDesc_FreeNativeObject")]
+        private static extern void ScriptDesc_FreeNativeObject([In] ref ScriptDesc scriptDesc);
     }
 }

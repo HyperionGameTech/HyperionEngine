@@ -26,13 +26,13 @@ public:
         AssetObject::SetData(ScriptDesc());
     }
 
-    ScriptAsset(Name name, const ScriptDesc& scriptData)
-        : AssetObject(name, scriptData)
+    ScriptAsset(Name name, const ScriptDesc& scriptDesc)
+        : AssetObject(name, scriptDesc)
     {
     }
 
-    ScriptAsset(Name name, ScriptDesc&& scriptData)
-        : AssetObject(name, std::move(scriptData))
+    ScriptAsset(Name name, ScriptDesc&& scriptDesc)
+        : AssetObject(name, std::move(scriptDesc))
     {
     }
 
@@ -44,7 +44,7 @@ public:
 
     ~ScriptAsset() = default;
 
-    HYP_FORCE_INLINE ScriptDesc* GetScriptData() const
+    HYP_FORCE_INLINE ScriptDesc* GetScriptDesc() const
     {
         return GetResourceData<ScriptDesc>();
     }

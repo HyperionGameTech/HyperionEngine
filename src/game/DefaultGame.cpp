@@ -136,12 +136,12 @@ void DefaultGame::OnLaunch_Impl()
 
     ResourceGuard resGuard(*scriptAsset->GetResource());
 
-    ScriptDesc* scriptData = scriptAsset->GetScriptData();
-    Assert(scriptData != nullptr);
+    ScriptDesc* scriptDesc = scriptAsset->GetScriptDesc();
+    Assert(scriptDesc != nullptr);
 
-    scriptAsset->GetScriptData()->language = ScriptLanguage::HypScript;
-    Memory::StrCpy(scriptData->path.Data(), "tmp.hyp", ArraySize(scriptData->path));
-    Memory::StrCpy(scriptData->className.Data(), "MyClass", ArraySize(scriptData->className));
+    scriptAsset->GetScriptDesc()->language = ScriptLanguage::HypScript;
+    Memory::StrCpy(scriptDesc->path.Data(), "tmp.hyp", ArraySize(scriptDesc->path));
+    Memory::StrCpy(scriptDesc->className.Data(), "MyClass", ArraySize(scriptDesc->className));
 
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
         TAssetReference<ScriptAsset>(scriptAsset) });

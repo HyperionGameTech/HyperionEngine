@@ -541,16 +541,16 @@ namespace Hyperion
             return true;
         }
 
-        public bool Compile(ref ScriptDesc scriptData)
+        public bool Compile(ref ScriptDesc scriptDesc)
         {
             string moduleName;
             int hotReloadVersion;
 
-            string? scriptDirectory = System.IO.Path.GetDirectoryName(scriptData.Path);
+            string? scriptDirectory = System.IO.Path.GetDirectoryName(scriptDesc.Path);
 
             if (scriptDirectory == null)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to get script directory for script {0}", scriptData.Path);
+                Logger.Log(logChannel, LogType.Error, "Failed to get script directory for script {0}", scriptDesc.Path);
 
                 return false;
             }
@@ -562,8 +562,8 @@ namespace Hyperion
                 hotReloadVersion: out hotReloadVersion
             ))
             {
-                scriptData.AssemblyPath = GetAssemblyPath(moduleName, relative: true);
-                scriptData.HotReloadVersion = hotReloadVersion;
+                scriptDesc.AssemblyPath = GetAssemblyPath(moduleName, relative: true);
+                scriptDesc.HotReloadVersion = hotReloadVersion;
 
                 return true;
             }
