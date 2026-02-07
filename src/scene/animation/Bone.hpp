@@ -44,6 +44,16 @@ public:
 
     void ClearPose();
 
+    HYP_FORCE_INLINE Name GetBoneName() const
+    {
+        return m_boneName;
+    }
+
+    HYP_FORCE_INLINE void SetBoneName(Name boneName)
+    {
+        m_boneName = boneName;
+    }
+
     HYP_FORCE_INLINE const Mat4f& GetBoneMatrix() const
     {
         return m_boneMatrix;
@@ -77,6 +87,9 @@ private:
 
     HYP_FIELD(Transient)
     Skeleton* m_skeleton;
+
+    HYP_FIELD()
+    Name m_boneName;
 
     HYP_FIELD()
     Mat4f m_boneMatrix;

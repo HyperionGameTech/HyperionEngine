@@ -16,6 +16,7 @@ Bone::Bone()
 
 Bone::Bone(Name name)
     : Node(name, Transform()),
+      m_boneName(name),
       m_skeleton(nullptr)
 {
 }

@@ -1236,32 +1236,34 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 {
     HYP_SCOPE;
 
-    TUniqueLock guard(m_mutex);
-
-    if (IsTransient())
-    {
-        return HYP_MAKE_ERROR(Error, "Cannot save transient AssetPackage '{}'", m_name);
-    }
-
     bool skipSavingThisPackage = false;
+    
+    { // check what / if we should skip
+        TSharedLock lock(m_mutex);
 
-    // If saveEvenIfNotDirty is false (default), check if we should save
-    //  - if it has been saved before, we need to check if is dirty
-    //    and additionally check if any individual asset objects are dirty.
-    if (!saveEvenIfNotDirty && IsSaved_Internal())
-    {
-        if (!IsDirty())
+        if (IsTransient())
         {
-            if (HasDirtyAssetObjects())
-            {
-                MarkDirty();
-            }
+            return HYP_MAKE_ERROR(Error, "Cannot save transient AssetPackage '{}'", m_name);
         }
 
-        if (!IsDirty())
+        // If saveEvenIfNotDirty is false (default), check if we should save
+        //  - if it has been saved before, we need to check if is dirty
+        //    and additionally check if any individual asset objects are dirty.
+        if (!saveEvenIfNotDirty && IsSaved_Internal())
         {
-            // Already saved and not marked dirty; return ok
-            skipSavingThisPackage = true;
+            if (!IsDirty())
+            {
+                if (HasDirtyAssetObjects())
+                {
+                    MarkDirty();
+                }
+            }
+
+            if (!IsDirty())
+            {
+                // Already saved and not marked dirty; return ok
+                skipSavingThisPackage = true;
+            }
         }
     }
 
@@ -1271,6 +1273,8 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     {
         return HYP_MAKE_ERROR(Error, "AssetPackage '{}' does not have a valid AssetRegistry", m_name);
     }
+    
+    TUniqueLock lock(m_mutex);
 
     FilePath packageDir;
 
