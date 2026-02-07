@@ -18,8 +18,8 @@
 
 namespace Hyperion {
 
-static constexpr SizeType scriptMaxPathLength = 1024;
-static constexpr SizeType scriptMaxClassNameLength = 1024;
+static constexpr SizeType ScriptMaxPathLength = 1024;
+static constexpr SizeType ScriptMaxClassNameLength = 1024;
 
 HYP_STRUCT()
 struct ScriptDesc
@@ -33,13 +33,13 @@ struct ScriptDesc
     ScriptLanguage language = ScriptLanguage::HypScript;
 
     HYP_FIELD(Serialize)
-    FixedArray<char, scriptMaxPathLength> path;
+    FixedArray<char, ScriptMaxPathLength> path;
 
     HYP_FIELD(Serialize)
-    FixedArray<char, scriptMaxPathLength> assemblyPath; // C# only
+    FixedArray<char, ScriptMaxPathLength> assemblyPath; // C# only
 
     HYP_FIELD(Serialize)
-    FixedArray<char, scriptMaxClassNameLength> className;
+    FixedArray<char, ScriptMaxClassNameLength> className;
 
     HYP_FIELD(Serialize)
     uint32 compileStatus;
