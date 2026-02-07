@@ -874,7 +874,7 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
                     }
                 });
                 
-                Result loadResult = AssetObject::Load(manifestData, dataStream, assetObject, /* callOnPostLoad */ true);
+                Result loadResult = AssetObject::Load(manifestData, dataStream, assetObject);
 
                 if (loadResult.HasError())
                 {
@@ -1236,6 +1236,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 {
     HYP_SCOPE;
 
+    Handle<AssetRegistry> registry;
     bool skipSavingThisPackage = false;
     
     { // check what / if we should skip
@@ -1244,6 +1245,13 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         if (IsTransient())
         {
             return HYP_MAKE_ERROR(Error, "Cannot save transient AssetPackage '{}'", m_name);
+        }
+
+        registry = m_registry.Lock();
+
+        if (!registry)
+        {
+            return HYP_MAKE_ERROR(Error, "AssetPackage '{}' does not have a valid AssetRegistry", m_name);
         }
 
         // If saveEvenIfNotDirty is false (default), check if we should save
@@ -1255,6 +1263,8 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
             {
                 if (HasDirtyAssetObjects())
                 {
+                    lock.Reset();
+
                     MarkDirty();
                 }
             }
@@ -1265,13 +1275,6 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
                 skipSavingThisPackage = true;
             }
         }
-    }
-
-    Handle<AssetRegistry> registry = m_registry.Lock();
-
-    if (!registry)
-    {
-        return HYP_MAKE_ERROR(Error, "AssetPackage '{}' does not have a valid AssetRegistry", m_name);
     }
     
     TUniqueLock lock(m_mutex);
@@ -1370,26 +1373,36 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         m_packageDir = packageDir;
     }
 
+    Name packageName = m_name;
+
+    AssetPackageSet subpackages = m_subpackages;
+    AssetObjectSet assetObjects = m_assetObjects;
+
+    const bool shouldSaveAssets = !skipSavingThisPackage && !IsTransient() && IsSaved_Internal();
+
+    lock.Reset();
+
     // even if skipSaving is true, we need to iterate over subpackages as
     // they may have individual asset objects that are dirty
-    for (const Handle<AssetPackage>& subpackage : m_subpackages)
+    for (const Handle<AssetPackage>& subpackage : subpackages)
     {
         if (subpackage->IsTransient())
         {
             continue;
         }
 
-        Result result = subpackage->Save(m_packageDir / *subpackage->GetName(), saveEvenIfNotDirty);
+        Result result = subpackage->Save(packageDir / *subpackage->GetName(), saveEvenIfNotDirty);
 
         if (result.HasError())
         {
-            HYP_LOG(Assets, Error, "Failed to save subpackage '{}' of package '{}': {}", subpackage->GetName(), m_name, result.GetError().GetMessage());
+            HYP_LOG(Assets, Error, "Failed to save subpackage '{}' of package '{}': {}",
+                subpackage->GetName(), packageName, result.GetError().GetMessage());
         }
     }
 
     if (!skipSavingThisPackage && !IsTransient() && IsSaved_Internal())
     {
-        for (const Handle<AssetObject>& assetObject : m_assetObjects)
+        for (const Handle<AssetObject>& assetObject : assetObjects)
         {
             // If TRANSIENT (not BY PROXY), skip saving this asset
             if ((assetObject->GetAssetFlags() & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY)) == AssetObjectFlags::TRANSIENT)
@@ -1397,9 +1410,11 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
                 continue;
             }
 
-            if (Result saveAssetResult = assetObject->Save(m_packageDir / *assetObject->GetName() + ".json"); saveAssetResult.HasError())
+            if (Result saveAssetResult = assetObject->Save(packageDir / *assetObject->GetName() + ".json"); saveAssetResult.HasError())
             {
-                HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}", assetObject->GetName(), m_name, saveAssetResult.GetError().GetMessage());
+                HYP_LOG(Assets, Error, "Failed to save asset object '{}' in package '{}': {}",
+                    assetObject->GetName(), packageName, saveAssetResult.GetError().GetMessage());
+
                 continue;
             }
 
@@ -3039,7 +3054,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
             Handle<AssetObject> assetObject;
 
-            if (Result loadAssetResult = AssetObject::Load(manifestData, dataStream, assetObject, /* callOnPostLoad */ false); loadAssetResult.HasError())
+            if (Result loadAssetResult = AssetObject::Load(manifestData, dataStream, assetObject); loadAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 
@@ -3059,6 +3074,8 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             }
             
             InitObject(assetObject);
+
+            //assetObject->InstanceClass()->PostLoad(assetObject.Get()); // temp
 
             if (Result addAssetResult = outPackage->AddAssetObject(assetObject); addAssetResult.HasError())
             {

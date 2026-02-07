@@ -551,8 +551,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 Result AssetObject::Load(
     JSON::Object& manifestData,
     BufferedReader* binStream,
-    Handle<AssetObject>& outAssetObject,
-    bool callOnPostLoad)
+    Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
 
@@ -626,12 +625,6 @@ Result AssetObject::Load(
         }
 
         AssertDebug(resource->GetData() != nullptr);
-    }
-
-    if (callOnPostLoad)
-    {
-        // invoke PostLoad callback
-        targetAssetObject->InstanceClass()->PostLoad(targetAssetObject);
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);
