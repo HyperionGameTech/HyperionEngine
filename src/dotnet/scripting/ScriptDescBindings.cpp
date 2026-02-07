@@ -8,17 +8,17 @@ using namespace Hyperion;
 
 extern "C"
 {
-    HYP_EXPORT ScriptData* ScriptData_AllocateNativeObject(ScriptData* pScriptData)
+    HYP_EXPORT ScriptDesc* ScriptData_AllocateNativeObject(ScriptDesc* pScriptData)
     {
         if (!pScriptData)
         {
             return nullptr;
         }
 
-        return new ScriptData(*pScriptData);
+        return new ScriptDesc(*pScriptData);
     }
 
-    HYP_EXPORT void ScriptData_FreeNativeObject(ScriptData* pScriptData)
+    HYP_EXPORT void ScriptData_FreeNativeObject(ScriptDesc* pScriptData)
     {
         if (!pScriptData)
         {

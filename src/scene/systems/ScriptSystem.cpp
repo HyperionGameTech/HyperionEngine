@@ -111,7 +111,7 @@ ScriptSystem::ScriptSystem()
     {
         m_delegateHandlers.Add(
             NAME("OnScriptStateChanged"),
-            g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([this](const ScriptData& script)
+            g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([this](const ScriptDesc& script)
                 {
                     AssertOnThread(g_simThread);
 
@@ -137,7 +137,7 @@ ScriptSystem::ScriptSystem()
 
                             ResourceGuard resGuard(*scriptAsset->GetResource());
 
-                            ScriptData* scriptData = scriptAsset->GetScriptData();
+                            ScriptDesc* scriptData = scriptAsset->GetScriptData();
                             Assert(scriptData != nullptr);
 
                             if (Memory::StrCmp(script.assemblyPath.Data(), scriptData->assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptData->assemblyPath))) == 0)

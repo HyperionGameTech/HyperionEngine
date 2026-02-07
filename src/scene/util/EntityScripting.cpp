@@ -190,7 +190,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
             return;
         }
 
-        ScriptData* scriptData = scriptAsset->GetScriptData();
+        ScriptDesc* scriptData = scriptAsset->GetScriptData();
         Assert(scriptData != nullptr);
 
         switch (scriptData->language)

@@ -17,21 +17,21 @@ public:
     ScriptAsset()
         : AssetObject()
     {
-        AssetObject::SetData(ScriptData());
+        AssetObject::SetData(ScriptDesc());
     }
 
     explicit ScriptAsset(Name name)
         : AssetObject(name)
     {
-        AssetObject::SetData(ScriptData());
+        AssetObject::SetData(ScriptDesc());
     }
 
-    ScriptAsset(Name name, const ScriptData& scriptData)
+    ScriptAsset(Name name, const ScriptDesc& scriptData)
         : AssetObject(name, scriptData)
     {
     }
 
-    ScriptAsset(Name name, ScriptData&& scriptData)
+    ScriptAsset(Name name, ScriptDesc&& scriptData)
         : AssetObject(name, std::move(scriptData))
     {
     }
@@ -44,9 +44,9 @@ public:
 
     ~ScriptAsset() = default;
 
-    HYP_FORCE_INLINE ScriptData* GetScriptData() const
+    HYP_FORCE_INLINE ScriptDesc* GetScriptData() const
     {
-        return GetResourceData<ScriptData>();
+        return GetResourceData<ScriptDesc>();
     }
 };
 

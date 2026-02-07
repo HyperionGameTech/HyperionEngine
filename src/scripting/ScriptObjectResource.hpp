@@ -60,7 +60,7 @@ struct ScriptObjectData_Native final
     WeakHandle<ObjectBase> nativeObject;
 };
 
-class HYP_API ScriptObjectResource final : public ResourceBase
+class ScriptObjectResource final : public ResourceBase
 {
 public:
     ScriptObjectResource();

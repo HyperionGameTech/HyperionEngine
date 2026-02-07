@@ -198,7 +198,7 @@ void HyperionEditor::OnLaunch_Impl()
 
                     // temp: add test script component
 
-                    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptData());
+                    Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
 
                     // register the package
                     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
@@ -206,7 +206,7 @@ void HyperionEditor::OnLaunch_Impl()
 
                     ResourceGuard resGuard = scriptAsset->GetResource()->GetReadScope();
 
-                    ScriptData* scriptData = scriptAsset->GetScriptData();
+                    ScriptDesc* scriptData = scriptAsset->GetScriptData();
                     Assert(scriptData != nullptr);
 
                     scriptAsset->GetScriptData()->language = ScriptLanguage::HypScript;

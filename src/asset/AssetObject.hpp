@@ -47,7 +47,7 @@ class Object;
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
-class HYP_API AssetDataResourceBase : public ResourceBase
+class AssetDataResourceBase : public ResourceBase
 {
 public:
     friend class AssetObject;

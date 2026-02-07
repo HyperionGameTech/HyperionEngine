@@ -93,7 +93,7 @@ struct TResourceGuard : ResourceGuard
     }
 };
 
-class HYP_API ResourceBase
+class ResourceBase
 {
 protected:
     ResourceBase();

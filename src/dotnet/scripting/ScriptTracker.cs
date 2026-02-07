@@ -78,7 +78,7 @@ namespace Hyperion
                 // just testing for now
                 if (scriptCompiler != null)
                 {
-                    ref ScriptData scriptData = ref entry.Value.Get();
+                    ref ScriptDesc scriptData = ref entry.Value.Get();
 
                     try
                     {
@@ -126,7 +126,7 @@ namespace Hyperion
 
             Logger.Log(logChannel, LogType.Info, "Adding script {0} to processing queue...", e.FullPath);
 
-            ScriptInstance scriptInstance = new ScriptInstance(new ScriptData
+            ScriptInstance scriptInstance = new ScriptInstance(new ScriptDesc
             {
                 Path = e.FullPath,
                 CompileStatus = ScriptCompileStatus.Processing,
