@@ -64,6 +64,14 @@ enum class AssetPackageFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
 
+HYP_ENUM()
+enum class AddAssetConflictMode : uint8
+{
+    FailOnConflict = 0,
+    GenerateNewName,
+    ReplaceExisting
+};
+
 HYP_CLASS()
 class HYP_API AssetPackage final : public ObjectBase
 {
@@ -407,7 +415,10 @@ public:
     HYP_METHOD()
     Name GetUniqueAssetName(const UTF8StringView& packagePath, Name baseName) const;
 
-    Result RegisterAsset(const UTF8StringView& path, const Handle<AssetObject>& assetObject);
+    Result RegisterAsset(
+        const UTF8StringView& path,
+        const Handle<AssetObject>& assetObject,
+        AddAssetConflictMode conflictMode = AddAssetConflictMode::GenerateNewName);
 
     /*! \brief Registers `target` if it is a subclass of AssetObject and registers all
      *  of its members that are subclasses of AssetObject as well, recursively.
