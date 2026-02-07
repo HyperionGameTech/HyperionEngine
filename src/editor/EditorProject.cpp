@@ -250,22 +250,32 @@ Result EditorProject::SaveAs(FilePath filepath)
         filepath = GetProjectsDirectory() / *m_name;
     }
 
-    if (!filepath.Exists() && !filepath.MkDir())
+    FilePath dir;
+
+    if (filepath.EndsWith(".hypproject"))
+    {
+        dir = filepath.BasePath();
+    }
+    else
+    {
+        dir = filepath;
+        filepath = filepath / (String(*m_name) + ".hypproject");
+    }
+
+    if (!dir.Exists() && !dir.MkDir())
     {
         return HYP_MAKE_ERROR(Error, "Failed to create directory");
     }
 
-    if (!filepath.IsDirectory())
+    if (!dir.IsDirectory())
     {
-        return HYP_MAKE_ERROR(Error, "Path '{}' is not a directory", filepath);
+        return HYP_MAKE_ERROR(Error, "Path '{}' is not a directory", dir);
     }
 
     GlobalContextScope contextScope { EditorProjectSaveContext {} };
 
     const Time previousLastSavedTime = m_lastSavedTime;
     m_lastSavedTime = Time::Now();
-
-    const FilePath projectFilepath = filepath / (String(*m_name) + ".hypproject");
     
     ToJSONOptions opts;
     opts.skipTransientProperties = true;
@@ -277,7 +287,7 @@ Result EditorProject::SaveAs(FilePath filepath)
         return HYP_MAKE_ERROR(Error, "Failed to save project!");
     }
 
-    FileByteWriter wri(projectFilepath);
+    FileByteWriter wri { filepath };
     HYP_DEFER({ wri.Close(); });
 
     wri.WriteString(JSON::Value(projectJson).ToString(true));

@@ -93,23 +93,11 @@ struct TResourceGuard : ResourceGuard
     }
 };
 
-
-class IResource
-{
-public:
-    virtual ~IResource() = default;
-
-    virtual bool IsNull() const = 0;
-
-    virtual ResourceGuard GetWriteScope() = 0;
-    virtual ResourceGuard GetReadScope() = 0;
-};
-
-class HYP_API ResourceBase : public IResource
+class HYP_API ResourceBase
 {
 protected:
     ResourceBase();
-    ~ResourceBase();
+    virtual ~ResourceBase();
 
 public:
     friend struct ResourceGuard;
@@ -119,13 +107,8 @@ public:
     ResourceBase(ResourceBase&& other) noexcept = delete;
     ResourceBase& operator=(ResourceBase&& other) noexcept = delete;
 
-    virtual bool IsNull() const override final
-    {
-        return false;
-    }
-
-    virtual ResourceGuard GetWriteScope() override final;
-    virtual ResourceGuard GetReadScope() override final;
+    ResourceGuard GetWriteScope();
+    ResourceGuard GetReadScope();
     
     void AddWriter(bool doInitialize = true);
     void ReleaseWriter(bool doDeinitialize = true);
@@ -161,8 +144,6 @@ class ResourceMemoryPool final : public IResourceMemoryPool
     using AllocatorType = TSlabAllocator<AllocatorInstance<Pool, &g_resourcePool>>;
 
 public:
-    static_assert(std::is_base_of_v<IResource, T>, "T must be a subclass of IResource");
-
     static ResourceMemoryPool<T>* GetInstance()
     {
         static IResourceMemoryPool* s_pool = GetOrCreateResourceMemoryPool(TypeId::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
@@ -227,7 +208,5 @@ HYP_FORCE_INLINE static void FreeResource(T* ptr)
 
     ResourceMemoryPool<T>::GetInstance()->Free(ptr);
 }
-
-HYP_API IResource& GetNullResource();
 
 } // namespace Hyperion

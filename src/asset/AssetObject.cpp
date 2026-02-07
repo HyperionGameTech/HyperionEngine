@@ -93,49 +93,46 @@ void AssetDataResourceBase::Initialize()
 {
     HYP_SCOPE;
 
-    Handle<AssetObject> assetObject = m_assetObject.Lock();
-    Assert(assetObject.IsValid());
+    Assert(m_assetObject != nullptr);
 
     if (IsDataLoaded())
     {
-        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded in Initialize()", assetObject->GetName());
+        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded in Initialize()", m_assetObject->GetName());
     
         return;
     }
 
-    if (assetObject->IsTransient())
+    if (m_assetObject->IsTransient())
     {
-        HYP_LOG(Assets, Warning, "Attempted to load transient asset {} from disk!", assetObject->GetPath().ToString());
+        HYP_LOG(Assets, Warning, "Attempted to load transient asset {} from disk!", m_assetObject->GetPath().ToString());
 
         return;
     }
 
-    HYP_LOG(Assets, Debug, "Loading asset '{}'", assetObject->GetName());
+    HYP_LOG(Assets, Debug, "Loading asset '{}'", m_assetObject->GetName());
 
     if (Result result = Load_Internal(); result.HasError())
     {
-        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
+        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", m_assetObject->GetName(), result.GetError().GetMessage());
 
         return;
     }
 
-    HYP_LOG(Assets, Debug, "Successfully loaded asset '{}'", assetObject->GetName());
+    HYP_LOG(Assets, Debug, "Successfully loaded asset '{}'", m_assetObject->GetName());
 }
 
 void AssetDataResourceBase::Destroy()
 {
     HYP_SCOPE;
 
-    AssetObject* assetObject = m_assetObject.GetUnsafe();
-
-    AssertDebug(assetObject->IsSaved() > 0,
+    AssertDebug(m_assetObject->IsSaved(),
         "Unloading asset data for asset that is not saved to disk, may cause problems later down the line");
 
-    HYP_LOG(Assets, Debug, "Unloading asset '{}'", assetObject->IsRegistered() ? *assetObject->GetPath().ToString() : *assetObject->GetName());
+    HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject->IsRegistered() ? *m_assetObject->GetPath().ToString() : *m_assetObject->GetName());
 
     if (GetData() == nullptr)
     {
-        HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", assetObject->GetName());
+        HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", m_assetObject->GetName());
 
         return;
     }
@@ -147,8 +144,7 @@ Result AssetDataResourceBase::Load_Internal()
 {
     HYP_SCOPE;
 
-    AssetObject* assetObject = m_assetObject.GetUnsafe();
-    Assert(assetObject != nullptr);
+    Assert(m_assetObject != nullptr);
 
     BufferedReader stream;
 
@@ -161,7 +157,7 @@ Result AssetDataResourceBase::Load_Internal()
         stream.Close();
     });
 
-    if (Result openStreamResult = assetObject->OpenBinaryReadStream(stream); openStreamResult.HasError())
+    if (Result openStreamResult = m_assetObject->OpenBinaryReadStream(stream); openStreamResult.HasError())
     {
         return openStreamResult;
     }
@@ -177,10 +173,9 @@ Result AssetDataResourceBase::Load_Internal()
 Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 {
     HYP_SCOPE;
-    // mutex will already be locked by the asset object that owns this resource
+    // mutex will already be locked by the asset object that owns this
 
-    AssetObject* assetObject = m_assetObject.GetUnsafe();
-    Assert(assetObject != nullptr);
+    Assert(m_assetObject != nullptr);
 
     FBOMWriter writer { FBOMWriterConfig {} };
 
@@ -224,18 +219,16 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 #pragma region AssetObject
 
 AssetObject::AssetObject()
-    : m_resource {},
+    : m_resource(nullptr),
       m_flags(AssetObjectFlags::NONE),
-      m_pool(nullptr),
       m_isDirty(0)
 {
 }
 
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
-      m_resource {},
+      m_resource(nullptr),
       m_flags(AssetObjectFlags::NONE),
-      m_pool(nullptr),
       m_isDirty(0)
 {
 }
@@ -245,11 +238,10 @@ AssetObject::~AssetObject()
     // need to release before freeing resource or we'll deadlock
     m_persistentResource.Release();
 
-    if (m_resource != nullptr && !m_resource->IsNull())
+    if (m_resource != nullptr)
     {
-        Assert(m_pool != nullptr);
-
-        m_pool->Free(m_resource);
+        PoolDelete(*g_assetPool, m_resource);
+        m_resource = nullptr;
     }
 }
 
@@ -258,10 +250,10 @@ void AssetObject::Init()
     HYP_SCOPE;
     ObjectBase::Init();
 
-    if (m_resource && !m_resource->IsNull())
+    if (m_resource)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-        resource->m_assetObject = WeakHandleFromThis();
+        resource->m_assetObject = this;
 
         if ((m_flags[AssetObjectFlags::PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
         {
@@ -317,7 +309,7 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
 
     if (persistentlyLoaded)
     {
-        if (!m_persistentResource && m_resource && !m_resource->IsNull())
+        if (!m_persistentResource && m_resource)
         {
             m_persistentResource = m_resource->GetReadScope();
             Assert(m_persistentResource);
@@ -433,7 +425,7 @@ bool AssetObject::IsDataLoaded() const
 {
     HYP_SCOPE;
 
-    return m_resource != nullptr && !m_resource->IsNull()
+    return m_resource != nullptr
         && static_cast<AssetDataResourceBase*>(m_resource)->IsDataLoaded();
 }
 
@@ -480,20 +472,21 @@ Result AssetObject::Save(const FilePath& manifestPath)
         manifestWriter.Close();
     }
 
-    const bool doSaveResource = m_resource != nullptr && !m_resource->IsNull();
+    const bool saveBinData = m_resource != nullptr;
 
     // use resource instead to save if it is not null
-    if (doSaveResource)
+    if (saveBinData)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
 
-        bool doLoadResourceBeforeSaving = !resource->IsDataLoaded();
+        // must load before saving if saving to a different place and not currently in memory.
+        bool requiresLoad = !resource->IsDataLoaded();
 
         ResourceGuard resGuard;
 
-        if (doLoadResourceBeforeSaving)
+        if (requiresLoad)
         {
-            doLoadResourceBeforeSaving = false;
+            requiresLoad = false;
 
             Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
                 m_name);
@@ -579,7 +572,7 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
 
-    BoxedValue binData;
+    BoxedValue binDataBoxed;
 
     if (binStream)
     {
@@ -587,12 +580,12 @@ Result AssetObject::Load(
         FBOMReader reader { FBOMReaderConfig {} };
         FBOMResult err;
 
-        if ((err = reader.Deserialize(context, *binStream, binData)))
+        if ((err = reader.Deserialize(context, *binStream, binDataBoxed)))
         {
             return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
         }
 
-        AssertDebug(binData.IsValid());
+        AssertDebug(binDataBoxed.IsValid());
     }
 
     BoxedValue targetData;
@@ -602,7 +595,7 @@ Result AssetObject::Load(
     }
 
     AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
-    const bool useResource = (targetAssetObject->m_resource != nullptr && !targetAssetObject->m_resource->IsNull());
+    const bool loadBinData = targetAssetObject->m_resource != nullptr;
 
     // remove class property
     manifestData.Erase("$Class");
@@ -614,14 +607,14 @@ Result AssetObject::Load(
 
     AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(targetAssetObject->m_resource);
 
-    if (useResource)
+    if (loadBinData)
     {
-        AssertDebug(resource != nullptr && !resource->IsNull());
-        AssertDebug(binData.IsValid());
+        AssertDebug(resource != nullptr);
+        AssertDebug(binDataBoxed.IsValid());
 
-        if (binData.IsValid())
+        if (binDataBoxed.IsValid())
         {
-            resource->Extract_Internal(binData.ToRef());
+            resource->Extract_Internal(binDataBoxed.ToRef());
         }
 
         AssertDebug(resource->GetData() != nullptr);
