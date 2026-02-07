@@ -144,15 +144,15 @@ private:
             }
             else
             {
-                BoxedValue returnHypData;
-                InvokeMethod_Internal(pMethod, argsArrayPtr, &returnHypData);
+                BoxedValue boxed;
+                InvokeMethod_Internal(pMethod, argsArrayPtr, &boxed);
 
-                if (returnHypData.IsNull())
+                if (boxed.IsNull())
                 {
                     return ReturnType();
                 }
 
-                return std::move(returnHypData.Get<ReturnType>());
+                return std::move(boxed.Get<ReturnType>());
             }
         }
         else
@@ -165,15 +165,15 @@ private:
             }
             else
             {
-                BoxedValue returnHypData;
-                InvokeMethod_Internal(pMethod, argsArrayPtr, &returnHypData);
+                BoxedValue boxed;
+                InvokeMethod_Internal(pMethod, argsArrayPtr, &boxed);
 
-                if (returnHypData.IsNull())
+                if (boxed.IsNull())
                 {
                     return ReturnType();
                 }
 
-                return std::move(returnHypData.Get<ReturnType>());
+                return std::move(boxed.Get<ReturnType>());
             }
         }
     }

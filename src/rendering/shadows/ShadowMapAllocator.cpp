@@ -137,7 +137,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         if (pointLightIndex >= MaxBoundOmniShadowMaps)
         {
             m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
-
+            
             return nullptr;
         }
 
