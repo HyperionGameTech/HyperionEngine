@@ -28,6 +28,10 @@ namespace Hyperion.Editor
         public static event Action<World, Scene>? SceneAdded;
         public static event Action<World, Scene>? SceneRemoved;
 
+        public static event Action<ObjIdBase, string>? TaskStarted;
+        public static event Action<ObjIdBase>? TaskEnded;
+        public static event Action<ObjIdBase, float>? TaskProgressUpdated;
+
         private static bool _editorViewportsEnabled = false;
 
         public static void Initialize()
@@ -176,6 +180,21 @@ namespace Hyperion.Editor
 
             NativeBindings.Hyp_Shutdown();
             IsInitialized = false;
+        }
+
+        internal static void RaiseTaskStarted(ObjIdBase taskId, string taskName)
+        {
+            TaskStarted?.Invoke(taskId, taskName);
+        }
+
+        internal static void RaiseTaskEnded(ObjIdBase taskId)
+        {
+            TaskEnded?.Invoke(taskId);
+        }
+
+        internal static void RaiseTaskProgressUpdated(ObjIdBase taskId, float progress)
+        {
+            TaskProgressUpdated?.Invoke(taskId, progress);
         }
 
         [UnmanagedCallersOnly]

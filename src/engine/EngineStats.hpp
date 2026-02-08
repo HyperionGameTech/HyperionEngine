@@ -9,7 +9,7 @@
 
 #include <core/profiling/PerformanceClock.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 #include <cfloat>
 

@@ -23,7 +23,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -308,7 +308,7 @@ protected:
 
     Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
 
-    LockstepGameCounter m_updateTimer;
+    ClockTimer m_updateTimer;
 
 protected:
     virtual void Build();

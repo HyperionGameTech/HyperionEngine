@@ -4,6 +4,7 @@ using Hyperion.Editor.Commands;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Windows.Input;
 
@@ -118,6 +119,8 @@ namespace Hyperion.Editor.ViewModels
         private EditorSubsystem _editorSubsystem;
 
         public ObservableCollection<SceneViewModel> Scenes { get; } = new();
+
+        public ObservableCollection<TaskItemViewModel> Tasks { get; } = new();
         
         private SceneViewModel? _activeScene;
         public SceneViewModel? ActiveScene
@@ -230,6 +233,10 @@ namespace Hyperion.Editor.ViewModels
 
             BindFocusedNodeChanged();
 
+            EngineManager.TaskStarted += OnTaskStarted;
+            EngineManager.TaskEnded += OnTaskEnded;
+            EngineManager.TaskProgressUpdated += OnTaskProgressUpdated;
+
             _ = EngineManager.PostToSimThread(() =>
             {
                 Scene? activeScene = _editorSubsystem.GetActiveScene();
@@ -246,6 +253,9 @@ namespace Hyperion.Editor.ViewModels
         {
             EngineManager.SceneAdded -= OnSceneAdded;
             EngineManager.SceneRemoved -= OnSceneRemoved;
+            EngineManager.TaskStarted -= OnTaskStarted;
+            EngineManager.TaskEnded -= OnTaskEnded;
+            EngineManager.TaskProgressUpdated -= OnTaskProgressUpdated;
 
             _gameModeChangedHandler?.Remove();
             _focusedNodeChangedHandler?.Remove();
@@ -254,6 +264,51 @@ namespace Hyperion.Editor.ViewModels
             _activeSceneChangedHandler?.Remove();
             SceneHierarchy.SelectedNodeChanged -= OnSceneHierarchyNodeSelected;
             ContentBrowser.Dispose();
+        }
+
+        private void OnTaskStarted(ObjIdBase taskId, string taskName)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (Tasks.Any(t => t.TaskId == taskId))
+                {
+                    return;
+                }
+
+                Tasks.Add(new TaskItemViewModel(taskId, taskName));
+                OnPropertyChanged(nameof(Tasks));
+            });
+        }
+
+        private void OnTaskEnded(ObjIdBase taskId)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                for (int i = 0; i < Tasks.Count; i++)
+                {
+                    if (Tasks[i].TaskId == taskId)
+                    {
+                        Tasks.RemoveAt(i);
+                        OnPropertyChanged(nameof(Tasks));
+                        return;
+                    }
+                }
+            });
+        }
+
+        private void OnTaskProgressUpdated(ObjIdBase taskId, float progress)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                foreach (TaskItemViewModel task in Tasks)
+                {
+                    if (task.TaskId == taskId)
+                    {
+                        task.Progress = progress;
+                        return;
+                    }
+                }
+            });
         }
 
         private void HandleActiveSceneChanged(Scene? scene)

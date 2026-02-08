@@ -8,7 +8,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -62,7 +62,7 @@ private:
     Handle<Entity> m_skyboxEntity;
     Handle<Scene> m_visScene;
 
-    LockstepGameCounter m_updateTimer;
+    ClockTimer m_updateTimer;
 };
 
 } // namespace Hyperion

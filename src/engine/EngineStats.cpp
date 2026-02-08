@@ -39,7 +39,7 @@ struct EngineStatsRecorderImpl
 
     TByteBuffer<Pool> statsBuffer;
 
-    GameCounter counter;
+    ClockTimer counter;
     double deltaAccum;
     uint32 numSamples;
     uint32 sampleIndex;
@@ -391,7 +391,7 @@ void EngineStats::Advance()
 
     if (resetFrameStats)
     {
-        m_impl->counter = GameCounter();
+        m_impl->counter = ClockTimer();
         m_impl->counter.delta = 1.0;
 
         m_impl->numSamples = 0;

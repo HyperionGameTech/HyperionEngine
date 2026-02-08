@@ -30,7 +30,7 @@
 #include <core/Constants.hpp>
 #include <core/Defines.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 #include <algorithm>
 #include <type_traits>
@@ -38,6 +38,9 @@
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
+
+HYP_API extern Pool* g_assetPool;
+using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
 class AssetRegistry;
 class AssetPackage;
@@ -48,11 +51,8 @@ class ByteWriter;
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
 
-using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction>;
-
-//// \todo : Make AssetObjectSet hold AssetReferences instead, and periodically release
-/// 	  AssetObjects that have no references to them (besides the loaded reference itself).
-using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction>;
+using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction, NodeAllocator<AssetAllocator>>;
+using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction, NodeAllocator<AssetAllocator>>;
 
 HYP_ENUM()
 enum class AssetPackageFlags : uint32
@@ -80,6 +80,8 @@ class HYP_API AssetPackage final : public ObjectBase
     friend class AssetRegistry;
 
 public:
+    static Pool* GetAllocator() { return g_assetPool; }
+
     AssetPackage();
 
     explicit AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags = AssetPackageFlags::None);
@@ -331,12 +333,6 @@ private:
     ThreadId m_loadingThreadId;
 };
 
-enum class AssetRegistryPathType : uint8
-{
-    PACKAGE = 0,
-    ASSET = 1
-};
-
 HYP_CLASS()
 class HYP_API AssetRegistry final : public ObjectBase
 {
@@ -345,6 +341,8 @@ class HYP_API AssetRegistry final : public ObjectBase
     friend class AssetPackage;
 
 public:
+    static Pool* GetAllocator() { return g_assetPool; }
+
     AssetRegistry();
     explicit AssetRegistry(const String& rootPath);
 
@@ -470,7 +468,7 @@ private:
     SharedMutex m_mutex;
 
     // timer for when we should prune transient packages
-    LockstepGameCounter m_pruneTimer;
+    ClockTimer m_pruneTimer;
     threading::TaskBatch* m_pruneTaskBatch;
 
     Scheduler* m_scheduler;

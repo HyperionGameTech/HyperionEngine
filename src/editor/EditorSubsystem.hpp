@@ -460,6 +460,15 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
 
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskStarted;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskEnded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorTaskBase>, float> OnTaskProgressUpdated;
+
 private:
     void LoadEditorUIDefinitions();
 

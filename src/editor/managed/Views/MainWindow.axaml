@@ -652,10 +652,24 @@
                         VerticalAlignment="Center"
                         FontSize="12"
                         Text="Ready" />
-                    <StackPanel
+                    <ItemsControl
                         Grid.Column="1"
-                        Orientation="Horizontal"
-                        Spacing="10" />
+                        ItemsSource="{Binding Tasks}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TaskItemViewModel">
+                                <Border Classes="task-box">
+                                    <TextBlock
+                                        Classes="task-title"
+                                        Text="{Binding TaskName}" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </Grid>
             </Border>
         </Grid>

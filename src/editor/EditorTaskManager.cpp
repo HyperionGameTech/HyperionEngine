@@ -30,6 +30,7 @@ Handle<UIObject> RunningEditorTask::CreateUIObject(UIStage* uiStage) const
 }
 
 EditorTaskManager::EditorTaskManager()
+    : m_timer(1.0)
 {
 }
 
@@ -52,8 +53,15 @@ void EditorTaskManager::AddTask(const Handle<EditorTaskBase>& task)
     task->Commit();
 }
 
-void EditorTaskManager::Tick(float delta)
+void EditorTaskManager::Tick()
 {
+    if (m_timer.Waiting())
+    {
+        return;
+    }
+
+    m_timer.NextTick();
+
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
         auto& task = it->GetTask();

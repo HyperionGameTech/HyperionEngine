@@ -1239,8 +1239,12 @@ EditorSubsystem::EditorSubsystem()
     m_taskManager.OnTaskAdded
         .Bind([this](RunningEditorTask& runningTask)
             {
+                OnTaskStarted(runningTask.GetTask());
+
                 UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
                 Assert(uiSubsystem != nullptr);
+
+                /// OLD UI code, to me removed.
 
                 Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
 
@@ -1314,6 +1318,9 @@ EditorSubsystem::EditorSubsystem()
     m_taskManager.OnTaskRemoved
         .Bind([this](RunningEditorTask& runningTask)
             {
+                OnTaskEnded(runningTask.GetTask());
+
+                // Same - old ui code to be removed
                 UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
                 Assert(uiSubsystem != nullptr);
 
@@ -3321,7 +3328,7 @@ void EditorSubsystem::UpdateTasks(float delta)
 {
     HYP_SCOPE;
 
-    m_taskManager.Tick(delta);
+    m_taskManager.Tick();
 }
 
 void EditorSubsystem::UpdateDebugOverlays(float delta)

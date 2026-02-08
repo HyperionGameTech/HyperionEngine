@@ -13,7 +13,7 @@
 
 #include <scene/EntitySet.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 #include <engine/EngineMemory.hpp>
 

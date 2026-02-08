@@ -1,0 +1,17 @@
+{
+  "$Class": "MeshAsset",
+  "MeshDesc": {
+    "MeshAttributes": {
+      "VertexAttributes": {
+        "FlagMask": 63
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 150,
+    "NumIndices": 576
+  },
+  "Name": "SphereDebugDrawShape_MeshAsset10",
+  "FriendlyName": "SphereDebugDrawShapeMeshAsset10",
+  "OriginalFilepath": ""
+}

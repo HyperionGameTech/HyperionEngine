@@ -9,7 +9,7 @@
 
 namespace Hyperion {
 
-struct GameCounter
+struct ClockTimer
 {
     using Clock = std::chrono::high_resolution_clock;
 
@@ -19,13 +19,24 @@ struct GameCounter
 
     TimePoint lastTimePoint = Now();
     TickUnit delta {};
+    TickUnit targetInterval {};
+
+    ClockTimer()
+        : targetInterval(0)
+    {
+    }
+
+    HYP_FORCE_INLINE explicit ClockTimer(TickUnit targetInterval)
+        : targetInterval(targetInterval)
+    {
+    }
 
     HYP_FORCE_INLINE static TimePoint Now()
     {
         return Clock::now();
     }
 
-    void NextTick()
+    HYP_FORCE_INLINE void NextTick()
     {
         const TimePoint current = Now();
 
@@ -33,38 +44,26 @@ struct GameCounter
         lastTimePoint = current;
     }
 
-    void Reset()
+    HYP_FORCE_INLINE void Reset()
     {
         lastTimePoint = Now();
         delta = TickUnit(0.0);
     }
 
-    TickUnit Interval(TimePoint endTimePoint) const
+    HYP_FORCE_INLINE TickUnit Interval(TimePoint endTimePoint) const
     {
         return std::chrono::duration_cast<std::chrono::duration<TickUnit, std::ratio<1>>>(endTimePoint - lastTimePoint).count();
     }
 
-    TickUnitHighPrec IntervalHighPrec(TimePoint endTimePoint) const
+    HYP_FORCE_INLINE TickUnitHighPrec IntervalHighPrec(TimePoint endTimePoint) const
     {
         return std::chrono::duration_cast<std::chrono::duration<TickUnitHighPrec, std::ratio<1>>>(endTimePoint - lastTimePoint).count();
-    }
-};
-
-struct LockstepGameCounter : GameCounter
-{
-    TickUnit targetInterval;
-    TickUnit padding;
-
-    LockstepGameCounter(TickUnit targetInterval, TickUnit padding = TickUnit(0.0))
-        : GameCounter(),
-          targetInterval(targetInterval),
-          padding(padding)
-    {
     }
 
     HYP_FORCE_INLINE bool Waiting() const
     {
-        return Interval(Now()) < targetInterval - padding;
+        return targetInterval > 0
+            && Interval(Now()) < targetInterval;
     }
 };
 

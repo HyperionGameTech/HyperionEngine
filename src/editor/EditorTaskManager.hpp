@@ -64,14 +64,20 @@ public:
         return uint32(m_tasks.Size());
     }
 
+    HYP_FORCE_INLINE const ClockTimer& GetTimer() const
+    {
+        return m_timer;
+    }
+
     void AddTask(const Handle<EditorTaskBase>& task);
 
-    void Tick(float delta);
+    void Tick();
 
     Delegate<void, RunningEditorTask&> OnTaskAdded;
     Delegate<void, RunningEditorTask&> OnTaskRemoved;
 
 private:
+    ClockTimer m_timer;
     Array<RunningEditorTask> m_tasks;
 };
 

@@ -220,7 +220,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
 AssetObject::AssetObject()
     : m_resource(nullptr),
-      m_flags(AssetObjectFlags::NONE),
+      m_flags(AssetObjectFlags::None),
       m_isDirty(0)
 {
 }
@@ -228,7 +228,7 @@ AssetObject::AssetObject()
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_resource(nullptr),
-      m_flags(AssetObjectFlags::NONE),
+      m_flags(AssetObjectFlags::None),
       m_isDirty(0)
 {
 }
@@ -255,7 +255,7 @@ void AssetObject::Init()
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
         resource->m_assetObject = this;
 
-        if ((m_flags[AssetObjectFlags::PERSISTENT] || DebugDisableUnload) && !m_persistentResource)
+        if ((m_flags[AssetObjectFlags::Persistent] || DebugDisableUnload) && !m_persistentResource)
         {
             m_persistentResource = m_resource->GetReadScope();
             Assert(m_persistentResource);
@@ -269,11 +269,11 @@ void AssetObject::SetAssetFlags(EnumFlags<AssetObjectFlags> flags)
 {
     if (m_flags != flags)
     {
-        const bool wasPersistent = m_flags[AssetObjectFlags::PERSISTENT];
+        const bool wasPersistent = m_flags[AssetObjectFlags::Persistent];
 
         m_flags = flags;
 
-        const bool isPersistent = m_flags[AssetObjectFlags::PERSISTENT];
+        const bool isPersistent = m_flags[AssetObjectFlags::Persistent];
 
         if (wasPersistent != isPersistent)
         {
@@ -297,14 +297,14 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
 {
     HYP_SCOPE;
 
-    if (setFlag && m_flags[AssetObjectFlags::PERSISTENT] != persistentlyLoaded)
+    if (setFlag && m_flags[AssetObjectFlags::Persistent] != persistentlyLoaded)
     {
         if (markDirty)
         {
             MarkDirty();
         }
 
-        m_flags[AssetObjectFlags::PERSISTENT] = persistentlyLoaded;
+        m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
     }
 
     if (persistentlyLoaded)
@@ -325,7 +325,7 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
 
     // if transient, we need to keep it in memory.
     // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
-    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::PERSISTENT] && !IsTransient())
+    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::Persistent] && !IsTransient())
     {
         m_persistentResource.Release();
     }
@@ -335,7 +335,7 @@ void AssetObject::SetIsTransient(bool isTransient)
 {
     HYP_SCOPE;
 
-    m_flags[AssetObjectFlags::TRANSIENT] = isTransient;
+    m_flags[AssetObjectFlags::Transient] = isTransient;
 
     if (IsTransient())
     {
@@ -355,7 +355,7 @@ void AssetObject::SetIsTransientByProxy(bool isTransientByProxy)
 {
     HYP_SCOPE;
 
-    m_flags[AssetObjectFlags::TRANSIENT_BY_PROXY] = isTransientByProxy;
+    m_flags[AssetObjectFlags::TransientByProxy] = isTransientByProxy;
 
     if (IsTransient())
     {

@@ -154,6 +154,20 @@
             <Setter Property="Padding" Value="6,4" />
         </Style>
 
+        <Style Selector="Border.task-box">
+            <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.BorderLight}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+
+        <Style Selector="TextBlock.task-title">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+        </Style>
+
         <!--  Accent Button style for toolbar-like buttons  -->
         <Style Selector="Button">
             <Setter Property="Background" Value="{StaticResource Brush.PanelAlt}" />

@@ -32,7 +32,7 @@
 namespace Hyperion {
 
 static constexpr Vec2u DefaultSkyCubemapDimensions = Vec2u { 128, 128 };
-static constexpr LockstepGameCounter::TickUnit DynamicSkyUpdateTimer = LockstepGameCounter::TickUnit(1.0f); // update every second
+static constexpr ClockTimer::TickUnit DynamicSkyUpdateTimer = ClockTimer::TickUnit(1.0f); // update every second
 
 DynamicSkySystem::DynamicSkySystem()
     : DynamicSkySystem(DefaultSkyCubemapDimensions)
@@ -55,7 +55,7 @@ void DynamicSkySystem::Init()
 
     { // atmospheric scattering capture setup
         m_renderScene = MakeHandle<Scene>(NAME("DynamicSkyRenderScene"), SceneFlags::NONE);
-        m_renderScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
+        m_renderScene->SetAssetFlags(AssetObjectFlags::Transient); // don't save; it's generated at runtime
         m_renderScene->SetOwnerThreadId(g_simThread);
         InitObject(m_renderScene);
 
@@ -114,7 +114,7 @@ void DynamicSkySystem::Init()
         materialAttributes.flags = MAF_DEPTH_TEST;
 
         m_visScene = MakeHandle<Scene>(NAME("SkyVisScene"), SceneFlags::FOREGROUND);
-        m_visScene->SetAssetFlags(AssetObjectFlags::TRANSIENT); // don't save; it's generated at runtime
+        m_visScene->SetAssetFlags(AssetObjectFlags::Transient); // don't save; it's generated at runtime
         m_visScene->GetRoot()->AddChild(m_skyboxEntity);
 
         m_envProbe = m_renderScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);

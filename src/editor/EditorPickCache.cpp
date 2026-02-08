@@ -12,7 +12,7 @@
 
 #include <rendering/asset/MeshAsset.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -36,7 +36,7 @@ struct EditorPickCacheImpl
     FixedArray<ResidencySet, MaxResidency + 1> residencyMap;
     RenderProxyList renderProxyList { g_editorPickCachePool, /* isShared */ false, /* useRefCounting */ false };
 
-    LockstepGameCounter updateCounter { 1.0 }; // per second
+    ClockTimer timer { 1.0 }; // 1 tick per second
 
     EditorPickCacheImpl()
     {
@@ -315,12 +315,12 @@ void EditorPickCache::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    if (m_impl->updateCounter.Waiting())
+    if (m_impl->timer.Waiting())
     {
         return;
     }
 
-    m_impl->updateCounter.NextTick();
+    m_impl->timer.NextTick();
 
     // update residencies
     for (int residency = MinResidency; residency <= MaxResidency; ++residency)

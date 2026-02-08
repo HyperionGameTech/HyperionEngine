@@ -167,12 +167,12 @@ protected:
 };
 
 HYP_ENUM()
-enum class AssetObjectFlags : uint32
+enum class AssetObjectFlags : uint8
 {
-    NONE = 0x0,
-    PERSISTENT = 0x1,        //!< Asset is persistently loaded in memory
-    TRANSIENT = 0x2,         //!< Asset is not saved to disk
-    TRANSIENT_BY_PROXY = 0x4 //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
+    None = 0x0,
+    Persistent = 0x1,       //!< Asset is persistently loaded in memory
+    Transient = 0x2,        //!< Asset is not saved to disk
+    TransientByProxy = 0x4  //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
@@ -290,7 +290,7 @@ public:
         return m_package.IsValid();
     }
 
-    HYP_METHOD(Property = "AssetFlags", Serialize)
+    HYP_METHOD(Property = "AssetFlags")
     EnumFlags<AssetObjectFlags> GetAssetFlags() const
     {
         return m_flags;
@@ -311,13 +311,13 @@ public:
     HYP_METHOD()
     bool IsTransient() const
     {
-        return bool(m_flags & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY));
+        return bool(m_flags & (AssetObjectFlags::Transient | AssetObjectFlags::TransientByProxy));
     }
 
     HYP_METHOD()
     bool IsTransientByProxy() const
     {
-        return (m_flags & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY)) == AssetObjectFlags::TRANSIENT_BY_PROXY;
+        return (m_flags & (AssetObjectFlags::Transient | AssetObjectFlags::TransientByProxy)) == AssetObjectFlags::TransientByProxy;
     }
 
     HYP_METHOD()
@@ -390,7 +390,7 @@ protected:
     HYP_FIELD(Property = "FriendlyName")
     Name m_friendlyName;
 
-    HYP_FIELD(Property = "AssetFlags")
+    HYP_FIELD(Property = "AssetFlags", Transient)
     EnumFlags<AssetObjectFlags> m_flags;
 
     HYP_FIELD()

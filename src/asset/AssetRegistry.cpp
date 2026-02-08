@@ -188,7 +188,7 @@ static bool IsRelocatable(const AssetPath& assetPath)
  *  Only Engine-defined internal packages (e.g $Memory, $Import, $Temp) enable this behaviour. */
 static bool ShouldRelocateAssetBeforeSave(const AssetObject& assetObject)
 {
-    if (assetObject.GetAssetFlags() & AssetObjectFlags::TRANSIENT)
+    if (assetObject.GetAssetFlags() & AssetObjectFlags::Transient)
     {
         return false; // explicitly marked transient; don't move
     }
@@ -1467,7 +1467,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         for (const Handle<AssetObject>& assetObject : assetObjects)
         {
             // If TRANSIENT (not BY PROXY), skip saving this asset
-            if ((assetObject->GetAssetFlags() & (AssetObjectFlags::TRANSIENT | AssetObjectFlags::TRANSIENT_BY_PROXY)) == AssetObjectFlags::TRANSIENT)
+            if ((assetObject->GetAssetFlags() & (AssetObjectFlags::Transient | AssetObjectFlags::TransientByProxy)) == AssetObjectFlags::Transient)
             {
                 continue;
             }

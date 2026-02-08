@@ -9,7 +9,7 @@
 
 #include <core/logging/LoggerFwd.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -40,7 +40,7 @@ private:
     virtual void operator()() override;
 
     Handle<Game> m_game;
-    GameCounter m_counter;
+    ClockTimer m_counter;
 };
 
 } // namespace Hyperion

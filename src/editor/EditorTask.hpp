@@ -18,7 +18,7 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -64,12 +64,12 @@ public:
     TickableEditorTask();
     virtual ~TickableEditorTask() override = default;
 
-    HYP_FORCE_INLINE LockstepGameCounter& GetTimer()
+    HYP_FORCE_INLINE ClockTimer& GetTimer()
     {
         return m_timer;
     }
 
-    HYP_FORCE_INLINE const LockstepGameCounter& GetTimer() const
+    HYP_FORCE_INLINE const ClockTimer& GetTimer() const
     {
         return m_timer;
     }
@@ -109,7 +109,7 @@ protected:
         HYP_PURE_VIRTUAL();
     }
 
-    LockstepGameCounter m_timer;
+    ClockTimer m_timer;
 
 private:
     AtomicVar<bool> m_isCommitted;

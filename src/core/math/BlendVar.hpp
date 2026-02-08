@@ -10,7 +10,7 @@
 #include <core/Types.hpp>
 #include <core/HashCode.hpp>
 
-#include <util/GameCounter.hpp>
+#include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 
@@ -83,7 +83,7 @@ public:
      */
     HYP_FORCE_INLINE void SetRate(double rate)
     {
-        m_counter = LockstepGameCounter(1.0 / MathUtil::Max(rate, 0.0001));
+        m_counter = ClockTimer(1.0 / MathUtil::Max(rate, 0.0001));
     }
 
     /*! \brief Advances the blend variable towards the target value.
@@ -135,7 +135,7 @@ private:
     T m_value;
     T m_target;
     double m_fract;
-    LockstepGameCounter m_counter;
+    ClockTimer m_counter;
 };
 
 } // namespace Hyperion
