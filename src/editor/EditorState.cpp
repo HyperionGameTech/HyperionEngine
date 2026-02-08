@@ -110,6 +110,10 @@ void EditorState::Init()
     Handle<AssetPackage> importsPackage = GetImportsPackage();
     Assert(importsPackage.IsValid());
 
+    m_taskManager.OnTaskAdded.Bind([this]<class... Args>(Args&&... args) { OnTaskStarted(std::forward<Args>(args)...); }).Detach();
+    m_taskManager.OnTaskRemoved.Bind([this]<class... Args>(Args&&... args) { OnTaskEnded(std::forward<Args>(args)...); }).Detach();
+    m_taskManager.OnTaskProgressUpdated.Bind([this]<class... Args>(Args&&... args) { OnTaskProgressUpdated(std::forward<Args>(args)...); }).Detach();
+
     // add newly imported assets to the current project's asset registry
     m_onAssetObjectAddedHandle = importsPackage->OnAssetObjectAdded.Bind([weakThis = WeakHandleFromThis()](Handle<AssetObject> assetObject, bool isDirect)
         {
@@ -205,11 +209,27 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
     OnCurrentProjectChanged(project);
 }
 
+void EditorState::AddTask(const Handle<EditorTaskBase>& task)
+{
+    HYP_SCOPE;
+
+    if (!task)
+    {
+        return;
+    }
+
+    AssertOnThread(g_simThread);
+
+    m_taskManager.AddTask(task);
+}
+
 void EditorState::Update(float delta)
 {
     HYP_SCOPE;
 
     m_pickCache.Update(delta);
+
+    m_taskManager.Tick();
 }
 
 #endif

@@ -8,6 +8,7 @@
 #include <editor/EditorProject.hpp>
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorAction.hpp>
+#include <editor/EditorState.hpp>
 
 #include <ui/UIMenuBar.hpp>
 #include <ui/UISubsystem.hpp>
@@ -401,7 +402,7 @@ UIEventHandlerResult EditorMain::RebuildLightmaps(const MouseEvent& event)
 
     generateLightmapsTask->SetWorld(worldHandle);
 
-    editorSubsystem->AddTask(generateLightmapsTask);
+    g_editorState->AddTask(generateLightmapsTask);
 
     return UIEventHandlerResult::OK;
 }
@@ -854,7 +855,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                                         generateLightmapsTask->SetScene(activeScene);
                                         generateLightmapsTask->SetWorld(MakeStrongRef(activeScene->GetWorld()));
 
-                                        editorSubsystem->AddTask(generateLightmapsTask);
+                                        g_editorState->AddTask(generateLightmapsTask);
                                     };
 
                                     GetThreadById(g_simThread)->GetScheduler().Enqueue(std::move(impl), TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -945,7 +946,7 @@ UIEventHandlerResult EditorMain::AddLightmapVolume(const MouseEvent& event)
     Handle<World> worldHandle = MakeStrongRef(m_world);
     generateLightmapsTask->SetWorld(worldHandle);
 
-    editorSubsystem->AddTask(generateLightmapsTask);
+    g_editorState->AddTask(generateLightmapsTask);
 
     return UIEventHandlerResult::OK;
 }

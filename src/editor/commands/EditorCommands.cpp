@@ -1,6 +1,7 @@
 #include <editor/EditorCommand.hpp>
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
+#include <editor/EditorState.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -370,7 +371,7 @@ public:
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
         generateLightmapsTask->SetWorld(worldHandle);
 
-        subsystem->AddTask(generateLightmapsTask);
+        g_editorState->AddTask(generateLightmapsTask);
     }
 };
 
@@ -455,7 +456,7 @@ public:
             Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
             generateLightmapsTask->SetWorld(worldHandle);
 
-            subsystem->AddTask(generateLightmapsTask);
+            g_editorState->AddTask(generateLightmapsTask);
         }
     }
 };
@@ -621,7 +622,7 @@ public:
         Handle<World> worldHandle = MakeStrongRef(subsystem->GetWorld());
         generateLightmapsTask->SetWorld(worldHandle);
 
-        subsystem->AddTask(generateLightmapsTask);
+        g_editorState->AddTask(generateLightmapsTask);
     }
 };
 

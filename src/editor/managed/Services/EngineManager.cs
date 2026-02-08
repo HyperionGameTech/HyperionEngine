@@ -21,9 +21,15 @@ namespace Hyperion.Editor
         private static Lock _lockViewports = new Lock();
 
         private static DelegateHandler? _onCurrentProjectChanged;
+
         private static DelegateHandler? _gameLaunchedHandler;
+
         private static DelegateHandler? _onSceneAddedHandler;
         private static DelegateHandler? _onSceneRemovedHandler;
+
+        private static DelegateHandler? _onTaskStartedHandler;
+        private static DelegateHandler? _onTaskEndedHandler;
+        private static DelegateHandler? _onTaskProgressUpdatedHandler;
 
         public static event Action<World, Scene>? SceneAdded;
         public static event Action<World, Scene>? SceneRemoved;
@@ -138,6 +144,24 @@ namespace Hyperion.Editor
                         SceneRemoved?.Invoke(world, scene);
                     });
                 }
+            });
+
+            _onTaskStartedHandler?.Remove();
+            _onTaskStartedHandler = editorState.GetOnTaskStartedDelegate().Bind((EditorTaskBase task) =>
+            {
+                RaiseTaskStarted(task.Id, task.Class.Name.ToString()); // TODO: Better name etc.
+            });
+
+            _onTaskEndedHandler?.Remove();
+            _onTaskEndedHandler = editorState.GetOnTaskEndedDelegate().Bind((EditorTaskBase task) =>
+            {
+                RaiseTaskEnded(task.Id);
+            });
+
+            _onTaskProgressUpdatedHandler?.Remove();
+            _onTaskProgressUpdatedHandler = editorState.GetOnTaskProgressUpdatedDelegate().Bind((EditorTaskBase task) =>
+            {
+                RaiseTaskProgressUpdated(task.Id, task.Progress);
             });
 
             SetEditorViewportsEnabled(true);

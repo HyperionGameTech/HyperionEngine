@@ -3,6 +3,7 @@
 #pragma once
 
 #include <editor/EditorPickCache.hpp>
+#include <editor/EditorTaskManager.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -16,6 +17,7 @@
 namespace Hyperion {
 
 class EditorProject;
+class EditorTaskBase;
 
 HYP_CLASS()
 class HYP_API EditorState : public ObjectBase
@@ -44,11 +46,23 @@ public:
 
     HYP_METHOD()
     void SetCurrentProject(const Handle<EditorProject>& project);
+    
+    HYP_METHOD()
+    void AddTask(const Handle<EditorTaskBase>& task);
 
     void Update(float delta);
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorProject>> OnCurrentProjectChanged;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskStarted;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskEnded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskProgressUpdated;
 
 private:
     void Init() override;
@@ -56,7 +70,11 @@ private:
     void ImportAssetsOrSetCallback(const Handle<EditorProject>& project);
 
     Handle<EditorProject> m_currentProject;
+
+    EditorTaskManager m_taskManager;
+
     EditorPickCache m_pickCache;
+
     mutable Mutex m_mutex;
 
     DelegateHandler m_onAssetObjectAddedHandle;

@@ -6,7 +6,6 @@
 
 #include <editor/EditorActionStack.hpp>
 #include <editor/EditorTask.hpp>
-#include <editor/EditorTaskManager.hpp>
 
 #include <scene/Subsystem.hpp>
 
@@ -385,9 +384,6 @@ public:
     void ShowImportContentDialog();
 
     HYP_METHOD()
-    void AddTask(const Handle<EditorTaskBase>& task);
-
-    HYP_METHOD()
     void SetFocusedNode(const Handle<Node>& focusedNode, bool shouldSelectInOutline = true);
 
     HYP_METHOD()
@@ -460,15 +456,6 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
 
-    HYP_FIELD()
-    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskStarted;
-
-    HYP_FIELD()
-    ScriptableDelegate<void, Handle<EditorTaskBase>> OnTaskEnded;
-
-    HYP_FIELD()
-    ScriptableDelegate<void, Handle<EditorTaskBase>, float> OnTaskProgressUpdated;
-
 private:
     void LoadEditorUIDefinitions();
 
@@ -485,7 +472,6 @@ private:
     TResult<Handle<FontAtlas>> CreateFontAtlas();
 
     void UpdateCamera(float delta);
-    void UpdateTasks(float delta);
     void UpdateDebugOverlays(float delta);
 
     void StartWatchingNode(const Handle<Node>& node);
@@ -510,8 +496,6 @@ private:
 
     Handle<EditorProject> m_currentProject;
     WeakHandle<Scene> m_activeScene;
-
-    EditorTaskManager m_taskManager;
 
     EditorManipulationMode m_selectedManipulationMode;
     EditorGizmoSet m_gizmos;

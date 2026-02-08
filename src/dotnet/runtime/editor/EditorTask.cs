@@ -6,6 +6,7 @@ namespace Hyperion
     [ClassBinding(Name = "EditorTaskBase")]
     public abstract class EditorTaskBase : ObjectBase
     {
+        public float Progress => this.GetProgress();
     }
 
     [ClassBinding(Name = "TickableEditorTask")]

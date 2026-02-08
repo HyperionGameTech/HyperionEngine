@@ -47,7 +47,7 @@ void EditorTaskManager::AddTask(const Handle<EditorTaskBase>& task)
 
     RunningEditorTask& runningTask = m_tasks.EmplaceBack(task);
 
-    OnTaskAdded(runningTask);
+    OnTaskAdded(task);
 
     // For long running tasks, enqueues the task in the scheduler
     task->Commit();
@@ -68,6 +68,13 @@ void EditorTaskManager::Tick()
 
         if (task->IsCommitted())
         {
+            if (task->GetProgress() != m_taskProgressValues[task->Id()])
+            {
+                OnTaskProgressUpdated(task);
+
+                m_taskProgressValues[task->Id()] = task->GetProgress();
+            }
+
             if (TickableEditorTask* tickableTask = ObjCast<TickableEditorTask>(task.Get()))
             {
                 if (tickableTask->GetTimer().Waiting())
@@ -84,7 +91,7 @@ void EditorTaskManager::Tick()
             {
                 task->OnComplete();
 
-                OnTaskRemoved(*it);
+                OnTaskRemoved(task);
 
                 it = m_tasks.Erase(it);
                 continue;

@@ -8,11 +8,6 @@ namespace Hyperion
     {
         private static LogChannel _logChannel = LogChannel.ByName("Editor");
 
-        public UUID UUID
-        {
-            get => this.GetUUID();
-        }
-
         public Name Name
         {
             get => this.GetName();

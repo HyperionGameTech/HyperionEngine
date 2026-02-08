@@ -73,12 +73,15 @@ public:
 
     void Tick();
 
-    Delegate<void, RunningEditorTask&> OnTaskAdded;
-    Delegate<void, RunningEditorTask&> OnTaskRemoved;
+    Delegate<void, Handle<EditorTaskBase>> OnTaskAdded;
+    Delegate<void, Handle<EditorTaskBase>> OnTaskRemoved;
+    Delegate<void, Handle<EditorTaskBase>> OnTaskProgressUpdated;
 
 private:
     ClockTimer m_timer;
+
     Array<RunningEditorTask> m_tasks;
+    HashMap<ObjId<EditorTaskBase>, float> m_taskProgressValues;
 };
 
 } // namespace Hyperion

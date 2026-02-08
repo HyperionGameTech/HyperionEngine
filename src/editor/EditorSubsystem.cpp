@@ -1236,121 +1236,6 @@ EditorSubsystem::EditorSubsystem()
 
     m_editorDelegates = new EditorDelegates();
 
-    m_taskManager.OnTaskAdded
-        .Bind([this](RunningEditorTask& runningTask)
-            {
-                OnTaskStarted(runningTask.GetTask());
-
-                UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-                Assert(uiSubsystem != nullptr);
-
-                /// OLD UI code, to me removed.
-
-                Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
-
-                if (tasksMenuItem != nullptr)
-                {
-                    const uint32 numRunningTasks = m_taskManager.NumRunningTasks();
-
-                    if (numRunningTasks == 0)
-                    {
-                        tasksMenuItem->SetText("No running tasks");
-                    }
-                    else if (numRunningTasks == 1)
-                    {
-                        tasksMenuItem->SetText("1 running task");
-                    }
-                    else
-                    {
-                        tasksMenuItem->SetText(HYP_FORMAT("{} running task(s)", numRunningTasks));
-                    }
-
-                    if (UIObjectSpawnContext context { tasksMenuItem })
-                    {
-                        Handle<UIGrid> taskGrid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-                        taskGrid->SetNumColumns(12);
-
-                        Handle<UIGridRow> taskGridRow = taskGrid->AddRow();
-                        taskGridRow->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
-
-                        Handle<UIGridColumn> taskGridColumnLeft = taskGridRow->AddColumn();
-                        taskGridColumnLeft->SetColumnSize(8);
-                        taskGridColumnLeft->AddChildUIObject(runningTask.CreateUIObject(uiSubsystem->GetUIStage()));
-
-                        Handle<UIGridColumn> taskGridColumnRight = taskGridRow->AddColumn();
-                        taskGridColumnRight->SetColumnSize(4);
-
-                        Handle<UIButton> cancelButton = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-                        cancelButton->SetText("Cancel");
-                        cancelButton->OnClick
-                            .Bind(
-                                [taskWeak = MakeWeakRef(runningTask.GetTask())](...)
-                                {
-                                    if (Handle<EditorTaskBase> task = taskWeak.Lock(); task.IsValid())
-                                    {
-                                        task->Cancel();
-                                    }
-
-                                    return UIEventHandlerResult::OK;
-                                })
-                            .Detach();
-
-                        taskGridColumnRight->AddChildUIObject(cancelButton);
-
-                        runningTask.SetUIObject(taskGrid);
-
-                        tasksMenuItem->AddChildUIObject(taskGrid);
-
-                        // testing
-                        Handle<Texture> dummyIconTexture;
-
-                        if (auto dummyIconTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/editor/icons/loading.png"))
-                        {
-                            dummyIconTexture = dummyIconTextureAsset->Result();
-                        }
-
-                        tasksMenuItem->SetIconTexture(dummyIconTexture);
-                    }
-                }
-            })
-        .Detach();
-
-    m_taskManager.OnTaskRemoved
-        .Bind([this](RunningEditorTask& runningTask)
-            {
-                OnTaskEnded(runningTask.GetTask());
-
-                // Same - old ui code to be removed
-                UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-                Assert(uiSubsystem != nullptr);
-
-                Handle<UIMenuItem> tasksMenuItem = ObjCast<UIMenuItem>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")));
-
-                if (tasksMenuItem != nullptr)
-                {
-                    const uint32 numRunningTasks = m_taskManager.NumRunningTasks();
-
-                    if (numRunningTasks == 0)
-                    {
-                        tasksMenuItem->SetText("No running tasks");
-                    }
-                    else if (numRunningTasks == 1)
-                    {
-                        tasksMenuItem->SetText("1 running task");
-                    }
-                    else
-                    {
-                        tasksMenuItem->SetText(HYP_FORMAT("{} running task(s)", numRunningTasks));
-                    }
-                }
-
-                if (const Handle<UIObject>& uiObject = runningTask.GetUIObject())
-                {
-                    uiObject->RemoveFromParent();
-                }
-            })
-        .Detach();
-
     OnProjectOpened
         .Bind([this](const Handle<EditorProject>& project)
             {
@@ -1628,7 +1513,6 @@ void EditorSubsystem::Update(float delta)
     m_editorDelegates->Update();
 
     UpdateCamera(delta);
-    UpdateTasks(delta);
     UpdateDebugOverlays(delta);
 
     if (m_focusedNode.IsValid())
@@ -3081,20 +2965,6 @@ void EditorSubsystem::ShowImportContentDialog()
         });
 }
 
-void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
-{
-    HYP_SCOPE;
-
-    if (!task)
-    {
-        return;
-    }
-
-    AssertOnThread(g_simThread);
-
-    m_taskManager.AddTask(task);
-}
-
 void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shouldSelectInOutline)
 {
     if (focusedNode == m_focusedNode)
@@ -3322,13 +3192,6 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
 void EditorSubsystem::UpdateCamera(float delta)
 {
     HYP_SCOPE;
-}
-
-void EditorSubsystem::UpdateTasks(float delta)
-{
-    HYP_SCOPE;
-
-    m_taskManager.Tick();
 }
 
 void EditorSubsystem::UpdateDebugOverlays(float delta)

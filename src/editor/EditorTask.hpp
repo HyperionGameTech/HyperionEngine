@@ -34,6 +34,18 @@ public:
     virtual ~EditorTaskBase() = default;
 
     HYP_METHOD()
+    float GetProgress() const
+    {
+        return m_progress;
+    }
+
+    HYP_METHOD()
+    void SetProgress(float progress)
+    {
+        m_progress = progress;
+    }
+
+    HYP_METHOD()
     virtual bool IsCommitted() const = 0;
 
     HYP_METHOD()
@@ -53,6 +65,14 @@ public:
 
     HYP_FIELD()
     ScriptableDelegate<void> OnCancel;
+
+protected:
+    EditorTaskBase()
+        : m_progress(0.0f)
+    {
+    }
+
+    float m_progress;
 };
 
 HYP_CLASS(Abstract, Description = "A task that runs on the sim thread and is has Process() called every tick")
