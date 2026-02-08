@@ -192,7 +192,7 @@ struct BlitAtlasElements : RenderCommand
 
                                 if (package)
                                 {
-                                    if (Result result = package->AddAssetObject(newTextureAsset); result.HasError())
+                                    if (Result result = package->AddAssetObject(newTextureAsset, /* replaceOnConflict */ true); result.HasError())
                                     {
                                         HYP_LOG(Lightmap, Error, "Failed to add texture asset '{}' to package {}: {}",
                                             newTextureAsset->GetName(),

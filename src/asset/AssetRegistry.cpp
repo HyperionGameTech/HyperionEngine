@@ -623,7 +623,7 @@ void AssetPackage::SetAssets(const AssetObjectSet& assetObjects)
     }
 }
 
-Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
+Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict)
 {
     HYP_SCOPE;
 
@@ -668,6 +668,9 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
     bool isPackageSavedInFilesystem = false;
     bool shouldSaveAsset = false;
 
+    // assigned if we removed an old one
+    Handle<AssetObject> existingAssetObject;
+
     { // lock scope (unique)
         TUniqueLock guard(m_mutex);
 
@@ -691,17 +694,38 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             assetObject->SetIsTransientByProxy(true);
         }
 
+        // check for existing and replace if requested
         auto existingAssetObjectIt = m_assetObjects.Find(assetObject->GetName());
 
         if (existingAssetObjectIt != m_assetObjects.End())
         {
-            if (*existingAssetObjectIt != assetObject)
+            if (*existingAssetObjectIt == assetObject)
+            {
+                return {};
+            }
+
+            if (!replaceOnConflict)
             {
                 return HYP_MAKE_ERROR(Error, "AssetObject with name '{}' already exists in package '{}'", assetObject->GetName(), BuildPackagePath());
             }
 
-            // already exists and is the same object; fine
-            return {};
+            // remove existing
+            existingAssetObject = *existingAssetObjectIt;
+
+            assetObject->m_manifestPath = existingAssetObject->m_manifestPath;
+
+            existingAssetObject->m_package.Reset();
+            existingAssetObject->m_assetPath = {};
+            existingAssetObject->m_manifestPath = FilePath();
+
+            existingAssetObject->MarkDirty();
+
+            m_assetObjects.Erase(existingAssetObjectIt);
+
+            HYP_LOG(Assets, Warning, "AssetObject with name '{}' already exists in package '{}'. Replacing it with the new one.",
+                assetObject->GetName(), BuildPackagePath());
+
+            // continue with adding the new one below
         }
         
         m_assetObjects.Insert(assetObject);
@@ -716,6 +740,25 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject)
             MarkDirty();
         }
     } // end lock scope
+
+    // notify asset object removed if that's the case
+    if (existingAssetObject.IsValid())
+    {
+        OnAssetObjectRemoved(existingAssetObject, true);
+
+        Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+        while (parentPackage.IsValid())
+        {
+            parentPackage->OnAssetObjectRemoved(existingAssetObject, false);
+            parentPackage = parentPackage->GetParentPackage().Lock();
+        }
+
+        HYP_LOG(Assets, Debug, "Removed {} '{}' from package '{}'",
+            existingAssetObject->InstanceClass()->GetName(),
+            existingAssetObject->GetName(),
+            BuildPackagePath());
+    }
 
     HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}' (thread: {})",
         assetObject->InstanceClass()->GetName(),
@@ -1009,7 +1052,7 @@ Result AssetPackage::MergePackage(const Handle<AssetPackage>& package)
             }
         }
 
-        if (Result addResult = AddAssetObject(asset); addResult.HasError())
+        if (Result addResult = AddAssetObject(asset, /* replaceOnConflict */ false); addResult.HasError())
         {
             HYP_LOG(Assets, Error, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), GetName(), addResult.GetError().GetMessage());
         }
@@ -2253,7 +2296,7 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
                 }
 
                 // Add to destination
-                Result addResult = dest->AddAssetObject(asset);
+                Result addResult = dest->AddAssetObject(asset, /* replaceOnConflict */ false);
                 if (addResult.HasError())
                 {
                     HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), dest->GetName(), addResult.GetError().GetMessage());
@@ -3094,9 +3137,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             
             InitObject(assetObject);
 
-            //assetObject->InstanceClass()->PostLoad(assetObject.Get()); // temp
-
-            if (Result addAssetResult = outPackage->AddAssetObject(assetObject); addAssetResult.HasError())
+            if (Result addAssetResult = outPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false); addAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to add asset to package '{}': {}", outPackage->GetName(), addAssetResult.GetError().GetMessage());
 
@@ -3231,7 +3272,7 @@ Result AssetRegistry::RegisterAsset(
         }
     }
 
-    return assetPackage->AddAssetObject(assetObject);
+    return assetPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false);
 }
 
 void AssetRegistry::RegisterAssetsRecursively(
@@ -3507,7 +3548,7 @@ void AssetRegistry::RegisterAssetsRecursively(
         {
             if (forceRelocation || !assetObject->IsRegistered())
             {
-                if (Result result = parentPackage->AddAssetObject(assetObject); result.HasError())
+                if (Result result = parentPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false); result.HasError())
                 {
                     HYP_LOG(Assets, Error, "Failed to register asset '{}': {}", assetObject->GetName(), result.GetError().GetMessage());
                 }
