@@ -313,7 +313,7 @@ Handle<Texture> AcquireTexture(GltfLoadContext& ctx, const cgltf_texture_view& t
     textureDesc.filterModeMin = ResolveMinFilter(texture.sampler);
     textureDesc.filterModeMag = ResolveMagFilter(texture.sampler);
     textureDesc.wrapMode = ResolveWrapMode(texture.sampler, ctx);
-    textureDesc.format = TextureUtils::ChangeFormatSrgb(textureDesc.format, srgb);
+    textureDesc.format = TextureUtils::ChangeFormatSRGB(textureDesc.format, srgb);
 
     textureHandle->SetTextureDesc(textureDesc);
 

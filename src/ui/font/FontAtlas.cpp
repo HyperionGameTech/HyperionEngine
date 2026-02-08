@@ -208,7 +208,7 @@ Result FontAtlas::RenderAtlasTextures()
         atlasBitmap->FlipVertical();
 
         const TextureDesc atlasTextureDesc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             TF_RGBA8,
             Vec3u { atlasBitmap->GetWidth(), atlasBitmap->GetHeight(), 1 },
             TFM_NEAREST,

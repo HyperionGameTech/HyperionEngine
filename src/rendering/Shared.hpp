@@ -44,23 +44,22 @@ enum DefaultImageFormat : uint8
 };
 
 HYP_ENUM()
-enum TextureType : uint8
+enum class TextureType : uint8
 {
-    TT_INVALID = uint8(-1),
+    Texture2D,
+    Texture3D,
+    Cubemap,
+    Texture2DArray,
+    CubemapArray,
 
-    TT_TEX2D = 0,
-    TT_TEX3D = 1,
-    TT_CUBEMAP = 2,
-    TT_TEX2D_ARRAY = 3,
-    TT_CUBEMAP_ARRAY = 4,
-
-    TT_MAX
+    Max
 };
+
+static constexpr TextureType InvalidTextureType = TextureType(-1);
 
 HYP_ENUM()
 enum TextureBaseFormat : uint8
 {
-    TFB_NONE,
     TFB_R,
     TFB_RG,
     TFB_RGB,
@@ -73,8 +72,6 @@ enum TextureBaseFormat : uint8
 HYP_ENUM()
 enum TextureFormat : uint8
 {
-    TF_NONE,
-
     TF_R8,
     TF_RG8,
     TF_RGB8,
@@ -127,6 +124,8 @@ enum TextureFormat : uint8
     TF_DEPTH_32F,
     TF_DEPTH_32F_S8
 };
+
+static constexpr TextureFormat InvalidTextureFormat = TextureFormat(-1);
 
 HYP_ENUM()
 enum TextureFilterMode : uint8
@@ -219,7 +218,7 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
         return TFB_DEPTH;
     default:
         // undefined result
-        return TFB_NONE;
+        return TextureBaseFormat(-1);
     }
 }
 
@@ -227,8 +226,6 @@ static inline constexpr uint32 NumComponents(TextureBaseFormat format)
 {
     switch (format)
     {
-    case TFB_NONE:
-        return 0;
     case TFB_R:
         return 1;
     case TFB_RG:
@@ -244,7 +241,8 @@ static inline constexpr uint32 NumComponents(TextureBaseFormat format)
     case TFB_DEPTH:
         return 1;
     default:
-        return 0; // undefined result
+        // undefined result
+        return 0;
     }
 }
 
@@ -308,10 +306,11 @@ static inline constexpr TextureFormat FormatChangeNumComponents(TextureFormat fm
 {
     if (newNumComponents == 0)
     {
-        return TF_NONE;
+        // undefined result
+        return InvalidTextureFormat;
     }
 
-    newNumComponents = MathUtil::Clamp(newNumComponents, static_cast<uint8>(1), static_cast<uint8>(4));
+    newNumComponents = MathUtil::Clamp(newNumComponents, uint8(1), uint8(4));
 
     int currentNumComponents = int(NumComponents(fmt));
 
@@ -333,26 +332,26 @@ static inline constexpr bool HasStencilComponent(TextureFormat fmt)
     return fmt == TF_DEPTH_24_S8 || fmt == TF_DEPTH_32F_S8;
 }
 
-static inline constexpr bool IsSrgbFormat(TextureFormat fmt)
+static inline constexpr bool IsSRGB(TextureFormat fmt)
 {
     return fmt >= TF_SRGB && fmt < TF_DEPTH;
 }
 
 /*! \brief Converts srgb formats to non-srgb variants and vice versa. Only for SRGB supported formats. */
-static inline constexpr TextureFormat ChangeFormatSrgb(TextureFormat fmt, bool makeSrgb = true)
+static inline constexpr TextureFormat ChangeFormatSRGB(TextureFormat fmt, bool makeSrgb = true)
 {
-    if (IsSrgbFormat(fmt) == makeSrgb)
+    if (IsSRGB(fmt) == makeSrgb)
     {
         return fmt;
     }
 
-    constexpr uint32 dist = uint32(TF_SRGB) - uint32(TF_NONE);
+    constexpr uint32 BeginSRGB = uint32(TF_SRGB);
 
     if (makeSrgb)
     {
-        TextureFormat srgbVersion = static_cast<TextureFormat>(uint32(fmt) + dist);
+        TextureFormat srgbVersion = static_cast<TextureFormat>(uint32(fmt) + BeginSRGB);
 
-        if (IsSrgbFormat(srgbVersion))
+        if (IsSRGB(srgbVersion))
         {
             return srgbVersion;
         }
@@ -360,9 +359,9 @@ static inline constexpr TextureFormat ChangeFormatSrgb(TextureFormat fmt, bool m
     else
     {
         int iFmt = int(fmt);
-        if (iFmt - int(dist) >= int(TF_NONE))
+        if (iFmt - int(BeginSRGB) >= 0)
         {
-            return static_cast<TextureFormat>(iFmt - int(dist));
+            return static_cast<TextureFormat>(iFmt - int(BeginSRGB));
         }
     }
 
@@ -446,7 +445,7 @@ struct TextureFormatHelper
 {
     static constexpr uint32 NumComponents = TextureUtils::NumComponents(Format);
     static constexpr uint32 BytesPerComponent = TextureUtils::BytesPerComponent(Format);
-    static constexpr bool IsSrgb = TextureUtils::IsSrgbFormat(Format);
+    static constexpr bool IsSrgb = TextureUtils::IsSRGB(Format);
     static constexpr bool IsFloatType = uint32(Format) >= TF_R16F && uint32(Format) <= TF_RGBA32F;
 
     using ElementType = std::conditional_t<
@@ -463,7 +462,7 @@ struct TextureDesc
     static constexpr uint8 MaxMips = 16;
 
     HYP_FIELD(Property = "Type", Serialize)
-    TextureType type = TT_TEX2D;
+    TextureType type = TextureType::Texture2D;
 
     HYP_FIELD(Property = "Format", Serialize)
     TextureFormat format = TF_RGBA8;
@@ -518,7 +517,7 @@ struct TextureDesc
 
     HYP_FORCE_INLINE bool IsSrgb() const
     {
-        return TextureUtils::IsSrgbFormat(format);
+        return TextureUtils::IsSRGB(format);
     }
 
     HYP_FORCE_INLINE bool IsBlended() const
@@ -528,34 +527,34 @@ struct TextureDesc
 
     HYP_FORCE_INLINE bool IsTextureCube() const
     {
-        return type == TT_CUBEMAP;
+        return type == TextureType::Cubemap;
     }
 
     HYP_FORCE_INLINE bool IsPanorama() const
     {
-        return type == TT_TEX2D
+        return type == TextureType::Texture2D
             && extent.x == extent.y * 2
             && extent.z == 1;
     }
 
     HYP_FORCE_INLINE bool IsTexture2DArray() const
     {
-        return type == TT_TEX2D_ARRAY;
+        return type == TextureType::Texture2DArray;
     }
 
     HYP_FORCE_INLINE bool IsTextureCubeArray() const
     {
-        return type == TT_CUBEMAP_ARRAY;
+        return type == TextureType::CubemapArray;
     }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
     {
-        return type == TT_TEX3D;
+        return type == TextureType::Texture3D;
     }
 
     HYP_FORCE_INLINE bool IsTexture2D() const
     {
-        return type == TT_TEX2D;
+        return type == TextureType::Texture2D;
     }
 
     uint16 NumArrayLayers() const
@@ -1331,7 +1330,7 @@ struct DescriptorTableOffsetMap
 
 struct AttachmentDesc
 {
-    TextureType imageType = TT_TEX2D;
+    TextureType imageType = TextureType::Texture2D;
     TextureFormat format = TF_RGBA8;
     LoadOperation loadOp = LoadOperation::CLEAR;
     StoreOperation storeOp = StoreOperation::STORE;

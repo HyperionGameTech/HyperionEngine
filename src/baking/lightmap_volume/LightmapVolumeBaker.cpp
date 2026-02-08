@@ -257,7 +257,7 @@ static void UpdateAtlasTextures(
     {
         radianceTexture = MakeHandle<Texture>(
             TextureDesc {
-                TT_TEX2D,
+                TextureType::Texture2D,
                 AtlasTextureFormats[LTT_RADIANCE],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
@@ -281,7 +281,7 @@ static void UpdateAtlasTextures(
     {
         irradianceTexture = MakeHandle<Texture>(
             TextureDesc {
-                TT_TEX2D,
+                TextureType::Texture2D,
                 AtlasTextureFormats[LTT_IRRADIANCE],
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
@@ -381,7 +381,7 @@ static bool BuildElementTextures(
 
         texture = MakeHandle<Texture>(
             TextureDesc {
-                TT_TEX2D,
+                TextureType::Texture2D,
                 pBitmap->GetFormat(),
                 Vec3u { elementDimensions, 1 },
                 TFM_LINEAR,

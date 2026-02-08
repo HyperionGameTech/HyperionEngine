@@ -146,11 +146,11 @@ struct CreateTextureGpuImage : RenderCommand
                 imageData = &placeholderBuffer.Emplace();
                 placeholderBuffer->SetSize(image->GetByteSize());
 
-                const TextureFormat nonSrgbFormat = TextureUtils::ChangeFormatSrgb(image->GetTextureFormat(), false);
+                const TextureFormat nonSrgbFormat = TextureUtils::ChangeFormatSRGB(image->GetTextureFormat(), false);
 
                 switch (textureAsset->GetTextureDesc().type)
                 {
-                case TT_TEX2D:
+                case TextureType::Texture2D:
                     switch (nonSrgbFormat)
                     {
                     case TF_R8:
@@ -170,7 +170,7 @@ struct CreateTextureGpuImage : RenderCommand
                         break;
                     }
                     break;
-                case TT_CUBEMAP:
+                case TextureType::Cubemap:
                     switch (nonSrgbFormat)
                     {
                     case TF_R8:
@@ -287,7 +287,7 @@ struct CreateTextureGpuImage : RenderCommand
 
 Texture::Texture()
     : Texture(TextureDesc {
-          TT_TEX2D,
+          TextureType::Texture2D,
           TF_RGBA8,
           Vec3u { 1, 1, 1 },
           TFM_NEAREST,
@@ -910,7 +910,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
     }
     else
     {
-        if (TextureUtils::IsSrgbFormat(textureDesc.format))
+        if (TextureUtils::IsSRGB(textureDesc.format))
         {
             // convert from sRGB to linear
             switch (numComponents)
@@ -953,7 +953,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
 
 Vec4f Texture::Sample2D(Vec2f uv)
 {
-    if (GetType() != TT_TEX2D)
+    if (GetType() != TextureType::Texture2D)
     {
         HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type to use with Sample2D(): {}", GetType());
 
@@ -966,7 +966,7 @@ Vec4f Texture::Sample2D(Vec2f uv)
 /// https://www.gamedev.net/forums/topic/687535-implementing-a-cube-map-lookup-function/5337472/
 Vec4f Texture::SampleCube(Vec3f direction)
 {
-    if (GetType() != TT_CUBEMAP)
+    if (GetType() != TextureType::Cubemap)
     {
         HYP_LOG_ONCE(Texture, Warning, "Unsupported texture type to use with SampleCube(): {}", GetType());
 

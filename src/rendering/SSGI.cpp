@@ -79,7 +79,7 @@ SSGI::~SSGI()
 void SSGI::Create()
 {
     m_resultTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         SSGIFormat,
         Vec3u(m_config.extent, 1),
         TFM_NEAREST,

@@ -74,7 +74,7 @@ protected:
     explicit SwapchainBase(const Vec2u& extent = Vec2u::Zero())
         : m_extent(extent),
           m_acquiredImageIndex(0),
-          m_imageFormat(TF_NONE),
+          m_imageFormat(InvalidTextureFormat),
           m_needsRecreate(false),
           m_isPqHdr(false)
     {

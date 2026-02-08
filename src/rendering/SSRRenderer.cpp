@@ -247,7 +247,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
 
         // Create textures
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             SSRTraceFormat,
             Vec3u {
                 uint32(MathUtil::Ceil(m_currentExtent.x * TraceResolutionScale)),
@@ -263,7 +263,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         InitObject(m_uvsTexture);
 
         m_sampledResultTexture = MakeHandle<Texture>(TextureDesc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             SSRColorFormat,
             Vec3u(m_currentExtent, 1),
             TFM_NEAREST,

@@ -171,7 +171,7 @@ void BakerBase::Initialize()
         // dummy output target
         RenderTargetDesc renderTargetDesc;
         renderTargetDesc.extent = Vec2u::One();
-        renderTargetDesc.attachments[0] = { TT_TEX2D, TF_R8 };
+        renderTargetDesc.attachments[0] = { TextureType::Texture2D, TF_R8 };
         renderTargetDesc.numAttachments = 1;
 
         ViewDesc viewDesc {

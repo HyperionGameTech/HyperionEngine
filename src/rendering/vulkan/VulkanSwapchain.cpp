@@ -350,7 +350,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
                 return true;
             });
 
-        if (m_imageFormat != TF_NONE)
+        if (m_imageFormat != InvalidTextureFormat)
         {
             HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (HDR): {}", EnumToString(m_imageFormat));
 
@@ -376,7 +376,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
                 return true;
             });
 
-        if (m_imageFormat != TF_NONE)
+        if (m_imageFormat != InvalidTextureFormat)
         {
             HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (sRGB): {}", EnumToString(m_imageFormat));
 
@@ -395,7 +395,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
             return true;
         });
 
-    if (m_imageFormat != TF_NONE)
+    if (m_imageFormat != InvalidTextureFormat)
     {
         HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (non-sRGB): {}", EnumToString(m_imageFormat));
 
@@ -422,7 +422,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     for (uint32 i = 0; i < imageCount; i++)
     {
         const TextureDesc desc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             m_imageFormat,
             Vec3u { m_extent.x, m_extent.y, 1 }
         };

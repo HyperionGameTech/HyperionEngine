@@ -2065,7 +2065,7 @@ void RenderInterface::CreateEnvProbesTexture()
     textureDesc.format = TF_RGBA8;
     textureDesc.extent = Vec3u { 128, 128, 1 };
     textureDesc.imageUsage = IU_SAMPLED;
-    textureDesc.type = TT_CUBEMAP_ARRAY;
+    textureDesc.type = TextureType::CubemapArray;
     textureDesc.numLayers = MaxBoundReflectionProbes;
     textureDesc.filterModeMin = TFM_LINEAR_MIPMAP;
     textureDesc.filterModeMag = TFM_LINEAR;

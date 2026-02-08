@@ -73,7 +73,7 @@ void ShadowMapAllocator::Initialize()
     AssertOnThread(g_renderThread);
 
     m_atlasImage = g_renderInterface->MakeImage(TextureDesc {
-        TT_TEX2D_ARRAY,
+        TextureType::Texture2DArray,
         TF_RG16F,
         Vec3u { m_atlasDimensions, 1 },
         TFM_NEAREST,
@@ -90,7 +90,7 @@ void ShadowMapAllocator::Initialize()
     CheckResult(m_atlasImageView->Create());
 
     m_pointLightShadowMapImage = g_renderInterface->MakeImage(TextureDesc {
-        TT_CUBEMAP_ARRAY,
+        TextureType::CubemapArray,
         TF_RG16F,
         Vec3u { 256, 256, 1 },
         TFM_NEAREST,

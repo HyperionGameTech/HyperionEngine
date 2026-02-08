@@ -193,7 +193,7 @@ void TemporalBlending::GetShaderProperties(ShaderPropertySet& outProperties) con
 void TemporalBlending::CreateImages()
 {
     m_resultTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         m_imageFormat,
         Vec3u(m_extent, 1),
         TFM_NEAREST,
@@ -207,7 +207,7 @@ void TemporalBlending::CreateImages()
     InitObject(m_resultTexture);
 
     m_historyTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         m_imageFormat,
         Vec3u(m_extent, 1),
         TFM_NEAREST,

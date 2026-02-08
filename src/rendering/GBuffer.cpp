@@ -24,7 +24,7 @@ namespace Hyperion {
 
 struct GBufferTargetDesc
 {
-    TextureFormat formats[4] = { TF_NONE };
+    TextureFormat formats[4];
 
     GBufferTargetDesc(std::initializer_list<TextureFormat> formatsList)
     {
@@ -33,6 +33,11 @@ struct GBufferTargetDesc
         for (uint32 i = 0; i < uint32(formatsList.size()); i++)
         {
             formats[i] = *(formatsList.begin() + i);
+        }
+
+        for (uint32 i = uint32(formatsList.size()); i < uint32(std::size(formats)); i++)
+        {
+            formats[i] = InvalidTextureFormat;
         }
     }
 };
@@ -47,7 +52,7 @@ static const FixedArray<GBufferTargetDesc, GTN_MAX> s_targetDescs = {
 
 static TextureFormat GetImageFormat(GBufferTargetName targetName)
 {
-    for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != TF_NONE; ++it)
+    for (auto it = std::begin(s_targetDescs[targetName].formats); it != std::end(s_targetDescs[targetName].formats) && *it != InvalidTextureFormat; ++it)
     {
         if (g_renderInterface->IsSupportedFormat(*it, ImageSupport::Attachment))
         {
@@ -57,7 +62,7 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
 
     HYP_FAIL("Failed to find supported image format for gbuffer target {}", EnumToString(targetName));
 
-    return TF_NONE;
+    return InvalidTextureFormat;
 }
 
 GBuffer::GBuffer(Vec2u extent)
@@ -179,7 +184,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
     {
         TextureDesc textureDesc;
-        textureDesc.type = TT_TEX2D;
+        textureDesc.type = TextureType::Texture2D;
         textureDesc.format = format;
         textureDesc.extent = Vec3u { resolution, 1 };
         textureDesc.filterModeMin = TFM_NEAREST;

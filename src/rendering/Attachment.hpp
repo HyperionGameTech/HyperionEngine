@@ -36,7 +36,7 @@ public:
 
     HYP_FORCE_INLINE TextureFormat GetFormat() const
     {
-        return m_image ? GetImageBase()->GetTextureFormat() : TF_NONE;
+        return m_image ? GetImageBase()->GetTextureFormat() : InvalidTextureFormat;
     }
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const

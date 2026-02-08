@@ -163,7 +163,7 @@ void EnvProbe::Init()
             if (!m_texture)
             {
                 m_texture = MakeHandle<Texture>(TextureDesc {
-                    TT_TEX2D,
+                    TextureType::Texture2D,
                     TF_RGBA8,
                     Vec3u { m_dimensions, 1 },
                     TFM_LINEAR_MIPMAP,
@@ -256,21 +256,21 @@ void EnvProbe::CreateView()
     if (IsReflectionProbe() || IsSkyProbe())
     {
         renderTargetDesc.AddAttachment(AttachmentDesc {
-            .imageType = TT_CUBEMAP,
+            .imageType = TextureType::Cubemap,
             .format = TF_R10G10B10A2,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE
         });
 
         renderTargetDesc.AddAttachment(AttachmentDesc {
-            .imageType = TT_CUBEMAP,
+            .imageType = TextureType::Cubemap,
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE
         });
 
         renderTargetDesc.AddAttachment(AttachmentDesc {
-            .imageType = TT_CUBEMAP,
+            .imageType = TextureType::Cubemap,
             .format = TF_RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
@@ -279,7 +279,7 @@ void EnvProbe::CreateView()
     }
 
     renderTargetDesc.AddAttachment(AttachmentDesc {
-        .imageType = TT_CUBEMAP,
+        .imageType = TextureType::Cubemap,
         .format = TF_DEPTH_32F,
         .loadOp = LoadOperation::CLEAR,
         .storeOp = StoreOperation::STORE
@@ -567,7 +567,7 @@ void ReflectionProbe::BakeCubemap()
 void SkyProbe::Init()
 {
     m_texture = MakeHandle<Texture>(TextureDesc {
-        TT_CUBEMAP,
+        TextureType::Cubemap,
         TF_RGBA16F, /// \todo smaller format
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,

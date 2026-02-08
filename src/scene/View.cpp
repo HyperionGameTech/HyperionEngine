@@ -219,7 +219,7 @@ void View::Init()
         for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
         {
             const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
-            AssertDebug(attachmentDesc.format != TF_NONE);
+            AssertDebug(attachmentDesc.format != InvalidTextureFormat);
 
             Attachment* attachment = framebuffer->AddAttachment(
                 attachmentIndex,
@@ -453,7 +453,7 @@ void View::CreateReadbackTexture()
 
     m_readbackTexture.Reset();
     m_readbackTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         m_viewDesc.readbackTextureFormat,
         Vec3u { m_viewport.extent, 1 },
         TFM_NEAREST,

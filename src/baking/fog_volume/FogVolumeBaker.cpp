@@ -68,7 +68,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
     }
 
     TextureDesc volumeTextureDesc {
-        TT_TEX3D,
+        TextureType::Texture3D,
         volumeBitmap.GetFormat(),
         Vec3u { volumeBitmap.GetWidth(), volumeBitmap.GetHeight(), volumeBitmap.GetDepth() },
         TFM_LINEAR,
@@ -84,7 +84,7 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
     InitObject(volumeTexture);
 
     TextureDesc noiseTextureDesc {
-        TT_TEX3D,
+        TextureType::Texture3D,
         noiseBitmap.GetFormat(),
         Vec3u { noiseBitmap.GetWidth(), noiseBitmap.GetHeight(), noiseBitmap.GetDepth() },
         TFM_LINEAR,

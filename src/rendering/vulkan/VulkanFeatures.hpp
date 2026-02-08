@@ -294,7 +294,7 @@ public:
 
         if (m_physicalDevice == nullptr)
         {
-            return TF_NONE;
+            return InvalidTextureFormat;
         }
 
         for (SizeType i = 0; i < possibleFormats.Size(); i++)
@@ -305,7 +305,7 @@ public:
             }
         }
 
-        return TF_NONE;
+        return InvalidTextureFormat;
     }
 
     /* get the first supported format out of the provided list of format choices. */
@@ -327,7 +327,7 @@ public:
             }
         }
 
-        return TF_NONE;
+        return InvalidTextureFormat;
     }
 
     RendererResult GetImageFormatProperties(

@@ -212,8 +212,8 @@ void UISubsystem::Init()
 
     RenderTargetDesc renderTargetDesc;
     renderTargetDesc.extent = windowSize2;
-    renderTargetDesc.AddAttachment({ TT_TEX2D, TF_RGBA16F });
-    renderTargetDesc.AddAttachment({ TT_TEX2D, TF_DEPTH_16 });
+    renderTargetDesc.AddAttachment({ TextureType::Texture2D, TF_RGBA16F });
+    renderTargetDesc.AddAttachment({ TextureType::Texture2D, TF_DEPTH_16 });
 
     ViewDesc viewDesc {
         .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),

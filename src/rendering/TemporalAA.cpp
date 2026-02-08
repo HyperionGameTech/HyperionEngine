@@ -67,7 +67,7 @@ void TemporalAA::Create()
 void TemporalAA::CreateTextures()
 {
     m_resultTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         TF_RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
         TFM_NEAREST,
@@ -81,7 +81,7 @@ void TemporalAA::CreateTextures()
     InitObject(m_resultTexture);
 
     m_historyTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         TF_RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
         TFM_NEAREST,

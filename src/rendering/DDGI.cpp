@@ -119,7 +119,7 @@ void DDGI::CreateStorageBuffers()
         };
 
         m_irradianceImage = g_renderInterface->MakeImage(TextureDesc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             DdgiIrradianceFormat,
             extent,
             TFM_NEAREST,
@@ -145,7 +145,7 @@ void DDGI::CreateStorageBuffers()
         };
 
         m_depthImage = g_renderInterface->MakeImage(TextureDesc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             DdgiDepthFormat,
             extent,
             TFM_NEAREST,

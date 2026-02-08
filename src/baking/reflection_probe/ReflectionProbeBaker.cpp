@@ -56,7 +56,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     BakeData<ReflectionProbe>::BitmapType bitmap = m_bakeData.ToBitmap();
 
     TextureDesc textureDesc {
-        TT_CUBEMAP,
+        TextureType::Cubemap,
         bitmap.GetFormat(),
         Vec3u { dimensions.x, dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,

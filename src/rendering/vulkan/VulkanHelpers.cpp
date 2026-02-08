@@ -158,15 +158,15 @@ VkImageType ToVkImageType(TextureType type)
 {
     switch (type)
     {
-    case TT_TEX2D:
+    case TextureType::Texture2D:
         return VK_IMAGE_TYPE_2D;
-    case TT_TEX3D:
+    case TextureType::Texture3D:
         return VK_IMAGE_TYPE_3D;
-    case TT_CUBEMAP:
+    case TextureType::Cubemap:
         return VK_IMAGE_TYPE_2D;
-    case TT_TEX2D_ARRAY:
+    case TextureType::Texture2DArray:
         return VK_IMAGE_TYPE_2D;
-    case TT_CUBEMAP_ARRAY:
+    case TextureType::CubemapArray:
         return VK_IMAGE_TYPE_2D;
     default:
         HYP_FAIL("Unhandled texture type case %d", int(type));
@@ -177,15 +177,15 @@ VkImageViewType ToVkImageViewType(TextureType type)
 {
     switch (type)
     {
-    case TT_TEX2D:
+    case TextureType::Texture2D:
         return VK_IMAGE_VIEW_TYPE_2D;
-    case TT_TEX3D:
+    case TextureType::Texture3D:
         return VK_IMAGE_VIEW_TYPE_3D;
-    case TT_CUBEMAP:
+    case TextureType::Cubemap:
         return VK_IMAGE_VIEW_TYPE_CUBE;
-    case TT_TEX2D_ARRAY:
+    case TextureType::Texture2DArray:
         return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-    case TT_CUBEMAP_ARRAY:
+    case TextureType::CubemapArray:
         return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
     default:
         HYP_FAIL("Unhandled texture type case %d", int(type));

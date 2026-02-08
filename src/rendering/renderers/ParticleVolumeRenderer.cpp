@@ -113,7 +113,7 @@ static void CreateNoiseMap(Handle<Texture>& tex)
 
     TextureDesc textureDesc {};
     textureDesc.extent = Vec3u { 128, 128, 1 };
-    textureDesc.type = TT_TEX2D;
+    textureDesc.type = TextureType::Texture2D;
     textureDesc.format = TF_R8;
     textureDesc.filterModeMin = TFM_LINEAR;
     textureDesc.filterModeMag = TFM_LINEAR;

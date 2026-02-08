@@ -198,14 +198,14 @@ void Light::CreateShadowViews()
 
         // depth, depth^2 texture (for variance shadow map)
         AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        moments.imageType = TT_CUBEMAP;
+        moments.imageType = TextureType::Cubemap;
         moments.format = PointLightShadowFormat;
         moments.loadOp = LoadOperation::CLEAR;
         moments.storeOp = StoreOperation::STORE;
         std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        depth.imageType = TT_CUBEMAP;
+        depth.imageType = TextureType::Cubemap;
         depth.format = TF_DEPTH_32F;
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;
@@ -230,14 +230,14 @@ void Light::CreateShadowViews()
         // depth, depth^2 texture (for variance shadow map)
         AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         moments.format = DirectionalLightShadowFormats[shadowMapFilter];
-        moments.imageType = TT_TEX2D;
+        moments.imageType = TextureType::Texture2D;
         moments.loadOp = LoadOperation::CLEAR;
         moments.storeOp = StoreOperation::STORE;
         std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.format = TF_DEPTH_32F;
-        depth.imageType = TT_TEX2D;
+        depth.imageType = TextureType::Texture2D;
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;
 

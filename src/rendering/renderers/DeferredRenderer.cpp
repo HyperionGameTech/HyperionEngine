@@ -238,7 +238,7 @@ void DeferredPass::Create()
 
         m_ltcMatrixTexture = MakeHandle<Texture>(
             TextureDesc {
-                TT_TEX2D,
+                TextureType::Texture2D,
                 TF_RGBA16F,
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
@@ -253,7 +253,7 @@ void DeferredPass::Create()
 
         m_ltcBrdfTexture = MakeHandle<Texture>(
             TextureDesc {
-                TT_TEX2D,
+                TextureType::Texture2D,
                 TF_RGBA16F,
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
@@ -1265,7 +1265,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
     TextureDesc textureDesc;
-    textureDesc.type = TT_TEX2D;
+    textureDesc.type = TextureType::Texture2D;
     textureDesc.format = TF_RGBA16F;
     textureDesc.extent = Vec3u { gbuffer->GetExtent(), 1 };
     textureDesc.filterModeMin = TFM_NEAREST;
@@ -1363,7 +1363,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.cullData.depthPyramidDimensions = passData.depthPyramidRenderer->GetExtent();
 
         passData.mipChain = MakeHandle<Texture>(TextureDesc {
-            TT_TEX2D,
+            TextureType::Texture2D,
             opaquePassFramebuffer->GetAttachment(0)->GetFormat(),
             Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,

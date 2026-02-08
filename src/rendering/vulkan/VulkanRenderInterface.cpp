@@ -977,7 +977,7 @@ TextureFormat VulkanRenderInterface::GetDefaultFormat(DefaultImageFormat type) c
         return it->second;
     }
 
-    return TF_NONE;
+    return InvalidTextureFormat;
 }
 
 bool VulkanRenderInterface::IsSupportedFormat(TextureFormat format, ImageSupport supportType) const

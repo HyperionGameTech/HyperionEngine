@@ -84,7 +84,7 @@ struct RecreateFullScreenPassFramebuffer : RenderCommand
 #pragma endregion Render commands
 
 FullScreenPass::FullScreenPass(EnumFlags<FullScreenPassFlags> flags)
-    : FullScreenPass(TF_NONE, nullptr, flags)
+    : FullScreenPass(InvalidTextureFormat, nullptr, flags)
 {
 }
 
@@ -305,7 +305,7 @@ void FullScreenPass::CreateFramebuffer()
         return;
     }
 
-    AssertDebug(m_imageFormat != TF_NONE);
+    AssertDebug(m_imageFormat != InvalidTextureFormat);
 
     if (m_framebuffer != nullptr)
     {
@@ -346,7 +346,7 @@ void FullScreenPass::CreateFramebuffer()
     m_framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
     TextureDesc textureDesc;
-    textureDesc.type = TT_TEX2D;
+    textureDesc.type = TextureType::Texture2D;
     textureDesc.format = m_imageFormat;
     textureDesc.extent = Vec3u { framebufferExtent, 1 };
     textureDesc.filterModeMin = TFM_NEAREST;
@@ -392,7 +392,7 @@ void FullScreenPass::CreateTemporalBlending()
 
 void FullScreenPass::CreateHistoryTexture()
 {
-    Assert(m_imageFormat != TF_NONE);
+    Assert(m_imageFormat != InvalidTextureFormat);
 
     if (m_historyTexture.IsValid())
     {
@@ -400,7 +400,7 @@ void FullScreenPass::CreateHistoryTexture()
     }
 
     m_historyTexture = MakeHandle<Texture>(TextureDesc {
-        TT_TEX2D,
+        TextureType::Texture2D,
         m_imageFormat,
         Vec3u { m_extent.x, m_extent.y, 1 },
         TFM_LINEAR,

@@ -330,7 +330,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
 
         // create the view as 2D array instead of cubemap
         const GpuImageViewRef& imageView = g_renderInterface->textureViewCache->GetOrCreate(
-            prefilteredEnvMap, subResource, TextureType::TT_TEX2D_ARRAY);
+            prefilteredEnvMap, subResource, TextureType::Texture2DArray);
 
         Assert(imageView != nullptr);
 
