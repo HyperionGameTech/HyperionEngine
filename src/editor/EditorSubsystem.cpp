@@ -725,19 +725,19 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
             node->SetWorldScale(2.5f);
 
-            Handle<Node> axisX = node->FindChildByName("Translate_X"_sh);
+            Handle<Node> axisX = node->FindChildByName("Mat_Translate_X"_sh);
             AssertDebug(axisX != nullptr);
             axisX->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
 
-            Handle<Node> axisY = node->FindChildByName("Translate_Y"_sh);
+            Handle<Node> axisY = node->FindChildByName("Mat_Translate_Y"_sh);
             AssertDebug(axisY != nullptr);
             axisY->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
 
-            Handle<Node> axisZ = node->FindChildByName("Translate_Z"_sh);
+            Handle<Node> axisZ = node->FindChildByName("Mat_Translate_Z"_sh);
             AssertDebug(axisZ != nullptr);
             axisZ->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
 
-            Handle<Node> centroid = node->FindChildByName("Translate_Centroid"_sh);
+            Handle<Node> centroid = node->FindChildByName("Mat_Translate_Centroid"_sh);
             AssertDebug(centroid != nullptr);
             centroid->AddTag(NodeTag(NAME("TransformWidgetAxis"), -1));
 
@@ -2885,7 +2885,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
         HYP_LOG(Font, Debug, "Adding texture {} to package", texture->GetName());
 
-        Result result = package->AddAssetObject(textureAsset);
+        Result result = package->AddAssetObject(textureAsset, /* replaceOnConflict */ true);
         
         if (result.HasError())
         {

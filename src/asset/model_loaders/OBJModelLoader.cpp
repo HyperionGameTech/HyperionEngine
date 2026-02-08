@@ -314,10 +314,9 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
     if (LoadMaterials && !model.materialLibrary.Empty())
     {
-        String materialLibraryPath = String(FileSystem::RelativePath(
-            (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary).Data(),
-            FileSystem::CurrentPath())
-                .c_str());
+        FilePath materialLibraryPath = FilePath::Relative(
+            (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary),
+            FilePath::Current());
 
         if (!materialLibraryPath.EndsWith(".mtl"))
         {
