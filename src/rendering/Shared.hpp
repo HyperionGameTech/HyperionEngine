@@ -58,15 +58,18 @@ enum class TextureType : uint8
 static constexpr TextureType InvalidTextureType = TextureType(-1);
 
 HYP_ENUM()
-enum TextureBaseFormat : uint8
+enum class TextureBaseFormat : uint8
 {
-    TFB_R,
-    TFB_RG,
-    TFB_RGB,
-    TFB_RGBA,
-    TFB_BGR,
-    TFB_BGRA,
-    TFB_DEPTH
+    Red,
+    RG,
+    RGB,
+    RGBA,
+
+    BGR,
+    BGRA,
+
+    Depth,
+    DepthStencil
 };
 
 HYP_ENUM()
@@ -172,7 +175,7 @@ enum ResourceState : uint8
 
 namespace TextureUtils {
 
-static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
+static inline constexpr uint32 NumComponents(TextureFormat fmt)
 {
     switch (fmt)
     {
@@ -182,21 +185,21 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
     case TF_R32:
     case TF_R16F:
     case TF_R32F:
-        return TFB_R;
+        return 1;
     case TF_RG8:
     case TF_RG8_SRGB:
     case TF_RG16:
     case TF_RG32:
     case TF_RG16F:
     case TF_RG32F:
-        return TFB_RG;
+        return 2;
     case TF_RGB8:
     case TF_RGB8_SRGB:
     case TF_RGB16:
     case TF_RGB32:
     case TF_RGB16F:
     case TF_RGB32F:
-        return TFB_RGB;
+        return 3;
     case TF_RGBA8:
     case TF_RGBA8_SRGB:
     case TF_R11G11B10F: // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
@@ -205,50 +208,22 @@ static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
     case TF_RGBA32:
     case TF_RGBA16F:
     case TF_RGBA32F:
-        return TFB_RGBA;
+        return 4;
     case TF_BGR8_SRGB:
-        return TFB_BGR;
+        return 3;
     case TF_BGRA8:
     case TF_BGRA8_SRGB:
-        return TFB_BGRA;
+        return 4;
     case TF_DEPTH_16:
     case TF_DEPTH_24_S8:
     case TF_DEPTH_32F:
+        return 1;
     case TF_DEPTH_32F_S8:
-        return TFB_DEPTH;
-    default:
-        // undefined result
-        return TextureBaseFormat(-1);
-    }
-}
-
-static inline constexpr uint32 NumComponents(TextureBaseFormat format)
-{
-    switch (format)
-    {
-    case TFB_R:
-        return 1;
-    case TFB_RG:
         return 2;
-    case TFB_RGB:
-        return 3;
-    case TFB_BGR:
-        return 3;
-    case TFB_RGBA:
-        return 4;
-    case TFB_BGRA:
-        return 4;
-    case TFB_DEPTH:
-        return 1;
     default:
         // undefined result
         return 0;
     }
-}
-
-static inline constexpr uint32 NumComponents(TextureFormat format)
-{
-    return NumComponents(GetBaseFormat(format));
 }
 
 static inline constexpr uint32 BytesPerComponent(TextureFormat format)
@@ -317,14 +292,9 @@ static inline constexpr TextureFormat FormatChangeNumComponents(TextureFormat fm
     return TextureFormat(int(fmt) + int(newNumComponents) - currentNumComponents);
 }
 
-static inline constexpr bool IsDepthFormat(TextureBaseFormat fmt)
-{
-    return fmt == TFB_DEPTH;
-}
-
 static inline constexpr bool IsDepthFormat(TextureFormat fmt)
 {
-    return IsDepthFormat(GetBaseFormat(fmt));
+    return fmt >= TF_DEPTH;
 }
 
 static inline constexpr bool HasStencilComponent(TextureFormat fmt)

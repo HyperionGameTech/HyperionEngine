@@ -2,7 +2,7 @@
   "$Class": "TextureAsset",
   "TextureDesc": {
     "Type": 1,
-    "Format": 4,
+    "Format": 3,
     "Extent": [1, 1, 1],
     "MinFilterMode": 0,
     "MagFilterMode": 0,
