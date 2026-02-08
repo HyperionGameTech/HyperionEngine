@@ -1,0 +1,18 @@
+{
+  "$Class": "TextureAsset",
+  "TextureDesc": {
+    "Type": 0,
+    "Format": 3,
+    "Extent": [2860, 875, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "Name": "FontAtlas_2_6",
+  "FriendlyName": "FontAtlas26",
+  "AssetFlags": 4,
+  "OriginalFilepath": ""
+}

@@ -81,7 +81,7 @@ struct CreateHBAOUniformBuffer : RenderCommand
 #pragma endregion Render commands
 
 HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TF_RGBA8, extent, gbuffer),
+    : FullScreenPass(TextureFormat::RGBA8, extent, gbuffer),
       m_config(std::move(config))
 {
 }

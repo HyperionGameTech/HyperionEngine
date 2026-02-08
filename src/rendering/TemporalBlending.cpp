@@ -69,7 +69,7 @@ TemporalBlending::TemporalBlending(
     GBuffer* gbuffer)
     : TemporalBlending(
           extent,
-          TF_RGBA8,
+          TextureFormat::RGBA8,
           technique,
           feedback,
           inputImageView,
@@ -173,13 +173,13 @@ void TemporalBlending::GetShaderProperties(ShaderPropertySet& outProperties) con
 {
     switch (m_imageFormat)
     {
-    case TF_RGBA8:
+    case TextureFormat::RGBA8:
         outProperties.Add(s_propOutputRGBA8);
         break;
-    case TF_RGBA16F:
+    case TextureFormat::RGBA16F:
         outProperties.Add(s_propOutputRGBA16F);
         break;
-    case TF_RGBA32F:
+    case TextureFormat::RGBA32F:
         outProperties.Add(s_propOutputRGBA32F);
         break;
     default:

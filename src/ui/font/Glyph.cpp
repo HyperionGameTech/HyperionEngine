@@ -20,7 +20,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
-static constexpr TextureFormat GlyphTextureFormat = TF_RGBA8;
+static constexpr TextureFormat GlyphTextureFormat = TextureFormat::RGBA8;
 
 #pragma region GlyphImageData
 

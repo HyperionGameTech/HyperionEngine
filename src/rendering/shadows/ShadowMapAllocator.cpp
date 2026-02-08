@@ -74,7 +74,7 @@ void ShadowMapAllocator::Initialize()
 
     m_atlasImage = g_renderInterface->MakeImage(TextureDesc {
         TextureType::Texture2DArray,
-        TF_RG16F,
+        TextureFormat::RG16F,
         Vec3u { m_atlasDimensions, 1 },
         TFM_NEAREST,
         TFM_NEAREST,
@@ -91,7 +91,7 @@ void ShadowMapAllocator::Initialize()
 
     m_pointLightShadowMapImage = g_renderInterface->MakeImage(TextureDesc {
         TextureType::CubemapArray,
-        TF_RG16F,
+        TextureFormat::RG16F,
         Vec3u { 256, 256, 1 },
         TFM_NEAREST,
         TFM_NEAREST,

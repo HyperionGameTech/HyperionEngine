@@ -75,20 +75,20 @@ HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuff
     }
 }
 
-template HYP_API void FillPlaceholderBuffer_Tex2D<TF_R8>(Vec2u dimensions, ByteBuffer& outBuffer);      // R8
-template HYP_API void FillPlaceholderBuffer_Tex2D<TF_RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer);   // RGBA8
-template HYP_API void FillPlaceholderBuffer_Tex2D<TF_RGBA16F>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA16F
-template HYP_API void FillPlaceholderBuffer_Tex2D<TF_RGBA32F>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA32F
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(Vec2u dimensions, ByteBuffer& outBuffer);      // R8
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer);   // RGBA8
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA16F
+template HYP_API void FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA32F
 
-template HYP_API void FillPlaceholderBuffer_Cubemap<TF_R8>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
-template HYP_API void FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
+template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(Vec2u dimensions, ByteBuffer& outBuffer);    // R8
+template HYP_API void FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(Vec2u dimensions, ByteBuffer& outBuffer); // RGBA8
 
 #pragma region PlaceholderData
 
 PlaceholderData::PlaceholderData()
     : m_image2d1x1R8(g_renderInterface->MakeImage(TextureDesc {
           TextureType::Texture2D,
-          TF_R8,
+          TextureFormat::R8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -98,7 +98,7 @@ PlaceholderData::PlaceholderData()
       m_imageView2d1x1R8(g_renderInterface->MakeImageView(m_image2d1x1R8)),
       m_image2d1x1R8Storage(g_renderInterface->MakeImage(TextureDesc {
           TextureType::Texture2D,
-          TF_R8,
+          TextureFormat::R8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -108,7 +108,7 @@ PlaceholderData::PlaceholderData()
       m_imageView2d1x1R8Storage(g_renderInterface->MakeImageView(m_image2d1x1R8Storage)),
       m_image3d1x1x1R8(g_renderInterface->MakeImage(TextureDesc {
           TextureType::Texture3D,
-          TF_R8,
+          TextureFormat::R8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -118,7 +118,7 @@ PlaceholderData::PlaceholderData()
       m_imageView3d1x1x1R8(g_renderInterface->MakeImageView(m_image3d1x1x1R8)),
       m_image3d1x1x1R8Storage(g_renderInterface->MakeImage(TextureDesc {
           TextureType::Texture3D,
-          TF_R8,
+          TextureFormat::R8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -128,7 +128,7 @@ PlaceholderData::PlaceholderData()
       m_imageView3d1x1x1R8Storage(g_renderInterface->MakeImageView(m_image3d1x1x1R8Storage)),
       m_imageCube1x1R8(g_renderInterface->MakeImage(TextureDesc {
           TextureType::Cubemap,
-          TF_RGBA8,
+          TextureFormat::RGBA8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -138,7 +138,7 @@ PlaceholderData::PlaceholderData()
       m_imageViewCube1x1R8(g_renderInterface->MakeImageView(m_imageCube1x1R8)),
       m_image2d1x1R8Array(g_renderInterface->MakeImage(TextureDesc {
           TextureType::Texture2DArray,
-          TF_R8,
+          TextureFormat::R8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -148,7 +148,7 @@ PlaceholderData::PlaceholderData()
       m_imageView2d1x1R8Array(g_renderInterface->MakeImageView(m_image2d1x1R8Array)),
       m_imageCube1x1R8Array(g_renderInterface->MakeImage(TextureDesc {
           TextureType::CubemapArray,
-          TF_RGBA8,
+          TextureFormat::RGBA8,
           Vec3u::One(),
           TFM_NEAREST,
           TFM_NEAREST,
@@ -274,7 +274,7 @@ void PlaceholderData::Create()
         "Placeholder_Texture_2D_1x1",
         TextureDesc {
             TextureType::Texture2D,
-            TF_RGBA8,
+            TextureFormat::RGBA8,
             Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
@@ -282,7 +282,7 @@ void PlaceholderData::Create()
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>);
 
     LoadOrInitTexture(
         defaultTexture3d,
@@ -290,7 +290,7 @@ void PlaceholderData::Create()
         "Placeholder_Texture_3D_1x1x1",
         TextureDesc {
             TextureType::Texture3D,
-            TF_RGBA8,
+            TextureFormat::RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
@@ -298,7 +298,7 @@ void PlaceholderData::Create()
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferTex3d,
-        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>);
 
     LoadOrInitTexture(
         defaultCubemap,
@@ -306,7 +306,7 @@ void PlaceholderData::Create()
         "Placeholder_Texture_Cube_1x1",
         TextureDesc {
             TextureType::Cubemap,
-            TF_RGBA8,
+            TextureFormat::RGBA8,
             Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
@@ -314,7 +314,7 @@ void PlaceholderData::Create()
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferCubemap,
-        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>);
+        &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>);
 
     LoadOrInitTexture(
         defaultTexture2dArray,
@@ -322,7 +322,7 @@ void PlaceholderData::Create()
         "Placeholder_Texture_2D_1x1_Array",
         TextureDesc {
             TextureType::Texture2DArray,
-            TF_RGBA8,
+            TextureFormat::RGBA8,
             Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
@@ -330,7 +330,7 @@ void PlaceholderData::Create()
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferTex2d,
-        &FillPlaceholderBuffer_Tex2D<TF_RGBA8>);
+        &FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>);
 
     LoadOrInitTexture(
         defaultCubemapArray,
@@ -338,7 +338,7 @@ void PlaceholderData::Create()
         "Placeholder_Texture_Cube_1x1_Array",
         TextureDesc {
             TextureType::CubemapArray,
-            TF_RGBA8,
+            TextureFormat::RGBA8,
             Vec3u { 4, 4, 1 },
             TFM_NEAREST,
             TFM_NEAREST,
@@ -346,7 +346,7 @@ void PlaceholderData::Create()
             1,
             IU_SAMPLED | IU_STORAGE },
         placeholderBufferCubemap,
-        &FillPlaceholderBuffer_Cubemap<TF_RGBA8>);
+        &FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>);
 
 #pragma endregion Textures
 

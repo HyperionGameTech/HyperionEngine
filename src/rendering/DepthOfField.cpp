@@ -20,7 +20,7 @@ void DOFBlur::Create()
 {
     m_blurHorizontalPass = MakeHandle<FullScreenPass>(
         ShaderDesc(NAME("DOFBlurDirection"), ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("DIRECTION"), NAME("HORIZONTAL"))) } }),
-        TF_RGBA8,
+        TextureFormat::RGBA8,
         m_extent,
         m_gbuffer);
 
@@ -28,7 +28,7 @@ void DOFBlur::Create()
 
     m_blurVerticalPass = MakeHandle<FullScreenPass>(
         ShaderDesc(NAME("DOFBlurDirection"), ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("DIRECTION"), NAME("VERTICAL"))) } }),
-        TF_RGBA8,
+        TextureFormat::RGBA8,
         m_extent,
         m_gbuffer);
 
@@ -36,7 +36,7 @@ void DOFBlur::Create()
 
     m_blurMixPass = MakeHandle<FullScreenPass>(
         ShaderDesc(NAME("DOFBlurMix")),
-        TF_RGBA8,
+        TextureFormat::RGBA8,
         m_extent,
         m_gbuffer);
 

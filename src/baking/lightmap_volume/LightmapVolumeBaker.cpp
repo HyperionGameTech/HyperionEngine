@@ -38,8 +38,8 @@ namespace Baking {
 static constexpr LightmapElementId InvalidLightmapElementId = LightmapElementId(~0u);
 
 static constexpr TextureFormat AtlasTextureFormats[LTT_MAX] = {
-    TF_R11G11B10F, // Radiance
-    TF_R11G11B10F  // Irradiance
+    TextureFormat::R11G11B10F, // Radiance
+    TextureFormat::R11G11B10F  // Irradiance
 };
 
 #pragma region Render commands

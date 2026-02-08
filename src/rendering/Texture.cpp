@@ -153,17 +153,17 @@ struct CreateTextureGpuImage : RenderCommand
                 case TextureType::Texture2D:
                     switch (nonSrgbFormat)
                     {
-                    case TF_R8:
-                        FillPlaceholderBuffer_Tex2D<TF_R8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                    case TextureFormat::R8:
+                        FillPlaceholderBuffer_Tex2D<TextureFormat::R8>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
-                    case TF_RGBA8:
-                        FillPlaceholderBuffer_Tex2D<TF_RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                    case TextureFormat::RGBA8:
+                        FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
-                    case TF_RGBA16F:
-                        FillPlaceholderBuffer_Tex2D<TF_RGBA16F>(image->GetExtent().GetXY(), *placeholderBuffer);
+                    case TextureFormat::RGBA16F:
+                        FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA16F>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
-                    case TF_RGBA32F:
-                        FillPlaceholderBuffer_Tex2D<TF_RGBA32F>(image->GetExtent().GetXY(), *placeholderBuffer);
+                    case TextureFormat::RGBA32F:
+                        FillPlaceholderBuffer_Tex2D<TextureFormat::RGBA32F>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
                     default:
                         // no FillPlaceholderBuffer method defined
@@ -173,11 +173,11 @@ struct CreateTextureGpuImage : RenderCommand
                 case TextureType::Cubemap:
                     switch (nonSrgbFormat)
                     {
-                    case TF_R8:
-                        FillPlaceholderBuffer_Cubemap<TF_R8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                    case TextureFormat::R8:
+                        FillPlaceholderBuffer_Cubemap<TextureFormat::R8>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
-                    case TF_RGBA8:
-                        FillPlaceholderBuffer_Cubemap<TF_RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
+                    case TextureFormat::RGBA8:
+                        FillPlaceholderBuffer_Cubemap<TextureFormat::RGBA8>(image->GetExtent().GetXY(), *placeholderBuffer);
                         break;
                     default:
                         // no FillPlaceholderBuffer method defined
@@ -288,7 +288,7 @@ struct CreateTextureGpuImage : RenderCommand
 Texture::Texture()
     : Texture(TextureDesc {
           TextureType::Texture2D,
-          TF_RGBA8,
+          TextureFormat::RGBA8,
           Vec3u { 1, 1, 1 },
           TFM_NEAREST,
           TFM_NEAREST,
@@ -503,8 +503,8 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
         return;
     }
 
-    const bool canGenerateMips = (desc.format >= TF_R16F && desc.format <= TF_RGBA32F)
-        || (desc.format >= TF_R8 && desc.format <= TF_RGBA8);
+    const bool canGenerateMips = (desc.format >= TextureFormat::R16F && desc.format <= TextureFormat::RGBA32F)
+        || (desc.format >= TextureFormat::R8 && desc.format <= TextureFormat::RGBA8);
 
     if (!canGenerateMips)
     {
@@ -559,7 +559,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
         {
             SizeType intermediateBufferSize = dstMipSize;
 
-            if (desc.format >= TF_R16F && desc.format <= TF_RGBA16F)
+            if (desc.format >= TextureFormat::R16F && desc.format <= TextureFormat::RGBA16F)
             {
                 intermediateBufferSize *= 2; // increase buffer size to convert between 16 and 32 bit float
             }
@@ -582,7 +582,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
             int result = 0;
             const int numChannels = TextureUtils::NumComponents(desc.format);
 
-            if (desc.format >= TF_R32F && desc.format <= TF_RGBA32F)
+            if (desc.format >= TextureFormat::R32F && desc.format <= TextureFormat::RGBA32F)
             {
                 AssertDebug(srcView.Size() % sizeof(float32) == 0);
 
@@ -593,7 +593,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
                     dstExtent.x, dstExtent.y, 0,
                     numChannels);
             }
-            else if (desc.format >= TF_R16F && desc.format <= TF_RGBA16F)
+            else if (desc.format >= TextureFormat::R16F && desc.format <= TextureFormat::RGBA16F)
             {
                 if (!scratchBuffer)
                 {
@@ -631,7 +631,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
                     intermediateBuffer, dstExtent.x, dstExtent.y, 0,
                     numChannels, numChannels == 4 ? 3 : -1, 0);
             }
-            else if (desc.format >= TF_R8 && desc.format <= TF_RGBA8)
+            else if (desc.format >= TextureFormat::R8 && desc.format <= TextureFormat::RGBA8)
             {
                 result = stbir_resize_uint8(
                     srcView.Data(), srcExtent.x, srcExtent.y, 0,
@@ -857,7 +857,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    if ((textureDesc.format >= TF_R16F && textureDesc.format <= TF_RGBA32F) || textureDesc.format == TF_R11G11B10F)
+    if ((textureDesc.format >= TextureFormat::R16F && textureDesc.format <= TextureFormat::RGBA32F) || textureDesc.format == TextureFormat::R11G11B10F)
     {
         // FP format
         switch (numComponents)
@@ -874,7 +874,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             break;
         }
     }
-    else if (textureDesc.format >= TF_R16 && textureDesc.format <= TF_RGBA16)
+    else if (textureDesc.format >= TextureFormat::R16 && textureDesc.format <= TextureFormat::RGBA16)
     {
         // 16 bit integer format
         switch (numComponents)
@@ -891,7 +891,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             break;
         }
     }
-    else if (textureDesc.format >= TF_R32 && textureDesc.format <= TF_RGBA32)
+    else if (textureDesc.format >= TextureFormat::R32 && textureDesc.format <= TextureFormat::RGBA32)
     {
         // 32 bit integer format
         switch (numComponents)

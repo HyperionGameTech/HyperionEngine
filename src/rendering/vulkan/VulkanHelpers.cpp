@@ -41,71 +41,71 @@ VkFormat ToVkFormat(TextureFormat fmt)
 {
     switch (fmt)
     {
-    case TF_R8:
+    case TextureFormat::R8:
         return VK_FORMAT_R8_UNORM;
-    case TF_RG8:
+    case TextureFormat::RG8:
         return VK_FORMAT_R8G8_UNORM;
-    case TF_RGB8:
+    case TextureFormat::RGB8:
         return VK_FORMAT_R8G8B8_UNORM;
-    case TF_RGBA8:
+    case TextureFormat::RGBA8:
         return VK_FORMAT_R8G8B8A8_UNORM;
-    case TF_R8_SRGB:
+    case TextureFormat::R8_SRGB:
         return VK_FORMAT_R8_SRGB;
-    case TF_RG8_SRGB:
+    case TextureFormat::RG8_SRGB:
         return VK_FORMAT_R8G8_SRGB;
-    case TF_RGB8_SRGB:
+    case TextureFormat::RGB8_SRGB:
         return VK_FORMAT_R8G8B8_SRGB;
-    case TF_RGBA8_SRGB:
+    case TextureFormat::RGBA8_SRGB:
         return VK_FORMAT_R8G8B8A8_SRGB;
-    case TF_R11G11B10F:
+    case TextureFormat::R11G11B10F:
         return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-    case TF_R10G10B10A2:
+    case TextureFormat::R10G10B10A2:
         return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-    case TF_R16:
+    case TextureFormat::R16:
         return VK_FORMAT_R16_UINT;
-    case TF_RG16:
+    case TextureFormat::RG16:
         return VK_FORMAT_R16G16_UINT;
-    case TF_RGB16:
+    case TextureFormat::RGB16:
         return VK_FORMAT_R16G16B16_UINT;
-    case TF_RGBA16:
+    case TextureFormat::RGBA16:
         return VK_FORMAT_R16G16B16A16_UINT;
-    case TF_R32:
+    case TextureFormat::R32:
         return VK_FORMAT_R32_UINT;
-    case TF_RG32:
+    case TextureFormat::RG32:
         return VK_FORMAT_R32G32_UINT;
-    case TF_RGB32:
+    case TextureFormat::RGB32:
         return VK_FORMAT_R32G32B32_UINT;
-    case TF_RGBA32:
+    case TextureFormat::RGBA32:
         return VK_FORMAT_R32G32B32A32_UINT;
-    case TF_R16F:
+    case TextureFormat::R16F:
         return VK_FORMAT_R16_SFLOAT;
-    case TF_RG16F:
+    case TextureFormat::RG16F:
         return VK_FORMAT_R16G16_SFLOAT;
-    case TF_RGB16F:
+    case TextureFormat::RGB16F:
         return VK_FORMAT_R16G16B16_SFLOAT;
-    case TF_RGBA16F:
+    case TextureFormat::RGBA16F:
         return VK_FORMAT_R16G16B16A16_SFLOAT;
-    case TF_R32F:
+    case TextureFormat::R32F:
         return VK_FORMAT_R32_SFLOAT;
-    case TF_RG32F:
+    case TextureFormat::RG32F:
         return VK_FORMAT_R32G32_SFLOAT;
-    case TF_RGB32F:
+    case TextureFormat::RGB32F:
         return VK_FORMAT_R32G32B32_SFLOAT;
-    case TF_RGBA32F:
+    case TextureFormat::RGBA32F:
         return VK_FORMAT_R32G32B32A32_SFLOAT;
-    case TF_BGRA8:
+    case TextureFormat::BGRA8:
         return VK_FORMAT_B8G8R8A8_UNORM;
-    case TF_BGR8_SRGB:
+    case TextureFormat::BGR8_SRGB:
         return VK_FORMAT_B8G8R8_SRGB;
-    case TF_BGRA8_SRGB:
+    case TextureFormat::BGRA8_SRGB:
         return VK_FORMAT_B8G8R8A8_SRGB;
-    case TF_DEPTH_16:
+    case TextureFormat::D16:
         return VK_FORMAT_D16_UNORM;
-    case TF_DEPTH_24_S8:
+    case TextureFormat::D24_S8:
         return VK_FORMAT_D24_UNORM_S8_UINT;
-    case TF_DEPTH_32F:
+    case TextureFormat::D32F:
         return VK_FORMAT_D32_SFLOAT;
-    case TF_DEPTH_32F_S8:
+    case TextureFormat::D32F_S8:
         return VK_FORMAT_D32_SFLOAT_S8_UINT;
     default:
         break;

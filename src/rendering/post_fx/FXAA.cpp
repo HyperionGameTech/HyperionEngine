@@ -9,7 +9,7 @@
 namespace Hyperion {
 
 FXAAEffect::FXAAEffect(GBuffer* gbuffer)
-    : PostProcessingEffect(stage, index, TF_RGBA8, gbuffer)
+    : PostProcessingEffect(stage, index, TextureFormat::RGBA8, gbuffer)
 {
 }
 

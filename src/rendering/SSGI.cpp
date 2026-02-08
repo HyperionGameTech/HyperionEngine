@@ -38,7 +38,7 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
-static constexpr TextureFormat SSGIFormat = TF_RGBA8;
+static constexpr TextureFormat SSGIFormat = TextureFormat::RGBA8;
 
 struct SSGIUniforms
 {
@@ -122,13 +122,13 @@ ShaderPropertySet SSGI::GetShaderProperties() const
 
     switch (SSGIFormat)
     {
-    case TF_RGBA8:
+    case TextureFormat::RGBA8:
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA8"))));
         break;
-    case TF_RGBA16F:
+    case TextureFormat::RGBA16F:
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA16F"))));
         break;
-    case TF_RGBA32F:
+    case TextureFormat::RGBA32F:
         shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("OUTPUT"), NAME("RGBA32F"))));
         break;
     default:

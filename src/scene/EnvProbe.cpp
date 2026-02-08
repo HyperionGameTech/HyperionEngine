@@ -164,7 +164,7 @@ void EnvProbe::Init()
             {
                 m_texture = MakeHandle<Texture>(TextureDesc {
                     TextureType::Texture2D,
-                    TF_RGBA8,
+                    TextureFormat::RGBA8,
                     Vec3u { m_dimensions, 1 },
                     TFM_LINEAR_MIPMAP,
                     TFM_LINEAR,
@@ -257,21 +257,21 @@ void EnvProbe::CreateView()
     {
         renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TextureType::Cubemap,
-            .format = TF_R10G10B10A2,
+            .format = TextureFormat::R10G10B10A2,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE
         });
 
         renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TextureType::Cubemap,
-            .format = TF_RG16F,
+            .format = TextureFormat::RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE
         });
 
         renderTargetDesc.AddAttachment(AttachmentDesc {
             .imageType = TextureType::Cubemap,
-            .format = TF_RG16F,
+            .format = TextureFormat::RG16F,
             .loadOp = LoadOperation::CLEAR,
             .storeOp = StoreOperation::STORE,
             .clearColor = { FLT16_MAX, FLT16_MAX }
@@ -280,7 +280,7 @@ void EnvProbe::CreateView()
 
     renderTargetDesc.AddAttachment(AttachmentDesc {
         .imageType = TextureType::Cubemap,
-        .format = TF_DEPTH_32F,
+        .format = TextureFormat::D32F,
         .loadOp = LoadOperation::CLEAR,
         .storeOp = StoreOperation::STORE
     });
@@ -568,7 +568,7 @@ void SkyProbe::Init()
 {
     m_texture = MakeHandle<Texture>(TextureDesc {
         TextureType::Cubemap,
-        TF_RGBA16F, /// \todo smaller format
+        TextureFormat::RGBA16F, /// \todo smaller format
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,

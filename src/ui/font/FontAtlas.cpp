@@ -209,7 +209,7 @@ Result FontAtlas::RenderAtlasTextures()
 
         const TextureDesc atlasTextureDesc {
             TextureType::Texture2D,
-            TF_RGBA8,
+            TextureFormat::RGBA8,
             Vec3u { atlasBitmap->GetWidth(), atlasBitmap->GetHeight(), 1 },
             TFM_NEAREST,
             TFM_NEAREST,

@@ -202,7 +202,7 @@ static const TypeId s_envProbeTypeToTypeId[EPT_MAX] = {
 #pragma region DeferredPass
 
 DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer, const FramebufferRef& framebuffer)
-    : FullScreenPass(ShaderDesc(), framebuffer, TF_RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
+    : FullScreenPass(ShaderDesc(), framebuffer, TextureFormat::RGBA16F, extent, gbuffer, FSP_EXTERNAL_RENDERTARGET),
       m_mode(mode)
 {
     Assert(m_framebuffer.IsValid());
@@ -239,7 +239,7 @@ void DeferredPass::Create()
         m_ltcMatrixTexture = MakeHandle<Texture>(
             TextureDesc {
                 TextureType::Texture2D,
-                TF_RGBA16F,
+                TextureFormat::RGBA16F,
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -254,7 +254,7 @@ void DeferredPass::Create()
         m_ltcBrdfTexture = MakeHandle<Texture>(
             TextureDesc {
                 TextureType::Texture2D,
-                TF_RGBA16F,
+                TextureFormat::RGBA16F,
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
@@ -481,7 +481,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 #pragma region TonemapPass
 
 TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
-    : FullScreenPass(TF_R11G11B10F, extent, gbuffer)
+    : FullScreenPass(TextureFormat::R11G11B10F, extent, gbuffer)
 {
     const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
@@ -606,7 +606,7 @@ struct LightmapVolumeUniforms
 };
 
 LightmapPass::LightmapPass()
-    : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
+    : FullScreenPass(TextureFormat::RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
     m_shaderDesc = ShaderDesc(NAME("ApplyLightmap"));
 }
@@ -794,7 +794,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 static constexpr uint32 MaxBoundLightsPerFogVolume = 16;
 
 FogVolumePass::FogVolumePass()
-    : FullScreenPass(TF_RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
+    : FullScreenPass(TextureFormat::RGBA16F, nullptr, FSP_EXTERNAL_RENDERTARGET)
 {
 }
 
@@ -982,7 +982,7 @@ static const FixedArray<Pair<CubemapType, ShaderPropertySet>, CMT_MAX> s_cubemap
 };
 
 ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView)
-    : FullScreenPass(TF_RGBA16F, extent, gbuffer),
+    : FullScreenPass(TextureFormat::RGBA16F, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_isFirstFrame(true)
 {
@@ -1266,7 +1266,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 
     TextureDesc textureDesc;
     textureDesc.type = TextureType::Texture2D;
-    textureDesc.format = TF_RGBA16F;
+    textureDesc.format = TextureFormat::RGBA16F;
     textureDesc.extent = Vec3u { gbuffer->GetExtent(), 1 };
     textureDesc.filterModeMin = TFM_NEAREST;
     textureDesc.filterModeMag = TFM_NEAREST;

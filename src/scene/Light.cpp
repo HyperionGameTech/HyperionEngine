@@ -38,12 +38,12 @@
 
 namespace Hyperion {
 
-static constexpr TextureFormat PointLightShadowFormat = TF_RG16F;
+static constexpr TextureFormat PointLightShadowFormat = TextureFormat::RG16F;
 static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
-    TF_RGBA8, // STANDARD
-    TF_RGBA8, // PCF
-    TF_RGBA8, // CONTACT_HARDENING
-    TF_RG16F  // VSM
+    TextureFormat::RGBA8, // STANDARD
+    TextureFormat::RGBA8, // PCF
+    TextureFormat::RGBA8, // CONTACT_HARDENING
+    TextureFormat::RG16F  // VSM
 };
 
 static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
@@ -206,7 +206,7 @@ void Light::CreateShadowViews()
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.imageType = TextureType::Cubemap;
-        depth.format = TF_DEPTH_32F;
+        depth.format = TextureFormat::D32F;
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;
 
@@ -236,7 +236,7 @@ void Light::CreateShadowViews()
         std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        depth.format = TF_DEPTH_32F;
+        depth.format = TextureFormat::D32F;
         depth.imageType = TextureType::Texture2D;
         depth.loadOp = LoadOperation::CLEAR;
         depth.storeOp = StoreOperation::STORE;

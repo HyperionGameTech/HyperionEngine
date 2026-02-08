@@ -53,7 +53,7 @@ void TerrainWorldGridLayer::Init()
     //     Handle<Texture> albedoTexture = albedoTextureAsset->Result();
 
     //     TextureDesc textureDesc = albedoTexture->GetTextureDesc();
-    //     textureDesc.format = TF_RGBA8_SRGB;
+    //     textureDesc.format = TextureFormat::RGBA8_SRGB;
     //     albedoTexture->SetTextureDesc(textureDesc);
 
     //     m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedoTexture);

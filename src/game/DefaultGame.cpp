@@ -92,7 +92,7 @@ void DefaultGame::OnLaunch_Impl()
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .renderTargetDesc = { .extent = viewportSize },
         .camera = m_camera,
-        .readbackTextureFormat = TF_R10G10B10A2
+        .readbackTextureFormat = TextureFormat::R10G10B10A2
     };
 
     Handle<View> view = MakeHandle<View>(viewDesc);

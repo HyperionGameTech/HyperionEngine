@@ -33,8 +33,8 @@
 namespace Hyperion {
 
 static constexpr bool UseTemporalBlending = true;
-static constexpr TextureFormat SSRColorFormat = TF_R10G10B10A2;
-static constexpr TextureFormat SSRTraceFormat = TF_RGBA16F; // store hit UVs in RG, and mask / alpha in B
+static constexpr TextureFormat SSRColorFormat = TextureFormat::R10G10B10A2;
+static constexpr TextureFormat SSRTraceFormat = TextureFormat::RGBA16F; // store hit UVs in RG, and mask / alpha in B
 static constexpr double TraceResolutionScale = 0.4;
 
 struct SSRUniforms
@@ -280,7 +280,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         {
             m_temporalBlending = MakeUnique<TemporalBlending>(
                 m_currentExtent,
-                TF_RGBA8,
+                TextureFormat::RGBA8,
                 TemporalBlendTechnique::TECHNIQUE_1,
                 0.95,
                 g_renderInterface->textureViewCache->GetOrCreate(m_sampledResultTexture),

@@ -16,7 +16,7 @@ class GBuffer;
 class Texture;
 struct RenderSetup;
 
-enum TextureFormat : uint8;
+enum class TextureFormat : uint8;
 
 static constexpr double DefaultTemporalBlendingFeedback = 0.8;
 

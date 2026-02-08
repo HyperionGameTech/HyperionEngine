@@ -73,16 +73,16 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     switch (data.numComponents)
     {
     case STBI_rgb_alpha:
-        data.format = TF_RGBA8;
+        data.format = TextureFormat::RGBA8;
         break;
     case STBI_rgb:
-        data.format = TF_RGB8;
+        data.format = TextureFormat::RGB8;
         break;
     case STBI_grey_alpha:
-        data.format = TF_RG8;
+        data.format = TextureFormat::RG8;
         break;
     case STBI_grey:
-        data.format = TF_R8;
+        data.format = TextureFormat::R8;
         break;
     default:
         return HYP_MAKE_ERROR(AssetLoadError, "Invalid format -- invalid number of components returned");

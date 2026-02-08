@@ -73,62 +73,82 @@ enum class TextureBaseFormat : uint8
 };
 
 HYP_ENUM()
-enum TextureFormat : uint8
+enum class TextureFormat : uint8
 {
-    TF_R8,
-    TF_RG8,
-    TF_RGB8,
-    TF_RGBA8,
+    R8,
+    RG8,
+    RGB8,
+    RGBA8,
 
-    TF_B8,
-    TF_BG8,
-    TF_BGR8,
-    TF_BGRA8,
+    B8,
+    BG8,
+    BGR8,
+    BGRA8,
 
-    TF_R16,
-    TF_RG16,
-    TF_RGB16,
-    TF_RGBA16,
+    R16,
+    RG16,
+    RGB16,
+    RGBA16,
 
-    TF_R32,
-    TF_RG32,
-    TF_RGB32,
-    TF_RGBA32,
+    R32,
+    RG32,
+    RGB32,
+    RGBA32,
 
-    TF_R11G11B10F,
-    TF_R10G10B10A2,
+    R11G11B10F,
+    R10G10B10A2,
 
-    TF_R16F,
-    TF_RG16F,
-    TF_RGB16F,
-    TF_RGBA16F,
+    R16F,
+    RG16F,
+    RGB16F,
+    RGBA16F,
 
-    TF_R32F,
-    TF_RG32F,
-    TF_RGB32F,
-    TF_RGBA32F,
+    R32F,
+    RG32F,
+    RGB32F,
+    RGBA32F,
 
-    TF_SRGB, /* begin srgb */
+    SRGB, /* begin srgb */
 
-    TF_R8_SRGB,
-    TF_RG8_SRGB,
-    TF_RGB8_SRGB,
-    TF_RGBA8_SRGB,
+    R8_SRGB,
+    RG8_SRGB,
+    RGB8_SRGB,
+    RGBA8_SRGB,
 
-    TF_B8_SRGB,
-    TF_BG8_SRGB,
-    TF_BGR8_SRGB,
-    TF_BGRA8_SRGB,
+    B8_SRGB,
+    BG8_SRGB,
+    BGR8_SRGB,
+    BGRA8_SRGB,
 
-    TF_DEPTH, /* begin depth */
+    DEPTH, /* begin depth */
 
-    TF_DEPTH_16 = TF_DEPTH,
-    TF_DEPTH_24_S8,
-    TF_DEPTH_32F,
-    TF_DEPTH_32F_S8
+    D16 = DEPTH,
+    D24_S8,
+    D32F,
+    D32F_S8
 };
 
 static constexpr TextureFormat InvalidTextureFormat = TextureFormat(-1);
+
+inline constexpr bool operator<(TextureFormat a, TextureFormat b)
+{
+    return uint8(a) < uint8(b);
+}
+
+inline constexpr bool operator<=(TextureFormat a, TextureFormat b)
+{
+    return uint8(a) <= uint8(b);
+}
+
+inline constexpr bool operator>(TextureFormat a, TextureFormat b)
+{
+    return uint8(a) > uint8(b);
+}
+
+inline constexpr bool operator>=(TextureFormat a, TextureFormat b)
+{
+    return uint8(a) >= uint8(b);
+}
 
 HYP_ENUM()
 enum TextureFilterMode : uint8
@@ -179,46 +199,46 @@ static inline constexpr uint32 NumComponents(TextureFormat fmt)
 {
     switch (fmt)
     {
-    case TF_R8:
-    case TF_R8_SRGB:
-    case TF_R16:
-    case TF_R32:
-    case TF_R16F:
-    case TF_R32F:
+    case TextureFormat::R8:
+    case TextureFormat::R8_SRGB:
+    case TextureFormat::R16:
+    case TextureFormat::R32:
+    case TextureFormat::R16F:
+    case TextureFormat::R32F:
         return 1;
-    case TF_RG8:
-    case TF_RG8_SRGB:
-    case TF_RG16:
-    case TF_RG32:
-    case TF_RG16F:
-    case TF_RG32F:
+    case TextureFormat::RG8:
+    case TextureFormat::RG8_SRGB:
+    case TextureFormat::RG16:
+    case TextureFormat::RG32:
+    case TextureFormat::RG16F:
+    case TextureFormat::RG32F:
         return 2;
-    case TF_RGB8:
-    case TF_RGB8_SRGB:
-    case TF_RGB16:
-    case TF_RGB32:
-    case TF_RGB16F:
-    case TF_RGB32F:
+    case TextureFormat::RGB8:
+    case TextureFormat::RGB8_SRGB:
+    case TextureFormat::RGB16:
+    case TextureFormat::RGB32:
+    case TextureFormat::RGB16F:
+    case TextureFormat::RGB32F:
         return 3;
-    case TF_RGBA8:
-    case TF_RGBA8_SRGB:
-    case TF_R11G11B10F: // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
-    case TF_R10G10B10A2:  // same as above
-    case TF_RGBA16:
-    case TF_RGBA32:
-    case TF_RGBA16F:
-    case TF_RGBA32F:
+    case TextureFormat::RGBA8:
+    case TextureFormat::RGBA8_SRGB:
+    case TextureFormat::R11G11B10F: // treat R11G11B10F as RGBA so it is correctly calculated as 4 bytes per pixel.
+    case TextureFormat::R10G10B10A2:  // same as above
+    case TextureFormat::RGBA16:
+    case TextureFormat::RGBA32:
+    case TextureFormat::RGBA16F:
+    case TextureFormat::RGBA32F:
         return 4;
-    case TF_BGR8_SRGB:
+    case TextureFormat::BGR8_SRGB:
         return 3;
-    case TF_BGRA8:
-    case TF_BGRA8_SRGB:
+    case TextureFormat::BGRA8:
+    case TextureFormat::BGRA8_SRGB:
         return 4;
-    case TF_DEPTH_16:
-    case TF_DEPTH_24_S8:
-    case TF_DEPTH_32F:
+    case TextureFormat::D16:
+    case TextureFormat::D24_S8:
+    case TextureFormat::D32F:
         return 1;
-    case TF_DEPTH_32F_S8:
+    case TextureFormat::D32F_S8:
         return 2;
     default:
         // undefined result
@@ -230,45 +250,45 @@ static inline constexpr uint32 BytesPerComponent(TextureFormat format)
 {
     switch (format)
     {
-    case TF_R8:
-    case TF_R8_SRGB:
-    case TF_RG8:
-    case TF_RG8_SRGB:
-    case TF_RGB8:
-    case TF_RGB8_SRGB:
-    case TF_BGR8_SRGB:
-    case TF_RGBA8:
-    case TF_RGBA8_SRGB:
-    case TF_BGRA8:
-    case TF_BGRA8_SRGB:
+    case TextureFormat::R8:
+    case TextureFormat::R8_SRGB:
+    case TextureFormat::RG8:
+    case TextureFormat::RG8_SRGB:
+    case TextureFormat::RGB8:
+    case TextureFormat::RGB8_SRGB:
+    case TextureFormat::BGR8_SRGB:
+    case TextureFormat::RGBA8:
+    case TextureFormat::RGBA8_SRGB:
+    case TextureFormat::BGRA8:
+    case TextureFormat::BGRA8_SRGB:
         return 1;
-    case TF_R16:
-    case TF_RG16:
-    case TF_RGB16:
-    case TF_RGBA16:
-    case TF_DEPTH_16:
+    case TextureFormat::R16:
+    case TextureFormat::RG16:
+    case TextureFormat::RGB16:
+    case TextureFormat::RGBA16:
+    case TextureFormat::D16:
         return 2;
-    case TF_R32:
-    case TF_RG32:
-    case TF_RGB32:
-    case TF_RGBA32:
-    case TF_DEPTH_24_S8:
-    case TF_DEPTH_32F:
+    case TextureFormat::R32:
+    case TextureFormat::RG32:
+    case TextureFormat::RGB32:
+    case TextureFormat::RGBA32:
+    case TextureFormat::D24_S8:
+    case TextureFormat::D32F:
         return 4;
-    case TF_DEPTH_32F_S8:
+    case TextureFormat::D32F_S8:
         return 8;
-    case TF_R11G11B10F:
-    case TF_R10G10B10A2:
+    case TextureFormat::R11G11B10F:
+    case TextureFormat::R10G10B10A2:
         return 1; // packed; treat as 1 component (1x4)
-    case TF_R16F:
-    case TF_RG16F:
-    case TF_RGB16F:
-    case TF_RGBA16F:
+    case TextureFormat::R16F:
+    case TextureFormat::RG16F:
+    case TextureFormat::RGB16F:
+    case TextureFormat::RGBA16F:
         return 2;
-    case TF_R32F:
-    case TF_RG32F:
-    case TF_RGB32F:
-    case TF_RGBA32F:
+    case TextureFormat::R32F:
+    case TextureFormat::RG32F:
+    case TextureFormat::RGB32F:
+    case TextureFormat::RGBA32F:
         return 4;
     default:
         return 0; // undefined result
@@ -294,17 +314,17 @@ static inline constexpr TextureFormat FormatChangeNumComponents(TextureFormat fm
 
 static inline constexpr bool IsDepthFormat(TextureFormat fmt)
 {
-    return fmt >= TF_DEPTH;
+    return fmt >= TextureFormat::DEPTH;
 }
 
 static inline constexpr bool HasStencilComponent(TextureFormat fmt)
 {
-    return fmt == TF_DEPTH_24_S8 || fmt == TF_DEPTH_32F_S8;
+    return fmt == TextureFormat::D24_S8 || fmt == TextureFormat::D32F_S8;
 }
 
 static inline constexpr bool IsSRGB(TextureFormat fmt)
 {
-    return fmt >= TF_SRGB && fmt < TF_DEPTH;
+    return fmt >= TextureFormat::SRGB && fmt < TextureFormat::DEPTH;
 }
 
 /*! \brief Converts srgb formats to non-srgb variants and vice versa. Only for SRGB supported formats. */
@@ -315,7 +335,7 @@ static inline constexpr TextureFormat ChangeFormatSRGB(TextureFormat fmt, bool m
         return fmt;
     }
 
-    constexpr uint32 BeginSRGB = uint32(TF_SRGB);
+    constexpr uint32 BeginSRGB = uint32(TextureFormat::SRGB);
 
     if (makeSrgb)
     {
@@ -342,40 +362,40 @@ static inline constexpr bool FormatSupportsBlending(TextureFormat fmt)
 {
     switch (fmt)
     {
-    case TF_R8:
-    case TF_R8_SRGB:
-    case TF_RG8:
-    case TF_RG8_SRGB:
-    case TF_RGB8:
-    case TF_RGB8_SRGB:
-    case TF_BGR8_SRGB:
-    case TF_RGBA8:
-    case TF_RGBA8_SRGB:
-    case TF_R11G11B10F:
-    case TF_R10G10B10A2:
-    case TF_BGRA8:
-    case TF_BGRA8_SRGB:
-    case TF_R16F:
-    case TF_RG16F:
-    case TF_RGB16F:
-    case TF_RGBA16F:
-    case TF_R32F:
-    case TF_RG32F:
-    case TF_RGB32F:
-    case TF_RGBA32F:
+    case TextureFormat::R8:
+    case TextureFormat::R8_SRGB:
+    case TextureFormat::RG8:
+    case TextureFormat::RG8_SRGB:
+    case TextureFormat::RGB8:
+    case TextureFormat::RGB8_SRGB:
+    case TextureFormat::BGR8_SRGB:
+    case TextureFormat::RGBA8:
+    case TextureFormat::RGBA8_SRGB:
+    case TextureFormat::R11G11B10F:
+    case TextureFormat::R10G10B10A2:
+    case TextureFormat::BGRA8:
+    case TextureFormat::BGRA8_SRGB:
+    case TextureFormat::R16F:
+    case TextureFormat::RG16F:
+    case TextureFormat::RGB16F:
+    case TextureFormat::RGBA16F:
+    case TextureFormat::R32F:
+    case TextureFormat::RG32F:
+    case TextureFormat::RGB32F:
+    case TextureFormat::RGBA32F:
         return true;
-    case TF_R16:
-    case TF_RG16:
-    case TF_RGB16:
-    case TF_RGBA16:
-    case TF_R32:
-    case TF_RG32:
-    case TF_RGB32:
-    case TF_RGBA32:
-    case TF_DEPTH_16:
-    case TF_DEPTH_24_S8:
-    case TF_DEPTH_32F:
-    case TF_DEPTH_32F_S8:
+    case TextureFormat::R16:
+    case TextureFormat::RG16:
+    case TextureFormat::RGB16:
+    case TextureFormat::RGBA16:
+    case TextureFormat::R32:
+    case TextureFormat::RG32:
+    case TextureFormat::RGB32:
+    case TextureFormat::RGBA32:
+    case TextureFormat::D16:
+    case TextureFormat::D24_S8:
+    case TextureFormat::D32F:
+    case TextureFormat::D32F_S8:
     default:
         return false;
     }
@@ -416,11 +436,11 @@ struct TextureFormatHelper
     static constexpr uint32 NumComponents = TextureUtils::NumComponents(Format);
     static constexpr uint32 BytesPerComponent = TextureUtils::BytesPerComponent(Format);
     static constexpr bool IsSrgb = TextureUtils::IsSRGB(Format);
-    static constexpr bool IsFloatType = uint32(Format) >= TF_R16F && uint32(Format) <= TF_RGBA32F;
+    static constexpr bool IsFloatType = (Format >= TextureFormat::R16F && Format <= TextureFormat::RGBA32F);
 
     using ElementType = std::conditional_t<
         IsFloatType,
-        std::conditional_t<(uint32(Format) <= TF_RGBA16F), Float16, float>,
+        std::conditional_t<(Format <= TextureFormat::RGBA16F), Float16, float>,
         SizedUIntT<BytesPerComponent>>;
 };
 
@@ -435,7 +455,7 @@ struct TextureDesc
     TextureType type = TextureType::Texture2D;
 
     HYP_FIELD(Property = "Format", Serialize)
-    TextureFormat format = TF_RGBA8;
+    TextureFormat format = TextureFormat::RGBA8;
 
     HYP_FIELD(Property = "Extent", Serialize)
     Vec3u extent = Vec3u::One();
@@ -1301,7 +1321,7 @@ struct DescriptorTableOffsetMap
 struct AttachmentDesc
 {
     TextureType imageType = TextureType::Texture2D;
-    TextureFormat format = TF_RGBA8;
+    TextureFormat format = TextureFormat::RGBA8;
     LoadOperation loadOp = LoadOperation::CLEAR;
     StoreOperation storeOp = StoreOperation::STORE;
     BlendFunction blendFunction = BlendFunction::None();

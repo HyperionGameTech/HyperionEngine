@@ -80,7 +80,7 @@ void DepthPyramidRenderer::Create()
         // create depth pyramid image
         m_depthPyramid = g_renderInterface->MakeImage(TextureDesc {
             TextureType::Texture2D,
-            TF_R32F,
+            TextureFormat::R32F,
             Vec3u {
                 MathUtil::Max(uint32(MathUtil::PreviousPowerOf2(depthImage->GetExtent().x + 1)), 1),
                 MathUtil::Max(uint32(MathUtil::PreviousPowerOf2(depthImage->GetExtent().y + 1)), 1),

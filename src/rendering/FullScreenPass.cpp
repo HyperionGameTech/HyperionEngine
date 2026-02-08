@@ -379,7 +379,7 @@ void FullScreenPass::CreateTemporalBlending()
 
     m_temporalBlending = MakeUnique<TemporalBlending>(
         m_extent,
-        TF_RGBA8,
+        TextureFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_3,
         DefaultTemporalBlendingFeedback,
         ShouldRenderHalfRes()

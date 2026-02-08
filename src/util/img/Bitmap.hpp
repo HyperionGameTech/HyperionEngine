@@ -1111,13 +1111,13 @@ struct ConstPixelReference<detail::R11G11B10F, 1, false>
     }
 };
 
-/*! \brief Specialization of TextureFormatHelper for TF_R11G11B10F packed floating point format.
+/*! \brief Specialization of TextureFormatHelper for TextureFormat::R11G11B10F packed floating point format.
  *
  * Note: NumComponents is set to 1 because the R11G11B10F format packs all three color channels
  * into a single 32-bit value. The PixelReference specialization handles the 3-component access internally.
  */
 template <>
-struct TextureFormatHelper<TF_R11G11B10F>
+struct TextureFormatHelper<TextureFormat::R11G11B10F>
 {
     static constexpr uint32 NumComponents = 1; // Treated as 1 packed element for byte size calculation
     static constexpr uint32 BytesPerComponent = 4; // The entire pixel is 4 bytes (packed)
@@ -1799,56 +1799,56 @@ private:
 
 // 2D
 
-using Bitmap_RGBA8_SRGB = Bitmap<TF_RGBA8_SRGB>;
+using Bitmap_RGBA8_SRGB = Bitmap<TextureFormat::RGBA8_SRGB>;
 
-using Bitmap_RGBA8 = Bitmap<TF_RGBA8>;
-using Bitmap_RGB8 = Bitmap<TF_RGB8>;
-using Bitmap_RG8 = Bitmap<TF_RG8>;
-using Bitmap_R8 = Bitmap<TF_R8>;
+using Bitmap_RGBA8 = Bitmap<TextureFormat::RGBA8>;
+using Bitmap_RGB8 = Bitmap<TextureFormat::RGB8>;
+using Bitmap_RG8 = Bitmap<TextureFormat::RG8>;
+using Bitmap_R8 = Bitmap<TextureFormat::R8>;
 
-using Bitmap_RGBA16 = Bitmap<TF_RGBA16>;
-using Bitmap_RGB16 = Bitmap<TF_RGB16>;
-using Bitmap_RG16 = Bitmap<TF_RG16>;
-using Bitmap_R16 = Bitmap<TF_R16>;
+using Bitmap_RGBA16 = Bitmap<TextureFormat::RGBA16>;
+using Bitmap_RGB16 = Bitmap<TextureFormat::RGB16>;
+using Bitmap_RG16 = Bitmap<TextureFormat::RG16>;
+using Bitmap_R16 = Bitmap<TextureFormat::R16>;
 
-using Bitmap_RGBA16F = Bitmap<TF_RGBA16F>;
-using Bitmap_RGB16F = Bitmap<TF_RGB16F>;
-using Bitmap_RG16F = Bitmap<TF_RG16F>;
-using Bitmap_R16F = Bitmap<TF_R16F>;
+using Bitmap_RGBA16F = Bitmap<TextureFormat::RGBA16F>;
+using Bitmap_RGB16F = Bitmap<TextureFormat::RGB16F>;
+using Bitmap_RG16F = Bitmap<TextureFormat::RG16F>;
+using Bitmap_R16F = Bitmap<TextureFormat::R16F>;
 
-using Bitmap_RGBA32F = Bitmap<TF_RGBA32F>;
-using Bitmap_RGB32F = Bitmap<TF_RGB32F>;
-using Bitmap_RG32F = Bitmap<TF_RG32F>;
-using Bitmap_R32F = Bitmap<TF_R32F>;
+using Bitmap_RGBA32F = Bitmap<TextureFormat::RGBA32F>;
+using Bitmap_RGB32F = Bitmap<TextureFormat::RGB32F>;
+using Bitmap_RG32F = Bitmap<TextureFormat::RG32F>;
+using Bitmap_R32F = Bitmap<TextureFormat::R32F>;
 
-using Bitmap_R11G11B10F = Bitmap<TF_R11G11B10F>;
+using Bitmap_R11G11B10F = Bitmap<TextureFormat::R11G11B10F>;
 
-using Bitmap_RGBA8_SRGB = Bitmap<TF_RGBA8_SRGB>;
+using Bitmap_RGBA8_SRGB = Bitmap<TextureFormat::RGBA8_SRGB>;
 
 // 3D
 
-using Bitmap3D_RGBA8_SRGB = Bitmap3D<TF_RGBA8_SRGB>;
+using Bitmap3D_RGBA8_SRGB = Bitmap3D<TextureFormat::RGBA8_SRGB>;
 
-using Bitmap3D_RGBA8 = Bitmap3D<TF_RGBA8>;
-using Bitmap3D_RGB8 = Bitmap3D<TF_RGB8>;
-using Bitmap3D_RG8 = Bitmap3D<TF_RG8>;
-using Bitmap3D_R8 = Bitmap3D<TF_R8>;
+using Bitmap3D_RGBA8 = Bitmap3D<TextureFormat::RGBA8>;
+using Bitmap3D_RGB8 = Bitmap3D<TextureFormat::RGB8>;
+using Bitmap3D_RG8 = Bitmap3D<TextureFormat::RG8>;
+using Bitmap3D_R8 = Bitmap3D<TextureFormat::R8>;
 
-using Bitmap3D_RGBA16 = Bitmap3D<TF_RGBA16>;
-using Bitmap3D_RGB16 = Bitmap3D<TF_RGB16>;
-using Bitmap3D_RG16 = Bitmap3D<TF_RG16>;
-using Bitmap3D_R16 = Bitmap3D<TF_R16>;
+using Bitmap3D_RGBA16 = Bitmap3D<TextureFormat::RGBA16>;
+using Bitmap3D_RGB16 = Bitmap3D<TextureFormat::RGB16>;
+using Bitmap3D_RG16 = Bitmap3D<TextureFormat::RG16>;
+using Bitmap3D_R16 = Bitmap3D<TextureFormat::R16>;
 
-using Bitmap3D_RGBA16F = Bitmap3D<TF_RGBA16F>;
-using Bitmap3D_RGB16F = Bitmap3D<TF_RGB16F>;
-using Bitmap3D_RG16F = Bitmap3D<TF_RG16F>;
-using Bitmap3D_R16F = Bitmap3D<TF_R16F>;
+using Bitmap3D_RGBA16F = Bitmap3D<TextureFormat::RGBA16F>;
+using Bitmap3D_RGB16F = Bitmap3D<TextureFormat::RGB16F>;
+using Bitmap3D_RG16F = Bitmap3D<TextureFormat::RG16F>;
+using Bitmap3D_R16F = Bitmap3D<TextureFormat::R16F>;
 
-using Bitmap3D_RGBA32F = Bitmap3D<TF_RGBA32F>;
-using Bitmap3D_RGB32F = Bitmap3D<TF_RGB32F>;
-using Bitmap3D_RG32F = Bitmap3D<TF_RG32F>;
-using Bitmap3D_R32F = Bitmap3D<TF_R32F>;
+using Bitmap3D_RGBA32F = Bitmap3D<TextureFormat::RGBA32F>;
+using Bitmap3D_RGB32F = Bitmap3D<TextureFormat::RGB32F>;
+using Bitmap3D_RG32F = Bitmap3D<TextureFormat::RG32F>;
+using Bitmap3D_R32F = Bitmap3D<TextureFormat::R32F>;
 
-using Bitmap3D_R11G11B10F = Bitmap3D<TF_R11G11B10F>;
+using Bitmap3D_R11G11B10F = Bitmap3D<TextureFormat::R11G11B10F>;
 
 } // namespace Hyperion

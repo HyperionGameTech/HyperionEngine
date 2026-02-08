@@ -34,8 +34,8 @@
 
 namespace Hyperion {
 
-static constexpr TextureFormat DdgiIrradianceFormat = TF_RGBA16F;
-static constexpr TextureFormat DdgiDepthFormat = TF_RG16F;
+static constexpr TextureFormat DdgiIrradianceFormat = TextureFormat::RGBA16F;
+static constexpr TextureFormat DdgiDepthFormat = TextureFormat::RG16F;
 static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / sizeof(uint32);
 
 #pragma region Render commands

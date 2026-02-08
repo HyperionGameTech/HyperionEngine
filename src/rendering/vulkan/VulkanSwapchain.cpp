@@ -332,7 +332,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         /* look for hdr format */
         m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
-            { { TF_R10G10B10A2, TF_R11G11B10F, TF_RGBA16F } },
+            { { TextureFormat::R10G10B10A2, TextureFormat::R11G11B10F, TextureFormat::RGBA16F } },
             [this](VkSurfaceFormatKHR format)
             {
                 if (format.colorSpace != VK_COLOR_SPACE_HDR10_ST2084_EXT && format.colorSpace != VK_COLOR_SPACE_BT2020_LINEAR_EXT && format.colorSpace != VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
@@ -363,7 +363,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         /* look for srgb format */
         m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
-            { { TF_RGBA8_SRGB, TF_BGRA8_SRGB } },
+            { { TextureFormat::RGBA8_SRGB, TextureFormat::BGRA8_SRGB } },
             [this](VkSurfaceFormatKHR format)
             {
                 if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -387,7 +387,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     /* look for non-srgb format */
     m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         m_supportDetails,
-        { { TF_R11G11B10F, TF_RGBA16F, TF_RGBA8 } },
+        { { TextureFormat::R11G11B10F, TextureFormat::RGBA16F, TextureFormat::RGBA8 } },
         [this](auto&& format)
         {
             m_surfaceFormat = format;
