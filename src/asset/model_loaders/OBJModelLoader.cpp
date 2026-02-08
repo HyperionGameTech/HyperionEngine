@@ -462,6 +462,10 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
                 materialAttributes,
                 { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
         }
+        else
+        {
+            materialAttributes = material->GetRenderAttributes();
+        }
 
         InitObject(material);
 

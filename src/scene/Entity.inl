@@ -1,9 +1,6 @@
 template <class Component, class EntityManagerPtr>
-Component& Entity::GetComponent() const
+HYP_FORCE_INLINE Component& Entity::GetComponent() const
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -11,11 +8,8 @@ Component& Entity::GetComponent() const
 }
 
 template <class Component, class EntityManagerPtr>
-Component* Entity::TryGetComponent() const
+HYP_FORCE_INLINE Component* Entity::TryGetComponent() const
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -23,11 +17,8 @@ Component* Entity::TryGetComponent() const
 }
 
 template <class Component, class EntityManagerPtr>
-bool Entity::HasComponent() const
+HYP_FORCE_INLINE bool Entity::HasComponent() const
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -35,11 +26,8 @@ bool Entity::HasComponent() const
 }
 
 template <class Component, class T, class EntityManagerPtr>
-Component& Entity::AddComponent(T&& component)
+HYP_FORCE_INLINE Component& Entity::AddComponent(T&& component)
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -47,11 +35,8 @@ Component& Entity::AddComponent(T&& component)
 }
 
 template <class Component, class EntityManagerPtr>
-bool Entity::RemoveComponent()
+HYP_FORCE_INLINE bool Entity::RemoveComponent()
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -59,11 +44,8 @@ bool Entity::RemoveComponent()
 }
 
 template <EntityTag Tag, class EntityManagerPtr>
-void Entity::AddTag()
+HYP_FORCE_INLINE void Entity::AddTag()
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -71,11 +53,8 @@ void Entity::AddTag()
 }
 
 template <EntityTag Tag, class EntityManagerPtr>
-bool Entity::RemoveTag()
+HYP_FORCE_INLINE bool Entity::RemoveTag()
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 
@@ -83,11 +62,8 @@ bool Entity::RemoveTag()
 }
 
 template <EntityTag Tag, class EntityManagerPtr>
-bool Entity::HasTag() const
+HYP_FORCE_INLINE bool Entity::HasTag() const
 {
-    HYP_SCOPE;
-    AssertReady();
-
     EntityManagerPtr entityManager = reinterpret_cast<EntityManagerPtr>(GetEntityManager());
     AssertDebug(entityManager != nullptr);
 

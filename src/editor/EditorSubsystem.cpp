@@ -105,9 +105,7 @@ namespace CoreApi {
 extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
-#pragma region RunningEditorTask
-
-#pragma endregion RunningEditorTask
+static ShaderPropertyId s_propUniformScaling = InternShaderProperty(ShaderProperty(NAME("UNIFORM_SCALING")));
 
 #pragma region GenerateLightmapsEditorTask
 

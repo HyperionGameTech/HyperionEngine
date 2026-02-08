@@ -1,0 +1,18 @@
+{
+  "$Class": "MeshAsset",
+  "MeshDesc": {
+    "MeshAttributes": {
+      "VertexAttributes": {
+        "FlagMask": 7
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 4,
+    "NumIndices": 6
+  },
+  "Name": "PlaneDebugDrawShape_MeshAsset8",
+  "FriendlyName": "PlaneDebugDrawShapeMeshAsset8",
+  "AssetFlags": 0,
+  "OriginalFilepath": ""
+}

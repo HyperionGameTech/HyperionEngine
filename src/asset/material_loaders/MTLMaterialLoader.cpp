@@ -167,7 +167,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
             if (tokens[0] == "kd")
             {
-                auto color = ReadVector<Vector4>(tokens);
+                Vec4f color = ReadVector<Vec4f>(tokens);
 
                 if (tokens.Size() < 5)
                 {
@@ -197,6 +197,14 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             //     return;
             // }
 
+             /*! Ns exponent
+ 
+              Specifies the specular exponent for the current material.  This defines 
+              the focus of the specular highlight.
+ 
+              "exponent" is the value for the specular exponent.  A high exponent 
+              results in a tight, concentrated highlight.  Ns values normally range 
+              from 0 to 1000. */
             if (tokens[0] == "ns")
             {
                 if (tokens.Size() < 2)
@@ -214,6 +222,154 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
                 return;
             }
+            
+            /*! d factor
+ 
+                Specifies the dissolve for the current material.
+ 
+                "factor" is the amount this material dissolves into the background.  A 
+            factor of 1.0 is fully opaque.  This is the default when a new material 
+            is created.  A factor of 0.0 is fully dissolved (completely 
+            transparent).
+ 
+                Unlike a real transparent material, the dissolve does not depend upon 
+            material thickness nor does it have any spectral character.  Dissolve 
+            works on all illumination models.
+ 
+                d -halo factor
+ 
+                Specifies that a dissolve is dependent on the surface orientation 
+            relative to the viewer.  For example, a sphere with the following 
+            dissolve, d -halo 0.0, will be fully dissolved at its center and will 
+            appear gradually more opaque toward its edge.
+ 
+                "factor" is the minimum amount of dissolve applied to the material.  
+            The amount of dissolve will vary between 1.0 (fully opaque) and the 
+            specified "factor".  The formula is:
+ 
+                dissolve = 1.0 - (N*v)(1.0-factor) */
+            if (tokens[0] == "d")
+            {
+                if (tokens.Size() < 2)
+                {
+                    HYP_LOG(Assets, Warning, "OBJ material loader: disolve value missing");
+
+                    return;
+                }
+
+                uint32 valueIndex = 1;
+
+                if (tokens.Size() >= 3 && tokens[1].ToLower() == "-halo")
+                {
+                    valueIndex = 2;
+                }
+
+                if (valueIndex >= tokens.Size())
+                {
+                    HYP_LOG(Assets, Warning, "OBJ material loader: disolve value missing");
+
+                    return;
+                }
+
+                const float dissolve = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex].Data()), 0.0f, 1.0f);
+
+                auto &material = LastMaterial(library);
+                Vec4f albedo(1.0f, 1.0f, 1.0f, 1.0f);
+
+                if (auto it = material.parameters.Find(MATERIAL_KEY_ALBEDO); it != material.parameters.end())
+                {
+                    albedo = Vec4f(
+                        it->second.values[0],
+                        it->second.values[1],
+                        it->second.values[2],
+                        it->second.values[3]);
+                }
+
+                albedo.w = dissolve;
+
+                material.parameters[MATERIAL_KEY_ALBEDO] = ParameterDef {
+                    FixedArray<float, 4> { albedo[0], albedo[1], albedo[2], albedo[3] }
+                };
+
+                return;
+            }
+
+            if (tokens[0] == "tr")
+            {
+                if (tokens.Size() < 2)
+                {
+                    HYP_LOG(Assets, Warning, "OBJ material loader: transparency value missing");
+
+                    return;
+                }
+
+                uint32 valueIndex = 1;
+
+                if (tokens.Size() >= 3 && tokens[1].ToLower() == "-halo")
+                {
+                    valueIndex = 2;
+                }
+
+                if (valueIndex >= tokens.Size())
+                {
+                    HYP_LOG(Assets, Warning, "OBJ material loader: transparency value missing");
+
+                    return;
+                }
+
+                const float transparency = MathUtil::Clamp(StringUtil::Parse<float>(tokens[valueIndex].Data()), 0.0f, 1.0f);
+                const float dissolve = 1.0f - transparency;
+
+                auto &material = LastMaterial(library);
+                Vec4f albedo(1.0f, 1.0f, 1.0f, 1.0f);
+
+                if (auto it = material.parameters.Find(MATERIAL_KEY_ALBEDO); it != material.parameters.end())
+                {
+                    albedo = Vec4f(
+                        it->second.values[0],
+                        it->second.values[1],
+                        it->second.values[2],
+                        it->second.values[3]);
+                }
+
+                albedo.w = dissolve;
+
+                material.parameters[MATERIAL_KEY_ALBEDO] = ParameterDef {
+                    FixedArray<float, 4> { albedo[0], albedo[1], albedo[2], albedo[3] }
+                };
+
+                return;
+            }
+
+
+            /*! illum illum_#
+ 
+            The "illum" statement specifies the illumination model to use in the 
+            material.  Illumination models are mathematical equations that represent 
+            various material lighting and shading effects.
+            
+            "illum_#"can be a number from 0 to 10.  The illumination models are 
+            summarized below; for complete descriptions see "Illumination models" on 
+            page 5-30.
+            
+            Illumination    Properties that are turned on in the 
+            model           Property Editor
+            
+            0		Color on and Ambient off
+            1		Color on and Ambient on
+            2		Highlight on
+            3		Reflection on and Ray trace on
+            4		Transparency: Glass on
+                    Reflection: Ray trace on
+            5		Reflection: Fresnel on and Ray trace on
+            6		Transparency: Refraction on
+                    Reflection: Fresnel off and Ray trace on
+            7		Transparency: Refraction on
+                    Reflection: Fresnel on and Ray trace on
+            8		Reflection on and Ray trace off
+            9		Transparency: Glass on
+                    Reflection: Ray trace off
+            10		Casts shadows onto invisible surfaces */
 
             if (tokens[0] == "illum")
             {
@@ -224,14 +380,15 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                     return;
                 }
 
-                const int illumModel = StringUtil::Parse<int>(tokens[1].Data());
+                const int illumModelValue = StringUtil::Parse<int>(tokens[1].Data());
+                const int clampedValue = MathUtil::Clamp(illumModelValue, 0, 10);
+                const IlluminationModel illumModel = static_cast<IlluminationModel>(clampedValue);
 
-                if (IsTransparencyModel(static_cast<IlluminationModel>(illumModel)))
+                if (IsTransparencyModel(illumModel))
                 {
                     LastMaterial(library).parameters[MATERIAL_KEY_TRANSMISSION] = ParameterDef {
                         .values = FixedArray<float, 4> { 0.95f, 0.0f, 0.0f, 0.0f }
                     };
-                    // TODO: Bucket, alpha blend
                 }
 
                 return;
@@ -254,7 +411,8 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
 
                 LastMaterial(library).textures.PushBack(TextureDef {
                     .mapping = textureIt->second,
-                    .name = name });
+                    .name = name
+                });
 
                 return;
             }
@@ -321,8 +479,12 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     for (auto& item : library.materials)
     {
         MaterialAttributes attributes;
+        /*attributes.blendFunction = BlendFunction::AlphaBlending();
+        attributes.bucket = RB_TRANSLUCENT;*/
+        attributes.flags |= MAF_ALPHA_DISCARD;
+
         MaterialParameters parameters = Material::DefaultParameters();
-        MaterialTextures textures;
+        parameters[MATERIAL_KEY_ALPHA_THRESHOLD] = 0.1f;
 
         for (auto& it : item.parameters)
         {
@@ -337,6 +499,17 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                 attributes.bucket = RB_TRANSLUCENT;
             }
         }
+
+        // if (auto it = item.parameters.Find(MATERIAL_KEY_ALBEDO); it != item.parameters.end())
+        // {
+        //     if (it->second.values[3] < 1.0f)
+        //     {
+        //         attributes.blendFunction = BlendFunction::AlphaBlending();
+        //         attributes.bucket = RB_TRANSLUCENT;
+        //     }
+        // }
+
+        MaterialTextures textures;
 
         for (auto& it : item.textures)
         {

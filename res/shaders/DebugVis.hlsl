@@ -64,7 +64,7 @@ DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> e
 DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batch_buffer;
 #define entity_instance_batch entity_instance_batch_buffer[0]
 #else
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entity_buffer;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 #define MODEL_MATRIX (entity.model_matrix)
@@ -193,7 +193,7 @@ DECLARE_BUFFER(DebugDrawerDescriptorSet, WorldsBuffer) cbuffer WorldsBuffer
 #elif defined(INSTANCING)
 DECLARE_SRV(DebugDrawerDescriptorSet, EntitiesBuffer) StructuredBuffer<Entity> entities;
 #else
-DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entity_buffer;
+DECLARE_SRV_DYNAMIC(DebugDrawerDescriptorSet, CurrentEntity) StructuredBuffer<Entity> entities;
 #endif
 
 #include "include/env_probe.inc"
