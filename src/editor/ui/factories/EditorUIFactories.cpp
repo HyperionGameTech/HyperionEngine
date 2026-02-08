@@ -977,7 +977,7 @@ public:
                     Handle<ScriptAsset> scriptAsset = MakeHandle<ScriptAsset>(NAME("NewScript"), ScriptDesc());
 
                     /// \todo : better name for script asset
-                    Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset).Await();
+                    Result assetObjectResult = scriptsPackage->AddAssetObject(scriptAsset, /* replaceOnConflict */ true).Await();
 
                     if (assetObjectResult.HasError())
                     {

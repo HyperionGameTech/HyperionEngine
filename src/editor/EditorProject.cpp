@@ -239,6 +239,11 @@ Result EditorProject::SaveAs(FilePath filepath)
             /* forceRelocation */ false,
             [](const AssetObject& assetObject) -> String
             {
+                if (assetObject.InstanceClass()->GetName() == "TextureAsset"_sh)
+                {
+                    HYP_BREAKPOINT;
+                }
+
                 // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
                 //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
                 return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());

@@ -1,0 +1,18 @@
+{
+  "$Class": "MeshAsset",
+  "MeshDesc": {
+    "MeshAttributes": {
+      "VertexAttributes": {
+        "FlagMask": 63
+      },
+      "Topology": 0,
+      "IndexBufferElemType": 4
+    },
+    "NumVertices": 24,
+    "NumIndices": 36
+  },
+  "Name": "BoxDebugDrawShape_MeshAsset10",
+  "FriendlyName": "BoxDebugDrawShapeMeshAsset10",
+  "AssetFlags": 0,
+  "OriginalFilepath": ""
+}
