@@ -79,7 +79,7 @@ public:
     }
 
     HYP_METHOD()
-    virtual void Process() override;
+    virtual void Start() override;
 
     HYP_METHOD()
     virtual void Cancel() override;

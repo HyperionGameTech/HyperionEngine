@@ -34,7 +34,7 @@ namespace Hyperion.Editor
         public static event Action<World, Scene>? SceneAdded;
         public static event Action<World, Scene>? SceneRemoved;
 
-        public static event Action<ObjIdBase, string>? TaskStarted;
+        public static event Action<ObjIdBase, string, bool>? TaskStarted;
         public static event Action<ObjIdBase>? TaskEnded;
         public static event Action<ObjIdBase, float>? TaskProgressUpdated;
 
@@ -149,7 +149,12 @@ namespace Hyperion.Editor
             _onTaskStartedHandler?.Remove();
             _onTaskStartedHandler = editorState.GetOnTaskStartedDelegate().Bind((EditorTaskBase task) =>
             {
-                RaiseTaskStarted(task.Id, task.Class.Name.ToString()); // TODO: Better name etc.
+                bool isForegroundTask = false;
+                if (task is TickableEditorTask tickableTask)
+                {
+                    isForegroundTask = tickableTask.IsForegroundTask;
+                }
+                RaiseTaskStarted(task.Id, task.Class.Name.ToString(), isForegroundTask); // TODO: Better name etc.
             });
 
             _onTaskEndedHandler?.Remove();
@@ -206,9 +211,9 @@ namespace Hyperion.Editor
             IsInitialized = false;
         }
 
-        internal static void RaiseTaskStarted(ObjIdBase taskId, string taskName)
+        internal static void RaiseTaskStarted(ObjIdBase taskId, string taskName, bool isForegroundTask)
         {
-            TaskStarted?.Invoke(taskId, taskName);
+            TaskStarted?.Invoke(taskId, taskName, isForegroundTask);
         }
 
         internal static void RaiseTaskEnded(ObjIdBase taskId)

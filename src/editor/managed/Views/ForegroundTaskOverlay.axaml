@@ -1,0 +1,50 @@
+<UserControl
+    x:Class="Hyperion.Editor.Views.ForegroundTaskOverlay"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    x:DataType="vm:ForegroundTaskViewModel"
+    mc:Ignorable="d">
+
+    <Grid IsVisible="{Binding IsVisible}">
+        <StackPanel
+            Panel.ZIndex="1"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Margin="16,16,16,16"
+            Spacing="12">
+            <Border
+                Width="360"
+                Padding="16"
+                Background="{DynamicResource Brush.PanelAlt}"
+                BorderBrush="{DynamicResource Brush.BorderLight}"
+                BorderThickness="1"
+                CornerRadius="8"
+                BoxShadow="0 10 30 #55000000">
+                <StackPanel Spacing="16">
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource Brush.Text}"
+                        Text="{Binding TaskName}" />
+
+                    <StackPanel Spacing="4">
+                        <ProgressBar
+                            Height="6"
+                            Maximum="1.0"
+                            Minimum="0"
+                            Value="{Binding Progress}" />
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{DynamicResource Brush.TextSecondary}"
+                            Text="{Binding Progress, StringFormat=Progress: {0:P0}}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

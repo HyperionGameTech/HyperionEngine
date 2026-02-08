@@ -8,6 +8,7 @@
     xmlns:local="clr-namespace:Hyperion.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ribbon="clr-namespace:Ribbon.Avalonia;assembly=Ribbon.Avalonia"
+    xmlns:views="clr-namespace:Hyperion.Editor.Views;assembly=Hyperion.Editor"
     xmlns:vm="clr-namespace:Hyperion.Editor.ViewModels;assembly=Hyperion.Editor"
     x:Name="Root"
     Title="Hyperion Editor"
@@ -91,7 +92,8 @@
         </Style>
     </Window.Styles>
 
-    <DockPanel Background="{DynamicResource Brush.Background}">
+    <Grid>
+        <DockPanel Background="{DynamicResource Brush.Background}">
         <!--  Fallback in-window menu for non-macOS platforms  -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_File">
@@ -674,4 +676,8 @@
             </Border>
         </Grid>
     </DockPanel>
+
+        <!--  Foreground task overlay  -->
+        <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
+    </Grid>
 </Window>

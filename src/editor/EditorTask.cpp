@@ -43,19 +43,9 @@ TickableEditorTask::TickableEditorTask()
 
 bool TickableEditorTask::Commit()
 {
-    m_task = g_simThreadInstance->GetScheduler().Enqueue([this, weakThis = WeakHandleFromThis()]()
-        {
-            Handle<TickableEditorTask> task = weakThis.Lock();
+    m_isCommitted.Set(true, MemoryOrder::RELEASE);
 
-            if (!task)
-            {
-                HYP_LOG(Editor, Warning, "EditorTask was destroyed before it could be processed");
-            }
-
-            m_isCommitted.Set(true, MemoryOrder::RELEASE);
-
-            Process();
-        });
+    Start();
 
     return true;
 }
@@ -89,7 +79,7 @@ void TickableEditorTask::Cancel_Impl()
 
 bool TickableEditorTask::IsCompleted_Impl() const
 {
-    return m_task.IsCompleted();
+    return !m_task.IsValid() || m_task.IsCompleted();
 }
 
 #pragma endregion TickableEditorTask
@@ -103,29 +93,15 @@ LongRunningEditorTask::LongRunningEditorTask()
 
 LongRunningEditorTask::~LongRunningEditorTask()
 {
-    if (m_thread && m_thread->IsRunning())
-    {
-        m_thread->Stop();
-        m_thread->Join();
-
-        m_thread.Reset();
-    }
 }
 
 bool LongRunningEditorTask::Commit()
 {
-    m_thread = MakePimpl<EditorTaskThread>();
-
-    if (!m_thread->Start())
-    {
-        HYP_LOG(Editor, Error, "Failed to start EditorTaskThread");
-
-        return false;
-    }
-
-    m_task = m_thread->GetScheduler().Enqueue([this]()
+    m_task = TaskSystem::GetInstance().Enqueue([this]()
         {
             m_isCommitted.Set(true, MemoryOrder::RELEASE);
+
+            Start();
 
             Process();
         },
@@ -148,20 +124,12 @@ void LongRunningEditorTask::Cancel_Impl()
         OnCancel();
     }
 
-    if (m_thread && m_thread->IsRunning())
-    {
-        m_thread->Stop();
-        m_thread->Join();
-
-        m_thread.Reset();
-    }
-
     m_isCommitted.Set(false, MemoryOrder::RELEASE);
 }
 
 bool LongRunningEditorTask::IsCompleted_Impl() const
 {
-    return m_task.IsCompleted();
+    return !m_task.IsValid() || m_task.IsCompleted();
 }
 
 #pragma endregion LongRunningEditorTask

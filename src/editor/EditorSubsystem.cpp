@@ -141,7 +141,7 @@ GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Array<Handle<Obje
     }
 }
 
-void GenerateLightmapsEditorTask::Process()
+void GenerateLightmapsEditorTask::Start()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);

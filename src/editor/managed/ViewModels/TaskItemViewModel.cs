@@ -7,12 +7,14 @@ namespace Hyperion.Editor.ViewModels
         private ObjIdBase _taskId;
         private string _taskName;
         private float _progress;
+        private bool _isForegroundTask;
 
-        public TaskItemViewModel(ObjIdBase taskId, string taskName)
+        public TaskItemViewModel(ObjIdBase taskId, string taskName, bool isForegroundTask = false)
         {
             _taskId = taskId;
             _taskName = taskName;
             _progress = 0.0f;
+            _isForegroundTask = isForegroundTask;
         }
 
         public ObjIdBase TaskId => _taskId;
@@ -24,5 +26,7 @@ namespace Hyperion.Editor.ViewModels
             get => _progress;
             set => SetProperty(ref _progress, value);
         }
+
+        public bool IsForegroundTask => _isForegroundTask;
     }
 }

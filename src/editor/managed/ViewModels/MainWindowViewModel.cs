@@ -121,6 +121,8 @@ namespace Hyperion.Editor.ViewModels
         public ObservableCollection<SceneViewModel> Scenes { get; } = new();
 
         public ObservableCollection<TaskItemViewModel> Tasks { get; } = new();
+
+        public ForegroundTaskViewModel ForegroundTask { get; private set; }
         
         private SceneViewModel? _activeScene;
         public SceneViewModel? ActiveScene
@@ -156,6 +158,7 @@ namespace Hyperion.Editor.ViewModels
         {
             SceneHierarchy = new SceneHierarchyViewModel();
             Inspector = new InspectorViewModel();
+            ForegroundTask = new ForegroundTaskViewModel();
 
             HyperionEditorGame? editorGame = EngineManager.EditorGame;
             if (editorGame == null)
@@ -266,17 +269,24 @@ namespace Hyperion.Editor.ViewModels
             ContentBrowser.Dispose();
         }
 
-        private void OnTaskStarted(ObjIdBase taskId, string taskName)
+        private void OnTaskStarted(ObjIdBase taskId, string taskName, bool isForegroundTask)
         {
             Dispatcher.UIThread.Post(() =>
             {
-                if (Tasks.Any(t => t.TaskId == taskId))
+                if (isForegroundTask)
                 {
-                    return;
+                    ForegroundTask.SetTask(taskId, taskName);
                 }
+                else
+                {
+                    if (Tasks.Any(t => t.TaskId == taskId))
+                    {
+                        return;
+                    }
 
-                Tasks.Add(new TaskItemViewModel(taskId, taskName));
-                OnPropertyChanged(nameof(Tasks));
+                    Tasks.Add(new TaskItemViewModel(taskId, taskName, isForegroundTask: false));
+                    OnPropertyChanged(nameof(Tasks));
+                }
             });
         }
 
@@ -284,6 +294,14 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.Post(() =>
             {
+                // Check if it's the current foreground task
+                if (ForegroundTask.IsVisible && ForegroundTask.TaskId == taskId)
+                {
+                    ForegroundTask.Clear();
+                    return;
+                }
+
+                // Otherwise look in background tasks
                 for (int i = 0; i < Tasks.Count; i++)
                 {
                     if (Tasks[i].TaskId == taskId)
@@ -300,6 +318,14 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.Post(() =>
             {
+                // Check foreground task first
+                if (ForegroundTask.IsVisible && ForegroundTask.TaskId == taskId)
+                {
+                    ForegroundTask.Progress = progress;
+                    return;
+                }
+
+                // Otherwise look in background tasks
                 foreach (TaskItemViewModel task in Tasks)
                 {
                     if (task.TaskId == taskId)

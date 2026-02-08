@@ -20,9 +20,14 @@ namespace Hyperion
             return InvokeNativeMethod<bool>(new Name("IsCompleted", weak: true));
         }
 
-        public override void Process()
+        public override void Start()
         {
-            InvokeNativeMethod(new Name("Process", weak: true));
+            InvokeNativeMethod(new Name("Start", weak: true));
+        }
+
+        public override void Tick(float delta)
+        {
+            InvokeNativeMethod(new Name("Tick", weak: true), new object[] { delta });
         }
     }
 }

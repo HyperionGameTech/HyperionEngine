@@ -49,13 +49,13 @@ public:
     virtual bool IsCommitted() const = 0;
 
     HYP_METHOD()
+    virtual void Start() = 0;
+
+    HYP_METHOD()
     virtual void Cancel() = 0;
 
     HYP_METHOD()
     virtual bool IsCompleted() const = 0;
-
-    HYP_METHOD()
-    virtual void Process() = 0;
 
     HYP_METHOD()
     virtual bool Commit() = 0;
@@ -95,19 +95,31 @@ public:
     }
 
     HYP_METHOD()
+    HYP_FORCE_INLINE bool IsForegroundTask() const
+    {
+        return m_isForegroundTask;
+    }
+
+    HYP_METHOD()
+    void SetIsForegroundTask(bool isForeground)
+    {
+        m_isForegroundTask = isForeground;
+    }
+
+    HYP_METHOD()
     virtual bool IsCommitted() const override final
     {
         return m_isCommitted.Get(MemoryOrder::ACQUIRE);
     }
 
     HYP_METHOD(Scriptable)
+    virtual void Start() override;
+
+    HYP_METHOD(Scriptable)
     virtual void Cancel() override;
 
     HYP_METHOD(Scriptable)
     virtual bool IsCompleted() const override;
-
-    HYP_METHOD(Scriptable)
-    virtual void Process() override;
 
     HYP_METHOD()
     virtual bool Commit() override final;
@@ -116,24 +128,30 @@ public:
     virtual void Tick(float delta);
 
 protected:
-    virtual void Cancel_Impl();
-    virtual bool IsCompleted_Impl() const;
-
-    virtual void Process_Impl()
+    HYP_METHOD()
+    virtual void Start_Impl()
     {
-        HYP_PURE_VIRTUAL();
+        // nothing by default
     }
-
+    
+    HYP_METHOD()
+    virtual void Cancel_Impl();
+    
+    HYP_METHOD()
+    virtual bool IsCompleted_Impl() const;
+    
+    HYP_METHOD()
     virtual void Tick_Impl(float delta)
     {
         HYP_PURE_VIRTUAL();
     }
 
     ClockTimer m_timer;
+    Task<void> m_task;
+    bool m_isForegroundTask;
 
 private:
     AtomicVar<bool> m_isCommitted;
-    Task<void> m_task;
 };
 
 HYP_CLASS(Abstract, Description = "A task that runs on a Task thread and has Process() called one time only")
@@ -152,21 +170,34 @@ public:
     }
 
     HYP_METHOD(Scriptable)
+    virtual void Start() override;
+
+    HYP_METHOD(Scriptable)
     virtual void Cancel() override;
 
     HYP_METHOD(Scriptable)
     virtual bool IsCompleted() const override;
 
     HYP_METHOD(Scriptable)
-    virtual void Process() override;
+    virtual void Process();
 
     HYP_METHOD()
     virtual bool Commit() override final;
 
 protected:
+    HYP_METHOD()
+    virtual void Start_Impl()
+    {
+        // nothing by default
+    }
+    
+    HYP_METHOD()
     virtual void Cancel_Impl();
+    
+    HYP_METHOD()
     virtual bool IsCompleted_Impl() const;
-
+    
+    HYP_METHOD()
     virtual void Process_Impl()
     {
         HYP_PURE_VIRTUAL();
@@ -174,7 +205,6 @@ protected:
 
     AtomicVar<bool> m_isCommitted;
     Task<void> m_task;
-    Pimpl<EditorTaskThread> m_thread;
 };
 
 } // namespace Hyperion

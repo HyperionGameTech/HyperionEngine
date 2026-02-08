@@ -4,6 +4,8 @@
 
 #include <editor/EditorProject.hpp>
 #include <editor/EditorActionStack.hpp>
+#include <editor/EditorTask.hpp>
+#include <editor/EditorState.hpp>
 
 #include <engine/Game.hpp>
 
@@ -42,6 +44,44 @@ struct EditorProjectSaveContext
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 static const String s_defaultProjectName = "Project";
+
+#pragma region SaveProjectEditorTask
+
+HYP_CLASS()
+class SaveProjectEditorTask : public TickableEditorTask
+{
+    HYP_OBJECT_BODY(SaveProjectEditorTask);
+
+public:
+    SaveProjectEditorTask()
+    {
+        m_isForegroundTask = true;
+    }
+
+    virtual bool IsCompleted() const override
+    {
+        return isComplete;
+    }
+
+    virtual void Tick_Impl(float delta) override
+    {
+        // do nothing
+    }
+
+    bool isComplete = false;
+};
+
+HYP_API const Class* g_clsSaveProjectEditorTask = nullptr;
+
+HYP_BEGIN_CLASS(SaveProjectEditorTask, -1, 0, NAME("TickableEditorTask"))
+    Method(NAME("Tick_Impl"), &Type::Tick_Impl)
+HYP_END_CLASS
+
+HYP_REGISTER_STATIC_CLASS(SaveProjectEditorTask);
+
+#pragma endregion SaveProjectEditorTask
+
+#pragma region EditorProject
 
 EditorProject::EditorProject()
     : EditorProject(Handle<Game>::Null())
@@ -232,6 +272,13 @@ Result EditorProject::SaveAs(FilePath filepath)
         }
     }
 
+    Handle<SaveProjectEditorTask> editorTask = MakeHandle<SaveProjectEditorTask>();
+    g_editorState->AddTask(editorTask);
+
+    HYP_DEFER({
+        editorTask->isComplete = true;
+    });
+
     {
         g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
             m_package->BuildPackagePath(),
@@ -408,5 +455,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     return project;
 }
+
+#pragma endregion EditorProject
 
 } // namespace Hyperion
