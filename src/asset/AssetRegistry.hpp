@@ -195,7 +195,7 @@ public:
         ForEach(set, std::forward<Callback>(callback));
     }
 
-    Result AddAssetObject(const Handle<AssetObject>& assetObject);
+    Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
     /*! \brief Merges the contents of another package into this one.

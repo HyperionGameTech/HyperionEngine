@@ -399,7 +399,7 @@ Result AssetObject::Rename(Name name)
         const Name prevName = m_name;
         m_name = name;
 
-        if (Result result = package->AddAssetObject(strongThis); result.HasError())
+        if (Result result = package->AddAssetObject(strongThis, /* replaceOnConflict */ false); result.HasError())
         {
             m_name = prevName; // revert change
 
@@ -540,6 +540,8 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
     return {};
 }
+
+HYP_DISABLE_OPTIMIZATION;
 
 Result AssetObject::Load(
     JSON::Object& manifestData,

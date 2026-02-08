@@ -466,8 +466,11 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
 
         if (package.IsValid())
         {
-            package->RemoveAssetObject(prevAsset);
-            package->AddAssetObject(asset);
+            Result addAssetResult = package->AddAssetObject(asset, /* replaceOnConflict */ true);
+            if (addAssetResult.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to update texture asset!", addAssetResult.GetError().GetMessage());
+            }
         }
     }
     else
