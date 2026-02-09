@@ -418,21 +418,15 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         meshDesc.numIndices = uint32(indices.Size());
         meshDesc.numVertices = uint32(vertices.Size());
 
-        MeshData meshData;
-        meshData.vertexData = vertices;
-        meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-        meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
-        meshData.CalculateNormals();
-
         Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
-        mesh->SetMeshData(meshDesc, meshData);
+        mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
 
-        mesh->GetAsset()->Rename(assetName);
-        mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+        mesh->CalculateNormals();
 
-        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
+        mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+
+        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
 
         InitObject(mesh);
 

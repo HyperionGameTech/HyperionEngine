@@ -18,8 +18,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/asset/TextureAsset.hpp>
-
 #include <scene/EntityManager.hpp>
 #include <scene/LightmapVolume.hpp>
 
@@ -158,60 +156,12 @@ struct BlitAtlasElements : RenderCommand
                                     return;
                                 }
 
-                                Handle<AssetPackage> package;
-
-                                const Handle<TextureAsset>& prevTextureAsset = atlasTexture->GetAsset();
-
-                                if (prevTextureAsset)
-                                {
-                                    package = prevTextureAsset->GetPackage();
-
-                                    if (package)
-                                    {
-                                        if (Result removeAssetResult = package->RemoveAssetObject(prevTextureAsset); removeAssetResult.HasError())
-                                        {
-                                            HYP_LOG(Lightmap, Error, "Failed to remove previous texture asset {} from package {}: {}",
-                                                prevTextureAsset->GetName(),
-                                                package->BuildPackagePath(),
-                                                removeAssetResult.GetError().GetMessage());
-                                        }
-                                    }
-                                }
+                                auto writeScope = atlasTexture->GetWriteScope();
 
                                 TextureDesc textureDesc = atlasTexture->GetTextureDesc();
                                 textureDesc.mipOffsets = { 0 };
 
-                                TextureData textureData { std::move(byteBuffer) };
-
-                                Handle<TextureAsset> newTextureAsset = MakeHandle<TextureAsset>(
-                                    atlasTexture->GetName(),
-                                    textureDesc,
-                                    std::move(textureData));
-
-                                InitObject(newTextureAsset);
-
-                                if (package)
-                                {
-                                    if (Result result = package->AddAssetObject(newTextureAsset, /* replaceOnConflict */ true); result.HasError())
-                                    {
-                                        HYP_LOG(Lightmap, Error, "Failed to add texture asset '{}' to package {}: {}",
-                                            newTextureAsset->GetName(),
-                                            package->BuildPackagePath(),
-                                            result.GetError().GetMessage());
-
-                                        package.Reset();
-                                    }
-                                }
-
-                                if (!package)
-                                {
-                                    if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", newTextureAsset, AddAssetConflictMode::ReplaceExisting); result.HasError())
-                                    {
-                                        HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", newTextureAsset->GetName(), result.GetError().GetMessage());
-                                    }
-                                }
-
-                                atlasTexture->SetAsset(newTextureAsset);
+                                atlasTexture->SetImageData(byteBuffer.ToByteView());
                             });
                     }
                 })
@@ -262,11 +212,12 @@ static void UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE });
+                TWM_CLAMP_TO_EDGE
+            });
 
         radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetName()));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture->GetAsset(), AddAssetConflictMode::ReplaceExisting); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", radianceTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", radianceTexture->GetName(), result.GetError().GetMessage());
         }
@@ -291,7 +242,7 @@ static void UpdateAtlasTextures(
 
         irradianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_I", lmv->GetName()));
 
-        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture->GetAsset(), AddAssetConflictMode::ReplaceExisting); result.HasError())
+        if (Result result = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", irradianceTexture, AddAssetConflictMode::ReplaceExisting); result.HasError())
         {
             HYP_LOG(Lightmap, Error, "Failed to register atlas texture '{}' with asset registry: {}", irradianceTexture->GetName(), result.GetError().GetMessage());
         }
@@ -386,8 +337,9 @@ static bool BuildElementTextures(
                 Vec3u { elementDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
-            TextureData { ByteBuffer(pBitmap->ToByteView()) });
+                TWM_CLAMP_TO_EDGE
+            },
+            pBitmap->ToByteView());
 
         Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize(),
             "Bitmap byte size {} does not match texture byte size {}",
@@ -521,7 +473,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
-            const BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
+            BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
             Assert(bakeMesh.mesh == mesh);
 
             MeshDesc newMeshDesc;
@@ -529,19 +481,17 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
             newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
 
-            MeshData newMeshData;
-            newMeshData.vertexData = bakeMesh.vertices;
-            newMeshData.indexData = ByteBuffer(bakeMesh.indices.ToByteView());
-
-            for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
+            for (SizeType i = 0; i < bakeMesh.vertices.Size(); i++)
             {
-                Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
+                Vertex& vertex = bakeMesh.vertices[i];
+
+                Vec2f& lightmapUv = vertex.texcoord1;
                 lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
                 lightmapUv *= lightmapElement->scale;
                 lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
             }
 
-            mesh->SetMeshData(newMeshDesc, newMeshData);
+            mesh->SetMeshData(newMeshDesc, bakeMesh.vertices.ToSpan(), bakeMesh.indices.ToByteView());
         };
 
         UpdateMeshData();

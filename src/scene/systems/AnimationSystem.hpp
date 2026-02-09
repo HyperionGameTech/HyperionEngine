@@ -15,7 +15,6 @@
 namespace Hyperion {
 
 class Skeleton;
-class SkeletonAsset;
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
 class AnimationSystem : public SystemBase
@@ -41,7 +40,7 @@ private:
         };
     }
 
-    HashMap<Skeleton*, ResourceGuard> m_resourceHandles;
+    HashMap<Skeleton*, UniquePtr<TSharedLock<AssetObject>>> m_resourceHandles;
 };
 
 } // namespace Hyperion

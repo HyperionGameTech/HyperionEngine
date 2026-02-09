@@ -12,6 +12,8 @@ namespace CoreApi {
 FilePath GetExecutablePath();
 void SetExecutablePath(const FilePath& path);
 
+HYP_NODISCARD FilePath CreateTempDirectory();
+
 bool Initialize(int argc, char** argv);
 
 const CommandLineArguments& GetCommandLineArguments();

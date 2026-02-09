@@ -231,15 +231,10 @@ struct FBXMesh
             meshDesc.numVertices = uint32(vertices.Size());
             meshDesc.numIndices = uint32(indices.Size());
 
-            MeshData meshData;
-            meshData.vertexData = vertices;
-            meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-            meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
-            bounds = meshData.CalculateAABB();
+            /*bounds = meshData.CalculateAABB();
 
             const Vec3f boundsMin = bounds.GetMin();
-            const Vec3f boundsCenter = bounds.GetCenter();
+            const Vec3f boundsCenter = bounds.GetCenter();*/
 
             //// offset all vertices by the AABB's center
             // for (Vertex& vertex : meshData.vertexData)
@@ -249,7 +244,7 @@ struct FBXMesh
 
             Handle<Mesh> mesh = MakeHandle<Mesh>();
             mesh->SetName(CreateNameFromDynamicString(name));
-            mesh->SetMeshData(meshDesc, meshData);
+            mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
 
             result.Set(std::move(mesh));
         }
@@ -1619,7 +1614,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 Handle<Mesh> mesh = fbxMesh->GetResultObject();
 
-                state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
+                state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
 
                 MaterialAttributes materialAttributes {};
                 materialAttributes.shaderName = NAME("GeometryPass");

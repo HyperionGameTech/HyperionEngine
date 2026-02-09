@@ -4,7 +4,6 @@
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
-#include <scene/asset/SkeletonAsset.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -22,9 +21,6 @@ class Bone;
 class Animation;
 class RenderProxySkeleton;
 
-/*! \brief Runtime skeleton instance that references shared SkeletonAsset data.
- *  Contains the actual bone node hierarchy that can be manipulated at runtime.
- *  Multiple Skeleton instances can share the same SkeletonAsset. */
 HYP_CLASS()
 class HYP_API Skeleton final : public AssetObject
 {
@@ -37,7 +33,6 @@ public:
     Skeleton();
 
     explicit Skeleton(const Handle<Bone>& rootBone);
-    explicit Skeleton(const Handle<SkeletonAsset>& asset);
 
     Skeleton(const Skeleton& other) = delete;
     Skeleton& operator=(const Skeleton& other) = delete;
@@ -69,11 +64,25 @@ public:
     HYP_METHOD(Property = "RootBone")
     void SetRootBone(const Handle<Bone>& bone);
 
-    /*! \brief Get the SkeletonAsset that this skeleton references.
-     *  \returns The skeleton asset, or invalid handle if none is set. */
-    HYP_FORCE_INLINE const Handle<SkeletonAsset>& GetAsset() const
+    HYP_FORCE_INLINE const Array<Handle<Animation>>& GetAnimations() const
     {
-        return m_skeletonAsset.Resolve();
+        return m_animations;
+    }
+
+    HYP_FORCE_INLINE void SetAnimations(const Array<Handle<Animation>>& animations)
+    {
+        m_animations = animations;
+    }
+
+    HYP_METHOD()
+    const Handle<Animation>& GetAnimation(uint32 index) const
+    {
+        if (index >= m_animations.Size())
+        {
+            return Handle<Animation>::empty;
+        }
+
+        return m_animations[index];
     }
 
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
@@ -91,21 +100,11 @@ public:
 private:
     void Init() override;
 
-    /*! \internal Serialization only */
-    HYP_METHOD(Property = "SkeletonAsset")
-    const AssetReference& GetSkeletonAsset() const
-    {
-        return m_skeletonAsset;
-    }
-
-    /*! \internal Serialization only */
-    HYP_METHOD(Property = "SkeletonAsset")
-    void SetSkeletonAsset(const AssetReference& assetReference);
-
     HYP_FIELD(Property = "RootBone", SaveAsReference = false)
     Handle<Bone> m_rootBone;
 
-    TAssetReference<SkeletonAsset> m_skeletonAsset;
+    HYP_FIELD(Property = "Animations")
+    Array<Handle<Animation>> m_animations;
 
     int m_renderProxyVersion;
 };

@@ -14,9 +14,12 @@ Triangle::Triangle()
 {
 }
 
-Triangle::Triangle(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2)
-    : points({ v0, v1, v2 })
+Triangle::Triangle(const float (&pts)[9])
+    : points {}
 {
+    Memory::Copy(&this->points[0], &pts[0], sizeof(float) * 3);
+    Memory::Copy(&this->points[1], &pts[1], sizeof(float) * 3);
+    Memory::Copy(&this->points[2], &pts[2], sizeof(float) * 3);
 }
 
 Vec3f& Triangle::Closest(const Vec3f& vec)

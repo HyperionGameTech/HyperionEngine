@@ -263,7 +263,8 @@ void RayTracingReflections::CreateImages()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED | IU_STORAGE });
+        IU_SAMPLED | IU_STORAGE
+    });
 
     m_texture->SetName(NAME("RayTracingReflectionsTexture"));
 

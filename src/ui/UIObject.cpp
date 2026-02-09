@@ -67,21 +67,26 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             quad->SetFlags(MF_VIEW_INDEPENDENT);
 
             // Hack to make vertices be from 0..1 rather than -1..1
+;
+            Assert(quad->GetVertexData().Size() != 0);
+            Assert(quad->GetIndexData().Size() != 0);
 
-            Assert(quad->GetAsset().IsValid());
-            Assert(quad->GetAsset()->GetMeshData() != nullptr);
+            const MeshDesc& meshDesc = quad->GetMeshDesc();
 
-            const MeshDesc& meshDesc = quad->GetAsset()->GetMeshDesc();
+            const Span<const Vertex> vertexData = quad->GetVertexData();
+            const Span<const ubyte> indexData = quad->GetIndexData();
 
-            MeshData newMeshData = *quad->GetAsset()->GetMeshData();
+            Array<Vertex> newVertices;
+            newVertices.Resize(vertexData.Size());
+            Memory::Copy(newVertices.Data(), vertexData.Data(), sizeof(Vertex) * vertexData.Size());
 
-            for (Vertex& vert : newMeshData.vertexData)
+            for (Vertex& vert : newVertices)
             {
                 vert.position.x = (vert.position.x + 1.0f) * 0.5f;
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
 
-            quad->SetMeshData(meshDesc, newMeshData);
+            quad->SetMeshData(meshDesc, newVertices.ToSpan(), indexData);
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);

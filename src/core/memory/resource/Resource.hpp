@@ -116,6 +116,8 @@ public:
     void AddReader();
     void ReleaseReader();
 
+    void GetNumUsers(int64& outReaders, int64& outWriters) const;
+
 protected:
     virtual void Initialize() = 0;
     virtual void Destroy() = 0;

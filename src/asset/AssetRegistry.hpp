@@ -3,6 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/BlobStorageViews.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -47,6 +48,8 @@ class AssetPackage;
 class AssetObject;
 struct BoxedValue;
 class ByteWriter;
+class BlobStorage;
+class MemoryMappedFile;
 
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
@@ -59,7 +62,8 @@ enum class AssetPackageFlags : uint32
 {
     None = 0x0,
     Transient = 0x1,    //!< Not saved to disk
-    Hidden = 0x2        //!< Hide in content browser
+    Hidden = 0x2,       //!< Hide in content browser
+    HasBlobStorage = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
@@ -94,7 +98,7 @@ public:
     AssetPackage(AssetPackage&& other) noexcept = delete;
     AssetPackage& operator=(AssetPackage&& other) noexcept = delete;
 
-    ~AssetPackage() = default;
+    ~AssetPackage();
 
     HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
@@ -122,6 +126,8 @@ public:
     {
         return m_flags;
     }
+
+    void SetBlobStorageEnabled(bool enabled);
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsTransient() const
@@ -201,6 +207,11 @@ public:
 
     Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
+
+    BlobStorage* GetBlobStorage() const;
+
+    /*! \brief Initialize (owned) BlobStorage for this Package */
+    void InitBlobStorage(bool readOnly = true);
 
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
@@ -295,6 +306,10 @@ private:
 
     Result SaveManifest(ByteWriter& stream) const;
 
+    void InitBlobStorage(BlobStorage& outStorage, bool readOnly = true);
+
+    void LoadBlobStorage();
+
     /*! \brief Check for dirty asset objects and returns true if any are.
      *   Used before saving, to check if we should call MarkDirty() */
     bool HasDirtyAssetObjects() const;
@@ -333,6 +348,8 @@ private:
     mutable Mutex m_loadedMutex;
     ConditionVariable m_loadedCV;
     ThreadId m_loadingThreadId;
+
+    BlobStorage* m_blobStorage;
 };
 
 HYP_CLASS()
@@ -433,6 +450,8 @@ public:
         ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr);
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path, bool attemptLoading = true) const;
+
+    MemoryMappedFile* MapFile(const FilePath& path);
 
     void Initialize();
 

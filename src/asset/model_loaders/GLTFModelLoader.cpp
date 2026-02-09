@@ -773,27 +773,20 @@ bool BuildPrimitive(GltfLoadContext& ctx,
         meshDesc.meshAttributes.vertexAttributes |= VertexAttributeSet::SkeletalMeshVertexAttributes;
     }
 
-    MeshData meshData;
-    meshData.vertexData = std::move(vertices);
-
-    meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-    meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
-    if (!hasNormals && meshDesc.meshAttributes.topology == TOP_TRIANGLES)
-    {
-        meshData.CalculateNormals();
-    }
-
     const Name assetName = MakePrimitiveName(gltfMesh, meshIndex, primitiveIndex);
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(assetName);
-    mesh->SetMeshData(meshDesc, meshData);
+    mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
 
-    mesh->GetAsset()->Rename(assetName);
-    mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
+    if (!hasNormals && meshDesc.meshAttributes.topology == TOP_TRIANGLES)
+    {
+        mesh->CalculateNormals();
+    }
 
-    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
+    mesh->SetOriginalFilepath(FilePath::Relative(ctx.state.filepath, ctx.state.assetManager->GetBasePath()));
+
+    ctx.state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
 
     InitObject(mesh);
 

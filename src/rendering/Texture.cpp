@@ -17,7 +17,6 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <rendering/asset/TextureAsset.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -52,19 +51,19 @@ static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 
 struct CreateTextureGpuImage : RenderCommand
 {
-    Handle<TextureAsset> textureAsset;
-    ResourceGuard resGuard;
+    Handle<Texture> texture;
+    TSharedLock<AssetObject> resGuard;
     ResourceState initialState;
     GpuImageRef image;
     bool uploadTextureData;
 
     CreateTextureGpuImage(
-        Handle<TextureAsset>&& textureAsset,
-        ResourceGuard&& resGuard,
+        Handle<Texture>&& texture,
+        TSharedLock<AssetObject>&& resGuard,
         ResourceState initialState,
         GpuImageRef image,
         bool uploadTextureData)
-        : textureAsset(std::move(textureAsset)),
+        : texture(std::move(texture)),
           resGuard(std::move(resGuard)),
           initialState(initialState),
           image(std::move(image)),
@@ -82,34 +81,39 @@ struct CreateTextureGpuImage : RenderCommand
 
     bool CheckImageData() const
     {
-        if (!textureAsset || !image)
+        if (!texture || !image)
         {
+            HYP_LOG(Streaming, Error, "Image or texture data is null");
+
             return false;
         }
 
-        const TextureData* textureData = textureAsset->GetTextureData();
-        if (!textureData)
+        ConstByteView imageData = texture->GetImageData();
+
+        if (!imageData)
         {
+            HYP_LOG(Streaming, Error, "No image data for texture");
+
             return false;
         }
 
-        const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
+        const TextureDesc& textureDesc = texture->GetTextureDesc();
 
-        const uint32 mip0Size = textureDesc.HasStoredMips()
+        const uint32 largestMipSize = textureDesc.HasStoredMips()
             ? textureDesc.mipOffsets[0]
-            : uint32(textureData->imageData.Size());
+            : uint32(textureDesc.GetByteSize());
 
-        ConstByteView mip0Slice = textureData->imageData.ToByteView().Slice(0, mip0Size);
+        ConstByteView largestMipData = ConstByteView(imageData.Data(), largestMipSize);
 
         if (textureDesc != image->GetTextureDesc())
         {
             HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
         }
 
-        if (mip0Slice.Size() != image->GetByteSize())
+        if (largestMipData.Size() != image->GetByteSize())
         {
             HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
-                textureAsset->GetName(), image->GetByteSize(), mip0Slice.Size());
+                texture->GetName(), image->GetByteSize(), largestMipData.Size());
 
             return false;
         }
@@ -124,11 +128,9 @@ struct CreateTextureGpuImage : RenderCommand
 
         if (uploadTextureData)
         {
-            const TextureData* textureData = textureAsset->GetTextureData();
-            Assert(textureData != nullptr);
+            ConstByteView imageData = texture->GetImageData();
 
-            const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
-            const ByteBuffer* imageData = &textureData->imageData;
+            const TextureDesc& textureDesc = texture->GetTextureDesc();
 
             Span<const uint32> mipOffsets = textureDesc.mipOffsets.ToSpan();
 
@@ -143,12 +145,12 @@ struct CreateTextureGpuImage : RenderCommand
                 mipOffsets = { s_placeholderMipOffsets, TextureDesc::MaxMips };
 
                 // fill some placeholder data with zeros so we don't crash
-                imageData = &placeholderBuffer.Emplace();
+                imageData = placeholderBuffer.Emplace().ToByteView();
                 placeholderBuffer->SetSize(image->GetByteSize());
 
                 const TextureFormat nonSrgbFormat = TextureUtils::ChangeFormatSRGB(image->GetTextureFormat(), false);
 
-                switch (textureAsset->GetTextureDesc().type)
+                switch (texture->GetTextureDesc().type)
                 {
                 case TextureType::Texture2D:
                     switch (nonSrgbFormat)
@@ -190,10 +192,10 @@ struct CreateTextureGpuImage : RenderCommand
                 }
             }
 
-            GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData->Size());
-            stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", textureAsset->GetName().IsValid() ? textureAsset->GetName() : NAME("Invalid")));
+            GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
+            stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture->GetName().IsValid() ? texture->GetName() : NAME("Invalid")));
             CheckResultOrReturn(stagingBuffer->Create());
-            stagingBuffer->Copy(imageData->Size(), imageData->Data());
+            stagingBuffer->Copy(imageData.Size(), imageData.Data());
 
             HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
 
@@ -203,7 +205,7 @@ struct CreateTextureGpuImage : RenderCommand
 
             renderQueue << InsertBarrier(image, RS_COPY_DST);
 
-            if (textureDesc.HasMipMaps() && imageData != placeholderBuffer.TryGet())
+            if (textureDesc.HasMipMaps() && !placeholderBuffer.HasValue())
             {
                 const bool hasPreGeneratedMips = textureDesc.mipOffsets[0] != 0;
 
@@ -275,7 +277,7 @@ struct CreateTextureGpuImage : RenderCommand
             renderQueue << InsertBarrier(image, initialState);
         }
 
-        resGuard.Release();
+        resGuard.Reset();
 
         return {};
     }
@@ -292,26 +294,22 @@ Texture::Texture()
           Vec3u { 1, 1, 1 },
           TFM_NEAREST,
           TFM_NEAREST,
-          TWM_CLAMP_TO_EDGE })
+          TWM_CLAMP_TO_EDGE
+      })
 {
 }
 
 Texture::Texture(const TextureDesc& textureDesc)
     : AssetObject(s_nameTextureDefault),
-      m_assetReference(MakeHandle<TextureAsset>(s_nameTextureDefault, textureDesc))
+      m_textureDesc(textureDesc)
 {
 }
 
-Texture::Texture(const TextureDesc& textureDesc, const TextureData& textureData)
+Texture::Texture(const TextureDesc& textureDesc, ConstByteView imageData)
     : AssetObject(s_nameTextureDefault),
-      m_assetReference(MakeHandle<TextureAsset>(s_nameTextureDefault, textureDesc, textureData))
+      m_textureDesc(textureDesc)
 {
-}
-
-Texture::Texture(const Handle<TextureAsset>& asset)
-    : AssetObject(s_nameTextureDefault),
-      m_assetReference(asset)
-{
+    AllocateBlobData(m_imageData, imageData);
 }
 
 Texture::~Texture()
@@ -320,25 +318,12 @@ Texture::~Texture()
     {
         SafeDelete(std::move(m_gpuImage));
     }
+
+    FreeBlobData(m_imageData);
 }
 
 void Texture::Init()
 {
-    if (const Handle<TextureAsset>& asset = GetAsset())
-    {
-        if (!asset->IsRegistered())
-        {
-            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
-            {
-                HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
-            }
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
-        }
-
-        m_assetReference = TAssetReference(asset);
-    }
-
     m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
 
     if (m_name.IsValid())
@@ -346,22 +331,12 @@ void Texture::Init()
         m_gpuImage->SetDebugName(m_name);
     }
 
-    ResourceGuard resGuard;
-    bool uploadTextureData = false;
-
-    Handle<TextureAsset> textureAsset = GetAsset();
-
-    if (textureAsset)
-    {
-        resGuard = ResourceGuard(*textureAsset->GetResource());
-
-        const TextureData* textureData = textureAsset->GetTextureData();
-        uploadTextureData = textureData && !textureData->imageData.Empty();
-    }
+    TSharedLock<AssetObject> resGuard(*this);
+    const bool uploadTextureData = GetImageData().Size() > 0;
 
     PUSH_RENDER_COMMAND(
         CreateTextureGpuImage,
-        std::move(textureAsset),
+        MakeStrongRef(this),
         std::move(resGuard),
         RS_SHADER_RESOURCE,
         m_gpuImage,
@@ -374,129 +349,23 @@ void Texture::Init()
 
 Result Texture::Rename(Name name)
 {
-    if (name == m_name)
-    {
-        return {};
-    }
-
-    if (Result result = AssetObject::Rename(name); result.HasError())
-    {
-        return result;
-    }
-
-    const Handle<TextureAsset>& asset = GetAsset();
-
-    if (asset.IsValid())
-    {
-        if (!asset->IsRegistered())
-        {
-            if (Result renameResult = asset->Rename(m_name); renameResult.HasError())
-            {
-                HYP_LOG(Assets, Error, "Failed to rename texture asset!", renameResult.GetError().GetMessage());
-            }
-
-            if (IsInitCalled())
-            {
-                g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
-            }
-        }
-    }
-
-    return {};
+    return AssetObject::Rename(name);
 }
 
-const Handle<TextureAsset>& Texture::GetAsset() const
+void Texture::SetImageData(ConstByteView imageData)
 {
-    return m_assetReference.Resolve();
+    FreeBlobData(m_imageData);
+    AllocateBlobData(m_imageData, imageData);
+
+    MarkDirty();
 }
 
-void Texture::SetAsset(const Handle<TextureAsset>& asset)
-{
-    if (!asset && !m_assetReference.IsValid())
-    {
-        // both invalid
-        return;
-    }
-
-    if (asset && IsInitCalled())
-    {
-        InitObject(asset);
-
-        if (!asset->IsRegistered())
-        {
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
-        }
-    }
-
-    m_assetReference = TAssetReference<TextureAsset>(asset);
-}
-
-const TextureDesc& Texture::GetTextureDesc() const
-{
-    static const TextureDesc s_defaultTextureDesc {};
-
-    const Handle<TextureAsset>& asset = GetAsset();
-    return asset ? asset->GetTextureDesc() : s_defaultTextureDesc;
-}
-
-void Texture::SetTextureDesc(const TextureDesc& textureDesc)
-{
-    TextureDesc currentTextureDesc = GetTextureDesc();
-
-    if (currentTextureDesc == textureDesc)
-    {
-        return;
-    }
-
-    Handle<TextureAsset> asset = GetAsset();
-
-    // create new asset
-    if (asset != nullptr)
-    {
-        Handle<TextureAsset> prevAsset = asset;
-
-        Handle<AssetPackage> package = prevAsset->GetPackage();
-
-        ResourceGuard resGuard(*prevAsset->GetResource());
-
-        // @NOTE: Don't use std::move with prev data, the texture may be in use elsewhere (e.g uploading in render command)
-        TextureData newTextureData = *prevAsset->GetTextureData();
-
-        asset = MakeHandle<TextureAsset>(prevAsset->GetName(), textureDesc, newTextureData);
-
-        if (package.IsValid())
-        {
-            Result addAssetResult = package->AddAssetObject(asset, /* replaceOnConflict */ true);
-            if (addAssetResult.HasError())
-            {
-                HYP_LOG(Assets, Error, "Failed to update texture asset!", addAssetResult.GetError().GetMessage());
-            }
-        }
-    }
-    else
-    {
-        asset = MakeHandle<TextureAsset>(GetName(), textureDesc);
-    }
-
-    if (IsInitCalled())
-    {
-        InitObject(asset);
-
-        if (!asset->IsRegistered())
-        {
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Textures", asset);
-        }
-    }
-
-    m_assetReference = TAssetReference<TextureAsset>(asset);
-}
-
-void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
+void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
 {
     const uint32 numMipLevels = desc.NumMips();
     const uint32 numArrayLayers = desc.NumArrayLayers();
 
-    AssertDebug(data.imageData.Size() == desc.GetByteSize());
+    AssertDebug(imageData.Size() == desc.GetByteSize());
 
     if (numMipLevels <= 1)
     {
@@ -513,7 +382,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
 
     // base mip size
     const uint32 baseMipSize = desc.GetMipByteSize(0) * numArrayLayers;
-    AssertDebug(data.imageData.Size() == baseMipSize);
+    AssertDebug(imageData.Size() == baseMipSize);
 
     uint32 totalSize = baseMipSize;
 
@@ -522,7 +391,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
         totalSize += desc.GetMipByteSize(mip) * numArrayLayers;
     }
 
-    data.imageData.SetSize(totalSize);
+    imageData.SetSize(totalSize);
 
     uint32 srcBlockStart = 0;
     uint32 dstWriteOffset = baseMipSize;
@@ -577,7 +446,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
         {
             uint32 readOffset = srcBlockStart + (layer * srcMipSize);
 
-            ConstByteView srcView = data.imageData.ToByteView().Slice(readOffset, readOffset + srcMipSize);
+            ConstByteView srcView = imageData.ToByteView().Slice(readOffset, readOffset + srcMipSize);
 
             int result = 0;
             const int numChannels = TextureUtils::NumComponents(desc.format);
@@ -649,7 +518,7 @@ void Texture::GenerateMipmaps(TextureDesc& desc, TextureData& data)
                 return;
             }
 
-            data.imageData.Write(dstMipSize, dstWriteOffset, intermediateBuffer);
+            imageData.Write(dstMipSize, dstWriteOffset, intermediateBuffer);
 
             dstWriteOffset += dstMipSize;
         }
@@ -790,32 +659,10 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    const Handle<TextureAsset>& asset = GetAsset();
+    auto resGuard = GetReadScope();
 
-    if (!asset)
-    {
-        HYP_LOG_ONCE(Texture, Warning, "Texture asset is not valid, cannot sample");
-
-        HYP_BREAKPOINT;
-
-        return Vec4f::Zero();
-    }
-
-    ResourceGuard resGuard = ResourceGuard(*asset->GetResource());
-
-    if (!resGuard)
-    {
-        HYP_LOG_ONCE(Texture, Warning, "Texture resource handle is not valid, cannot sample");
-
-        HYP_BREAKPOINT;
-
-        return Vec4f::Zero();
-    }
-
-    const TextureData* textureData = asset->GetTextureData();
-    Assert(textureData != nullptr);
-
-    const TextureDesc& textureDesc = asset->GetTextureDesc();
+    ConstByteView imageData = GetImageData();
+    const TextureDesc& textureDesc = GetTextureDesc();
 
     Vec3u coord = {
         uint32(MathUtil::Abs(std::fmodf(uvw.x, 1.0f)) * float(textureDesc.extent.x - 1) + 0.5f),
@@ -839,18 +686,18 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         + coord.y * (textureDesc.extent.x * bytesPerComponent * numComponents)
         + coord.x * bytesPerComponent * numComponents;
 
-    const uint32 mip0Size = textureDesc.HasStoredMips()
+    const uint32 largestMipSize = textureDesc.HasStoredMips()
         ? textureDesc.mipOffsets[0]
-        : uint32(textureData->imageData.Size());
+        : uint32(textureDesc.GetByteSize());
 
-    if (index + (bytesPerComponent * numComponents) > mip0Size)
+    if (index + (bytesPerComponent * numComponents) > largestMipSize)
     {
         HYP_LOG_ONCE(Texture, Warning,
             "Sample() call would attempt to read out of bounds of data for Texture {} ({})!\n"
             "Texture format: {}, Texel index: {}, texture data buffer size: {}, coord: {}, dimensions: {}, num faces: {}, bytes per component: {}, num components: {}",
             GetName(), Id(),
             EnumToString(textureDesc.format),
-            index, mip0Size,
+            index, largestMipSize,
             coord, textureDesc.extent, NumArrayLayers(),
             bytesPerComponent, numComponents);
 
@@ -863,13 +710,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         switch (numComponents)
         {
         case 1:
-            return ConstPixelReference<float, 1>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<float, 1>(imageData.Data() + index).GetRGBA();
         case 2:
-            return ConstPixelReference<float, 2>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<float, 2>(imageData.Data() + index).GetRGBA();
         case 3:
-            return ConstPixelReference<float, 3>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<float, 3>(imageData.Data() + index).GetRGBA();
         case 4:
-            return ConstPixelReference<float, 4>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<float, 4>(imageData.Data() + index).GetRGBA();
         default:
             break;
         }
@@ -880,13 +727,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         switch (numComponents)
         {
         case 1:
-            return ConstPixelReference<uint16, 1>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint16, 1>(imageData.Data() + index).GetRGBA();
         case 2:
-            return ConstPixelReference<uint16, 2>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint16, 2>(imageData.Data() + index).GetRGBA();
         case 3:
-            return ConstPixelReference<uint16, 3>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint16, 3>(imageData.Data() + index).GetRGBA();
         case 4:
-            return ConstPixelReference<uint16, 4>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint16, 4>(imageData.Data() + index).GetRGBA();
         default:
             break;
         }
@@ -897,13 +744,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         switch (numComponents)
         {
         case 1:
-            return ConstPixelReference<uint32, 1>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint32, 1>(imageData.Data() + index).GetRGBA();
         case 2:
-            return ConstPixelReference<uint32, 2>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint32, 2>(imageData.Data() + index).GetRGBA();
         case 3:
-            return ConstPixelReference<uint32, 3>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint32, 3>(imageData.Data() + index).GetRGBA();
         case 4:
-            return ConstPixelReference<uint32, 4>(textureData->imageData.Data() + index).GetRGBA();
+            return ConstPixelReference<uint32, 4>(imageData.Data() + index).GetRGBA();
         default:
             break;
         }
@@ -916,13 +763,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             switch (numComponents)
             {
             case 1:
-                return ConstPixelReference<ubyte, 1, true>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 1, true>(imageData.Data() + index).GetRGBA();
             case 2:
-                return ConstPixelReference<ubyte, 2, true>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 2, true>(imageData.Data() + index).GetRGBA();
             case 3:
-                return ConstPixelReference<ubyte, 3, true>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 3, true>(imageData.Data() + index).GetRGBA();
             case 4:
-                return ConstPixelReference<ubyte, 4, true>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 4, true>(imageData.Data() + index).GetRGBA();
             default:
                 break;
             }
@@ -933,13 +780,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             switch (numComponents)
             {
             case 1:
-                return ConstPixelReference<ubyte, 1>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 1>(imageData.Data() + index).GetRGBA();
             case 2:
-                return ConstPixelReference<ubyte, 2>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 2>(imageData.Data() + index).GetRGBA();
             case 3:
-                return ConstPixelReference<ubyte, 3>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 3>(imageData.Data() + index).GetRGBA();
             case 4:
-                return ConstPixelReference<ubyte, 4>(textureData->imageData.Data() + index).GetRGBA();
+                return ConstPixelReference<ubyte, 4>(imageData.Data() + index).GetRGBA();
             default:
                 break;
             }

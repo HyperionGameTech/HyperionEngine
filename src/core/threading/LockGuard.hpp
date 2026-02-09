@@ -7,112 +7,170 @@
 namespace Hyperion {
 namespace threading {
 
-template <class TMutex>
+template <class TLockObject>
 class TLockGuard final
 {
 public:
     TLockGuard()
-        : mutex(nullptr)
+        : obj(nullptr)
     {
     }
 
-    TLockGuard(TMutex& mutex)
-        : mutex(&mutex)
+    TLockGuard(TLockObject& obj)
+        : obj(&obj)
     {
-        mutex.Lock();
+        obj.Lock();
     }
 
     TLockGuard(const TLockGuard& other) = delete;
     TLockGuard& operator=(const TLockGuard& other) = delete;
 
-    TLockGuard(TLockGuard&& other) noexcept = delete;
-    TLockGuard& operator=(TLockGuard&& other) noexcept = delete;
+    TLockGuard(TLockGuard&& other) noexcept
+        : obj(other.obj)
+    {
+        other.obj = nullptr;
+    }
+
+    TLockGuard& operator=(TLockGuard&& other) noexcept
+    {
+        if (obj)
+            obj->Unlock();
+
+        obj = other.obj;
+        other.obj = nullptr;
+
+        return *this;
+    }
 
     ~TLockGuard()
     {
-        if (mutex)
-            mutex->Unlock();
+        if (obj)
+            obj->Unlock();
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return obj != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return obj == nullptr;
     }
 
     void Reset()
     {
-        if (mutex)
+        if (obj)
         {
-            mutex->Unlock();
+            obj->Unlock();
         }
 
-        mutex = nullptr;
+        obj = nullptr;
     }
 
-    void Reset(TMutex& newMutex)
+    void Reset(TLockObject& newMutex)
     {
-        if (mutex)
+        if (obj)
         {
-            mutex->Unlock();
+            obj->Unlock();
         }
 
-        mutex = &newMutex;
-        mutex->Lock();
+        obj = &newMutex;
+        obj->Lock();
     }
 
 private:
-    TMutex* mutex;
+    TLockObject* obj;
 };
 
-template <class TMutex>
+template <class TLockObject>
 class TSharedLock final
 {
 public:
-    TSharedLock(TMutex& mutex)
-        : mutex(&mutex)
+    TSharedLock()
+        : obj(nullptr)
     {
-        mutex.LockReader();
+    }
+
+    TSharedLock(TLockObject& obj)
+        : obj(&obj)
+    {
+        obj.LockReader();
     }
 
     TSharedLock(const TSharedLock& other) = delete;
     TSharedLock& operator=(const TSharedLock& other) = delete;
 
-    TSharedLock(TSharedLock&& other) noexcept = delete;
-    TSharedLock& operator=(TSharedLock&& other) noexcept = delete;
+    TSharedLock(TSharedLock&& other) noexcept
+        : obj(other.obj)
+    {
+        other.obj = nullptr;
+    }
+
+    TSharedLock& operator=(TSharedLock&& other) noexcept
+    {
+        if (obj)
+            obj->UnlockReader();
+
+        obj = other.obj;
+        other.obj = nullptr;
+
+        return *this;
+    }
 
     ~TSharedLock()
     {
-        if (mutex)
-            mutex->UnlockReader();
+        if (obj)
+            obj->UnlockReader();
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return obj != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return obj == nullptr;
     }
 
     void Reset()
     {
-        if (mutex)
+        if (obj)
         {
-            mutex->UnlockReader();
+            obj->UnlockReader();
         }
 
-        mutex = nullptr;
+        obj = nullptr;
     }
 
-    void Reset(TMutex& newMutex)
+    void Reset(TLockObject& newMutex)
     {
-        if (mutex)
+        if (obj)
         {
-            mutex->UnlockReader();
+            obj->UnlockReader();
         }
 
-        mutex = &newMutex;
-        mutex->LockReader();
+        obj = &newMutex;
+        obj->LockReader();
     }
 private:
-    TMutex* mutex;
+    TLockObject* obj;
 };
 
-template <class TMutex>
+template <class TLockObject>
 class TUniqueLock final
 {
 public:
-    TUniqueLock(TMutex& mutex)
-        : mutex(&mutex)
+    TUniqueLock()
+        : obj(nullptr)
     {
-        mutex.LockWriter();
+    }
+
+    TUniqueLock(TLockObject& obj)
+        : obj(&obj)
+    {
+        obj.LockWriter();
     }
 
     TUniqueLock(const TUniqueLock& other) = delete;
@@ -123,33 +181,33 @@ public:
 
     ~TUniqueLock()
     {
-        if (mutex)
-            mutex->UnlockWriter();
+        if (obj)
+            obj->UnlockWriter();
     }
 
     void Reset()
     {
-        if (mutex)
+        if (obj)
         {
-            mutex->UnlockWriter();
+            obj->UnlockWriter();
         }
 
-        mutex = nullptr;
+        obj = nullptr;
     }
 
-    void Reset(TMutex& newMutex)
+    void Reset(TLockObject& newMutex)
     {
-        if (mutex)
+        if (obj)
         {
-            mutex->UnlockWriter();
+            obj->UnlockWriter();
         }
 
-        mutex = &newMutex;
-        mutex->LockWriter();
+        obj = &newMutex;
+        obj->LockWriter();
     }
 
 private:
-    TMutex* mutex;
+    TLockObject* obj;
 };
 
 } // namespace threading

@@ -133,7 +133,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     BoundingBox newAabb = m_aabb;
 
-    Array<Tuple<VoxelOctreeElement, MeshDesc, MeshData*, ResourceGuard>> meshDatas;
+    Array<Tuple<VoxelOctreeElement, MeshDesc, Span<const Vertex>, Span<const ubyte>, UniquePtr<TSharedLock<AssetObject>>>> meshDatas;
 
     for (auto [entity, meshComponent, transformComponent, boundingBoxComponent] : entityManager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
@@ -180,17 +180,12 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         element.transformMatrix = entity->GetWorldMatrix();
         element.aabb = boundingBoxComponent.worldAabb;
 
-        if (!meshComponent.mesh->GetAsset())
-        {
-            continue;
-        }
-
-        ResourceGuard resGuard(*meshComponent.mesh->GetAsset()->GetResource());
         meshDatas.EmplaceBack(
             element,
-            meshComponent.mesh->GetAsset()->GetMeshDesc(),
-            meshComponent.mesh->GetAsset()->GetMeshData(),
-            resGuard);
+            meshComponent.mesh->GetMeshDesc(),
+            meshComponent.mesh->GetVertexData(),
+            meshComponent.mesh->GetIndexData(),
+            MakeUnique<TSharedLock<AssetObject>>(*meshComponent.mesh));
     }
 
     if (!newAabb.IsValid() || !newAabb.IsFinite())
@@ -213,26 +208,36 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
     InitOctants();
 
-    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, const MeshData&)> InsertIntoOctree;
+    Proc<bool(const VoxelOctreeElement&, const MeshDesc&, Span<const Vertex>, Span<const ubyte>)> InsertIntoOctree;
 
-    InsertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, const MeshData& meshData) -> bool
+    InsertIntoOctree = [&](const VoxelOctreeElement& element, const MeshDesc& meshDesc, Span<const Vertex> vertexData, Span<const ubyte> indexData) -> bool
     {
         if (meshDesc.numIndices > 0)
         {
             const Mat4f& transformMatrix = element.transformMatrix;
 
+            // @TODO fix for non-uint32 sized indices
+
             Span<const uint32> meshIndices = Span<const uint32>(
-                reinterpret_cast<const uint32*>(meshData.indexData.Data()),
-                reinterpret_cast<const uint32*>(meshData.indexData.Data()) + (meshData.indexData.Size() / sizeof(uint32)));
+                reinterpret_cast<const uint32*>(indexData.Data()),
+                reinterpret_cast<const uint32*>(indexData.Data()) + (indexData.Size() / sizeof(uint32)));
 
             Assert(meshIndices.Size() % 3 == 0);
 
             for (SizeType i = 0; i < meshIndices.Size(); i += 3)
             {
+                const Vec3f positions[3] = {
+                    transformMatrix * vertexData[meshIndices[i + 0]].position,
+                    transformMatrix * vertexData[meshIndices[i + 1]].position,
+                    transformMatrix * vertexData[meshIndices[i + 2]].position
+                };
+
                 const Triangle triangle {
-                    transformMatrix * meshData.vertexData[meshIndices[i + 0]].position,
-                    transformMatrix * meshData.vertexData[meshIndices[i + 1]].position,
-                    transformMatrix * meshData.vertexData[meshIndices[i + 2]].position
+                    {
+                        positions[0].x, positions[0].y, positions[0].z,
+                        positions[1].x, positions[1].y, positions[1].z,
+                        positions[2].x, positions[2].y, positions[2].z
+                    }
                 };
 
                 BoundingBox triangleAabb = triangle.GetBoundingBox().Expand(0.002f);
@@ -248,11 +253,10 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
     {
         const VoxelOctreeElement& element = tup.GetElement<0>();
         const MeshDesc& meshDesc = tup.GetElement<1>();
-        const MeshData* meshData = tup.GetElement<2>();
+        const Span<const Vertex> vertexData = tup.GetElement<2>();
+        const Span<const ubyte> indexData = tup.GetElement<3>();
 
-        Assert(meshData != nullptr);
-
-        InsertIntoOctree(element, meshDesc, *meshData);
+        InsertIntoOctree(element, meshDesc, vertexData, indexData);
     }
 
     return {};

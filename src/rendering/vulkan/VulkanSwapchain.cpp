@@ -24,9 +24,9 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-static constexpr bool VulkanSwapchainUseFIFO = false;
-static constexpr bool UseSrgbFormat = true;
-static constexpr bool UseHdrFormat = false;
+static constexpr bool VulkanSwapchainUseFIFO = true;
+static constexpr bool UseSRGBFormat = true;
+static constexpr bool UseHDRFormat = false;
 static constexpr VkImageUsageFlags ImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult AcquireNextImage(
@@ -327,7 +327,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
 {
     m_surfaceFormat = {};
 
-    if (UseHdrFormat)
+    if (UseHDRFormat)
     {
         /* look for hdr format */
         m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
@@ -358,7 +358,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         }
     }
 
-    if (UseSrgbFormat)
+    if (UseSRGBFormat)
     {
         /* look for srgb format */
         m_imageFormat = g_renderInterface->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(

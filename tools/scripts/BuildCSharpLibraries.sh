@@ -17,7 +17,7 @@ pushd CSharpProjects
 for project in "${projects[@]}"; do
     mkdir -p "$buildDir/bin"
     
-    echo "Building $project..."
+    echo "Building $project in $CONFIG configuration..."
 
     pushd "$project"
         dotnet build --disable-build-servers --no-restore --configuration "$CONFIG"

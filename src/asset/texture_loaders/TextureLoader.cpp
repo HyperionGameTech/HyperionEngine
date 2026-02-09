@@ -5,7 +5,6 @@
 #include <asset/texture_loaders/TextureLoader.hpp>
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <rendering/asset/TextureAsset.hpp>
 
 #include <core/utilities/StringUtil.hpp>
 
@@ -106,11 +105,11 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         TWM_REPEAT
     };
 
+    AssertDebug(TextureUtils::NumComponents(data.format) == data.numComponents);
+
     ByteBuffer baseMipData = ByteBuffer(imageBytesCount, imageBytes);
 
-    const uint32 numComponents = TextureUtils::NumComponents(data.format);
-
-    if (numComponents == 3)
+    if (data.numComponents == 3)
     {
         // convert to bytes per pixel = 4
         const uint32 size = textureDesc.GetByteSize();
@@ -127,7 +126,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         {
             ImageUtil::ConvertBPP(
                 textureDesc.extent.x, textureDesc.extent.y, textureDesc.extent.z,
-                numComponents, 4,
+                data.numComponents, 4,
                 &baseMipData.Data()[i * faceOffsetStep],
                 &newByteBuffer.Data()[i * newFaceOffsetStep]);
         }
@@ -137,21 +136,19 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         baseMipData = std::move(newByteBuffer);
     }
 
-    TextureData textureData;
-    textureData.imageData = std::move(baseMipData);
+    // debug
+    Assert(textureDesc.format != TextureFormat::RGB8_SRGB);
 
-    Texture::GenerateMipmaps(textureDesc, textureData);
+    Texture::GenerateMipmaps(textureDesc, baseMipData);
 
-    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, textureData);
+    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());
 
     stbi_image_free(imageBytes);
 
     texture->SetName(assetName);
-
-    texture->GetAsset()->Rename(assetName);
-    texture->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
-
-    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", texture->GetAsset());
+    texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+    
+    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", texture);
 
     InitObject(texture);
 

@@ -10,7 +10,6 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
-#include <rendering/asset/TextureAsset.hpp>
 
 #include <core/math/Vector2.hpp>
 
@@ -237,31 +236,29 @@ void PlaceholderData::Create()
         }
     };
 
-    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& texture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
+    auto LoadOrInitTexture = [&InitBufferData]<class... Args>(Handle<Texture>& outTexture, const String& path, const UTF8StringView& name, const TextureDesc& textureDesc, PlaceholderBufferData& bufferData, auto fillFn, Args&&... args)
     {
         if (Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path + "/" + name); asset.IsValid())
         {
-            Handle<TextureAsset> textureAsset = ObjCast<TextureAsset>(asset);
+            Handle<Texture> textureAsset = ObjCast<Texture>(asset);
             Assert(textureAsset != nullptr);
 
-            texture = MakeHandle<Texture>(textureAsset);
-            texture->SetName(CreateNameFromDynamicString(*name));
+            InitObject(textureAsset);
 
-            InitObject(texture);
+            outTexture = textureAsset;
 
             return;
         }
 
         InitBufferData(bufferData, fillFn, textureDesc.extent.GetXY(), std::forward<Args>(args)...);
 
-        texture = MakeHandle<Texture>(textureDesc, TextureData { bufferData.first });
-        texture->SetName(CreateNameFromDynamicString(*name));
+        outTexture = MakeHandle<Texture>(textureDesc, bufferData.first.ToByteView());
+        outTexture->SetName(CreateNameFromDynamicString(*name));
+        outTexture->SetPersistentRequested(true, /* setFlag */ true);
+        
+        g_assetManager->GetAssetRegistry()->RegisterAsset(path, outTexture);
 
-        g_assetManager->GetAssetRegistry()->RegisterAsset(path, texture->GetAsset());
-
-        InitObject(texture);
-
-        texture->GetAsset()->SetPersistentRequested(true, /* setFlag */ true);
+        InitObject(outTexture);
     };
 
     PlaceholderBufferData placeholderBufferTex2d {};

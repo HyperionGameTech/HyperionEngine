@@ -108,8 +108,7 @@ enum class TextureFormat : uint8
     RGB32F,
     RGBA32F,
 
-    SRGB, /* begin srgb */
-
+    /* begin srgb */
     R8_SRGB,
     RG8_SRGB,
     RGB8_SRGB,
@@ -120,9 +119,8 @@ enum class TextureFormat : uint8
     BGR8_SRGB,
     BGRA8_SRGB,
 
-    DEPTH, /* begin depth */
-
-    D16 = DEPTH,
+    /* begin depth */
+    D16,
     D24_S8,
     D32F,
     D32F_S8
@@ -314,7 +312,7 @@ static inline constexpr TextureFormat FormatChangeNumComponents(TextureFormat fm
 
 static inline constexpr bool IsDepthFormat(TextureFormat fmt)
 {
-    return fmt >= TextureFormat::DEPTH;
+    return fmt >= TextureFormat::D16;
 }
 
 static inline constexpr bool HasStencilComponent(TextureFormat fmt)
@@ -324,20 +322,20 @@ static inline constexpr bool HasStencilComponent(TextureFormat fmt)
 
 static inline constexpr bool IsSRGB(TextureFormat fmt)
 {
-    return fmt >= TextureFormat::SRGB && fmt < TextureFormat::DEPTH;
+    return fmt >= TextureFormat::R8_SRGB && fmt < TextureFormat::D16;
 }
 
 /*! \brief Converts srgb formats to non-srgb variants and vice versa. Only for SRGB supported formats. */
-static inline constexpr TextureFormat ChangeFormatSRGB(TextureFormat fmt, bool makeSrgb = true)
+static inline constexpr TextureFormat ChangeFormatSRGB(TextureFormat fmt, bool useSRGB = true)
 {
-    if (IsSRGB(fmt) == makeSrgb)
+    if (IsSRGB(fmt) == useSRGB)
     {
         return fmt;
     }
 
-    constexpr uint32 BeginSRGB = uint32(TextureFormat::SRGB);
+    constexpr uint32 BeginSRGB = uint32(TextureFormat::R8_SRGB);
 
-    if (makeSrgb)
+    if (useSRGB)
     {
         TextureFormat srgbVersion = static_cast<TextureFormat>(uint32(fmt) + BeginSRGB);
 
@@ -605,48 +603,6 @@ struct TextureDesc
         hc.Add(wrapMode);
         hc.Add(numLayers);
         hc.Add(mipOffsets);
-
-        return hc;
-    }
-};
-
-HYP_STRUCT()
-struct TextureData
-{
-    HYP_STRUCT_BODY(TextureData);
-
-    HYP_FIELD(Property = "ImageData", Serialize, Compressed)
-    ByteBuffer imageData;
-
-    TextureData() = default;
-
-    explicit TextureData(const ByteBuffer& imageData)
-        : imageData(imageData)
-    {
-    }
-
-    explicit TextureData(ByteBuffer&& imageData)
-        : imageData(std::move(imageData))
-    {
-    }
-
-    TextureData(const TextureData& other) = default;
-    TextureData& operator=(const TextureData& other) = default;
-
-    TextureData(TextureData&& other) noexcept = default;
-    TextureData& operator=(TextureData&& other) noexcept = default;
-
-    ~TextureData() = default;
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return imageData.Any();
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(imageData.GetHashCode());
 
         return hc;
     }

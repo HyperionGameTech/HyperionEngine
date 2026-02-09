@@ -4,12 +4,12 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "AnimationTrack")]
-    public class AnimationTrack : ObjectBase
+    public class AnimationTrack : AssetObject
     {
     }
 
     [ClassBinding(Name = "Animation")]
-    public class Animation : ObjectBase
+    public class Animation : AssetObject
     {
         public Animation()
         {

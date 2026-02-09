@@ -11,17 +11,19 @@
 #include <core/threading/Semaphore.hpp>
 
 #include <core/math/BoundingBox.hpp>
-#include <rendering/Vertex.hpp>
+
+#include <core/io/ByteReader.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <scene/BVH.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shared.hpp>
+#include <rendering/Vertex.hpp>
 #include <rendering/RenderObject.hpp>
 
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
-#include <rendering/asset/MeshAsset.hpp>
 
 #include <cstdint>
 
@@ -74,6 +76,21 @@ private:
     Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE> m_semaphore;
 };
 
+HYP_STRUCT()
+struct MeshDesc
+{
+    HYP_STRUCT_BODY(MeshDesc);
+
+    HYP_FIELD(Serialize)
+    MeshAttributes meshAttributes;
+
+    HYP_FIELD(Serialize)
+    uint32 numVertices = 0;
+
+    HYP_FIELD(Serialize)
+    uint32 numIndices = 0;
+};
+
 /*! \brief Represents a 3D mesh in the engine, containing vertex data, indices, and rendering attributes. */
 HYP_CLASS()
 class HYP_API Mesh final : public AssetObject
@@ -87,8 +104,6 @@ public:
 
     Mesh();
 
-    Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes);
-    Mesh(const Handle<MeshAsset>& asset, Topology topology = TOP_TRIANGLES);
     Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes);
     Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology = TOP_TRIANGLES);
 
@@ -106,10 +121,16 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name) override;
 
-    void SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData);
+    void SetMeshData(
+        const MeshDesc& meshDesc,
+        Span<const Vertex> vertices,
+        Span<const ubyte> indices);
 
     HYP_METHOD()
-    uint32 NumIndices() const;
+    HYP_FORCE_INLINE uint32 NumIndices() const
+    {
+        return m_meshDesc.numIndices;
+    }
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE const GpuBufferRef& GetVertexBuffer() const
@@ -126,25 +147,18 @@ public:
     HYP_METHOD(Property = "VertexAttributes", Transient)
     HYP_FORCE_INLINE VertexAttributeSet GetVertexAttributes() const
     {
-        const Handle<MeshAsset>& asset = GetAsset();
-        return asset ? asset->GetMeshDesc().meshAttributes.vertexAttributes : VertexAttributeSet();
+        return m_meshDesc.meshAttributes.vertexAttributes;
     }
 
     HYP_FORCE_INLINE MeshAttributes GetMeshAttributes() const
     {
-        const Handle<MeshAsset>& asset = GetAsset();
-        return asset ? asset->GetMeshDesc().meshAttributes : MeshAttributes();
+        return m_meshDesc.meshAttributes;
     }
 
     HYP_METHOD(Property = "Topology", Transient)
     HYP_FORCE_INLINE Topology GetTopology() const
     {
         return GetMeshAttributes().topology;
-    }
-
-    HYP_FORCE_INLINE const Handle<MeshAsset>& GetAsset() const
-    {
-        return m_meshAsset.Resolve();
     }
 
     /*! \brief Get the axis-aligned bounding box for the mesh. */
@@ -170,34 +184,142 @@ public:
 
     void UploadGpuData();
     void ReleaseGpuData();
+    
+    HYP_FORCE_INLINE const MeshDesc& GetMeshDesc() const
+    {
+        return m_meshDesc;
+    }
+
+    HYP_FORCE_INLINE Span<Vertex> GetVertexData()
+    {
+        return m_vertexData.raw != nullptr
+            ? Span<Vertex>(reinterpret_cast<Vertex*>(m_vertexData.raw), m_vertexData.size / sizeof(Vertex))
+            : Span<Vertex>();
+    }
+
+    HYP_FORCE_INLINE Span<const Vertex> GetVertexData() const
+    {
+        return const_cast<Mesh*>(this)->GetVertexData();
+    }
+
+    void SetVertexData(Span<const Vertex> vertexData);
+
+    HYP_FORCE_INLINE Span<ubyte> GetIndexData()
+    {
+        return m_indexData.raw != nullptr
+            ? Span<ubyte>(reinterpret_cast<ubyte*>(m_indexData.raw), m_indexData.size)
+            : Span<ubyte>();
+    }
+
+    HYP_FORCE_INLINE Span<const ubyte> GetIndexData() const
+    {
+        return const_cast<Mesh*>(this)->GetIndexData();
+    }
+
+    void SetIndexData(Span<const ubyte> indexData);
+
+    BoundingBox CalculateAABB() const;
+    Array<float> BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const;
+    Array<PackedVertex> BuildPackedVertices() const;
+    Array<uint32> BuildPackedIndices() const;
+    void InvertNormals();
+    void CalculateNormals(bool weighted = false);
+    void CalculateTangents();
+    bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
 
     MeshGpuUploadSemaphore gpuUploadSemaphore;
+
+protected:
+    void WriteBlobData(BlobStorage& blobStorage) override
+    {
+        Assert(m_vertexData.raw != nullptr);
+        Assert(m_indexData.raw != nullptr);
+
+        if (!m_vertexData.readOnly)
+        {
+            BlobHeader vertexDataHeader {};
+            Memory::Copy(vertexDataHeader.magic, "VB", 4);
+            vertexDataHeader.version = 1;
+            vertexDataHeader.payloadOffset = 0;
+            vertexDataHeader.payloadSize = m_vertexData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(vertexDataHeader, key))
+            {
+                m_vertexData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+        
+        if (!m_indexData.readOnly)
+        {
+            BlobHeader indexDataHeader {};
+            Memory::Copy(indexDataHeader.magic, "IB", 4);
+            indexDataHeader.version = 1;
+            indexDataHeader.payloadOffset = 0;
+            indexDataHeader.payloadSize = m_indexData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(indexDataHeader, key))
+            {
+                m_indexData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        ByteWriter* writeStream = blobStorage.GetWriteStream();
+
+        writeStream->Seek(m_vertexData.bufferOffset);
+        writeStream->Write(m_vertexData.raw, m_vertexData.size);
+        
+        writeStream->Seek(m_indexData.bufferOffset);
+        writeStream->Write(m_indexData.raw, m_indexData.size);
+    }
+
+    void ReadBlobData(BlobStorage& blobStorage) override
+    {
+        if (m_vertexData.size != 0)
+        {
+            m_vertexData.raw = blobStorage.Map(m_vertexData.bufferOffset, m_vertexData.size);
+            m_vertexData.readOnly = true;
+        }
+        
+        if (m_indexData.size != 0)
+        {
+            m_indexData.raw = blobStorage.Map(m_indexData.bufferOffset, m_indexData.size);
+            m_indexData.readOnly = true;
+        }
+    }
 
 private:
     void Init() override;
 
-    /*! \internal Serialization only */
-    HYP_METHOD(Property = "MeshAsset")
-    const AssetReference& GetMeshAsset() const
-    {
-        return m_meshAsset;
-    }
+    HYP_FIELD(Serialize)
+    MeshDesc m_meshDesc;
 
-    /*! \internal Serialization only */
-    HYP_METHOD(Property = "MeshAsset")
-    void SetMeshAsset(const AssetReference& assetReference);
+    HYP_FIELD(Serialize)
+    BlobDataReference m_vertexData;
+    
+    HYP_FIELD(Serialize)
+    BlobDataReference m_indexData;
 
     HYP_FIELD(Property = "AABB")
     mutable BoundingBox m_aabb;
 
     HYP_FIELD(Transient)
-    BVHNode m_bvh; /// \todo : Move to MeshAsset to serialize there, serialization on Mesh is creating too large files.
+    BVHNode m_bvh;
 
     HYP_FIELD()
     EnumFlags<MeshFlags> m_flags;
-
-    TAssetReference<MeshAsset> m_meshAsset;
-
+    
     GpuBufferRef m_vertexBuffer;
     GpuBufferRef m_indexBuffer;
 

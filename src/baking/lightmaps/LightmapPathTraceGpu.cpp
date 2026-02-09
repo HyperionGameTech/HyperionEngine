@@ -32,8 +32,6 @@
 
 #include <rendering/MeshBlasBuilder.hpp>
 
-#include <rendering/asset/TextureAsset.hpp>
-
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>

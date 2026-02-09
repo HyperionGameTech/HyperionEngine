@@ -10,7 +10,7 @@ SET "buildDir=%CD%"
 pushd CSharpProjects
 
 FOR %%p IN (%projects%) DO (
-    echo Building %%p...
+    echo Building %%p in %CONFIG% configuration...
     pushd "%%p"
     dotnet build --disable-build-servers --no-restore --configuration %CONFIG%
     IF !ERRORLEVEL! NEQ 0 (

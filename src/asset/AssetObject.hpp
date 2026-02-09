@@ -3,6 +3,8 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/BlobStorageStructs.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -24,9 +26,12 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
+enum class ChunkId : uint32;
+
 class AssetPackage;
 class AssetObject;
 class ByteWriter;
+class BlobStorage;
 
 class BufferedReader;
 using BufferedByteReader = BufferedReader;
@@ -47,125 +52,6 @@ class Object;
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
-class AssetDataResourceBase : public ResourceBase
-{
-public:
-    friend class AssetObject;
-
-    AssetDataResourceBase(const AssetDataResourceBase&) = delete;
-    AssetDataResourceBase& operator=(const AssetDataResourceBase&) = delete;
-
-    AssetDataResourceBase(AssetDataResourceBase&&) noexcept = delete;
-    AssetDataResourceBase& operator=(AssetDataResourceBase&&) noexcept = delete;
-
-    virtual ~AssetDataResourceBase() override = default;
-
-    /*! \brief Initialize the resource data from the given stream.
-     *  \param stream The stream to read from.
-     *  \return Result indicating success or failure of the operation. */
-    Result LoadFromStream(BufferedReader& stream);
-
-protected:
-    AssetDataResourceBase()
-        : m_assetObject(nullptr),
-          m_hasData(false)
-    {
-    }
-
-    virtual void Initialize() override final;
-    virtual void Destroy() override final;
-
-    Result Load_Internal();
-    Result Save_Internal(const FilePath& path);
-
-    virtual void Unload_Internal() = 0;
-
-    virtual void Extract_Internal(AnyRef ref) = 0;
-
-    HYP_FORCE_INLINE bool IsDataLoaded() const
-    {
-        return m_hasData;
-    }
-
-    virtual const TypeInfo& GetDataTypeInfo() const = 0;
-
-    virtual void* GetData() = 0;
-
-    AssetObject* m_assetObject;
-    bool m_hasData;
-};
-
-template <class T>
-class AssetDataResource final : public AssetDataResourceBase
-{
-public:
-    AssetDataResource() = default;
-
-    AssetDataResource(const T& data)
-    {
-        m_dataStorage.Construct(data);
-        m_hasData = true;
-    }
-
-    AssetDataResource(T&& data)
-    {
-        m_dataStorage.Construct(std::move(data));
-        m_hasData = true;
-    }
-
-    AssetDataResource(const AssetDataResource&) = delete;
-    AssetDataResource& operator=(const AssetDataResource&) = delete;
-
-    AssetDataResource(AssetDataResource&&) noexcept = delete;
-    AssetDataResource& operator=(AssetDataResource&&) noexcept = delete;
-
-    virtual ~AssetDataResource() override
-    {
-        if (m_hasData)
-        {
-            m_hasData = false;
-            m_dataStorage.Destruct();
-        }
-    }
-
-    virtual const TypeInfo& GetDataTypeInfo() const override
-    {
-        return TypeOf<NormalizedType<T>>();
-    }
-
-    virtual void* GetData() override
-    {
-        return m_hasData ? m_dataStorage.GetPointer() : nullptr;
-    }
-
-protected:
-    virtual void Unload_Internal() override
-    {
-        if (m_hasData)
-        {
-            m_hasData = false;
-
-            m_dataStorage.Destruct();
-        }
-    }
-
-    virtual void Extract_Internal(AnyRef ref) override
-    {
-        if (m_hasData)
-        {
-            m_dataStorage.Get() = ref.Get<T>();
-        }
-        else
-        {
-            m_dataStorage.Construct(ref.Get<T>());
-
-            m_hasData = true;
-        }
-    }
-
-    ValueStorage<T> m_dataStorage;
-};
-
 HYP_ENUM()
 enum class AssetObjectFlags : uint8
 {
@@ -182,32 +68,12 @@ class HYP_API AssetObject : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 
-protected:
-    template <class T>
-    void SetData(T&& data)
-    {
-        if (m_resource)
-        {
-            PoolDelete(*g_assetPool, m_resource);
-        }
-
-        m_resource = PoolNew<AssetDataResource<NormalizedType<T>>>(*g_assetPool, std::forward<T>(data));
-        m_resource->m_assetObject = this;
-    }
-
 public:
     friend class AssetRegistry;
     friend class AssetPackage;
 
     AssetObject();
     explicit AssetObject(Name name);
-
-    template <class T>
-    AssetObject(Name name, T&& data)
-        : AssetObject(name)
-    {
-        AssetObject::SetData(std::forward<T>(data));
-    }
 
     AssetObject(const AssetObject& other) = delete;
     AssetObject& operator=(const AssetObject& other) = delete;
@@ -271,11 +137,6 @@ public:
         return m_package.Lock();
     }
 
-    HYP_FORCE_INLINE AssetDataResourceBase* GetResource() const
-    {
-        return m_resource;
-    }
-
     HYP_METHOD()
     const AssetPath& GetPath() const
     {
@@ -302,7 +163,7 @@ public:
     HYP_METHOD()
     bool IsPersistent() const
     {
-        return bool(m_persistentResource);
+        return bool(m_persistentReader);
     }
 
     HYP_METHOD()
@@ -327,9 +188,6 @@ public:
     void SetIsTransientByProxy(bool isTransientByProxy);
 
     HYP_METHOD()
-    bool IsDataLoaded() const;
-
-    HYP_METHOD()
     bool IsSaved() const;
 
     HYP_METHOD()
@@ -340,49 +198,80 @@ public:
      *  \return Result indicating success or failure of the operation. */
     Result OpenBinaryReadStream(BufferedReader& stream) const;
 
+    TUniqueLock<AssetObject> GetWriteScope() const;
+    TSharedLock<AssetObject> GetReadScope() const;
+    
+    void LockWriter(bool doInitialize = true);
+    void UnlockWriter(bool doDeinitialize = true);
+
+    void LockReader();
+    void UnlockReader();
+
+    void GetNumUsers(int64& outReaders, int64& outWriters) const;
+
     static Result Load(
         JSON::Object& manifestData,
-        BufferedReader* binStream, // optional
+        BlobStorage* blobStorage,
         Handle<AssetObject>& outAssetObject);
 
 protected:
     void Init() override;
+
+    virtual void Initialize()
+    {
+        // unused currently; called when num writers/readers >= 1
+    }
+
+    virtual void Destroy()
+    {
+        // same deal as Initialize()
+    }
 
     virtual void OnDirtyStateChanged(bool isDirty)
     {
         // do nothing by default
     }
 
-    Result SaveManifest(ByteWriter& stream) const;
-
     template <class T>
-    T* GetResourceData() const
+    void AllocateBlobData(BlobDataReference& reference, Span<const T> inData)
     {
-        static_assert(std::is_same_v<T, NormalizedType<T>>);
+        Assert(reference.raw == nullptr || reference.readOnly);
 
-        if (!m_resource)
+        reference = BlobDataReference {};
+
+        if (inData.Size() > 0)
         {
-            return nullptr;
+            reference.raw = HYP_ALLOC_ALIGNED(sizeof(T) * inData.Size(), alignof(T));
+            Assert(reference.raw != nullptr);
+
+            Memory::Copy(reference.raw, inData.Data(), sizeof(T) * inData.Size());
+
+            reference.size = sizeof(T) * inData.Size();
         }
-
-        AssetDataResourceBase* resourceCastedBase = static_cast<AssetDataResourceBase*>(m_resource);
-
-        const bool isExpectedType = TypeInfo_GetId(resourceCastedBase->GetDataTypeInfo()) == TypeIdOf<T>();
-
-        AssertDebug(isExpectedType, "Type mismatch! Expected: {} but got: {}",
-            TypeInfo_GetName(resourceCastedBase->GetDataTypeInfo()),
-            TypeInfo_GetName(TypeOf<T>()));
-
-        if (!isExpectedType)
-        {
-            return nullptr;
-        }
-        
-        AssetDataResource<T>* resourceCasted = static_cast<AssetDataResource<T>*>(m_resource);
-        AssertDebug(resourceCasted->GetData() != nullptr);
-
-        return static_cast<T*>(resourceCasted->GetData());
     }
+
+    void FreeBlobData(BlobDataReference& reference)
+    {
+        if (reference.raw == nullptr || reference.readOnly)
+        {
+            return;
+        }
+
+        HYP_FREE_ALIGNED(reference.raw);
+        reference.raw = nullptr;
+    }
+    
+    virtual void WriteBlobData(BlobStorage& blobStorage)
+    {
+
+    }
+
+    virtual void ReadBlobData(BlobStorage& blobStorage)
+    {
+
+    }
+
+    Result SaveManifest(ByteWriter& stream) const;
 
     HYP_FIELD(Property = "Name")
     Name m_name;
@@ -399,9 +288,6 @@ protected:
     HYP_FIELD(Transient)
     WeakHandle<AssetPackage> m_package;
 
-    HYP_FIELD(NoScriptBindings, Transient)
-    AssetDataResourceBase* m_resource;
-
     HYP_FIELD(Transient)
     AssetPath m_assetPath;
 
@@ -409,10 +295,15 @@ protected:
     FilePath m_manifestPath;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    ResourceGuard m_persistentResource;
-
-    HYP_FIELD(NoScriptBindings, Transient)
     mutable volatile int32 m_isDirty;
+    
+    mutable volatile int64 m_rwState;
+
+    mutable Mutex m_initMutex;
+    ConditionVariable m_initCV;
+    bool m_isInitialized;
+
+    TSharedLock<AssetObject> m_persistentReader;
 };
 
 } // namespace Hyperion

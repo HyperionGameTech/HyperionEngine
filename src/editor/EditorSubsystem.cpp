@@ -70,8 +70,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/asset/TextureAsset.hpp>
-
 #include <ui/font/FontAtlas.hpp>
 
 // temp
@@ -2769,12 +2767,9 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
         const Handle<Texture>& texture = it.second;
         Assert(texture != nullptr);
 
-        const Handle<TextureAsset>& textureAsset = texture->GetAsset();
-        Assert(textureAsset != nullptr);
-
         HYP_LOG(Font, Debug, "Adding texture {} to package", texture->GetName());
 
-        Result result = package->AddAssetObject(textureAsset, /* replaceOnConflict */ true);
+        Result result = package->AddAssetObject(texture, /* replaceOnConflict */ true);
         
         if (result.HasError())
         {

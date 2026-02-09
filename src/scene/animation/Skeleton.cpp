@@ -34,12 +34,6 @@ Skeleton::Skeleton(const Handle<Bone>& rootBone)
     }
 }
 
-Skeleton::Skeleton(const Handle<SkeletonAsset>& asset)
-    : m_skeletonAsset(asset),
-      m_renderProxyVersion(0)
-{
-}
-
 Skeleton::~Skeleton()
 {
     if (m_rootBone)
@@ -53,21 +47,6 @@ Skeleton::~Skeleton()
 void Skeleton::Init()
 {
     HYP_SCOPE;
-
-    if (const Handle<SkeletonAsset>& asset = GetAsset())
-    {
-        if (!asset->IsRegistered())
-        {
-            if (Result renameResult = asset->Rename(GetName()); renameResult.HasError())
-            {
-                HYP_LOG(Animation, Warning, "Failed to rename skeleton asset to '{}': {}", GetName(), renameResult.GetError().GetMessage());
-            }
-
-            // All assets must be registered - if our asset isn't part of a package,
-            // register it with transient Memory package
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Skeletons", asset);
-        }
-    }
 
     AssetObject::Init();
 
@@ -177,38 +156,6 @@ void Skeleton::SetRootBone(const Handle<Bone>& bone)
 
     m_rootBone = bone;
     m_rootBone->SetSkeleton(this);
-}
-
-void Skeleton::SetSkeletonAsset(const AssetReference& assetReference)
-{
-    HYP_SCOPE;
-
-    if (assetReference == m_skeletonAsset)
-    {
-        return;
-    }
-
-    m_skeletonAsset = TAssetReference<SkeletonAsset>(assetReference);
-
-    if (m_skeletonAsset.IsValid() && IsInitCalled())
-    {
-        const Handle<SkeletonAsset>& asset = m_skeletonAsset.Resolve();
-        if (!asset)
-        {
-            HYP_LOG(Animation, Error, "Failed to resolve skeleton asset from asset reference with path '{}'", assetReference.GetAssetPath());
-            return;
-        }
-
-        if (!asset->IsRegistered())
-        {
-            if (Result renameResult = asset->Rename(GetName()); renameResult.HasError())
-            {
-                HYP_LOG(Animation, Warning, "Failed to rename skeleton asset to '{}': {}", GetName(), renameResult.GetError().GetMessage());
-            }
-
-            g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Skeletons", asset);
-        }
-    }
 }
 
 void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)

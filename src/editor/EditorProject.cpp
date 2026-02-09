@@ -19,15 +19,14 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMDeserializedObject.hpp>
-
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/reflection/Class.hpp>
 #include <core/serialization/SerializationUtils.hpp>
+
+#include <core/io/ByteReader.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -145,8 +144,8 @@ Result EditorProject::CreatePackage()
     {
         // if name is already set, use that
         // @NOTE: if package already exists at this path it will be used
-
         m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
+
         OnPackageCreated(m_package);
 
         return {};
@@ -249,11 +248,6 @@ Result EditorProject::SaveAs(FilePath filepath)
         /* forceRelocation */ false,
         [](const AssetObject& assetObject) -> String
         {
-            if (assetObject.InstanceClass()->GetName() == "TextureAsset"_sh)
-            {
-                HYP_BREAKPOINT;
-            }
-
             // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
             //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
             return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());

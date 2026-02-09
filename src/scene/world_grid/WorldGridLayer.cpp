@@ -100,12 +100,6 @@ void WorldGridLayer::AddStreamingObject(const AssetObject* assetObject, const Ve
         return;
     }
 
-    // Temp debug
-    if (assetObject->InstanceClass()->GetName() == "MeshAsset"_sh)
-    {
-        HYP_BREAKPOINT;
-    }
-
     if (!assetObject->IsRegistered())
     {
         // When AssetRegistry::RegisterAssetsRecursively is called, these will be moved to their proper packages/paths (i.e project package)

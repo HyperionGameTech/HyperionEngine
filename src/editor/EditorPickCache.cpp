@@ -10,8 +10,6 @@
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <rendering/asset/MeshAsset.hpp>
-
 #include <core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
@@ -138,15 +136,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return; // already exists
     }
 
-    // Load the stuff in
-    if (!mesh->GetAsset())
-    {
-        HYP_LOG(Editor, Error, "No asset for mesh {} (id: {}), cannot add to editor pick cache", mesh->GetName(), mesh->Id());
-
-        return;
-    }
-
-    ResourceGuard resGuard = mesh->GetAsset()->GetResource()->GetReadScope();
+    auto resGuard = mesh->GetReadScope();
 
     if (!resGuard)
     {
@@ -155,11 +145,14 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
-    const MeshData& meshData = *mesh->GetAsset()->GetMeshData();
+    const MeshDesc& meshDesc = mesh->GetMeshDesc();
+    const Span<const Vertex> vertexData = mesh->GetVertexData();
+    const Span<const ubyte> indexData = mesh->GetIndexData();
+    const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
+    const SizeType numIndices = indexData.Size() / indexSize;
 
     // make sure we have enough memory before adding, otherwise fail
-    if (!HasFreeSpace((meshData.vertexData.Size() * sizeof(Vec3f)) + meshData.indexData.Size()))
+    if (!HasFreeSpace((vertexData.Size() * sizeof(Vec3f)) + numIndices * indexSize))
     {
         HYP_LOG(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
@@ -169,14 +162,17 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     EditorPickCacheEntry entry {};
     entry.frameVisible = fc;
 
-    entry.positions.Resize(meshData.vertexData.Size());
-    for (SizeType i = 0; i < meshData.vertexData.Size(); ++i)
+    entry.positions.Resize(vertexData.Size());
+    for (SizeType i = 0; i < vertexData.Size(); ++i)
     {
-        entry.positions[i] = meshData.vertexData[i].position;
+        entry.positions[i] = vertexData[i].position;
     }
 
-    entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
-    Memory::Copy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+    // @TODO fix for non-uint32 indices
+    Assert(indexSize == 4);
+
+    entry.indices.Resize(numIndices);
+    Memory::Copy(entry.indices.Data(), indexData.Data(), numIndices * indexSize);
 
     entry.residency = ComputeResidency(entry);
 

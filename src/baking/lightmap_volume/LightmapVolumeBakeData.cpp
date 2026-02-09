@@ -42,56 +42,50 @@ BakeData<LightmapVolume>::BakeData(Span<const BakeEntity> bakeEntities, Lightmap
 
         const Handle<Mesh>& mesh = bakeEntity.mesh;
 
-        if (!mesh->GetAsset())
-        {
-            HYP_LOG(Lightmap, Error, "Sub-element {} has no streamed mesh data, skipping", i);
-
-            continue;
-        }
-
-        ResourceGuard resGuard = mesh->GetAsset()->GetResource()->GetReadScope();
+        auto resGuard = mesh->GetReadScope();
 
         if (!resGuard)
         {
             return;
         }
 
-        const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
-
-        MeshData meshData = *mesh->GetAsset()->GetMeshData();
+        const MeshDesc& meshDesc = mesh->GetMeshDesc();
+        const Span<const Vertex> vertexData = mesh->GetVertexData();
+        const Span<const ubyte> indexData = mesh->GetIndexData();
 
         bakeMesh.mesh = bakeEntity.mesh;
         bakeMesh.material = bakeEntity.material;
         bakeMesh.transformMatrix = bakeEntity.transformMatrix;
 
-        m_meshVertexPositions[i].Resize(meshData.vertexData.Size() * 3);
-        m_meshVertexNormals[i].Resize(meshData.vertexData.Size() * 3);
-        m_meshVertexUvs[i].Resize(meshData.vertexData.Size() * 2);
+        m_meshVertexPositions[i].Resize(vertexData.Size() * 3);
+        m_meshVertexNormals[i].Resize(vertexData.Size() * 3);
+        m_meshVertexUvs[i].Resize(vertexData.Size() * 2);
 
         const SizeType indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
+        const SizeType numIndices = indexData.Size() / indexSize;
 
-        m_meshIndices[i].Resize(meshData.indexData.Size() / indexSize);
+        m_meshIndices[i].Resize(numIndices);
 
         if (indexSize == sizeof(uint32))
         {
-            Memory::Copy(m_meshIndices[i].Data(), meshData.indexData.Data(), meshData.indexData.Size());
+            Memory::Copy(m_meshIndices[i].Data(), indexData.Data(), numIndices * indexSize);
         }
         else
         {
-            for (SizeType j = 0; j < meshData.indexData.Size(); j += indexSize)
+            for (SizeType j = 0; j < numIndices * indexSize; j += indexSize)
             {
-                Memory::Copy(&m_meshIndices[i][j / indexSize], meshData.indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
+                Memory::Copy(&m_meshIndices[i][j / indexSize], indexData.Data() + j, MathUtil::Min(indexSize, sizeof(uint32)));
             }
         }
 
         const Mat4f modelMatrix = bakeEntity.transformMatrix;
         const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
-        for (SizeType vertexIndex = 0; vertexIndex < meshData.vertexData.Size(); vertexIndex++)
+        for (SizeType vertexIndex = 0; vertexIndex < vertexData.Size(); vertexIndex++)
         {
-            const Vec3f position = modelMatrix * meshData.vertexData[vertexIndex].GetPosition();
-            const Vec3f normal = (normalMatrix * Vec4f(meshData.vertexData[vertexIndex].GetNormal(), 0.0f)).GetXYZ().Normalize();
-            const Vec2f uv = meshData.vertexData[vertexIndex].GetTexCoord0();
+            const Vec3f position = modelMatrix * vertexData[vertexIndex].GetPosition();
+            const Vec3f normal = (normalMatrix * Vec4f(vertexData[vertexIndex].GetNormal(), 0.0f)).GetXYZ().Normalize();
+            const Vec2f uv = vertexData[vertexIndex].GetTexCoord0();
 
             m_meshVertexPositions[i][vertexIndex * 3] = position.x;
             m_meshVertexPositions[i][vertexIndex * 3 + 1] = position.y;

@@ -239,8 +239,6 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", saxResult.message);
     }
 
-    SkeletonDesc skeletonDesc;
-
     Handle<Bone> rootBone;
 
     for (const auto& item : object.bones)
@@ -251,10 +249,6 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
             item.bindingTranslation,
             Vec3f::One(),
             item.bindingRotation);
-
-        BoneDesc& boneDesc = skeletonDesc.bones.EmplaceBack();
-        boneDesc.name = boneName;
-        boneDesc.bindingTransform = bindingTransform;
 
         Handle<Bone> bone = MakeHandle<Bone>(boneName);
         bone->SetBindingTransform(bindingTransform);
@@ -267,8 +261,6 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
 
                 continue;
             }
-            
-            boneDesc.parentName = CreateNameFromDynamicString(item.parentName);
 
             if (rootBone->GetBoneName() == item.parentName)
             {
@@ -304,7 +296,8 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    SkeletonData skeletonData;
+    Array<Handle<Animation>> animations;
+    animations.Reserve(object.animations.Size());
 
     for (const auto& animationIt : object.animations)
     {
@@ -316,29 +309,27 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         {
             Handle<AnimationTrack> animationTrack = MakeHandle<AnimationTrack>(CreateNameFromDynamicString(trackIt.boneName));
 
+            Array<Keyframe> keyframes;
+            keyframes.Reserve(trackIt.keyframes.Size());
+
             for (const auto& keyframeIt : trackIt.keyframes)
             {
-                animationTrack->AddKeyframe(Keyframe(
+                keyframes.EmplaceBack(
                     keyframeIt.time,
-                    Transform(keyframeIt.translation, Vector3::One(), keyframeIt.rotation)));
+                    Transform(keyframeIt.translation, Vector3::One(), keyframeIt.rotation));
             }
+
+            animationTrack->SetKeyframes(keyframes);
 
             animation->AddTrack(animationTrack);
         }
 
-        skeletonDesc.animationNames.PushBack(animationName);
-        skeletonData.animations.PushBack(animation);
+        animations.PushBack(animation);
     }
 
-    Handle<SkeletonAsset> skeletonAsset = MakeHandle<SkeletonAsset>(
-        CreateNameFromDynamicString(state.filepath.Basename()),
-        skeletonDesc,
-        std::move(skeletonData));
-
-    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Skeletons", skeletonAsset);
-
-    Handle<Skeleton> skeleton = MakeHandle<Skeleton>(skeletonAsset);
+    Handle<Skeleton> skeleton = MakeHandle<Skeleton>();
     skeleton->SetRootBone(rootBone);
+    skeleton->SetAnimations(animations);
 
     if (Bone* rootBone = skeleton->GetRootBone())
     {

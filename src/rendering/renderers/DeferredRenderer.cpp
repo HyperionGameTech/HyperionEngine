@@ -243,8 +243,9 @@ void DeferredPass::Create()
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
-            TextureData { std::move(ltcMatrixData) });
+                TWM_CLAMP_TO_EDGE
+            },
+            ltcMatrixData.ToByteView());
 
         m_ltcMatrixTexture->SetName(NAME("LTC_Matrix"));
         InitObject(m_ltcMatrixTexture);
@@ -258,8 +259,9 @@ void DeferredPass::Create()
                 Vec3u { 64, 64, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
-            TextureData { std::move(ltcBrdfData) });
+                TWM_CLAMP_TO_EDGE
+            },
+            ltcBrdfData.ToByteView());
 
         m_ltcBrdfTexture->SetName(NAME("LTC_BRDF"));
         InitObject(m_ltcBrdfTexture);
@@ -1368,7 +1370,8 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
             Vec3u(opaquePassFramebuffer->GetExtent(), 1),
             TFM_LINEAR_MIPMAP,
             TFM_LINEAR_MIPMAP,
-            TWM_CLAMP_TO_EDGE });
+            TWM_CLAMP_TO_EDGE
+        });
 
         InitObject(passData.mipChain);
 

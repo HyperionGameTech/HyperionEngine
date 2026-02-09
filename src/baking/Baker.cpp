@@ -23,8 +23,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/asset/TextureAsset.hpp>
-
 #include <scene/BVH.hpp>
 #include <scene/World.hpp>
 #include <scene/Light.hpp>

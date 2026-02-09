@@ -7,6 +7,7 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/AssetReference.hpp>
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
@@ -37,9 +38,12 @@ namespace Hyperion {
 
 namespace CoreApi {
 extern FilePath GetExecutablePath();
+extern HYP_NODISCARD FilePath CreateTempDirectory();
 } // namespace CoreApi
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
+
+static constexpr const char* BlobStorageName = "Storage";
 
 // If true, all mutation operations will be forced to run on the sim thread,
 // otherwise a mutex will be used to allow multi-threaded access.
@@ -230,6 +234,9 @@ static bool IsPackageInList(
  *   This is to be used primarily for internal packages (e.g $Temp, Engine) */
 static bool ShouldSavePackageOnChanged(const AssetPackage& package)
 {
+    // TEMP: Return false until blob storage is figured out
+    return false;
+
     if (package.IsTransient())
     {
         return false;
@@ -343,7 +350,8 @@ AssetPackage::AssetPackage()
 
 AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
     : m_flags(flags),
-      m_stateFlags(0)
+      m_stateFlags(0),
+      m_blobStorage(nullptr)
 {
     if (name.IsValid())
     {
@@ -363,6 +371,15 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
 
         m_name = SanitizeName(name);
         m_friendlyName = CreateFriendlyName(name);
+    }
+}
+
+AssetPackage::~AssetPackage()
+{
+    if (m_blobStorage != nullptr)
+    {
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
     }
 }
 
@@ -442,6 +459,12 @@ void AssetPackage::Init()
         {
             MarkDirty(); // if not saving assets right now, need to mark it to be saved later
         }
+
+        if (m_flags[AssetPackageFlags::HasBlobStorage])
+        {
+            // we have our own blob storage
+            InitBlobStorage();
+        }
     }
 
     for (const Handle<AssetObject>& assetObject : assetObjects)
@@ -475,6 +498,24 @@ void AssetPackage::Init()
     }
 
     SetReady(true);
+}
+
+void AssetPackage::SetBlobStorageEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        m_flags |= AssetPackageFlags::HasBlobStorage;
+    }
+    else
+    {
+        m_flags &= ~AssetPackageFlags::HasBlobStorage;
+
+        if (m_blobStorage != nullptr)
+        {
+            m_blobStorage->Release();
+            m_blobStorage = nullptr;
+        }
+    }
 }
 
 bool AssetPackage::IsSubpackageOf(const AssetPackage& other) const
@@ -896,31 +937,9 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
                     return Handle<AssetObject>::empty;
                 }
 
-                const FilePath binPath = manifestPath.StripExtension();
-
-                BufferedReader* dataStream = nullptr;
-                FileBufferedReaderSource* dataSource = nullptr;
-
-                if (binPath.Exists() && !binPath.IsDirectory())
-                {
-                    dataSource = new FileBufferedReaderSource { binPath };
-                    dataStream = new BufferedReader { dataSource };
-                }
-
-                HYP_DEFER({
-                    if (dataStream)
-                    {
-                        dataStream->Close();
-                        delete dataStream;
-                    }
-
-                    if (dataSource)
-                    {
-                        delete dataSource;
-                    }
-                });
+                BlobStorage* blobStorage = GetBlobStorage();
                 
-                Result loadResult = AssetObject::Load(manifestData, dataStream, assetObject);
+                Result loadResult = AssetObject::Load(manifestData, blobStorage, assetObject);
 
                 if (loadResult.HasError())
                 {
@@ -1348,6 +1367,9 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
     Array<String> outputParts = outputDirectory.Split('/', '\\');
     Array<String> packageParts = packagePath.Split('/', '\\');
+    
+    bool transferBlobStorage = false;
+    BlobStorage prevBlobStorage;
 
     SizeType packageStartIndex = 0;
 
@@ -1431,7 +1453,27 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         }
 
         manifestWriter.Close();
+        
+        if (m_flags[AssetPackageFlags::HasBlobStorage])
+        {
+            if (packageDir != m_packageDir)
+            {
+                Assert(m_blobStorage != nullptr);
 
+                transferBlobStorage = true;
+                prevBlobStorage = std::move(*m_blobStorage);
+
+                m_packageDir = packageDir;
+
+                *m_blobStorage = BlobStorage(BlobStorageName, /* readOnly */ false);
+                InitBlobStorage(*m_blobStorage, /* readOnly */ false);
+            }
+            else
+            {
+                InitBlobStorage(/* readOnly */ false);
+            }
+        }
+            
         m_packageDir = packageDir;
     }
 
@@ -1443,6 +1485,12 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     const bool shouldSaveAssets = !skipSavingThisPackage && !IsTransient() && IsSaved_Internal();
 
     lock.Reset();
+
+    if (transferBlobStorage)
+    {
+        prevBlobStorage.CopyTo(*m_blobStorage);
+        prevBlobStorage.Close();
+    }
 
     // even if skipSaving is true, we need to iterate over subpackages as
     // they may have individual asset objects that are dirty
@@ -1835,6 +1883,101 @@ void AssetPackage::SignalLoaded()
     m_loadedCV.NotifyAll();
 }
 
+BlobStorage* AssetPackage::GetBlobStorage() const
+{
+    if (m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        Assert(m_blobStorage != nullptr);
+
+        return m_blobStorage;
+    }
+
+    Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+    while (parentPackage.IsValid())
+    {
+        if (parentPackage->m_flags[AssetPackageFlags::HasBlobStorage])
+        {
+            Assert(parentPackage->m_blobStorage != nullptr);
+
+            return parentPackage->m_blobStorage;
+        }
+
+        parentPackage = parentPackage->GetParentPackage().Lock();
+    }
+
+    return nullptr;
+}
+
+void AssetPackage::InitBlobStorage(bool readOnly)
+{
+    if (m_blobStorage != nullptr)
+    {
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
+    }
+
+    m_blobStorage = new BlobStorage(BlobStorageName, readOnly);
+    InitBlobStorage(*m_blobStorage, readOnly);
+
+    m_flags |= AssetPackageFlags::HasBlobStorage;
+}
+
+void AssetPackage::InitBlobStorage(BlobStorage& outStorage, bool readOnly)
+{
+    MappedBlobStorage* mappedBlobStorage = PoolNew<MappedBlobStorage>(
+        *g_assetPool,
+        IsSaved_Internal() ? m_packageDir : CoreApi::CreateTempDirectory(),
+        readOnly);
+
+    outStorage.callbacks.context = mappedBlobStorage;
+
+    outStorage.callbacks.Destroy = [](void* context)
+    {
+        MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+        mappedBlobStorage->Clear();
+
+        PoolDelete(*g_assetPool, mappedBlobStorage);
+    };
+    
+    outStorage.callbacks.Open = [](void* context, const char* name, bool readOnly) -> MemoryMappedFile*
+    {
+        MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+
+        MemoryMappedFile* file = mappedBlobStorage->Get(ANSIStringView(name));
+        AssertDebug(file != nullptr, "Failed to open mapped file {} ({})", name, mappedBlobStorage->GetBaseDirectory());
+
+        if (!file->Open())
+        {
+            return nullptr;
+        }
+
+        return file;
+    };
+    
+    outStorage.callbacks.Close = [](void* context, MemoryMappedFile* file)
+    {
+        file->Close();
+    };
+}
+
+void AssetPackage::LoadBlobStorage()
+{
+    if (m_blobStorage != nullptr)
+    {
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
+    }
+
+    if (!m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        return;
+    }
+
+    m_blobStorage = new BlobStorage(BlobStorageName, /* readOnly */ true);
+    InitBlobStorage(*m_blobStorage, /* readOnly */ true);
+}
+
 #pragma endregion AssetPackage
 
 #pragma region AssetRegistry
@@ -1872,6 +2015,8 @@ AssetRegistry::~AssetRegistry()
 void AssetRegistry::Initialize()
 {
     HYP_SCOPE;
+
+    AssertOnThread(g_mainThread);
 
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
     enginePackage->Save(g_assetManager->GetBasePath());
@@ -2149,11 +2294,11 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
 
-    Proc<void(Handle<AssetPackage>)> initializePackage;
+    Proc<void(Handle<AssetPackage>)> InitializePackage;
 
     // Set up the parent package pointer for a package, so all subpackages can trace back to their parent
     // and call OnPackageAdded for each nested package
-    initializePackage = [this, &initializePackage](const Handle<AssetPackage>& package)
+    InitializePackage = [this, &InitializePackage](const Handle<AssetPackage>& package)
     {
         Assert(package.IsValid());
 
@@ -2166,9 +2311,9 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
         for (const Handle<AssetPackage>& subpackage : package->m_subpackages)
         {
             subpackage->m_parentPackage = package;
-            subpackage->m_flags |= package->m_flags;
+            subpackage->m_flags |= package->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
-            initializePackage(subpackage);
+            InitializePackage(subpackage);
         }
     };
 
@@ -2185,7 +2330,7 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
 
     for (const Handle<AssetPackage>& package : packages)
     {
-        initializePackage(package);
+        InitializePackage(package);
     }
 }
 
@@ -2299,7 +2444,8 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
                 Result addResult = dest->AddAssetObject(asset, /* replaceOnConflict */ false);
                 if (addResult.HasError())
                 {
-                    HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), dest->GetName(), addResult.GetError().GetMessage());
+                    //HYP_LOG(Assets, Error, "Failed to add asset '{}' to destination package: {}",
+                     //   asset->GetName(), addResult.GetError().GetMessage());
                 }
             }
 
@@ -2357,7 +2503,7 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
         for (const Handle<AssetPackage>& sub : pkg->m_subpackages)
         {
             sub->m_parentPackage = pkg;
-            sub->m_flags |= pkg->m_flags;
+            sub->m_flags |= pkg->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
             InitializePackage(sub);
         }
@@ -2373,7 +2519,7 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
             TUniqueLock guard(newParentPackage->m_mutex);
 
             package->m_parentPackage = newParentPackage;
-            package->m_flags |= newParentPackage->m_flags;
+            package->m_flags |= newParentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
             // If parent package exists on disk, save this package:
             if (!newParentPackage->IsTransient() && newParentPackage->IsSaved_Internal())
@@ -2716,7 +2862,7 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                     if (pkg)
                     {
                         pkg->m_parentPackage = parentPackage;
-                        pkg->m_flags |= parentPackage->m_flags;
+                        pkg->m_flags |= parentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
                         InitObject(pkg);
 
@@ -2730,7 +2876,7 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                 pkg = MakeHandle<AssetPackage>(CreateNameFromDynamicString(subpackageName));
                 pkg->m_registry = WeakHandleFromThis();
                 pkg->m_parentPackage = parentPackage;
-                pkg->m_flags |= parentPackage->m_flags;
+                pkg->m_flags |= parentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
                 pkg->m_stateFlags = AssetPackage::SF_Dirty;
 
                 // If parent package exists on disk, save this package:
@@ -2822,7 +2968,7 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
         }
 
         subpackage->m_parentPackage = package;
-        subpackage->m_flags |= package->m_flags;
+        subpackage->m_flags |= package->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
         // Add to our package
         Handle<AssetPackage> existingSubpackage = GetPackage(package, subpackage->GetName().LookupString(), /* createIfNotExist */ true);
@@ -2944,7 +3090,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
     if (parentPackage)
     {
-        outPackage->m_flags |= parentPackage->m_flags;
+        outPackage->m_flags |= parentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
         TUniqueLock parentPackageLock(parentPackage->m_mutex);
         parentPackage->m_subpackages.Insert(outPackage); // NOTE do not broadcast change yet
@@ -2972,6 +3118,12 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
             return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
         }
+    }
+
+    // Init blob storage if we have the appropriate flag
+    if (outPackage->m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        outPackage->LoadBlobStorage();
     }
 
     // Load dependency packages first (always, regardless of loadSubpackages flag)
@@ -3090,33 +3242,11 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
                 }
             }
 
-            const FilePath binPath = entry.StripExtension();
-
-            BufferedReader* dataStream = nullptr;
-            FileBufferedReaderSource* dataSource = nullptr;
-
-            if (binPath.Exists() && !binPath.IsDirectory())
-            {
-                dataSource = new FileBufferedReaderSource { binPath };
-                dataStream = new BufferedReader { dataSource };
-            }
-
-            HYP_DEFER({
-                if (dataStream)
-                {
-                    dataStream->Close();
-                    delete dataStream;
-                }
-
-                if (dataSource)
-                {
-                    delete dataSource;
-                }
-            });
-
             Handle<AssetObject> assetObject;
 
-            if (Result loadAssetResult = AssetObject::Load(manifestData, dataStream, assetObject); loadAssetResult.HasError())
+            BlobStorage* blobStorage = outPackage->GetBlobStorage();
+
+            if (Result loadAssetResult = AssetObject::Load(manifestData, blobStorage, assetObject); loadAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 
@@ -3170,7 +3300,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
                     if (subpackage.IsValid())
                     {
                         subpackage->m_parentPackage = outPackage;
-                        subpackage->m_flags |= outPackage->m_flags;
+                        subpackage->m_flags |= outPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
                         outPackage->m_subpackages.Insert(subpackage);
                         outPackage->OnSubpackageAdded(subpackage);

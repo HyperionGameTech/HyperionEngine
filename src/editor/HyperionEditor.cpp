@@ -204,14 +204,13 @@ void HyperionEditor::OnLaunch_Impl()
                     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
                     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
-                    ResourceGuard resGuard = scriptAsset->GetResource()->GetReadScope();
+                    auto resGuard = scriptAsset->GetReadScope();
 
-                    ScriptDesc* scriptDesc = scriptAsset->GetScriptDesc();
-                    Assert(scriptDesc != nullptr);
+                    ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
-                    scriptAsset->GetScriptDesc()->language = ScriptLanguage::HypScript;
-                    Memory::StrCpy(scriptDesc->path.Data(), "tmp.hyp", ArraySize(scriptDesc->path));
-                    Memory::StrCpy(scriptDesc->className.Data(), "MyClass", ArraySize(scriptDesc->className));
+                    scriptDesc.language = ScriptLanguage::HypScript;
+                    Memory::StrCpy(scriptDesc.path.Data(), "tmp.hyp", ArraySize(scriptDesc.path));
+                    Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
                     ScriptComponent& scriptComponent = firstEntity->AddComponent<ScriptComponent>(ScriptComponent {
                         TAssetReference<ScriptAsset>(scriptAsset) });

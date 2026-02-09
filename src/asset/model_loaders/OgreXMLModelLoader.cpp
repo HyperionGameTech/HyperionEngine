@@ -310,21 +310,15 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             meshDesc.meshAttributes.vertexAttributes |= VertexAttributeSet::SkeletalMeshVertexAttributes;
         }
 
-        MeshData meshData;
-        meshData.vertexData = model.vertices;
-        meshData.indexData.SetSize(subMesh.indices.Size() * sizeof(uint32));
-        meshData.indexData.Write(subMesh.indices.Size() * sizeof(uint32), 0, subMesh.indices.Data());
-
-        meshData.CalculateNormals();
-
         Handle<Mesh> mesh = MakeHandle<Mesh>();
         mesh->SetName(assetName);
-        mesh->SetMeshData(meshDesc, meshData);
+        mesh->SetMeshData(meshDesc, model.vertices.ToSpan(), subMesh.indices.ToByteView());
 
-        mesh->GetAsset()->Rename(assetName);
-        mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+        mesh->CalculateNormals();
 
-        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh->GetAsset());
+        mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+
+        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
 
         MaterialAttributes materialAttributes {};
         materialAttributes.bucket = RB_TRANSLUCENT;

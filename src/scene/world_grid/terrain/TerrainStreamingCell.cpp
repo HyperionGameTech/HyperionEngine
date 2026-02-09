@@ -235,15 +235,10 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
-    MeshData meshData;
-    meshData.vertexData = vertices;
-    meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-    meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
-    meshData.CalculateNormals();
-
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, meshData);
+    mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
+
+    mesh->CalculateNormals();
 
     return mesh;
 }
@@ -367,9 +362,9 @@ void TerrainStreamingCell::OnStreamStart_Impl()
     m_mesh = meshBuilder.BuildMesh();
     m_mesh->Rename(NAME_FMT("Terrain_{}", m_cellInfo.coord));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Temp/Media/Meshes", m_mesh->GetAsset(), AddAssetConflictMode::ReplaceExisting);
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Temp/Media/Meshes", m_mesh, AddAssetConflictMode::ReplaceExisting);
 
-    m_mesh->GetAsset()->Rename(NAME_FMT("Terrain_{}_MeshAsset", m_cellInfo.coord));
+    m_mesh->Rename(NAME_FMT("Terrain_{}_Mesh", m_cellInfo.coord));
 
     InitObject(m_mesh);
 }

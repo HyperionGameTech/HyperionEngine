@@ -14,8 +14,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <rendering/asset/MeshAsset.hpp>
-
 #include <asset/AssetRegistry.hpp>
 
 #include <core/reflection/Handle.hpp>
@@ -113,17 +111,10 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
         return nullptr;
     }
 
-    Handle<MeshAsset> asset = mesh->GetAsset();
+    auto resGuard = mesh->GetReadScope();
 
-    if (!asset)
-    {
-        return nullptr;
-    }
-
-    ResourceGuard resGuard(*asset->GetResource());
-
-    Array<PackedVertex> packedVertices = asset->GetMeshData()->BuildPackedVertices();
-    Array<uint32> packedIndices = asset->GetMeshData()->BuildPackedIndices();
+    Array<PackedVertex> packedVertices = mesh->BuildPackedVertices();
+    Array<uint32> packedIndices = mesh->BuildPackedIndices();
 
     if (packedVertices.Empty() || packedIndices.Empty())
     {

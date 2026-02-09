@@ -85,14 +85,10 @@ Handle<Mesh> MeshBuilder::Quad()
     meshDesc.numIndices = uint32(quadIndices.Size());
     meshDesc.numVertices = uint32(quadVertices.Size());
 
-    MeshData meshData;
-    meshData.vertexData = quadVertices;
-    meshData.indexData.SetSize(quadIndices.Size() * sizeof(uint32));
-    meshData.indexData.Write(quadIndices.Size() * sizeof(uint32), 0, quadIndices.Data());
-
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_Quad"));
+    
+    mesh->SetMeshData(meshDesc, quadVertices, quadIndices.ToByteView());
 
     return mesh;
 }
@@ -106,23 +102,24 @@ Handle<Mesh> MeshBuilder::Cube(bool originOnBottom)
     meshDesc.numIndices = uint32(s_cubeVerticesAndIndices.second.Size());
     meshDesc.numVertices = uint32(s_cubeVerticesAndIndices.first.Size());
 
-    MeshData meshData;
-    meshData.vertexData = s_cubeVerticesAndIndices.first;
+    Array<Vertex> vertexData = s_cubeVerticesAndIndices.first;
 
     if (originOnBottom)
     {
-        for (Vertex& vertex : meshData.vertexData)
+        for (Vertex& vertex : vertexData)
         {
             vertex.position.y += 1.0f;
         }
     }
 
-    meshData.indexData.SetSize(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
-    meshData.indexData.Write(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32), 0, s_cubeVerticesAndIndices.second.Data());
+    Array<ubyte> indexData;
+    indexData.Resize(s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
+    Memory::Copy(indexData.Data(), s_cubeVerticesAndIndices.second.Data(), s_cubeVerticesAndIndices.second.Size() * sizeof(uint32));
 
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetName(NAME("MeshBuilder_Cube"));
-    mesh->SetMeshData(meshDesc, meshData);
+    
+    mesh->SetMeshData(meshDesc, vertexData, indexData);
 
     return mesh;
 }
@@ -228,16 +225,11 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
-    MeshData meshData;
-    meshData.vertexData = std::move(vertices);
-    meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-    meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
-    meshData.CalculateNormals(true);
-
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, meshData);
     mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));
+    
+    mesh->SetMeshData(meshDesc, vertices, indices.ToByteView());
+    mesh->CalculateNormals(true);
 
     return mesh;
 }
@@ -246,31 +238,31 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
 {
     Assert(mesh != nullptr);
 
-    if (!mesh->GetAsset())
-    {
-        return Handle<Mesh> {};
-    }
+    TSharedLock<AssetObject> resGuard;
 
-    ResourceGuard resGuard;
-
-    if (mesh->GetAsset()->IsRegistered())
+    if (mesh->IsRegistered())
     {
-        resGuard = ResourceGuard(*mesh->GetAsset()->GetResource());
+        resGuard = mesh->GetReadScope();
     }
 
     const Mat4f modelMatrix = transform.GetMatrix();
     const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
-    const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
+    const MeshDesc& meshDesc = mesh->GetMeshDesc();
+    const Span<const Vertex> vertexData = mesh->GetVertexData();
+    const Span<const ubyte> indexData = mesh->GetIndexData();
 
-    MeshData* meshData = mesh->GetAsset()->GetMeshData();
-    Assert(meshData != nullptr);
+    Array<Vertex> newVertices;
+    newVertices.Resize(vertexData.Size());
+    Memory::Copy(newVertices.Data(), vertexData.Data(), sizeof(Vertex) * vertexData.Size());
 
-    MeshData newMeshData = *meshData;
+    Array<ubyte> newIndices;
+    newIndices.Resize(indexData.Size());
+    Memory::Copy(newIndices.Data(), indexData.Data(), indexData.Size());
 
-    resGuard.Release();
+    resGuard.Reset();
 
-    for (Vertex& vertex : newMeshData.vertexData)
+    for (Vertex& vertex : newVertices)
     {
         vertex.SetPosition(modelMatrix * vertex.GetPosition());
         vertex.SetNormal(normalMatrix * vertex.GetNormal());
@@ -279,7 +271,7 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
     }
 
     Handle<Mesh> newMesh = MakeHandle<Mesh>();
-    newMesh->SetMeshData(meshDesc, newMeshData);
+    newMesh->SetMeshData(meshDesc, newVertices, newIndices);
     newMesh->SetName(mesh->GetName());
 
     return newMesh;
@@ -287,41 +279,41 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
 
 Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& aTransform, const Transform& bTransform)
 {
-    Assert(a != nullptr && a->GetAsset().IsValid());
-    Assert(b != nullptr && b->GetAsset().IsValid());
+    Assert(a != nullptr);
+    Assert(b != nullptr);
 
     Handle<Mesh> transformedMeshes[] = {
         ApplyTransform(a, aTransform),
         ApplyTransform(b, bTransform)
     };
 
-    ResourceGuard resourceHandles[] = {
-        transformedMeshes[0]->GetAsset()->IsRegistered() ? ResourceGuard(*transformedMeshes[0]->GetAsset()->GetResource()) : ResourceGuard(),
-        transformedMeshes[1]->GetAsset()->IsRegistered() ? ResourceGuard(*transformedMeshes[1]->GetAsset()->GetResource()) : ResourceGuard()
+    TSharedLock<AssetObject> resourceHandles[] = {
+        transformedMeshes[0]->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[0]) : TSharedLock<AssetObject>(),
+        transformedMeshes[1]->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[1]) : TSharedLock<AssetObject>()
     };
 
     MeshDesc const* meshDescs[] = {
-        &transformedMeshes[0]->GetAsset()->GetMeshDesc(),
-        &transformedMeshes[1]->GetAsset()->GetMeshDesc()
+        &transformedMeshes[0]->GetMeshDesc(),
+        &transformedMeshes[1]->GetMeshDesc()
     };
 
-    MeshData const* meshDatas[] = {
-        transformedMeshes[0]->GetAsset()->GetMeshData(),
-        transformedMeshes[1]->GetAsset()->GetMeshData()
+    Span<const Vertex> meshVertices[] = {
+        transformedMeshes[0]->GetVertexData(),
+        transformedMeshes[1]->GetVertexData()
     };
 
-    Assert(meshDatas[0] != nullptr);
-    Assert(meshDatas[1] != nullptr);
+    Span<const ubyte> meshIndices[] = {
+        transformedMeshes[0]->GetIndexData(),
+        transformedMeshes[1]->GetIndexData()
+    };
 
     const VertexAttributeSet mergedVertexAttributes = a->GetVertexAttributes() | b->GetVertexAttributes();
 
     Array<Vertex> allVertices;
-    allVertices.Resize(meshDatas[0]->vertexData.Size() + meshDatas[1]->vertexData.Size());
+    allVertices.Resize(meshDescs[0]->numVertices + meshDescs[1]->numVertices);
 
     Array<uint32> allIndices;
-    allIndices.Resize(
-        (meshDatas[0]->indexData.Size() / GpuElemTypeSize(meshDescs[0]->meshAttributes.indexBufferElemType))
-        + (meshDatas[1]->indexData.Size() / GpuElemTypeSize(meshDescs[1]->meshAttributes.indexBufferElemType)));
+    allIndices.Resize(meshDescs[0]->numIndices + meshDescs[1]->numIndices);
 
     SizeType vertexOffset = 0;
     SizeType indexOffset = 0;
@@ -330,22 +322,33 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     {
         const SizeType vertexOffsetBefore = vertexOffset;
 
-        for (SizeType i = 0; i < meshDatas[meshIndex]->vertexData.Size(); i++)
+        for (SizeType i = 0; i < meshVertices[meshIndex].Size(); i++)
         {
-            allVertices[vertexOffset++] = meshDatas[meshIndex]->vertexData[i];
+            allVertices[vertexOffset++] = meshVertices[meshIndex][i];
         }
 
         const uint32 stride = GpuElemTypeSize(meshDescs[meshIndex]->meshAttributes.indexBufferElemType);
+        const SizeType meshIndexCount = meshIndices[meshIndex].Size() / stride;
 
-        for (SizeType i = 0; i < meshDatas[meshIndex]->indexData.Size() / stride; i++)
+        for (SizeType i = 0; i < meshIndexCount; i++)
         {
-            allIndices[indexOffset++] = meshDatas[meshIndex]->indexData.Data()[i * stride] + vertexOffsetBefore;
+            switch (stride)
+            {
+            case 2:
+                allIndices[indexOffset++] = uint32(*reinterpret_cast<const uint16*>(&meshIndices[meshIndex][i * stride])) + uint32(vertexOffsetBefore);
+                break;
+            case 4:
+                allIndices[indexOffset++] = uint32(*reinterpret_cast<const uint32*>(&meshIndices[meshIndex][i * stride])) + uint32(vertexOffsetBefore);
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
         }
     }
 
-    for (ResourceGuard& resGuard : resourceHandles)
+    for (TSharedLock<AssetObject>& resGuard : resourceHandles)
     {
-        resGuard.Release();
+        resGuard.Reset();
     }
 
     MeshDesc mergedMeshDesc;
@@ -354,13 +357,8 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     mergedMeshDesc.numIndices = uint32(allIndices.Size());
     mergedMeshDesc.numVertices = uint32(allVertices.Size());
 
-    MeshData mergedMeshData;
-    mergedMeshData.vertexData = std::move(allVertices);
-    mergedMeshData.indexData.SetSize(allIndices.Size() * sizeof(uint32));
-    mergedMeshData.indexData.Write(allIndices.Size() * sizeof(uint32), 0, allIndices.Data());
-
     Handle<Mesh> newMesh = MakeHandle<Mesh>();
-    newMesh->SetMeshData(mergedMeshDesc, mergedMeshData);
+    newMesh->SetMeshData(mergedMeshDesc, allVertices, allIndices.ToByteView());
     newMesh->SetName(NAME("MeshBuilder_MergedMesh"));
 
     return newMesh;
@@ -452,13 +450,8 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(const VoxelOctree& voxelOctree)
     meshDesc.meshAttributes.indexBufferElemType = GET_UNSIGNED_INT;
     meshDesc.meshAttributes.topology = TOP_LINES;
 
-    MeshData meshData;
-    meshData.vertexData = std::move(vertices);
-    meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-    meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, meshData);
+    mesh->SetMeshData(meshDesc, vertices, indices.ToByteView());
     mesh->SetName(NAME("MeshBuilder_VoxelMesh"));
 
     return mesh;

@@ -9,7 +9,6 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
-#include <rendering/asset/TextureAsset.hpp>
 
 #include <scene/FogVolume.hpp>
 
@@ -76,10 +75,10 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
         TWM_CLAMP_TO_EDGE
     };
 
-    Handle<Texture> volumeTexture = MakeHandle<Texture>(volumeTextureDesc, TextureData { ByteBuffer(volumeBitmap.ToByteView()) });
+    Handle<Texture> volumeTexture = MakeHandle<Texture>(volumeTextureDesc, volumeBitmap.ToByteView());
     volumeTexture->SetName(NAME_FMT("FogVolume_{}_DataMap", m_fogVolume->GetName()));
 
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", volumeTexture->GetAsset(), AddAssetConflictMode::ReplaceExisting);
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", volumeTexture, AddAssetConflictMode::ReplaceExisting);
 
     InitObject(volumeTexture);
 
@@ -92,9 +91,9 @@ void Baker<FogVolume>::HandleCompletedJob_Internal(BakeJobBase* job)
         TWM_REPEAT
     };
 
-    Handle<Texture> noiseTexture = MakeHandle<Texture>(noiseTextureDesc, TextureData { ByteBuffer(noiseBitmap.ToByteView()) });
+    Handle<Texture> noiseTexture = MakeHandle<Texture>(noiseTextureDesc, noiseBitmap.ToByteView());
     noiseTexture->SetName(NAME_FMT("FogVolume_{}_NoiseMap", m_fogVolume->GetName()));
-    g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", noiseTexture->GetAsset(), AddAssetConflictMode::ReplaceExisting);
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Lightmaps", noiseTexture, AddAssetConflictMode::ReplaceExisting);
     InitObject(noiseTexture);
 
     m_fogVolume->SetTextures(volumeTexture, noiseTexture);

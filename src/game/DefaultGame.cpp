@@ -134,14 +134,13 @@ void DefaultGame::OnLaunch_Impl()
     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
-    ResourceGuard resGuard(*scriptAsset->GetResource());
+    TUniqueLock<AssetObject> resGuard(*scriptAsset);
 
-    ScriptDesc* scriptDesc = scriptAsset->GetScriptDesc();
-    Assert(scriptDesc != nullptr);
+    ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
-    scriptAsset->GetScriptDesc()->language = ScriptLanguage::HypScript;
-    Memory::StrCpy(scriptDesc->path.Data(), "tmp.hyp", ArraySize(scriptDesc->path));
-    Memory::StrCpy(scriptDesc->className.Data(), "MyClass", ArraySize(scriptDesc->className));
+    scriptDesc.language = ScriptLanguage::HypScript;
+    Memory::StrCpy(scriptDesc.path.Data(), "tmp.hyp", ArraySize(scriptDesc.path));
+    Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {
         TAssetReference<ScriptAsset>(scriptAsset) });

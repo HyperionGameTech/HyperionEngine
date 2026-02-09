@@ -20,7 +20,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebugInfo" CACHE STRING "Configurations to build" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "Configurations to build" FORCE)
 set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
 
 project(${BUILD_NAME} CXX)
@@ -164,6 +164,9 @@ if(MSVC)
     else()
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
     endif()
+
+    # address sanitizer
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
 else()
     if(HYP_DEBUG_MODE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 

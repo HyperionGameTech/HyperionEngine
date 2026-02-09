@@ -17,22 +17,16 @@ public:
     ScriptAsset()
         : AssetObject()
     {
-        AssetObject::SetData(ScriptDesc());
     }
 
     explicit ScriptAsset(Name name)
         : AssetObject(name)
     {
-        AssetObject::SetData(ScriptDesc());
     }
 
     ScriptAsset(Name name, const ScriptDesc& scriptDesc)
-        : AssetObject(name, scriptDesc)
-    {
-    }
-
-    ScriptAsset(Name name, ScriptDesc&& scriptDesc)
-        : AssetObject(name, std::move(scriptDesc))
+        : AssetObject(name),
+          m_scriptDesc(scriptDesc)
     {
     }
 
@@ -44,10 +38,18 @@ public:
 
     ~ScriptAsset() = default;
 
-    HYP_FORCE_INLINE ScriptDesc* GetScriptDesc() const
+    HYP_FORCE_INLINE ScriptDesc& GetScriptDesc()
     {
-        return GetResourceData<ScriptDesc>();
+        return m_scriptDesc;
     }
+
+    HYP_FORCE_INLINE const ScriptDesc& GetScriptDesc() const
+    {
+        return m_scriptDesc;
+    }
+
+private:
+    ScriptDesc m_scriptDesc;
 };
 
 } // namespace Hyperion

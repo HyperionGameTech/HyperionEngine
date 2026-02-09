@@ -14,11 +14,12 @@
 
 #include <core/utilities/Pair.hpp>
 
+#include <core/io/ByteReader.hpp>
+#include <core/io/ByteWriter.hpp>
+
 #include <core/math/Vector3.hpp>
 
 namespace Hyperion {
-
-class TextureAsset;
 
 HYP_CLASS()
 class HYP_API Texture final : public AssetObject
@@ -31,9 +32,7 @@ public:
     Texture();
 
     explicit Texture(const TextureDesc& textureDesc);
-    Texture(const TextureDesc& textureDesc, const TextureData& textureData);
-
-    explicit Texture(const Handle<TextureAsset>& asset);
+    Texture(const TextureDesc& textureDesc, ConstByteView imageData);
 
     Texture(const Texture& other) = delete;
     Texture& operator=(const Texture& other) = delete;
@@ -46,17 +45,15 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name) override;
 
-    const Handle<TextureAsset>& GetAsset() const;
-    void SetAsset(const Handle<TextureAsset>& asset);
-
-    HYP_METHOD(Property = "AssetReference")
-    const AssetReference& GetAssetReference() const
+    HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
-        return m_assetReference;
+        return m_textureDesc;
     }
 
-    const TextureDesc& GetTextureDesc() const;
-    void SetTextureDesc(const TextureDesc& textureDesc);
+    HYP_FORCE_INLINE void SetTextureDesc(const TextureDesc& textureDesc)
+    {
+        m_textureDesc = textureDesc;
+    }
 
     HYP_FORCE_INLINE TextureType GetType() const
     {
@@ -118,7 +115,16 @@ public:
         return m_gpuImage;
     }
 
-    static void GenerateMipmaps(TextureDesc& desc, TextureData& data);
+    HYP_FORCE_INLINE ConstByteView GetImageData() const
+    {
+        return m_imageData.raw != nullptr
+            ? ConstByteView(reinterpret_cast<const ubyte*>(m_imageData.raw), m_imageData.size)
+            : ConstByteView();
+    }
+
+    void SetImageData(ConstByteView imageData);
+
+    static void GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData);
 
     /*! \brief Blocking call to readback GPU image data into a CPU-side buffer. Must be called on the render thread.
      *  Do not use frequently as this will stall the gpu */
@@ -135,15 +141,51 @@ public:
 
 protected:
     void Init() override;
-
-    /*! \internal Serialization only */
-    HYP_METHOD(Property = "AssetReference")
-    void SetAssetReference(const AssetReference& assetReference)
+    
+    void WriteBlobData(BlobStorage& blobStorage) override
     {
-        m_assetReference = TAssetReference<TextureAsset>(assetReference);
+        Assert(m_imageData.raw != nullptr);
+
+        if (!m_imageData.readOnly)
+        {
+            BlobHeader vertexDataHeader {};
+            Memory::Copy(vertexDataHeader.magic, "TEX", 4);
+            vertexDataHeader.version = 1;
+            vertexDataHeader.payloadOffset = 0;
+            vertexDataHeader.payloadSize = m_imageData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(vertexDataHeader, key))
+            {
+                m_imageData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+        
+        ByteWriter* writeStream = blobStorage.GetWriteStream();
+
+        writeStream->Seek(m_imageData.bufferOffset);
+        writeStream->Write(m_imageData.raw, m_imageData.size);
     }
 
-    TAssetReference<TextureAsset> m_assetReference;
+    void ReadBlobData(BlobStorage& blobStorage) override
+    {
+        if (m_imageData.size != 0)
+        {
+            m_imageData.raw = blobStorage.Map(m_imageData.bufferOffset, m_imageData.size);
+            m_imageData.readOnly = true;
+        }
+    }
+
+    HYP_FIELD(Serialize)
+    TextureDesc m_textureDesc;
+
+    HYP_FIELD(Serialize)
+    BlobDataReference m_imageData;
 
     HYP_FIELD(Transient)
     GpuImageRef m_gpuImage;

@@ -6,10 +6,13 @@
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/Memory.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 #include <core/Types.hpp>
+
+#include <core/io/MemoryMappedFile.hpp>
 
 #include <type_traits>
 
@@ -107,6 +110,7 @@ public:
     virtual SizeType Position() const = 0;
     virtual void Seek(SizeType position, bool truncate = false) = 0;
     virtual void Close() = 0;
+    virtual void Flush() = 0;
 
 protected:
     virtual void WriteBytes(const char* ptr, SizeType size) = 0;
@@ -144,6 +148,11 @@ public:
         m_buffer.SetCapacity(m_buffer.Size());
     }
 
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
     HYP_FORCE_INLINE ByteBuffer& GetBuffer()
     {
         return m_buffer;
@@ -174,12 +183,104 @@ private:
     }
 };
 
+template <class AllocatorType>
+class TMemoryByteWriter final : public ByteWriter
+{
+public:
+    TMemoryByteWriter()
+        : m_buffer(new TByteBuffer<AllocatorType>),
+          m_pos(0),
+          m_ownsBuffer(true)
+    {
+    }
+
+    explicit TMemoryByteWriter(TByteBuffer<AllocatorType>* buffer)
+        : m_buffer(buffer),
+          m_pos(0),
+          m_ownsBuffer(false)
+    {
+    }
+
+    virtual ~TMemoryByteWriter() override
+    {
+        if (m_ownsBuffer)
+        {
+            delete m_buffer;
+            m_buffer = nullptr;
+        }
+    }
+
+    virtual SizeType Position() const override
+    {
+        return m_pos;
+    }
+
+    virtual void Seek(SizeType position, bool truncate = false) override
+    {
+        m_pos = position;
+
+        if (position >= m_buffer->Size() || truncate)
+        {
+            m_buffer->SetSize(position);
+        }
+    }
+
+    virtual void Close() override
+    {
+        m_pos = 0;
+        // fit buffer to size
+        m_buffer->SetCapacity(m_buffer->Size());
+    }
+
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
+    HYP_FORCE_INLINE TByteBuffer<AllocatorType>& GetBuffer()
+    {
+        return *m_buffer;
+    }
+
+    HYP_FORCE_INLINE const TByteBuffer<AllocatorType>& GetBuffer() const
+    {
+        return *m_buffer;
+    }
+
+private:
+    TByteBuffer<AllocatorType>* m_buffer;
+    SizeType m_pos;
+    bool m_ownsBuffer;
+
+    virtual void WriteBytes(const char* ptr, SizeType size) override
+    {
+        const SizeType requiredCapacity = m_buffer->Size() + size;
+
+        if (m_buffer->GetCapacity() < requiredCapacity)
+        {
+            // Add some padding to reduce number of allocations we need to do
+            m_buffer->SetCapacity(SizeType(double(requiredCapacity) * 1.5));
+        }
+
+        m_buffer->SetSize(m_buffer->Size() + size);
+        m_buffer->Write(size, m_pos, ptr);
+
+        m_pos += size;
+    }
+};
+
 class FileByteWriter final : public ByteWriter
 {
 public:
-    FileByteWriter(const FilePath& filepath)
+    explicit FileByteWriter(const FilePath& filepath)
         : m_filepath(filepath),
           m_file(fopen(filepath.Data(), "wb"))
+    {
+    }
+    
+    FileByteWriter(const FilePath& filepath, const char* mode)
+        : m_filepath(filepath),
+          m_file(fopen(filepath.Data(), mode))
     {
     }
 
@@ -263,6 +364,16 @@ public:
         m_file = nullptr;
     }
 
+    virtual void Flush() override
+    {
+        if (m_file == nullptr)
+        {
+            return;
+        }
+
+        fflush(m_file);
+    }
+
     bool IsOpen() const
     {
         return m_file != nullptr;
@@ -285,6 +396,140 @@ private:
         }
 
         fwrite(ptr, 1, size, m_file);
+    }
+};
+
+class MemoryMappedByteWriter final : public ByteWriter
+{
+public:
+    explicit MemoryMappedByteWriter(
+        MemoryMappedFile* mappedFile,
+        SizeType offset = 0,
+        SizeType size = 0)
+        : m_mappedFile(mappedFile),
+          m_pos(0),
+          m_baseOffset(0),
+          m_ownsFile(false)
+    {
+        HYP_CORE_ASSERT(mappedFile != nullptr);
+
+        const bool opened = m_mappedFile->Open();
+        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file!");
+
+        HYP_CORE_ASSERT(m_mappedFile->GetMode() == MemoryMappedFile::Mode::READ_WRITE,
+            "MemoryMappedByteWriter requires a read/write mapping");
+
+        const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
+        HYP_CORE_ASSERT(mapped, "Failed to map memory range");
+
+        m_baseOffset = m_mappedView.FileOffset();
+    }
+
+    MemoryMappedByteWriter(
+        const FilePath& filepath,
+        SizeType offset = 0,
+        SizeType size = 0)
+        : m_mappedFile(new MemoryMappedFile(filepath, MemoryMappedFile::Mode::READ_WRITE)),
+          m_pos(0),
+          m_baseOffset(0),
+          m_ownsFile(true)
+    {
+        const bool opened = m_mappedFile->Open();
+        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file: %s", filepath.Data());
+
+        HYP_CORE_ASSERT(m_mappedFile->GetMode() == MemoryMappedFile::Mode::READ_WRITE,
+            "MemoryMappedByteWriter requires a read/write mapping");
+
+        const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
+        HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
+
+        m_baseOffset = m_mappedView.FileOffset();
+    }
+
+    virtual ~MemoryMappedByteWriter() override
+    {
+        MemoryMappedByteWriter::Close();
+    }
+
+    virtual SizeType Position() const override
+    {
+        return m_pos;
+    }
+
+    virtual void Seek(SizeType position, bool truncate = false) override
+    {
+        (void)truncate;
+
+        if (position > Max())
+        {
+            position = Max();
+        }
+
+        m_pos = position;
+    }
+
+    virtual void Close() override
+    {
+        if (IsOpen())
+        {
+            m_mappedView.Close();
+
+            if (m_ownsFile)
+            {
+                m_mappedFile->Close();
+                delete m_mappedFile;
+            }
+        }
+
+        m_mappedFile = nullptr;
+    }
+
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
+    bool IsOpen() const
+    {
+        return m_mappedFile
+            && m_mappedFile->IsOpen()
+            && m_mappedView.IsOpen();
+    }
+
+private:
+    MemoryMappedFile* m_mappedFile;
+    MemoryMappedFileView m_mappedView;
+    SizeType m_pos;
+    SizeType m_baseOffset;
+    bool m_ownsFile;
+
+    static constexpr SizeType GrowthGranularity = SizeType(4) * 1024 * 1024;
+
+    SizeType Max() const
+    {
+        return m_mappedView.Size();
+    }
+
+    virtual void WriteBytes(const char* ptr, SizeType size) override
+    {
+        if (size == 0)
+        {
+            return;
+        }
+
+        const auto* src = reinterpret_cast<const ubyte*>(ptr);
+        auto* dst = static_cast<ubyte*>(m_mappedView.Data());
+
+        HYP_CORE_ASSERT(m_pos + size <= m_mappedView.Size(),
+            "Attempting to write past the end of the mapped file");
+
+        if (dst == nullptr)
+        {
+            return;
+        }
+
+        Memory::Copy(dst + m_pos, src, size);
+        m_pos += size;
     }
 };
 } // namespace Hyperion

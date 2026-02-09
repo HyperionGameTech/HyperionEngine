@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name="Keyframe")]
-    [StructLayout(LayoutKind.Sequential, Size=128)]
+    [StructLayout(LayoutKind.Sequential, Size=64)]
     public struct Keyframe
     {
         private float time;

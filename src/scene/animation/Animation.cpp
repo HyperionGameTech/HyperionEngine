@@ -23,6 +23,11 @@ AnimationTrack::AnimationTrack(Name boneName)
 {
 }
 
+AnimationTrack::~AnimationTrack()
+{
+    FreeBlobData(m_keyframeData);
+}
+
 void AnimationTrack::Init()
 {
     HYP_SCOPE;
@@ -34,12 +39,20 @@ void AnimationTrack::Init()
 
 float AnimationTrack::GetLength() const
 {
-    if (m_keyframes.Empty())
+    if (m_keyframeData.size == 0)
     {
         return 0.0f;
     }
 
-    return m_keyframes.Back().time;
+    Span<const Keyframe> keyframes = GetKeyframes();
+
+    return keyframes[keyframes.Size() - 1].time;
+}
+
+void AnimationTrack::SetKeyframes(Span<const Keyframe> keyframes)
+{
+    FreeBlobData(m_keyframeData);
+    AllocateBlobData<Keyframe>(m_keyframeData, keyframes);
 }
 
 Keyframe AnimationTrack::GetKeyframe(float time) const
@@ -48,14 +61,16 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 
     int first = 0, second = -1;
 
-    if (m_keyframes.Empty())
+    if (m_keyframeData.size == 0)
     {
         return { time, Transform() };
     }
 
-    for (int i = 0; i < int(m_keyframes.Size() - 1); i++)
+    Span<const Keyframe> keyframes = GetKeyframes();
+
+    for (int i = 0; i < int(m_keyframeData.size - 1); i++)
     {
-        if (MathUtil::InRange(time, { m_keyframes[i].time, m_keyframes[i + 1].time }))
+        if (MathUtil::InRange(time, { keyframes[i].time, keyframes[i + 1].time }))
         {
             first = i;
             second = i + 1;
@@ -64,13 +79,13 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         }
     }
 
-    const Keyframe& current = m_keyframes[first];
+    const Keyframe& current = keyframes[first];
 
     Transform transform = current.transform;
 
     if (second > first)
     {
-        const Keyframe& next = m_keyframes[second];
+        const Keyframe& next = keyframes[second];
 
         const float delta = (time - current.time) / (next.time - current.time);
 

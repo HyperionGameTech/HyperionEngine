@@ -5,7 +5,8 @@
 #include <core/Types.hpp>
 #include <core/Name.hpp>
 
-#include <scene/animation/Keyframe.hpp>
+#include <core/io/ByteWriter.hpp>
+#include <core/io/ByteReader.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
@@ -13,13 +14,17 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
+#include <scene/animation/Keyframe.hpp>
+
+#include <asset/AssetObject.hpp>
+
 namespace Hyperion {
 
 class Bone;
 class Skeleton;
 
 HYP_CLASS()
-class HYP_API AnimationTrack final : public ObjectBase
+class HYP_API AnimationTrack final : public AssetObject
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -36,7 +41,7 @@ public:
     AnimationTrack(AnimationTrack&& other) noexcept = default;
     AnimationTrack& operator=(AnimationTrack&& other) noexcept = default;
 
-    ~AnimationTrack() override = default;
+    ~AnimationTrack() override;
 
     HYP_METHOD()
     Name GetBoneName() const
@@ -50,23 +55,60 @@ public:
         m_boneName = boneName;
     }
 
-    HYP_METHOD()
-    void AddKeyframe(const Keyframe& keyframe)
+    Span<const Keyframe> GetKeyframes() const
     {
-        m_keyframes.PushBack(keyframe);
+        return m_keyframeData.raw != nullptr
+            ? Span<const Keyframe>(reinterpret_cast<const Keyframe*>(m_keyframeData.raw), m_keyframeData.size / sizeof(Keyframe))
+            : Span<const Keyframe>();
     }
 
-    HYP_METHOD()
-    const Array<Keyframe>& GetKeyframes() const
-    {
-        return m_keyframes;
-    }
+    void SetKeyframes(Span<const Keyframe> keyframes);
 
     HYP_METHOD()
     float GetLength() const;
 
     HYP_METHOD()
     Keyframe GetKeyframe(float time) const;
+
+protected:
+    void WriteBlobData(BlobStorage& blobStorage) override
+    {
+        Assert(m_keyframeData.raw != nullptr);
+
+        if (!m_keyframeData.readOnly)
+        {
+            BlobHeader header {};
+            Memory::Copy(header.magic, "TRAK", 4);
+            header.version = 1;
+            header.payloadOffset = 0;
+            header.payloadSize = m_keyframeData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(header, key))
+            {
+                m_keyframeData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+        
+        ByteWriter* writeStream = blobStorage.GetWriteStream();
+
+        writeStream->Seek(m_keyframeData.bufferOffset);
+        writeStream->Write(m_keyframeData.raw, m_keyframeData.size);
+    }
+
+    void ReadBlobData(BlobStorage& blobStorage) override
+    {
+        if (m_keyframeData.size != 0)
+        {
+            m_keyframeData.raw = blobStorage.Map(m_keyframeData.bufferOffset, m_keyframeData.size);
+            m_keyframeData.readOnly = true;
+        }
+    }
 
 private:
     void Init() override;
@@ -75,11 +117,11 @@ private:
     Name m_boneName;
 
     HYP_FIELD()
-    Array<Keyframe> m_keyframes;
+    BlobDataReference m_keyframeData;
 };
 
 HYP_CLASS()
-class HYP_API Animation final : public ObjectBase
+class HYP_API Animation final : public AssetObject
 {
     HYP_OBJECT_BODY(Animation);
 

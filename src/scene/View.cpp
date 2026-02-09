@@ -460,7 +460,8 @@ void View::CreateReadbackTexture()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED });
+        IU_SAMPLED
+    });
 
     m_readbackTexture->SetName(NAME_FMT("View_{}_ReadbackTexture", Id().Value()));
 

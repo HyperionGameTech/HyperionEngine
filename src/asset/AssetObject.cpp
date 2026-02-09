@@ -6,6 +6,7 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
@@ -65,184 +66,32 @@ static Name GetUniqueName(Name baseName, T&& elements)
     return baseName;
 }
 
-#pragma region AssetResourceBase
-
-Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
-{
-    HYP_SCOPE;
-
-    FBOMLoadContext context;
-    FBOMReader reader { FBOMReaderConfig {} };
-    FBOMResult err;
-
-    BoxedValue boxed;
-    if ((err = reader.Deserialize(context, stream, boxed)))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
-    }
-
-    Extract_Internal(boxed.ToRef());
-    boxed.Reset();
-
-    Assert(GetData() != nullptr);
-
-    return {};
-}
-
-void AssetDataResourceBase::Initialize()
-{
-    HYP_SCOPE;
-
-    Assert(m_assetObject != nullptr);
-
-    if (IsDataLoaded())
-    {
-        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded in Initialize()", m_assetObject->GetName());
-    
-        return;
-    }
-
-    if (m_assetObject->IsTransient())
-    {
-        HYP_LOG(Assets, Warning, "Attempted to load transient asset {} from disk!", m_assetObject->GetPath().ToString());
-
-        return;
-    }
-
-    HYP_LOG(Assets, Debug, "Loading asset '{}'", m_assetObject->GetName());
-
-    if (Result result = Load_Internal(); result.HasError())
-    {
-        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", m_assetObject->GetName(), result.GetError().GetMessage());
-
-        return;
-    }
-
-    HYP_LOG(Assets, Debug, "Successfully loaded asset '{}'", m_assetObject->GetName());
-}
-
-void AssetDataResourceBase::Destroy()
-{
-    HYP_SCOPE;
-
-    AssertDebug(m_assetObject->IsSaved(),
-        "Unloading asset data for asset that is not saved to disk, may cause problems later down the line");
-
-    HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject->IsRegistered() ? *m_assetObject->GetPath().ToString() : *m_assetObject->GetName());
-
-    if (GetData() == nullptr)
-    {
-        HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", m_assetObject->GetName());
-
-        return;
-    }
-
-    Unload_Internal();
-}
-
-Result AssetDataResourceBase::Load_Internal()
-{
-    HYP_SCOPE;
-
-    Assert(m_assetObject != nullptr);
-
-    BufferedReader stream;
-
-    HYP_DEFER({
-        if (stream.GetSource() != nullptr)
-        {
-            delete stream.GetSource();
-        }
-
-        stream.Close();
-    });
-
-    if (Result openStreamResult = m_assetObject->OpenBinaryReadStream(stream); openStreamResult.HasError())
-    {
-        return openStreamResult;
-    }
-
-    if (Result loadResult = LoadFromStream(stream); loadResult.HasError())
-    {
-        return loadResult;
-    }
-
-    return {};
-}
-
-Result AssetDataResourceBase::Save_Internal(const FilePath& path)
-{
-    HYP_SCOPE;
-    // mutex will already be locked by the asset object that owns this
-
-    Assert(m_assetObject != nullptr);
-
-    FBOMWriter writer { FBOMWriterConfig {} };
-
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetDataTypeInfo().id);
-    Assert(marshal != nullptr, "No marshal for asset data of type {}", GetDataTypeInfo().name);
-
-    FBOMObject object;
-
-    void* pData = GetData();
-
-    if (!pData)
-    {
-        return HYP_MAKE_ERROR(Error, "Asset data reference is invalid!");
-    }
-
-    if (FBOMResult err = marshal->Serialize(ConstAnyRef(&GetDataTypeInfo(), pData), object))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
-    }
-
-    Assert(object.GetType().GetNativeTypeId() == GetDataTypeInfo().id,
-        "Object must have a native TypeId associated to be deserialized properly! Expected: {}, Got serialized type: {}",
-        GetDataTypeInfo().name,
-        object.GetType().ToString(true));
-
-    writer.Append(std::move(object));
-
-    FileByteWriter byteWriter { path };
-    if (FBOMResult err = writer.Emit(&byteWriter))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to write asset to disk: {}", err.message);
-    }
-
-    HYP_LOG(Assets, Debug, "Saved asset to '{}'", path);
-
-    return {};
-}
-
-#pragma endregion AssetResourceBase
-
 #pragma region AssetObject
 
 AssetObject::AssetObject()
-    : m_resource(nullptr),
-      m_flags(AssetObjectFlags::None),
-      m_isDirty(0)
+    : m_flags(AssetObjectFlags::None),
+      m_isDirty(0),
+      m_rwState(0),
+      m_isInitialized(false)
 {
 }
 
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
-      m_resource(nullptr),
       m_flags(AssetObjectFlags::None),
-      m_isDirty(0)
+      m_isDirty(0),
+      m_rwState(0),
+      m_isInitialized(false)
 {
 }
 
 AssetObject::~AssetObject()
 {
-    // need to release before freeing resource or we'll deadlock
-    m_persistentResource.Release();
+    m_persistentReader.Reset();
 
-    if (m_resource != nullptr)
-    {
-        PoolDelete(*g_assetPool, m_resource);
-        m_resource = nullptr;
-    }
+    // add writer here to wait for all reads to complete and
+    // block new readers/writers from acquiring the resource while we're destroying it.
+    LockWriter(/* doInitialize */ false);
 }
 
 void AssetObject::Init()
@@ -250,16 +99,10 @@ void AssetObject::Init()
     HYP_SCOPE;
     ObjectBase::Init();
 
-    if (m_resource)
+    if ((m_flags[AssetObjectFlags::Persistent] || DebugDisableUnload) && !m_persistentReader)
     {
-        AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-        resource->m_assetObject = this;
-
-        if ((m_flags[AssetObjectFlags::Persistent] || DebugDisableUnload) && !m_persistentResource)
-        {
-            m_persistentResource = m_resource->GetReadScope();
-            Assert(m_persistentResource);
-        }
+        m_persistentReader.Reset(*this);
+        Assert(m_persistentReader);
     }
 
     SetReady(true);
@@ -309,10 +152,9 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
 
     if (persistentlyLoaded)
     {
-        if (!m_persistentResource && m_resource)
+        if (!m_persistentReader)
         {
-            m_persistentResource = m_resource->GetReadScope();
-            Assert(m_persistentResource);
+            m_persistentReader.Reset(*this);
         }
 
         return;
@@ -327,7 +169,7 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
     // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
     if (!persistentlyLoaded && !m_flags[AssetObjectFlags::Persistent] && !IsTransient())
     {
-        m_persistentResource.Release();
+        m_persistentReader.Reset();
     }
 }
 
@@ -421,22 +263,21 @@ Result AssetObject::Rename(Name name)
     return {};
 }
 
-bool AssetObject::IsDataLoaded() const
-{
-    HYP_SCOPE;
-
-    return m_resource != nullptr
-        && static_cast<AssetDataResourceBase*>(m_resource)->IsDataLoaded();
-}
-
 bool AssetObject::IsSaved() const
 {
     return m_manifestPath.Length() > 0;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
+
+    Handle<AssetPackage> package = m_package.Lock();
+    if (!package.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Asset package is invalid");
+    }
 
     // save our manifest first
     if (manifestPath.Empty())
@@ -455,6 +296,16 @@ Result AssetObject::Save(const FilePath& manifestPath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
+    
+    BlobStorage* blobStorage = package->GetBlobStorage();
+    Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
+
+    if (blobStorage != nullptr)
+    {
+        WriteBlobData(*blobStorage);
+    }
+
+    // save manifest after updating blob info
 
     {
         FileByteWriter manifestWriter { manifestPath };
@@ -470,43 +321,6 @@ Result AssetObject::Save(const FilePath& manifestPath)
         }
 
         manifestWriter.Close();
-    }
-
-    const bool saveBinData = m_resource != nullptr;
-
-    // use resource instead to save if it is not null
-    if (saveBinData)
-    {
-        AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-
-        // must load before saving if saving to a different place and not currently in memory.
-        bool requiresLoad = !resource->IsDataLoaded();
-
-        ResourceGuard resGuard;
-
-        if (requiresLoad)
-        {
-            requiresLoad = false;
-
-            Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
-                m_name);
-
-            resGuard = resource->GetReadScope();
-
-            if (!resource->IsDataLoaded())
-            {
-                return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
-            }
-        }
-
-        // get bin path from manifest path by removing .json extension
-        const FilePath binPath = manifestPath.StripExtension();
-        Assert(!binPath.Empty() && binPath != manifestPath);
-
-        if (Result saveResourceResult = resource->Save_Internal(binPath); saveResourceResult.HasError())
-        {
-            return saveResourceResult.GetError();
-        }
     }
 
     HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
@@ -541,19 +355,12 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 Result AssetObject::Load(
     JSON::Object& manifestData,
-    BufferedReader* binStream,
+    BlobStorage* blobStorage,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
-
-    if (binStream && !binStream->IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
-    }
 
     JSON::Value classNameValue = manifestData["$Class"];
 
@@ -574,22 +381,6 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
 
-    BoxedValue binDataBoxed;
-
-    if (binStream)
-    {
-        FBOMLoadContext context;
-        FBOMReader reader { FBOMReaderConfig {} };
-        FBOMResult err;
-
-        if ((err = reader.Deserialize(context, *binStream, binDataBoxed)))
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
-        }
-
-        AssertDebug(binDataBoxed.IsValid());
-    }
-
     BoxedValue targetData;
     if (!cls->CreateInstance(targetData))
     {
@@ -597,7 +388,6 @@ Result AssetObject::Load(
     }
 
     AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
-    const bool loadBinData = targetAssetObject->m_resource != nullptr;
 
     // remove class property
     manifestData.Erase("$Class");
@@ -607,19 +397,11 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
 
-    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(targetAssetObject->m_resource);
+    Assert(blobStorage != nullptr);
 
-    if (loadBinData)
+    if (blobStorage != nullptr)
     {
-        AssertDebug(resource != nullptr);
-        AssertDebug(binDataBoxed.IsValid());
-
-        if (binDataBoxed.IsValid())
-        {
-            resource->Extract_Internal(binDataBoxed.ToRef());
-        }
-
-        AssertDebug(resource->GetData() != nullptr);
+        targetAssetObject->ReadBlobData(*blobStorage);
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);
@@ -665,6 +447,178 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     }
 
     return {};
+}
+
+
+TUniqueLock<AssetObject> AssetObject::GetWriteScope() const
+{
+    return TUniqueLock<AssetObject> { const_cast<AssetObject&>(*this) };
+}
+
+TSharedLock<AssetObject> AssetObject::GetReadScope() const
+{
+    return TSharedLock<AssetObject> { const_cast<AssetObject&>(*this) };
+}
+
+void AssetObject::LockWriter(bool doInitialize)
+{
+    uint32 numSpins = 0;
+
+    int64 expected = 0;
+    while (!AtomicCompareExchange(&m_rwState, expected, 1))
+    {
+        expected = 0;
+            
+        // volatile read
+        while (m_rwState != 0)
+        {
+            if (numSpins++ < 16)
+            {
+                HYP_WAIT_IDLE();
+            }
+            else
+            {
+                // yield to other threads
+                ThreadSleep(0);
+            }
+        }
+    }
+
+    if (doInitialize)
+    {
+        Mutex::Guard initGuard(m_initMutex);
+
+        Initialize();
+
+        m_isInitialized = true;
+    }
+}
+
+void AssetObject::UnlockWriter(bool doDeinitialize)
+{
+    if (doDeinitialize)
+    {
+        Mutex::Guard initGuard(m_initMutex);
+
+        Assert(m_isInitialized);
+
+        Destroy();
+
+        m_isInitialized = false;
+    }
+
+    AtomicBitAnd(&m_rwState, ~0x1);
+}
+
+void AssetObject::LockReader()
+{
+    uint32 numSpins = 0;
+
+    union
+    {
+        int64 state;
+        uint64 ustate;
+    };
+
+    auto MaybeInitialize = [this](int64 state)
+    {
+        bool isInitializedLocal = false;
+
+        if (state == 0)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            isInitializedLocal = m_isInitialized;
+
+            if (!isInitializedLocal)
+            {
+                // need to do initialize here, since we're the first reader
+                m_isInitialized = true;
+                isInitializedLocal = true;
+
+                Initialize();
+
+                m_initCV.NotifyAll();
+            }
+        }
+
+        if (!isInitializedLocal)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            // wait for initialization to complete
+            while (!m_isInitialized)
+            {
+                m_initCV.Wait(m_initMutex);
+            }
+        }
+    };
+        
+    // first pass: optimistic read
+    if ((m_rwState & 0x1) == 0)
+    {
+        state = AtomicAdd(&m_rwState, 2);
+
+        if ((state & 0x1) == 0)
+        {
+            MaybeInitialize(state);
+
+            return;
+        }
+
+        AtomicSub(&m_rwState, 2);
+    }
+
+    while (true)
+    {
+        // failed, wait for writer to release
+        if (m_rwState & 0x1)
+        {
+            if (numSpins++ < 16)
+            {
+                HYP_WAIT_IDLE();
+            }
+            else
+            {
+                ThreadSleep(0);
+            }
+
+            continue;
+        }
+
+        state = AtomicAdd(&m_rwState, 2);
+
+        if ((state & 0x1) == 0)
+        {
+            MaybeInitialize(state);
+
+            return;
+        }
+
+        AtomicSub(&m_rwState, 2);
+    }
+}
+
+void AssetObject::UnlockReader()
+{
+    Mutex::Guard initGuard(m_initMutex);
+
+    if (m_isInitialized && AtomicSub(&m_rwState, 2) == 2)
+    {
+        Destroy();
+
+        m_isInitialized = false;
+    }
+}
+
+void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
+{
+    int64 state = AtomicAdd(const_cast<volatile int64*>(&m_rwState), 0);
+
+    outReaders = state >> 1;
+    outWriters = state & 0x1;
 }
 
 #pragma endregion AssetObject

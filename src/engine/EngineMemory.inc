@@ -16,7 +16,7 @@ static constexpr SizeType FramePoolBlockSize = 16 * 1024;           // 16 KiB
 static constexpr SizeType ScenePoolBlockSize = 16 * 1024 * 1024;    // 16 KiB
 static constexpr SizeType TaskPoolBlockSize = 16 * 1024 * 1024;     // 16 KiB
 static constexpr SizeType ResourcePoolBlockSize = 1 * 1024 * 1024;  // 1 MiB
-static constexpr SizeType AssetPoolBlockSize = 1 * 1024 * 1024;     // 1 MiB
+static constexpr SizeType AssetPoolBlockSize = 64 * 1024 * 1024;    // 64 MiB
 static constexpr SizeType StreamingPoolBlockSize = 1 * 1024 * 1024; // 1 MiB
 static constexpr SizeType ScriptPoolBlockSize = 1 * 1024 * 1024;    // 1 MiB
 

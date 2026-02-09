@@ -39,7 +39,7 @@ static HashCode GetMaterialHashCode(
             continue;
         }
 
-        hc.Add(tex->GetAssetReference().GetAssetPath().GetHashCode());
+        hc.Add(tex->GetPath().GetHashCode());
     }
 
     return hc;
