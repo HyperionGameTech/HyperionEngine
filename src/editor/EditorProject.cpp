@@ -163,6 +163,15 @@ Result EditorProject::CreatePackage()
         {
             m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
             m_name = CreateNameFromDynamicString(currentName);
+        
+
+            // temp
+            ubyte* tmpData = new ubyte[1000];
+            Memory::Fill(tmpData, 1, 1000);
+
+            SizeType tmpoffset;
+            m_package->GetBlobStorage().Put(BlobId(0), tmpData, 1000, tmpoffset);
+            delete[] tmpData;
 
             OnPackageCreated(m_package);
 

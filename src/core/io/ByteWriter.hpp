@@ -107,6 +107,7 @@ public:
     virtual SizeType Position() const = 0;
     virtual void Seek(SizeType position, bool truncate = false) = 0;
     virtual void Close() = 0;
+    virtual void Flush() = 0;
 
 protected:
     virtual void WriteBytes(const char* ptr, SizeType size) = 0;
@@ -144,6 +145,11 @@ public:
         m_buffer.SetCapacity(m_buffer.Size());
     }
 
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
     HYP_FORCE_INLINE ByteBuffer& GetBuffer()
     {
         return m_buffer;
@@ -174,12 +180,104 @@ private:
     }
 };
 
+template <class AllocatorType>
+class TMemoryByteWriter final : public ByteWriter
+{
+public:
+    TMemoryByteWriter()
+        : m_buffer(new TByteBuffer<AllocatorType>),
+          m_pos(0),
+          m_ownsBuffer(true)
+    {
+    }
+
+    explicit TMemoryByteWriter(TByteBuffer<AllocatorType>* buffer)
+        : m_buffer(buffer),
+          m_pos(0),
+          m_ownsBuffer(false)
+    {
+    }
+
+    virtual ~TMemoryByteWriter() override
+    {
+        if (m_ownsBuffer)
+        {
+            delete m_buffer;
+            m_buffer = nullptr;
+        }
+    }
+
+    virtual SizeType Position() const override
+    {
+        return m_pos;
+    }
+
+    virtual void Seek(SizeType position, bool truncate = false) override
+    {
+        m_pos = position;
+
+        if (position >= m_buffer->Size() || truncate)
+        {
+            m_buffer->SetSize(position);
+        }
+    }
+
+    virtual void Close() override
+    {
+        m_pos = 0;
+        // fit buffer to size
+        m_buffer->SetCapacity(m_buffer->Size());
+    }
+
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
+    HYP_FORCE_INLINE TByteBuffer<AllocatorType>& GetBuffer()
+    {
+        return *m_buffer;
+    }
+
+    HYP_FORCE_INLINE const TByteBuffer<AllocatorType>& GetBuffer() const
+    {
+        return *m_buffer;
+    }
+
+private:
+    TByteBuffer<AllocatorType>* m_buffer;
+    SizeType m_pos;
+    bool m_ownsBuffer;
+
+    virtual void WriteBytes(const char* ptr, SizeType size) override
+    {
+        const SizeType requiredCapacity = m_buffer->Size() + size;
+
+        if (m_buffer->GetCapacity() < requiredCapacity)
+        {
+            // Add some padding to reduce number of allocations we need to do
+            m_buffer->SetCapacity(SizeType(double(requiredCapacity) * 1.5));
+        }
+
+        m_buffer->SetSize(m_buffer->Size() + size);
+        m_buffer->Write(size, m_pos, ptr);
+
+        m_pos += size;
+    }
+};
+
 class FileByteWriter final : public ByteWriter
 {
 public:
-    FileByteWriter(const FilePath& filepath)
+    explicit FileByteWriter(const FilePath& filepath)
         : m_filepath(filepath),
           m_file(fopen(filepath.Data(), "wb"))
+    {
+    }
+    
+    FileByteWriter(const FilePath& filepath, const char* mode)
+        : m_filepath(filepath),
+          m_file(fopen(filepath.Data(), mode))
     {
     }
 
@@ -261,6 +359,16 @@ public:
 
         fclose(m_file);
         m_file = nullptr;
+    }
+
+    virtual void Flush() override
+    {
+        if (m_file == nullptr)
+        {
+            return;
+        }
+
+        fflush(m_file);
     }
 
     bool IsOpen() const

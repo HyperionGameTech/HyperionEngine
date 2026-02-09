@@ -3,6 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -202,6 +203,16 @@ public:
     Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
+    BlobStorage& GetBlobStorage()
+    {
+        return m_blobStorage;
+    }
+
+    const BlobStorage& GetBlobStorage() const
+    {
+        return m_blobStorage;
+    }
+
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
      *  to this package. Assets are renamed if conflicts occur, and subpackages are merged recursively.
@@ -295,6 +306,8 @@ private:
 
     Result SaveManifest(ByteWriter& stream) const;
 
+    void InitBlobStorage(BlobStorage& outStorage);
+
     /*! \brief Check for dirty asset objects and returns true if any are.
      *   Used before saving, to check if we should call MarkDirty() */
     bool HasDirtyAssetObjects() const;
@@ -333,6 +346,12 @@ private:
     mutable Mutex m_loadedMutex;
     ConditionVariable m_loadedCV;
     ThreadId m_loadingThreadId;
+
+    BlobStorage m_blobStorage;
+
+    // storage for blob data before package is saved
+    using MemoryBlobStorage = Array<TByteBuffer<AssetAllocator>, AssetAllocator>;
+    MemoryBlobStorage m_memoryBlobStorage;
 };
 
 HYP_CLASS()
