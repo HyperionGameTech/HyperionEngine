@@ -30,8 +30,29 @@ class EditorTaskBase : public ObjectBase
 {
     HYP_OBJECT_BODY(EditorTaskBase);
 
+    friend class EditorTaskScope;
+
 public:
     virtual ~EditorTaskBase() = default;
+
+    HYP_METHOD()
+    const String& GetTitle() const
+    {
+        return m_title;
+    }
+
+    HYP_METHOD()
+    const String& GetDescription() const
+    {
+        return m_description;
+    }
+
+    HYP_METHOD()
+    void SetDescription(const String& description)
+    {
+        m_description = description;
+        OnDescriptionChange();
+    }
 
     HYP_METHOD()
     float GetProgress() const
@@ -72,13 +93,18 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void> OnCancel;
 
+    HYP_FIELD()
+    ScriptableDelegate<void> OnDescriptionChange;
+
 protected:
     EditorTaskBase()
         : m_progress(0.0f),
           m_isCancellationRequested(false)
     {
     }
-
+    
+    String m_title;
+    String m_description;
     float m_progress;
     bool m_isCancellationRequested;
 };
@@ -93,10 +119,24 @@ class HYP_API TickableEditorTask : public EditorTaskBase
 public:
     TickableEditorTask();
 
-    explicit TickableEditorTask(Proc<void()>&& tickProc)
+    TickableEditorTask(
+        const String& title,
+        const String& description = "")
+        : TickableEditorTask()
+    {
+        m_title = title;
+        m_description = description;
+    }
+
+    TickableEditorTask(
+        Proc<void()>&& tickProc,
+        const String& title,
+        const String& description = "")
         : TickableEditorTask()
     {
         m_tickProc = std::move(tickProc);
+        m_title = title;
+        m_description = description;
     }
 
     virtual ~TickableEditorTask() override = default;
@@ -189,11 +229,25 @@ class HYP_API LongRunningEditorTask : public EditorTaskBase
 
 public:
     LongRunningEditorTask();
+    
+    LongRunningEditorTask(
+        const String& title,
+        const String& description = "")
+        : LongRunningEditorTask()
+    {
+        m_title = title;
+        m_description = description;
+    }
 
-    explicit LongRunningEditorTask(Proc<void()>&& processProc)
+    LongRunningEditorTask(
+        Proc<void()>&& processProc,
+        const String& title,
+        const String& description = "")
         : LongRunningEditorTask()
     {
         m_processProc = std::move(processProc);
+        m_title = title;
+        m_description = description;
     }
 
     virtual ~LongRunningEditorTask() override;
@@ -268,35 +322,63 @@ class EditorTaskScope
         ConstructWithProc
     };
 
-    EditorTaskScope(ConstructWithProcTag, const Class* editorTaskClass, Proc<void()>&& proc, bool isForegroundTask = false);
+    EditorTaskScope(ConstructWithProcTag,
+        const Class* editorTaskClass,
+        Proc<void()>&& proc,
+        const String& title,
+        const String& description = "",
+        bool isForegroundTask = false);
 
 public:
     template <class TargetType>
-    EditorTaskScope(const Class* editorTaskClass, TargetType* thisPtr, void (TargetType::*memFn)(void), bool isForegroundTask = false)
+    EditorTaskScope(
+        const Class* editorTaskClass,
+        TargetType* thisPtr,
+        void (TargetType::*memFn)(void),
+        const String& title,
+        const String& description = "",
+        bool isForegroundTask = false)
         : EditorTaskScope(
             ConstructWithProc,
             editorTaskClass,
             [memFn, thisPtr]() { thisPtr->*memFn(); },
+            title,
+            description,
             isForegroundTask)
     {
     }
     
     template <class TargetType>
-    EditorTaskScope(const Class* editorTaskClass, const TargetType* thisPtr, void (TargetType::*memFn)(void) const, bool isForegroundTask = false)
+    EditorTaskScope(
+        const Class* editorTaskClass,
+        const TargetType* thisPtr,
+        void (TargetType::*memFn)(void) const,
+        const String& title,
+        const String& description = "",
+        bool isForegroundTask = false)
         : EditorTaskScope(
             ConstructWithProc,
             editorTaskClass,
             [memFn, thisPtr]() { thisPtr->*memFn(); },
+            title,
+            description,
             isForegroundTask)
     {
     }
     
     template <class Functor>
-    EditorTaskScope(const Class* editorTaskClass, Functor&& functor, bool isForegroundTask = false)
+    EditorTaskScope(
+        const Class* editorTaskClass,
+        Functor&& functor,
+        const String& title,
+        const String& description = "",
+        bool isForegroundTask = false)
         : EditorTaskScope(
             ConstructWithProc,
             editorTaskClass,
             std::forward<Functor>(functor),
+            title,
+            description,
             isForegroundTask)
     {
     }

@@ -238,26 +238,26 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     EditorTaskScope taskScope(
         TickableEditorTask::StaticClass(),
-        []() { /* do nothing */ },
+        []() { /* do nothing on tick */ },
+        "Saving project",
+        "Registering assets",
         /* isForegroundTask */ true);
 
-    {
-        g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
-            m_package->BuildPackagePath(),
-            BoxedValue(AnyRef(*this)),
-            /* forceRelocation */ false,
-            [](const AssetObject& assetObject) -> String
+    g_assetManager->GetAssetRegistry()->RegisterAssetsRecursively(
+        m_package->BuildPackagePath(),
+        BoxedValue(AnyRef(*this)),
+        /* forceRelocation */ false,
+        [](const AssetObject& assetObject) -> String
+        {
+            if (assetObject.InstanceClass()->GetName() == "TextureAsset"_sh)
             {
-                if (assetObject.InstanceClass()->GetName() == "TextureAsset"_sh)
-                {
-                    HYP_BREAKPOINT;
-                }
+                HYP_BREAKPOINT;
+            }
 
-                // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
-                //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
-                return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
-            });
-    }
+            // Instances of objects without a pre-defined path (e.g Media/Meshes) go under
+            //  PkgName/Objects/Types/<ObjectClassName>/ObjectName
+            return HYP_FORMAT("Objects/Types/{}", assetObject.InstanceClass()->GetName());
+        });
 
     if (filepath.Empty())
     {
@@ -287,6 +287,8 @@ Result EditorProject::SaveAs(FilePath filepath)
     }
 
     GlobalContextScope contextScope { EditorProjectSaveContext {} };
+    
+    taskScope.GetEditorTask()->SetDescription("Saving project metadata");
 
     const Time previousLastSavedTime = m_lastSavedTime;
     m_lastSavedTime = Time::Now();
@@ -309,6 +311,8 @@ Result EditorProject::SaveAs(FilePath filepath)
 
     m_lastSavedTime = previousLastSavedTime;
     m_filepath = filepath;
+    
+    taskScope.GetEditorTask()->SetDescription("Saving package data");
 
     if (Result packageSaveResult = m_package->Save(dir / *m_name); packageSaveResult.HasError())
     {

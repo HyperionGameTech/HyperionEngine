@@ -131,7 +131,12 @@ bool LongRunningEditorTask::IsCompleted_Impl() const
 #pragma region EditorTaskScope
 
 EditorTaskScope::EditorTaskScope(
-    ConstructWithProcTag, const Class* editorTaskClass, Proc<void()>&& proc, bool isForegroundTask)
+    ConstructWithProcTag,
+    const Class* editorTaskClass,
+    Proc<void()>&& proc,
+    const String& title,
+    const String& description,
+    bool isForegroundTask)
 {
     Assert(editorTaskClass != nullptr);
 
@@ -176,6 +181,9 @@ EditorTaskScope::EditorTaskScope(
 
     if (m_task.IsValid())
     {
+        m_task->m_title = title;
+        m_task->m_description = description;
+
         if (m_task->Commit())
         {
             g_editorState->AddTask(m_task);

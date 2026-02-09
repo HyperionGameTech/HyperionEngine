@@ -8,6 +8,14 @@ namespace Hyperion
     {
         public float Progress => this.GetProgress();
 
+        public string Title => this.GetTitle();
+
+        public string Description
+        {
+            get => this.GetDescription();
+            set => this.SetDescription(value);
+        }
+
         public abstract void Cancel();
         public abstract bool IsCompleted();
 
