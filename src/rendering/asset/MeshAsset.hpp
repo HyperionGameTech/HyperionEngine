@@ -3,6 +3,7 @@
 #pragma once
 
 #include <asset/AssetObject.hpp>
+#include <asset/BlobStorageStructs.hpp>
 
 #include <core/reflection/ObjectFwd.hpp>
 
@@ -55,6 +56,12 @@ struct MeshData
     HYP_API void CalculateNormals(bool weighted = false);
     HYP_API void CalculateTangents();
     HYP_API bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
+};
+
+struct MeshData2
+{
+    BlobPointer<Vertex> vertexData;
+    BlobPointer<uint32> indexData;  
 };
 
 HYP_CLASS()
