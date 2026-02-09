@@ -12,6 +12,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -170,7 +171,12 @@ Result EditorProject::CreatePackage()
             Memory::Fill(tmpData, 1, 1000);
 
             SizeType tmpoffset;
-            m_package->GetBlobStorage().Put(BlobId(0), tmpData, 1000, tmpoffset);
+            m_package->InitBlobStorage();
+            m_package->GetBlobStorage()->Put(BlobId(0), tmpData, 1000, tmpoffset);
+            delete[] tmpData;
+            tmpData = new ubyte[4096];
+            Memory::Fill(tmpData, 0xFA, 4096);
+            m_package->GetBlobStorage()->Put(BlobId(1), tmpData, 4096, tmpoffset);
             delete[] tmpData;
 
             OnPackageCreated(m_package);

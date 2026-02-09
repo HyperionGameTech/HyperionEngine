@@ -7,6 +7,7 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/AssetReference.hpp>
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
@@ -343,6 +344,7 @@ AssetPackage::AssetPackage()
 
 AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
     : m_flags(flags),
+      m_blobStorage(nullptr),
       m_stateFlags(0)
 {
     if (name.IsValid())
@@ -364,8 +366,15 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
         m_name = SanitizeName(name);
         m_friendlyName = CreateFriendlyName(name);
     }
+}
 
-    InitBlobStorage(m_blobStorage);
+AssetPackage::~AssetPackage()
+{
+    if (m_blobStorage != nullptr)
+    {
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
+    }
 }
 
 void AssetPackage::Init()
@@ -443,6 +452,12 @@ void AssetPackage::Init()
         if (!shouldSaveAssets && !isLoading && assetObjects.Any())
         {
             MarkDirty(); // if not saving assets right now, need to mark it to be saved later
+        }
+
+        if (m_flags[AssetPackageFlags::HasBlobStorage])
+        {
+            // we have our own blob storage
+            InitBlobStorage();
         }
     }
 
@@ -1343,7 +1358,15 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     
     TUniqueLock lock(m_mutex);
 
-    m_blobStorage.FlushWrites();
+    if (m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        Assert(m_blobStorage != nullptr);
+
+        if (m_blobStorage != nullptr)
+        {
+            m_blobStorage->FlushWrites();
+        }
+    }
 
     FilePath packageDir;
 
@@ -1441,16 +1464,19 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
         if (packageDir != m_packageDir)
         {
-            transferBlobStorage = true;
-            prevBlobStorage = std::move(m_blobStorage);
+            if (m_flags[AssetPackageFlags::HasBlobStorage])
+            {
+                Assert(m_blobStorage != nullptr);
 
-            m_packageDir = packageDir;
+                transferBlobStorage = true;
+                prevBlobStorage = std::move(*m_blobStorage);
 
-            m_blobStorage = BlobStorage();
-            InitBlobStorage(m_blobStorage);
-        }
-        else
-        {
+                m_packageDir = packageDir;
+
+                *m_blobStorage = BlobStorage();
+                InitBlobStorage(*m_blobStorage);
+            }
+            
             m_packageDir = packageDir;
         }
     }
@@ -1466,7 +1492,10 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
     if (transferBlobStorage)
     {
-        prevBlobStorage.CopyTo(m_blobStorage);
+        prevBlobStorage.CopyTo(*m_blobStorage);
+        prevBlobStorage.Close();
+
+        m_memoryBlobStorage.Clear();
     }
 
     // even if skipSaving is true, we need to iterate over subpackages as
@@ -1860,6 +1889,46 @@ void AssetPackage::SignalLoaded()
     m_loadedCV.NotifyAll();
 }
 
+BlobStorage* AssetPackage::GetBlobStorage() const
+{
+    if (m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        Assert(m_blobStorage != nullptr);
+
+        return m_blobStorage;
+    }
+
+    Handle<AssetPackage> parentPackage = m_parentPackage.Lock();
+
+    while (parentPackage.IsValid())
+    {
+        if (parentPackage->m_flags[AssetPackageFlags::HasBlobStorage])
+        {
+            Assert(parentPackage->m_blobStorage != nullptr);
+
+            return parentPackage->m_blobStorage;
+        }
+
+        parentPackage = parentPackage->GetParentPackage().Lock();
+    }
+
+    return nullptr;
+}
+
+void AssetPackage::InitBlobStorage()
+{
+    if (m_blobStorage != nullptr)
+    {
+        return;
+    }
+
+    m_blobStorage = new BlobStorage();
+
+    InitBlobStorage(*m_blobStorage);
+
+    m_flags |= AssetPackageFlags::HasBlobStorage;
+}
+
 void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
 {
     if (IsSaved_Internal())
@@ -1924,7 +1993,7 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
             }
 
             MemoryBufferedReaderSource* source = (MemoryBufferedReaderSource*)g_assetPool->Allocate(sizeof(MemoryBufferedReaderSource), alignof(MemoryBufferedReaderSource));
-            new (source) MemoryBufferedReaderSource((*memoryBlobStorage)[uint32(blobId)].ToByteView());
+            new (source) MemoryBufferedReaderSource(memoryBlobStorage->Get(uint32(blobId)).ToByteView());
 
             BufferedReader* stream = (BufferedReader*)g_assetPool->Allocate(sizeof(BufferedReader), alignof(BufferedReader));
             new (stream) BufferedReader(source);
@@ -1937,16 +2006,11 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
         {
             MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
 
-            if (uint32(blobId) >= uint32(memoryBlobStorage->Size()))
-            {
-                memoryBlobStorage->Resize(uint32(blobId) + 1);
-            }
-
             TMemoryByteWriter<AssetAllocator>* stream = (TMemoryByteWriter<AssetAllocator>*)g_assetPool->Allocate(
                 sizeof(TMemoryByteWriter<AssetAllocator>),
                 alignof(TMemoryByteWriter<AssetAllocator>)
             );
-            new (stream) TMemoryByteWriter(&(*memoryBlobStorage)[uint32(blobId)]);
+            new (stream) TMemoryByteWriter(&memoryBlobStorage->Get(uint32(blobId)));
 
             outStream = stream;
             return true;
@@ -1971,7 +2035,6 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
 
     outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream)
     {
-        stream->Close();
         stream->~ByteWriter();
 
         g_assetPool->Free(stream);
@@ -2015,6 +2078,8 @@ AssetRegistry::~AssetRegistry()
 void AssetRegistry::Initialize()
 {
     HYP_SCOPE;
+
+    AssertOnThread(g_mainThread);
 
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
     enginePackage->Save(g_assetManager->GetBasePath());
