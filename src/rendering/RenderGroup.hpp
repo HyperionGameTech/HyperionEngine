@@ -49,15 +49,15 @@ class HYP_API RenderGroup final : public ObjectBase
     HYP_OBJECT_BODY(RenderGroup);
 
 public:
+    static Pool* GetAllocator() { return g_renderPool; }
+
     RenderGroup();
 
-    RenderGroup(
-        const ShaderRef& shader,
+    explicit RenderGroup(
         const RenderableAttributeSet& renderableAttributes,
         EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT);
 
     RenderGroup(
-        const ShaderRef& shader,
         const RenderableAttributeSet& renderableAttributes,
         const DescriptorTableRef& descriptorTable,
         EnumFlags<RenderGroupFlags> flags = RenderGroupFlags::DEFAULT);
@@ -65,13 +65,6 @@ public:
     RenderGroup(const RenderGroup& other) = delete;
     RenderGroup& operator=(const RenderGroup& other) = delete;
     ~RenderGroup();
-
-    HYP_FORCE_INLINE const ShaderRef& GetShader() const
-    {
-        return shader;
-    }
-
-    void SetShader(const ShaderRef& shader);
 
     HYP_FORCE_INLINE const RenderableAttributeSet& GetRenderableAttributes() const
     {
@@ -92,7 +85,6 @@ public:
         IndirectRenderer* indirectRenderer,
         ParallelRenderingState* parallelRenderingState);
         
-    ShaderRef shader;
     RenderableAttributeSet renderableAttributes;
     EnumFlags<RenderGroupFlags> flags;
 };

@@ -334,20 +334,8 @@ static RenderGroup* CreateRenderGroup(
         renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
     }
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(
-        attributes.GetMaterialAttributes().shaderName,
-        attributes.GetMaterialAttributes().shaderProperties,
-        attributes.GetMeshAttributes().vertexAttributes);
-
-    if (!shader.IsValid())
-    {
-        HYP_LOG(Rendering, Error, "Failed to create shader for RenderProxy");
-
-        return nullptr;
-    }
-
     // Create RenderGroup
-    RenderGroup* rg = new RenderGroup(shader, attributes, renderGroupFlags);
+    RenderGroup* rg = new RenderGroup(attributes, renderGroupFlags);
 
     if (renderGroupFlags & RenderGroupFlags::INDIRECT_RENDERING)
     {
