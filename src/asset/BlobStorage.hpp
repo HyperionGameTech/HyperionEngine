@@ -10,6 +10,8 @@
 
 #include <core/threading/SharedMutex.hpp>
 
+#include <core/reflection/ObjectBase.hpp>
+
 namespace Hyperion {
 
 enum class BlobId : uint32;
@@ -30,8 +32,11 @@ struct BlobStorageCallbacks
     void (*Destroy)(void* context) = nullptr;
 };
 
-class BlobStorage
+HYP_CLASS()
+class BlobStorage : public ObjectBase
 {
+    HYP_OBJECT_BODY(BlobStorage);
+
 public:
     BlobStorage();
 

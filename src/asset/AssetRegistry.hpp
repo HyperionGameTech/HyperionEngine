@@ -3,7 +3,6 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
-#include <asset/BlobStorage.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -48,6 +47,7 @@ class AssetPackage;
 class AssetObject;
 struct BoxedValue;
 class ByteWriter;
+class BlobStorage;
 
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
@@ -60,7 +60,8 @@ enum class AssetPackageFlags : uint32
 {
     None = 0x0,
     Transient = 0x1,    //!< Not saved to disk
-    Hidden = 0x2        //!< Hide in content browser
+    Hidden = 0x2,       //!< Hide in content browser
+    HasBlobStorage = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
@@ -95,7 +96,7 @@ public:
     AssetPackage(AssetPackage&& other) noexcept = delete;
     AssetPackage& operator=(AssetPackage&& other) noexcept = delete;
 
-    ~AssetPackage() = default;
+    ~AssetPackage();
 
     HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
@@ -203,15 +204,10 @@ public:
     Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
 
-    BlobStorage& GetBlobStorage()
-    {
-        return m_blobStorage;
-    }
+    BlobStorage* GetBlobStorage() const;
 
-    const BlobStorage& GetBlobStorage() const
-    {
-        return m_blobStorage;
-    }
+    /*! \brief Initialize (owned) BlobStorage for this Package */
+    void InitBlobStorage();
 
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
@@ -347,10 +343,52 @@ private:
     ConditionVariable m_loadedCV;
     ThreadId m_loadingThreadId;
 
-    BlobStorage m_blobStorage;
+    BlobStorage* m_blobStorage;
 
     // storage for blob data before package is saved
-    using MemoryBlobStorage = Array<TByteBuffer<AssetAllocator>, AssetAllocator>;
+    class MemoryBlobStorage
+    {
+    public:
+        TByteBuffer<AssetAllocator>& Get(uint32 index)
+        {
+            TUniqueLock lock(m_mutex);
+
+            if (m_list.Empty())
+            {
+                m_list.EmplaceBack();
+            }
+
+            typename decltype(m_list)::Iterator iter = m_list.Begin();
+
+            for (uint32 i = 0; i <= index; ++i, ++iter)
+            {
+                if (i + 1 >= m_list.Size())
+                {
+                    m_list.EmplaceBack();
+                }
+            }
+
+            return *iter;
+        }
+
+        SizeType Size() const
+        {
+            TSharedLock lock(m_mutex);
+            return m_list.Size();
+        }
+
+        void Clear()
+        {
+            TUniqueLock lock(m_mutex);
+
+            m_list.Clear();
+        }
+
+    private:
+        LinkedList<TByteBuffer<AssetAllocator>, AssetAllocator> m_list;
+        SharedMutex m_mutex;
+    };
+
     MemoryBlobStorage m_memoryBlobStorage;
 };
 

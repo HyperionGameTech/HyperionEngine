@@ -5,6 +5,8 @@
 #include <io/BufferedByteReader.hpp>
 #include <io/ByteWriter.hpp>
 
+#include <BlobStorage.generated.inl>
+
 namespace Hyperion {
 
 BlobStorage::BlobStorage()
@@ -237,6 +239,7 @@ void BlobStorage::CopyTo(BlobStorage& other)
             writeStream->Write(readStream->ReadBytes());
 
             writeStream->Flush();
+
 
             HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage (blob index: {})", readStream->Position(), blobId);
 
