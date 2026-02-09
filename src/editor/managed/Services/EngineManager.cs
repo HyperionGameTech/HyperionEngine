@@ -87,6 +87,8 @@ namespace Hyperion.Editor
                     throw new Exception("Failed to initialize Hyperion Engine. NativeBindings.Hyp_Initialize returned false.");
                 }
 
+                InitializeEditorTasks();
+
                 NativeBindings.Hyp_LaunchThreads();
             }
             catch (Exception ex)
@@ -110,15 +112,46 @@ namespace Hyperion.Editor
             IsInitialized = true;
         }
 
+        private static void InitializeEditorTasks()
+        {
+            EditorState editorState = EditorState.Instance;
+            Debug.Assert(editorState != null, "Failed to get EditorState instance");
+
+            _onTaskStartedHandler?.Remove();
+            _onTaskStartedHandler = editorState.GetOnTaskStartedDelegate().Bind((EditorTaskBase task) =>
+            {
+                bool isForegroundTask = false;
+
+                if (task is TickableEditorTask tickableTask)
+                {
+                    isForegroundTask = tickableTask.IsForegroundTask;
+                }
+
+                RaiseTaskStarted(task, isForegroundTask);
+            });
+
+            _onTaskEndedHandler?.Remove();
+            _onTaskEndedHandler = editorState.GetOnTaskEndedDelegate().Bind((EditorTaskBase task) =>
+            {
+                RaiseTaskEnded(task.Id);
+            });
+
+            _onTaskProgressUpdatedHandler?.Remove();
+            _onTaskProgressUpdatedHandler = editorState.GetOnTaskProgressUpdatedDelegate().Bind((EditorTaskBase task) =>
+            {
+                RaiseTaskProgressUpdated(task.Id, task.Progress);
+            });
+        }
+
         public static void InitializeEditor()
         {
             EditorGame ??= new HyperionEditorGame();
             GameInstance = EditorGame;
-            
-            EngineDriver.Instance.GameInstance = EditorGame;
 
             EditorState editorState = EditorState.Instance;
             Debug.Assert(editorState != null, "Failed to get EditorState instance");
+
+            EngineDriver.Instance.GameInstance = EditorGame;
 
             CurrentProject = editorState.CurrentProject;
 
@@ -144,29 +177,6 @@ namespace Hyperion.Editor
                         SceneRemoved?.Invoke(world, scene);
                     });
                 }
-            });
-
-            _onTaskStartedHandler?.Remove();
-            _onTaskStartedHandler = editorState.GetOnTaskStartedDelegate().Bind((EditorTaskBase task) =>
-            {
-                bool isForegroundTask = false;
-                if (task is TickableEditorTask tickableTask)
-                {
-                    isForegroundTask = tickableTask.IsForegroundTask;
-                }
-                RaiseTaskStarted(task, isForegroundTask);
-            });
-
-            _onTaskEndedHandler?.Remove();
-            _onTaskEndedHandler = editorState.GetOnTaskEndedDelegate().Bind((EditorTaskBase task) =>
-            {
-                RaiseTaskEnded(task.Id);
-            });
-
-            _onTaskProgressUpdatedHandler?.Remove();
-            _onTaskProgressUpdatedHandler = editorState.GetOnTaskProgressUpdatedDelegate().Bind((EditorTaskBase task) =>
-            {
-                RaiseTaskProgressUpdated(task.Id, task.Progress);
             });
 
             SetEditorViewportsEnabled(true);

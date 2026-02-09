@@ -82,6 +82,7 @@ private:
 
     Array<RunningEditorTask> m_tasks;
     HashMap<ObjId<EditorTaskBase>, float> m_taskProgressValues;
+    mutable Mutex m_mutex;
 };
 
 } // namespace Hyperion

@@ -34,7 +34,14 @@ bool TickableEditorTask::Commit()
 {
     {
         Mutex::Guard guard(m_mutex);
-        isComplete = false;
+
+        AssertDebug(!isComplete && !m_isCommitted);
+
+        if (isComplete || m_isCommitted)
+        {
+            return false;
+        }
+
         m_isCommitted = true;
     }
 
@@ -47,6 +54,12 @@ void TickableEditorTask::Cancel_Impl()
 {
     {
         Mutex::Guard guard(m_mutex);
+
+        if (isComplete || !m_isCommitted)
+        {
+            return;
+        }
+
         if (!m_isCancellationRequested)
         {
             m_isCancellationRequested = true;
@@ -64,6 +77,7 @@ void TickableEditorTask::Cancel_Impl()
 
 bool TickableEditorTask::IsCompleted_Impl() const
 {
+    Mutex::Guard guard(m_mutex);
     return isComplete;
 }
 
@@ -81,13 +95,19 @@ LongRunningEditorTask::~LongRunningEditorTask()
 
 bool LongRunningEditorTask::Commit()
 {
+    Mutex::Guard guard(m_mutex);
+
+    AssertDebug(!m_isCommitted);
+
+    if (m_isCommitted)
+    {
+        return false;
+    }
+
+    m_isCommitted = true;
+
     m_task = TaskSystem::GetInstance().Enqueue([this]()
         {
-            {
-                Mutex::Guard guard(m_mutex);
-                m_isCommitted = true;
-            }
-
             Start();
 
             Process();

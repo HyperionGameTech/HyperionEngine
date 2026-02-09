@@ -32,9 +32,10 @@ namespace Hyperion
 
         public override bool Equals(object obj)
         {
-            if (obj is ObjIdBase)
+            if (obj is ObjIdBase other)
             {
-                return this == (ObjIdBase)obj;
+                return _typeIdValue == other._typeIdValue
+                    && _value == other._value;
             }
 
             return false;

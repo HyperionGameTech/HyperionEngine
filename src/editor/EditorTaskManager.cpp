@@ -45,12 +45,12 @@ void EditorTaskManager::AddTask(const Handle<EditorTaskBase>& task)
         return;
     }
 
-    RunningEditorTask& runningTask = m_tasks.EmplaceBack(task);
+    {
+        Mutex::Guard guard(m_mutex);
+        RunningEditorTask& runningTask = m_tasks.EmplaceBack(task);
+    }
 
     OnTaskAdded(task);
-
-    // For long running tasks, enqueues the task in the scheduler
-    task->Commit();
 }
 
 void EditorTaskManager::Tick()
@@ -77,39 +77,43 @@ void EditorTaskManager::Tick()
             continue;
         }
 
-        if (task->IsCommitted())
+        if (!task->IsCommitted())
         {
-            if (task->GetProgress() != m_taskProgressValues[task->Id()])
+            task->Commit();
+
+            Assert(task->IsCommitted());
+        }
+
+        if (TickableEditorTask* tickableTask = ObjCast<TickableEditorTask>(task.Get()))
+        {
+            if (tickableTask->GetTimer().Waiting())
             {
-                OnTaskProgressUpdated(task);
-
-                m_taskProgressValues[task->Id()] = task->GetProgress();
-            }
-
-            if (task->IsCompleted())
-            {
-                m_taskProgressValues.Erase(task->Id());
-
-                task->OnComplete();
-
-                OnTaskRemoved(task);
-
-                it = m_tasks.Erase(it);
-
+                ++it;
                 continue;
             }
 
-            if (TickableEditorTask* tickableTask = ObjCast<TickableEditorTask>(task.Get()))
-            {
-                if (tickableTask->GetTimer().Waiting())
-                {
-                    ++it;
-                    continue;
-                }
+            tickableTask->GetTimer().NextTick();
+            tickableTask->Tick();
+        }
+        
+        if (task->GetProgress() != m_taskProgressValues[task->Id()])
+        {
+            OnTaskProgressUpdated(task);
 
-                tickableTask->GetTimer().NextTick();
-                tickableTask->Tick();
-            }
+            m_taskProgressValues[task->Id()] = task->GetProgress();
+        }
+        
+        if (task->IsCompleted())
+        {
+            m_taskProgressValues.Erase(task->Id());
+
+            task->OnComplete();
+
+            OnTaskRemoved(task);
+
+            it = m_tasks.Erase(it);
+
+            continue;
         }
 
         ++it;

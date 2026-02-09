@@ -220,25 +220,7 @@ void EditorState::AddTask(const Handle<EditorTaskBase>& task)
         return;
     }
 
-    if (IsOnThread(g_simThread))
-    {
-        m_taskManager.AddTask(task);
-    }
-    else
-    {
-        // add on sim thread
-        g_simThreadInstance->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), task = task]()
-            {
-                Handle<EditorState> editorState = weakThis.Lock();
-                if (!editorState.IsValid())
-                {
-                    return;
-                }
-
-                editorState->m_taskManager.AddTask(task);
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
+    m_taskManager.AddTask(task);
 }
 
 void EditorState::Update(float delta)

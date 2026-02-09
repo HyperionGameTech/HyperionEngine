@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Windows.Input;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -6,40 +7,35 @@ using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
-    public class ForegroundTaskViewModel : ViewModelBase
+    public class ForegroundTaskState : ViewModelBase
     {
-        private ObjIdBase _taskId;
-        private string _taskName;
         private string _title;
         private string _description;
         private float _progress;
         private float _opacity;
-        private bool _isVisible;
-        private EditorTaskBase? _task;
-        private DelegateHandler? _onDescriptionChangedHandler;
 
-        public ForegroundTaskViewModel()
+        public ObjIdBase TaskId { get; }
+        public EditorTaskBase? Task { get; }
+        public DelegateHandler? DescriptionChangedHandler { get; set; }
+
+        public ForegroundTaskState()
         {
-            _taskId = default;
-            _taskName = string.Empty;
+            TaskId = ObjIdBase.Invalid;
+            Task = null;
             _title = string.Empty;
             _description = string.Empty;
             _progress = 0.0f;
             _opacity = 0.0f;
-            _isVisible = false;
-            CancelCommand = new RelayCommand(OnCancel);
         }
 
-        public ObjIdBase TaskId
+        public ForegroundTaskState(EditorTaskBase task)
         {
-            get => _taskId;
-            set => SetProperty(ref _taskId, value);
-        }
-
-        public string TaskName
-        {
-            get => _taskName;
-            set => SetProperty(ref _taskName, value);
+            TaskId = task.Id;
+            Task = task;
+            _title = task.Title.ToString();
+            _description = task.Description.ToString();
+            _progress = task.Progress;
+            _opacity = 1.0f;
         }
 
         public string Title
@@ -60,89 +56,117 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _progress, value);
         }
 
-        public bool IsVisible
-        {
-            get => _isVisible;
-            set => SetProperty(ref _isVisible, value);
-        }
-
         public float Opacity
         {
             get => _opacity;
             set => SetProperty(ref _opacity, value);
+        }
+    }
+
+    public class ForegroundTaskViewModel : ViewModelBase
+    {
+        private static readonly ForegroundTaskState _defaultTaskState = new ForegroundTaskState();
+
+        private readonly ConcurrentDictionary<ObjIdBase, ForegroundTaskState> _tasks;
+        private ForegroundTaskState _currentTask;
+        private bool _isVisible;
+
+        public ForegroundTaskViewModel()
+        {
+            _tasks = new ConcurrentDictionary<ObjIdBase, ForegroundTaskState>();
+            _currentTask = _defaultTaskState;
+            _isVisible = false;
+            CancelCommand = new RelayCommand(OnCancel);
+        }
+
+        public ForegroundTaskState CurrentTask
+        {
+            get => _currentTask;
+            private set => SetProperty(ref _currentTask, value);
+        }
+
+        public bool IsVisible
+        {
+            get => _isVisible;
+            private set => SetProperty(ref _isVisible, value);
         }
 
         public ICommand CancelCommand { get; }
 
         private void OnCancel()
         {
-            if (_task != null)
-            {
-                _task.Cancel();
-            }
+            _currentTask.Task?.Cancel();
         }
 
         public void SetTask(EditorTaskBase task)
         {
             Dispatcher.UIThread.VerifyAccess();
-            
-            _onDescriptionChangedHandler?.Remove();
-            
-            _task = task;
-            TaskId = task.Id;
-            TaskName = task.Class.Name.ToString();
-            Title = task.Title.ToString();
-            Description = task.Description.ToString();
-            Progress = task.Progress;
-            Opacity = 1.0f;
-            IsVisible = true;
 
-            WeakReference<EditorTaskBase> weakTask = new WeakReference<EditorTaskBase>(task);
-
-            _onDescriptionChangedHandler = task.GetOnDescriptionChangeDelegate().Bind(() =>
+            var taskState = new ForegroundTaskState(task);
+            
+            if (_tasks.TryAdd(task.Id, taskState))
             {
-                Dispatcher.UIThread.Post(() =>
+                taskState.DescriptionChangedHandler = task.GetOnDescriptionChangeDelegate().Bind(() =>
                 {
-                    // check if the current task is still the same (it could have been replaced by another task)
-                    if (!weakTask.TryGetTarget(out EditorTaskBase? currentTask) || currentTask.Id != TaskId)
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        return;
-                    }
-
-                    Description = currentTask.Description.ToString();
+                        if (_tasks.TryGetValue(task.Id, out var state))
+                        {
+                            state.Description = task.Description.ToString();
+                        }
+                    });
                 });
-            });
+
+                CurrentTask = taskState;
+                IsVisible = true;
+            }
         }
 
-        public void Clear()
+        public void UpdateProgress(ObjIdBase taskId, float progress)
+        {
+            if (_tasks.TryGetValue(taskId, out var taskState))
+            {
+                taskState.Progress = progress;
+            }
+        }
+
+        public void Remove(ObjIdBase taskId)
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            Opacity = 0.0f;
-            
-            _onDescriptionChangedHandler?.Remove();
-            _onDescriptionChangedHandler = null;
-
-            // hide upon animation completion
-            // we check if the task is still the same before hiding, as it could have been replaced by another task in the meantime
-            WeakReference<EditorTaskBase?> weakTask = new WeakReference<EditorTaskBase?>(_task);
-            Dispatcher.UIThread.Post(async () =>
+            if (_tasks.TryGetValue(taskId, out var taskState))
             {
-                await Task.Delay(300);
+                taskState.Opacity = 0.0f;
 
-                if (weakTask.TryGetTarget(out EditorTaskBase? currentTask) && currentTask != null && currentTask.Id == TaskId)
+                taskState.DescriptionChangedHandler?.Remove();
+                taskState.DescriptionChangedHandler = null;
+
+                Dispatcher.UIThread.Post(async () =>
                 {
-                    return;
-                }
-                
-                IsVisible = false;
-                _task = null;
-                TaskId = default;
-                TaskName = string.Empty;
-                Title = string.Empty;
-                Description = string.Empty;
-                Progress = 0.0f;
-            });
+                    await Task.Delay(300);
+
+                    _tasks.TryRemove(taskId, out _);
+
+                    if (_currentTask.TaskId.Equals(taskId) || !_currentTask.TaskId.IsValid)
+                    {
+                        if (!_tasks.IsEmpty)
+                        {
+                            foreach (var kvp in _tasks)
+                            {
+                                if (kvp.Value.Task != null && !kvp.Value.Task.IsCompleted())
+                                {
+                                    CurrentTask = kvp.Value;
+                                    IsVisible = true;
+                                    return;
+                                }
+                            }
+                        }
+
+                        CurrentTask = _defaultTaskState;
+                        IsVisible = false;
+                    }
+                });
+            }
         }
     }
 }

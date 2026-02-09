@@ -10,12 +10,7 @@
     x:DataType="vm:ForegroundTaskViewModel"
     mc:Ignorable="d">
 
-    <Grid IsVisible="{Binding IsVisible}" Opacity="{Binding Opacity}">
-        <!-- overlay -->
-        <!-- <Grid.Background>
-            <SolidColorBrush Color="#88000000" />
-        </Grid.Background> -->
-
+    <Grid IsVisible="{Binding IsVisible}" Opacity="{Binding CurrentTask.Opacity}">
         <Grid.Transitions>
             <Transitions>
                 <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
@@ -41,11 +36,11 @@
                             FontSize="16"
                             FontWeight="Bold"
                             Foreground="{DynamicResource Brush.Text}"
-                            Text="{Binding Title}" />
+                            Text="{Binding CurrentTask.Title}" />
                         <TextBlock
                             FontSize="12"
                             Foreground="{DynamicResource Brush.TextSecondary}"
-                            Text="{Binding Description}"
+                            Text="{Binding CurrentTask.Description}"
                             TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -54,11 +49,11 @@
                             Height="6"
                             Maximum="1.0"
                             Minimum="0"
-                            Value="{Binding Progress}" />
+                            Value="{Binding CurrentTask.Progress}" />
                         <TextBlock
                             FontSize="11"
                             Foreground="{DynamicResource Brush.TextSecondary}"
-                            Text="{Binding Progress, StringFormat=Progress: {0:P0}}" />
+                            Text="{Binding CurrentTask.Progress, StringFormat=Progress: {0:P0}}" />
                     </StackPanel>
 
                     <Button

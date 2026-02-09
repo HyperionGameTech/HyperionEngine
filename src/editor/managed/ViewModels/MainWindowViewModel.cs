@@ -294,14 +294,8 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.Post(() =>
             {
-                // Check if it's the current foreground task
-                if (ForegroundTask.IsVisible && ForegroundTask.TaskId.Equals(taskId))
-                {
-                    ForegroundTask.Clear();
-                    return;
-                }
+                ForegroundTask.Remove(taskId);
 
-                // Otherwise look in background tasks
                 for (int i = 0; i < Tasks.Count; i++)
                 {
                     if (Tasks[i].TaskId.Equals(taskId))
@@ -318,14 +312,10 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.Post(() =>
             {
-                // Check foreground task first
-                if (ForegroundTask.IsVisible && ForegroundTask.TaskId.Equals(taskId))
-                {
-                    ForegroundTask.Progress = progress;
-                    return;
-                }
+                // Update foreground task
+                ForegroundTask.UpdateProgress(taskId, progress);
 
-                // Otherwise look in background tasks
+                // Also check background tasks
                 foreach (TaskItemViewModel task in Tasks)
                 {
                     if (task.TaskId.Equals(taskId))
