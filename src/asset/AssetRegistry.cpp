@@ -364,6 +364,8 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
         m_name = SanitizeName(name);
         m_friendlyName = CreateFriendlyName(name);
     }
+
+    InitBlobStorage(m_blobStorage);
 }
 
 void AssetPackage::Init()
@@ -1341,6 +1343,8 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     
     TUniqueLock lock(m_mutex);
 
+    m_blobStorage.FlushWrites();
+
     FilePath packageDir;
 
     // Build package save dir. `outputDirectory` /may/ just be a base path, where we'll append the package path to it
@@ -1348,6 +1352,9 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
     Array<String> outputParts = outputDirectory.Split('/', '\\');
     Array<String> packageParts = packagePath.Split('/', '\\');
+    
+    bool transferBlobStorage = false;
+    BlobStorage prevBlobStorage;
 
     SizeType packageStartIndex = 0;
 
@@ -1432,7 +1439,20 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
         manifestWriter.Close();
 
-        m_packageDir = packageDir;
+        if (packageDir != m_packageDir)
+        {
+            transferBlobStorage = true;
+            prevBlobStorage = std::move(m_blobStorage);
+
+            m_packageDir = packageDir;
+
+            m_blobStorage = BlobStorage();
+            InitBlobStorage(m_blobStorage);
+        }
+        else
+        {
+            m_packageDir = packageDir;
+        }
     }
 
     Name packageName = m_name;
@@ -1443,6 +1463,11 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     const bool shouldSaveAssets = !skipSavingThisPackage && !IsTransient() && IsSaved_Internal();
 
     lock.Reset();
+
+    if (transferBlobStorage)
+    {
+        prevBlobStorage.CopyTo(m_blobStorage);
+    }
 
     // even if skipSaving is true, we need to iterate over subpackages as
     // they may have individual asset objects that are dirty
@@ -1833,6 +1858,124 @@ void AssetPackage::SignalLoaded()
     m_loadingThreadId = ThreadId::Invalid();
 
     m_loadedCV.NotifyAll();
+}
+
+void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
+{
+    if (IsSaved_Internal())
+    {
+        char* filepathStr = (char*)Memory::Allocate(m_packageDir.Size() + 1);
+        Memory::StrCpy(filepathStr, m_packageDir.Data(), m_packageDir.Size());
+        filepathStr[m_packageDir.Size()] = '\0';
+
+        outStorage.callbacks.context = filepathStr;
+
+        outStorage.callbacks.Destroy = [](void* context)
+        {
+            Memory::Free(context);
+        };
+    
+        outStorage.callbacks.OpenReadStream = [](void* context, BlobId blobId, BufferedReader*& outStream) -> bool
+        {
+            const char* filepathStr = static_cast<const char*>(context);
+
+            if (!FilePath(FilePath(filepathStr) / "Blobs").Exists())
+            {
+                return false;
+            }
+
+            FileBufferedReaderSource* source = (FileBufferedReaderSource*)g_assetPool->Allocate(sizeof(FileBufferedReaderSource), alignof(FileBufferedReaderSource));
+            new (source) FileBufferedReaderSource(FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(blobId)));
+
+            BufferedReader* stream = (BufferedReader*)g_assetPool->Allocate(sizeof(BufferedReader), alignof(BufferedReader));
+            new (stream) BufferedReader(source);
+
+            outStream = stream;
+            return true;
+        };
+        
+        outStorage.callbacks.OpenWriteStream = [](void* context, BlobId blobId, ByteWriter*& outStream) -> bool
+        {
+            const char* filepathStr = static_cast<const char*>(context);
+
+            Assert(FilePath(FilePath(filepathStr) / "Blobs").MkDir());
+
+            FileByteWriter* stream = (FileByteWriter*)g_assetPool->Allocate(sizeof(FileByteWriter), alignof(FileByteWriter));
+            new (stream) FileByteWriter(FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(blobId)), "ab+");
+
+            outStream = stream;
+            return true;
+        };
+    }
+    else
+    {
+        outStorage.callbacks.context = &m_memoryBlobStorage;
+
+        // no-op
+        outStorage.callbacks.Destroy = [](void* context) { };
+
+        outStorage.callbacks.OpenReadStream = [](void* context, BlobId blobId, BufferedReader*& outStream) -> bool
+        {
+            MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
+
+            if (uint32(blobId) >= uint32(memoryBlobStorage->Size()))
+            {
+                return false;
+            }
+
+            MemoryBufferedReaderSource* source = (MemoryBufferedReaderSource*)g_assetPool->Allocate(sizeof(MemoryBufferedReaderSource), alignof(MemoryBufferedReaderSource));
+            new (source) MemoryBufferedReaderSource((*memoryBlobStorage)[uint32(blobId)].ToByteView());
+
+            BufferedReader* stream = (BufferedReader*)g_assetPool->Allocate(sizeof(BufferedReader), alignof(BufferedReader));
+            new (stream) BufferedReader(source);
+
+            outStream = stream;
+            return true;
+        };
+        
+        outStorage.callbacks.OpenWriteStream = [](void* context, BlobId blobId, ByteWriter*& outStream) -> bool
+        {
+            MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
+
+            if (uint32(blobId) >= uint32(memoryBlobStorage->Size()))
+            {
+                memoryBlobStorage->Resize(uint32(blobId) + 1);
+            }
+
+            TMemoryByteWriter<AssetAllocator>* stream = (TMemoryByteWriter<AssetAllocator>*)g_assetPool->Allocate(
+                sizeof(TMemoryByteWriter<AssetAllocator>),
+                alignof(TMemoryByteWriter<AssetAllocator>)
+            );
+            new (stream) TMemoryByteWriter(&(*memoryBlobStorage)[uint32(blobId)]);
+
+            outStream = stream;
+            return true;
+        };
+    }
+    
+    outStorage.callbacks.CloseReadStream = [](void* context, BufferedReader* stream)
+    {
+        stream->Close();
+
+        if (stream->GetSource() != nullptr)
+        {
+            stream->GetSource()->~BufferedReaderSource();
+
+            g_assetPool->Free(stream->GetSource());
+        }
+
+        stream->~BufferedReader();
+
+        g_assetPool->Free(stream);
+    };
+
+    outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream)
+    {
+        stream->Close();
+        stream->~ByteWriter();
+
+        g_assetPool->Free(stream);
+    };
 }
 
 #pragma endregion AssetPackage
