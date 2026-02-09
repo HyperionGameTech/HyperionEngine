@@ -44,36 +44,48 @@ public:
     HYP_METHOD()
     const String& GetDescription() const
     {
+        Mutex::Guard guard(m_mutex);
         return m_description;
     }
 
     HYP_METHOD()
     void SetDescription(const String& description)
     {
-        m_description = description;
+        {
+            Mutex::Guard guard(m_mutex);
+            m_description = description;
+        }
+
         OnDescriptionChange();
     }
 
     HYP_METHOD()
     float GetProgress() const
     {
+        Mutex::Guard guard(m_mutex);
         return m_progress;
     }
 
     HYP_METHOD()
     void SetProgress(float progress)
     {
+        Mutex::Guard guard(m_mutex);
         m_progress = progress;
     }
 
     HYP_METHOD()
     bool IsCancellationRequested() const
     {
+        Mutex::Guard guard(m_mutex);
         return m_isCancellationRequested;
     }
 
     HYP_METHOD()
-    virtual bool IsCommitted() const = 0;
+    bool IsCommitted() const
+    {
+        Mutex::Guard guard(m_mutex);
+        return m_isCommitted;
+    }
 
     HYP_METHOD()
     virtual void Start() = 0;
@@ -99,7 +111,8 @@ public:
 protected:
     EditorTaskBase()
         : m_progress(0.0f),
-          m_isCancellationRequested(false)
+          m_isCancellationRequested(false),
+          m_isCommitted(false)
     {
     }
     
@@ -107,6 +120,8 @@ protected:
     String m_description;
     float m_progress;
     bool m_isCancellationRequested;
+    bool m_isCommitted;
+    mutable Mutex m_mutex;
 };
 
 HYP_CLASS(Description = "A task that runs on the sim thread and is has Process() called every tick")
@@ -163,12 +178,6 @@ public:
         m_isForegroundTask = isForeground;
     }
 
-    HYP_METHOD()
-    virtual bool IsCommitted() const override final
-    {
-        return m_isCommitted.Get(MemoryOrder::ACQUIRE);
-    }
-
     HYP_METHOD(Scriptable)
     virtual void Start() override;
 
@@ -216,7 +225,6 @@ protected:
     bool m_isForegroundTask;
 
 private:
-    AtomicVar<bool> m_isCommitted;
     Proc<void()> m_tickProc;
 };
 
@@ -262,12 +270,6 @@ public:
         return m_task;
     }
 
-    HYP_METHOD()
-    virtual bool IsCommitted() const override final
-    {
-        return m_isCommitted.Get(MemoryOrder::ACQUIRE);
-    }
-
     HYP_METHOD(Scriptable)
     virtual void Start() override;
 
@@ -308,7 +310,6 @@ protected:
         }
     }
 
-    AtomicVar<bool> m_isCommitted;
     Task<void> m_task;
 
 private:
@@ -330,6 +331,11 @@ class EditorTaskScope
         bool isForegroundTask = false);
 
 public:
+    EditorTaskScope()
+        : m_task(Handle<EditorTaskBase>::Null())
+    {
+    }
+
     template <class TargetType>
     EditorTaskScope(
         const Class* editorTaskClass,
@@ -383,8 +389,27 @@ public:
     {
     }
 
-    EditorTaskScope(const EditorTaskScope& other) = delete;
-    EditorTaskScope& operator=(const EditorTaskScope& other) = delete;
+    EditorTaskScope(const EditorTaskScope& other)
+        : m_task(other.m_task)
+    {
+    }
+
+    EditorTaskScope& operator=(const EditorTaskScope& other)
+    {
+        if (this == &other || m_task == other.m_task)
+        {
+            return *this;
+        }
+
+        if (m_task.IsValid())
+        {
+            Reset();
+        }
+
+        m_task = other.m_task;
+
+        return *this;
+    }
 
     ~EditorTaskScope();
     
@@ -392,6 +417,8 @@ public:
     {
         return m_task;
     }
+    
+    void Reset(bool shouldCancel = false);
 
 private:
     Handle<EditorTaskBase> m_task;

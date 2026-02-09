@@ -10,12 +10,22 @@
     x:DataType="vm:ForegroundTaskViewModel"
     mc:Ignorable="d">
 
-    <Grid IsVisible="{Binding IsVisible}">
+    <Grid IsVisible="{Binding IsVisible}" Opacity="{Binding Opacity}">
+        <!-- overlay -->
+        <!-- <Grid.Background>
+            <SolidColorBrush Color="#88000000" />
+        </Grid.Background> -->
+
+        <Grid.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+            </Transitions>
+        </Grid.Transitions>
         <StackPanel
             Panel.ZIndex="1"
             HorizontalAlignment="Right"
             VerticalAlignment="Bottom"
-            Margin="16,16,16,16"
+            Margin="16,16,16,32"
             Spacing="12">
             <Border
                 Width="360"
@@ -26,11 +36,18 @@
                 CornerRadius="8"
                 BoxShadow="0 10 30 #55000000">
                 <StackPanel Spacing="16">
-                    <TextBlock
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        Foreground="{DynamicResource Brush.Text}"
-                        Text="{Binding TaskName}" />
+                    <StackPanel Spacing="4">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource Brush.Text}"
+                            Text="{Binding Title}" />
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="{DynamicResource Brush.TextSecondary}"
+                            Text="{Binding Description}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
 
                     <StackPanel Spacing="4">
                         <ProgressBar

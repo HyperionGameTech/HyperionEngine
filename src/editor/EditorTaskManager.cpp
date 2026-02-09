@@ -86,6 +86,19 @@ void EditorTaskManager::Tick()
                 m_taskProgressValues[task->Id()] = task->GetProgress();
             }
 
+            if (task->IsCompleted())
+            {
+                m_taskProgressValues.Erase(task->Id());
+
+                task->OnComplete();
+
+                OnTaskRemoved(task);
+
+                it = m_tasks.Erase(it);
+
+                continue;
+            }
+
             if (TickableEditorTask* tickableTask = ObjCast<TickableEditorTask>(task.Get()))
             {
                 if (tickableTask->GetTimer().Waiting())
@@ -96,18 +109,6 @@ void EditorTaskManager::Tick()
 
                 tickableTask->GetTimer().NextTick();
                 tickableTask->Tick();
-            }
-
-            if (task->IsCompleted())
-            {
-                m_taskProgressValues.Erase(task->Id());
-
-                task->OnComplete();
-
-                OnTaskRemoved(task);
-
-                it = m_tasks.Erase(it);
-                continue;
             }
         }
 

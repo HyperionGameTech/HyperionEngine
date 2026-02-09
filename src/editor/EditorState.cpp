@@ -5,6 +5,8 @@
 #include <editor/EditorState.hpp>
 #include <editor/EditorProject.hpp>
 
+#include <engine/threads/SimThread.hpp>
+
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
@@ -218,9 +220,25 @@ void EditorState::AddTask(const Handle<EditorTaskBase>& task)
         return;
     }
 
-    AssertOnThread(g_simThread);
+    if (IsOnThread(g_simThread))
+    {
+        m_taskManager.AddTask(task);
+    }
+    else
+    {
+        // add on sim thread
+        g_simThreadInstance->GetScheduler().Enqueue([weakThis = MakeWeakRef(this), task = task]()
+            {
+                Handle<EditorState> editorState = weakThis.Lock();
+                if (!editorState.IsValid())
+                {
+                    return;
+                }
 
-    m_taskManager.AddTask(task);
+                editorState->m_taskManager.AddTask(task);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
 }
 
 void EditorState::Update(float delta)

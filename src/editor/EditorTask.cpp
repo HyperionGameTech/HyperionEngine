@@ -21,36 +21,22 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 extern Handle<EditorState> g_editorState;
 
-#pragma region EditorTaskThread
-
-class HYP_API EditorTaskThread final : public TaskThread
-{
-public:
-    EditorTaskThread()
-        : TaskThread(Name::Unique("EditorTaskThread"))
-    {
-    }
-
-    virtual ~EditorTaskThread() override = default;
-};
-
-#pragma endregion EditorTaskThread
-
 #pragma region TickableEditorTask
 
 TickableEditorTask::TickableEditorTask()
     : isComplete(false),
       m_timer(),
-      m_isForegroundTask(false),
-      m_isCommitted(false)
+      m_isForegroundTask(false)
 {
 }
 
 bool TickableEditorTask::Commit()
 {
-    isComplete = false;
-
-    m_isCommitted.Set(true, MemoryOrder::RELEASE);
+    {
+        Mutex::Guard guard(m_mutex);
+        isComplete = false;
+        m_isCommitted = true;
+    }
 
     Start();
 
@@ -59,14 +45,21 @@ bool TickableEditorTask::Commit()
 
 void TickableEditorTask::Cancel_Impl()
 {
-    if (!m_isCancellationRequested)
     {
-        m_isCancellationRequested = true;
+        Mutex::Guard guard(m_mutex);
+        if (!m_isCancellationRequested)
+        {
+            m_isCancellationRequested = true;
 
-        OnCancel();
-
-        m_isCommitted.Set(false, MemoryOrder::RELEASE);
+            m_isCommitted = false;
+        }
+        else
+        {
+            return;
+        }
     }
+
+    OnCancel();
 }
 
 bool TickableEditorTask::IsCompleted_Impl() const
@@ -79,7 +72,6 @@ bool TickableEditorTask::IsCompleted_Impl() const
 #pragma region LongRunningEditorTask
 
 LongRunningEditorTask::LongRunningEditorTask()
-    : m_isCommitted(false)
 {
 }
 
@@ -91,7 +83,10 @@ bool LongRunningEditorTask::Commit()
 {
     m_task = TaskSystem::GetInstance().Enqueue([this]()
         {
-            m_isCommitted.Set(true, MemoryOrder::RELEASE);
+            {
+                Mutex::Guard guard(m_mutex);
+                m_isCommitted = true;
+            }
 
             Start();
 
@@ -104,6 +99,7 @@ bool LongRunningEditorTask::Commit()
 
 void LongRunningEditorTask::Cancel_Impl()
 {
+    Mutex::Guard guard(m_mutex);
     m_isCancellationRequested = true;
 
     if (m_task.IsValid() && !m_task.IsCompleted())
@@ -116,8 +112,8 @@ void LongRunningEditorTask::Cancel_Impl()
         }
 
         OnCancel();
-
-        m_isCommitted.Set(false, MemoryOrder::RELEASE);
+        
+        m_isCommitted = false;
     }
 }
 
@@ -198,10 +194,24 @@ EditorTaskScope::EditorTaskScope(
 
 EditorTaskScope::~EditorTaskScope()
 {
+    Reset(/* shouldCancel */ false);
+}
+
+void EditorTaskScope::Reset(bool shouldCancel)
+{
     if (m_task.IsValid())
     {
+        /*if (shouldCancel)
+        {
+            m_task->Cancel();
+            m_task.Reset();
+
+            return;
+        }*/
+
         if (TickableEditorTask* tickableEditorTask = ObjCast<TickableEditorTask>(m_task.Get()))
         {
+            Mutex::Guard guard(tickableEditorTask->m_mutex);
             tickableEditorTask->isComplete = true;
         }
         else if (LongRunningEditorTask* longRunningEditorTask = ObjCast<LongRunningEditorTask>(m_task.Get()))
@@ -212,6 +222,8 @@ EditorTaskScope::~EditorTaskScope()
         {
             HYP_UNREACHABLE();
         }
+        
+        m_task.Reset();
     }
 }
 

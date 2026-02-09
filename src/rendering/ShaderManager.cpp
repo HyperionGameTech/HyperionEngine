@@ -13,6 +13,10 @@
 
 #include <core/threading/SharedMutex.hpp>
 
+#ifdef HYP_EDITOR
+#include <editor/EditorTask.hpp>
+#endif
+
 namespace Hyperion {
 
 static ShaderCacheId GenerateShaderCacheId()
@@ -56,6 +60,91 @@ public:
     // these live forever to keep pointers valid
     SparsePagedArray<CompiledShader, 16> m_compiledShaderCache;
     SparsePagedArray<ShaderMapEntry, 16> m_entries;
+
+#if HYP_EDITOR
+    EditorTaskScope m_editorTask;
+#endif
+
+    Mutex m_statsMutex; // mutex for tracking shaders we're compiling + editor task
+    uint32 m_numCompilingShaders = 0;
+    HashMap<String, uint32> m_compilingShaders;
+
+    // scope to inc/dec atomic counter for number of shaders actively being compiled
+    // so we can display a toast to let the user know what's going on in editor
+    struct CompilingShaderScope
+    {
+        ShaderManagerImpl* impl;
+        String shaderName;
+
+        CompilingShaderScope(ShaderManagerImpl* impl, const String& shaderName)
+            : impl(impl),
+              shaderName(shaderName)
+        {
+            Mutex::Guard guard(impl->m_statsMutex);
+
+            impl->m_numCompilingShaders++;
+            impl->m_compilingShaders[shaderName]++;
+            
+#ifdef HYP_EDITOR
+            if (impl->m_numCompilingShaders == 1)
+            {
+                impl->m_editorTask = EditorTaskScope(
+                    TickableEditorTask::StaticClass(),
+                    []()
+                    { /* no tick function */ },
+                    "Preparing shaders",
+                    GetDescriptionText(),
+                    /* isForegroundTask */ true);
+            }
+            else
+            {
+                impl->m_editorTask.GetEditorTask()->SetDescription(GetDescriptionText());
+            }
+#endif
+        }
+
+        ~CompilingShaderScope()
+        {
+            Mutex::Guard guard(impl->m_statsMutex);
+
+            --impl->m_numCompilingShaders;
+
+            if (--impl->m_compilingShaders[shaderName] == 0)
+            {
+                impl->m_compilingShaders.Erase(shaderName);
+            }
+            
+#ifdef HYP_EDITOR
+            if (impl->m_numCompilingShaders == 0)
+            {
+                impl->m_editorTask.Reset();
+            }
+            else
+            {
+                impl->m_editorTask.GetEditorTask()->SetDescription(GetDescriptionText());
+            }
+#endif
+        }
+
+#ifdef HYP_EDITOR
+        String GetDescriptionText()
+        {
+            Array<String> shaderNames;
+            shaderNames.Reserve(impl->m_compilingShaders.Size());
+
+            for (const auto& pair : impl->m_compilingShaders)
+            {
+                if (pair.second == 0)
+                    continue;
+
+                shaderNames.PushBack(HYP_FORMAT("{} ({})", pair.first, pair.second));
+            }
+
+            return String::Join(shaderNames, "\n");
+        }
+#endif
+
+    };
 
     ShaderRef GetOrCreate(
         Name name, const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
@@ -200,6 +289,8 @@ public:
         ShaderRef shader;
 
         { // loading / compilation of shader (outside of mutex lock)
+            CompilingShaderScope compilingShaderScope(this, *name);
+
             bool isValidCompiledShader = true;
             isValidCompiledShader &= g_shaderCompiler->RequestShader(name, properties, vertexAttributes, *entry->compiledShader);
             isValidCompiledShader &= entry->compiledShader->IsValid();
