@@ -19,7 +19,7 @@ namespace Hyperion
     }
 
     [ClassBinding(Name = "TickableEditorTask")]
-    public abstract class TickableEditorTask : EditorTaskBase
+    public class TickableEditorTask : EditorTaskBase
     {
         public TickableEditorTask()
         {
@@ -39,11 +39,15 @@ namespace Hyperion
             return InvokeNativeMethod<bool>(new Name("IsCompleted_Impl", weak: true));
         }
 
-        public abstract void Tick(float delta);
+        public virtual void Tick()
+        {
+            // call native as default impl
+            InvokeNativeMethod(new Name("Tick_Impl", weak: true));
+        }
     }
 
     [ClassBinding(Name = "LongRunningEditorTask")]
-    public abstract class LongRunningEditorTask : EditorTaskBase
+    public class LongRunningEditorTask : EditorTaskBase
     {
         public LongRunningEditorTask()
         {
@@ -61,6 +65,10 @@ namespace Hyperion
             return InvokeNativeMethod<bool>(new Name("IsCompleted_Impl", weak: true));
         }
 
-        public abstract void Process();
+        public virtual void Process()
+        {
+            // call native as default impl
+            InvokeNativeMethod(new Name("Process_Impl", weak: true));
+        }
     }
 }

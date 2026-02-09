@@ -209,7 +209,7 @@ bool GenerateLightmapsEditorTask::IsCompleted() const
     return m_tasks.Empty() || Every(m_tasks, &Task<void>::IsCompleted);
 }
 
-void GenerateLightmapsEditorTask::Tick(float delta)
+void GenerateLightmapsEditorTask::Tick()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);

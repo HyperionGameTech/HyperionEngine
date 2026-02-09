@@ -64,7 +64,18 @@ void EditorTaskManager::Tick()
 
     for (auto it = m_tasks.Begin(); it != m_tasks.End();)
     {
-        auto& task = it->GetTask();
+        const Handle<EditorTaskBase>& task = it->GetTask();
+        
+        if (task->IsCancellationRequested())
+        {
+            m_taskProgressValues.Erase(task->Id());
+
+            OnTaskRemoved(task);
+
+            it = m_tasks.Erase(it);
+
+            continue;
+        }
 
         if (task->IsCommitted())
         {
@@ -84,11 +95,13 @@ void EditorTaskManager::Tick()
                 }
 
                 tickableTask->GetTimer().NextTick();
-                tickableTask->Tick(tickableTask->GetTimer().delta);
+                tickableTask->Tick();
             }
 
             if (task->IsCompleted())
             {
+                m_taskProgressValues.Erase(task->Id());
+
                 task->OnComplete();
 
                 OnTaskRemoved(task);

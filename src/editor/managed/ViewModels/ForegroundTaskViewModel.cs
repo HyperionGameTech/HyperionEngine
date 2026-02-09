@@ -1,4 +1,6 @@
 using System;
+using System.Windows.Input;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -8,6 +10,7 @@ namespace Hyperion.Editor.ViewModels
         private string _taskName;
         private float _progress;
         private bool _isVisible;
+        private EditorTaskBase? _task;
 
         public ForegroundTaskViewModel()
         {
@@ -15,6 +18,7 @@ namespace Hyperion.Editor.ViewModels
             _taskName = string.Empty;
             _progress = 0.0f;
             _isVisible = false;
+            CancelCommand = new RelayCommand(OnCancel);
         }
 
         public ObjIdBase TaskId
@@ -41,17 +45,29 @@ namespace Hyperion.Editor.ViewModels
             set => SetProperty(ref _isVisible, value);
         }
 
-        public void SetTask(ObjIdBase taskId, string taskName)
+        public ICommand CancelCommand { get; }
+
+        private void OnCancel()
         {
-            TaskId = taskId;
-            TaskName = taskName;
-            Progress = 0.0f;
+            if (_task != null)
+            {
+                _task.Cancel();
+            }
+        }
+
+        public void SetTask(EditorTaskBase task)
+        {
+            _task = task;
+            TaskId = task.Id;
+            TaskName = task.Class.Name.ToString();
+            Progress = task.Progress;
             IsVisible = true;
         }
 
         public void Clear()
         {
             IsVisible = false;
+            _task = null;
             TaskId = default;
             TaskName = string.Empty;
             Progress = 0.0f;

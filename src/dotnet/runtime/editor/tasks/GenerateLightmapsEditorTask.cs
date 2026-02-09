@@ -25,9 +25,9 @@ namespace Hyperion
             InvokeNativeMethod(new Name("Start", weak: true));
         }
 
-        public override void Tick(float delta)
+        public override void Tick()
         {
-            InvokeNativeMethod(new Name("Tick", weak: true), new object[] { delta });
+            InvokeNativeMethod(new Name("Tick", weak: true));
         }
     }
 }

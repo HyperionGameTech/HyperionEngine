@@ -88,7 +88,7 @@ public:
     virtual bool IsCompleted() const override;
 
     HYP_METHOD()
-    virtual void Tick(float delta) override;
+    virtual void Tick() override;
 
 private:
     Array<Handle<ObjectBase>> m_sources;

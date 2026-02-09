@@ -3,6 +3,7 @@
 #include <EditorPch.hpp>
 
 #include <editor/EditorTask.hpp>
+#include <editor/EditorState.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/Threads.hpp>
@@ -17,6 +18,8 @@
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
+
+extern Handle<EditorState> g_editorState;
 
 #pragma region EditorTaskThread
 
@@ -36,13 +39,17 @@ public:
 #pragma region TickableEditorTask
 
 TickableEditorTask::TickableEditorTask()
-    : m_isCommitted(false),
-      m_timer(1.0f)
+    : isComplete(false),
+      m_timer(),
+      m_isForegroundTask(false),
+      m_isCommitted(false)
 {
 }
 
 bool TickableEditorTask::Commit()
 {
+    isComplete = false;
+
     m_isCommitted.Set(true, MemoryOrder::RELEASE);
 
     Start();
@@ -52,34 +59,19 @@ bool TickableEditorTask::Commit()
 
 void TickableEditorTask::Cancel_Impl()
 {
-    if (m_task.IsValid() && !m_task.IsCompleted())
+    if (!m_isCancellationRequested)
     {
-        if (!IsOnThread(g_simThread))
-        {
-            HYP_LOG(Editor, Info, "Awaiting TickableEditorTask completion");
-
-            m_task.Await();
-        }
-        else
-        {
-            HYP_LOG(Editor, Info, "Executing TickableEditorTask inline");
-
-            Assert(m_task.Cancel());
-
-            auto* promise = m_task.Promise();
-
-            promise->Fulfill();
-        }
+        m_isCancellationRequested = true;
 
         OnCancel();
-    }
 
-    m_isCommitted.Set(false, MemoryOrder::RELEASE);
+        m_isCommitted.Set(false, MemoryOrder::RELEASE);
+    }
 }
 
 bool TickableEditorTask::IsCompleted_Impl() const
 {
-    return !m_task.IsValid() || m_task.IsCompleted();
+    return isComplete;
 }
 
 #pragma endregion TickableEditorTask
@@ -112,6 +104,8 @@ bool LongRunningEditorTask::Commit()
 
 void LongRunningEditorTask::Cancel_Impl()
 {
+    m_isCancellationRequested = true;
+
     if (m_task.IsValid() && !m_task.IsCompleted())
     {
         if (!m_task.Cancel())
@@ -122,9 +116,9 @@ void LongRunningEditorTask::Cancel_Impl()
         }
 
         OnCancel();
-    }
 
-    m_isCommitted.Set(false, MemoryOrder::RELEASE);
+        m_isCommitted.Set(false, MemoryOrder::RELEASE);
+    }
 }
 
 bool LongRunningEditorTask::IsCompleted_Impl() const
@@ -133,5 +127,86 @@ bool LongRunningEditorTask::IsCompleted_Impl() const
 }
 
 #pragma endregion LongRunningEditorTask
+
+#pragma region EditorTaskScope
+
+EditorTaskScope::EditorTaskScope(
+    ConstructWithProcTag, const Class* editorTaskClass, Proc<void()>&& proc, bool isForegroundTask)
+{
+    Assert(editorTaskClass != nullptr);
+
+    if (editorTaskClass->IsDerivedFrom(TickableEditorTask::StaticClass()))
+    {
+        BoxedValue boxed;
+        if (!editorTaskClass->CreateInstance(boxed))
+        {
+            HYP_FAIL("Failed to create instance of editor task type '{}'", editorTaskClass->GetName());
+            return;
+        }
+
+        Handle<TickableEditorTask> task = boxed.Get<Handle<TickableEditorTask>>();
+        Assert(task.IsValid());
+
+        task->m_tickProc = std::move(proc);
+
+        task->SetIsForegroundTask(isForegroundTask);
+
+        m_task = std::move(task);
+    }
+    else if (editorTaskClass->IsDerivedFrom(LongRunningEditorTask::StaticClass()))
+    {
+        BoxedValue boxed;
+        if (!editorTaskClass->CreateInstance(boxed))
+        {
+            HYP_FAIL("Failed to create instance of editor task type '{}'", editorTaskClass->GetName());
+            return;
+        }
+
+        Handle<LongRunningEditorTask> task = boxed.Get<Handle<LongRunningEditorTask>>();
+        Assert(task.IsValid());
+
+        task->m_processProc = std::move(proc);
+
+        m_task = std::move(task);
+    }
+    else
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    if (m_task.IsValid())
+    {
+        if (m_task->Commit())
+        {
+            g_editorState->AddTask(m_task);
+        }
+        else
+        {
+            HYP_LOG(Editor, Error, "Failed to commit editor task of type '{}'", m_task->InstanceClass()->GetName());
+            m_task.Reset();
+        }
+    }
+}
+
+EditorTaskScope::~EditorTaskScope()
+{
+    if (m_task.IsValid())
+    {
+        if (TickableEditorTask* tickableEditorTask = ObjCast<TickableEditorTask>(m_task.Get()))
+        {
+            tickableEditorTask->isComplete = true;
+        }
+        else if (LongRunningEditorTask* longRunningEditorTask = ObjCast<LongRunningEditorTask>(m_task.Get()))
+        {
+            longRunningEditorTask->GetTask().Await();
+        }
+        else
+        {
+            HYP_UNREACHABLE();
+        }
+    }
+}
+
+#pragma endregion EditorTaskScope
 
 } // namespace Hyperion

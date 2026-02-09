@@ -269,22 +269,22 @@ namespace Hyperion.Editor.ViewModels
             ContentBrowser.Dispose();
         }
 
-        private void OnTaskStarted(ObjIdBase taskId, string taskName, bool isForegroundTask)
+        private void OnTaskStarted(EditorTaskBase task, bool isForegroundTask)
         {
             Dispatcher.UIThread.Post(() =>
             {
                 if (isForegroundTask)
                 {
-                    ForegroundTask.SetTask(taskId, taskName);
+                    ForegroundTask.SetTask(task);
                 }
                 else
                 {
-                    if (Tasks.Any(t => t.TaskId == taskId))
+                    if (Tasks.Any(t => t.TaskId.Equals(task.Id)))
                     {
                         return;
                     }
 
-                    Tasks.Add(new TaskItemViewModel(taskId, taskName, isForegroundTask: false));
+                    Tasks.Add(new TaskItemViewModel(task.Id, task.Class.Name.ToString(), isForegroundTask: false));
                     OnPropertyChanged(nameof(Tasks));
                 }
             });
@@ -295,7 +295,7 @@ namespace Hyperion.Editor.ViewModels
             Dispatcher.UIThread.Post(() =>
             {
                 // Check if it's the current foreground task
-                if (ForegroundTask.IsVisible && ForegroundTask.TaskId == taskId)
+                if (ForegroundTask.IsVisible && ForegroundTask.TaskId.Equals(taskId))
                 {
                     ForegroundTask.Clear();
                     return;
@@ -304,7 +304,7 @@ namespace Hyperion.Editor.ViewModels
                 // Otherwise look in background tasks
                 for (int i = 0; i < Tasks.Count; i++)
                 {
-                    if (Tasks[i].TaskId == taskId)
+                    if (Tasks[i].TaskId.Equals(taskId))
                     {
                         Tasks.RemoveAt(i);
                         OnPropertyChanged(nameof(Tasks));
@@ -319,7 +319,7 @@ namespace Hyperion.Editor.ViewModels
             Dispatcher.UIThread.Post(() =>
             {
                 // Check foreground task first
-                if (ForegroundTask.IsVisible && ForegroundTask.TaskId == taskId)
+                if (ForegroundTask.IsVisible && ForegroundTask.TaskId.Equals(taskId))
                 {
                     ForegroundTask.Progress = progress;
                     return;
@@ -328,7 +328,7 @@ namespace Hyperion.Editor.ViewModels
                 // Otherwise look in background tasks
                 foreach (TaskItemViewModel task in Tasks)
                 {
-                    if (task.TaskId == taskId)
+                    if (task.TaskId.Equals(taskId))
                     {
                         task.Progress = progress;
                         return;

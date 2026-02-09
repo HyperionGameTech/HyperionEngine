@@ -43,6 +43,12 @@
                             Foreground="{DynamicResource Brush.TextSecondary}"
                             Text="{Binding Progress, StringFormat=Progress: {0:P0}}" />
                     </StackPanel>
+
+                    <Button
+                        HorizontalAlignment="Right"
+                        Command="{Binding CancelCommand}"
+                        Content="Cancel"
+                        Padding="12,6" />
                 </StackPanel>
             </Border>
         </StackPanel>
