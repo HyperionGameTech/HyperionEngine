@@ -69,7 +69,9 @@ enum class AddAssetConflictMode : uint8
 {
     FailOnConflict = 0,
     GenerateNewName,
-    ReplaceExisting
+    ReplaceExisting,
+
+    Default //!< per-package type default
 };
 
 HYP_CLASS()
@@ -416,7 +418,7 @@ public:
     Result RegisterAsset(
         const UTF8StringView& path,
         const Handle<AssetObject>& assetObject,
-        AddAssetConflictMode conflictMode = AddAssetConflictMode::GenerateNewName);
+        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
 
     /*! \brief Registers `target` if it is a subclass of AssetObject and registers all
      *  of its members that are subclasses of AssetObject as well, recursively.

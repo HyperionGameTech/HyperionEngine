@@ -3238,13 +3238,23 @@ Result AssetRegistry::RegisterAsset(
         return {}; // ok
     }
 
+    if (conflictMode == AddAssetConflictMode::Default)
+    {
+        if (ShouldUniquifyAssetNames(*assetPackage))
+        {
+            conflictMode = AddAssetConflictMode::GenerateNewName;
+        }
+        else
+        {
+            conflictMode = AddAssetConflictMode::ReplaceExisting;
+        }
+    }
+
     const String desiredName = assetObject->GetName().LookupString();
-    const bool renameOnNameClash = conflictMode == AddAssetConflictMode::GenerateNewName
-        || (conflictMode != AddAssetConflictMode::ReplaceExisting && ShouldUniquifyAssetNames(*assetPackage));
 
     if (assetPackage->HasAssetWithName(StringHash(desiredName)))
     {
-        if (renameOnNameClash)
+        if (conflictMode == AddAssetConflictMode::GenerateNewName)
         {
             const Name uniqueName = assetPackage->GetUniqueAssetName(CreateNameFromDynamicString(desiredName));
 
