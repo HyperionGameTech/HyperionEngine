@@ -6,6 +6,7 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
@@ -541,8 +542,6 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     return {};
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 Result AssetObject::Load(
     JSON::Object& manifestData,
     BufferedReader* binStream,
@@ -665,6 +664,29 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     }
 
     return {};
+}
+
+bool AssetObject::ReadBlobData(ChunkId chunkId, SizeType offset, SizeType count, void* dstPtr)
+{
+    Assert(dstPtr != nullptr);
+
+    Handle<AssetPackage> package = m_package.Lock();
+    if (!package.IsValid())
+    {
+        return false;
+    }
+
+    BlobStorage* blobStorage = package->GetBlobStorage();
+    AssertDebug(blobStorage != nullptr);
+
+    if (!blobStorage)
+    {
+        return false;
+    }
+
+    SizeType readCount = blobStorage->Read(chunkId, dstPtr, offset, count);
+
+    return readCount == count;
 }
 
 #pragma endregion AssetObject

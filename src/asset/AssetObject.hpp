@@ -24,6 +24,8 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
+enum class ChunkId : uint32;
+
 class AssetPackage;
 class AssetObject;
 class ByteWriter;
@@ -354,6 +356,8 @@ protected:
     }
 
     Result SaveManifest(ByteWriter& stream) const;
+
+    bool ReadBlobData(ChunkId chunkId, SizeType offset, SizeType count, void* dstPtr);
 
     template <class T>
     T* GetResourceData() const

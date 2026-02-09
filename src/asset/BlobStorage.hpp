@@ -12,19 +12,12 @@
 
 #include <core/reflection/ObjectBase.hpp>
 
-namespace Hyperion {
+#include <asset/BlobStorageStructs.hpp>
 
-enum class ChunkId : uint32;
+namespace Hyperion {
 
 class BufferedReader;
 class ByteWriter;
-
-struct BlobDesc
-{
-    ChunkId chunkId;
-    SizeType offset;
-    SizeType size;
-};
 
 struct BlobStorageCallbacks
 {
