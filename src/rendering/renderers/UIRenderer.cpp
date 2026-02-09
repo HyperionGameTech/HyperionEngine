@@ -123,14 +123,7 @@ static void BuildRenderGroupsOrdered(
 
         if (!rg)
         {
-            ShaderRef shader = g_shaderManager->GetOrCreate(
-                attributes.GetMaterialAttributes().shaderName,
-                attributes.GetMaterialAttributes().shaderProperties,
-                attributes.GetMeshAttributes().vertexAttributes);
-
-            Assert(shader.IsValid());
-
-            rg = new RenderGroup(shader, attributes, RenderGroupFlags::NONE);
+            rg = new RenderGroup(attributes, RenderGroupFlags::NONE);
 
 #ifdef HYP_DEBUG_MODE
             if (!rg)

@@ -65,27 +65,14 @@ RenderGroup::RenderGroup()
 {
 }
 
-RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderableAttributes, EnumFlags<RenderGroupFlags> flags)
+RenderGroup::RenderGroup(const RenderableAttributeSet& renderableAttributes, EnumFlags<RenderGroupFlags> flags)
     : ObjectBase(),
       flags(flags),
-      shader(shader),
       renderableAttributes(renderableAttributes)
 {
 }
 
-RenderGroup::~RenderGroup()
-{
-    SafeDelete(std::move(shader));
-}
-
-void RenderGroup::SetShader(const ShaderRef& shader)
-{
-    HYP_SCOPE;
-
-    SafeDelete(std::move(this->shader));
-
-    this->shader = shader;
-}
+RenderGroup::~RenderGroup() = default;
 
 void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet& renderableAttributes)
 {
