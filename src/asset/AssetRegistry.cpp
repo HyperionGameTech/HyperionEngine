@@ -1944,7 +1944,7 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
             Memory::Free(context);
         };
     
-        outStorage.callbacks.OpenReadStream = [](void* context, BlobId blobId, BufferedReader*& outStream) -> bool
+        outStorage.callbacks.OpenReadStream = [](void* context, ChunkId chunkId, BufferedReader*& outStream) -> bool
         {
             const char* filepathStr = static_cast<const char*>(context);
 
@@ -1954,7 +1954,7 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
             }
 
             FileBufferedReaderSource* source = (FileBufferedReaderSource*)g_assetPool->Allocate(sizeof(FileBufferedReaderSource), alignof(FileBufferedReaderSource));
-            new (source) FileBufferedReaderSource(FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(blobId)));
+            new (source) FileBufferedReaderSource(FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(chunkId)));
 
             BufferedReader* stream = (BufferedReader*)g_assetPool->Allocate(sizeof(BufferedReader), alignof(BufferedReader));
             new (stream) BufferedReader(source);
@@ -1963,14 +1963,14 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
             return true;
         };
         
-        outStorage.callbacks.OpenWriteStream = [](void* context, BlobId blobId, ByteWriter*& outStream) -> bool
+        outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
         {
             const char* filepathStr = static_cast<const char*>(context);
 
             Assert(FilePath(FilePath(filepathStr) / "Blobs").MkDir());
 
             FileByteWriter* stream = (FileByteWriter*)g_assetPool->Allocate(sizeof(FileByteWriter), alignof(FileByteWriter));
-            new (stream) FileByteWriter(FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(blobId)), "ab+");
+            new (stream) FileByteWriter(FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(chunkId)), "ab+");
 
             outStream = stream;
             return true;
@@ -1983,17 +1983,17 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
         // no-op
         outStorage.callbacks.Destroy = [](void* context) { };
 
-        outStorage.callbacks.OpenReadStream = [](void* context, BlobId blobId, BufferedReader*& outStream) -> bool
+        outStorage.callbacks.OpenReadStream = [](void* context, ChunkId chunkId, BufferedReader*& outStream) -> bool
         {
             MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
 
-            if (uint32(blobId) >= uint32(memoryBlobStorage->Size()))
+            if (uint32(chunkId) >= uint32(memoryBlobStorage->Size()))
             {
                 return false;
             }
 
             MemoryBufferedReaderSource* source = (MemoryBufferedReaderSource*)g_assetPool->Allocate(sizeof(MemoryBufferedReaderSource), alignof(MemoryBufferedReaderSource));
-            new (source) MemoryBufferedReaderSource(memoryBlobStorage->Get(uint32(blobId)).ToByteView());
+            new (source) MemoryBufferedReaderSource(memoryBlobStorage->Get(uint32(chunkId)).ToByteView());
 
             BufferedReader* stream = (BufferedReader*)g_assetPool->Allocate(sizeof(BufferedReader), alignof(BufferedReader));
             new (stream) BufferedReader(source);
@@ -2002,7 +2002,7 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
             return true;
         };
         
-        outStorage.callbacks.OpenWriteStream = [](void* context, BlobId blobId, ByteWriter*& outStream) -> bool
+        outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
         {
             MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
 
@@ -2010,7 +2010,7 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
                 sizeof(TMemoryByteWriter<AssetAllocator>),
                 alignof(TMemoryByteWriter<AssetAllocator>)
             );
-            new (stream) TMemoryByteWriter(&memoryBlobStorage->Get(uint32(blobId)));
+            new (stream) TMemoryByteWriter(&memoryBlobStorage->Get(uint32(chunkId)));
 
             outStream = stream;
             return true;

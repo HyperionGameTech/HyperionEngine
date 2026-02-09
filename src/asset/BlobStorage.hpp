@@ -14,19 +14,26 @@
 
 namespace Hyperion {
 
-enum class BlobId : uint32;
+enum class ChunkId : uint32;
 
 class BufferedReader;
 class ByteWriter;
+
+struct BlobDesc
+{
+    ChunkId chunkId;
+    SizeType offset;
+    SizeType size;
+};
 
 struct BlobStorageCallbacks
 {
     void* context = nullptr;
 
-    bool (*OpenReadStream)(void* context, BlobId blobId, BufferedReader*& outStream) = nullptr;
+    bool (*OpenReadStream)(void* context, ChunkId chunkId, BufferedReader*& outStream) = nullptr;
     void (*CloseReadStream)(void* context, BufferedReader* stream) = nullptr;
 
-    bool (*OpenWriteStream)(void* context, BlobId blobId, ByteWriter*& outStream) = nullptr;
+    bool (*OpenWriteStream)(void* context, ChunkId chunkId, ByteWriter*& outStream) = nullptr;
     void (*CloseWriteStream)(void* context, ByteWriter* stream) = nullptr;
 
     void (*Destroy)(void* context) = nullptr;
@@ -49,9 +56,10 @@ public:
     ~BlobStorage();
     
     /*! \brief Returns number of bytes read */
-    SizeType Read(BlobId blobId, void* dstPtr, SizeType offset, SizeType count);
+    SizeType Read(ChunkId chunkId, void* dstPtr, SizeType offset, SizeType count);
+    SizeType Read(const BlobDesc& desc, void* dstPtr);
 
-    void Put(BlobId blobId, void* srcPtr, SizeType count, SizeType& outOffset);
+    void Put(ChunkId chunkId, void* srcPtr, SizeType count, SizeType& outOffset);
 
     void CopyTo(BlobStorage& other);
 
@@ -65,8 +73,8 @@ public:
 private:
     SharedMutex m_mutex;
 
-    Array<uint32> m_blobIndices; // indexed by blob enum value
-    Bitset m_validBlobs;
+    Array<uint32> m_chunkIndices;
+    Bitset m_validChunks;
 
     // indexed by indices
     Array<BufferedReader*> m_readStreams;

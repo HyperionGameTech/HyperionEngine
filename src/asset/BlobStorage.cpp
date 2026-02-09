@@ -14,8 +14,8 @@ BlobStorage::BlobStorage()
 }
 
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
-    : m_blobIndices(std::move(other.m_blobIndices)),
-      m_validBlobs(std::move(other.m_validBlobs)),
+    : m_chunkIndices(std::move(other.m_chunkIndices)),
+      m_validChunks(std::move(other.m_validChunks)),
       m_readStreams(std::move(other.m_readStreams)),
       m_writeStreams(std::move(other.m_writeStreams)),
       m_validStreams(std::move(other.m_validStreams)),
@@ -38,8 +38,8 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
         callbacks.Destroy(callbacks.context);
     }
 
-    m_blobIndices = std::move(other.m_blobIndices);
-    m_validBlobs = std::move(other.m_validBlobs);
+    m_chunkIndices = std::move(other.m_chunkIndices);
+    m_validChunks = std::move(other.m_validChunks);
     m_readStreams = std::move(other.m_readStreams);
     m_writeStreams = std::move(other.m_writeStreams);
     m_validStreams = std::move(other.m_validStreams);
@@ -60,27 +60,27 @@ BlobStorage::~BlobStorage()
     }
 }
 
-SizeType BlobStorage::Read(BlobId blobId, void* dstPtr, SizeType offset, SizeType count)
+SizeType BlobStorage::Read(ChunkId chunkId, void* dstPtr, SizeType offset, SizeType count)
 {
     TSharedLock lock(m_mutex); // @FIXME not thread safe to just use shared since we call Seek().
 
-    if (!m_validBlobs.Test(uint32(blobId)))
+    if (!m_validChunks.Test(uint32(chunkId)))
     {
         lock.Reset();
 
         TUniqueLock lock2(m_mutex);
 
-        if (!m_validBlobs.Test(uint32(blobId)))
+        if (!m_validChunks.Test(uint32(chunkId)))
         {
-            m_blobIndices.Resize(uint32(blobId) + 1);
-            const uint32 blobIndex = uint32(m_blobIndices.Size()) - 1;
+            m_chunkIndices.Resize(uint32(chunkId) + 1);
+            const uint32 chunkIndex = uint32(m_chunkIndices.Size()) - 1;
 
-            m_blobIndices[uint32(blobId)] = blobIndex;
+            m_chunkIndices[uint32(chunkId)] = chunkIndex;
 
-            m_readStreams.Resize(uint32(blobIndex) + 1);
-            m_writeStreams.Resize(uint32(blobIndex) + 1);
+            m_readStreams.Resize(uint32(chunkIndex) + 1);
+            m_writeStreams.Resize(uint32(chunkIndex) + 1);
 
-            m_validBlobs.Set(uint32(blobId), true);
+            m_validChunks.Set(uint32(chunkId), true);
         }
 
         lock2.Reset();
@@ -88,21 +88,21 @@ SizeType BlobStorage::Read(BlobId blobId, void* dstPtr, SizeType offset, SizeTyp
         lock.Reset(m_mutex);
     }
 
-    auto*& readStream = m_readStreams[m_blobIndices[uint32(blobId)]];
+    auto*& readStream = m_readStreams[m_chunkIndices[uint32(chunkId)]];
 
-    if (!m_validStreams.Test(uint32(blobId) * 2))
+    if (!m_validStreams.Test(uint32(chunkId) * 2))
     {
         lock.Reset();
 
         TUniqueLock lock2(m_mutex);
 
-        if (!m_validStreams.Test(uint32(blobId) * 2))
+        if (!m_validStreams.Test(uint32(chunkId) * 2))
         {
-            if (callbacks.OpenReadStream(callbacks.context, blobId, readStream))
+            if (callbacks.OpenReadStream(callbacks.context, chunkId, readStream))
             {
                 Assert(readStream != nullptr);
 
-                m_validStreams.Set(uint32(blobId) * 2, true);
+                m_validStreams.Set(uint32(chunkId) * 2, true);
             }
             else
             {
@@ -119,32 +119,37 @@ SizeType BlobStorage::Read(BlobId blobId, void* dstPtr, SizeType offset, SizeTyp
     return readStream->Read(dstPtr, count);
 }
 
-void BlobStorage::Put(BlobId blobId, void* srcPtr, SizeType count, SizeType& outOffset)
+SizeType BlobStorage::Read(const BlobDesc& desc, void* dstPtr)
+{
+    return Read(desc.chunkId, dstPtr, desc.offset, desc.size);
+}
+
+void BlobStorage::Put(ChunkId chunkId, void* srcPtr, SizeType count, SizeType& outOffset)
 {
     TUniqueLock lock(m_mutex);
 
-    if (!m_validBlobs.Test(uint32(blobId)))
+    if (!m_validChunks.Test(uint32(chunkId)))
     {
-        m_blobIndices.Resize(uint32(blobId) + 1);
-        const uint32 blobIndex = uint32(m_blobIndices.Size()) - 1;
+        m_chunkIndices.Resize(uint32(chunkId) + 1);
+        const uint32 chunkIndex = uint32(m_chunkIndices.Size()) - 1;
 
-        m_blobIndices[uint32(blobId)] = blobIndex;
+        m_chunkIndices[uint32(chunkId)] = chunkIndex;
 
-        m_readStreams.Resize(uint32(blobIndex) + 1);
-        m_writeStreams.Resize(uint32(blobIndex) + 1);
+        m_readStreams.Resize(uint32(chunkIndex) + 1);
+        m_writeStreams.Resize(uint32(chunkIndex) + 1);
 
-        m_validBlobs.Set(uint32(blobId), true);
+        m_validChunks.Set(uint32(chunkId), true);
     }
 
-    auto*& writeStream = m_writeStreams[m_blobIndices[uint32(blobId)]];
+    auto*& writeStream = m_writeStreams[m_chunkIndices[uint32(chunkId)]];
     
-    if (!m_validStreams.Test(uint32(blobId) * 2 + 1))
+    if (!m_validStreams.Test(uint32(chunkId) * 2 + 1))
     {
-        if (callbacks.OpenWriteStream(callbacks.context, blobId, writeStream))
+        if (callbacks.OpenWriteStream(callbacks.context, chunkId, writeStream))
         {
             Assert(writeStream != nullptr);
 
-            m_validStreams.Set(uint32(blobId) * 2 + 1, true);
+            m_validStreams.Set(uint32(chunkId) * 2 + 1, true);
         }
         else
         {
@@ -168,27 +173,27 @@ void BlobStorage::CopyTo(BlobStorage& other)
     TUniqueLock lock(m_mutex);
     TUniqueLock otherLock(other.m_mutex);
 
-    for (Bitset::BitIndex bitIndex : m_validBlobs)
+    for (Bitset::BitIndex bitIndex : m_validChunks)
     {
-        const BlobId blobId = BlobId(bitIndex);
+        const ChunkId chunkId = ChunkId(bitIndex);
 
-        Assert(m_blobIndices.Size() > bitIndex);
+        Assert(m_chunkIndices.Size() > bitIndex);
 
-        const uint32 thisBlobIndex = m_blobIndices[bitIndex];
+        const uint32 srcChunkIndex = m_chunkIndices[bitIndex];
 
         {
-            auto* writeStream = m_writeStreams[thisBlobIndex];
+            auto* writeStream = m_writeStreams[srcChunkIndex];
             if (writeStream && m_validStreams.Test(bitIndex * 2 + 1))
             {
                 writeStream->Flush(); // flush pending writes before opening read
             }
         }
 
-        auto*& readStream = m_readStreams[thisBlobIndex];
+        auto*& readStream = m_readStreams[srcChunkIndex];
 
         if (!m_validStreams.Test(bitIndex * 2))
         {
-            if (callbacks.OpenReadStream(callbacks.context, blobId, readStream))
+            if (callbacks.OpenReadStream(callbacks.context, chunkId, readStream))
             {
                 Assert(readStream != nullptr);
 
@@ -196,7 +201,7 @@ void BlobStorage::CopyTo(BlobStorage& other)
             }
             else
             {
-                HYP_LOG(Assets, Error, "Failed to open read stream for blob id {}", blobId);
+                HYP_LOG(Assets, Error, "Failed to open read stream for chunk id {}", chunkId);
             }
         }
 
@@ -205,32 +210,32 @@ void BlobStorage::CopyTo(BlobStorage& other)
             readStream->Seek(0);
 
             // init other write stream
-            if (!other.m_validBlobs.Test(uint32(blobId)))
+            if (!other.m_validChunks.Test(uint32(chunkId)))
             {
-                other.m_blobIndices.Resize(uint32(blobId) + 1);
-                const uint32 otherBlobIndex = uint32(other.m_blobIndices.Size()) - 1;
+                other.m_chunkIndices.Resize(uint32(chunkId) + 1);
+                const uint32 dstChunkIndex = uint32(other.m_chunkIndices.Size()) - 1;
 
-                other.m_blobIndices[uint32(blobId)] = otherBlobIndex;
+                other.m_chunkIndices[uint32(chunkId)] = dstChunkIndex;
 
-                other.m_readStreams.Resize(uint32(otherBlobIndex) + 1);
-                other.m_writeStreams.Resize(uint32(otherBlobIndex) + 1);
+                other.m_readStreams.Resize(uint32(dstChunkIndex) + 1);
+                other.m_writeStreams.Resize(uint32(dstChunkIndex) + 1);
 
-                other.m_validBlobs.Set(uint32(blobId), true);
+                other.m_validChunks.Set(uint32(chunkId), true);
             }
             
-            auto*& writeStream = other.m_writeStreams[other.m_blobIndices[uint32(blobId)]];
+            auto*& writeStream = other.m_writeStreams[other.m_chunkIndices[uint32(chunkId)]];
     
-            if (!other.m_validStreams.Test(uint32(blobId) * 2 + 1))
+            if (!other.m_validStreams.Test(uint32(chunkId) * 2 + 1))
             {
-                if (other.callbacks.OpenWriteStream(other.callbacks.context, blobId, writeStream))
+                if (other.callbacks.OpenWriteStream(other.callbacks.context, chunkId, writeStream))
                 {
                     Assert(writeStream != nullptr);
 
-                    other.m_validStreams.Set(uint32(blobId) * 2 + 1, true);
+                    other.m_validStreams.Set(uint32(chunkId) * 2 + 1, true);
                 }
                 else
                 {
-                    HYP_LOG(Assets, Error, "Failed to open write stream for blob id {}", blobId);
+                    HYP_LOG(Assets, Error, "Failed to open write stream for chunk with id {}", chunkId);
                 }
             }
 
@@ -241,7 +246,7 @@ void BlobStorage::CopyTo(BlobStorage& other)
             writeStream->Flush();
 
 
-            HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage (blob index: {})", readStream->Position(), blobId);
+            HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage (chunk index: {})", readStream->Position(), chunkId);
 
             readStream->Seek(0); // roll back to start
         }
