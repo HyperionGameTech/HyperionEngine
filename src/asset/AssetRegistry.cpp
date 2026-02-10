@@ -2288,11 +2288,11 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
 
-    Proc<void(Handle<AssetPackage>)> initializePackage;
+    Proc<void(Handle<AssetPackage>)> InitializePackage;
 
     // Set up the parent package pointer for a package, so all subpackages can trace back to their parent
     // and call OnPackageAdded for each nested package
-    initializePackage = [this, &initializePackage](const Handle<AssetPackage>& package)
+    InitializePackage = [this, &InitializePackage](const Handle<AssetPackage>& package)
     {
         Assert(package.IsValid());
 
@@ -2305,9 +2305,9 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
         for (const Handle<AssetPackage>& subpackage : package->m_subpackages)
         {
             subpackage->m_parentPackage = package;
-            subpackage->m_flags |= package->m_flags;
+            subpackage->m_flags |= package->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
-            initializePackage(subpackage);
+            InitializePackage(subpackage);
         }
     };
 
@@ -2324,7 +2324,7 @@ void AssetRegistry::SetPackages(const AssetPackageSet& packages)
 
     for (const Handle<AssetPackage>& package : packages)
     {
-        initializePackage(package);
+        InitializePackage(package);
     }
 }
 
@@ -2497,7 +2497,7 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
         for (const Handle<AssetPackage>& sub : pkg->m_subpackages)
         {
             sub->m_parentPackage = pkg;
-            sub->m_flags |= pkg->m_flags;
+            sub->m_flags |= pkg->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
             InitializePackage(sub);
         }
@@ -2513,7 +2513,7 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
             TUniqueLock guard(newParentPackage->m_mutex);
 
             package->m_parentPackage = newParentPackage;
-            package->m_flags |= newParentPackage->m_flags;
+            package->m_flags |= newParentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
             // If parent package exists on disk, save this package:
             if (!newParentPackage->IsTransient() && newParentPackage->IsSaved_Internal())
@@ -2856,7 +2856,7 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                     if (pkg)
                     {
                         pkg->m_parentPackage = parentPackage;
-                        pkg->m_flags |= parentPackage->m_flags;
+                        pkg->m_flags |= parentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
                         InitObject(pkg);
 
@@ -2870,7 +2870,7 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
                 pkg = MakeHandle<AssetPackage>(CreateNameFromDynamicString(subpackageName));
                 pkg->m_registry = WeakHandleFromThis();
                 pkg->m_parentPackage = parentPackage;
-                pkg->m_flags |= parentPackage->m_flags;
+                pkg->m_flags |= parentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
                 pkg->m_stateFlags = AssetPackage::SF_Dirty;
 
                 // If parent package exists on disk, save this package:
@@ -2962,7 +2962,7 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
         }
 
         subpackage->m_parentPackage = package;
-        subpackage->m_flags |= package->m_flags;
+        subpackage->m_flags |= package->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
         // Add to our package
         Handle<AssetPackage> existingSubpackage = GetPackage(package, subpackage->GetName().LookupString(), /* createIfNotExist */ true);
@@ -3084,7 +3084,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
     if (parentPackage)
     {
-        outPackage->m_flags |= parentPackage->m_flags;
+        outPackage->m_flags |= parentPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
         TUniqueLock parentPackageLock(parentPackage->m_mutex);
         parentPackage->m_subpackages.Insert(outPackage); // NOTE do not broadcast change yet
@@ -3316,7 +3316,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
                     if (subpackage.IsValid())
                     {
                         subpackage->m_parentPackage = outPackage;
-                        subpackage->m_flags |= outPackage->m_flags;
+                        subpackage->m_flags |= outPackage->m_flags & ~(AssetPackageFlags::HasBlobStorage);
 
                         outPackage->m_subpackages.Insert(subpackage);
                         outPackage->OnSubpackageAdded(subpackage);
