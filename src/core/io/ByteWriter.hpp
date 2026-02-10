@@ -6,10 +6,13 @@
 #include <core/filesystem/FilePath.hpp>
 
 #include <core/memory/ByteBuffer.hpp>
+#include <core/memory/Memory.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 #include <core/Types.hpp>
+
+#include <core/io/MemoryMappedFile.hpp>
 
 #include <type_traits>
 
@@ -393,6 +396,169 @@ private:
         }
 
         fwrite(ptr, 1, size, m_file);
+    }
+};
+
+class MemoryMappedByteWriter final : public ByteWriter
+{
+public:
+    explicit MemoryMappedByteWriter(
+        MemoryMappedFile* mappedFile,
+        SizeType offset = 0,
+        SizeType size = 0)
+        : m_mappedFile(mappedFile),
+          m_pos(0),
+          m_baseOffset(0),
+          m_ownsFile(false)
+    {
+        HYP_CORE_ASSERT(mappedFile != nullptr);
+
+        const bool opened = m_mappedFile->Open();
+        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file!");
+
+        HYP_CORE_ASSERT(m_mappedFile->GetMode() == MemoryMappedFile::Mode::READ_WRITE,
+            "MemoryMappedByteWriter requires a read/write mapping");
+
+        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, size);
+        HYP_CORE_ASSERT(mapped, "Failed to map memory range");
+
+        m_baseOffset = m_mappedView.FileOffset();
+    }
+
+    MemoryMappedByteWriter(
+        const FilePath& filepath,
+        SizeType offset = 0,
+        SizeType size = 0)
+        : m_mappedFile(new MemoryMappedFile(filepath, MemoryMappedFile::Mode::READ_WRITE)),
+          m_pos(0),
+          m_baseOffset(0),
+          m_ownsFile(true)
+    {
+        const bool opened = m_mappedFile->Open();
+        HYP_CORE_ASSERT(opened, "Failed to open memory mapped file: %s", filepath.Data());
+
+        HYP_CORE_ASSERT(m_mappedFile->GetMode() == MemoryMappedFile::Mode::READ_WRITE,
+            "MemoryMappedByteWriter requires a read/write mapping");
+
+        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, size);
+        HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
+
+        m_baseOffset = m_mappedView.FileOffset();
+    }
+
+    virtual ~MemoryMappedByteWriter() override
+    {
+        MemoryMappedByteWriter::Close();
+    }
+
+    virtual SizeType Position() const override
+    {
+        return m_pos;
+    }
+
+    virtual void Seek(SizeType position, bool truncate = false) override
+    {
+        (void)truncate;
+
+        if (position > Max())
+        {
+            position = Max();
+        }
+
+        m_pos = position;
+    }
+
+    virtual void Close() override
+    {
+        if (IsOpen())
+        {
+            m_mappedView.Close();
+
+            if (m_ownsFile)
+            {
+                m_mappedFile->Close();
+                delete m_mappedFile;
+            }
+        }
+
+        m_mappedFile = nullptr;
+    }
+
+    virtual void Flush() override
+    {
+        // do nothing
+    }
+
+    bool IsOpen() const
+    {
+        return m_mappedFile
+            && m_mappedFile->IsOpen()
+            && m_mappedView.IsOpen();
+    }
+
+    SizeType GetBaseOffset() const
+    {
+        return m_baseOffset;
+    }
+
+private:
+    MemoryMappedFile* m_mappedFile;
+    MemoryMappedFileView m_mappedView;
+    SizeType m_pos;
+    SizeType m_baseOffset;
+    bool m_ownsFile;
+
+    static constexpr SizeType GrowthGranularity = SizeType(4) * 1024 * 1024;
+
+    SizeType Max() const
+    {
+        return m_mappedView.Size();
+    }
+
+    bool EnsureCapacity(SizeType required)
+    {
+        if (required <= Max())
+        {
+            return true;
+        }
+
+        const SizeType target = ByteUtil::AlignAs(required, GrowthGranularity);
+        const SizeType newSize = m_baseOffset + target;
+
+        if (!m_mappedFile->Resize(newSize))
+        {
+            return false;
+        }
+
+        m_mappedView.Close();
+
+        const bool mapped = m_mappedFile->MapRange(m_mappedView, m_baseOffset, target);
+        return mapped;
+    }
+
+    virtual void WriteBytes(const char* ptr, SizeType size) override
+    {
+        if (size == 0)
+        {
+            return;
+        }
+
+        if (!EnsureCapacity(m_pos + size))
+        {
+            HYP_CORE_ASSERT(false, "Failed to grow mapped file");
+            return;
+        }
+
+        const auto* src = reinterpret_cast<const ubyte*>(ptr);
+        auto* dst = static_cast<ubyte*>(m_mappedView.Data());
+
+        if (dst == nullptr)
+        {
+            return;
+        }
+
+        Memory::Copy(dst + m_pos, src, size);
+        m_pos += size;
     }
 };
 } // namespace Hyperion

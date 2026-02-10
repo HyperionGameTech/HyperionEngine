@@ -9,17 +9,19 @@
 
 namespace Hyperion {
 
-BlobStorage::BlobStorage()
+BlobStorage::BlobStorage(bool readOnly)
+    : m_readOnly(readOnly)
 {
 }
 
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
-    : m_chunkIndices(std::move(other.m_chunkIndices)),
+    : callbacks(std::move(other.callbacks)),
+      m_chunkIndices(std::move(other.m_chunkIndices)),
       m_validChunks(std::move(other.m_validChunks)),
       m_readStreams(std::move(other.m_readStreams)),
       m_writeStreams(std::move(other.m_writeStreams)),
       m_validStreams(std::move(other.m_validStreams)),
-      callbacks(std::move(other.callbacks))
+      m_readOnly(other.m_readOnly)
 {
     other.callbacks = {};
 }
@@ -37,13 +39,15 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     {
         callbacks.Destroy(callbacks.context);
     }
+    
+    callbacks = std::move(other.callbacks);
 
     m_chunkIndices = std::move(other.m_chunkIndices);
     m_validChunks = std::move(other.m_validChunks);
     m_readStreams = std::move(other.m_readStreams);
     m_writeStreams = std::move(other.m_writeStreams);
     m_validStreams = std::move(other.m_validStreams);
-    callbacks = std::move(other.callbacks);
+    m_readOnly = other.m_readOnly;
 
     other.callbacks = {};
 
@@ -126,6 +130,13 @@ SizeType BlobStorage::Read(const BlobDesc& desc, void* dstPtr)
 
 void BlobStorage::Put(ChunkId chunkId, void* srcPtr, SizeType count, SizeType& outOffset)
 {
+    Assert(!m_readOnly, "Cannot write to read-only BlobStorage!");
+
+    if (m_readOnly)
+    {
+        return;
+    }
+
     TUniqueLock lock(m_mutex);
 
     if (!m_validChunks.Test(uint32(chunkId)))
@@ -170,6 +181,8 @@ void BlobStorage::CopyTo(BlobStorage& other)
     if (this == &other)
         return;
 
+    Assert(!other.m_readOnly, "Cannot copy data to read-only BlobStorage!");
+
     TUniqueLock lock(m_mutex);
     TUniqueLock otherLock(other.m_mutex);
 
@@ -202,6 +215,8 @@ void BlobStorage::CopyTo(BlobStorage& other)
             else
             {
                 HYP_LOG(Assets, Error, "Failed to open read stream for chunk id {}", chunkId);
+
+                return;
             }
         }
 
@@ -236,6 +251,8 @@ void BlobStorage::CopyTo(BlobStorage& other)
                 else
                 {
                     HYP_LOG(Assets, Error, "Failed to open write stream for chunk with id {}", chunkId);
+
+                    return;
                 }
             }
 

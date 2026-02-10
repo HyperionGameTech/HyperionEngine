@@ -344,8 +344,8 @@ AssetPackage::AssetPackage()
 
 AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
     : m_flags(flags),
-      m_blobStorage(nullptr),
-      m_stateFlags(0)
+      m_stateFlags(0),
+      m_blobStorage(nullptr)
 {
     if (name.IsValid())
     {
@@ -1471,10 +1471,11 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
                 transferBlobStorage = true;
                 prevBlobStorage = std::move(*m_blobStorage);
 
+
                 m_packageDir = packageDir;
 
-                *m_blobStorage = BlobStorage();
-                InitBlobStorage(*m_blobStorage);
+                *m_blobStorage = BlobStorage(/* readOnly */ false);
+                InitBlobStorage(*m_blobStorage, /* readOnly */ false);
             }
             
             m_packageDir = packageDir;
@@ -1494,8 +1495,6 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     {
         prevBlobStorage.CopyTo(*m_blobStorage);
         prevBlobStorage.Close();
-
-        m_memoryBlobStorage.Clear();
     }
 
     // even if skipSaving is true, we need to iterate over subpackages as
@@ -1915,50 +1914,50 @@ BlobStorage* AssetPackage::GetBlobStorage() const
     return nullptr;
 }
 
-void AssetPackage::InitBlobStorage()
+void AssetPackage::InitBlobStorage(bool readOnly)
 {
     if (m_blobStorage != nullptr)
     {
-        return;
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
     }
 
-    m_blobStorage = new BlobStorage();
-
-    InitBlobStorage(*m_blobStorage);
+    m_blobStorage = new BlobStorage(readOnly);
+    InitBlobStorage(*m_blobStorage, readOnly);
 
     m_flags |= AssetPackageFlags::HasBlobStorage;
 }
 
-void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
+void AssetPackage::InitBlobStorage(BlobStorage& outStorage, bool readOnly)
 {
     if (IsSaved_Internal())
     {
-        char* filepathStr = (char*)Memory::Allocate(m_packageDir.Size() + 1);
-        Memory::StrCpy(filepathStr, m_packageDir.Data(), m_packageDir.Size());
-        filepathStr[m_packageDir.Size()] = '\0';
+        MappedBlobStorage* mappedBlobStorage = PoolNew<MappedBlobStorage>(*g_assetPool, m_packageDir, readOnly);
 
-        outStorage.callbacks.context = filepathStr;
+        outStorage.callbacks.context = mappedBlobStorage;
 
         outStorage.callbacks.Destroy = [](void* context)
         {
-            Memory::Free(context);
+            MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+            mappedBlobStorage->Clear();
+
+            PoolDelete(*g_assetPool, mappedBlobStorage);
         };
     
         outStorage.callbacks.OpenReadStream = [](void* context, ChunkId chunkId, ByteReader*& outStream) -> bool
         {
-            const char* filepathStr = static_cast<const char*>(context);
+            MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
 
-            const FilePath binFile = FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(chunkId));
-            const FilePath dir = binFile.BasePath();
+            MemoryMappedFile* mappedFile = mappedBlobStorage->Get(uint32(chunkId));
 
-            if (!dir.IsDirectory())
+            if (!mappedFile || !mappedFile->IsOpen())
             {
                 return false;
             }
 
             MemoryMappedByteReader* stream = (MemoryMappedByteReader*)g_assetPool->Allocate(sizeof(MemoryMappedByteReader), alignof(MemoryMappedByteReader));
             
-            new (stream) MemoryMappedByteReader { binFile, 0, MemoryMappedFile::Mode::READ_ONLY };
+            new (stream) MemoryMappedByteReader { mappedFile };
             Assert(stream->IsOpen());
 
             outStream = stream;
@@ -1966,31 +1965,48 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
             return true;
         };
         
-        outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
+        if (!readOnly)
         {
-            const char* filepathStr = static_cast<const char*>(context);
-
-            const FilePath binFile = FilePath(filepathStr) / "Blobs" / HYP_FORMAT("_{}.bin", uint32(chunkId));
-            const FilePath dir = binFile.BasePath();
-
-            if (binFile.Exists() || dir.IsDirectory() || dir.MkDir())
+            outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
             {
-                FileByteWriter* stream = (FileByteWriter*)g_assetPool->Allocate(sizeof(FileByteWriter), alignof(FileByteWriter));
-                new (stream) FileByteWriter(binFile, "ab+");
+                MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+
+                MemoryMappedFile* mappedFile = mappedBlobStorage->Get(uint32(chunkId));
+
+                if (!mappedFile || !mappedFile->IsOpen())
+                {
+                    return false;
+                }
+
+                MemoryMappedByteWriter* stream = (MemoryMappedByteWriter*)g_assetPool->Allocate(sizeof(MemoryMappedByteWriter), alignof(MemoryMappedByteWriter));
+                new (stream) MemoryMappedByteWriter(mappedFile);
 
                 outStream = stream;
                 return true;
-            }
-
-            return false;
-        };
+            };
+        }
+        else
+        {
+            outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
+            {
+                return false;
+            };
+        }
     }
     else
     {
-        outStorage.callbacks.context = &m_memoryBlobStorage;
+        MemoryBlobStorage* memoryBlobStorage = PoolNew<MemoryBlobStorage>(*g_assetPool);
+
+        outStorage.callbacks.context = memoryBlobStorage;
 
         // no-op
-        outStorage.callbacks.Destroy = [](void* context) { };
+        outStorage.callbacks.Destroy = [](void* context)
+        {
+            MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
+            memoryBlobStorage->Clear();
+
+            PoolDelete(*g_assetPool, memoryBlobStorage);
+        };
 
         outStorage.callbacks.OpenReadStream = [](void* context, ChunkId chunkId, ByteReader*& outStream) -> bool
         {
@@ -2012,7 +2028,7 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
         outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
         {
             MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
-
+            
             TMemoryByteWriter<AssetAllocator>* stream = (TMemoryByteWriter<AssetAllocator>*)g_assetPool->Allocate(
                 sizeof(TMemoryByteWriter<AssetAllocator>),
                 alignof(TMemoryByteWriter<AssetAllocator>)
@@ -2032,12 +2048,36 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage)
         g_assetPool->Free(stream);
     };
 
-    outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream)
+    if (!readOnly)
     {
-        stream->~ByteWriter();
+        outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream)
+        {
+            stream->~ByteWriter();
 
-        g_assetPool->Free(stream);
-    };
+            g_assetPool->Free(stream);
+        };
+    }
+    else
+    {
+        outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream) { };
+    }
+}
+
+void AssetPackage::LoadBlobStorage()
+{
+    if (m_blobStorage != nullptr)
+    {
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
+    }
+
+    if (!m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        return;
+    }
+
+    m_blobStorage = new BlobStorage(/* readOnly */ true);
+    InitBlobStorage(*m_blobStorage, /* readOnly */ true);
 }
 
 #pragma endregion AssetPackage
@@ -2506,7 +2546,8 @@ Result AssetRegistry::AddPackage(const Handle<AssetPackage>& package, bool merge
                 Result addResult = dest->AddAssetObject(asset, /* replaceOnConflict */ false);
                 if (addResult.HasError())
                 {
-                    HYP_LOG(Assets, Warning, "Failed to add asset '{}' to destination package '{}' during merge: {}", asset->GetName(), dest->GetName(), addResult.GetError().GetMessage());
+                    //HYP_LOG(Assets, Error, "Failed to add asset '{}' to destination package: {}",
+                     //   asset->GetName(), addResult.GetError().GetMessage());
                 }
             }
 
@@ -3179,6 +3220,12 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
             return HYP_MAKE_ERROR(Error, "Failed to load package data from manifest");
         }
+    }
+
+    // Init blob storage if we have the appropriate flag
+    if (outPackage->m_flags[AssetPackageFlags::HasBlobStorage])
+    {
+        outPackage->LoadBlobStorage();
     }
 
     // Load dependency packages first (always, regardless of loadSubpackages flag)

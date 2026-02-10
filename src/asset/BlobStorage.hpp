@@ -12,6 +12,8 @@
 
 #include <core/reflection/ObjectBase.hpp>
 
+#include <core/io/MemoryMappedFile.hpp>
+
 #include <asset/BlobStorageStructs.hpp>
 
 namespace Hyperion {
@@ -38,7 +40,7 @@ class BlobStorage : public ObjectBase
     HYP_OBJECT_BODY(BlobStorage);
 
 public:
-    BlobStorage();
+    explicit BlobStorage(bool readOnly = true);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -73,7 +75,8 @@ private:
     Array<ByteReader*> m_readStreams;
     Array<ByteWriter*> m_writeStreams;
     Bitset m_validStreams;
-
+    
+    bool m_readOnly;
 };
 
 } // namespace Hyperion
