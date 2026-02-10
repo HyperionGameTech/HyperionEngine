@@ -10,7 +10,14 @@
 
 namespace Hyperion {
 
-BlobStorage::BlobStorage(const String& name, bool readOnly)
+BlobStorage::BlobStorage()
+    : m_name("INVALID_BLOB_STORAGE"),
+      m_readOnly(true),
+      m_file(nullptr)
+{
+}
+
+BlobStorage::BlobStorage(const ANSIString& name, bool readOnly)
     : m_name(name),
       m_readOnly(readOnly),
       m_file(nullptr)
@@ -65,6 +72,8 @@ BlobStorage::~BlobStorage()
 
 bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile)
 {
+    Assert(m_name != "INVALID_BLOB_STORAGE");
+
     if (m_file != nullptr)
     {
         outMappedFile = m_file;

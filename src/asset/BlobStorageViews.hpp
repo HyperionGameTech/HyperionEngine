@@ -81,7 +81,12 @@ public:
         Clear();
     }
 
-    MemoryMappedFile* Get(uint32 index)
+    HYP_FORCE_INLINE const FilePath& GetBaseDirectory() const
+    {
+        return m_baseDir;
+    }
+
+    MemoryMappedFile* Get(ANSIStringView name, bool createIfNotFound = true)
     {
         TUniqueLock lock(m_mutex);
 
@@ -93,52 +98,60 @@ public:
             return nullptr;
         }
 
-        if (m_list.Empty())
+        auto it = m_mappedFiles.FindAs(name);
+        if (it != m_mappedFiles.End())
         {
-            const FilePath filePath = m_baseDir / "Blobs" / "_0.bin";
-
-            m_list.EmplaceBack(filePath, m_readOnly ? MemoryMappedFile::Mode::READ_ONLY : MemoryMappedFile::Mode::READ_WRITE);
+            AssertDebug(it->second != nullptr);
+            return it->second;
         }
 
-        typename decltype(m_list)::Iterator iter = m_list.Begin();
-
-        for (uint32 i = 0; i <= index; ++i, ++iter)
+        if (!createIfNotFound)
         {
-            if (i + 1 >= m_list.Size())
-            {
-                const FilePath filePath = m_baseDir / "Blobs" / ("_" + String::ToString(index) + ".bin");
-
-                m_list.EmplaceBack(filePath, m_readOnly ? MemoryMappedFile::Mode::READ_ONLY : MemoryMappedFile::Mode::READ_WRITE);
-            }
+            return nullptr;
         }
 
-        if (!iter->IsOpen())
+        const ANSIString nameStr = ANSIString(name);
+        
+        const FilePath filePath = m_baseDir / "Blobs" / (nameStr + ".bin");
+
+        MemoryMappedFile* mappedFile = PoolNew<MemoryMappedFile>(
+            *g_assetPool,
+            filePath,
+            m_readOnly ? MemoryMappedFile::Mode::READ_ONLY : MemoryMappedFile::Mode::READ_WRITE);
+
+        Assert(mappedFile != nullptr);
+
+        if (!mappedFile->Open())
         {
-            if (!iter->Open())
-            {
-                HYP_FAIL("Failed to open mapped file!");
-            }
+            AssertDebug(false, "Failed to open mapped file at {}", filePath);
+
+            PoolDelete(*g_assetPool, mappedFile);
+
+            return nullptr;
         }
 
-        return &*iter;
+        m_mappedFiles[nameStr] = mappedFile;
+
+        return mappedFile;
     }
 
     SizeType Size() const
     {
         TSharedLock lock(m_mutex);
-        return m_list.Size();
+        return m_mappedFiles.Size();
     }
 
     void Clear()
     {
         TUniqueLock lock(m_mutex);
 
-        for (MemoryMappedFile& file : m_list)
+        for (auto& pair : m_mappedFiles)
         {
-            file.Close();
+            pair.second->Close();
+            PoolDelete(*g_assetPool, pair.second);
         }
 
-        m_list.Clear();
+        m_mappedFiles.Clear();
     }
 
 
@@ -146,7 +159,7 @@ private:
     FilePath m_baseDir;
     bool m_readOnly;
 
-    LinkedList<MemoryMappedFile, AssetAllocator> m_list;
+    HashMap<ANSIString, MemoryMappedFile*> m_mappedFiles;
     SharedMutex m_mutex;
 };
 

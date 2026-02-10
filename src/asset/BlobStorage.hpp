@@ -48,7 +48,9 @@ class BlobStorage : public ObjectBase
     };
 
 public:
-    explicit BlobStorage(const String& name, bool readOnly = true);
+    BlobStorage();
+
+    explicit BlobStorage(const ANSIString& name, bool readOnly = true);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -74,7 +76,7 @@ public:
 private:
     bool InitMappedFile(MemoryMappedFile*& outMappedFile);
 
-    String m_name;
+    ANSIString m_name;
 
     mutable Mutex m_mutex;
 

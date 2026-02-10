@@ -43,6 +43,8 @@ extern HYP_NODISCARD FilePath CreateTempDirectory();
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
+static constexpr const char* BlobStorageName = "Storage";
+
 // If true, all mutation operations will be forced to run on the sim thread,
 // otherwise a mutex will be used to allow multi-threaded access.
 static constexpr bool UseSingleThread = false;
@@ -1368,7 +1370,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     Array<String> packageParts = packagePath.Split('/', '\\');
     
     bool transferBlobStorage = false;
-    BlobStorage prevBlobStorage { "0" };
+    BlobStorage prevBlobStorage;
 
     SizeType packageStartIndex = 0;
 
@@ -1462,10 +1464,9 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
                 transferBlobStorage = true;
                 prevBlobStorage = std::move(*m_blobStorage);
 
-
                 m_packageDir = packageDir;
 
-                *m_blobStorage = BlobStorage("0", /* readOnly */ false);
+                *m_blobStorage = BlobStorage(BlobStorageName, /* readOnly */ false);
                 InitBlobStorage(*m_blobStorage, /* readOnly */ false);
             }
             
@@ -1913,7 +1914,7 @@ void AssetPackage::InitBlobStorage(bool readOnly)
         m_blobStorage = nullptr;
     }
 
-    m_blobStorage = new BlobStorage("0", readOnly);
+    m_blobStorage = new BlobStorage(BlobStorageName, readOnly);
     InitBlobStorage(*m_blobStorage, readOnly);
 
     m_flags |= AssetPackageFlags::HasBlobStorage;
@@ -1940,13 +1941,10 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage, bool readOnly)
     {
         MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
 
-        uint32 storageIndex;
-        if (!StringUtil::Parse(name, &storageIndex))
-        {
-            HYP_FAIL("Invalid blob storage name: {}", name);
-        }
+        MemoryMappedFile* file = mappedBlobStorage->Get(ANSIStringView(name));
+        AssertDebug(file != nullptr, "Failed to open mapped file {} ({})", name, mappedBlobStorage->GetBaseDirectory());
 
-        return mappedBlobStorage->Get(storageIndex);
+        return file;
     };
     
     outStorage.callbacks.Close = [](void* context, MemoryMappedFile* file)
@@ -1968,7 +1966,7 @@ void AssetPackage::LoadBlobStorage()
         return;
     }
 
-    m_blobStorage = new BlobStorage("0", /* readOnly */ true);
+    m_blobStorage = new BlobStorage(BlobStorageName, /* readOnly */ true);
     InitBlobStorage(*m_blobStorage, /* readOnly */ true);
 }
 
