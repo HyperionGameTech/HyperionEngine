@@ -171,7 +171,7 @@ Result EditorProject::CreatePackage()
             Memory::Fill(tmpData, 1, 1000);
 
             SizeType tmpoffset;
-            m_package->InitBlobStorage();
+            m_package->InitBlobStorage(/* readOnly */ false);
             m_package->GetBlobStorage()->Put(ChunkId(0), tmpData, 1000, tmpoffset);
             delete[] tmpData;
             tmpData = new ubyte[4096];

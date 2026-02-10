@@ -175,7 +175,10 @@ bool MemoryMappedFile::Open()
     const DWORD desired_access = m_impl->mode == Mode::READ_WRITE
         ? (GENERIC_READ | GENERIC_WRITE)
         : GENERIC_READ;
-    const DWORD share_mode = FILE_SHARE_READ;
+
+    const DWORD share_mode = m_impl->mode == Mode::READ_ONLY
+        ? FILE_SHARE_READ
+        : 0;
 
     const WideString wide_path = m_impl->filepath.ToWide();
 
@@ -184,7 +187,7 @@ bool MemoryMappedFile::Open()
         desired_access,
         share_mode,
         nullptr,
-        OPEN_EXISTING,
+        m_impl->mode == Mode::READ_ONLY ? OPEN_EXISTING : CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
@@ -452,6 +455,98 @@ SizeType MemoryMappedFile::FileSize() const
 MemoryMappedFile::Mode MemoryMappedFile::GetMode() const
 {
     return m_impl ? m_impl->mode : Mode::READ_ONLY;
+}
+
+void MemoryMappedFile::SetMode(Mode mode)
+{
+    if (!m_impl)
+    {
+        m_impl = MakePimpl<MemoryMappedFileImpl>();
+    }
+
+    if (mode == m_impl->mode)
+    {
+        // same mode, do nothing
+        return;
+    }
+
+    Assert(!IsOpen(), "Cannot change mode of an open memory mapped file. Close the file before changing the mode.");
+
+    m_impl->mode = mode;
+}
+
+bool MemoryMappedFile::Resize(SizeType new_size)
+{
+    if (!m_impl || !IsOpen())
+    {
+        return false;
+    }
+
+    if (new_size == m_impl->file_size)
+    {
+        return true;
+    }
+
+    Assert(new_size <= INT32_MAX);
+
+#ifdef HYP_WINDOWS
+    LARGE_INTEGER distance = {};
+    distance.QuadPart = static_cast<LONGLONG>(new_size);
+
+    if (!SetFilePointerEx(m_impl->file_handle, distance, nullptr, FILE_BEGIN))
+    {
+        return false;
+    }
+
+    if (!SetEndOfFile(m_impl->file_handle))
+    {
+        return false;
+    }
+
+    m_impl->file_size = new_size;
+
+    if (m_impl->mapping_handle != nullptr)
+    {
+        CloseHandle(m_impl->mapping_handle);
+        m_impl->mapping_handle = nullptr;
+    }
+
+    if (m_impl->file_size == 0)
+    {
+        return true;
+    }
+
+    const DWORD protection = m_impl->mode == Mode::READ_WRITE
+        ? PAGE_READWRITE
+        : PAGE_READONLY;
+
+    HANDLE mapping_handle = CreateFileMappingA(
+        m_impl->file_handle,
+        nullptr,
+        protection,
+        0,
+        0,
+        nullptr);
+
+    if (mapping_handle == nullptr)
+    {
+        return false;
+    }
+
+    m_impl->mapping_handle = mapping_handle;
+    return true;
+#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+    if (ftruncate(m_impl->fd, static_cast<off_t>(new_size)) != 0)
+    {
+        return false;
+    }
+
+    m_impl->file_size = new_size;
+    return true;
+#else
+    HYP_FAIL("Unsupported platform for memory mapped files");
+    return false;
+#endif
 }
 
 } // namespace Hyperion

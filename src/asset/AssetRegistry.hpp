@@ -3,6 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/BlobStorageViews.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -208,7 +209,7 @@ public:
     BlobStorage* GetBlobStorage() const;
 
     /*! \brief Initialize (owned) BlobStorage for this Package */
-    void InitBlobStorage();
+    void InitBlobStorage(bool readOnly = true);
 
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
@@ -303,7 +304,9 @@ private:
 
     Result SaveManifest(ByteWriter& stream) const;
 
-    void InitBlobStorage(BlobStorage& outStorage);
+    void InitBlobStorage(BlobStorage& outStorage, bool readOnly = true);
+
+    void LoadBlobStorage();
 
     /*! \brief Check for dirty asset objects and returns true if any are.
      *   Used before saving, to check if we should call MarkDirty() */
@@ -345,52 +348,6 @@ private:
     ThreadId m_loadingThreadId;
 
     BlobStorage* m_blobStorage;
-
-    // storage for blob data before package is saved
-    class MemoryBlobStorage
-    {
-    public:
-        TByteBuffer<AssetAllocator>& Get(uint32 index)
-        {
-            TUniqueLock lock(m_mutex);
-
-            if (m_list.Empty())
-            {
-                m_list.EmplaceBack();
-            }
-
-            typename decltype(m_list)::Iterator iter = m_list.Begin();
-
-            for (uint32 i = 0; i <= index; ++i, ++iter)
-            {
-                if (i + 1 >= m_list.Size())
-                {
-                    m_list.EmplaceBack();
-                }
-            }
-
-            return *iter;
-        }
-
-        SizeType Size() const
-        {
-            TSharedLock lock(m_mutex);
-            return m_list.Size();
-        }
-
-        void Clear()
-        {
-            TUniqueLock lock(m_mutex);
-
-            m_list.Clear();
-        }
-
-    private:
-        LinkedList<TByteBuffer<AssetAllocator>, AssetAllocator> m_list;
-        SharedMutex m_mutex;
-    };
-
-    MemoryBlobStorage m_memoryBlobStorage;
 };
 
 HYP_CLASS()

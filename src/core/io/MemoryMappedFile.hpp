@@ -63,7 +63,11 @@ public:
 
     bool IsOpen() const;
     SizeType FileSize() const;
+
     Mode GetMode() const;
+    void SetMode(Mode mode);
+
+    bool Resize(SizeType new_size);
 
     bool MapRange(MemoryMappedFileView& out_view, SizeType offset, SizeType size) const;
 
