@@ -29,7 +29,7 @@ struct BlobStorageCallbacks
 {
     void* context = nullptr;
 
-    MemoryMappedFile* (*Open)(void* context, ChunkId chunkId, bool readOnly) = nullptr;
+    MemoryMappedFile* (*Open)(void* context, const char* name, bool readOnly) = nullptr;
     void (*Close)(void* context, MemoryMappedFile* file) = nullptr;
 
     void (*Destroy)(void* context) = nullptr;
@@ -40,8 +40,15 @@ class BlobStorage : public ObjectBase
 {
     HYP_OBJECT_BODY(BlobStorage);
 
+    struct ChunkHeader
+    {
+        BlobStorage* blobStorage;
+        uint32 refCount;
+        MemoryMappedFileView view;
+    };
+
 public:
-    explicit BlobStorage(bool readOnly = true);
+    explicit BlobStorage(const String& name, bool readOnly = true);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -52,10 +59,10 @@ public:
     ~BlobStorage();
     
     /*! \brief Create a new BlobResource mapped to the given range */
-    HYP_NODISCARD BlobResource* MapResource(ChunkId chunkId, SizeType offset, SizeType size);
+    HYP_NODISCARD BlobResource* MapResource(SizeType offset, SizeType size);
     void UnmapResource(HYP_NOTNULL BlobResource* resource);
 
-    void Write(ChunkId chunkId, const void* src, SizeType size, SizeType alignment);
+    void Write(const void* src, SizeType size, SizeType alignment);
 
     void CopyTo(BlobStorage& other);
 
@@ -65,18 +72,16 @@ public:
     BlobStorageCallbacks callbacks;
 
 private:
-    bool InitMappedFile(ChunkId chunkId, MemoryMappedFile*& outMappedFile);
+    bool InitMappedFile(MemoryMappedFile*& outMappedFile);
+
+    String m_name;
 
     mutable Mutex m_mutex;
 
     HashMap<BlobResourceKey, BlobResource*> m_resources;
 
-    Array<uint32> m_chunkIndices;
-    Bitset m_validChunks;
-
     // indexed by indices
-    Array<MemoryMappedFile*> m_files;
-    Bitset m_validFiles;
+    MemoryMappedFile* m_file;
     
     bool m_readOnly;
 };

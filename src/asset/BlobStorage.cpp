@@ -10,19 +10,20 @@
 
 namespace Hyperion {
 
-BlobStorage::BlobStorage(bool readOnly)
-    : m_readOnly(readOnly)
+BlobStorage::BlobStorage(const String& name, bool readOnly)
+    : m_name(name),
+      m_readOnly(readOnly),
+      m_file(nullptr)
 {
 }
 
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
     : callbacks(std::move(other.callbacks)),
-      m_chunkIndices(std::move(other.m_chunkIndices)),
-      m_validChunks(std::move(other.m_validChunks)),
-      m_files(std::move(other.m_files)),
-      m_validFiles(std::move(other.m_validFiles)),
+      m_name(std::move(other.m_name)),
+      m_file(other.m_file),
       m_readOnly(other.m_readOnly)
 {
+    other.m_file = nullptr;
     other.callbacks = {};
 }
 
@@ -42,12 +43,11 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     
     callbacks = std::move(other.callbacks);
 
-    m_chunkIndices = std::move(other.m_chunkIndices);
-    m_validChunks = std::move(other.m_validChunks);
-    m_files = std::move(other.m_files);
-    m_validFiles = std::move(other.m_validFiles);
+    m_name = std::move(other.m_name);
+    m_file = other.m_file;
     m_readOnly = other.m_readOnly;
 
+    other.m_file = nullptr;
     other.callbacks = {};
 
     return *this;
@@ -63,50 +63,28 @@ BlobStorage::~BlobStorage()
     }
 }
 
-bool BlobStorage::InitMappedFile(ChunkId chunkId, MemoryMappedFile*& outMappedFile)
+bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile)
 {
-    if (!m_validChunks.Test(uint32(chunkId)))
+    if (m_file != nullptr)
     {
-        if (!m_validChunks.Test(uint32(chunkId)))
-        {
-            m_chunkIndices.Resize(uint32(chunkId) + 1);
-            const uint32 chunkIndex = uint32(m_chunkIndices.Size()) - 1;
-
-            m_chunkIndices[uint32(chunkId)] = chunkIndex;
-
-            m_files.Resize(chunkIndex + 1);
-            m_validChunks.Set(uint32(chunkId), true);
-        }
+        outMappedFile = m_file;
+        return true;
     }
 
-    MemoryMappedFile*& file = m_files[m_chunkIndices[uint32(chunkId)]];
-
-    if (!m_validFiles.Test(uint32(chunkId)))
+    if ((m_file = callbacks.Open(callbacks.context, m_name.Data(), m_readOnly)))
     {
-        if (!m_validFiles.Test(uint32(chunkId)))
-        {
-            if ((file = callbacks.Open(callbacks.context, chunkId, m_readOnly)))
-            {
-                m_validFiles.Set(uint32(chunkId), true);
-            }
-            else
-            {
-                return false;
-            }
-        }
+        outMappedFile = m_file;
+        return true;
     }
 
-    outMappedFile = file;
-
-    return true;
+    return false;
 }
 
-HYP_NODISCARD BlobResource* BlobStorage::MapResource(ChunkId chunkId, SizeType offset, SizeType size)
+HYP_NODISCARD BlobResource* BlobStorage::MapResource(SizeType offset, SizeType size)
 {
     Mutex::Guard guard(m_mutex);
 
     BlobResourceKey key {};
-    key.chunkId = chunkId;
     key.offset = offset;
     key.size = size;
 
@@ -118,7 +96,7 @@ HYP_NODISCARD BlobResource* BlobStorage::MapResource(ChunkId chunkId, SizeType o
 
     MemoryMappedFile* file = nullptr;
 
-    if (!InitMappedFile(chunkId, file))
+    if (!InitMappedFile(file))
     {
         return 0;
     }
@@ -167,7 +145,7 @@ void BlobStorage::UnmapResource(HYP_NOTNULL BlobResource* resource)
     }
 }
 
-void BlobStorage::Write(ChunkId chunkId, const void* src, SizeType size, SizeType alignment)
+void BlobStorage::Write(const void* src, SizeType size, SizeType alignment)
 {
     Assert(!m_readOnly, "Cannot use Write() on read-only BlobStorage");
 
@@ -195,7 +173,7 @@ void BlobStorage::Write(ChunkId chunkId, const void* src, SizeType size, SizeTyp
     
     MemoryMappedFile* file = nullptr;
 
-    if (!InitMappedFile(chunkId, file))
+    if (!InitMappedFile(file))
     {
         HYP_FAIL("Failed to initialize mapped file");
     }
@@ -230,69 +208,37 @@ void BlobStorage::CopyTo(BlobStorage& other)
     Mutex::Guard guard(m_mutex);
     Mutex::Guard guard2(other.m_mutex);
 
-    for (Bitset::BitIndex bitIndex : m_validChunks)
+    if (!m_file)
     {
-        const ChunkId chunkId = ChunkId(bitIndex);
-
-        Assert(m_chunkIndices.Size() > bitIndex);
-
-        const uint32 srcChunkIndex = m_chunkIndices[bitIndex];
-
-        MemoryMappedFile*& src = m_files[srcChunkIndex];
-
-        if (!m_validFiles.Test(bitIndex))
+        if (!(m_file = callbacks.Open(callbacks.context, m_name.Data(), /* readOnly */ true)))
         {
-            if ((src = callbacks.Open(callbacks.context, chunkId, /* readOnly */ true)))
-            {
-                m_validFiles.Set(bitIndex, true);
-            }
-            else
-            {
-                HYP_LOG(Assets, Error, "Failed to open file for chunk id {}", chunkId);
+            HYP_LOG(Assets, Error, "Failed to open file for blob {}", m_name);
 
-                return;
-            }
+            return;
         }
-
-        MemoryMappedByteReader readStream(src, 0);
-
-        // init other write stream
-        if (!other.m_validChunks.Test(uint32(chunkId)))
-        {
-            other.m_chunkIndices.Resize(uint32(chunkId) + 1);
-            const uint32 dstChunkIndex = uint32(other.m_chunkIndices.Size()) - 1;
-
-            other.m_chunkIndices[uint32(chunkId)] = dstChunkIndex;
-
-            other.m_files.Resize(dstChunkIndex + 1);
-
-            other.m_validChunks.Set(uint32(chunkId), true);
-        }
-            
-        MemoryMappedFile*& dst = other.m_files[other.m_chunkIndices[uint32(chunkId)]];
-    
-        if (!other.m_validFiles.Test(uint32(chunkId)))
-        {
-            if ((dst = other.callbacks.Open(other.callbacks.context, chunkId, /* readOnly */ false)))
-            {
-                other.m_validFiles.Set(uint32(chunkId), true);
-            }
-            else
-            {
-                HYP_LOG(Assets, Error, "Failed to open file for chunk with id {}", chunkId);
-
-                return;
-            }
-        }
-
-        MemoryMappedByteWriter writeStream(dst, 0, src->FileSize());
-        writeStream.Write(readStream.Read(src->FileSize()));
-        writeStream.Close();
-
-        HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage (chunk index: {})", readStream.Position(), chunkId);
-
-        readStream.Close();
     }
+
+    MemoryMappedByteReader readStream(m_file, 0);
+
+    MemoryMappedFile*& dst = other.m_file;
+    
+    if (!dst)
+    {
+        if (!(dst = other.callbacks.Open(other.callbacks.context, other.m_name.Data(), /* readOnly */ false)))
+        {
+            HYP_LOG(Assets, Error, "Failed to open file for blob {}", other.m_name);
+
+            return;
+        }
+    }
+
+    MemoryMappedByteWriter writeStream(dst, 0, m_file->FileSize());
+    writeStream.Write(readStream.Read(m_file->FileSize()));
+    writeStream.Close();
+
+    HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage {} -> {}", readStream.Position(), m_name, other.m_name);
+
+    readStream.Close();
 }
 
 void BlobStorage::Close()
@@ -306,17 +252,12 @@ void BlobStorage::Close()
 
     m_resources.Clear();
 
-    for (Bitset::BitIndex bitIndex : m_validFiles)
+    MemoryMappedFile*& file = m_file;
+    if (file != nullptr)
     {
-        MemoryMappedFile*& file = m_files[bitIndex];
-        if (file != nullptr)
-        {
-            callbacks.Close(callbacks.context, file);
-            file = nullptr;
-        }
+        callbacks.Close(callbacks.context, file);
+        file = nullptr;
     }
-
-    m_validFiles.Clear();
 }
 
 } // namespace Hyperion

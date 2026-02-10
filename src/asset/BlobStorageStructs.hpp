@@ -10,21 +10,18 @@ enum class ChunkId : uint32;
 
 struct BlobResourceKey
 {
-    ChunkId chunkId;
     SizeType offset;
     SizeType size;
 
     HYP_FORCE_INLINE constexpr bool operator==(const BlobResourceKey& other) const
     {
-        return chunkId == other.chunkId
-            && offset == other.offset
+        return offset == other.offset
             && size == other.size;
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(chunkId)
-            .Combine(offset)
+        return HashCode::GetHashCode(offset)
             .Combine(size);
     }
 };

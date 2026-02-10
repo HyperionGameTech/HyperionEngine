@@ -97,7 +97,9 @@ public:
         {
             const FilePath filePath = m_baseDir / "Blobs" / "_0.bin";
 
-            m_list.EmplaceBack(filePath, m_readOnly ? MemoryMappedFile::Mode::READ_ONLY : MemoryMappedFile::Mode::READ_WRITE);
+        if (!createIfNotFound)
+        {
+            return nullptr;
         }
 
         typename decltype(m_list)::Iterator iter = m_list.Begin();

@@ -1368,7 +1368,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     Array<String> packageParts = packagePath.Split('/', '\\');
     
     bool transferBlobStorage = false;
-    BlobStorage prevBlobStorage;
+    BlobStorage prevBlobStorage { "0" };
 
     SizeType packageStartIndex = 0;
 
@@ -1465,7 +1465,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
 
                 m_packageDir = packageDir;
 
-                *m_blobStorage = BlobStorage(/* readOnly */ false);
+                *m_blobStorage = BlobStorage("0", /* readOnly */ false);
                 InitBlobStorage(*m_blobStorage, /* readOnly */ false);
             }
             
@@ -1913,7 +1913,7 @@ void AssetPackage::InitBlobStorage(bool readOnly)
         m_blobStorage = nullptr;
     }
 
-    m_blobStorage = new BlobStorage(readOnly);
+    m_blobStorage = new BlobStorage("0", readOnly);
     InitBlobStorage(*m_blobStorage, readOnly);
 
     m_flags |= AssetPackageFlags::HasBlobStorage;
@@ -1936,11 +1936,17 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage, bool readOnly)
         PoolDelete(*g_assetPool, mappedBlobStorage);
     };
     
-    outStorage.callbacks.Open = [](void* context, ChunkId chunkId, bool readOnly) -> MemoryMappedFile*
+    outStorage.callbacks.Open = [](void* context, const char* name, bool readOnly) -> MemoryMappedFile*
     {
         MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
 
-        return mappedBlobStorage->Get(uint32(chunkId));
+        uint32 storageIndex;
+        if (!StringUtil::Parse(name, &storageIndex))
+        {
+            HYP_FAIL("Invalid blob storage name: {}", name);
+        }
+
+        return mappedBlobStorage->Get(storageIndex);
     };
     
     outStorage.callbacks.Close = [](void* context, MemoryMappedFile* file)
@@ -1962,7 +1968,7 @@ void AssetPackage::LoadBlobStorage()
         return;
     }
 
-    m_blobStorage = new BlobStorage(/* readOnly */ true);
+    m_blobStorage = new BlobStorage("0", /* readOnly */ true);
     InitBlobStorage(*m_blobStorage, /* readOnly */ true);
 }
 

@@ -201,10 +201,10 @@ Result EditorProject::CreatePackage()
 
             //m_package->GetBlobStorage()->UnmapResource(res);
 
-            m_package->GetBlobStorage()->Write(ChunkId(0), md2, totalSize, 16);
+            m_package->GetBlobStorage()->Write(md2, totalSize, 16);
 
             // lets write it again just to see..
-            m_package->GetBlobStorage()->Write(ChunkId(0), md2, totalSize, 16);
+            m_package->GetBlobStorage()->Write(md2, totalSize, 16);
             
             OnPackageCreated(m_package);
 
@@ -459,7 +459,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     // temp debug
     if (BlobStorage* blobStorage = project->m_package->GetBlobStorage())
     {
-        BlobResource* res = blobStorage->MapResource(ChunkId(0), 0, 552);
+        BlobResource* res = blobStorage->MapResource(0, 552);
         void* blobPtr = res->GetData();
 
         //MeshData2* md2 = (MeshData2*)Memory::Allocate(552);
