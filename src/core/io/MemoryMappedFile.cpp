@@ -84,6 +84,16 @@ bool MemoryMappedFileView::IsOpen() const
     return m_impl && m_impl->is_open;
 }
 
+bool MemoryMappedFileView::Reopen(const MemoryMappedFile& file, SizeType offset, SizeType size)
+{
+    if (IsOpen())
+    {
+        Close();
+    }
+
+    return file.MapRange(*this, offset, size);
+}
+
 void MemoryMappedFileView::Close()
 {
     if (!m_impl || !m_impl->is_open)

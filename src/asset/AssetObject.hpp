@@ -357,8 +357,6 @@ protected:
 
     Result SaveManifest(ByteWriter& stream) const;
 
-    bool ReadBlobData(ChunkId chunkId, SizeType offset, SizeType count, void* dstPtr);
-
     template <class T>
     T* GetResourceData() const
     {

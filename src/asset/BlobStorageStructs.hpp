@@ -8,11 +8,25 @@ namespace Hyperion {
 
 enum class ChunkId : uint32;
 
-struct BlobDesc
+struct BlobResourceKey
 {
     ChunkId chunkId;
     SizeType offset;
     SizeType size;
+
+    HYP_FORCE_INLINE constexpr bool operator==(const BlobResourceKey& other) const
+    {
+        return chunkId == other.chunkId
+            && offset == other.offset
+            && size == other.size;
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(chunkId)
+            .Combine(offset)
+            .Combine(size);
+    }
 };
 
 /*! \brief Wrapper around a pointer that is stored in a blob */

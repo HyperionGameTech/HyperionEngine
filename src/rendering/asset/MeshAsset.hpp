@@ -65,9 +65,9 @@ struct MeshData2
 
     MeshData2() = default;
 
-    static MeshData2* CreateMeshData(Span<const Vertex> vertices, Span<const uint32> indices)
+    static MeshData2* CreateMeshData(Span<const Vertex> vertices, Span<const uint32> indices, SizeType& outTotalSize)
     {
-        SizeType totalSize = ByteUtil::AlignAs(sizeof(MeshData2), alignof(Vertex))
+        SizeType totalSize = sizeof(MeshData2)
             + (sizeof(Vertex) * vertices.Size())
             + (sizeof(uint32) * indices.Size());
 
@@ -84,8 +84,10 @@ struct MeshData2
         Memory::Copy(verticesPtr, vertices.Data(), sizeof(Vertex) * vertices.Size());
         Memory::Copy(indicesPtr, indices.Data(), sizeof(uint32) * indices.Size());
 
-        meshData->vertexData = BlobPointer<Vertex>(reinterpret_cast<UIntPtr>(verticesPtr) - reinterpret_cast<UIntPtr>(meshData));
-        meshData->indexData = BlobPointer<uint32>(reinterpret_cast<UIntPtr>(indicesPtr) - reinterpret_cast<UIntPtr>(meshData));
+        meshData->vertexData = BlobPointer<Vertex>(reinterpret_cast<UIntPtr>(verticesPtr) - reinterpret_cast<UIntPtr>(meshData) - offsetof(MeshData2, vertexData));
+        meshData->indexData = BlobPointer<uint32>(reinterpret_cast<UIntPtr>(indicesPtr) - reinterpret_cast<UIntPtr>(meshData) - offsetof(MeshData2, indexData));
+
+        outTotalSize = totalSize;
 
         return meshData;
     }

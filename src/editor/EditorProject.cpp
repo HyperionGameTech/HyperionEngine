@@ -13,6 +13,7 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
 #include <asset/BlobStorage.hpp>
+#include <asset/BlobResource.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -33,6 +34,9 @@
 #include <rendering/util/SafeDeleter.hpp>
 
 #include <HyperionEngine.hpp>
+
+// temp
+#include <rendering/asset/MeshAsset.hpp>
 
 #include <EditorProject.generated.inl>
 
@@ -164,21 +168,40 @@ Result EditorProject::CreatePackage()
         {
             m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
             m_name = CreateNameFromDynamicString(currentName);
-        
 
             // temp
-            ubyte* tmpData = new ubyte[1000];
-            Memory::Fill(tmpData, 1, 1000);
-
-            SizeType tmpoffset;
             m_package->InitBlobStorage(/* readOnly */ false);
-            m_package->GetBlobStorage()->Put(ChunkId(0), tmpData, 1000, tmpoffset);
-            delete[] tmpData;
-            tmpData = new ubyte[4096];
-            Memory::Fill(tmpData, 0xFA, 4096);
-            m_package->GetBlobStorage()->Put(ChunkId(1), tmpData, 4096, tmpoffset);
-            delete[] tmpData;
 
+            // temp debug
+            static const Array<Vertex> quadVertices = {
+                Vertex { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+                Vertex { { 1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+                Vertex { { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
+                Vertex { { -1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } }
+            };
+
+            static const Array<uint32> quadIndices = {
+                0, 3, 2,
+                0, 2, 1
+            };
+
+            SizeType totalSize;
+            MeshData2* md2 = MeshData2::CreateMeshData(quadVertices, quadIndices, totalSize);
+            Vertex& vtx0 = md2->vertexData[0];
+            HYP_LOG_TEMP("Vertex0: {}", vtx0.GetPosition());
+            Vertex& vtx1 = md2->vertexData[1];
+            HYP_LOG_TEMP("Vertex1: {}", vtx1.GetPosition());
+            Vertex& vtx2 = md2->vertexData[2];
+            HYP_LOG_TEMP("Vertex2: {}", vtx2.GetPosition());
+            Vertex& vtx3 = md2->vertexData[3];
+            HYP_LOG_TEMP("Vertex3: {}", vtx3.GetPosition());
+
+            BlobResource* res = m_package->GetBlobStorage()->MapResource(ChunkId(0), 0, totalSize);
+            Memory::Copy(res->GetData(), md2, totalSize);
+
+            m_package->GetBlobStorage()->UnmapResource(res);
+
+            
             OnPackageCreated(m_package);
 
             return {};

@@ -38,6 +38,7 @@ namespace Hyperion {
 
 namespace CoreApi {
 extern FilePath GetExecutablePath();
+extern HYP_NODISCARD FilePath CreateTempDirectory();
 } // namespace CoreApi
 
 static const ThreadId& s_assetRegistryThread = g_simThread;
@@ -1358,16 +1359,6 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     
     TUniqueLock lock(m_mutex);
 
-    if (m_flags[AssetPackageFlags::HasBlobStorage])
-    {
-        Assert(m_blobStorage != nullptr);
-
-        if (m_blobStorage != nullptr)
-        {
-            m_blobStorage->FlushWrites();
-        }
-    }
-
     FilePath packageDir;
 
     // Build package save dir. `outputDirectory` /may/ just be a base path, where we'll append the package path to it
@@ -1930,137 +1921,32 @@ void AssetPackage::InitBlobStorage(bool readOnly)
 
 void AssetPackage::InitBlobStorage(BlobStorage& outStorage, bool readOnly)
 {
-    if (IsSaved_Internal())
+    MappedBlobStorage* mappedBlobStorage = PoolNew<MappedBlobStorage>(
+        *g_assetPool,
+        IsSaved_Internal() ? m_packageDir : CoreApi::CreateTempDirectory(),
+        readOnly);
+
+    outStorage.callbacks.context = mappedBlobStorage;
+
+    outStorage.callbacks.Destroy = [](void* context)
     {
-        MappedBlobStorage* mappedBlobStorage = PoolNew<MappedBlobStorage>(*g_assetPool, m_packageDir, readOnly);
+        MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+        mappedBlobStorage->Clear();
 
-        outStorage.callbacks.context = mappedBlobStorage;
-
-        outStorage.callbacks.Destroy = [](void* context)
-        {
-            MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
-            mappedBlobStorage->Clear();
-
-            PoolDelete(*g_assetPool, mappedBlobStorage);
-        };
-    
-        outStorage.callbacks.OpenReadStream = [](void* context, ChunkId chunkId, ByteReader*& outStream) -> bool
-        {
-            MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
-
-            MemoryMappedFile* mappedFile = mappedBlobStorage->Get(uint32(chunkId));
-
-            if (!mappedFile || !mappedFile->IsOpen())
-            {
-                return false;
-            }
-
-            MemoryMappedByteReader* stream = (MemoryMappedByteReader*)g_assetPool->Allocate(sizeof(MemoryMappedByteReader), alignof(MemoryMappedByteReader));
-            
-            new (stream) MemoryMappedByteReader { mappedFile };
-            Assert(stream->IsOpen());
-
-            outStream = stream;
-
-            return true;
-        };
-        
-        if (!readOnly)
-        {
-            outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
-            {
-                MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
-
-                MemoryMappedFile* mappedFile = mappedBlobStorage->Get(uint32(chunkId));
-
-                if (!mappedFile || !mappedFile->IsOpen())
-                {
-                    return false;
-                }
-
-                MemoryMappedByteWriter* stream = (MemoryMappedByteWriter*)g_assetPool->Allocate(sizeof(MemoryMappedByteWriter), alignof(MemoryMappedByteWriter));
-                new (stream) MemoryMappedByteWriter(mappedFile);
-
-                outStream = stream;
-                return true;
-            };
-        }
-        else
-        {
-            outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
-            {
-                return false;
-            };
-        }
-    }
-    else
-    {
-        MemoryBlobStorage* memoryBlobStorage = PoolNew<MemoryBlobStorage>(*g_assetPool);
-
-        outStorage.callbacks.context = memoryBlobStorage;
-
-        // no-op
-        outStorage.callbacks.Destroy = [](void* context)
-        {
-            MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
-            memoryBlobStorage->Clear();
-
-            PoolDelete(*g_assetPool, memoryBlobStorage);
-        };
-
-        outStorage.callbacks.OpenReadStream = [](void* context, ChunkId chunkId, ByteReader*& outStream) -> bool
-        {
-            MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
-
-            if (uint32(chunkId) >= uint32(memoryBlobStorage->Size()))
-            {
-                return false;
-            }
-
-            MemoryByteReader* stream = (MemoryByteReader*)g_assetPool->Allocate(sizeof(MemoryByteReader), alignof(MemoryByteReader));
-            new (stream) MemoryByteReader(memoryBlobStorage->Get(uint32(chunkId)).ToByteView());
-
-            outStream = stream;
-
-            return true;
-        };
-        
-        outStorage.callbacks.OpenWriteStream = [](void* context, ChunkId chunkId, ByteWriter*& outStream) -> bool
-        {
-            MemoryBlobStorage* memoryBlobStorage = static_cast<MemoryBlobStorage*>(context);
-            
-            TMemoryByteWriter<AssetAllocator>* stream = (TMemoryByteWriter<AssetAllocator>*)g_assetPool->Allocate(
-                sizeof(TMemoryByteWriter<AssetAllocator>),
-                alignof(TMemoryByteWriter<AssetAllocator>)
-            );
-            new (stream) TMemoryByteWriter(&memoryBlobStorage->Get(uint32(chunkId)));
-
-            outStream = stream;
-            return true;
-        };
-    }
-    
-    outStorage.callbacks.CloseReadStream = [](void* context, ByteReader* stream)
-    {
-        stream->Close();
-        stream->~ByteReader();
-
-        g_assetPool->Free(stream);
+        PoolDelete(*g_assetPool, mappedBlobStorage);
     };
-
-    if (!readOnly)
+    
+    outStorage.callbacks.Open = [](void* context, ChunkId chunkId, bool readOnly) -> MemoryMappedFile*
     {
-        outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream)
-        {
-            stream->~ByteWriter();
+        MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
 
-            g_assetPool->Free(stream);
-        };
-    }
-    else
+        return mappedBlobStorage->Get(uint32(chunkId));
+    };
+    
+    outStorage.callbacks.Close = [](void* context, MemoryMappedFile* file)
     {
-        outStorage.callbacks.CloseWriteStream = [](void* context, ByteWriter* stream) { };
-    }
+        file->Close();
+    };
 }
 
 void AssetPackage::LoadBlobStorage()

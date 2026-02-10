@@ -9,6 +9,8 @@
 
 namespace Hyperion {
 
+class MemoryMappedFile;
+
 class HYP_API MemoryMappedFileView
 {
 public:
@@ -23,6 +25,7 @@ public:
 
     bool IsOpen() const;
     void Close();
+    bool Reopen(const MemoryMappedFile& file, SizeType offset, SizeType size);
 
     SizeType Size() const;
     SizeType FileOffset() const;

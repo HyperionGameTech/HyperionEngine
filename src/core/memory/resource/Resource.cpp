@@ -154,9 +154,9 @@ ResourceBase::~ResourceBase()
 {
     HYP_NAMED_SCOPE("Wait for readers to finish with resource");
 
+    // calling AddWriter() here waits for all reads to complete and
+    // blocks new readers/writers from acquiring the resource while we're destroying it.
     AddWriter(/* doInitialize */ false);
-    
-    // waits for all reads to complete, but don't unlock
 }
 
 ResourceGuard ResourceBase::GetWriteScope()
@@ -320,6 +320,14 @@ void ResourceBase::ReleaseReader()
 
         m_isInitialized = false;
     }
+}
+
+void ResourceBase::GetNumUsers(int64& outReaders, int64& outWriters) const
+{
+    int64 state = AtomicAdd(const_cast<volatile int64*>(&m_state), 0);
+
+    outReaders = state >> 1;
+    outWriters = state & 0x1;
 }
 
 #pragma endregion ResourceBase

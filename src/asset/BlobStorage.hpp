@@ -5,6 +5,7 @@
 #include <core/Types.hpp>
 
 #include <core/containers/Array.hpp>
+#include <core/containers/HashMap.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
 
@@ -20,16 +21,16 @@ namespace Hyperion {
 
 class ByteReader;
 class ByteWriter;
+class BlobResource;
+
+struct ResourceGuard;
 
 struct BlobStorageCallbacks
 {
     void* context = nullptr;
 
-    bool (*OpenReadStream)(void* context, ChunkId chunkId, ByteReader*& outStream) = nullptr;
-    void (*CloseReadStream)(void* context, ByteReader* stream) = nullptr;
-
-    bool (*OpenWriteStream)(void* context, ChunkId chunkId, ByteWriter*& outStream) = nullptr;
-    void (*CloseWriteStream)(void* context, ByteWriter* stream) = nullptr;
+    MemoryMappedFile* (*Open)(void* context, ChunkId chunkId, bool readOnly) = nullptr;
+    void (*Close)(void* context, MemoryMappedFile* file) = nullptr;
 
     void (*Destroy)(void* context) = nullptr;
 };
@@ -50,30 +51,29 @@ public:
 
     ~BlobStorage();
     
-    /*! \brief Returns number of bytes read */
-    SizeType Read(ChunkId chunkId, void* dstPtr, SizeType offset, SizeType count);
-    SizeType Read(const BlobDesc& desc, void* dstPtr);
-
-    void Put(ChunkId chunkId, void* srcPtr, SizeType count, SizeType& outOffset);
+    /*! \brief Create a new BlobResource mapped to the given range */
+    HYP_NODISCARD BlobResource* MapResource(ChunkId chunkId, SizeType offset, SizeType size);
+    void UnmapResource(HYP_NOTNULL BlobResource* resource);
 
     void CopyTo(BlobStorage& other);
 
     void Close();
-
-    void FlushWrites();
     
     // Needs to be set by impl
     BlobStorageCallbacks callbacks;
 
 private:
+    bool InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& sharedLock, MemoryMappedFile*& outMappedFile);
+
     SharedMutex m_mutex;
+
+    HashMap<BlobResourceKey, BlobResource*> m_resources;
 
     Array<uint32> m_chunkIndices;
     Bitset m_validChunks;
 
     // indexed by indices
-    Array<ByteReader*> m_readStreams;
-    Array<ByteWriter*> m_writeStreams;
+    Array<MemoryMappedFile*> m_streams;
     Bitset m_validStreams;
     
     bool m_readOnly;

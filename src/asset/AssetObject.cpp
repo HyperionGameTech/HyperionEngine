@@ -666,29 +666,6 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     return {};
 }
 
-bool AssetObject::ReadBlobData(ChunkId chunkId, SizeType offset, SizeType count, void* dstPtr)
-{
-    Assert(dstPtr != nullptr);
-
-    Handle<AssetPackage> package = m_package.Lock();
-    if (!package.IsValid())
-    {
-        return false;
-    }
-
-    BlobStorage* blobStorage = package->GetBlobStorage();
-    AssertDebug(blobStorage != nullptr);
-
-    if (!blobStorage)
-    {
-        return false;
-    }
-
-    SizeType readCount = blobStorage->Read(chunkId, dstPtr, offset, count);
-
-    return readCount == count;
-}
-
 #pragma endregion AssetObject
 
 } // namespace Hyperion
