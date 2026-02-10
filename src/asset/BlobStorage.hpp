@@ -16,15 +16,15 @@
 
 namespace Hyperion {
 
-class BufferedReader;
+class ByteReader;
 class ByteWriter;
 
 struct BlobStorageCallbacks
 {
     void* context = nullptr;
 
-    bool (*OpenReadStream)(void* context, ChunkId chunkId, BufferedReader*& outStream) = nullptr;
-    void (*CloseReadStream)(void* context, BufferedReader* stream) = nullptr;
+    bool (*OpenReadStream)(void* context, ChunkId chunkId, ByteReader*& outStream) = nullptr;
+    void (*CloseReadStream)(void* context, ByteReader* stream) = nullptr;
 
     bool (*OpenWriteStream)(void* context, ChunkId chunkId, ByteWriter*& outStream) = nullptr;
     void (*CloseWriteStream)(void* context, ByteWriter* stream) = nullptr;
@@ -70,7 +70,7 @@ private:
     Bitset m_validChunks;
 
     // indexed by indices
-    Array<BufferedReader*> m_readStreams;
+    Array<ByteReader*> m_readStreams;
     Array<ByteWriter*> m_writeStreams;
     Bitset m_validStreams;
 
