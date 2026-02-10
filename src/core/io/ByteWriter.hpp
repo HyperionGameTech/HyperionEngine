@@ -419,7 +419,7 @@ public:
         HYP_CORE_ASSERT(m_mappedFile->GetMode() == MemoryMappedFile::Mode::READ_WRITE,
             "MemoryMappedByteWriter requires a read/write mapping");
 
-        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, size);
+        const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range");
 
         m_baseOffset = m_mappedView.FileOffset();
@@ -440,7 +440,7 @@ public:
         HYP_CORE_ASSERT(m_mappedFile->GetMode() == MemoryMappedFile::Mode::READ_WRITE,
             "MemoryMappedByteWriter requires a read/write mapping");
 
-        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, size);
+        const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
 
         m_baseOffset = m_mappedView.FileOffset();
@@ -532,7 +532,7 @@ private:
 
         m_mappedView.Close();
 
-        const bool mapped = m_mappedFile->MapRange(m_mappedView, m_baseOffset, target);
+        const bool mapped = m_mappedFile->MapRange(m_baseOffset, target, m_mappedView);
         return mapped;
     }
 

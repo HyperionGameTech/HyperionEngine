@@ -25,53 +25,85 @@ struct MemoryMappedFileImpl
 {
     FilePath filepath;
     MemoryMappedFile::Mode mode;
-    SizeType file_size;
+    SizeType fileSize;
 
 #ifdef HYP_WINDOWS
-    HANDLE file_handle;
-    HANDLE mapping_handle;
+    HANDLE fileHandle;
+    HANDLE mappingHandle;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     int fd;
 #endif
 
     MemoryMappedFileImpl()
         : mode(MemoryMappedFile::Mode::READ_ONLY),
-            file_size(0)
+          fileSize(0)
     {
 #ifdef HYP_WINDOWS
-        file_handle = nullptr;
-        mapping_handle = nullptr;
+        fileHandle = nullptr;
+        mappingHandle = nullptr;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
         fd = -1;
 #endif
     }
 };
 
-struct MemoryMappedFileViewImpl
-{
-    SizeType map_offset;
-    SizeType map_size;
-    SizeType view_offset;
-    SizeType view_size;
-    SizeType file_offset;
-    void* address;
-    bool is_open;
-
-    MemoryMappedFileViewImpl()
-        : map_offset(0),
-          map_size(0),
-          view_offset(0),
-          view_size(0),
-          file_offset(0),
-          address(nullptr),
-          is_open(false)
-    {
-    }
-};
+#pragma region MemoryMappedFileView
 
 MemoryMappedFileView::MemoryMappedFileView()
-    : m_impl(MakePimpl<MemoryMappedFileViewImpl>())
+        : m_mapOffset(0),
+            m_mapSize(0),
+            m_viewOffset(0),
+            m_viewSize(0),
+            m_fileOffset(0),
+      m_address(nullptr),
+            m_isOpen(false)
 {
+}
+
+MemoryMappedFileView::MemoryMappedFileView(MemoryMappedFileView&& other) noexcept
+    : m_mapOffset(other.m_mapOffset),
+      m_mapSize(other.m_mapSize),
+      m_viewOffset(other.m_viewOffset),
+      m_viewSize(other.m_viewSize),
+      m_fileOffset(other.m_fileOffset),
+      m_address(other.m_address),
+      m_isOpen(other.m_isOpen)
+{
+    other.m_mapOffset = 0;
+    other.m_mapSize = 0;
+    other.m_viewOffset = 0;
+    other.m_viewSize = 0;
+    other.m_fileOffset = 0;
+    other.m_address = nullptr;
+    other.m_isOpen = false;
+}
+
+MemoryMappedFileView& MemoryMappedFileView::operator=(MemoryMappedFileView&& other) noexcept
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    Close();
+
+    m_mapOffset = other.m_mapOffset;
+    m_mapSize = other.m_mapSize;
+    m_viewOffset = other.m_viewOffset;
+    m_viewSize = other.m_viewSize;
+    m_fileOffset = other.m_fileOffset;
+    m_address = other.m_address;
+    m_isOpen = other.m_isOpen;
+
+    other.m_mapOffset = 0;
+    other.m_mapSize = 0;
+    other.m_viewOffset = 0;
+    other.m_viewSize = 0;
+    other.m_fileOffset = 0;
+    other.m_address = nullptr;
+    other.m_isOpen = false;
+
+    return *this;
 }
 
 MemoryMappedFileView::~MemoryMappedFileView()
@@ -81,7 +113,7 @@ MemoryMappedFileView::~MemoryMappedFileView()
 
 bool MemoryMappedFileView::IsOpen() const
 {
-    return m_impl && m_impl->is_open;
+    return m_isOpen;
 }
 
 bool MemoryMappedFileView::Reopen(const MemoryMappedFile& file, SizeType offset, SizeType size)
@@ -91,66 +123,70 @@ bool MemoryMappedFileView::Reopen(const MemoryMappedFile& file, SizeType offset,
         Close();
     }
 
-    return file.MapRange(*this, offset, size);
+    return file.MapRange(offset, size, *this);
 }
 
 void MemoryMappedFileView::Close()
 {
-    if (!m_impl || !m_impl->is_open)
+    if (!m_isOpen)
     {
         return;
     }
 
 #ifdef HYP_WINDOWS
-    if (m_impl->address != nullptr)
+    if (m_address != nullptr)
     {
-        UnmapViewOfFile(m_impl->address);
+        UnmapViewOfFile(m_address);
     }
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    if (m_impl->address != nullptr && m_impl->map_size > 0)
+    if (m_address != nullptr && m_mapSize > 0)
     {
-        munmap(m_impl->address, m_impl->map_size);
+        munmap(m_address, m_mapSize);
     }
 #endif
 
-    m_impl->map_offset = 0;
-    m_impl->map_size = 0;
-    m_impl->view_offset = 0;
-    m_impl->view_size = 0;
-    m_impl->file_offset = 0;
-    m_impl->address = nullptr;
-    m_impl->is_open = false;
+    m_mapOffset = 0;
+    m_mapSize = 0;
+    m_viewOffset = 0;
+    m_viewSize = 0;
+    m_fileOffset = 0;
+    m_address = nullptr;
+    m_isOpen = false;
 }
 
 SizeType MemoryMappedFileView::Size() const
 {
-    return m_impl ? m_impl->view_size : 0;
+    return m_viewSize;
 }
 
 SizeType MemoryMappedFileView::FileOffset() const
 {
-    return m_impl ? m_impl->file_offset : 0;
+    return m_fileOffset;
 }
 
 void* MemoryMappedFileView::Data()
 {
-    if (!m_impl || !m_impl->is_open || m_impl->address == nullptr)
+    if (!m_isOpen || m_address == nullptr)
     {
         return nullptr;
     }
 
-    return static_cast<ubyte*>(m_impl->address) + m_impl->view_offset;
+    return static_cast<ubyte*>(m_address) + m_viewOffset;
 }
 
 const void* MemoryMappedFileView::Data() const
 {
-    if (!m_impl || !m_impl->is_open || m_impl->address == nullptr)
+    if (!m_isOpen || m_address == nullptr)
     {
         return nullptr;
     }
 
-    return static_cast<const ubyte*>(m_impl->address) + m_impl->view_offset;
+    return static_cast<const ubyte*>(m_address) + m_viewOffset;
 }
+
+#pragma endregion MemoryMappedFileView
+
+#pragma region MemoryMappedFile
 
 MemoryMappedFile::MemoryMappedFile()
     : m_impl(MakePimpl<MemoryMappedFileImpl>())
@@ -192,7 +228,7 @@ bool MemoryMappedFile::Open()
 
     const WideString wide_path = m_impl->filepath.ToWide();
 
-    HANDLE file_handle = CreateFileW(
+    HANDLE fileHandle = CreateFileW(
         wide_path.Data(),
         desired_access,
         share_mode,
@@ -201,7 +237,7 @@ bool MemoryMappedFile::Open()
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
-    if (file_handle == INVALID_HANDLE_VALUE)
+    if (fileHandle == INVALID_HANDLE_VALUE)
     {
         DWORD errorCode = GetLastError();
 
@@ -211,20 +247,20 @@ bool MemoryMappedFile::Open()
         return false;
     }
 
-    LARGE_INTEGER file_size = {};
+    LARGE_INTEGER fileSize = {};
 
-    if (!GetFileSizeEx(file_handle, &file_size))
+    if (!GetFileSizeEx(fileHandle, &fileSize))
     {
-        CloseHandle(file_handle);
+        CloseHandle(fileHandle);
         return false;
     }
 
-    m_impl->file_size = static_cast<SizeType>(file_size.QuadPart);
-    m_impl->file_handle = file_handle;
+    m_impl->fileSize = static_cast<SizeType>(fileSize.QuadPart);
+    m_impl->fileHandle = fileHandle;
 
-    if (m_impl->file_size == 0)
+    if (m_impl->fileSize == 0)
     {
-        m_impl->mapping_handle = nullptr;
+        m_impl->mappingHandle = nullptr;
         return true;
     }
 
@@ -232,22 +268,22 @@ bool MemoryMappedFile::Open()
         ? PAGE_READWRITE
         : PAGE_READONLY;
 
-    HANDLE mapping_handle = CreateFileMappingW(
-        file_handle,
+    HANDLE mappingHandle = CreateFileMappingW(
+        fileHandle,
         nullptr,
         protection,
         0,
         0,
         nullptr);
 
-    if (mapping_handle == nullptr)
+    if (mappingHandle == nullptr)
     {
-        CloseHandle(file_handle);
-        m_impl->file_handle = nullptr;
+        CloseHandle(fileHandle);
+        m_impl->fileHandle = nullptr;
         return false;
     }
 
-    m_impl->mapping_handle = mapping_handle;
+    m_impl->mappingHandle = mappingHandle;
 
     return true;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
@@ -270,7 +306,7 @@ bool MemoryMappedFile::Open()
         return false;
     }
 
-    m_impl->file_size = static_cast<SizeType>(st.st_size);
+    m_impl->fileSize = static_cast<SizeType>(st.st_size);
     m_impl->fd = fd;
 
     return true;
@@ -298,34 +334,29 @@ bool MemoryMappedFile::Open(const FilePath& filepath, Mode mode)
     return Open();
 }
 
-bool MemoryMappedFile::MapRange(MemoryMappedFileView& out_view, SizeType offset, SizeType size) const
+bool MemoryMappedFile::MapRange(SizeType offset, SizeType size, MemoryMappedFileView& outView) const
 {
     if (!m_impl || !IsOpen())
     {
         return false;
     }
 
-    HYP_CORE_ASSERT(!out_view.IsOpen(), "MemoryMappedFileView is already open");
-
-    if (!out_view.m_impl)
-    {
-        out_view.m_impl = MakePimpl<MemoryMappedFileViewImpl>();
-    }
+    HYP_CORE_ASSERT(!outView.IsOpen(), "MemoryMappedFileView is already open");
 
     if (m_impl->mode == Mode::READ_WRITE && size > 0)
     {
-        const SizeType end_offset = offset + size;
+        const SizeType endOffset = offset + size;
 
-        if (end_offset < offset)
+        if (endOffset < offset)
         {
             return false;
         }
 
-        if (end_offset > m_impl->file_size)
+        if (endOffset > m_impl->fileSize)
         {
             auto* self = const_cast<MemoryMappedFile*>(this);
 
-            if (!self->Resize(end_offset))
+            if (!self->Resize(endOffset))
             {
                 return false;
             }
@@ -334,98 +365,98 @@ bool MemoryMappedFile::MapRange(MemoryMappedFileView& out_view, SizeType offset,
 
     if (m_impl->mode != Mode::READ_WRITE || size == 0)
     {
-        if (offset > m_impl->file_size)
+        if (offset > m_impl->fileSize)
         {
-            offset = m_impl->file_size;
+            offset = m_impl->fileSize;
         }
     }
 
     if (size == 0)
     {
-        size = m_impl->file_size > offset ? (m_impl->file_size - offset) : 0;
+        size = m_impl->fileSize > offset ? (m_impl->fileSize - offset) : 0;
     }
-    else if (m_impl->mode != Mode::READ_WRITE && offset + size > m_impl->file_size)
+    else if (m_impl->mode != Mode::READ_WRITE && offset + size > m_impl->fileSize)
     {
-        size = m_impl->file_size - offset;
+        size = m_impl->fileSize - offset;
     }
 
-    out_view.m_impl->file_offset = offset;
-    out_view.m_impl->view_size = size;
-    out_view.m_impl->view_offset = 0;
-    out_view.m_impl->map_offset = 0;
-    out_view.m_impl->map_size = 0;
-    out_view.m_impl->address = nullptr;
-    out_view.m_impl->is_open = true;
+    outView.m_fileOffset = offset;
+    outView.m_viewSize = size;
+    outView.m_viewOffset = 0;
+    outView.m_mapOffset = 0;
+    outView.m_mapSize = 0;
+    outView.m_address = nullptr;
+    outView.m_isOpen = true;
 
-    if (out_view.m_impl->view_size == 0)
+    if (outView.m_viewSize == 0)
     {
         return true;
     }
 
 #ifdef HYP_WINDOWS
-    if (m_impl->mapping_handle == nullptr)
+    if (m_impl->mappingHandle == nullptr)
     {
         return false;
     }
 
-    SYSTEM_INFO system_info = {};
-    GetSystemInfo(&system_info);
+    SYSTEM_INFO systemInfo = {};
+    GetSystemInfo(&systemInfo);
 
-    const SizeType granularity = static_cast<SizeType>(system_info.dwAllocationGranularity);
-    const SizeType aligned_offset = (offset / granularity) * granularity;
-    const SizeType view_delta = offset - aligned_offset;
-    const SizeType map_size = view_delta + out_view.m_impl->view_size;
+    const SizeType granularity = static_cast<SizeType>(systemInfo.dwAllocationGranularity);
+    const SizeType alignedOffset = (offset / granularity) * granularity;
+    const SizeType viewDelta = offset - alignedOffset;
+    const SizeType mapSize = viewDelta + outView.m_viewSize;
 
-    const DWORD map_access = m_impl->mode == Mode::READ_WRITE
+    const DWORD mapAccess = m_impl->mode == Mode::READ_WRITE
         ? (FILE_MAP_READ | FILE_MAP_WRITE)
         : FILE_MAP_READ;
 
-    ULARGE_INTEGER offset_value = {};
-    offset_value.QuadPart = static_cast<ULONGLONG>(aligned_offset);
+    ULARGE_INTEGER offsetValue = {};
+    offsetValue.QuadPart = static_cast<ULONGLONG>(alignedOffset);
 
     void* address = MapViewOfFile(
-        m_impl->mapping_handle,
-        map_access,
-        offset_value.HighPart,
-        offset_value.LowPart,
-        static_cast<SIZE_T>(map_size));
+        m_impl->mappingHandle,
+        mapAccess,
+        offsetValue.HighPart,
+        offsetValue.LowPart,
+        static_cast<SIZE_T>(mapSize));
 
     if (address == nullptr)
     {
-        out_view.m_impl->is_open = false;
-        out_view.m_impl->view_size = 0;
+        outView.m_isOpen = false;
+        outView.m_viewSize = 0;
         return false;
     }
 
-    out_view.m_impl->address = address;
-    out_view.m_impl->map_offset = aligned_offset;
-    out_view.m_impl->map_size = map_size;
-    out_view.m_impl->view_offset = view_delta;
+    outView.m_address = address;
+    outView.m_mapOffset = alignedOffset;
+    outView.m_mapSize = mapSize;
+    outView.m_viewOffset = viewDelta;
 
     return true;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    const long page_size = sysconf(_SC_PAGE_SIZE);
-    const SizeType granularity = page_size > 0 ? static_cast<SizeType>(page_size) : 4096;
-    const SizeType aligned_offset = (offset / granularity) * granularity;
-    const SizeType view_delta = offset - aligned_offset;
-    const SizeType map_size = view_delta + out_view.m_impl->view_size;
+    const long pageSize = sysconf(_SC_PAGE_SIZE);
+    const SizeType granularity = pageSize > 0 ? static_cast<SizeType>(pageSize) : 4096;
+    const SizeType alignedOffset = (offset / granularity) * granularity;
+    const SizeType viewDelta = offset - alignedOffset;
+    const SizeType mapSize = viewDelta + outView.m_viewSize;
 
     const int prot = PROT_READ | (m_impl->mode == Mode::READ_WRITE ? PROT_WRITE : 0);
 
-    void* address = mmap(nullptr, map_size, prot, MAP_SHARED, m_impl->fd, static_cast<off_t>(aligned_offset));
+    void* address = mmap(nullptr, mapSize, prot, MAP_SHARED, m_impl->fd, static_cast<off_t>(alignedOffset));
 
     if (address == MAP_FAILED)
     {
-        out_view.m_impl->is_open = false;
-        out_view.m_impl->view_size = 0;
-        out_view.m_impl->address = nullptr;
+        outView.m_isOpen = false;
+        outView.m_viewSize = 0;
+        outView.m_address = nullptr;
         return false;
     }
 
-    out_view.m_impl->address = address;
-    out_view.m_impl->map_offset = aligned_offset;
-    out_view.m_impl->map_size = map_size;
-    out_view.m_impl->view_offset = view_delta;
+    outView.m_address = address;
+    outView.m_mapOffset = alignedOffset;
+    outView.m_mapSize = mapSize;
+    outView.m_viewOffset = viewDelta;
 
     return true;
 #else
@@ -442,16 +473,16 @@ void MemoryMappedFile::Close()
     }
 
 #ifdef HYP_WINDOWS
-    if (m_impl->mapping_handle != nullptr)
+    if (m_impl->mappingHandle != nullptr)
     {
-        CloseHandle(m_impl->mapping_handle);
-        m_impl->mapping_handle = nullptr;
+        CloseHandle(m_impl->mappingHandle);
+        m_impl->mappingHandle = nullptr;
     }
 
-    if (m_impl->file_handle != nullptr)
+    if (m_impl->fileHandle != nullptr)
     {
-        CloseHandle(m_impl->file_handle);
-        m_impl->file_handle = nullptr;
+        CloseHandle(m_impl->fileHandle);
+        m_impl->fileHandle = nullptr;
     }
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     if (m_impl->fd >= 0)
@@ -461,7 +492,7 @@ void MemoryMappedFile::Close()
     }
 #endif
 
-    m_impl->file_size = 0;
+    m_impl->fileSize = 0;
 }
 
 bool MemoryMappedFile::IsOpen() const
@@ -472,7 +503,7 @@ bool MemoryMappedFile::IsOpen() const
     }
 
 #ifdef HYP_WINDOWS
-    return m_impl->file_handle != nullptr;
+    return m_impl->fileHandle != nullptr;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     return m_impl->fd >= 0;
 #else
@@ -482,7 +513,7 @@ bool MemoryMappedFile::IsOpen() const
 
 SizeType MemoryMappedFile::FileSize() const
 {
-    return m_impl ? m_impl->file_size : 0;
+    return m_impl ? m_impl->fileSize : 0;
 }
 
 MemoryMappedFile::Mode MemoryMappedFile::GetMode() const
@@ -508,43 +539,43 @@ void MemoryMappedFile::SetMode(Mode mode)
     m_impl->mode = mode;
 }
 
-bool MemoryMappedFile::Resize(SizeType new_size)
+bool MemoryMappedFile::Resize(SizeType newSize)
 {
     if (!m_impl || !IsOpen())
     {
         return false;
     }
 
-    if (new_size == m_impl->file_size)
+    if (newSize == m_impl->fileSize)
     {
         return true;
     }
 
-    Assert(new_size <= INT32_MAX);
+    Assert(newSize <= INT32_MAX);
 
 #ifdef HYP_WINDOWS
     LARGE_INTEGER distance = {};
-    distance.QuadPart = static_cast<LONGLONG>(new_size);
+    distance.QuadPart = static_cast<LONGLONG>(newSize);
 
-    if (!SetFilePointerEx(m_impl->file_handle, distance, nullptr, FILE_BEGIN))
+    if (!SetFilePointerEx(m_impl->fileHandle, distance, nullptr, FILE_BEGIN))
     {
         return false;
     }
 
-    if (!SetEndOfFile(m_impl->file_handle))
+    if (!SetEndOfFile(m_impl->fileHandle))
     {
         return false;
     }
 
-    m_impl->file_size = new_size;
+    m_impl->fileSize = newSize;
 
-    if (m_impl->mapping_handle != nullptr)
+    if (m_impl->mappingHandle != nullptr)
     {
-        CloseHandle(m_impl->mapping_handle);
-        m_impl->mapping_handle = nullptr;
+        CloseHandle(m_impl->mappingHandle);
+        m_impl->mappingHandle = nullptr;
     }
 
-    if (m_impl->file_size == 0)
+    if (m_impl->fileSize == 0)
     {
         return true;
     }
@@ -553,33 +584,35 @@ bool MemoryMappedFile::Resize(SizeType new_size)
         ? PAGE_READWRITE
         : PAGE_READONLY;
 
-    HANDLE mapping_handle = CreateFileMappingA(
-        m_impl->file_handle,
+    HANDLE mappingHandle = CreateFileMappingA(
+        m_impl->fileHandle,
         nullptr,
         protection,
         0,
         0,
         nullptr);
 
-    if (mapping_handle == nullptr)
+    if (mappingHandle == nullptr)
     {
         return false;
     }
 
-    m_impl->mapping_handle = mapping_handle;
+    m_impl->mappingHandle = mappingHandle;
     return true;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    if (ftruncate(m_impl->fd, static_cast<off_t>(new_size)) != 0)
+    if (ftruncate(m_impl->fd, static_cast<off_t>(newSize)) != 0)
     {
         return false;
     }
 
-    m_impl->file_size = new_size;
+    m_impl->fileSize = newSize;
     return true;
 #else
     HYP_FAIL("Unsupported platform for memory mapped files");
     return false;
 #endif
 }
+
+#pragma endregion MemoryMappedFile
 
 } // namespace Hyperion

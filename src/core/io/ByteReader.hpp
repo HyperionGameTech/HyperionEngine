@@ -375,7 +375,7 @@ public:
         const bool opened = m_mappedFile->Open();
         HYP_CORE_ASSERT(opened, "Failed to open memory mapped file!");
 
-        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, 0);
+        const bool mapped = m_mappedFile->MapRange(offset, 0, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range");
 
         m_baseOffset = m_mappedView.FileOffset();
@@ -393,7 +393,7 @@ public:
         const bool opened = m_mappedFile->Open();
         HYP_CORE_ASSERT(opened, "Failed to open memory mapped file: %s", filepath.Data());
 
-        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, 0);
+        const bool mapped = m_mappedFile->MapRange(offset, 0, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
 
         m_baseOffset = m_mappedView.FileOffset();
@@ -412,7 +412,7 @@ public:
         const bool opened = m_mappedFile->Open();
         HYP_CORE_ASSERT(opened, "Failed to open memory mapped file: %s", filepath.Data());
 
-        const bool mapped = m_mappedFile->MapRange(m_mappedView, offset, size);
+        const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
 
         m_baseOffset = m_mappedView.FileOffset();

@@ -63,14 +63,10 @@ BlobStorage::~BlobStorage()
     }
 }
 
-bool BlobStorage::InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& sharedLock, MemoryMappedFile*& outMappedFile)
+bool BlobStorage::InitMappedFile(ChunkId chunkId, MemoryMappedFile*& outMappedFile)
 {
     if (!m_validChunks.Test(uint32(chunkId)))
     {
-        sharedLock.Reset();
-
-        TUniqueLock lock2(m_mutex);
-
         if (!m_validChunks.Test(uint32(chunkId)))
         {
             m_chunkIndices.Resize(uint32(chunkId) + 1);
@@ -78,39 +74,26 @@ bool BlobStorage::InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& shar
 
             m_chunkIndices[uint32(chunkId)] = chunkIndex;
 
-            m_files.Resize(uint32(chunkIndex) + 1);
-
+            m_files.Resize(chunkIndex + 1);
             m_validChunks.Set(uint32(chunkId), true);
         }
-
-        lock2.Reset();
-
-        sharedLock.Reset(m_mutex);
     }
 
     MemoryMappedFile*& file = m_files[m_chunkIndices[uint32(chunkId)]];
 
-    if (!m_validFiles.Test(uint32(chunkId) * 2))
+    if (!m_validFiles.Test(uint32(chunkId)))
     {
-        sharedLock.Reset();
-
-        TUniqueLock lock2(m_mutex);
-
-        if (!m_validFiles.Test(uint32(chunkId) * 2))
+        if (!m_validFiles.Test(uint32(chunkId)))
         {
             if ((file = callbacks.Open(callbacks.context, chunkId, m_readOnly)))
             {
-                m_validFiles.Set(uint32(chunkId) * 2, true);
+                m_validFiles.Set(uint32(chunkId), true);
             }
             else
             {
                 return false;
             }
         }
-
-        lock2.Reset();
-
-        sharedLock.Reset(m_mutex);
     }
 
     outMappedFile = file;
@@ -120,7 +103,7 @@ bool BlobStorage::InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& shar
 
 HYP_NODISCARD BlobResource* BlobStorage::MapResource(ChunkId chunkId, SizeType offset, SizeType size)
 {
-    TSharedLock lock(m_mutex); // @FIXME not thread safe to just use shared since we call Seek().
+    Mutex::Guard guard(m_mutex);
 
     BlobResourceKey key {};
     key.chunkId = chunkId;
@@ -135,7 +118,7 @@ HYP_NODISCARD BlobResource* BlobStorage::MapResource(ChunkId chunkId, SizeType o
 
     MemoryMappedFile* file = nullptr;
 
-    if (!InitMappedFile(chunkId, lock, file))
+    if (!InitMappedFile(chunkId, file))
     {
         return 0;
     }
@@ -157,7 +140,7 @@ HYP_NODISCARD BlobResource* BlobStorage::MapResource(ChunkId chunkId, SizeType o
 
 void BlobStorage::UnmapResource(HYP_NOTNULL BlobResource* resource)
 {
-    TUniqueLock lock(m_mutex);
+    Mutex::Guard guard(m_mutex);
 
     if (m_resources.Contains(resource->GetKey()))
     {
@@ -184,6 +167,57 @@ void BlobStorage::UnmapResource(HYP_NOTNULL BlobResource* resource)
     }
 }
 
+void BlobStorage::Write(ChunkId chunkId, const void* src, SizeType size, SizeType alignment)
+{
+    Assert(!m_readOnly, "Cannot use Write() on read-only BlobStorage");
+
+    if (size == 0)
+    {
+        return;
+    }
+    
+    Assert(src != nullptr);
+
+    if (alignment == 0)
+    {
+        // use default alignment (16)
+        alignment = 16;
+    }
+
+    AssertDebug(alignment <= 16 && MathUtil::IsPowerOfTwo(alignment), "Invalid alignment specified for pointer");
+    
+    Mutex::Guard guard(m_mutex);
+
+    // @TODO Optimize this to acquire chunks to write to and grab whatever we can find
+    // (basically we'll implement TArena over mapped files, I am thinking)
+
+    // write to tail of the file
+    
+    MemoryMappedFile* file = nullptr;
+
+    if (!InitMappedFile(chunkId, file))
+    {
+        HYP_FAIL("Failed to initialize mapped file");
+    }
+
+    const SizeType fileOffset = ByteUtil::AlignAs(file->FileSize(), alignment);
+
+    AssertDebug(fileOffset % alignment == 0);
+
+    MemoryMappedFileView view;
+    if (!file->MapRange(fileOffset, size, view))
+    {
+        HYP_FAIL("Failed to acquire mapped view of file for writing");
+    }
+
+    void* dst = view.Data();
+    AssertDebug(dst != nullptr);
+
+    Memory::Copy(dst, src, size);
+
+    view.Close();
+}
+
 void BlobStorage::CopyTo(BlobStorage& other)
 {
     Assert(this != &other);
@@ -192,9 +226,9 @@ void BlobStorage::CopyTo(BlobStorage& other)
         return;
 
     Assert(!other.m_readOnly, "Cannot copy data to read-only BlobStorage!");
-
-    TUniqueLock lock(m_mutex);
-    TUniqueLock otherLock(other.m_mutex);
+    
+    Mutex::Guard guard(m_mutex);
+    Mutex::Guard guard2(other.m_mutex);
 
     for (Bitset::BitIndex bitIndex : m_validChunks)
     {
@@ -206,11 +240,11 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
         MemoryMappedFile*& src = m_files[srcChunkIndex];
 
-        if (!m_validFiles.Test(bitIndex * 2))
+        if (!m_validFiles.Test(bitIndex))
         {
             if ((src = callbacks.Open(callbacks.context, chunkId, /* readOnly */ true)))
             {
-                m_validFiles.Set(bitIndex * 2, true);
+                m_validFiles.Set(bitIndex, true);
             }
             else
             {
@@ -230,18 +264,18 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
             other.m_chunkIndices[uint32(chunkId)] = dstChunkIndex;
 
-            other.m_files.Resize(uint32(dstChunkIndex) + 1);
+            other.m_files.Resize(dstChunkIndex + 1);
 
             other.m_validChunks.Set(uint32(chunkId), true);
         }
             
         MemoryMappedFile*& dst = other.m_files[other.m_chunkIndices[uint32(chunkId)]];
     
-        if (!other.m_validFiles.Test(uint32(chunkId) * 2 + 1))
+        if (!other.m_validFiles.Test(uint32(chunkId)))
         {
             if ((dst = other.callbacks.Open(other.callbacks.context, chunkId, /* readOnly */ false)))
             {
-                other.m_validFiles.Set(uint32(chunkId) * 2 + 1, true);
+                other.m_validFiles.Set(uint32(chunkId), true);
             }
             else
             {
@@ -263,7 +297,7 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
 void BlobStorage::Close()
 {
-    TUniqueLock lock(m_mutex);
+    Mutex::Guard guard(m_mutex);
 
     for (auto& pair : m_resources)
     {

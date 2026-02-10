@@ -55,6 +55,8 @@ public:
     HYP_NODISCARD BlobResource* MapResource(ChunkId chunkId, SizeType offset, SizeType size);
     void UnmapResource(HYP_NOTNULL BlobResource* resource);
 
+    void Write(ChunkId chunkId, const void* src, SizeType size, SizeType alignment);
+
     void CopyTo(BlobStorage& other);
 
     void Close();
@@ -63,9 +65,9 @@ public:
     BlobStorageCallbacks callbacks;
 
 private:
-    bool InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& sharedLock, MemoryMappedFile*& outMappedFile);
+    bool InitMappedFile(ChunkId chunkId, MemoryMappedFile*& outMappedFile);
 
-    SharedMutex m_mutex;
+    mutable Mutex m_mutex;
 
     HashMap<BlobResourceKey, BlobResource*> m_resources;
 

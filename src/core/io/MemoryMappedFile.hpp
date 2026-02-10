@@ -3,8 +3,11 @@
 #pragma once
 
 #include <core/Defines.hpp>
+
 #include <core/filesystem/FilePath.hpp>
+
 #include <core/memory/Pimpl.hpp>
+
 #include <core/Types.hpp>
 
 namespace Hyperion {
@@ -18,8 +21,8 @@ public:
     MemoryMappedFileView(const MemoryMappedFileView& other) = delete;
     MemoryMappedFileView& operator=(const MemoryMappedFileView& other) = delete;
 
-    MemoryMappedFileView(MemoryMappedFileView&&) noexcept = default;
-    MemoryMappedFileView& operator=(MemoryMappedFileView&&) noexcept = default;
+    MemoryMappedFileView(MemoryMappedFileView&& other) noexcept;
+    MemoryMappedFileView& operator=(MemoryMappedFileView&& other) noexcept;
 
     ~MemoryMappedFileView();
 
@@ -35,7 +38,13 @@ public:
 private:
     friend class MemoryMappedFile;
 
-    Pimpl<struct MemoryMappedFileViewImpl> m_impl;
+    SizeType m_mapOffset;
+    SizeType m_mapSize;
+    SizeType m_viewOffset;
+    SizeType m_viewSize;
+    SizeType m_fileOffset;
+    void* m_address;
+    bool m_isOpen;
 };
 
 class HYP_API MemoryMappedFile
@@ -72,7 +81,7 @@ public:
 
     bool Resize(SizeType new_size);
 
-    bool MapRange(MemoryMappedFileView& out_view, SizeType offset, SizeType size) const;
+    bool MapRange(SizeType offset, SizeType size, MemoryMappedFileView& outView) const;
 
 private:
     Pimpl<struct MemoryMappedFileImpl> m_impl;

@@ -106,11 +106,11 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         TWM_REPEAT
     };
 
+    AssertDebug(TextureUtils::NumComponents(data.format) == data.numComponents);
+
     ByteBuffer baseMipData = ByteBuffer(imageBytesCount, imageBytes);
 
-    const uint32 numComponents = TextureUtils::NumComponents(data.format);
-
-    if (numComponents == 3)
+    if (data.numComponents == 3)
     {
         // convert to bytes per pixel = 4
         const uint32 size = textureDesc.GetByteSize();
@@ -127,7 +127,7 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
         {
             ImageUtil::ConvertBPP(
                 textureDesc.extent.x, textureDesc.extent.y, textureDesc.extent.z,
-                numComponents, 4,
+                data.numComponents, 4,
                 &baseMipData.Data()[i * faceOffsetStep],
                 &newByteBuffer.Data()[i * newFaceOffsetStep]);
         }
@@ -136,6 +136,9 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
         baseMipData = std::move(newByteBuffer);
     }
+
+    // debug
+    Assert(textureDesc.format != TextureFormat::RGB8_SRGB);
 
     TextureData textureData;
     textureData.imageData = std::move(baseMipData);

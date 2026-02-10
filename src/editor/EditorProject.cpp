@@ -196,11 +196,15 @@ Result EditorProject::CreatePackage()
             Vertex& vtx3 = md2->vertexData[3];
             HYP_LOG_TEMP("Vertex3: {}", vtx3.GetPosition());
 
-            BlobResource* res = m_package->GetBlobStorage()->MapResource(ChunkId(0), 0, totalSize);
-            Memory::Copy(res->GetData(), md2, totalSize);
+            /*BlobResource* res = m_package->GetBlobStorage()->MapResource(ChunkId(0), 0, totalSize);
+            Memory::Copy(res->GetData(), md2, totalSize);*/
 
-            m_package->GetBlobStorage()->UnmapResource(res);
+            //m_package->GetBlobStorage()->UnmapResource(res);
 
+            m_package->GetBlobStorage()->Write(ChunkId(0), md2, totalSize, 16);
+
+            // lets write it again just to see..
+            m_package->GetBlobStorage()->Write(ChunkId(0), md2, totalSize, 16);
             
             OnPackageCreated(m_package);
 
@@ -362,6 +366,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     return {};
 }
 
+HYP_DISABLE_OPTIMIZATION;
 TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 {
     HYP_SCOPE;
@@ -450,6 +455,34 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     }
 
     project->m_package = std::move(*loadPackageResult);
+
+    // temp debug
+    if (BlobStorage* blobStorage = project->m_package->GetBlobStorage())
+    {
+        BlobResource* res = blobStorage->MapResource(ChunkId(0), 0, 552);
+        void* blobPtr = res->GetData();
+
+        //MeshData2* md2 = (MeshData2*)Memory::Allocate(552);
+        //Memory::Copy(md2, blobPtr, 552);
+
+        MeshData2* md2 = reinterpret_cast<MeshData2*>(blobPtr);
+
+        HYP_LOG_TEMP("Md2 vertex ptr: {}", md2->vertexData.offset);
+        HYP_LOG_TEMP("Md2 index ptr: {}", md2->indexData.offset);
+        
+        Vertex& vtx0 = md2->vertexData[0];
+        HYP_LOG_TEMP("Vertex0: {}", vtx0.GetPosition());
+        Vertex& vtx1 = md2->vertexData[1];
+        HYP_LOG_TEMP("Vertex1: {}", vtx1.GetPosition());
+        Vertex& vtx2 = md2->vertexData[2];
+        HYP_LOG_TEMP("Vertex2: {}", vtx2.GetPosition());
+        Vertex& vtx3 = md2->vertexData[3];
+        HYP_LOG_TEMP("Vertex3: {}", vtx3.GetPosition());
+
+        HYP_BREAKPOINT;
+
+        blobStorage->UnmapResource(res);
+    }
 
     // set transient properties
     project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();
