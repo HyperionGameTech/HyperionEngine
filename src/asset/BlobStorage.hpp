@@ -73,8 +73,8 @@ private:
     Bitset m_validChunks;
 
     // indexed by indices
-    Array<MemoryMappedFile*> m_streams;
-    Bitset m_validStreams;
+    Array<MemoryMappedFile*> m_files;
+    Bitset m_validFiles;
     
     bool m_readOnly;
 };

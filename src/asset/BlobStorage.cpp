@@ -19,8 +19,8 @@ BlobStorage::BlobStorage(BlobStorage&& other) noexcept
     : callbacks(std::move(other.callbacks)),
       m_chunkIndices(std::move(other.m_chunkIndices)),
       m_validChunks(std::move(other.m_validChunks)),
-      m_streams(std::move(other.m_streams)),
-      m_validStreams(std::move(other.m_validStreams)),
+      m_files(std::move(other.m_files)),
+      m_validFiles(std::move(other.m_validFiles)),
       m_readOnly(other.m_readOnly)
 {
     other.callbacks = {};
@@ -44,8 +44,8 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
 
     m_chunkIndices = std::move(other.m_chunkIndices);
     m_validChunks = std::move(other.m_validChunks);
-    m_streams = std::move(other.m_streams);
-    m_validStreams = std::move(other.m_validStreams);
+    m_files = std::move(other.m_files);
+    m_validFiles = std::move(other.m_validFiles);
     m_readOnly = other.m_readOnly;
 
     other.callbacks = {};
@@ -78,7 +78,7 @@ bool BlobStorage::InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& shar
 
             m_chunkIndices[uint32(chunkId)] = chunkIndex;
 
-            m_streams.Resize(uint32(chunkIndex) + 1);
+            m_files.Resize(uint32(chunkIndex) + 1);
 
             m_validChunks.Set(uint32(chunkId), true);
         }
@@ -88,19 +88,19 @@ bool BlobStorage::InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& shar
         sharedLock.Reset(m_mutex);
     }
 
-    MemoryMappedFile*& stream = m_streams[m_chunkIndices[uint32(chunkId)]];
+    MemoryMappedFile*& file = m_files[m_chunkIndices[uint32(chunkId)]];
 
-    if (!m_validStreams.Test(uint32(chunkId) * 2))
+    if (!m_validFiles.Test(uint32(chunkId) * 2))
     {
         sharedLock.Reset();
 
         TUniqueLock lock2(m_mutex);
 
-        if (!m_validStreams.Test(uint32(chunkId) * 2))
+        if (!m_validFiles.Test(uint32(chunkId) * 2))
         {
-            if ((stream = callbacks.Open(callbacks.context, chunkId, m_readOnly)))
+            if ((file = callbacks.Open(callbacks.context, chunkId, m_readOnly)))
             {
-                m_validStreams.Set(uint32(chunkId) * 2, true);
+                m_validFiles.Set(uint32(chunkId) * 2, true);
             }
             else
             {
@@ -113,7 +113,7 @@ bool BlobStorage::InitMappedFile(ChunkId chunkId, TSharedLock<SharedMutex>& shar
         sharedLock.Reset(m_mutex);
     }
 
-    outMappedFile = stream;
+    outMappedFile = file;
 
     return true;
 }
@@ -204,17 +204,17 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
         const uint32 srcChunkIndex = m_chunkIndices[bitIndex];
 
-        MemoryMappedFile*& src = m_streams[srcChunkIndex];
+        MemoryMappedFile*& src = m_files[srcChunkIndex];
 
-        if (!m_validStreams.Test(bitIndex * 2))
+        if (!m_validFiles.Test(bitIndex * 2))
         {
             if ((src = callbacks.Open(callbacks.context, chunkId, /* readOnly */ true)))
             {
-                m_validStreams.Set(bitIndex * 2, true);
+                m_validFiles.Set(bitIndex * 2, true);
             }
             else
             {
-                HYP_LOG(Assets, Error, "Failed to open read stream for chunk id {}", chunkId);
+                HYP_LOG(Assets, Error, "Failed to open file for chunk id {}", chunkId);
 
                 return;
             }
@@ -230,22 +230,22 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
             other.m_chunkIndices[uint32(chunkId)] = dstChunkIndex;
 
-            other.m_streams.Resize(uint32(dstChunkIndex) + 1);
+            other.m_files.Resize(uint32(dstChunkIndex) + 1);
 
             other.m_validChunks.Set(uint32(chunkId), true);
         }
             
-        MemoryMappedFile*& dst = other.m_streams[other.m_chunkIndices[uint32(chunkId)]];
+        MemoryMappedFile*& dst = other.m_files[other.m_chunkIndices[uint32(chunkId)]];
     
-        if (!other.m_validStreams.Test(uint32(chunkId) * 2 + 1))
+        if (!other.m_validFiles.Test(uint32(chunkId) * 2 + 1))
         {
             if ((dst = other.callbacks.Open(other.callbacks.context, chunkId, /* readOnly */ false)))
             {
-                other.m_validStreams.Set(uint32(chunkId) * 2 + 1, true);
+                other.m_validFiles.Set(uint32(chunkId) * 2 + 1, true);
             }
             else
             {
-                HYP_LOG(Assets, Error, "Failed to open write stream for chunk with id {}", chunkId);
+                HYP_LOG(Assets, Error, "Failed to open file for chunk with id {}", chunkId);
 
                 return;
             }
@@ -272,9 +272,9 @@ void BlobStorage::Close()
 
     m_resources.Clear();
 
-    for (Bitset::BitIndex bitIndex : m_validStreams)
+    for (Bitset::BitIndex bitIndex : m_validFiles)
     {
-        MemoryMappedFile*& file = m_streams[bitIndex];
+        MemoryMappedFile*& file = m_files[bitIndex];
         if (file != nullptr)
         {
             callbacks.Close(callbacks.context, file);
@@ -282,7 +282,7 @@ void BlobStorage::Close()
         }
     }
 
-    m_validStreams.Clear();
+    m_validFiles.Clear();
 }
 
 } // namespace Hyperion

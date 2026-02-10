@@ -312,16 +312,39 @@ bool MemoryMappedFile::MapRange(MemoryMappedFileView& out_view, SizeType offset,
         out_view.m_impl = MakePimpl<MemoryMappedFileViewImpl>();
     }
 
-    if (offset > m_impl->file_size)
+    if (m_impl->mode == Mode::READ_WRITE && size > 0)
     {
-        offset = m_impl->file_size;
+        const SizeType end_offset = offset + size;
+
+        if (end_offset < offset)
+        {
+            return false;
+        }
+
+        if (end_offset > m_impl->file_size)
+        {
+            auto* self = const_cast<MemoryMappedFile*>(this);
+
+            if (!self->Resize(end_offset))
+            {
+                return false;
+            }
+        }
+    }
+
+    if (m_impl->mode != Mode::READ_WRITE || size == 0)
+    {
+        if (offset > m_impl->file_size)
+        {
+            offset = m_impl->file_size;
+        }
     }
 
     if (size == 0)
     {
-        size = m_impl->file_size - offset;
+        size = m_impl->file_size > offset ? (m_impl->file_size - offset) : 0;
     }
-    else if (offset + size > m_impl->file_size)
+    else if (m_impl->mode != Mode::READ_WRITE && offset + size > m_impl->file_size)
     {
         size = m_impl->file_size - offset;
     }
