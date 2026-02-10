@@ -48,6 +48,7 @@ class AssetObject;
 struct BoxedValue;
 class ByteWriter;
 class BlobStorage;
+class MemoryMappedFile;
 
 extern StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage);
 extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObject);
@@ -490,6 +491,8 @@ public:
         ProcRef<String(const AssetObject&)> getObjectSubpath = nullptr);
 
     Handle<AssetObject> GetAssetFromPath(const UTF8StringView& path, bool attemptLoading = true) const;
+
+    MemoryMappedFile* MapFile(const FilePath& path);
 
     void Initialize();
 

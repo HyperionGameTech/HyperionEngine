@@ -61,7 +61,34 @@ struct MeshData
 struct MeshData2
 {
     BlobPointer<Vertex> vertexData;
-    BlobPointer<uint32> indexData;  
+    BlobPointer<uint32> indexData;
+
+    MeshData2() = default;
+
+    static MeshData2* CreateMeshData(Span<const Vertex> vertices, Span<const uint32> indices)
+    {
+        SizeType totalSize = ByteUtil::AlignAs(sizeof(MeshData2), alignof(Vertex))
+            + (sizeof(Vertex) * vertices.Size())
+            + (sizeof(uint32) * indices.Size());
+
+        MeshData2* meshData = (MeshData2*)HYP_ALLOC_ALIGNED(totalSize, 16);
+        if (!meshData)
+            return nullptr;
+
+        uint8* dataBasePtr = (uint8*)(meshData + 1);
+        Vertex* verticesPtr = HYP_ALIGN_PTR_AS(dataBasePtr, Vertex);
+
+        dataBasePtr += sizeof(Vertex) * vertices.Size();
+        uint32* indicesPtr = HYP_ALIGN_PTR_AS(dataBasePtr, uint32);
+
+        Memory::Copy(verticesPtr, vertices.Data(), sizeof(Vertex) * vertices.Size());
+        Memory::Copy(indicesPtr, indices.Data(), sizeof(uint32) * indices.Size());
+
+        meshData->vertexData = BlobPointer<Vertex>(reinterpret_cast<UIntPtr>(verticesPtr) - reinterpret_cast<UIntPtr>(meshData));
+        meshData->indexData = BlobPointer<uint32>(reinterpret_cast<UIntPtr>(indicesPtr) - reinterpret_cast<UIntPtr>(meshData));
+
+        return meshData;
+    }
 };
 
 HYP_CLASS()

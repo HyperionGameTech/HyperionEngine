@@ -2,7 +2,7 @@
 
 #include <asset/BlobStorage.hpp>
 
-#include <io/BufferedByteReader.hpp>
+#include <io/ByteReader.hpp>
 #include <io/ByteWriter.hpp>
 
 #include <BlobStorage.generated.inl>
@@ -241,10 +241,11 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
             // write all from the src stream
             writeStream->Seek(0, /* truncate */ true);
-            writeStream->Write(readStream->ReadBytes());
+            writeStream->Write(readStream->Read());
 
             writeStream->Flush();
 
+            writeStream->Close();
 
             HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage (chunk index: {})", readStream->Position(), chunkId);
 
