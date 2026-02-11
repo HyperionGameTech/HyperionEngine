@@ -94,26 +94,21 @@ public:
         : AssetObject(),
           m_skeletonDesc()
     {
-        AssetObject::SetData(SkeletonData());
+        //AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc)
         : AssetObject(name),
           m_skeletonDesc(desc)
     {
-        AssetObject::SetData(SkeletonData());
+        //AssetObject::SetData(SkeletonData());
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc, const SkeletonData& skeletonData)
-        : AssetObject(name, skeletonData),
+        : AssetObject(name),
           m_skeletonDesc(desc)
     {
-    }
-
-    SkeletonAsset(Name name, const SkeletonDesc& desc, SkeletonData&& skeletonData)
-        : AssetObject(name, std::move(skeletonData)),
-          m_skeletonDesc(desc)
-    {
+        // @TODO New blob data
     }
 
     SkeletonAsset(const SkeletonAsset& other) = delete;
@@ -131,7 +126,8 @@ public:
 
     HYP_FORCE_INLINE SkeletonData* GetSkeletonData() const
     {
-        return GetResourceData<SkeletonData>();
+        return nullptr;
+        //GetResourceData<SkeletonData>();
     }
 
 private:

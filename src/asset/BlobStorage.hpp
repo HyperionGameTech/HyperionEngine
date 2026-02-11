@@ -66,7 +66,7 @@ public:
 
     void Write(SizeType offset, SizeType size, const void* src);
 
-    bool Allocate(SizeType size, SizeType alignment, const void* src, BlobResourceKey& outKey);
+    bool AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey);
 
     void CopyTo(BlobStorage& other);
 

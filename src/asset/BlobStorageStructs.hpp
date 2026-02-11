@@ -34,11 +34,11 @@ struct BlobResourceKey
     }
 };
 
-struct BlobChunkHeader
+struct BlobHeader
 {
-    char magic[4];
-    uint8 version;
-    uint8 padding[3];
+    uint8 magic[4];
+    uint32 version : 8;
+    uint32 payloadOffset : 24;
     uint64 payloadSize;
 };
 
@@ -75,19 +75,43 @@ struct BlobPointer
         return reinterpret_cast<T*>(targetPtr);
     }
 
+    bool operator!() const
+    {
+        return offset == 0;
+    }
+
     T* operator->() const
     {
+        AssertDebug(offset != 0);
         return Get();
     }
 
     T& operator*() const
     {
+        AssertDebug(offset != 0);
         return *Get();
     }
 
     T& operator[](SizeType index) const
     {
+        AssertDebug(offset != 0);
         return Get()[index];
+    }
+
+    operator T*()
+    {
+        if (!(*this))
+            return nullptr;
+
+        return Get();
+    }
+
+    operator const T* () const
+    {
+        if (!(*this))
+            return nullptr;
+
+        return Get();
     }
 };
 

@@ -121,14 +121,13 @@ static void CreateNoiseMap(Handle<Texture>& tex)
     TextureData textureData;
 
     Bitmap_R8 noiseMap = SimplexNoiseGenerator(Seed).CreateBitmap(128, 128, 1024.0f);
-    textureData.imageData = ByteBuffer(noiseMap.ToByteView());
 
     if (tex)
     {
         SafeDelete(std::move(tex));
     }
 
-    tex = MakeHandle<Texture>(textureDesc, textureData);
+    tex = MakeHandle<Texture>(textureDesc, noiseMap.ToByteView());
     InitObject(tex);
 }
 

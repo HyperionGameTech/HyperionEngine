@@ -71,7 +71,8 @@ protected:
     AssetDataResourceBase()
         : m_assetObject(nullptr),
           m_hasData(false),
-          m_readOnlyData(false)
+          m_readOnlyData(false),
+          m_blobHeader {}
     {
     }
 
@@ -82,6 +83,18 @@ protected:
 
     virtual void InitReadOnlyData(const void* src) = 0;
     virtual void InitReadWriteData() = 0;
+
+    bool GetBlobHeader(BlobHeader& outHeader) const
+    {
+        if (!m_hasData)
+        {
+            return false;
+        }
+
+        outHeader = m_blobHeader;
+
+        return true;
+    }
 
     //virtual TResult<BlobResourceKey> SerializeBlob(ByteWriter* writer) const = 0;
 
@@ -97,24 +110,23 @@ protected:
     AssetObject* m_assetObject;
     bool m_hasData;
     bool m_readOnlyData;
+
+    BlobHeader m_blobHeader;
 };
 
 template <class T>
 class AssetDataResource final : public AssetDataResourceBase
 {
 public:
-    AssetDataResource() = default;
-
-    AssetDataResource(const T& data)
+    AssetDataResource()
+        : m_dataPtr(nullptr)
     {
-        m_dataPtr = PoolNew<NormalizedType<T>>(*g_assetPool, data);
-        m_hasData = true;
-        m_readOnlyData = false;
     }
 
-    AssetDataResource(T&& data)
+    template <class... Args>
+    AssetDataResource(Args&&... args)
     {
-        m_dataPtr = PoolNew<NormalizedType<T>>(*g_assetPool, std::move(data));
+        m_dataPtr = T::Allocate(std::forward<Args>(args)..., m_blobHeader);
         m_hasData = true;
         m_readOnlyData = false;
     }
@@ -131,7 +143,7 @@ public:
         {
             m_hasData = false;
 
-            PoolDelete(*g_assetPool, m_dataPtr);
+            HYP_FREE_ALIGNED(m_dataPtr);
             m_dataPtr = nullptr;
         }
     }
@@ -153,7 +165,7 @@ protected:
         {
             m_hasData = false;
             
-            PoolDelete(*g_assetPool, m_dataPtr);
+            HYP_FREE_ALIGNED(m_dataPtr);
             m_dataPtr = nullptr;
         }
     }
@@ -162,7 +174,7 @@ protected:
     {
         if (m_hasData && !m_readOnlyData)
         {
-            PoolDelete(*g_assetPool, m_dataPtr);
+            HYP_FREE_ALIGNED(m_dataPtr);
         }
 
         m_dataPtr = reinterpret_cast<T*>(const_cast<void*>(src));
@@ -172,26 +184,22 @@ protected:
     
     virtual void InitReadWriteData() override
     {
-        Assert(m_hasData);
+        Assert(m_hasData && m_dataPtr != nullptr);
 
         if (!m_readOnlyData)
         {
             return;
         }
 
-        T* newDataPtr = PoolNew<T>(*g_assetPool, *m_dataPtr);
+        Assert(m_blobHeader.payloadSize != 0);
+
+        T* newDataPtr = T::Allocate(*m_dataPtr, m_blobHeader);
+        Assert(newDataPtr != nullptr);
+
         m_dataPtr = newDataPtr;
 
         m_readOnlyData = false;
     }
-    
-    /*virtual TResult<BlobResourceKey> SerializeBlob(ByteWriter* writer) const override
-    {
-        Assert(m_dataPtr != nullptr);
-
-        TBlobBuilder<T> builder;
-        return builder.Serialize(writer, m_dataPtr);
-    }*/
 
     T* m_dataPtr;
 };
@@ -213,15 +221,15 @@ class HYP_API AssetObject : public ObjectBase
     HYP_OBJECT_BODY(AssetObject);
 
 protected:
-    template <class T>
-    void SetData(T&& data)
+    template <class T, class... Args>
+    void ConstructBlobData(Args&&... args)
     {
         if (m_resource)
         {
             PoolDelete(*g_assetPool, m_resource);
         }
 
-        m_resource = PoolNew<AssetDataResource<NormalizedType<T>>>(*g_assetPool, std::forward<T>(data));
+        m_resource = PoolNew<AssetDataResource<NormalizedType<T>>>(*g_assetPool, std::forward<Args>(args)...);
         m_resource->m_assetObject = this;
     }
 
@@ -231,13 +239,6 @@ public:
 
     AssetObject();
     explicit AssetObject(Name name);
-
-    template <class T>
-    AssetObject(Name name, T&& data)
-        : AssetObject(name)
-    {
-        AssetObject::SetData(std::forward<T>(data));
-    }
 
     AssetObject(const AssetObject& other) = delete;
     AssetObject& operator=(const AssetObject& other) = delete;

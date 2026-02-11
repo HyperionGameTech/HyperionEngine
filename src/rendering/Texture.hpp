@@ -31,7 +31,7 @@ public:
     Texture();
 
     explicit Texture(const TextureDesc& textureDesc);
-    Texture(const TextureDesc& textureDesc, const TextureData& textureData);
+    Texture(const TextureDesc& textureDesc, ConstByteView imageData);
 
     explicit Texture(const Handle<TextureAsset>& asset);
 
@@ -118,7 +118,7 @@ public:
         return m_gpuImage;
     }
 
-    static void GenerateMipmaps(TextureDesc& desc, TextureData& data);
+    static void GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData);
 
     /*! \brief Blocking call to readback GPU image data into a CPU-side buffer. Must be called on the render thread.
      *  Do not use frequently as this will stall the gpu */

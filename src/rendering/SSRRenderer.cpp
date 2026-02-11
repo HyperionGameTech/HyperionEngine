@@ -270,7 +270,8 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_ATTACHMENT | IU_SAMPLED });
+            IU_ATTACHMENT | IU_SAMPLED
+        });
 
         m_sampledResultTexture->SetName(NAME("SSRTexture_SampledResult"));
         InitObject(m_sampledResultTexture);

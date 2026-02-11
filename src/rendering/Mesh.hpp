@@ -106,7 +106,10 @@ public:
     HYP_METHOD()
     virtual Result Rename(Name name) override;
 
-    void SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData);
+    void SetMeshData(
+        const MeshDesc& meshDesc,
+        Span<const Vertex> vertices,
+        Span<const ubyte> indices);
 
     HYP_METHOD()
     uint32 NumIndices() const;

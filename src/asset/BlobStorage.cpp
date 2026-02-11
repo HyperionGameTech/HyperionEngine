@@ -313,10 +313,8 @@ void BlobStorage::Write(SizeType offset, SizeType size, const void* src)
         src, size);
 }
 
-HYP_NODISCARD bool BlobStorage::Allocate(
-    SizeType size, SizeType alignment, const void* src, BlobResourceKey& outKey)
+bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey)
 {
-    Assert(src != nullptr);
     Assert(!m_readOnly, "Cannot allocate from read-only BlobStorage!");
     
     MemoryMappedFile* file = nullptr;
@@ -327,18 +325,15 @@ HYP_NODISCARD bool BlobStorage::Allocate(
         return false;
     }
 
-    if (alignment == 0)
-    {
-        alignment = 16; // default alignment is 16
-    }
+    const SizeType headerOffset = ByteUtil::AlignAs(m_cursor, alignof(BlobHeader));
 
-    const SizeType offset = ByteUtil::AlignAs(m_cursor, alignment);
+    const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
 
-    if (file->FileSize() < offset + size)
+    if (file->FileSize() < headerOffset + totalBlobSizePlusHeader)
     {
         Assert(m_allocations.Empty(), "Cannot resize mapped file, active mapped allocations exist");
 
-        if (!file->EnsureCapacity(offset + size))
+        if (!file->EnsureCapacity(headerOffset + totalBlobSizePlusHeader))
         {
             AssertDebug(false, "Failed to ensure capacity for file");
 
@@ -346,14 +341,21 @@ HYP_NODISCARD bool BlobStorage::Allocate(
         }
     }
 
-    void* dst = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset);
-    Memory::Copy(dst, src, size);
+    m_writeStream->Seek(headerOffset);
+    m_writeStream->Write(header);
+
+    m_writeStream->Seek(m_writeStream->Position() + header.payloadOffset);
+
+    const SizeType offset = m_writeStream->Position();
+
+    // fill with empty data:
+    m_writeStream->Seek(offset + header.payloadSize);
 
     outKey = BlobResourceKey {};
     outKey.offset = offset;
-    outKey.size = size;
+    outKey.size = header.payloadSize;
 
-    m_cursor = offset + size;
+    m_cursor = m_writeStream->Position();
 
     return true;
 }

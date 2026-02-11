@@ -8,6 +8,37 @@
 
 namespace Hyperion {
 
+struct TextureData2
+{
+    static constexpr uint8 Version = 1;
+    static constexpr const char Header[] = "TEX";
+
+    uint64 imageDataSize;
+
+    BlobPointer<ubyte> imageData;
+
+    TextureData2() = default;
+
+    static HYP_NODISCARD TextureData2* Allocate(const TextureData2& other, BlobHeader& outHeader)
+    {
+        return Allocate(
+            ConstByteView(&other.imageData[0], other.imageDataSize),
+            outHeader);
+    }
+
+    static HYP_NODISCARD TextureData2* Allocate(ConstByteView imageData, BlobHeader& outHeader)
+    {
+        TextureData2 data {};
+        data.imageDataSize = imageData.Size();
+
+        TInlineBlobBuilder<TextureData2, 16> builder(&data);
+
+        return builder
+            .Append(offsetof(TextureData2, imageData), imageData.ToSpan())
+            .Build(outHeader);
+    }
+};
+
 HYP_CLASS()
 class TextureAsset : public AssetObject
 {
@@ -18,28 +49,21 @@ public:
         : AssetObject(),
           m_textureDesc()
     {
-        AssetObject::SetData(TextureData());
+        ConstructBlobData<TextureData2>(TextureData2 {});
     }
 
     TextureAsset(Name name, const TextureDesc& desc)
         : AssetObject(name),
           m_textureDesc(desc)
     {
-        AssetObject::SetData(TextureData());
+        ConstructBlobData<TextureData2>(TextureData2 {});
     }
 
-    TextureAsset(Name name, const TextureDesc& desc, const TextureData& textureData)
-        : AssetObject(name, textureData),
+    TextureAsset(Name name, const TextureDesc& desc, ConstByteView imageData)
+        : AssetObject(name),
           m_textureDesc(desc)
     {
-        AssertDebug(textureData.imageData.Size() != 0);
-    }
-
-    TextureAsset(Name name, const TextureDesc& desc, TextureData&& textureData)
-        : AssetObject(name, std::move(textureData)),
-          m_textureDesc(desc)
-    {
-        AssertDebug(GetTextureData()->imageData.Size() != 0);
+        ConstructBlobData<TextureData2>(imageData);
     }
 
     TextureAsset(const TextureAsset& other) = delete;
@@ -55,9 +79,9 @@ public:
         return m_textureDesc;
     }
 
-    HYP_FORCE_INLINE const TextureData* GetTextureData() const
+    HYP_FORCE_INLINE const TextureData2* GetTextureData() const
     {
-        return GetResourceData<TextureData>();
+        return GetResourceData<TextureData2>();
     }
 
 private:

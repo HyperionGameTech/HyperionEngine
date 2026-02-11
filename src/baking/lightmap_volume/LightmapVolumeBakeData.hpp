@@ -34,6 +34,11 @@ public:
 
     ~BakeData() override = default;
 
+    HYP_FORCE_INLINE Array<BakeMesh>& GetMeshData()
+    {
+        return m_meshData;
+    }
+
     HYP_FORCE_INLINE const Array<BakeMesh>& GetMeshData() const
     {
         return m_meshData;

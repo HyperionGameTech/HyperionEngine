@@ -235,15 +235,10 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     meshDesc.numIndices = uint32(indices.Size());
     meshDesc.numVertices = uint32(vertices.Size());
 
-    MeshData meshData;
-    meshData.vertexData = vertices;
-    meshData.indexData.SetSize(indices.Size() * sizeof(uint32));
-    meshData.indexData.Write(indices.Size() * sizeof(uint32), 0, indices.Data());
-
-    meshData.CalculateNormals();
-
     Handle<Mesh> mesh = MakeHandle<Mesh>();
-    mesh->SetMeshData(meshDesc, meshData);
+    mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
+
+    mesh->GetAsset()->GetMeshData()->CalculateNormals();
 
     return mesh;
 }

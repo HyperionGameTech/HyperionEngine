@@ -216,11 +216,9 @@ Result FontAtlas::RenderAtlasTextures()
             TWM_CLAMP_TO_EDGE
         };
 
-        TextureData atlasTextureData {
-            atlasBitmap->GetUnpackedBytes(4)
-        };
+        ByteBuffer imageData = atlasBitmap->GetUnpackedBytes(4);
 
-        Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, std::move(atlasTextureData));
+        Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, imageData.ToByteView());
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
         InitObject(atlasTexture);
 

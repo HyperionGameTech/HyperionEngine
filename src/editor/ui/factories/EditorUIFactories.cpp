@@ -988,8 +988,7 @@ public:
 
                     ResourceGuard resGuard(*scriptAsset->GetResource());
                     
-                    ScriptDesc* scriptDesc = scriptAsset->GetScriptDesc();
-                    Assert(scriptDesc != nullptr);
+                    ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
                     Handle<AssetObject> assetObject = assetObjectResult.GetValue();
                     
@@ -1000,7 +999,7 @@ public:
                     }
 
                     // copy the asset path to script the data
-                    Memory::StrCpy(scriptDesc->path.Data(), assetObject->GetPath().Data(), ArraySize(scriptDesc->path));
+                    Memory::StrCpy(scriptDesc.path.Data(), assetObject->GetPath().Data(), ArraySize(scriptDesc.path));
                     
                     if (entityManager->HasComponent<ScriptComponent>(entity)) {
                         entityManager->RemoveComponent<ScriptComponent>(entity);

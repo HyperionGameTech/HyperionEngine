@@ -64,13 +64,10 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
         TWM_CLAMP_TO_EDGE
     };
 
-    TextureData textureData {
-        ByteBuffer(bitmap.ToByteView())
-    };
+    ByteBuffer imageData(bitmap.ToByteView());
+    Texture::GenerateMipmaps(textureDesc, imageData);
 
-    Texture::GenerateMipmaps(textureDesc, textureData);
-
-    Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, std::move(textureData));
+    Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, imageData.ToByteView());
     cubemap->SetName(NAME_FMT("EnvProbe_{}_Baked", m_envProbe->GetName()));
 
     Result registerAssetResult = g_assetManager->GetAssetRegistry()->RegisterAsset(

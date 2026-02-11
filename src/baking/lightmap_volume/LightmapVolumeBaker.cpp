@@ -181,12 +181,10 @@ struct BlitAtlasElements : RenderCommand
                                 TextureDesc textureDesc = atlasTexture->GetTextureDesc();
                                 textureDesc.mipOffsets = { 0 };
 
-                                TextureData textureData { std::move(byteBuffer) };
-
                                 Handle<TextureAsset> newTextureAsset = MakeHandle<TextureAsset>(
                                     atlasTexture->GetName(),
                                     textureDesc,
-                                    std::move(textureData));
+                                    byteBuffer.ToByteView());
 
                                 InitObject(newTextureAsset);
 
@@ -262,7 +260,8 @@ static void UpdateAtlasTextures(
                 Vec3u { atlas.atlasDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE });
+                TWM_CLAMP_TO_EDGE
+            });
 
         radianceTexture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_R", lmv->GetName()));
 
@@ -386,8 +385,9 @@ static bool BuildElementTextures(
                 Vec3u { elementDimensions, 1 },
                 TFM_LINEAR,
                 TFM_LINEAR,
-                TWM_CLAMP_TO_EDGE },
-            TextureData { ByteBuffer(pBitmap->ToByteView()) });
+                TWM_CLAMP_TO_EDGE
+            },
+            pBitmap->ToByteView());
 
         Assert(pBitmap->GetByteSize() == texture->GetTextureDesc().GetByteSize(),
             "Bitmap byte size {} does not match texture byte size {}",
@@ -521,7 +521,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             Assert(bakeEntityIndex < m_bakeData.GetMeshData().Size());
 
-            const BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
+            BakeMesh& bakeMesh = m_bakeData.GetMeshData()[bakeEntityIndex];
             Assert(bakeMesh.mesh == mesh);
 
             MeshDesc newMeshDesc;
@@ -529,19 +529,17 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
             newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
 
-            MeshData newMeshData;
-            newMeshData.vertexData = bakeMesh.vertices;
-            newMeshData.indexData = ByteBuffer(bakeMesh.indices.ToByteView());
-
-            for (SizeType i = 0; i < newMeshData.vertexData.Size(); i++)
+            for (SizeType i = 0; i < bakeMesh.vertices.Size(); i++)
             {
-                Vec2f& lightmapUv = newMeshData.vertexData[i].texcoord1;
+                Vertex& vertex = bakeMesh.vertices[i];
+
+                Vec2f& lightmapUv = vertex.texcoord1;
                 lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
                 lightmapUv *= lightmapElement->scale;
                 lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
             }
 
-            mesh->SetMeshData(newMeshDesc, newMeshData);
+            mesh->SetMeshData(newMeshDesc, bakeMesh.vertices.ToSpan(), bakeMesh.indices.ToByteView());
         };
 
         UpdateMeshData();

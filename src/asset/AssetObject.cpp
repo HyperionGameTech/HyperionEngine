@@ -357,22 +357,26 @@ Result AssetObject::Save(const FilePath& manifestPath)
         BlobStorage* blobStorage = package->GetBlobStorage();
         Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
 
-        ByteWriter* writer = blobStorage->GetWriteStream();
-        Assert(writer != nullptr);
+        ByteWriter* writeStream = blobStorage->GetWriteStream();
+        Assert(writeStream != nullptr);
 
-        // @TODO if blob info already exists we can use that IF the offset+size won't trample over
-        // any other entries. otherwise we need to null it out and mark it as a free range
-
-        /*TResult<BlobResourceKey> result = resource->SerializeBlob(writer);
-        if (result.HasError())
+        if (!m_blobKey)
         {
-            return Error(result.GetError());
+            // grab header info from resource
+            BlobHeader header;
+            if (!resource->GetBlobHeader(header))
+                return HYP_MAKE_ERROR(Error, "Failed to get blob header for asset {}", m_name);
+            
+            // allocate blob key
+            if (!blobStorage->AllocateBlob(header, m_blobKey))
+                return HYP_MAKE_ERROR(Error, "Failed to allocate blob data for asset {}", m_name);
         }
 
-        m_blobKey = result.GetValue();*/
+        const void* rawData = resource->GetData();
+        Assert(rawData != nullptr);
 
-
-
+        writeStream->Seek(m_blobKey.offset);
+        writeStream->Write(rawData, m_blobKey.size);
 
         //// must load before saving if saving to a different place and not currently in memory.
         //bool requiresLoad = !resource->IsDataLoaded();

@@ -181,14 +181,10 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
         .numIndices = uint32(indexData.Size() / sizeof(uint32))
     };
 
-    const MeshData meshData {
-        .vertexData = vertexData,
-        .indexData = indexData
-    };
+    Handle<MeshAsset> meshAsset = MakeHandle<MeshAsset>(s_nameMeshDefault, meshDesc, vertexData.ToSpan(), indexData.ToByteView());
+    m_aabb = meshAsset->GetMeshData()->CalculateAABB();
 
-    m_aabb = meshData.CalculateAABB();
-
-    m_meshAsset = TAssetReference<MeshAsset>(MakeHandle<MeshAsset>(s_nameMeshDefault, meshDesc, meshData));
+    m_meshAsset = TAssetReference<MeshAsset>(meshAsset);
 }
 
 Mesh::~Mesh()
@@ -299,9 +295,12 @@ void Mesh::UploadGpuData()
 
     Array<float> vertices = asset->GetMeshData()->BuildVertexBuffer(vertexAttributes);
 
+    // @TODO fix for non-uint32 indices
+    Assert(GpuElemTypeSize(asset->GetMeshDesc().meshAttributes.indexBufferElemType) == 4);
+
     Array<uint32> indices;
-    indices.Resize(asset->GetMeshData()->indexData.Size() / sizeof(uint32));
-    Memory::Copy(indices.Data(), asset->GetMeshData()->indexData.Data(), asset->GetMeshData()->indexData.Size());
+    indices.Resize(asset->GetMeshData()->numIndices);
+    Memory::Copy(indices.Data(), &asset->GetMeshData()->indexData[0], asset->GetMeshData()->numIndices * GpuElemTypeSize(asset->GetMeshDesc().meshAttributes.indexBufferElemType));
 
     AssertDebug(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
     AssertDebug(indices.Size() == asset->GetMeshDesc().numIndices);
@@ -497,14 +496,18 @@ Result Mesh::Rename(Name name)
     return {};
 }
 
-void Mesh::SetMeshData(const MeshDesc& meshDesc, const MeshData& meshData)
+void Mesh::SetMeshData(
+    const MeshDesc& meshDesc,
+    Span<const Vertex> vertices,
+    Span<const ubyte> indices)
 {
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_dataRaceDetector);
 
-    m_aabb = meshData.CalculateAABB();
+    Handle<MeshAsset> asset = MakeHandle<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, vertices, indices);
 
-    Handle<MeshAsset> asset = MakeHandle<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, meshData);
+    m_aabb = asset->GetMeshData()->CalculateAABB();
+
     m_meshAsset = TAssetReference<MeshAsset>(asset);
 
     if (IsInitCalled())
@@ -575,7 +578,7 @@ bool Mesh::BuildBVH(int maxDepth)
         return false;
     }
 
-    const MeshData& meshData = *asset->GetMeshData();
+    const MeshData2& meshData = *asset->GetMeshData();
 
     return meshData.BuildBVH(m_bvh, maxDepth);
 }

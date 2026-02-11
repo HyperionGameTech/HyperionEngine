@@ -73,15 +73,20 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 
             const MeshDesc& meshDesc = quad->GetAsset()->GetMeshDesc();
 
-            MeshData newMeshData = *quad->GetAsset()->GetMeshData();
+            const MeshData2* meshData = quad->GetAsset()->GetMeshData();
+            Assert(meshData != nullptr);
 
-            for (Vertex& vert : newMeshData.vertexData)
+            Array<Vertex> newVertices;
+            newVertices.Resize(meshData->numVertices);
+            Memory::Copy(newVertices.Data(), &meshData->vertexData[0], sizeof(Vertex) * meshData->numVertices);
+
+            for (Vertex& vert : newVertices)
             {
                 vert.position.x = (vert.position.x + 1.0f) * 0.5f;
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
 
-            quad->SetMeshData(meshDesc, newMeshData);
+            quad->SetMeshData(meshDesc, newVertices.ToSpan(), ConstByteView(&meshData->indexData[0], meshData->numIndices * GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType)));
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);

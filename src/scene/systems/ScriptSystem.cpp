@@ -137,20 +137,19 @@ ScriptSystem::ScriptSystem()
 
                             ResourceGuard resGuard(*scriptAsset->GetResource());
 
-                            ScriptDesc* scriptDesc = scriptAsset->GetScriptDesc();
-                            Assert(scriptDesc != nullptr);
+                            ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
-                            if (Memory::StrCmp(script.assemblyPath.Data(), scriptDesc->assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptDesc->assemblyPath))) == 0)
+                            if (Memory::StrCmp(script.assemblyPath.Data(), scriptDesc.assemblyPath.Data(), MathUtil::Min(ArraySize(script.assemblyPath), ArraySize(scriptDesc.assemblyPath))) == 0)
                             {
                                 HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->Id());
 
                                 // Reload the script
                                 scriptComponent.flags |= ScriptComponentFlags::RELOADING;
 
-                                scriptDesc->uuid = script.uuid;
-                                scriptDesc->compileStatus = script.compileStatus;
-                                scriptDesc->hotReloadVersion = script.hotReloadVersion;
-                                scriptDesc->lastModifiedTimestamp = script.lastModifiedTimestamp;
+                                scriptDesc.uuid = script.uuid;
+                                scriptDesc.compileStatus = script.compileStatus;
+                                scriptDesc.hotReloadVersion = script.hotReloadVersion;
+                                scriptDesc.lastModifiedTimestamp = script.lastModifiedTimestamp;
 
                                 resGuard.Release();
 

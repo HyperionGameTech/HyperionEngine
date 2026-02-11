@@ -140,12 +140,9 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     // debug
     Assert(textureDesc.format != TextureFormat::RGB8_SRGB);
 
-    TextureData textureData;
-    textureData.imageData = std::move(baseMipData);
+    Texture::GenerateMipmaps(textureDesc, baseMipData);
 
-    Texture::GenerateMipmaps(textureDesc, textureData);
-
-    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, textureData);
+    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());
 
     stbi_image_free(imageBytes);
 

@@ -185,9 +185,8 @@ Result EditorProject::CreatePackage()
                 0, 3, 2,
                 0, 2, 1
             };
-
-            SizeType totalSize;
-            MeshData2* md2 = MeshData2::CreateMeshData(quadVertices, quadIndices, totalSize);
+            BlobHeader header;
+            MeshData2* md2 = MeshData2::Allocate(quadVertices.ToSpan(), quadIndices.ToByteView(), header);
             Vertex& vtx0 = md2->vertexData[0];
             HYP_LOG_TEMP("Vertex0: {}", vtx0.GetPosition());
             Vertex& vtx1 = md2->vertexData[1];
@@ -208,15 +207,20 @@ Result EditorProject::CreatePackage()
 
             //m_package->GetBlobStorage()->Write(0, totalSize, md2);
             //m_package->GetBlobStorage()->Write(ByteUtil::AlignAs(totalSize, 16), totalSize, md2);
+
+            BlobResourceKey key;
+            Assert(m_package->GetBlobStorage()->AllocateBlob(header, key));
+
             ByteWriter* writer = m_package->GetBlobStorage()->GetWriteStream();
             Assert(writer != nullptr);
-            
-            TBlobBuilder<MeshData2> builder;
-            auto res = builder.Serialize(writer, md2);
-            Assert(!res.HasError());
 
-            auto& value = res.GetValue();
-            HYP_LOG_TEMP("offset = {}, size = {}", value.offset, value.size);
+            writer->Seek(key.offset);
+            writer->Write(md2, key.size);
+
+            //auto& value = res.GetValue();
+            //aHYP_LOG_TEMP("offset = {}, size = {}", value.offset, value.size);
+
+            HYP_FREE_ALIGNED(md2);
 
             OnPackageCreated(m_package);
 

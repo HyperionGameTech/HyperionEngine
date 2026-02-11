@@ -14,14 +14,16 @@
 
 namespace Hyperion {
 
-BoundingBox MeshData::CalculateAABB() const
+BoundingBox MeshData2::CalculateAABB() const
 {
     HYP_SCOPE;
 
     BoundingBox aabb = BoundingBox::Empty();
 
-    for (const Vertex& vertex : vertexData)
+    for (uint32 vertexIndex = 0; vertexIndex < numVertices; vertexIndex++)
     {
+        const Vertex& vertex = vertexData[vertexIndex];
+
         aabb = aabb.Union(vertex.GetPosition());
     }
 
@@ -36,17 +38,17 @@ BoundingBox MeshData::CalculateAABB() const
     }                                                                                                 \
     while (0)
 
-Array<float> MeshData::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
+Array<float> MeshData2::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
 {
     const SizeType vertexSize = vertexAttributes.CalculateVertexSize();
 
     Array<float> packedBuffer;
-    packedBuffer.Resize(vertexSize * vertexData.Size());
+    packedBuffer.Resize(vertexSize * numVertices);
 
     float* floatBuffer = packedBuffer.Data();
     SizeType currentOffset = 0;
 
-    for (SizeType i = 0; i < vertexData.Size(); i++)
+    for (SizeType i = 0; i < numVertices; i++)
     {
         const Vertex& vertex = vertexData[i];
         /* Offset aligned to the current vertex */
@@ -92,14 +94,14 @@ Array<float> MeshData::BuildVertexBuffer(const VertexAttributeSet& vertexAttribu
 
 #undef PACKED_SET_ATTR
 
-Array<PackedVertex> MeshData::BuildPackedVertices() const
+Array<PackedVertex> MeshData2::BuildPackedVertices() const
 {
     HYP_SCOPE;
 
     Array<PackedVertex> packedVertices;
-    packedVertices.Resize(vertexData.Size());
+    packedVertices.Resize(numVertices);
 
-    for (SizeType i = 0; i < vertexData.Size(); i++)
+    for (SizeType i = 0; i < numVertices; i++)
     {
         const Vertex& vertex = vertexData[i];
 
@@ -118,15 +120,18 @@ Array<PackedVertex> MeshData::BuildPackedVertices() const
     return packedVertices;
 }
 
-Array<uint32> MeshData::BuildPackedIndices() const
+Array<uint32> MeshData2::BuildPackedIndices() const
 {
     HYP_SCOPE;
 
-    Assert((indexData.Size() / sizeof(uint32)) % 3 == 0);
+    Assert(numIndices % 3 == 0);
+
+    // @TODO Fix for non-uint32 index size
 
     Array<uint32> packedIndices;
-    packedIndices.Resize(indexData.Size() / sizeof(uint32));
-    Memory::Copy(packedIndices.Data(), indexData.Data(), indexData.Size());
+    packedIndices.Resize(numIndices);
+
+    Memory::Copy(packedIndices.Data(), &indexData[0], numIndices);
 
     // Ensure indices are a multiple of 3
     if (packedIndices.Size() % 3 != 0)
@@ -147,18 +152,18 @@ Array<uint32> MeshData::BuildPackedIndices() const
     for (SizeType i = 0; i < packedIndices.Size(); i++)
     {
         uint32 idx = packedIndices[i];
-        AssertDebug(idx < vertexData.Size());
+        AssertDebug(idx < numVertices);
     }
 #endif
 
     return packedIndices;
 }
 
-void MeshData::InvertNormals()
+void MeshData2::InvertNormals()
 {
     HYP_SCOPE;
 
-    for (SizeType i = 0; i < vertexData.Size(); i++)
+    for (SizeType i = 0; i < numVertices; i++)
     {
         vertexData[i].SetNormal(vertexData[i].GetNormal() * -1.0f);
     }
@@ -176,16 +181,13 @@ void MeshData::InvertNormals()
     }                                    \
     while (0)
 
-void MeshData::CalculateNormals(bool weighted)
+void MeshData2::CalculateNormals(bool weighted)
 {
     HYP_SCOPE;
 
-    Assert(indexData.Size() % sizeof(uint32) == 0);
+    // @TODO fix for non-uint32 indices
 
-    const SizeType numIndices = indexData.Size() / sizeof(uint32);
-    const SizeType numVertices = vertexData.Size();
-
-    uint32* uIndexData = reinterpret_cast<uint32*>(indexData.Data());
+    uint32* uIndexData = reinterpret_cast<uint32*>(&indexData[0]);
 
     SparsePagedArray<Array<Vec3f, InlineAllocator<3>>, 1 << 6> normals;
 
@@ -342,16 +344,13 @@ void MeshData::CalculateNormals(bool weighted)
     }                                    \
     while (0)
 
-void MeshData::CalculateTangents()
+void MeshData2::CalculateTangents()
 {
     HYP_SCOPE;
 
-    Assert(indexData.Size() % sizeof(uint32) == 0);
+    // @TODO fix for non uint32 indices
 
-    const SizeType numIndices = indexData.Size() / sizeof(uint32);
-    const SizeType numVertices = vertexData.Size();
-
-    uint32* uIndexData = reinterpret_cast<uint32*>(indexData.Data());
+    uint32* uIndexData = reinterpret_cast<uint32*>(&indexData[0]);
 
     struct TangentBitangentPair
     {
@@ -432,17 +431,15 @@ void MeshData::CalculateTangents()
 
 #undef ADD_TANGENTS
 
-bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
+bool MeshData2::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
     const BoundingBox meshAabb = CalculateAABB();
 
-    Assert(indexData.Size() % sizeof(uint32) == 0);
-    Assert((indexData.Size() / sizeof(uint32)) % 3 == 0);
-
-    const SizeType numIndices = indexData.Size() / sizeof(uint32);
     const SizeType numTriangles = numIndices / 3;
 
-    const uint32* indexDataU32 = reinterpret_cast<const uint32*>(indexData.Data());
+    // @TODO Fix for non uint32 indices
+
+    const uint32* indexDataU32 = reinterpret_cast<const uint32*>(&indexData[0]);
 
     bvhNode = BVHNode(meshAabb);
     bvhNode.triangleIds.Reserve(numTriangles);
@@ -455,7 +452,7 @@ bool MeshData::BuildBVH(BVHNode& bvhNode, int maxDepth) const
     // pass mesh spans so Split can do AABB/triangle overlap without copying triangles
     bvhNode.Split(
         maxDepth,
-        Span<const Vertex>(vertexData.Data(), vertexData.Size()),
+        Span<const Vertex>(&vertexData[0], numVertices),
         Span<const uint32>(indexDataU32, numIndices));
 
     bvhNode.Shake();

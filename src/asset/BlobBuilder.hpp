@@ -12,70 +12,105 @@
 
 #include <core/Util.hpp>
 
+#include <core/utilities/ByteUtil.hpp>
+
 #include <asset/BlobStorageStructs.hpp>
 
 namespace Hyperion {
 
-template <BlobSerializable T>
-class TBlobBuilder
+template <BlobSerializable T, SizeType Alignment = alignof(T)>
+class TInlineBlobBuilder
 {
-public:
-    HYP_NODISCARD TResult<BlobResourceKey> Serialize(ByteWriter* writer, const T* inPtr)
+    static_assert(Alignment <= 16);
+
+    struct Attachment
     {
-        const uint64 chunkStart = AllocateChunk(writer);
+        SizeType ptrOffset;
+        SizeType alignment;
+        SizeType sizeBytes;
+        const void* data;
+        SizeType finalCalculatedOffset = 0;
+    };
 
-        Result result = T::Serialize(writer, inPtr);
+    static constexpr uint32 MaxAttachments = 8;
 
-        if (result.HasError())
+    Attachment attachments[MaxAttachments];
+    uint32 attachmentCount = 0;
+
+    const T* objBase;
+
+public:
+    explicit TInlineBlobBuilder(const T* objBase)
+        : objBase(objBase)
+    {
+        Assert(objBase != nullptr);
+    }
+
+    template <class ElementType>
+    TInlineBlobBuilder& Append(SizeType memberOffset, Span<const ElementType> span)
+    {
+        Assert(attachmentCount < MaxAttachments);
+
+        attachments[attachmentCount++] = {
+            memberOffset,
+            alignof(ElementType),
+            span.Size() * sizeof(ElementType),
+            span.Data()
+        };
+
+        return *this;
+    }
+
+    T* Build(BlobHeader& outHeader)
+    {
+        outHeader = {};
+
+        SizeType totalSize = sizeof(T);
+        
+        for (uint32 i = 0; i < attachmentCount; i++)
         {
-            return { result.GetError() };
+            totalSize = ByteUtil::AlignAs(totalSize, attachments[i].alignment);
+            attachments[i].finalCalculatedOffset = totalSize;
+            
+            totalSize += attachments[i].sizeBytes;
         }
 
-        SizeType payloadSize;
-        UpdatePayloadSize(writer, chunkStart, payloadSize);
+        T* ptr = (T*)HYP_ALLOC_ALIGNED(totalSize, Alignment);
+        if (!ptr)
+        {
+            return nullptr;
+        }
 
-        return BlobResourceKey { chunkStart, payloadSize };
+        uint8* basePtr = reinterpret_cast<uint8*>(ptr);
+
+        // copy the struct data to the base ptr before
+        // filling out the attachment data
+        Memory::Copy(basePtr, objBase, sizeof(T));
+
+        for (uint32 i = 0; i < attachmentCount; i++)
+        {
+            const auto& att = attachments[i];
+
+            if (att.sizeBytes > 0 && att.data != nullptr)
+            {
+                Memory::Copy(basePtr + att.finalCalculatedOffset, att.data, att.sizeBytes);
+            }
+
+            int32 relativeJump = int32(att.finalCalculatedOffset - att.ptrOffset);
+
+            Memory::Copy(basePtr + att.ptrOffset, &relativeJump, sizeof(int32));
+        }
+        
+        static_assert(sizeof(outHeader.magic) <= sizeof(T::Header) && std::is_array_v<decltype(T::Header)>);
+
+        Memory::Copy(outHeader.magic, T::Header, sizeof(outHeader.magic));
+
+        outHeader.version = uint8(T::Version);
+        outHeader.payloadOffset = uint16(ByteUtil::AlignAs(sizeof(BlobHeader), Alignment) - sizeof(BlobHeader));
+        outHeader.payloadSize = uint64(totalSize);
+
+        return ptr;
     }
-
-private:
-    HYP_NODISCARD uint64 AllocateChunk(ByteWriter* writer)
-    {
-        SizeType payloadSize = sizeof(T);
-        SizeType totalSize = sizeof(BlobChunkHeader) + payloadSize;
-        
-        SizeType currentSize = writer->Position();
-        SizeType padding = (16 - (currentSize % 16)) % 16;
-        SizeType chunkStart = currentSize + padding;
-        
-        BlobChunkHeader header {};
-        header.version = T::Version;
-        header.payloadSize = payloadSize;
-        
-        static_assert(sizeof(T::Header) >= 4, "T::Header must be at least 4 characters long");
-        Memory::StrCpy(header.magic, T::Header, 4);
-
-        writer->Write<BlobChunkHeader>(header);
-        
-        return chunkStart;
-    }
-
-    void UpdatePayloadSize(ByteWriter* writer, uint64 chunkStart, SizeType& outPayloadSize)
-    {
-        uint64 pos = writer->Position();
-        Assert(chunkStart < pos);
-
-        const uint64 dist = chunkStart - pos;
-        const uint64 payloadSize = dist - sizeof(BlobChunkHeader);
-
-        const SizeType head = writer->Position();
-
-        writer->Seek(chunkStart + offsetof(BlobChunkHeader, payloadSize));
-        writer->Write<uint64>(payloadSize);
-        writer->Seek(head);
-
-        outPayloadSize = payloadSize;
-    }
-
 };
 
 } // namespace Hyperion
