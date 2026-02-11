@@ -496,11 +496,6 @@ public:
             && m_mappedView.IsOpen();
     }
 
-    SizeType GetBaseOffset() const
-    {
-        return m_baseOffset;
-    }
-
 private:
     MemoryMappedFile* m_mappedFile;
     MemoryMappedFileView m_mappedView;

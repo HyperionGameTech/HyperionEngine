@@ -127,6 +127,8 @@ public:
         return m_flags;
     }
 
+    void SetBlobStorageEnabled(bool enabled);
+
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsTransient() const
     {

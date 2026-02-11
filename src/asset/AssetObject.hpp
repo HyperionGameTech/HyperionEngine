@@ -3,6 +3,8 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/BlobStorageStructs.hpp>
+#include <asset/BlobBuilder.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
@@ -29,6 +31,7 @@ enum class ChunkId : uint32;
 class AssetPackage;
 class AssetObject;
 class ByteWriter;
+class BlobStorage;
 
 class BufferedReader;
 using BufferedByteReader = BufferedReader;
@@ -62,27 +65,25 @@ public:
 
     virtual ~AssetDataResourceBase() override = default;
 
-    /*! \brief Initialize the resource data from the given stream.
-     *  \param stream The stream to read from.
-     *  \return Result indicating success or failure of the operation. */
-    Result LoadFromStream(BufferedReader& stream);
+    void WriteToBlobStorage(BlobStorage& blobStorage) const;
 
 protected:
     AssetDataResourceBase()
         : m_assetObject(nullptr),
-          m_hasData(false)
+          m_hasData(false),
+          m_readOnlyData(false)
     {
     }
 
     virtual void Initialize() override final;
     virtual void Destroy() override final;
 
-    Result Load_Internal();
-    Result Save_Internal(const FilePath& path);
-
     virtual void Unload_Internal() = 0;
 
-    virtual void Extract_Internal(AnyRef ref) = 0;
+    virtual void InitReadOnlyData(const void* src) = 0;
+    virtual void InitReadWriteData() = 0;
+
+    //virtual TResult<BlobResourceKey> SerializeBlob(ByteWriter* writer) const = 0;
 
     HYP_FORCE_INLINE bool IsDataLoaded() const
     {
@@ -95,6 +96,7 @@ protected:
 
     AssetObject* m_assetObject;
     bool m_hasData;
+    bool m_readOnlyData;
 };
 
 template <class T>
@@ -105,14 +107,16 @@ public:
 
     AssetDataResource(const T& data)
     {
-        m_dataStorage.Construct(data);
+        m_dataPtr = PoolNew<NormalizedType<T>>(*g_assetPool, data);
         m_hasData = true;
+        m_readOnlyData = false;
     }
 
     AssetDataResource(T&& data)
     {
-        m_dataStorage.Construct(std::move(data));
+        m_dataPtr = PoolNew<NormalizedType<T>>(*g_assetPool, std::move(data));
         m_hasData = true;
+        m_readOnlyData = false;
     }
 
     AssetDataResource(const AssetDataResource&) = delete;
@@ -123,10 +127,12 @@ public:
 
     virtual ~AssetDataResource() override
     {
-        if (m_hasData)
+        if (m_hasData && !m_readOnlyData)
         {
             m_hasData = false;
-            m_dataStorage.Destruct();
+
+            PoolDelete(*g_assetPool, m_dataPtr);
+            m_dataPtr = nullptr;
         }
     }
 
@@ -137,35 +143,57 @@ public:
 
     virtual void* GetData() override
     {
-        return m_hasData ? m_dataStorage.GetPointer() : nullptr;
+        return m_dataPtr;
     }
 
 protected:
     virtual void Unload_Internal() override
     {
-        if (m_hasData)
+        if (m_hasData && !m_readOnlyData)
         {
             m_hasData = false;
-
-            m_dataStorage.Destruct();
+            
+            PoolDelete(*g_assetPool, m_dataPtr);
+            m_dataPtr = nullptr;
         }
     }
 
-    virtual void Extract_Internal(AnyRef ref) override
+    virtual void InitReadOnlyData(const void* src) override
     {
-        if (m_hasData)
+        if (m_hasData && !m_readOnlyData)
         {
-            m_dataStorage.Get() = ref.Get<T>();
+            PoolDelete(*g_assetPool, m_dataPtr);
         }
-        else
-        {
-            m_dataStorage.Construct(ref.Get<T>());
 
-            m_hasData = true;
-        }
+        m_dataPtr = reinterpret_cast<T*>(const_cast<void*>(src));
+        m_hasData = m_dataPtr != nullptr;
+        m_readOnlyData = true;
     }
+    
+    virtual void InitReadWriteData() override
+    {
+        Assert(m_hasData);
 
-    ValueStorage<T> m_dataStorage;
+        if (!m_readOnlyData)
+        {
+            return;
+        }
+
+        T* newDataPtr = PoolNew<T>(*g_assetPool, *m_dataPtr);
+        m_dataPtr = newDataPtr;
+
+        m_readOnlyData = false;
+    }
+    
+    /*virtual TResult<BlobResourceKey> SerializeBlob(ByteWriter* writer) const override
+    {
+        Assert(m_dataPtr != nullptr);
+
+        TBlobBuilder<T> builder;
+        return builder.Serialize(writer, m_dataPtr);
+    }*/
+
+    T* m_dataPtr;
 };
 
 HYP_ENUM()
@@ -278,6 +306,11 @@ public:
         return m_resource;
     }
 
+    HYP_FORCE_INLINE const BlobResourceKey& GetBlobKey() const
+    {
+        return m_blobKey;
+    }
+
     HYP_METHOD()
     const AssetPath& GetPath() const
     {
@@ -344,7 +377,6 @@ public:
 
     static Result Load(
         JSON::Object& manifestData,
-        BufferedReader* binStream, // optional
         Handle<AssetObject>& outAssetObject);
 
 protected:
@@ -402,7 +434,10 @@ protected:
     WeakHandle<AssetPackage> m_package;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    AssetDataResourceBase* m_resource;
+    AssetDataResourceBase* m_resource; // @TODO remove when all is using blobs
+
+    HYP_FIELD()
+    BlobResourceKey m_blobKey;
 
     HYP_FIELD(Transient)
     AssetPath m_assetPath;

@@ -234,6 +234,9 @@ static bool IsPackageInList(
  *   This is to be used primarily for internal packages (e.g $Temp, Engine) */
 static bool ShouldSavePackageOnChanged(const AssetPackage& package)
 {
+    // TEMP: Return false until blob storage is figured out
+    return false;
+
     if (package.IsTransient())
     {
         return false;
@@ -456,12 +459,6 @@ void AssetPackage::Init()
         {
             MarkDirty(); // if not saving assets right now, need to mark it to be saved later
         }
-
-        if (m_flags[AssetPackageFlags::HasBlobStorage])
-        {
-            // we have our own blob storage
-            InitBlobStorage();
-        }
     }
 
     for (const Handle<AssetObject>& assetObject : assetObjects)
@@ -495,6 +492,24 @@ void AssetPackage::Init()
     }
 
     SetReady(true);
+}
+
+void AssetPackage::SetBlobStorageEnabled(bool enabled)
+{
+    if (enabled)
+    {
+        m_flags |= AssetPackageFlags::HasBlobStorage;
+    }
+    else
+    {
+        m_flags &= ~AssetPackageFlags::HasBlobStorage;
+
+        if (m_blobStorage != nullptr)
+        {
+            m_blobStorage->Release();
+            m_blobStorage = nullptr;
+        }
+    }
 }
 
 bool AssetPackage::IsSubpackageOf(const AssetPackage& other) const
@@ -915,32 +930,8 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
 
                     return Handle<AssetObject>::empty;
                 }
-
-                const FilePath binPath = manifestPath.StripExtension();
-
-                BufferedReader* dataStream = nullptr;
-                FileBufferedReaderSource* dataSource = nullptr;
-
-                if (binPath.Exists() && !binPath.IsDirectory())
-                {
-                    dataSource = new FileBufferedReaderSource { binPath };
-                    dataStream = new BufferedReader { dataSource };
-                }
-
-                HYP_DEFER({
-                    if (dataStream)
-                    {
-                        dataStream->Close();
-                        delete dataStream;
-                    }
-
-                    if (dataSource)
-                    {
-                        delete dataSource;
-                    }
-                });
                 
-                Result loadResult = AssetObject::Load(manifestData, dataStream, assetObject);
+                Result loadResult = AssetObject::Load(manifestData, assetObject);
 
                 if (loadResult.HasError())
                 {
@@ -1454,10 +1445,10 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         }
 
         manifestWriter.Close();
-
-        if (packageDir != m_packageDir)
+        
+        if (m_flags[AssetPackageFlags::HasBlobStorage])
         {
-            if (m_flags[AssetPackageFlags::HasBlobStorage])
+            if (packageDir != m_packageDir)
             {
                 Assert(m_blobStorage != nullptr);
 
@@ -1469,9 +1460,13 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
                 *m_blobStorage = BlobStorage(BlobStorageName, /* readOnly */ false);
                 InitBlobStorage(*m_blobStorage, /* readOnly */ false);
             }
-            
-            m_packageDir = packageDir;
+            else
+            {
+                InitBlobStorage(/* readOnly */ false);
+            }
         }
+            
+        m_packageDir = packageDir;
     }
 
     Name packageName = m_name;
@@ -3234,33 +3229,9 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
                 }
             }
 
-            const FilePath binPath = entry.StripExtension();
-
-            BufferedReader* dataStream = nullptr;
-            FileBufferedReaderSource* dataSource = nullptr;
-
-            if (binPath.Exists() && !binPath.IsDirectory())
-            {
-                dataSource = new FileBufferedReaderSource { binPath };
-                dataStream = new BufferedReader { dataSource };
-            }
-
-            HYP_DEFER({
-                if (dataStream)
-                {
-                    dataStream->Close();
-                    delete dataStream;
-                }
-
-                if (dataSource)
-                {
-                    delete dataSource;
-                }
-            });
-
             Handle<AssetObject> assetObject;
 
-            if (Result loadAssetResult = AssetObject::Load(manifestData, dataStream, assetObject); loadAssetResult.HasError())
+            if (Result loadAssetResult = AssetObject::Load(manifestData, assetObject); loadAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 

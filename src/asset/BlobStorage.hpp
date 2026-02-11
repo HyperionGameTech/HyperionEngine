@@ -8,6 +8,7 @@
 #include <core/containers/HashMap.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
+#include <core/utilities/Range.hpp>
 
 #include <core/threading/SharedMutex.hpp>
 
@@ -53,12 +54,19 @@ public:
 
     ~BlobStorage();
 
+    ByteWriter* GetWriteStream();
+    ByteReader* GetReadStream();
+
+    void LinkAllocation(const BlobResourceKey& key);
+
     void EnsureCapacity(SizeType capacity);
     
-    bool Map(SizeType offset, SizeType size, BlobAllocation& outAllocation);
-    void Unmap(const BlobAllocation& allocation);
+    HYP_NODISCARD void* Map(const BlobResourceKey& key);
+    void Unmap(const BlobResourceKey& key);
 
     void Write(SizeType offset, SizeType size, const void* src);
+
+    bool Allocate(SizeType size, SizeType alignment, const void* src, BlobResourceKey& outKey);
 
     void CopyTo(BlobStorage& other);
 
@@ -70,16 +78,24 @@ public:
 private:
     bool InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minRequiredSize = 0);
 
-    void RemapAddresses(UIntPtr newBase, UIntPtr oldBase);
-
+    HYP_FIELD()
     ANSIString m_name;
+
+    HYP_FIELD()
+    uint64 m_cursor;
+
+    HYP_FIELD()
+    Array<BlobMappingRange> m_freeRanges; // <---- TODO make use of this
+    
+    bool m_readOnly;
 
     HashMap<BlobResourceKey, void*> m_allocations;
 
     MemoryMappedFile* m_file;
     MemoryMappedFileView m_view;
-    
-    bool m_readOnly;
+
+    ByteWriter* m_writeStream;
+    ByteReader* m_readStream;
 };
 
 } // namespace Hyperion

@@ -6,12 +6,20 @@
 
 namespace Hyperion {
 
-enum class ChunkId : uint32;
-
 struct BlobResourceKey
 {
-    SizeType offset;
-    SizeType size;
+    SizeType offset = 0;
+    SizeType size = 0;
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return size != 0;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return size == 0;
+    }
 
     HYP_FORCE_INLINE constexpr bool operator==(const BlobResourceKey& other) const
     {
@@ -26,15 +34,35 @@ struct BlobResourceKey
     }
 };
 
+struct BlobChunkHeader
+{
+    char magic[4];
+    uint8 version;
+    uint8 padding[3];
+    uint64 payloadSize;
+};
+
+HYP_STRUCT()
+struct BlobMappingRange
+{
+    HYP_STRUCT_BODY(BlobMappingRange)
+
+    HYP_FIELD()
+    uint64 start = 0;
+    
+    HYP_FIELD()
+    uint64 end = 0;
+};
+
 /*! \brief Wrapper around a pointer that is stored in a blob */
 template <class T>
 struct BlobPointer
 {
-    ptrdiff_t offset;
+    int32 offset;
 
     BlobPointer() : offset(0) {}
 
-    explicit BlobPointer(ptrdiff_t offset)
+    explicit BlobPointer(int32 offset)
         : offset(offset)
     {
     }
@@ -62,5 +90,12 @@ struct BlobPointer
         return Get()[index];
     }
 };
+
+template <class T>
+concept BlobSerializable = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+    && requires {
+        { T::Version } -> std::convertible_to<uint8>;
+        { T::Header } -> std::convertible_to<const char*>;
+    };
 
 } // namespace Hyperion

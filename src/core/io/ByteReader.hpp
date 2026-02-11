@@ -367,7 +367,6 @@ public:
         MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY)
         : m_mappedFile(mappedFile),
           m_pos(0),
-          m_baseOffset(0),
           m_ownsFile(false)
     {
         HYP_CORE_ASSERT(mappedFile != nullptr);
@@ -377,8 +376,6 @@ public:
 
         const bool mapped = m_mappedFile->MapRange(offset, 0, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range");
-
-        m_baseOffset = m_mappedView.FileOffset();
     }
 
     MemoryMappedByteReader(
@@ -387,7 +384,6 @@ public:
         MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY)
         : m_mappedFile(new MemoryMappedFile(filepath, mode)),
           m_pos(0),
-          m_baseOffset(0),
           m_ownsFile(true)
     {
         const bool opened = m_mappedFile->Open();
@@ -395,8 +391,6 @@ public:
 
         const bool mapped = m_mappedFile->MapRange(offset, 0, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
-
-        m_baseOffset = m_mappedView.FileOffset();
     }
 
     MemoryMappedByteReader(
@@ -406,7 +400,6 @@ public:
         MemoryMappedFile::Mode mode = MemoryMappedFile::Mode::READ_ONLY)
         : m_mappedFile(new MemoryMappedFile(filepath, mode)),
           m_pos(0),
-          m_baseOffset(0),
           m_ownsFile(true)
     {
         const bool opened = m_mappedFile->Open();
@@ -414,8 +407,6 @@ public:
 
         const bool mapped = m_mappedFile->MapRange(offset, size, m_mappedView);
         HYP_CORE_ASSERT(mapped, "Failed to map memory range: %s", filepath.Data());
-
-        m_baseOffset = m_mappedView.FileOffset();
     }
 
     virtual ~MemoryMappedByteReader() override
@@ -490,11 +481,6 @@ public:
             ? m_mappedFile->GetMode()
             : MemoryMappedFile::Mode::READ_ONLY;
     }
-
-    SizeType GetBaseOffset() const
-    {
-        return m_baseOffset;
-    }
     
     virtual SizeType Read(void* ptr, SizeType size) override
     {
@@ -552,7 +538,6 @@ protected:
     MemoryMappedFileView m_mappedView;
 
     SizeType m_pos;
-    SizeType m_baseOffset;
 
     bool m_ownsFile;
 };

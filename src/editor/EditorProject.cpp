@@ -13,7 +13,7 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
 #include <asset/BlobStorage.hpp>
-#include <asset/BlobResource.hpp>
+#include <asset/BlobStorageStructs.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -171,7 +171,7 @@ Result EditorProject::CreatePackage()
 
             // temp
             m_package->InitBlobStorage(/* readOnly */ false);
-            m_package->GetBlobStorage()->EnsureCapacity(1 * 1024 * 1024);
+            //m_package->GetBlobStorage()->EnsureCapacity(1 * 1024 * 1024);
 
             // temp debug
             static const Array<Vertex> quadVertices = {
@@ -206,9 +206,18 @@ Result EditorProject::CreatePackage()
             //Assert(m_package->GetBlobStorage()->Map(ByteUtil::AlignAs(totalSize, 16), totalSize, allocation2));
             //Memory::Copy(allocation2.address, md2, totalSize);
 
-            m_package->GetBlobStorage()->Write(0, totalSize, md2);
-            m_package->GetBlobStorage()->Write(ByteUtil::AlignAs(totalSize, 16), totalSize, md2);
+            //m_package->GetBlobStorage()->Write(0, totalSize, md2);
+            //m_package->GetBlobStorage()->Write(ByteUtil::AlignAs(totalSize, 16), totalSize, md2);
+            ByteWriter* writer = m_package->GetBlobStorage()->GetWriteStream();
+            Assert(writer != nullptr);
             
+            TBlobBuilder<MeshData2> builder;
+            auto res = builder.Serialize(writer, md2);
+            Assert(!res.HasError());
+
+            auto& value = res.GetValue();
+            HYP_LOG_TEMP("offset = {}, size = {}", value.offset, value.size);
+
             OnPackageCreated(m_package);
 
             return {};
@@ -462,10 +471,10 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     // temp debug
     if (BlobStorage* blobStorage = project->m_package->GetBlobStorage())
     {
-        BlobAllocation allocation;
-        Assert(blobStorage->Map(0, 552, allocation));
+        BlobResourceKey key { 0, 552 };
 
-        void* blobPtr = allocation.address;
+        void* blobPtr = blobStorage->Map(key);
+        Assert(blobPtr != nullptr);
 
         //MeshData2* md2 = (MeshData2*)Memory::Allocate(552);
         //Memory::Copy(md2, blobPtr, 552);
@@ -486,7 +495,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
         HYP_BREAKPOINT;
 
-        blobStorage->Unmap(allocation);
+        blobStorage->Unmap(key);
     }
 
     // set transient properties

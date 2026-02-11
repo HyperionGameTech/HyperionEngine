@@ -4,6 +4,7 @@
 
 #include <asset/AssetObject.hpp>
 #include <asset/BlobStorageStructs.hpp>
+#include <asset/BlobBuilder.hpp>
 
 #include <core/reflection/ObjectFwd.hpp>
 
@@ -60,10 +61,35 @@ struct MeshData
 
 struct MeshData2
 {
+    static constexpr uint8_t Version = 2;
+    static constexpr const char* Header = "MESH";
+
+    uint32 numVertices;
+    uint32 numIndices;
+
     BlobPointer<Vertex> vertexData;
     BlobPointer<uint32> indexData;
 
     MeshData2() = default;
+
+    static Result Serialize(ByteWriter* writer, const MeshData2* inPtr)
+    {
+        writer->Write(inPtr->numVertices);
+        writer->Write(inPtr->numIndices);
+
+        writer->Write(inPtr->vertexData);
+        writer->Write(inPtr->indexData);
+        
+        SizeType head = writer->Position();
+
+        writer->Seek(head + inPtr->vertexData.offset);
+        writer->Write(&inPtr->vertexData[0], sizeof(Vertex) * inPtr->numVertices);
+
+        writer->Seek(head + inPtr->indexData.offset);
+        writer->Write(&inPtr->indexData[0], sizeof(uint32) * inPtr->numIndices);
+
+        return {};
+    }
 
     static MeshData2* CreateMeshData(Span<const Vertex> vertices, Span<const uint32> indices, SizeType& outTotalSize)
     {

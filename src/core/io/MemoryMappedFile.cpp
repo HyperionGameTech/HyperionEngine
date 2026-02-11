@@ -539,6 +539,21 @@ void MemoryMappedFile::SetMode(Mode mode)
     m_impl->mode = mode;
 }
 
+bool MemoryMappedFile::EnsureCapacity(SizeType capacity)
+{
+    if (!m_impl || !IsOpen())
+    {
+        return false;
+    }
+
+    if (capacity <= m_impl->fileSize)
+    {
+        return true;
+    }
+
+    return Resize(capacity);
+}
+
 bool MemoryMappedFile::Resize(SizeType newSize)
 {
     if (!m_impl || !IsOpen())

@@ -68,151 +68,17 @@ static Name GetUniqueName(Name baseName, T&& elements)
 
 #pragma region AssetResourceBase
 
-Result AssetDataResourceBase::LoadFromStream(BufferedReader& stream)
-{
-    HYP_SCOPE;
-
-    FBOMLoadContext context;
-    FBOMReader reader { FBOMReaderConfig {} };
-    FBOMResult err;
-
-    BoxedValue boxed;
-    if ((err = reader.Deserialize(context, stream, boxed)))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
-    }
-
-    Extract_Internal(boxed.ToRef());
-    boxed.Reset();
-
-    Assert(GetData() != nullptr);
-
-    return {};
-}
-
 void AssetDataResourceBase::Initialize()
 {
-    HYP_SCOPE;
-
-    Assert(m_assetObject != nullptr);
-
-    if (IsDataLoaded())
-    {
-        HYP_LOG(Assets, Debug, "Asset '{}' already has data loaded in Initialize()", m_assetObject->GetName());
-    
-        return;
-    }
-
-    if (m_assetObject->IsTransient())
-    {
-        HYP_LOG(Assets, Warning, "Attempted to load transient asset {} from disk!", m_assetObject->GetPath().ToString());
-
-        return;
-    }
-
-    HYP_LOG(Assets, Debug, "Loading asset '{}'", m_assetObject->GetName());
-
-    if (Result result = Load_Internal(); result.HasError())
-    {
-        HYP_LOG(Assets, Error, "Failed to load asset '{}': {}", m_assetObject->GetName(), result.GetError().GetMessage());
-
-        return;
-    }
-
-    HYP_LOG(Assets, Debug, "Successfully loaded asset '{}'", m_assetObject->GetName());
 }
 
 void AssetDataResourceBase::Destroy()
 {
-    HYP_SCOPE;
-
-    AssertDebug(m_assetObject->IsSaved(),
-        "Unloading asset data for asset that is not saved to disk, may cause problems later down the line");
-
-    HYP_LOG(Assets, Debug, "Unloading asset '{}'", m_assetObject->IsRegistered() ? *m_assetObject->GetPath().ToString() : *m_assetObject->GetName());
-
-    if (GetData() == nullptr)
-    {
-        HYP_LOG(Assets, Warning, "Asset '{}' has no data to unload", m_assetObject->GetName());
-
-        return;
-    }
-
-    Unload_Internal();
 }
 
-Result AssetDataResourceBase::Load_Internal()
+void AssetDataResourceBase::WriteToBlobStorage(BlobStorage& blobStorage) const
 {
-    HYP_SCOPE;
-
-    Assert(m_assetObject != nullptr);
-
-    BufferedReader stream;
-
-    HYP_DEFER({
-        if (stream.GetSource() != nullptr)
-        {
-            delete stream.GetSource();
-        }
-
-        stream.Close();
-    });
-
-    if (Result openStreamResult = m_assetObject->OpenBinaryReadStream(stream); openStreamResult.HasError())
-    {
-        return openStreamResult;
-    }
-
-    if (Result loadResult = LoadFromStream(stream); loadResult.HasError())
-    {
-        return loadResult;
-    }
-
-    return {};
-}
-
-Result AssetDataResourceBase::Save_Internal(const FilePath& path)
-{
-    HYP_SCOPE;
-    // mutex will already be locked by the asset object that owns this
-
-    Assert(m_assetObject != nullptr);
-
-    FBOMWriter writer { FBOMWriterConfig {} };
-
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetDataTypeInfo().id);
-    Assert(marshal != nullptr, "No marshal for asset data of type {}", GetDataTypeInfo().name);
-
-    FBOMObject object;
-
-    void* pData = GetData();
-
-    if (!pData)
-    {
-        return HYP_MAKE_ERROR(Error, "Asset data reference is invalid!");
-    }
-
-    if (FBOMResult err = marshal->Serialize(ConstAnyRef(&GetDataTypeInfo(), pData), object))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
-    }
-
-    Assert(object.GetType().GetNativeTypeId() == GetDataTypeInfo().id,
-        "Object must have a native TypeId associated to be deserialized properly! Expected: {}, Got serialized type: {}",
-        GetDataTypeInfo().name,
-        object.GetType().ToString(true));
-
-    writer.Append(std::move(object));
-
-    FileByteWriter byteWriter { path };
-    if (FBOMResult err = writer.Emit(&byteWriter))
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to write asset to disk: {}", err.message);
-    }
-
-    HYP_LOG(Assets, Debug, "Saved asset to '{}'", path);
-
-    return {};
+    HYP_NOT_IMPLEMENTED();
 }
 
 #pragma endregion AssetResourceBase
@@ -221,6 +87,7 @@ Result AssetDataResourceBase::Save_Internal(const FilePath& path)
 
 AssetObject::AssetObject()
     : m_resource(nullptr),
+      m_blobKey {},
       m_flags(AssetObjectFlags::None),
       m_isDirty(0)
 {
@@ -229,6 +96,7 @@ AssetObject::AssetObject()
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
       m_resource(nullptr),
+      m_blobKey {},
       m_flags(AssetObjectFlags::None),
       m_isDirty(0)
 {
@@ -439,6 +307,12 @@ Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
 
+    Handle<AssetPackage> package = m_package.Lock();
+    if (!package.IsValid())
+    {
+        return HYP_MAKE_ERROR(Error, "Asset package is invalid");
+    }
+
     // save our manifest first
     if (manifestPath.Empty())
     {
@@ -480,34 +354,54 @@ Result AssetObject::Save(const FilePath& manifestPath)
     {
         AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
 
-        // must load before saving if saving to a different place and not currently in memory.
-        bool requiresLoad = !resource->IsDataLoaded();
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
 
-        ResourceGuard resGuard;
+        ByteWriter* writer = blobStorage->GetWriteStream();
+        Assert(writer != nullptr);
 
-        if (requiresLoad)
+        // @TODO if blob info already exists we can use that IF the offset+size won't trample over
+        // any other entries. otherwise we need to null it out and mark it as a free range
+
+        /*TResult<BlobResourceKey> result = resource->SerializeBlob(writer);
+        if (result.HasError())
         {
-            requiresLoad = false;
-
-            Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
-                m_name);
-
-            resGuard = resource->GetReadScope();
-
-            if (!resource->IsDataLoaded())
-            {
-                return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
-            }
+            return Error(result.GetError());
         }
 
-        // get bin path from manifest path by removing .json extension
-        const FilePath binPath = manifestPath.StripExtension();
-        Assert(!binPath.Empty() && binPath != manifestPath);
+        m_blobKey = result.GetValue();*/
 
-        if (Result saveResourceResult = resource->Save_Internal(binPath); saveResourceResult.HasError())
-        {
-            return saveResourceResult.GetError();
-        }
+
+
+
+        //// must load before saving if saving to a different place and not currently in memory.
+        //bool requiresLoad = !resource->IsDataLoaded();
+
+        //ResourceGuard resGuard;
+
+        //if (requiresLoad)
+        //{
+        //    requiresLoad = false;
+
+        //    Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
+        //        m_name);
+
+        //    resGuard = resource->GetReadScope();
+
+        //    if (!resource->IsDataLoaded())
+        //    {
+        //        return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
+        //    }
+        //}
+
+        //// get bin path from manifest path by removing .json extension
+        //const FilePath binPath = manifestPath.StripExtension();
+        //Assert(!binPath.Empty() && binPath != manifestPath);
+
+        //if (Result saveResourceResult = resource->Save_Internal(binPath); saveResourceResult.HasError())
+        //{
+        //    return saveResourceResult.GetError();
+        //}
     }
 
     HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
@@ -544,15 +438,9 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
 Result AssetObject::Load(
     JSON::Object& manifestData,
-    BufferedReader* binStream,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
-
-    if (binStream && !binStream->IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Data stream given, but it is not open");
-    }
 
     JSON::Value classNameValue = manifestData["$Class"];
 
@@ -573,22 +461,6 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Class '{}' is not derived from AssetObject!", classNameValue.AsString());
     }
 
-    BoxedValue binDataBoxed;
-
-    if (binStream)
-    {
-        FBOMLoadContext context;
-        FBOMReader reader { FBOMReaderConfig {} };
-        FBOMResult err;
-
-        if ((err = reader.Deserialize(context, *binStream, binDataBoxed)))
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to load asset: {}", err.message);
-        }
-
-        AssertDebug(binDataBoxed.IsValid());
-    }
-
     BoxedValue targetData;
     if (!cls->CreateInstance(targetData))
     {
@@ -596,7 +468,6 @@ Result AssetObject::Load(
     }
 
     AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
-    const bool loadBinData = targetAssetObject->m_resource != nullptr;
 
     // remove class property
     manifestData.Erase("$Class");
@@ -608,17 +479,18 @@ Result AssetObject::Load(
 
     AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(targetAssetObject->m_resource);
 
-    if (loadBinData)
+    if (targetAssetObject->GetBlobKey())
     {
-        AssertDebug(resource != nullptr);
-        AssertDebug(binDataBoxed.IsValid());
+        Handle<AssetPackage> package = targetAssetObject->GetPackage();
+        Assert(package.IsValid());
 
-        if (binDataBoxed.IsValid())
-        {
-            resource->Extract_Internal(binDataBoxed.ToRef());
-        }
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
 
-        AssertDebug(resource->GetData() != nullptr);
+        void* address = blobStorage->Map(targetAssetObject->GetBlobKey());
+        Assert(address != nullptr);
+
+        resource->InitReadOnlyData(address);
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);

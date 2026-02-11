@@ -1,7 +1,6 @@
 /* Copyright (c) 2026 No Tomorrow Games. All rights reserved. */
 
 #include <asset/BlobStorage.hpp>
-#include <asset/BlobResource.hpp>
 
 #include <io/ByteReader.hpp>
 #include <io/ByteWriter.hpp>
@@ -12,28 +11,40 @@ namespace Hyperion {
 
 BlobStorage::BlobStorage()
     : m_name("INVALID_BLOB_STORAGE"),
+      m_cursor(0),
       m_readOnly(true),
-      m_file(nullptr)
+      m_file(nullptr),
+      m_writeStream(nullptr),
+      m_readStream(nullptr)
 {
 }
 
 BlobStorage::BlobStorage(const ANSIString& name, bool readOnly)
     : m_name(name),
+      m_cursor(0),
       m_readOnly(readOnly),
-      m_file(nullptr)
+      m_file(nullptr),
+      m_writeStream(nullptr),
+      m_readStream(nullptr)
 {
 }
 
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
     : callbacks(std::move(other.callbacks)),
+      m_cursor(other.m_cursor),
       m_name(std::move(other.m_name)),
+      m_readOnly(other.m_readOnly),
+      m_freeRanges(std::move(other.m_freeRanges)),
       m_file(other.m_file),
       m_view(std::move(other.m_view)),
       m_allocations(std::move(other.m_allocations)),
-      m_readOnly(other.m_readOnly)
+      m_writeStream(other.m_writeStream),
+      m_readStream(other.m_readStream)
 {
-    other.m_file = nullptr;
     other.callbacks = {};
+    other.m_file = nullptr;
+    other.m_writeStream = nullptr;
+    other.m_readStream = nullptr;
 }
 
 BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
@@ -53,13 +64,19 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     callbacks = std::move(other.callbacks);
 
     m_name = std::move(other.m_name);
+    m_cursor = other.m_cursor;
+    m_readOnly = other.m_readOnly;
+    m_freeRanges = std::move(other.m_freeRanges);
     m_file = other.m_file;
     m_view = std::move(other.m_view);
     m_allocations = std::move(other.m_allocations);
-    m_readOnly = other.m_readOnly;
+    m_writeStream = other.m_writeStream;
+    m_readStream = other.m_readStream;
 
-    other.m_file = nullptr;
     other.callbacks = {};
+    other.m_file = nullptr;
+    other.m_writeStream = nullptr;
+    other.m_readStream = nullptr;
 
     return *this;
 }
@@ -74,6 +91,91 @@ BlobStorage::~BlobStorage()
     }
 }
 
+ByteWriter* BlobStorage::GetWriteStream()
+{
+    if (m_writeStream != nullptr)
+    {
+        return m_writeStream;
+    }
+
+    Assert(!m_readOnly, "Cannot get a write stream for read-only BlobStorage");
+    
+    MemoryMappedFile* file;
+    Assert(InitMappedFile(file));
+
+    m_writeStream = new MemoryMappedByteWriter(file);
+    m_writeStream->Seek(m_cursor);
+
+    return m_writeStream;
+}
+
+ByteReader* BlobStorage::GetReadStream()
+{
+    if (m_readStream != nullptr)
+    {
+        return m_readStream;
+    }
+
+    MemoryMappedFile* file;
+    Assert(InitMappedFile(file));
+
+    m_readStream = new MemoryMappedByteReader(file);
+    m_readStream->Seek(0);
+
+    return m_readStream;
+}
+
+void BlobStorage::LinkAllocation(const BlobResourceKey& key)
+{
+    const SizeType allocationStart = key.offset;
+    const SizeType allocationEnd = key.offset + key.size;
+
+    m_cursor = MathUtil::Max(m_cursor, allocationEnd);
+
+    for (SizeType i = 0; i < m_freeRanges.Size(); )
+    {
+        BlobMappingRange& range = m_freeRanges[i];
+
+        // No overlap
+        if (range.end <= allocationStart || range.start >= allocationEnd)
+        {
+            ++i;
+            continue;
+        }
+
+        // Allocation completely covers this free range - remove it
+        if (allocationStart <= range.start && allocationEnd >= range.end)
+        {
+            m_freeRanges.EraseAt(i);
+            continue;
+        }
+
+        // Allocation splits this free range into two parts
+        if (allocationStart > range.start && allocationEnd < range.end)
+        {
+            BlobMappingRange rightPart;
+            rightPart.start = allocationEnd;
+            rightPart.end = range.end;
+
+            range.end = allocationStart;
+
+            m_freeRanges.Insert(m_freeRanges.Begin() + i + 1, std::move(rightPart));
+
+            break;
+        }
+
+        if (allocationStart <= range.start)
+        {
+            range.start = allocationEnd;
+            ++i;
+        }
+        else // Allocation trims the end of this free range
+        {
+            range.end = allocationStart;
+            ++i;
+        }
+    }
+}
 
 void BlobStorage::EnsureCapacity(SizeType capacity)
 {
@@ -108,6 +210,8 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minR
         m_file = nullptr;
     }*/
 
+    const SizeType previousFileSize = m_file ? m_file->FileSize() : 0;
+
     if ((m_file = callbacks.Open(callbacks.context, m_name.Data(), m_readOnly)))
     {
         outMappedFile = m_file;
@@ -122,44 +226,56 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minR
             return false;
         }
 
+        // Register newly available capacity as a free range
+        const SizeType mappedSize = MathUtil::Max(minRequiredSize, m_file->FileSize());
+
+        if (mappedSize > previousFileSize)
+        {
+            if (!m_freeRanges.Empty() && m_freeRanges.Back().end == previousFileSize)
+            {
+                m_freeRanges.Back().end = mappedSize;
+            }
+            else
+            {
+                BlobMappingRange newRange;
+                newRange.start = previousFileSize;
+                newRange.end = mappedSize;
+
+                m_freeRanges.PushBack(std::move(newRange));
+            }
+        }
+
         return true;
     }
 
     return false;
 }
 
-bool BlobStorage::Map(SizeType offset, SizeType size, BlobAllocation& outAllocation)
+void* BlobStorage::Map(const BlobResourceKey& key)
 {
-    BlobResourceKey key {};
-    key.offset = offset;
-    key.size = size;
-
     auto blobResourcesIt = m_allocations.Find(key);
     if (blobResourcesIt != m_allocations.End())
     { // @TODO we need ref count so Unmap() doesnt unmap other
-        outAllocation = { key, blobResourcesIt->second };
-        return true;
+        return blobResourcesIt->second;
     }
 
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, offset + size))
+    if (!InitMappedFile(file, key.offset + key.size))
     {
-        return false;
+        return nullptr;
     }
 
-    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset);
-    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(m_view.Data()) + size <= m_file->FileSize());
+    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + key.offset);
+    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(m_view.Data()) + key.size <= m_file->FileSize());
 
     m_allocations.Set(key, address);
 
-    outAllocation = { key, address };
-
-    return true;
+    return address;
 }
 
-void BlobStorage::Unmap(const BlobAllocation& allocation)
+void BlobStorage::Unmap(const BlobResourceKey& key)
 {
-    auto it = m_allocations.Find(allocation.key);
+    auto it = m_allocations.Find(key);
     if (it != m_allocations.End())
     {
         m_allocations.Erase(it);
@@ -175,9 +291,19 @@ void BlobStorage::Write(SizeType offset, SizeType size, const void* src)
     Assert(!m_readOnly, "Cannot write to read-only BlobStorage!");
     
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, offset + size))
+    if (!InitMappedFile(file))
     {
         HYP_FAIL("Failed to initialize mapped file for writing!");
+    }
+
+    if (file->FileSize() < offset + size)
+    {
+        Assert(m_allocations.Empty(), "Cannot resize mapped file, active mapped allocations exist");
+
+        if (!file->EnsureCapacity(offset + size))
+        {
+            HYP_FAIL("Failed to ensure capacity for file");
+        }
     }
 
     Assert(offset + size <= m_file->FileSize(), "Write range exceeds file size!");
@@ -185,6 +311,51 @@ void BlobStorage::Write(SizeType offset, SizeType size, const void* src)
     Memory::Copy(
         reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset),
         src, size);
+}
+
+HYP_NODISCARD bool BlobStorage::Allocate(
+    SizeType size, SizeType alignment, const void* src, BlobResourceKey& outKey)
+{
+    Assert(src != nullptr);
+    Assert(!m_readOnly, "Cannot allocate from read-only BlobStorage!");
+    
+    MemoryMappedFile* file = nullptr;
+    if (!InitMappedFile(file))
+    {
+        AssertDebug(false, "Failed to initialize mapped file for writing!");
+
+        return false;
+    }
+
+    if (alignment == 0)
+    {
+        alignment = 16; // default alignment is 16
+    }
+
+    const SizeType offset = ByteUtil::AlignAs(m_cursor, alignment);
+
+    if (file->FileSize() < offset + size)
+    {
+        Assert(m_allocations.Empty(), "Cannot resize mapped file, active mapped allocations exist");
+
+        if (!file->EnsureCapacity(offset + size))
+        {
+            AssertDebug(false, "Failed to ensure capacity for file");
+
+            return false;
+        }
+    }
+
+    void* dst = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset);
+    Memory::Copy(dst, src, size);
+
+    outKey = BlobResourceKey {};
+    outKey.offset = offset;
+    outKey.size = size;
+
+    m_cursor = offset + size;
+
+    return true;
 }
 
 void BlobStorage::CopyTo(BlobStorage& other)
@@ -229,10 +400,29 @@ void BlobStorage::CopyTo(BlobStorage& other)
     HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage {} -> {}", readStream.Position(), m_name, other.m_name);
 
     readStream.Close();
+    
+    other.m_cursor = m_cursor;
+    other.m_freeRanges = m_freeRanges;
 }
 
 void BlobStorage::Close()
 {
+    if (m_writeStream != nullptr)
+    {
+        m_writeStream->Close();
+
+        delete m_writeStream;
+        m_writeStream = nullptr;
+    }
+
+    if (m_readStream != nullptr)
+    {
+        m_readStream->Close();
+
+        delete m_readStream;
+        m_readStream = nullptr;
+    }
+
     m_allocations.Clear();
 
     m_view.Close();

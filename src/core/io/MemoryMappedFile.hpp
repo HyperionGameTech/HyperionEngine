@@ -79,7 +79,8 @@ public:
     Mode GetMode() const;
     void SetMode(Mode mode);
 
-    bool Resize(SizeType new_size);
+    bool Resize(SizeType newSize);
+    bool EnsureCapacity(SizeType capacity);
 
     bool MapRange(SizeType offset, SizeType size, MemoryMappedFileView& outView) const;
 
