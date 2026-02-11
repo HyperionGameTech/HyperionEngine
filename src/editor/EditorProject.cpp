@@ -171,6 +171,7 @@ Result EditorProject::CreatePackage()
 
             // temp
             m_package->InitBlobStorage(/* readOnly */ false);
+            m_package->GetBlobStorage()->EnsureCapacity(1 * 1024 * 1024);
 
             // temp debug
             static const Array<Vertex> quadVertices = {
@@ -196,15 +197,17 @@ Result EditorProject::CreatePackage()
             Vertex& vtx3 = md2->vertexData[3];
             HYP_LOG_TEMP("Vertex3: {}", vtx3.GetPosition());
 
-            /*BlobResource* res = m_package->GetBlobStorage()->MapResource(ChunkId(0), 0, totalSize);
-            Memory::Copy(res->GetData(), md2, totalSize);*/
+            //BlobAllocation allocation;
+            //Assert(m_package->GetBlobStorage()->Map(0, totalSize, allocation));
+            //Memory::Copy(allocation.address, md2, totalSize);
 
-            //m_package->GetBlobStorage()->UnmapResource(res);
+            //// lets write it again just to see..
+            //BlobAllocation allocation2;
+            //Assert(m_package->GetBlobStorage()->Map(ByteUtil::AlignAs(totalSize, 16), totalSize, allocation2));
+            //Memory::Copy(allocation2.address, md2, totalSize);
 
-            m_package->GetBlobStorage()->Write(md2, totalSize, 16);
-
-            // lets write it again just to see..
-            m_package->GetBlobStorage()->Write(md2, totalSize, 16);
+            m_package->GetBlobStorage()->Write(0, totalSize, md2);
+            m_package->GetBlobStorage()->Write(ByteUtil::AlignAs(totalSize, 16), totalSize, md2);
             
             OnPackageCreated(m_package);
 
@@ -459,8 +462,10 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     // temp debug
     if (BlobStorage* blobStorage = project->m_package->GetBlobStorage())
     {
-        BlobResource* res = blobStorage->MapResource(0, 552);
-        void* blobPtr = res->GetData();
+        BlobAllocation allocation;
+        Assert(blobStorage->Map(0, 552, allocation));
+
+        void* blobPtr = allocation.address;
 
         //MeshData2* md2 = (MeshData2*)Memory::Allocate(552);
         //Memory::Copy(md2, blobPtr, 552);
@@ -481,7 +486,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
         HYP_BREAKPOINT;
 
-        blobStorage->UnmapResource(res);
+        blobStorage->Unmap(allocation);
     }
 
     // set transient properties

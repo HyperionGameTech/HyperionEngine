@@ -28,6 +28,8 @@ BlobStorage::BlobStorage(BlobStorage&& other) noexcept
     : callbacks(std::move(other.callbacks)),
       m_name(std::move(other.m_name)),
       m_file(other.m_file),
+      m_view(std::move(other.m_view)),
+      m_allocations(std::move(other.m_allocations)),
       m_readOnly(other.m_readOnly)
 {
     other.m_file = nullptr;
@@ -52,6 +54,8 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
 
     m_name = std::move(other.m_name);
     m_file = other.m_file;
+    m_view = std::move(other.m_view);
+    m_allocations = std::move(other.m_allocations);
     m_readOnly = other.m_readOnly;
 
     other.m_file = nullptr;
@@ -70,139 +74,117 @@ BlobStorage::~BlobStorage()
     }
 }
 
-bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile)
+
+void BlobStorage::EnsureCapacity(SizeType capacity)
+{
+    MemoryMappedFile* file;
+    if (!InitMappedFile(file, capacity))
+    {
+        HYP_FAIL("Failed to set initial capacity");
+    }
+}
+
+bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minRequiredSize)
 {
     Assert(m_name != "INVALID_BLOB_STORAGE");
 
-    if (m_file != nullptr)
+    if (minRequiredSize != 0 && (m_file != nullptr && minRequiredSize > m_file->FileSize()))
+    {
+        Assert(!m_readOnly && m_allocations.Empty(),
+            "Cannot request larger required size in read-only mode or active mappings exist!");
+    }
+
+    if (m_file != nullptr && (minRequiredSize == 0 || minRequiredSize <= m_file->FileSize()))
     {
         outMappedFile = m_file;
         return true;
     }
 
+    /*if (m_file != nullptr)
+    {
+        m_view.Close();
+
+        m_file->Close();
+        m_file = nullptr;
+    }*/
+
     if ((m_file = callbacks.Open(callbacks.context, m_name.Data(), m_readOnly)))
     {
         outMappedFile = m_file;
+
+        if (!m_file->MapRange(0, minRequiredSize, m_view))
+        {
+            Assert(false, "Failed to map file to view!");
+
+            m_file->Close();
+            m_file = nullptr;
+
+            return false;
+        }
+
         return true;
     }
 
     return false;
 }
 
-HYP_NODISCARD BlobResource* BlobStorage::MapResource(SizeType offset, SizeType size)
+bool BlobStorage::Map(SizeType offset, SizeType size, BlobAllocation& outAllocation)
 {
-    Mutex::Guard guard(m_mutex);
-
     BlobResourceKey key {};
     key.offset = offset;
     key.size = size;
 
-    auto blobResourcesIt = m_resources.Find(key);
-    if (blobResourcesIt != m_resources.End())
-    {
-        return blobResourcesIt->second;
+    auto blobResourcesIt = m_allocations.Find(key);
+    if (blobResourcesIt != m_allocations.End())
+    { // @TODO we need ref count so Unmap() doesnt unmap other
+        outAllocation = { key, blobResourcesIt->second };
+        return true;
     }
 
     MemoryMappedFile* file = nullptr;
-
-    if (!InitMappedFile(file))
+    if (!InitMappedFile(file, offset + size))
     {
-        return 0;
+        return false;
     }
 
-    auto insertResult = m_resources.Emplace(key, new BlobResource(file, key));
+    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset);
+    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(m_view.Data()) + size <= m_file->FileSize());
 
-    BlobResource* resource = insertResult.first->second;
-    if (m_readOnly)
-    {
-        resource->AddReader();
-    }
-    else
-    {
-        resource->AddWriter();
-    }
+    m_allocations.Set(key, address);
 
-    return resource;
+    outAllocation = { key, address };
+
+    return true;
 }
 
-void BlobStorage::UnmapResource(HYP_NOTNULL BlobResource* resource)
+void BlobStorage::Unmap(const BlobAllocation& allocation)
 {
-    Mutex::Guard guard(m_mutex);
-
-    if (m_resources.Contains(resource->GetKey()))
+    auto it = m_allocations.Find(allocation.key);
+    if (it != m_allocations.End())
     {
-        if (m_readOnly)
-        {
-            resource->ReleaseReader();
-        }
-        else
-        {
-            resource->ReleaseWriter();
-        }
+        m_allocations.Erase(it);
 
-        int64 numReaders;
-        int64 numWriters;
-
-        resource->GetNumUsers(numReaders, numWriters);
-
-        if (numReaders + numWriters == 0)
-        {
-            m_resources.Erase(resource->GetKey());
-
-            delete resource;
-        }
-    }
-}
-
-void BlobStorage::Write(const void* src, SizeType size, SizeType alignment)
-{
-    Assert(!m_readOnly, "Cannot use Write() on read-only BlobStorage");
-
-    if (size == 0)
-    {
         return;
     }
-    
-    Assert(src != nullptr);
 
-    if (alignment == 0)
-    {
-        // use default alignment (16)
-        alignment = 16;
-    }
+    HYP_FAIL("Cannot unmap allocation - not found in active allocations set");
+}
 
-    AssertDebug(alignment <= 16 && MathUtil::IsPowerOfTwo(alignment), "Invalid alignment specified for pointer");
-    
-    Mutex::Guard guard(m_mutex);
-
-    // @TODO Optimize this to acquire chunks to write to and grab whatever we can find
-    // (basically we'll implement TArena over mapped files, I am thinking)
-
-    // write to tail of the file
+void BlobStorage::Write(SizeType offset, SizeType size, const void* src)
+{
+    Assert(!m_readOnly, "Cannot write to read-only BlobStorage!");
     
     MemoryMappedFile* file = nullptr;
-
-    if (!InitMappedFile(file))
+    if (!InitMappedFile(file, offset + size))
     {
-        HYP_FAIL("Failed to initialize mapped file");
+        HYP_FAIL("Failed to initialize mapped file for writing!");
     }
 
-    const SizeType fileOffset = ByteUtil::AlignAs(file->FileSize(), alignment);
+    Assert(offset + size <= m_file->FileSize(), "Write range exceeds file size!");
 
-    AssertDebug(fileOffset % alignment == 0);
-
-    MemoryMappedFileView view;
-    if (!file->MapRange(fileOffset, size, view))
-    {
-        HYP_FAIL("Failed to acquire mapped view of file for writing");
-    }
-
-    void* dst = view.Data();
-    AssertDebug(dst != nullptr);
-
-    Memory::Copy(dst, src, size);
-
-    view.Close();
+    Memory::Copy(
+        reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset),
+        src, size);
 }
 
 void BlobStorage::CopyTo(BlobStorage& other)
@@ -214,9 +196,6 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
     Assert(!other.m_readOnly, "Cannot copy data to read-only BlobStorage!");
     
-    Mutex::Guard guard(m_mutex);
-    Mutex::Guard guard2(other.m_mutex);
-
     if (!m_file)
     {
         if (!(m_file = callbacks.Open(callbacks.context, m_name.Data(), /* readOnly */ true)))
@@ -226,6 +205,8 @@ void BlobStorage::CopyTo(BlobStorage& other)
             return;
         }
     }
+
+    other.EnsureCapacity(m_file->FileSize());
 
     MemoryMappedByteReader readStream(m_file, 0);
 
@@ -252,14 +233,10 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
 void BlobStorage::Close()
 {
-    Mutex::Guard guard(m_mutex);
+    m_allocations.Clear();
 
-    for (auto& pair : m_resources)
-    {
-        delete pair.second;
-    }
-
-    m_resources.Clear();
+    m_view.Close();
+    m_view = {};
 
     MemoryMappedFile*& file = m_file;
     if (file != nullptr)

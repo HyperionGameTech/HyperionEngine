@@ -21,7 +21,7 @@ namespace Hyperion {
 
 class ByteReader;
 class ByteWriter;
-class BlobResource;
+struct BlobAllocation;
 
 struct ResourceGuard;
 
@@ -40,13 +40,6 @@ class BlobStorage : public ObjectBase
 {
     HYP_OBJECT_BODY(BlobStorage);
 
-    struct ChunkHeader
-    {
-        BlobStorage* blobStorage;
-        uint32 refCount;
-        MemoryMappedFileView view;
-    };
-
 public:
     BlobStorage();
 
@@ -59,12 +52,13 @@ public:
     BlobStorage& operator=(BlobStorage&& other) noexcept;
 
     ~BlobStorage();
-    
-    /*! \brief Create a new BlobResource mapped to the given range */
-    HYP_NODISCARD BlobResource* MapResource(SizeType offset, SizeType size);
-    void UnmapResource(HYP_NOTNULL BlobResource* resource);
 
-    void Write(const void* src, SizeType size, SizeType alignment);
+    void EnsureCapacity(SizeType capacity);
+    
+    bool Map(SizeType offset, SizeType size, BlobAllocation& outAllocation);
+    void Unmap(const BlobAllocation& allocation);
+
+    void Write(SizeType offset, SizeType size, const void* src);
 
     void CopyTo(BlobStorage& other);
 
@@ -74,16 +68,16 @@ public:
     BlobStorageCallbacks callbacks;
 
 private:
-    bool InitMappedFile(MemoryMappedFile*& outMappedFile);
+    bool InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minRequiredSize = 0);
+
+    void RemapAddresses(UIntPtr newBase, UIntPtr oldBase);
 
     ANSIString m_name;
 
-    mutable Mutex m_mutex;
+    HashMap<BlobResourceKey, void*> m_allocations;
 
-    HashMap<BlobResourceKey, BlobResource*> m_resources;
-
-    // indexed by indices
     MemoryMappedFile* m_file;
+    MemoryMappedFileView m_view;
     
     bool m_readOnly;
 };
