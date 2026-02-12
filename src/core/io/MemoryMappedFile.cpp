@@ -136,7 +136,6 @@ void MemoryMappedFileView::Close()
 #ifdef HYP_WINDOWS
     if (m_address != nullptr)
     {
-        HYP_BREAKPOINT;
         UnmapViewOfFile(m_address);
     }
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
