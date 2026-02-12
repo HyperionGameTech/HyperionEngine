@@ -156,10 +156,10 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
-    const MeshData& meshData = *mesh->GetAsset()->GetMeshData();
+    const MeshData2& meshData = *mesh->GetAsset()->GetMeshData();
 
     // make sure we have enough memory before adding, otherwise fail
-    if (!HasFreeSpace((meshData.vertexData.Size() * sizeof(Vec3f)) + meshData.indexData.Size()))
+    if (!HasFreeSpace((meshData.numVertices * sizeof(Vec3f)) + meshData.numIndices * GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType)))
     {
         HYP_LOG(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
@@ -169,14 +169,17 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     EditorPickCacheEntry entry {};
     entry.frameVisible = fc;
 
-    entry.positions.Resize(meshData.vertexData.Size());
-    for (SizeType i = 0; i < meshData.vertexData.Size(); ++i)
+    entry.positions.Resize(meshData.numVertices);
+    for (SizeType i = 0; i < meshData.numVertices; ++i)
     {
         entry.positions[i] = meshData.vertexData[i].position;
     }
 
-    entry.indices.Resize(meshData.indexData.Size() / sizeof(uint32));
-    Memory::Copy(entry.indices.Data(), meshData.indexData.Data(), meshData.indexData.Size());
+    // @TODO fix for non-uint32 indices
+    Assert(GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType) == 4);
+
+    entry.indices.Resize(meshData.numIndices);
+    Memory::Copy(entry.indices.Data(), &meshData.indexData[0], meshData.numIndices * GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType));
 
     entry.residency = ComputeResidency(entry);
 

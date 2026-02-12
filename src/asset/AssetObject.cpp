@@ -8,6 +8,9 @@
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
 
+// temp debug
+#include <rendering/asset/MeshAsset.hpp>
+
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
@@ -303,6 +306,7 @@ bool AssetObject::IsSaved() const
     return m_manifestPath.Length() > 0;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
@@ -331,22 +335,6 @@ Result AssetObject::Save(const FilePath& manifestPath)
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 
-    {
-        FileByteWriter manifestWriter { manifestPath };
-
-        if (!manifestWriter.IsOpen())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to open manifest file for asset '{}', errno: {}", m_name, std::strerror(errno));
-        }
-
-        if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to save manifest for asset '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
-        }
-
-        manifestWriter.Close();
-    }
-
     const bool saveBinData = m_resource != nullptr;
 
     // use resource instead to save if it is not null
@@ -356,9 +344,6 @@ Result AssetObject::Save(const FilePath& manifestPath)
 
         BlobStorage* blobStorage = package->GetBlobStorage();
         Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
-
-        ByteWriter* writeStream = blobStorage->GetWriteStream();
-        Assert(writeStream != nullptr);
 
         if (!m_blobKey)
         {
@@ -375,37 +360,29 @@ Result AssetObject::Save(const FilePath& manifestPath)
         const void* rawData = resource->GetData();
         Assert(rawData != nullptr);
 
+        ByteWriter* writeStream = blobStorage->GetWriteStream();
+        Assert(writeStream != nullptr);
+
         writeStream->Seek(m_blobKey.offset);
         writeStream->Write(rawData, m_blobKey.size);
+    }
+    
+    // save manifest after updating blob info
 
-        //// must load before saving if saving to a different place and not currently in memory.
-        //bool requiresLoad = !resource->IsDataLoaded();
+    {
+        FileByteWriter manifestWriter { manifestPath };
 
-        //ResourceGuard resGuard;
+        if (!manifestWriter.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to open manifest file for asset '{}', errno: {}", m_name, std::strerror(errno));
+        }
 
-        //if (requiresLoad)
-        //{
-        //    requiresLoad = false;
+        if (Result saveManifestResult = SaveManifest(manifestWriter); saveManifestResult.HasError())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to save manifest for asset '{}': {}", m_name, saveManifestResult.GetError().GetMessage());
+        }
 
-        //    Assert(IsSaved(), "Cannot load asset {} from disk; no manifest path for the asset.",
-        //        m_name);
-
-        //    resGuard = resource->GetReadScope();
-
-        //    if (!resource->IsDataLoaded())
-        //    {
-        //        return HYP_MAKE_ERROR(Error, "Asset with manifest at path {} has no data, cannot save!", manifestPath);
-        //    }
-        //}
-
-        //// get bin path from manifest path by removing .json extension
-        //const FilePath binPath = manifestPath.StripExtension();
-        //Assert(!binPath.Empty() && binPath != manifestPath);
-
-        //if (Result saveResourceResult = resource->Save_Internal(binPath); saveResourceResult.HasError())
-        //{
-        //    return saveResourceResult.GetError();
-        //}
+        manifestWriter.Close();
     }
 
     HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
@@ -442,6 +419,7 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
 Result AssetObject::Load(
     JSON::Object& manifestData,
+    BlobStorage* blobStorage,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
@@ -485,16 +463,21 @@ Result AssetObject::Load(
 
     if (targetAssetObject->GetBlobKey())
     {
-        Handle<AssetPackage> package = targetAssetObject->GetPackage();
-        Assert(package.IsValid());
+        AssertDebug(blobStorage != nullptr,
+            "Loading asset {} which has blob data but no BlobStorage instance was provided to load from",
+            targetAssetObject->m_name);
 
-        BlobStorage* blobStorage = package->GetBlobStorage();
-        Assert(blobStorage != nullptr);
+        if (blobStorage != nullptr)
+        {
+            void* address = blobStorage->Map(targetAssetObject->GetBlobKey());
+            Assert(address != nullptr);
 
-        void* address = blobStorage->Map(targetAssetObject->GetBlobKey());
-        Assert(address != nullptr);
-
-        resource->InitReadOnlyData(address);
+            resource->InitReadOnlyData(address);
+        }
+        else
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to load from blob data, no associated BlobStorage instance to load from");
+        }
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);

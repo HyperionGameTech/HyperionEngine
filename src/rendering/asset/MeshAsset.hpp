@@ -78,7 +78,7 @@ struct MeshData2
     {
         MeshData2 data {};
         data.numVertices = uint32(vertices.Size());
-        data.numIndices = uint32(indices.Size());
+        data.numIndices = uint32(indices.Size()) / sizeof(uint32); // @TODO Fix for non-uint32 indices
 
         TInlineBlobBuilder<MeshData2, 16> builder(&data);
 
@@ -108,14 +108,14 @@ public:
         : AssetObject(),
           m_meshDesc()
     {
-        ConstructBlobData<MeshData2>(MeshData2 {});
+        ConstructBlobData<MeshData2>();
     }
 
     MeshAsset(Name name, const MeshDesc& desc)
         : AssetObject(name),
           m_meshDesc(desc)
     {
-        ConstructBlobData<MeshData2>(MeshData2 {});
+        ConstructBlobData<MeshData2>();
     }
 
     MeshAsset(Name name, const MeshDesc& desc, Span<const Vertex> vertices, Span<const ubyte> indices)

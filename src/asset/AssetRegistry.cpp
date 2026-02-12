@@ -930,8 +930,10 @@ Handle<AssetObject> AssetPackage::GetAssetObject(UTF8StringView assetName, bool 
 
                     return Handle<AssetObject>::empty;
                 }
+
+                BlobStorage* blobStorage = GetBlobStorage();
                 
-                Result loadResult = AssetObject::Load(manifestData, assetObject);
+                Result loadResult = AssetObject::Load(manifestData, blobStorage, assetObject);
 
                 if (loadResult.HasError())
                 {
@@ -1938,6 +1940,11 @@ void AssetPackage::InitBlobStorage(BlobStorage& outStorage, bool readOnly)
 
         MemoryMappedFile* file = mappedBlobStorage->Get(ANSIStringView(name));
         AssertDebug(file != nullptr, "Failed to open mapped file {} ({})", name, mappedBlobStorage->GetBaseDirectory());
+
+        if (!file->Open())
+        {
+            return nullptr;
+        }
 
         return file;
     };
@@ -3231,7 +3238,9 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
             Handle<AssetObject> assetObject;
 
-            if (Result loadAssetResult = AssetObject::Load(manifestData, assetObject); loadAssetResult.HasError())
+            BlobStorage* blobStorage = outPackage->GetBlobStorage();
+
+            if (Result loadAssetResult = AssetObject::Load(manifestData, blobStorage, assetObject); loadAssetResult.HasError())
             {
                 HYP_LOG(Assets, Error, "Failed to load asset from manifest '{}': {}", entry, loadAssetResult.GetError().GetMessage());
 

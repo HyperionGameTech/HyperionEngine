@@ -510,27 +510,6 @@ private:
         return m_mappedView.Size();
     }
 
-    bool EnsureCapacity(SizeType required)
-    {
-        if (required <= Max())
-        {
-            return true;
-        }
-
-        const SizeType target = ByteUtil::AlignAs(required, GrowthGranularity);
-        const SizeType newSize = m_baseOffset + target;
-
-        if (!m_mappedFile->Resize(newSize))
-        {
-            return false;
-        }
-
-        m_mappedView.Close();
-
-        const bool mapped = m_mappedFile->MapRange(m_baseOffset, target, m_mappedView);
-        return mapped;
-    }
-
     virtual void WriteBytes(const char* ptr, SizeType size) override
     {
         if (size == 0)
@@ -538,14 +517,11 @@ private:
             return;
         }
 
-        if (!EnsureCapacity(m_pos + size))
-        {
-            HYP_CORE_ASSERT(false, "Failed to grow mapped file");
-            return;
-        }
-
         const auto* src = reinterpret_cast<const ubyte*>(ptr);
         auto* dst = static_cast<ubyte*>(m_mappedView.Data());
+
+        HYP_CORE_ASSERT(m_pos + size <= m_mappedView.Size(),
+            "Attempting to write past the end of the mapped file");
 
         if (dst == nullptr)
         {

@@ -472,6 +472,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
     project->m_package = std::move(*loadPackageResult);
 
+#if 0
     // temp debug
     if (BlobStorage* blobStorage = project->m_package->GetBlobStorage())
     {
@@ -501,6 +502,7 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
 
         blobStorage->Unmap(key);
     }
+#endif
 
     // set transient properties
     project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();

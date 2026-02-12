@@ -22,9 +22,11 @@ struct HYP_API Triangle
     FixedArray<Vec3f, 3> points;
 
     Triangle();
-    Triangle(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2);
+    Triangle(const float (&pts)[9]);
+
     Triangle(const Triangle& other) = default;
     Triangle& operator=(const Triangle& other) = default;
+
     ~Triangle() = default;
 
     HYP_FORCE_INLINE bool operator==(const Triangle& other) const

@@ -103,9 +103,11 @@ struct HYP_API BVHNode
                 const uint32 i2 = indices[triangleId * 3 + 2];
 
                 const Triangle tri {
-                    vertices[i0].position,
-                    vertices[i1].position,
-                    vertices[i2].position
+                    {
+                        vertices[i0].position.x, vertices[i0].position.y, vertices[i0].position.z,
+                        vertices[i1].position.x, vertices[i1].position.y, vertices[i1].position.z,
+                        vertices[i2].position.z, vertices[i2].position.y, vertices[i2].position.z
+                    }
                 };
 
                 ray.TestTriangle(tri, triangleId, this, results);
@@ -144,9 +146,11 @@ struct HYP_API BVHNode
                 const uint32 i2 = indices[triangleId * 3 + 2];
 
                 const Triangle tri {
-                    positions[i0],
-                    positions[i1],
-                    positions[i2]
+                    {
+                        positions[i0].x, positions[i0].y, positions[i0].z,
+                        positions[i1].x, positions[i1].y, positions[i1].z,
+                        positions[i2].z, positions[i2].y, positions[i2].z
+                    }
                 };
 
                 ray.TestTriangle(tri, triangleId, this, results);
@@ -173,10 +177,16 @@ private:
         const uint32 i1 = indices[triId * 3 + 1];
         const uint32 i2 = indices[triId * 3 + 2];
 
+        AssertDebug(i0 < vertices.Size()
+            && i1 < vertices.Size()
+            && i2 < vertices.Size());
+
         const Triangle tri {
-            vertices[i0].position,
-            vertices[i1].position,
-            vertices[i2].position
+            {
+                vertices[i0].position.x, vertices[i0].position.y, vertices[i0].position.z,
+                vertices[i1].position.x, vertices[i1].position.y, vertices[i1].position.z,
+                vertices[i2].position.z, vertices[i2].position.y, vertices[i2].position.z
+            }
         };
 
         return box.OverlapsTriangle(tri);

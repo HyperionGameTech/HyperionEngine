@@ -431,6 +431,7 @@ void MeshData2::CalculateTangents()
 
 #undef ADD_TANGENTS
 
+HYP_DISABLE_OPTIMIZATION;
 bool MeshData2::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
     const BoundingBox meshAabb = CalculateAABB();

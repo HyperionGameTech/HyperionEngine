@@ -378,6 +378,7 @@ public:
 
     static Result Load(
         JSON::Object& manifestData,
+        BlobStorage* blobStorage,
         Handle<AssetObject>& outAssetObject);
 
 protected:
@@ -414,7 +415,6 @@ protected:
         }
         
         AssetDataResource<T>* resourceCasted = static_cast<AssetDataResource<T>*>(m_resource);
-        AssertDebug(resourceCasted->GetData() != nullptr);
 
         return static_cast<T*>(resourceCasted->GetData());
     }

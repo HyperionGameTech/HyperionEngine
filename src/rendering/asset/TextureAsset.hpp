@@ -49,14 +49,14 @@ public:
         : AssetObject(),
           m_textureDesc()
     {
-        ConstructBlobData<TextureData2>(TextureData2 {});
+        ConstructBlobData<TextureData2>();
     }
 
     TextureAsset(Name name, const TextureDesc& desc)
         : AssetObject(name),
           m_textureDesc(desc)
     {
-        ConstructBlobData<TextureData2>(TextureData2 {});
+        ConstructBlobData<TextureData2>();
     }
 
     TextureAsset(Name name, const TextureDesc& desc, ConstByteView imageData)

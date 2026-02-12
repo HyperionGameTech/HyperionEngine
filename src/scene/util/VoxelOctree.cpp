@@ -231,10 +231,18 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
             for (SizeType i = 0; i < meshIndices.Size(); i += 3)
             {
-                const Triangle triangle {
+                const Vec3f positions[3] = {
                     transformMatrix * meshData.vertexData[meshIndices[i + 0]].position,
                     transformMatrix * meshData.vertexData[meshIndices[i + 1]].position,
                     transformMatrix * meshData.vertexData[meshIndices[i + 2]].position
+                };
+
+                const Triangle triangle {
+                    {
+                        positions[0].x, positions[0].y, positions[0].z,
+                        positions[1].x, positions[1].y, positions[1].z,
+                        positions[2].x, positions[2].y, positions[2].z
+                    }
                 };
 
                 BoundingBox triangleAabb = triangle.GetBoundingBox().Expand(0.002f);

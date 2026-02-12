@@ -570,6 +570,14 @@ bool Mesh::BuildBVH(int maxDepth)
         return false;
     }
 
+    const MeshDesc& meshDesc = asset->GetMeshDesc();
+
+    if (meshDesc.numIndices == 0)
+    {
+        // no data to build from
+        return false;
+    }
+
     ResourceGuard resGuard(*asset->GetResource());
     AssertDebug(asset->GetMeshData() != nullptr);
 
@@ -579,6 +587,7 @@ bool Mesh::BuildBVH(int maxDepth)
     }
 
     const MeshData2& meshData = *asset->GetMeshData();
+    AssertDebug(meshData.numVertices > 0 && meshData.numIndices > 0);
 
     return meshData.BuildBVH(m_bvh, maxDepth);
 }

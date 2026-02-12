@@ -196,27 +196,39 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minR
             "Cannot request larger required size in read-only mode or active mappings exist!");
     }
 
-    if (m_file != nullptr && (minRequiredSize == 0 || minRequiredSize <= m_file->FileSize()))
+    if (m_file != nullptr)
     {
-        outMappedFile = m_file;
-        return true;
+        if (minRequiredSize == 0 || minRequiredSize <= m_file->FileSize())
+        {
+            // fine, size is enough
+            outMappedFile = m_file;
+            return true;
+        }
     }
-
-    /*if (m_file != nullptr)
-    {
-        m_view.Close();
-
-        m_file->Close();
-        m_file = nullptr;
-    }*/
 
     const SizeType previousFileSize = m_file ? m_file->FileSize() : 0;
 
+    Close();
+
     if ((m_file = callbacks.Open(callbacks.context, m_name.Data(), m_readOnly)))
     {
+        Assert(m_file->IsOpen());
+
+        if (minRequiredSize > 0)
+        {
+            if (!m_file->EnsureCapacity(minRequiredSize))
+            {
+                Assert(false, "Failed to ensure capacity for file (requested size: {}, current size: {})",
+                    minRequiredSize, m_file->FileSize());
+
+                return false;
+            }
+        }
+
         outMappedFile = m_file;
 
-        if (!m_file->MapRange(0, minRequiredSize, m_view))
+        // map entire file
+        if (!m_file->MapRange(0, 0, m_view))
         {
             Assert(false, "Failed to map file to view!");
 
@@ -260,7 +272,7 @@ void* BlobStorage::Map(const BlobResourceKey& key)
     }
 
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, key.offset + key.size))
+    if (!InitMappedFile(file, m_readOnly ? 0 : (key.offset + key.size)))
     {
         return nullptr;
     }
@@ -296,15 +308,7 @@ void BlobStorage::Write(SizeType offset, SizeType size, const void* src)
         HYP_FAIL("Failed to initialize mapped file for writing!");
     }
 
-    if (file->FileSize() < offset + size)
-    {
-        Assert(m_allocations.Empty(), "Cannot resize mapped file, active mapped allocations exist");
-
-        if (!file->EnsureCapacity(offset + size))
-        {
-            HYP_FAIL("Failed to ensure capacity for file");
-        }
-    }
+    EnsureCapacity(offset + size);
 
     Assert(offset + size <= m_file->FileSize(), "Write range exceeds file size!");
 
@@ -317,45 +321,29 @@ bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey
 {
     Assert(!m_readOnly, "Cannot allocate from read-only BlobStorage!");
     
-    MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file))
-    {
-        AssertDebug(false, "Failed to initialize mapped file for writing!");
-
-        return false;
-    }
-
     const SizeType headerOffset = ByteUtil::AlignAs(m_cursor, alignof(BlobHeader));
-
     const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
 
-    if (file->FileSize() < headerOffset + totalBlobSizePlusHeader)
-    {
-        Assert(m_allocations.Empty(), "Cannot resize mapped file, active mapped allocations exist");
+    EnsureCapacity(headerOffset + totalBlobSizePlusHeader);
 
-        if (!file->EnsureCapacity(headerOffset + totalBlobSizePlusHeader))
-        {
-            AssertDebug(false, "Failed to ensure capacity for file");
+    ByteWriter* writeStream = GetWriteStream();
+    Assert(writeStream != nullptr);
 
-            return false;
-        }
-    }
+    writeStream->Seek(headerOffset);
+    writeStream->Write(header);
 
-    m_writeStream->Seek(headerOffset);
-    m_writeStream->Write(header);
+    writeStream->Seek(writeStream->Position() + header.payloadOffset);
 
-    m_writeStream->Seek(m_writeStream->Position() + header.payloadOffset);
-
-    const SizeType offset = m_writeStream->Position();
+    const SizeType offset = writeStream->Position();
 
     // fill with empty data:
-    m_writeStream->Seek(offset + header.payloadSize);
+    writeStream->Seek(offset + header.payloadSize);
 
     outKey = BlobResourceKey {};
     outKey.offset = offset;
     outKey.size = header.payloadSize;
 
-    m_cursor = m_writeStream->Position();
+    m_cursor = writeStream->Position();
 
     return true;
 }
@@ -409,6 +397,8 @@ void BlobStorage::CopyTo(BlobStorage& other)
 
 void BlobStorage::Close()
 {
+    Assert(m_allocations.Empty(), "Closing BlobStorage with dangling allocations, may lead to a crash");
+
     if (m_writeStream != nullptr)
     {
         m_writeStream->Close();
@@ -425,10 +415,7 @@ void BlobStorage::Close()
         m_readStream = nullptr;
     }
 
-    m_allocations.Clear();
-
     m_view.Close();
-    m_view = {};
 
     MemoryMappedFile*& file = m_file;
     if (file != nullptr)

@@ -6,10 +6,16 @@
 
 namespace Hyperion {
 
+HYP_STRUCT()
 struct BlobResourceKey
 {
-    SizeType offset = 0;
-    SizeType size = 0;
+    HYP_STRUCT_BODY(BlobResourceKey)
+
+    HYP_FIELD()
+    uint64 offset = 0;
+
+    HYP_FIELD()
+    uint64 size = 0;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {

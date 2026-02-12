@@ -136,6 +136,7 @@ void MemoryMappedFileView::Close()
 #ifdef HYP_WINDOWS
     if (m_address != nullptr)
     {
+        HYP_BREAKPOINT;
         UnmapViewOfFile(m_address);
     }
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
@@ -233,7 +234,7 @@ bool MemoryMappedFile::Open()
         desired_access,
         share_mode,
         nullptr,
-        m_impl->mode == Mode::READ_ONLY ? OPEN_EXISTING : CREATE_ALWAYS,
+        m_impl->mode == Mode::READ_ONLY ? OPEN_EXISTING : OPEN_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
 
@@ -569,6 +570,12 @@ bool MemoryMappedFile::Resize(SizeType newSize)
     Assert(newSize <= INT32_MAX);
 
 #ifdef HYP_WINDOWS
+    if (m_impl->mappingHandle != nullptr)
+    {
+        CloseHandle(m_impl->mappingHandle);
+        m_impl->mappingHandle = nullptr;
+    }
+
     LARGE_INTEGER distance = {};
     distance.QuadPart = static_cast<LONGLONG>(newSize);
 
@@ -583,12 +590,6 @@ bool MemoryMappedFile::Resize(SizeType newSize)
     }
 
     m_impl->fileSize = newSize;
-
-    if (m_impl->mappingHandle != nullptr)
-    {
-        CloseHandle(m_impl->mappingHandle);
-        m_impl->mappingHandle = nullptr;
-    }
 
     if (m_impl->fileSize == 0)
     {
