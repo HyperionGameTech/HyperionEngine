@@ -79,11 +79,6 @@ void AssetDataResourceBase::Destroy()
 {
 }
 
-void AssetDataResourceBase::WriteToBlobStorage(BlobStorage& blobStorage) const
-{
-    HYP_NOT_IMPLEMENTED();
-}
-
 #pragma endregion AssetResourceBase
 
 #pragma region AssetObject
@@ -334,7 +329,16 @@ Result AssetObject::Save(const FilePath& manifestPath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
+    
+    BlobStorage* blobStorage = package->GetBlobStorage();
+    Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
 
+    if (blobStorage != nullptr)
+    {
+        WriteBlobData(*blobStorage);
+    }
+
+#if 0
     const bool saveBinData = m_resource != nullptr;
 
     // use resource instead to save if it is not null
@@ -366,6 +370,8 @@ Result AssetObject::Save(const FilePath& manifestPath)
         writeStream->Seek(m_blobKey.offset);
         writeStream->Write(rawData, m_blobKey.size);
     }
+#endif
+
     
     // save manifest after updating blob info
 
@@ -469,10 +475,7 @@ Result AssetObject::Load(
 
         if (blobStorage != nullptr)
         {
-            void* address = blobStorage->Map(targetAssetObject->GetBlobKey());
-            Assert(address != nullptr);
-
-            resource->InitReadOnlyData(address);
+            resource->InitReadOnlyData(*blobStorage);
         }
         else
         {

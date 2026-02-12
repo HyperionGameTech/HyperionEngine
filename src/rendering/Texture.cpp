@@ -87,9 +87,9 @@ struct CreateTextureGpuImage : RenderCommand
             return false;
         }
 
-        const TextureData2* textureData = textureAsset->GetTextureData();
+        ConstByteView imageData = textureAsset->GetImageData();
 
-        if (!textureData)
+        if (!imageData)
         {
             return false;
         }
@@ -98,9 +98,9 @@ struct CreateTextureGpuImage : RenderCommand
 
         const uint32 mip0Size = textureDesc.HasStoredMips()
             ? textureDesc.mipOffsets[0]
-            : uint32(textureData->imageDataSize);
+            : uint32(textureDesc.GetMipByteSize(0));
 
-        ConstByteView mip0Slice = ConstByteView(&textureData->imageData[0], mip0Size);
+        ConstByteView mip0Slice = ConstByteView(imageData.Data(), mip0Size);
 
         if (textureDesc != image->GetTextureDesc())
         {
@@ -125,12 +125,9 @@ struct CreateTextureGpuImage : RenderCommand
 
         if (uploadTextureData)
         {
-            const TextureData2* textureData = textureAsset->GetTextureData();
-            Assert(textureData != nullptr);
+            ConstByteView imageData = textureAsset->GetImageData();
 
             const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
-
-            ConstByteView imageData = ConstByteView(&textureData->imageData[0], textureData->imageDataSize);
 
             Span<const uint32> mipOffsets = textureDesc.mipOffsets.ToSpan();
 
@@ -357,9 +354,7 @@ void Texture::Init()
     {
         resGuard = ResourceGuard(*textureAsset->GetResource());
 
-        const TextureData2* textureData = textureAsset->GetTextureData();
-
-        uploadTextureData = textureData && textureData->imageDataSize > 0;
+        uploadTextureData = textureAsset->GetImageData().Size() > 0;
     }
 
     PUSH_RENDER_COMMAND(
@@ -461,10 +456,9 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
 
         ResourceGuard resGuard(*prevAsset->GetResource());
 
-        const TextureData2* prevTextureData = prevAsset->GetTextureData();
-        Assert(prevTextureData != nullptr);
+        ConstByteView prevImageData = prevAsset->GetImageData();
 
-        asset = MakeHandle<TextureAsset>(prevAsset->GetName(), textureDesc, ConstByteView(&prevTextureData->imageData[0], prevTextureData->imageDataSize));
+        asset = MakeHandle<TextureAsset>(prevAsset->GetName(), textureDesc, prevImageData);
 
         if (package.IsValid())
         {
@@ -814,8 +808,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    const TextureData2* textureData = asset->GetTextureData();
-    Assert(textureData != nullptr);
+    ConstByteView imageData = asset->GetImageData();
 
     const TextureDesc& textureDesc = asset->GetTextureDesc();
 
@@ -843,7 +836,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
 
     const uint32 mip0Size = textureDesc.HasStoredMips()
         ? textureDesc.mipOffsets[0]
-        : uint32(textureData->imageDataSize);
+        : textureDesc.GetMipByteSize(0);
 
     if (index + (bytesPerComponent * numComponents) > mip0Size)
     {
@@ -865,13 +858,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         switch (numComponents)
         {
         case 1:
-            return ConstPixelReference<float, 1>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<float, 1>(imageData.Data() + index).GetRGBA();
         case 2:
-            return ConstPixelReference<float, 2>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<float, 2>(imageData.Data() + index).GetRGBA();
         case 3:
-            return ConstPixelReference<float, 3>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<float, 3>(imageData.Data() + index).GetRGBA();
         case 4:
-            return ConstPixelReference<float, 4>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<float, 4>(imageData.Data() + index).GetRGBA();
         default:
             break;
         }
@@ -882,13 +875,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         switch (numComponents)
         {
         case 1:
-            return ConstPixelReference<uint16, 1>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint16, 1>(imageData.Data() + index).GetRGBA();
         case 2:
-            return ConstPixelReference<uint16, 2>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint16, 2>(imageData.Data() + index).GetRGBA();
         case 3:
-            return ConstPixelReference<uint16, 3>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint16, 3>(imageData.Data() + index).GetRGBA();
         case 4:
-            return ConstPixelReference<uint16, 4>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint16, 4>(imageData.Data() + index).GetRGBA();
         default:
             break;
         }
@@ -899,13 +892,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         switch (numComponents)
         {
         case 1:
-            return ConstPixelReference<uint32, 1>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint32, 1>(imageData.Data() + index).GetRGBA();
         case 2:
-            return ConstPixelReference<uint32, 2>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint32, 2>(imageData.Data() + index).GetRGBA();
         case 3:
-            return ConstPixelReference<uint32, 3>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint32, 3>(imageData.Data() + index).GetRGBA();
         case 4:
-            return ConstPixelReference<uint32, 4>(textureData->imageData + index).GetRGBA();
+            return ConstPixelReference<uint32, 4>(imageData.Data() + index).GetRGBA();
         default:
             break;
         }
@@ -918,13 +911,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             switch (numComponents)
             {
             case 1:
-                return ConstPixelReference<ubyte, 1, true>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 1, true>(imageData.Data() + index).GetRGBA();
             case 2:
-                return ConstPixelReference<ubyte, 2, true>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 2, true>(imageData.Data() + index).GetRGBA();
             case 3:
-                return ConstPixelReference<ubyte, 3, true>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 3, true>(imageData.Data() + index).GetRGBA();
             case 4:
-                return ConstPixelReference<ubyte, 4, true>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 4, true>(imageData.Data() + index).GetRGBA();
             default:
                 break;
             }
@@ -935,13 +928,13 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
             switch (numComponents)
             {
             case 1:
-                return ConstPixelReference<ubyte, 1>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 1>(imageData.Data() + index).GetRGBA();
             case 2:
-                return ConstPixelReference<ubyte, 2>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 2>(imageData.Data() + index).GetRGBA();
             case 3:
-                return ConstPixelReference<ubyte, 3>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 3>(imageData.Data() + index).GetRGBA();
             case 4:
-                return ConstPixelReference<ubyte, 4>(textureData->imageData + index).GetRGBA();
+                return ConstPixelReference<ubyte, 4>(imageData.Data() + index).GetRGBA();
             default:
                 break;
             }

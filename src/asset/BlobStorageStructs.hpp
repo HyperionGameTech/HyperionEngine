@@ -60,6 +60,38 @@ struct BlobMappingRange
     uint64 end = 0;
 };
 
+HYP_STRUCT()
+struct BlobDataReference
+{
+    HYP_STRUCT_BODY(BlobDataReference)
+
+    HYP_FIELD()
+    uint64 bufferOffset = 0;
+    
+    HYP_FIELD()
+    uint64 size = 0;
+    
+    HYP_FIELD(Transient)
+    void* raw = nullptr;
+    
+    HYP_FIELD(Transient)
+    bool readOnly = false;
+};
+
+template <class T>
+struct TBlobDataReference : BlobDataReference
+{
+    T* operator->() const
+    {
+        return static_cast<T*>(raw);
+    }
+
+    T& operator*() const
+    {
+        return *static_cast<T*>(raw);
+    }
+};
+
 /*! \brief Wrapper around a pointer that is stored in a blob */
 template <class T>
 struct BlobPointer

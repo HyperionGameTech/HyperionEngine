@@ -49,21 +49,19 @@ public:
         : AssetObject(),
           m_textureDesc()
     {
-        ConstructBlobData<TextureData2>();
     }
 
     TextureAsset(Name name, const TextureDesc& desc)
         : AssetObject(name),
           m_textureDesc(desc)
     {
-        ConstructBlobData<TextureData2>();
     }
 
     TextureAsset(Name name, const TextureDesc& desc, ConstByteView imageData)
         : AssetObject(name),
           m_textureDesc(desc)
     {
-        ConstructBlobData<TextureData2>(imageData);
+        AllocateBlobData(m_imageData, imageData);
     }
 
     TextureAsset(const TextureAsset& other) = delete;
@@ -72,21 +70,29 @@ public:
     TextureAsset(TextureAsset&& other) noexcept = delete;
     TextureAsset& operator=(TextureAsset&& other) noexcept = delete;
 
-    ~TextureAsset() = default;
+    ~TextureAsset()
+    {
+        FreeBlobData(m_imageData);
+    }
 
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
         return m_textureDesc;
     }
 
-    HYP_FORCE_INLINE const TextureData2* GetTextureData() const
+    HYP_FORCE_INLINE ConstByteView GetImageData() const
     {
-        return GetResourceData<TextureData2>();
+        return m_imageData.raw != nullptr
+            ? ConstByteView(reinterpret_cast<const ubyte*>(m_imageData.raw), m_imageData.size)
+            : ConstByteView();
     }
 
 private:
     HYP_FIELD(Serialize)
     TextureDesc m_textureDesc;
+
+    HYP_FIELD(Serialize)
+    BlobDataReference m_imageData;
 };
 
 } // namespace Hyperion

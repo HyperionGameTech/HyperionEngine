@@ -4,6 +4,7 @@
 
 #include <asset/AssetPath.hpp>
 #include <asset/BlobStorageStructs.hpp>
+#include <asset/BlobStorage.hpp>
 #include <asset/BlobBuilder.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
@@ -65,14 +66,9 @@ public:
 
     virtual ~AssetDataResourceBase() override = default;
 
-    void WriteToBlobStorage(BlobStorage& blobStorage) const;
-
 protected:
     AssetDataResourceBase()
-        : m_assetObject(nullptr),
-          m_hasData(false),
-          m_readOnlyData(false),
-          m_blobHeader {}
+        : m_assetObject(nullptr)
     {
     }
 
@@ -81,37 +77,8 @@ protected:
 
     virtual void Unload_Internal() = 0;
 
-    virtual void InitReadOnlyData(const void* src) = 0;
-    virtual void InitReadWriteData() = 0;
-
-    bool GetBlobHeader(BlobHeader& outHeader) const
-    {
-        if (!m_hasData)
-        {
-            return false;
-        }
-
-        outHeader = m_blobHeader;
-
-        return true;
-    }
-
-    //virtual TResult<BlobResourceKey> SerializeBlob(ByteWriter* writer) const = 0;
-
-    HYP_FORCE_INLINE bool IsDataLoaded() const
-    {
-        return m_hasData;
-    }
-
-    virtual const TypeInfo& GetDataTypeInfo() const = 0;
-
-    virtual void* GetData() = 0;
-
     AssetObject* m_assetObject;
-    bool m_hasData;
-    bool m_readOnlyData;
 
-    BlobHeader m_blobHeader;
 };
 
 template <class T>
@@ -119,16 +86,12 @@ class AssetDataResource final : public AssetDataResourceBase
 {
 public:
     AssetDataResource()
-        : m_dataPtr(nullptr)
     {
     }
 
     template <class... Args>
     AssetDataResource(Args&&... args)
     {
-        m_dataPtr = T::Allocate(std::forward<Args>(args)..., m_blobHeader);
-        m_hasData = true;
-        m_readOnlyData = false;
     }
 
     AssetDataResource(const AssetDataResource&) = delete;
@@ -139,69 +102,12 @@ public:
 
     virtual ~AssetDataResource() override
     {
-        if (m_hasData && !m_readOnlyData)
-        {
-            m_hasData = false;
-
-            HYP_FREE_ALIGNED(m_dataPtr);
-            m_dataPtr = nullptr;
-        }
-    }
-
-    virtual const TypeInfo& GetDataTypeInfo() const override
-    {
-        return TypeOf<NormalizedType<T>>();
-    }
-
-    virtual void* GetData() override
-    {
-        return m_dataPtr;
     }
 
 protected:
     virtual void Unload_Internal() override
     {
-        if (m_hasData && !m_readOnlyData)
-        {
-            m_hasData = false;
-            
-            HYP_FREE_ALIGNED(m_dataPtr);
-            m_dataPtr = nullptr;
-        }
     }
-
-    virtual void InitReadOnlyData(const void* src) override
-    {
-        if (m_hasData && !m_readOnlyData)
-        {
-            HYP_FREE_ALIGNED(m_dataPtr);
-        }
-
-        m_dataPtr = reinterpret_cast<T*>(const_cast<void*>(src));
-        m_hasData = m_dataPtr != nullptr;
-        m_readOnlyData = true;
-    }
-    
-    virtual void InitReadWriteData() override
-    {
-        Assert(m_hasData && m_dataPtr != nullptr);
-
-        if (!m_readOnlyData)
-        {
-            return;
-        }
-
-        Assert(m_blobHeader.payloadSize != 0);
-
-        T* newDataPtr = T::Allocate(*m_dataPtr, m_blobHeader);
-        Assert(newDataPtr != nullptr);
-
-        m_dataPtr = newDataPtr;
-
-        m_readOnlyData = false;
-    }
-
-    T* m_dataPtr;
 };
 
 HYP_ENUM()
@@ -387,6 +293,45 @@ protected:
     virtual void OnDirtyStateChanged(bool isDirty)
     {
         // do nothing by default
+    }
+
+    template <class T>
+    void AllocateBlobData(BlobDataReference& reference, Span<const T> inData)
+    {
+        Assert(reference.raw == nullptr || reference.readOnly);
+
+        reference = BlobDataReference {};
+
+        if (inData.Size() > 0)
+        {
+            reference.raw = HYP_ALLOC_ALIGNED(sizeof(T) * inData.Size(), alignof(T));
+            Assert(reference.raw != nullptr);
+
+            Memory::Copy(reference.raw, inData.Data(), sizeof(T) * inData.Size());
+
+            reference.size = sizeof(T) * inData.Size();
+        }
+    }
+
+    void FreeBlobData(BlobDataReference& reference)
+    {
+        if (reference.raw == nullptr || reference.readOnly)
+        {
+            return;
+        }
+
+        HYP_FREE_ALIGNED(reference.raw);
+        reference.raw = nullptr;
+    }
+    
+    virtual void WriteBlobData(BlobStorage& blobStorage)
+    {
+
+    }
+
+    virtual void ReadBlobData(BlobStorage& blobStorage)
+    {
+
     }
 
     Result SaveManifest(ByteWriter& stream) const;

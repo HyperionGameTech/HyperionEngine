@@ -108,21 +108,20 @@ public:
         : AssetObject(),
           m_meshDesc()
     {
-        ConstructBlobData<MeshData2>();
     }
 
     MeshAsset(Name name, const MeshDesc& desc)
         : AssetObject(name),
           m_meshDesc(desc)
     {
-        ConstructBlobData<MeshData2>();
     }
 
     MeshAsset(Name name, const MeshDesc& desc, Span<const Vertex> vertices, Span<const ubyte> indices)
         : AssetObject(name),
           m_meshDesc(desc)
     {
-        ConstructBlobData<MeshData2>(vertices, indices);
+        AllocateBlobData(vertexData, vertices);
+        AllocateBlobData(indexData, indices);
     }
 
     MeshAsset(const MeshAsset& other) = delete;
@@ -131,21 +130,96 @@ public:
     MeshAsset(MeshAsset&& other) noexcept = delete;
     MeshAsset& operator=(MeshAsset&& other) noexcept = delete;
 
-    ~MeshAsset() = default;
+    ~MeshAsset()
+    {
+        FreeBlobData(vertexData);
+        FreeBlobData(indexData);
+    }
 
     HYP_FORCE_INLINE const MeshDesc& GetMeshDesc() const
     {
         return m_meshDesc;
     }
 
-    HYP_FORCE_INLINE MeshData2* GetMeshData() const
+    HYP_FORCE_INLINE Span<const Vertex> GetVertexData() const
     {
-        return GetResourceData<MeshData2>();
+        return vertexData.raw != nullptr
+            ? Span<const Vertex>(reinterpret_cast<const Vertex*>(vertexData.raw), vertexData.size / sizeof(Vertex))
+            : Span<const Vertex>();
     }
 
-private:
+    HYP_FORCE_INLINE Span<const ubyte> GetIndexData() const
+    {
+        return indexData.raw != nullptr
+            ? Span<const ubyte>(reinterpret_cast<const ubyte*>(indexData.raw), indexData.size)
+            : Span<const ubyte>();
+    }
+
+protected:
+    void WriteBlobData(BlobStorage& blobStorage) override
+    {
+        Assert(vertexData.raw != nullptr);
+        Assert(indexData.raw != nullptr);
+
+        if (!vertexData.readOnly)
+        {
+            BlobHeader vertexDataHeader {};
+            Memory::Copy(vertexDataHeader.magic, "VB", 4);
+            vertexDataHeader.version = 1;
+            vertexDataHeader.payloadOffset = 0;
+            vertexDataHeader.payloadSize = vertexData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(vertexDataHeader, key))
+            {
+                vertexData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+        
+        if (!indexData.readOnly)
+        {
+            BlobHeader indexDataHeader {};
+            Memory::Copy(indexDataHeader.magic, "IB", 4);
+            indexDataHeader.version = 1;
+            indexDataHeader.payloadOffset = 0;
+            indexDataHeader.payloadSize = indexData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(indexDataHeader, key))
+            {
+                indexData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        ByteWriter* writeStream = blobStorage.GetWriteStream();
+
+        writeStream->Write(vertexData.raw, vertexData.size);
+        writeStream->Write(indexData.raw, indexData.size);
+    }
+
+    void ReadBlobData(BlobStorage& blobStorage) override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
     HYP_FIELD(Serialize)
     MeshDesc m_meshDesc;
+
+    HYP_FIELD(Serialize)
+    BlobDataReference vertexData;
+    
+    HYP_FIELD(Serialize)
+    BlobDataReference indexData;
 };
 
 } // namespace Hyperion

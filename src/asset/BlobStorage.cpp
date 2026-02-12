@@ -330,6 +330,9 @@ bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey
     Assert(writeStream != nullptr);
 
     writeStream->Seek(headerOffset);
+
+    // @TODO if we go with having the methods on AssetObject, we won't need to serialize header here (metadata will be in manifest)
+    // or we could keep just a 4 byte header + version?
     writeStream->Write(header);
 
     writeStream->Seek(writeStream->Position() + header.payloadOffset);
@@ -338,6 +341,9 @@ bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey
 
     // fill with empty data:
     writeStream->Seek(offset + header.payloadSize);
+
+    // navigate back to where we were
+    writeStream->Seek(offset);
 
     outKey = BlobResourceKey {};
     outKey.offset = offset;

@@ -65,7 +65,7 @@ namespace Hyperion.Editor
             // tmp debug
             AssetBatch ab = new AssetBatch();
             ab.Add("test_model", "models/sponza/sponza.obj");
-            ab.Add("monkey", "models/ogrexml/dragger_Body.mesh.xml");
+            //ab.Add("monkey", "models/ogrexml/dragger_Body.mesh.xml");
             _assetBatchTask = ab.Load();
         }
 
