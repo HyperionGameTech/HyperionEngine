@@ -22,6 +22,8 @@ class Bone;
 class Animation;
 class RenderProxySkeleton;
 
+struct AnimData;
+
 /*! \brief Runtime skeleton instance that references shared SkeletonAsset data.
  *  Contains the actual bone node hierarchy that can be manipulated at runtime.
  *  Multiple Skeleton instances can share the same SkeletonAsset. */
@@ -75,6 +77,8 @@ public:
     {
         return m_skeletonAsset.Resolve();
     }
+
+    void ApplyAnimation(const AnimData& animData, float playbackTime, float blend = 0.5f);
 
     void UpdateRenderProxy(RenderProxySkeleton* proxy);
 

@@ -17,7 +17,8 @@ Bone::Bone()
 Bone::Bone(Name name)
     : Node(name, Transform()),
       m_boneName(name),
-      m_skeleton(nullptr)
+      m_skeleton(nullptr),
+      m_keyframe {}
 {
 }
 
@@ -33,7 +34,7 @@ Quaternion Bone::GetOffsetRotation() const
     return m_localTransform.GetRotation() * Quaternion(m_bindingTransform.GetRotation()).Inverse();
 }
 
-void Bone::SetKeyframe(const Keyframe& keyframe)
+void Bone::SetKeyframe(const AnimKeyframe& keyframe)
 {
     m_keyframe = keyframe;
 

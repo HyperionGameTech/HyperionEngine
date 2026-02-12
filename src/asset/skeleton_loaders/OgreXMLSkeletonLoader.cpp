@@ -304,36 +304,59 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         }
     }
 
-    SkeletonData skeletonData;
+    Array<AnimData> animDatas;
 
     for (const auto& animationIt : object.animations)
     {
-        const Name animationName = CreateNameFromDynamicString(animationIt.name);
-
-        Handle<Animation> animation = MakeHandle<Animation>(animationName);
+        AnimData* animData = nullptr;
+        
+        Array<AnimTrack*> animTracks;
 
         for (const auto& trackIt : animationIt.tracks)
         {
-            Handle<AnimationTrack> animationTrack = MakeHandle<AnimationTrack>(CreateNameFromDynamicString(trackIt.boneName));
+            AnimTrack* animTrack = nullptr;
+            Array<AnimKeyframe> keyframes;
 
             for (const auto& keyframeIt : trackIt.keyframes)
             {
-                animationTrack->AddKeyframe(Keyframe(
-                    keyframeIt.time,
-                    Transform(keyframeIt.translation, Vector3::One(), keyframeIt.rotation)));
+                AnimKeyframe keyframe {};
+                keyframe.time = keyframeIt.time;
+                keyframe.transform = Transform(keyframeIt.translation, Vector3::One(), keyframeIt.rotation);
+
+                keyframes.PushBack(keyframe);
             }
 
-            animation->AddTrack(animationTrack);
+            BlobHeader header;
+            animTrack = AnimTrack::Allocate(StringHash(trackIt.boneName), keyframes.ToSpan(), header);
+            Assert(animTrack != nullptr);
+
+            animTracks.PushBack(animTrack);
         }
 
-        skeletonDesc.animationNames.PushBack(animationName);
-        skeletonData.animations.PushBack(animation);
+        skeletonDesc.animationNames.PushBack(CreateNameFromDynamicString(animationIt.name));
+
+        Array<AnimTrack> animTracksByValue;
+        animTracksByValue.Reserve(animTracks.Size());
+
+        for (AnimTrack* animTrack : animTracks)
+        {
+            animTracksByValue.PushBack(*animTrack);
+            HYP_FREE_ALIGNED(animTrack);
+        }
+
+        BlobHeader header;
+        animData = AnimData::Allocate(StringHash(animationIt.name), animTracksByValue.ToSpan(), header);
+        Assert(animData != nullptr);
+
+        animDatas.PushBack(*animData);
+
+        HYP_FREE_ALIGNED(animData);
     }
 
     Handle<SkeletonAsset> skeletonAsset = MakeHandle<SkeletonAsset>(
         CreateNameFromDynamicString(state.filepath.Basename()),
         skeletonDesc,
-        std::move(skeletonData));
+        animDatas.ToSpan());
 
     state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Skeletons", skeletonAsset);
 

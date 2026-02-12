@@ -211,6 +211,34 @@ void Skeleton::SetSkeletonAsset(const AssetReference& assetReference)
     }
 }
 
+void Skeleton::ApplyAnimation(const AnimData& animData, float playbackTime, float blend)
+{
+    HYP_SCOPE;
+
+    for (uint32 trackIndex = 0; trackIndex < animData.numTracks; trackIndex++)
+    {
+        const AnimTrack& track = animData.tracks[trackIndex];
+
+        Bone* bone = FindBone(track.bone);
+        if (!bone)
+        {
+            continue;
+        }
+
+        if (blend <= MathUtil::epsilonF)
+        {
+            bone->ClearPose();
+        }
+
+        AnimKeyframe frame = track.GetKeyframeAtTime(playbackTime);
+        AnimKeyframe blended = bone->GetKeyframe().Blend(
+            frame,
+            MathUtil::Clamp(blend, 0.0f, 1.0f));
+
+        bone->SetKeyframe(blended);
+    }
+}
+
 void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
 {
     HYP_SCOPE;

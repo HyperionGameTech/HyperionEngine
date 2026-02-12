@@ -3,8 +3,11 @@
 #pragma once
 
 #include <asset/AssetObject.hpp>
+#include <asset/BlobStorageStructs.hpp>
 
 #include <core/reflection/ObjectMacros.hpp>
+
+#include <core/utilities/Span.hpp>
 
 #include <core/containers/Array.hpp>
 
@@ -16,6 +19,8 @@
 namespace Hyperion {
 
 class Animation;
+
+struct AnimData;
 
 /*! \brief Describes a single bone in the skeleton hierarchy - serializable data only */
 HYP_STRUCT()
@@ -63,23 +68,45 @@ struct SkeletonDesc
     }
 };
 
-/*! \brief Runtime skeleton data - animations that can be shared between skeleton instances */
-HYP_STRUCT()
 struct SkeletonData
 {
-    HYP_STRUCT_BODY(SkeletonData);
+    static constexpr const char Header[] = "SKEL";
+    static constexpr uint8 Version = 1;
 
-    HYP_FIELD()
-    Array<Handle<Animation>> animations;
+    uint32 numAnims;
+    BlobPointer<AnimData> anims;
 
-    const Handle<Animation>& GetAnimation(uint32 index) const
+    SkeletonData() = default;
+
+    static HYP_NODISCARD SkeletonData* Allocate(const SkeletonData& other, BlobHeader& outHeader)
     {
-        if (index >= animations.Size())
+        return Allocate(
+            other.numAnims > 0
+                ? Span<const AnimData>(&other.anims[0], other.numAnims)
+                : Span<const AnimData>(),
+            outHeader);
+    }
+
+    static HYP_NODISCARD SkeletonData* Allocate(Span<const AnimData> anims, BlobHeader& outHeader)
+    {
+        SkeletonData data {};
+        data.numAnims = uint32(anims.Size());
+       
+        TInlineBlobBuilder<SkeletonData> builder(&data);
+
+        return builder
+            .Append(offsetof(SkeletonData, anims), anims.ToSpan())
+            .Build(outHeader);
+    }
+
+    const AnimData* GetAnimData(uint32 index) const
+    {
+        if (index >= numAnims)
         {
-            return Handle<Animation>::empty;
+            return nullptr;
         }
 
-        return animations[index];
+        return &anims[index];
     }
 };
 
@@ -94,21 +121,21 @@ public:
         : AssetObject(),
           m_skeletonDesc()
     {
-        //AssetObject::SetData(SkeletonData());
+        ConstructBlobData<SkeletonData>();
     }
 
     SkeletonAsset(Name name, const SkeletonDesc& desc)
         : AssetObject(name),
           m_skeletonDesc(desc)
     {
-        //AssetObject::SetData(SkeletonData());
+        ConstructBlobData<SkeletonData>();
     }
 
-    SkeletonAsset(Name name, const SkeletonDesc& desc, const SkeletonData& skeletonData)
+    SkeletonAsset(Name name, const SkeletonDesc& desc, Span<const AnimData> anims)
         : AssetObject(name),
           m_skeletonDesc(desc)
     {
-        // @TODO New blob data
+        ConstructBlobData<SkeletonData>(anims);
     }
 
     SkeletonAsset(const SkeletonAsset& other) = delete;
@@ -126,8 +153,7 @@ public:
 
     HYP_FORCE_INLINE SkeletonData* GetSkeletonData() const
     {
-        return nullptr;
-        //GetResourceData<SkeletonData>();
+        return GetResourceData<SkeletonData>();
     }
 
 private:

@@ -138,51 +138,47 @@ void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
     m_tracks = tracks;
 }
 
-void Animation::Apply(Skeleton* skeleton, float time)
-{
-    HYP_SCOPE;
-    Assert(skeleton != nullptr);
-
-    for (const Handle<AnimationTrack>& track : m_tracks)
-    {
-        Bone* bone = skeleton->FindBone(track->GetBoneName());
-        if (!bone)
-        {
-            continue;
-        }
-
-        bone->ClearPose();
-        bone->SetKeyframe(track->GetKeyframe(time));
-    }
-}
-
-void Animation::ApplyBlended(Skeleton* skeleton, float time, float blend)
-{
-    HYP_SCOPE;
-    Assert(skeleton != nullptr);
-
-    for (const Handle<AnimationTrack>& track : m_tracks)
-    {
-        Bone* bone = skeleton->FindBone(track->GetBoneName());
-        if (!bone)
-        {
-            continue;
-        }
-
-        if (blend <= MathUtil::epsilonF)
-        {
-            bone->ClearPose();
-        }
-
-        Keyframe frame = track->GetKeyframe(time);
-        Keyframe blended = bone->GetKeyframe().Blend(
-            frame,
-            MathUtil::Clamp(blend, 0.0f, 1.0f));
-
-        bone->SetKeyframe(blended);
-    }
-}
-
 #pragma endregion Animation
+
+#pragma region AnimTrack
+
+AnimKeyframe AnimTrack::GetKeyframeAtTime(float time) const
+{
+    int first = 0, second = -1;
+
+    if (numKeyframes == 0)
+    {
+        return { time, Transform() };
+    }
+
+    for (int i = 0; i < int(numKeyframes - 1); i++)
+    {
+        if (MathUtil::InRange(time, { keyframes[i].time, keyframes[i + 1].time }))
+        {
+            first = i;
+            second = i + 1;
+
+            break;
+        }
+    }
+
+    const AnimKeyframe& current = keyframes[first];
+
+    Transform transform = current.transform;
+
+    if (second > first)
+    {
+        const AnimKeyframe& next = keyframes[second];
+
+        const float delta = (time - current.time) / (next.time - current.time);
+
+        transform.translation = transform.translation.Lerp(next.transform.translation, delta);
+        transform.rotation = transform.rotation.Slerp(next.transform.rotation, delta);
+    }
+
+    return { time, transform };
+}
+
+#pragma endregion AnimTrack
 
 } // namespace Hyperion

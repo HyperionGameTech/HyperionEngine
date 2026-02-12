@@ -37,4 +37,22 @@ struct HYP_API Keyframe
     Keyframe Blend(const Keyframe& to, float blend) const;
 };
 
+struct AnimKeyframe
+{
+    float time;
+    Transform transform;
+
+    static AnimKeyframe Blend(const AnimKeyframe& from, const AnimKeyframe& to, float blend)
+    {
+        const float newTime = MathUtil::Lerp(from.time, to.time, blend);
+
+        Transform newTransform = from.transform;
+        newTransform.translation = newTransform.translation.Lerp(to.transform.translation, blend);
+        newTransform.scale = newTransform.scale.Lerp(to.transform.scale, blend);
+        newTransform.rotation = newTransform.rotation.Slerp(to.transform.rotation, blend);
+
+        return { newTime, newTransform };
+    }
+};
+
 } // namespace Hyperion

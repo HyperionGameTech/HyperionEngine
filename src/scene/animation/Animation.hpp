@@ -5,13 +5,16 @@
 #include <core/Types.hpp>
 #include <core/Name.hpp>
 
-#include <scene/animation/Keyframe.hpp>
-
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
+
+#include <scene/animation/Keyframe.hpp>
+
+#include <asset/BlobStorageStructs.hpp>
+#include <asset/BlobBuilder.hpp>
 
 namespace Hyperion {
 
@@ -78,6 +81,88 @@ private:
     Array<Keyframe> m_keyframes;
 };
 
+struct AnimTrack
+{
+    static constexpr const char Header[] = "ATRK";
+    static constexpr uint8 Version = 1;
+
+    StringHash bone;
+    uint32 numKeyframes;
+    BlobPointer<AnimKeyframe> keyframes;
+
+    AnimTrack() = default;
+
+    float GetLength() const
+    {
+        return numKeyframes == 0 ? 0.0f : keyframes[numKeyframes - 1].time;
+    }
+
+    AnimKeyframe GetKeyframeAtTime(float time) const;
+
+    static HYP_NODISCARD AnimTrack* Allocate(const AnimTrack& other, BlobHeader& outHeader)
+    {
+        return Allocate(
+            other.bone,
+            other.numKeyframes > 0
+                ? Span<const AnimKeyframe>(&other.keyframes[0], other.numKeyframes)
+                : Span<const AnimKeyframe>(),
+            outHeader);
+    }
+
+    static HYP_NODISCARD AnimTrack* Allocate(StringHash bone, Span<const AnimKeyframe> keyframes, BlobHeader& outHeader)
+    {
+        AnimTrack data {};
+        data.bone = bone;
+        data.numKeyframes = uint32(keyframes.Size());
+       
+        TInlineBlobBuilder<AnimTrack> builder(&data);
+
+        return builder
+            .Append(offsetof(AnimTrack, keyframes), keyframes.ToSpan())
+            .Build(outHeader);
+    }
+};
+
+struct AnimData
+{
+    static constexpr const char Header[] = "ANIM";
+    static constexpr uint8 Version = 1;
+
+    StringHash animName;
+    uint32 numTracks;
+    BlobPointer<AnimTrack> tracks;
+
+    AnimData() = default;
+
+    float GetLength() const
+    {
+        return numTracks == 0 ? 0.0f : tracks[numTracks - 1].GetLength();
+    }
+
+    static HYP_NODISCARD AnimData* Allocate(const AnimData& other, BlobHeader& outHeader)
+    {
+        return Allocate(
+            other.animName,
+            other.numTracks > 0
+                ? Span<const AnimTrack>(&other.tracks[0], other.numTracks)
+                : Span<const AnimTrack>(),
+            outHeader);
+    }
+
+    static HYP_NODISCARD AnimData* Allocate(StringHash animName, Span<const AnimTrack> tracks, BlobHeader& outHeader)
+    {
+        AnimData data {};
+        data.animName = animName;
+        data.numTracks = uint32(tracks.Size());
+       
+        TInlineBlobBuilder<AnimData> builder(&data);
+
+        return builder
+            .Append(offsetof(AnimData, tracks), tracks.ToSpan())
+            .Build(outHeader);
+    }
+};
+
 HYP_CLASS()
 class HYP_API Animation final : public ObjectBase
 {
@@ -131,12 +216,6 @@ public:
     {
         return uint32(m_tracks.Size());
     }
-
-    HYP_METHOD()
-    void Apply(Skeleton* skeleton, float time);
-
-    HYP_METHOD()
-    void ApplyBlended(Skeleton* skeleton, float time, float blend);
 
 private:
     void Init() override;

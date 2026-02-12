@@ -112,10 +112,10 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     continue;
                 }
 
-                Animation* animation = skeletonData->GetAnimation(playbackState.animationIndex);
-                if (!animation)
+                const AnimData* animData = skeletonData->GetAnimData(playbackState.animationIndex);
+                if (!animData)
                 {
-                    HYP_LOG(Animation, Warning, "AnimationComponent has a playing animation but the associated Skeleton asset has no such animation (index {})", playbackState.animationIndex);
+                    HYP_LOG(Animation, Warning, "AnimData not found for index {}", playbackState.animationIndex);
 
                     playbackState = {};
 
@@ -124,7 +124,7 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
                 playbackState.currentTime += delta * playbackState.speed;
 
-                if (playbackState.currentTime > animation->GetLength())
+                if (playbackState.currentTime > animData->GetLength())
                 {
                     playbackState.currentTime = 0.0f;
 
@@ -135,7 +135,7 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                     }
                 }
 
-                animation->ApplyBlended(meshComponent.skeleton, playbackState.currentTime, 0.5f);
+                meshComponent.skeleton->ApplyAnimation(*animData, playbackState.currentTime, 0.5f);
 
                 meshComponent.skeleton->SetNeedsRenderProxyUpdate();
             }

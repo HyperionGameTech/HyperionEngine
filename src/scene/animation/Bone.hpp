@@ -35,12 +35,12 @@ public:
     Vec3f GetOffsetTranslation() const;
     Quaternion GetOffsetRotation() const;
 
-    const Keyframe& GetKeyframe() const
+    const AnimKeyframe& GetKeyframe() const
     {
         return m_keyframe;
     }
 
-    void SetKeyframe(const Keyframe& keyframe);
+    void SetKeyframe(const AnimKeyframe& keyframe);
 
     void ClearPose();
 
@@ -95,7 +95,7 @@ private:
     Mat4f m_boneMatrix;
 
     HYP_FIELD(Transient)
-    Keyframe m_keyframe;
+    AnimKeyframe m_keyframe;
 
     HYP_FIELD()
     Transform m_bindingTransform;
