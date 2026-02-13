@@ -229,7 +229,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 numDivisions)
     mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));
     
     mesh->SetMeshData(meshDesc, vertices, indices.ToByteView());
-    mesh->GetAsset()->GetMeshData()->CalculateNormals(true);
+    mesh->GetAsset()->CalculateNormals(true);
 
     return mesh;
 }
@@ -243,32 +243,29 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& tran
         return Handle<Mesh> {};
     }
 
-    ResourceGuard resGuard;
+    TSharedLock<AssetObject> resGuard;
 
     if (mesh->GetAsset()->IsRegistered())
     {
-        resGuard = ResourceGuard(*mesh->GetAsset()->GetResource());
+        resGuard.Reset(*mesh->GetAsset());
     }
 
     const Mat4f modelMatrix = transform.GetMatrix();
     const Mat4f normalMatrix = modelMatrix.Inverse().Transpose();
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
-    
-    const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
-
-    MeshData2* meshData = mesh->GetAsset()->GetMeshData();
-    Assert(meshData != nullptr);
+    const Span<const Vertex> vertexData = mesh->GetAsset()->GetVertexData();
+    const Span<const ubyte> indexData = mesh->GetAsset()->GetIndexData();
 
     Array<Vertex> newVertices;
-    newVertices.Resize(meshData->numVertices);
-    Memory::Copy(newVertices.Data(), &meshData->vertexData[0], sizeof(Vertex) * meshData->numVertices);
+    newVertices.Resize(vertexData.Size());
+    Memory::Copy(newVertices.Data(), vertexData.Data(), sizeof(Vertex) * vertexData.Size());
 
     Array<ubyte> newIndices;
-    newIndices.Resize(indexSize * meshData->numIndices);
-    Memory::Copy(newIndices.Data(), &meshData->indexData[0], indexSize * meshData->numIndices);
+    newIndices.Resize(indexData.Size());
+    Memory::Copy(newIndices.Data(), indexData.Data(), indexData.Size());
 
-    resGuard.Release();
+    resGuard.Reset();
 
     for (Vertex& vertex : newVertices)
     {
@@ -295,9 +292,9 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         ApplyTransform(b, bTransform)
     };
 
-    ResourceGuard resourceHandles[] = {
-        transformedMeshes[0]->GetAsset()->IsRegistered() ? ResourceGuard(*transformedMeshes[0]->GetAsset()->GetResource()) : ResourceGuard(),
-        transformedMeshes[1]->GetAsset()->IsRegistered() ? ResourceGuard(*transformedMeshes[1]->GetAsset()->GetResource()) : ResourceGuard()
+    TSharedLock<AssetObject> resourceHandles[] = {
+        transformedMeshes[0]->GetAsset()->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[0]->GetAsset()) : TSharedLock<AssetObject>(),
+        transformedMeshes[1]->GetAsset()->IsRegistered() ? TSharedLock<AssetObject>(*transformedMeshes[1]->GetAsset()) : TSharedLock<AssetObject>()
     };
 
     MeshDesc const* meshDescs[] = {
@@ -305,21 +302,23 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         &transformedMeshes[1]->GetAsset()->GetMeshDesc()
     };
 
-    MeshData2 const* meshDatas[] = {
-        transformedMeshes[0]->GetAsset()->GetMeshData(),
-        transformedMeshes[1]->GetAsset()->GetMeshData()
+    Span<const Vertex> meshVertices[] = {
+        transformedMeshes[0]->GetAsset()->GetVertexData(),
+        transformedMeshes[1]->GetAsset()->GetVertexData()
     };
 
-    Assert(meshDatas[0] != nullptr);
-    Assert(meshDatas[1] != nullptr);
+    Span<const ubyte> meshIndices[] = {
+        transformedMeshes[0]->GetAsset()->GetIndexData(),
+        transformedMeshes[1]->GetAsset()->GetIndexData()
+    };
 
     const VertexAttributeSet mergedVertexAttributes = a->GetVertexAttributes() | b->GetVertexAttributes();
 
     Array<Vertex> allVertices;
-    allVertices.Resize(meshDatas[0]->numVertices + meshDatas[1]->numVertices);
+    allVertices.Resize(meshDescs[0]->numVertices + meshDescs[1]->numVertices);
 
     Array<uint32> allIndices;
-    allIndices.Resize(meshDatas[0]->numIndices + meshDatas[1]->numIndices);
+    allIndices.Resize(meshDescs[0]->numIndices + meshDescs[1]->numIndices);
 
     SizeType vertexOffset = 0;
     SizeType indexOffset = 0;
@@ -328,22 +327,23 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
     {
         const SizeType vertexOffsetBefore = vertexOffset;
 
-        for (SizeType i = 0; i < meshDatas[meshIndex]->numVertices; i++)
+        for (SizeType i = 0; i < meshVertices[meshIndex].Size(); i++)
         {
-            allVertices[vertexOffset++] = meshDatas[meshIndex]->vertexData[i];
+            allVertices[vertexOffset++] = meshVertices[meshIndex][i];
         }
 
         const uint32 stride = GpuElemTypeSize(meshDescs[meshIndex]->meshAttributes.indexBufferElemType);
+        const SizeType meshIndexCount = meshIndices[meshIndex].Size() / stride;
 
-        for (SizeType i = 0; i < meshDatas[meshIndex]->numIndices; i++)
+        for (SizeType i = 0; i < meshIndexCount; i++)
         {
             switch (stride)
             {
             case 2:
-                allIndices[indexOffset++] = uint32(*reinterpret_cast<uint16*>(&meshDatas[meshIndex]->indexData[i * stride])) + uint32(vertexOffsetBefore);
+                allIndices[indexOffset++] = uint32(*reinterpret_cast<const uint16*>(&meshIndices[meshIndex][i * stride])) + uint32(vertexOffsetBefore);
                 break;
             case 4:
-                allIndices[indexOffset++] = uint32(*reinterpret_cast<uint32*>(&meshDatas[meshIndex]->indexData[i * stride])) + uint32(vertexOffsetBefore);
+                allIndices[indexOffset++] = uint32(*reinterpret_cast<const uint32*>(&meshIndices[meshIndex][i * stride])) + uint32(vertexOffsetBefore);
                 break;
             default:
                 HYP_UNREACHABLE();
@@ -351,9 +351,9 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a
         }
     }
 
-    for (ResourceGuard& resGuard : resourceHandles)
+    for (TSharedLock<AssetObject>& resGuard : resourceHandles)
     {
-        resGuard.Release();
+        resGuard.Reset();
     }
 
     MeshDesc mergedMeshDesc;

@@ -1036,14 +1036,15 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                         const Handle<MeshAsset>& meshAsset = meshComponent->mesh->GetAsset();
                         AssertDebug(meshAsset != nullptr);
 
-                        ResourceGuard resGuard(*meshAsset->GetResource());
-                        const MeshData2& meshData = *meshAsset->GetMeshData();
+                        auto resGuard = meshAsset->GetReadScope();
+                        const Span<const Vertex> vertexData = meshAsset->GetVertexData();
+                        const Span<const ubyte> indexData = meshAsset->GetIndexData();
 
                         // @TODO Fix for non-uint32 indices
                         localBvhResults = meshComponent->mesh->GetBVH().TestRay(
                             localSpaceRay,
-                            Span<const Vertex>(&meshData.vertexData[0], meshData.numVertices),
-                            Span<const uint32>(reinterpret_cast<const uint32*>(&meshData.indexData[0]), meshData.numIndices));
+                            vertexData,
+                            Span<const uint32>(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32)));
                     }
 
                     if (localBvhResults.Any())

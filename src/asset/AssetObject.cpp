@@ -69,47 +69,34 @@ static Name GetUniqueName(Name baseName, T&& elements)
     return baseName;
 }
 
-#pragma region AssetResourceBase
-
-void AssetDataResourceBase::Initialize()
-{
-}
-
-void AssetDataResourceBase::Destroy()
-{
-}
-
-#pragma endregion AssetResourceBase
-
 #pragma region AssetObject
 
 AssetObject::AssetObject()
-    : m_resource(nullptr),
-      m_blobKey {},
+    : m_blobKey {},
       m_flags(AssetObjectFlags::None),
-      m_isDirty(0)
+      m_isDirty(0),
+      m_rwState(0),
+      m_isInitialized(false)
 {
 }
 
 AssetObject::AssetObject(Name name)
     : m_name(SanitizeName(name)),
-      m_resource(nullptr),
       m_blobKey {},
       m_flags(AssetObjectFlags::None),
-      m_isDirty(0)
+      m_isDirty(0),
+      m_rwState(0),
+      m_isInitialized(false)
 {
 }
 
 AssetObject::~AssetObject()
 {
-    // need to release before freeing resource or we'll deadlock
-    m_persistentResource.Release();
+    m_persistentReader.Reset();
 
-    if (m_resource != nullptr)
-    {
-        PoolDelete(*g_assetPool, m_resource);
-        m_resource = nullptr;
-    }
+    // add writer here to wait for all reads to complete and
+    // block new readers/writers from acquiring the resource while we're destroying it.
+    LockWriter(/* doInitialize */ false);
 }
 
 void AssetObject::Init()
@@ -117,16 +104,10 @@ void AssetObject::Init()
     HYP_SCOPE;
     ObjectBase::Init();
 
-    if (m_resource)
+    if ((m_flags[AssetObjectFlags::Persistent] || DebugDisableUnload) && !m_persistentReader)
     {
-        AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-        resource->m_assetObject = this;
-
-        if ((m_flags[AssetObjectFlags::Persistent] || DebugDisableUnload) && !m_persistentResource)
-        {
-            m_persistentResource = m_resource->GetReadScope();
-            Assert(m_persistentResource);
-        }
+        m_persistentReader.Reset(*this);
+        Assert(m_persistentReader);
     }
 
     SetReady(true);
@@ -176,10 +157,9 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
 
     if (persistentlyLoaded)
     {
-        if (!m_persistentResource && m_resource)
+        if (!m_persistentReader)
         {
-            m_persistentResource = m_resource->GetReadScope();
-            Assert(m_persistentResource);
+            m_persistentReader.Reset(*this);
         }
 
         return;
@@ -194,7 +174,7 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
     // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
     if (!persistentlyLoaded && !m_flags[AssetObjectFlags::Persistent] && !IsTransient())
     {
-        m_persistentResource.Release();
+        m_persistentReader.Reset();
     }
 }
 
@@ -286,14 +266,6 @@ Result AssetObject::Rename(Name name)
     MarkDirty();
 
     return {};
-}
-
-bool AssetObject::IsDataLoaded() const
-{
-    HYP_SCOPE;
-
-    return m_resource != nullptr
-        && static_cast<AssetDataResourceBase*>(m_resource)->IsDataLoaded();
 }
 
 bool AssetObject::IsSaved() const
@@ -465,22 +437,11 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
 
-    AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(targetAssetObject->m_resource);
+    Assert(blobStorage != nullptr);
 
-    if (targetAssetObject->GetBlobKey())
+    if (blobStorage != nullptr)
     {
-        AssertDebug(blobStorage != nullptr,
-            "Loading asset {} which has blob data but no BlobStorage instance was provided to load from",
-            targetAssetObject->m_name);
-
-        if (blobStorage != nullptr)
-        {
-            resource->InitReadOnlyData(*blobStorage);
-        }
-        else
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to load from blob data, no associated BlobStorage instance to load from");
-        }
+        targetAssetObject->ReadBlobData(*blobStorage);
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);
@@ -526,6 +487,178 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     }
 
     return {};
+}
+
+
+TUniqueLock<AssetObject> AssetObject::GetWriteScope()
+{
+    return TUniqueLock<AssetObject> { *this };
+}
+
+TSharedLock<AssetObject> AssetObject::GetReadScope()
+{
+    return TSharedLock<AssetObject> { *this };
+}
+
+void AssetObject::LockWriter(bool doInitialize)
+{
+    uint32 numSpins = 0;
+
+    int64 expected = 0;
+    while (!AtomicCompareExchange(&m_rwState, expected, 1))
+    {
+        expected = 0;
+            
+        // volatile read
+        while (m_rwState != 0)
+        {
+            if (numSpins++ < 16)
+            {
+                HYP_WAIT_IDLE();
+            }
+            else
+            {
+                // yield to other threads
+                ThreadSleep(0);
+            }
+        }
+    }
+
+    if (doInitialize)
+    {
+        Mutex::Guard initGuard(m_initMutex);
+
+        Initialize();
+
+        m_isInitialized = true;
+    }
+}
+
+void AssetObject::UnlockWriter(bool doDeinitialize)
+{
+    if (doDeinitialize)
+    {
+        Mutex::Guard initGuard(m_initMutex);
+
+        Assert(m_isInitialized);
+
+        Destroy();
+
+        m_isInitialized = false;
+    }
+
+    AtomicBitAnd(&m_rwState, ~0x1);
+}
+
+void AssetObject::LockReader()
+{
+    uint32 numSpins = 0;
+
+    union
+    {
+        int64 state;
+        uint64 ustate;
+    };
+
+    auto MaybeInitialize = [this](int64 state)
+    {
+        bool isInitializedLocal = false;
+
+        if (state == 0)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            isInitializedLocal = m_isInitialized;
+
+            if (!isInitializedLocal)
+            {
+                // need to do initialize here, since we're the first reader
+                m_isInitialized = true;
+                isInitializedLocal = true;
+
+                Initialize();
+
+                m_initCV.NotifyAll();
+            }
+        }
+
+        if (!isInitializedLocal)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            // wait for initialization to complete
+            while (!m_isInitialized)
+            {
+                m_initCV.Wait(m_initMutex);
+            }
+        }
+    };
+        
+    // first pass: optimistic read
+    if ((m_rwState & 0x1) == 0)
+    {
+        state = AtomicAdd(&m_rwState, 2);
+
+        if ((state & 0x1) == 0)
+        {
+            MaybeInitialize(state);
+
+            return;
+        }
+
+        AtomicSub(&m_rwState, 2);
+    }
+
+    while (true)
+    {
+        // failed, wait for writer to release
+        if (m_rwState & 0x1)
+        {
+            if (numSpins++ < 16)
+            {
+                HYP_WAIT_IDLE();
+            }
+            else
+            {
+                ThreadSleep(0);
+            }
+
+            continue;
+        }
+
+        state = AtomicAdd(&m_rwState, 2);
+
+        if ((state & 0x1) == 0)
+        {
+            MaybeInitialize(state);
+
+            return;
+        }
+
+        AtomicSub(&m_rwState, 2);
+    }
+}
+
+void AssetObject::UnlockReader()
+{
+    Mutex::Guard initGuard(m_initMutex);
+
+    if (m_isInitialized && AtomicSub(&m_rwState, 2) == 2)
+    {
+        Destroy();
+
+        m_isInitialized = false;
+    }
+}
+
+void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const
+{
+    int64 state = AtomicAdd(const_cast<volatile int64*>(&m_rwState), 0);
+
+    outReaders = state >> 1;
+    outWriters = state & 0x1;
 }
 
 #pragma endregion AssetObject

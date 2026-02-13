@@ -169,59 +169,6 @@ Result EditorProject::CreatePackage()
             m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
             m_name = CreateNameFromDynamicString(currentName);
 
-            // temp
-            m_package->InitBlobStorage(/* readOnly */ false);
-            //m_package->GetBlobStorage()->EnsureCapacity(1 * 1024 * 1024);
-
-            // temp debug
-            static const Array<Vertex> quadVertices = {
-                Vertex { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-                Vertex { { 1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-                Vertex { { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
-                Vertex { { -1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } }
-            };
-
-            static const Array<uint32> quadIndices = {
-                0, 3, 2,
-                0, 2, 1
-            };
-            BlobHeader header;
-            MeshData2* md2 = MeshData2::Allocate(quadVertices.ToSpan(), quadIndices.ToByteView(), header);
-            Vertex& vtx0 = md2->vertexData[0];
-            HYP_LOG_TEMP("Vertex0: {}", vtx0.GetPosition());
-            Vertex& vtx1 = md2->vertexData[1];
-            HYP_LOG_TEMP("Vertex1: {}", vtx1.GetPosition());
-            Vertex& vtx2 = md2->vertexData[2];
-            HYP_LOG_TEMP("Vertex2: {}", vtx2.GetPosition());
-            Vertex& vtx3 = md2->vertexData[3];
-            HYP_LOG_TEMP("Vertex3: {}", vtx3.GetPosition());
-
-            //BlobAllocation allocation;
-            //Assert(m_package->GetBlobStorage()->Map(0, totalSize, allocation));
-            //Memory::Copy(allocation.address, md2, totalSize);
-
-            //// lets write it again just to see..
-            //BlobAllocation allocation2;
-            //Assert(m_package->GetBlobStorage()->Map(ByteUtil::AlignAs(totalSize, 16), totalSize, allocation2));
-            //Memory::Copy(allocation2.address, md2, totalSize);
-
-            //m_package->GetBlobStorage()->Write(0, totalSize, md2);
-            //m_package->GetBlobStorage()->Write(ByteUtil::AlignAs(totalSize, 16), totalSize, md2);
-
-            BlobResourceKey key;
-            Assert(m_package->GetBlobStorage()->AllocateBlob(header, key));
-
-            ByteWriter* writer = m_package->GetBlobStorage()->GetWriteStream();
-            Assert(writer != nullptr);
-
-            writer->Seek(key.offset);
-            writer->Write(md2, key.size);
-
-            //auto& value = res.GetValue();
-            //aHYP_LOG_TEMP("offset = {}, size = {}", value.offset, value.size);
-
-            HYP_FREE_ALIGNED(md2);
-
             OnPackageCreated(m_package);
 
             return {};
@@ -471,38 +418,6 @@ TResult<Handle<EditorProject>> EditorProject::Load(const FilePath& filepath)
     }
 
     project->m_package = std::move(*loadPackageResult);
-
-#if 0
-    // temp debug
-    if (BlobStorage* blobStorage = project->m_package->GetBlobStorage())
-    {
-        BlobResourceKey key { 0, 552 };
-
-        void* blobPtr = blobStorage->Map(key);
-        Assert(blobPtr != nullptr);
-
-        //MeshData2* md2 = (MeshData2*)Memory::Allocate(552);
-        //Memory::Copy(md2, blobPtr, 552);
-
-        MeshData2* md2 = reinterpret_cast<MeshData2*>(blobPtr);
-
-        HYP_LOG_TEMP("Md2 vertex ptr: {}", md2->vertexData.offset);
-        HYP_LOG_TEMP("Md2 index ptr: {}", md2->indexData.offset);
-        
-        Vertex& vtx0 = md2->vertexData[0];
-        HYP_LOG_TEMP("Vertex0: {}", vtx0.GetPosition());
-        Vertex& vtx1 = md2->vertexData[1];
-        HYP_LOG_TEMP("Vertex1: {}", vtx1.GetPosition());
-        Vertex& vtx2 = md2->vertexData[2];
-        HYP_LOG_TEMP("Vertex2: {}", vtx2.GetPosition());
-        Vertex& vtx3 = md2->vertexData[3];
-        HYP_LOG_TEMP("Vertex3: {}", vtx3.GetPosition());
-
-        HYP_BREAKPOINT;
-
-        blobStorage->Unmap(key);
-    }
-#endif
 
     // set transient properties
     project->m_lastSavedTime = projectFilepath.LastModifiedTimestamp();

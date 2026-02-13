@@ -781,7 +781,7 @@ bool BuildPrimitive(GltfLoadContext& ctx,
 
     if (!hasNormals && meshDesc.meshAttributes.topology == TOP_TRIANGLES)
     {
-        mesh->GetAsset()->GetMeshData()->CalculateNormals();
+        mesh->GetAsset()->CalculateNormals();
     }
 
     mesh->GetAsset()->Rename(assetName);

@@ -69,16 +69,17 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             // Hack to make vertices be from 0..1 rather than -1..1
 
             Assert(quad->GetAsset().IsValid());
-            Assert(quad->GetAsset()->GetMeshData() != nullptr);
+            Assert(quad->GetAsset()->GetVertexData().Size() > 0);
+            Assert(quad->GetAsset()->GetIndexData().Size() > 0);
 
             const MeshDesc& meshDesc = quad->GetAsset()->GetMeshDesc();
 
-            const MeshData2* meshData = quad->GetAsset()->GetMeshData();
-            Assert(meshData != nullptr);
+            const Span<const Vertex> vertexData = quad->GetAsset()->GetVertexData();
+            const Span<const ubyte> indexData = quad->GetAsset()->GetIndexData();
 
             Array<Vertex> newVertices;
-            newVertices.Resize(meshData->numVertices);
-            Memory::Copy(newVertices.Data(), &meshData->vertexData[0], sizeof(Vertex) * meshData->numVertices);
+            newVertices.Resize(vertexData.Size());
+            Memory::Copy(newVertices.Data(), vertexData.Data(), sizeof(Vertex) * vertexData.Size());
 
             for (Vertex& vert : newVertices)
             {
@@ -86,7 +87,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
 
-            quad->SetMeshData(meshDesc, newVertices.ToSpan(), ConstByteView(&meshData->indexData[0], meshData->numIndices * GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType)));
+            quad->SetMeshData(meshDesc, newVertices.ToSpan(), ConstByteView(indexData.Data(), indexData.Size()));
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);

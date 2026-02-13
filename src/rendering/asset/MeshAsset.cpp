@@ -14,15 +14,17 @@
 
 namespace Hyperion {
 
-BoundingBox MeshData2::CalculateAABB() const
+BoundingBox MeshAsset::CalculateAABB() const
 {
     HYP_SCOPE;
 
+    const Span<const Vertex> vertices = GetVertexData();
+
     BoundingBox aabb = BoundingBox::Empty();
 
-    for (uint32 vertexIndex = 0; vertexIndex < numVertices; vertexIndex++)
+    for (uint32 vertexIndex = 0; vertexIndex < vertices.Size(); vertexIndex++)
     {
-        const Vertex& vertex = vertexData[vertexIndex];
+        const Vertex& vertex = vertices[vertexIndex];
 
         aabb = aabb.Union(vertex.GetPosition());
     }
@@ -38,19 +40,20 @@ BoundingBox MeshData2::CalculateAABB() const
     }                                                                                                 \
     while (0)
 
-Array<float> MeshData2::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
+Array<float> MeshAsset::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const
 {
+    const Span<const Vertex> vertices = GetVertexData();
     const SizeType vertexSize = vertexAttributes.CalculateVertexSize();
 
     Array<float> packedBuffer;
-    packedBuffer.Resize(vertexSize * numVertices);
+    packedBuffer.Resize(vertexSize * vertices.Size());
 
     float* floatBuffer = packedBuffer.Data();
     SizeType currentOffset = 0;
 
-    for (SizeType i = 0; i < numVertices; i++)
+    for (SizeType i = 0; i < vertices.Size(); i++)
     {
-        const Vertex& vertex = vertexData[i];
+        const Vertex& vertex = vertices[i];
         /* Offset aligned to the current vertex */
         // currentOffset = i * vertexSize;
 
@@ -94,16 +97,18 @@ Array<float> MeshData2::BuildVertexBuffer(const VertexAttributeSet& vertexAttrib
 
 #undef PACKED_SET_ATTR
 
-Array<PackedVertex> MeshData2::BuildPackedVertices() const
+Array<PackedVertex> MeshAsset::BuildPackedVertices() const
 {
     HYP_SCOPE;
 
-    Array<PackedVertex> packedVertices;
-    packedVertices.Resize(numVertices);
+    const Span<const Vertex> vertices = GetVertexData();
 
-    for (SizeType i = 0; i < numVertices; i++)
+    Array<PackedVertex> packedVertices;
+    packedVertices.Resize(vertices.Size());
+
+    for (SizeType i = 0; i < vertices.Size(); i++)
     {
-        const Vertex& vertex = vertexData[i];
+        const Vertex& vertex = vertices[i];
 
         packedVertices[i] = PackedVertex {
             .positionX = vertex.GetPosition().x,
@@ -120,9 +125,12 @@ Array<PackedVertex> MeshData2::BuildPackedVertices() const
     return packedVertices;
 }
 
-Array<uint32> MeshData2::BuildPackedIndices() const
+Array<uint32> MeshAsset::BuildPackedIndices() const
 {
     HYP_SCOPE;
+
+    const Span<const ubyte> indices = GetIndexData();
+    const uint32 numIndices = uint32(indices.Size() / sizeof(uint32));
 
     Assert(numIndices % 3 == 0);
 
@@ -131,7 +139,7 @@ Array<uint32> MeshData2::BuildPackedIndices() const
     Array<uint32> packedIndices;
     packedIndices.Resize(numIndices);
 
-    Memory::Copy(packedIndices.Data(), &indexData[0], numIndices);
+    Memory::Copy(packedIndices.Data(), indices.Data(), numIndices);
 
     // Ensure indices are a multiple of 3
     if (packedIndices.Size() % 3 != 0)
@@ -152,20 +160,22 @@ Array<uint32> MeshData2::BuildPackedIndices() const
     for (SizeType i = 0; i < packedIndices.Size(); i++)
     {
         uint32 idx = packedIndices[i];
-        AssertDebug(idx < numVertices);
+        AssertDebug(idx < GetMeshDesc().numVertices);
     }
 #endif
 
     return packedIndices;
 }
 
-void MeshData2::InvertNormals()
+void MeshAsset::InvertNormals()
 {
     HYP_SCOPE;
 
-    for (SizeType i = 0; i < numVertices; i++)
+    Span<Vertex> vertices = GetVertexData();
+
+    for (SizeType i = 0; i < vertices.Size(); i++)
     {
-        vertexData[i].SetNormal(vertexData[i].GetNormal() * -1.0f);
+        vertices[i].SetNormal(vertices[i].GetNormal() * -1.0f);
     }
 }
 
@@ -181,9 +191,14 @@ void MeshData2::InvertNormals()
     }                                    \
     while (0)
 
-void MeshData2::CalculateNormals(bool weighted)
+void MeshAsset::CalculateNormals(bool weighted)
 {
     HYP_SCOPE;
+
+    Span<Vertex> vertexData = GetVertexData();
+    Span<ubyte> indexData = GetIndexData();
+    const uint32 numVertices = uint32(vertexData.Size());
+    const uint32 numIndices = uint32(indexData.Size() / sizeof(uint32));
 
     // @TODO fix for non-uint32 indices
 
@@ -344,9 +359,14 @@ void MeshData2::CalculateNormals(bool weighted)
     }                                    \
     while (0)
 
-void MeshData2::CalculateTangents()
+void MeshAsset::CalculateTangents()
 {
     HYP_SCOPE;
+
+    Span<Vertex> vertexData = GetVertexData();
+    Span<ubyte> indexData = GetIndexData();
+    const uint32 numVertices = uint32(vertexData.Size());
+    const uint32 numIndices = uint32(indexData.Size() / sizeof(uint32));
 
     // @TODO fix for non uint32 indices
 
@@ -432,15 +452,20 @@ void MeshData2::CalculateTangents()
 #undef ADD_TANGENTS
 
 HYP_DISABLE_OPTIMIZATION;
-bool MeshData2::BuildBVH(BVHNode& bvhNode, int maxDepth) const
+bool MeshAsset::BuildBVH(BVHNode& bvhNode, int maxDepth) const
 {
+    const Span<const Vertex> vertexData = GetVertexData();
+    const Span<const ubyte> indexData = GetIndexData();
+    const uint32 numVertices = uint32(vertexData.Size());
+    const uint32 numIndices = uint32(indexData.Size() / sizeof(uint32));
+
     const BoundingBox meshAabb = CalculateAABB();
 
     const SizeType numTriangles = numIndices / 3;
 
     // @TODO Fix for non uint32 indices
 
-    const uint32* indexDataU32 = reinterpret_cast<const uint32*>(&indexData[0]);
+    const uint32* indexDataU32 = reinterpret_cast<const uint32*>(indexData.Data());
 
     bvhNode = BVHNode(meshAabb);
     bvhNode.triangleIds.Reserve(numTriangles);
@@ -453,7 +478,7 @@ bool MeshData2::BuildBVH(BVHNode& bvhNode, int maxDepth) const
     // pass mesh spans so Split can do AABB/triangle overlap without copying triangles
     bvhNode.Split(
         maxDepth,
-        Span<const Vertex>(&vertexData[0], numVertices),
+        vertexData,
         Span<const uint32>(indexDataU32, numIndices));
 
     bvhNode.Shake();

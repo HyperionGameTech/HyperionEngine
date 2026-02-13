@@ -120,10 +120,10 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
         return nullptr;
     }
 
-    ResourceGuard resGuard(*asset->GetResource());
+    auto resGuard = asset->GetReadScope();
 
-    Array<PackedVertex> packedVertices = asset->GetMeshData()->BuildPackedVertices();
-    Array<uint32> packedIndices = asset->GetMeshData()->BuildPackedIndices();
+    Array<PackedVertex> packedVertices = asset->BuildPackedVertices();
+    Array<uint32> packedIndices = asset->BuildPackedIndices();
 
     if (packedVertices.Empty() || packedIndices.Empty())
     {

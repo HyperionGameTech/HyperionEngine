@@ -202,7 +202,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 FreeResource<ScriptObjectResource>(sor);
                 sor = nullptr;
 
-                ResourceGuard resGuard = scriptAsset->GetResource()->GetReadScope();
+                auto resGuard = scriptAsset->GetReadScope();
 
                 if (!scriptComponent.assembly)
                 {
@@ -320,7 +320,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 FreeResource<ScriptObjectResource>(sor);
                 sor = nullptr;
 
-                ResourceGuard resGuard = scriptAsset->GetResource()->GetReadScope();
+                auto resGuard = scriptAsset->GetReadScope();
 
                 // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
                 FilePath path = FilePath::Join(CoreApi::GetExecutablePath(), scriptDesc.path.Data());

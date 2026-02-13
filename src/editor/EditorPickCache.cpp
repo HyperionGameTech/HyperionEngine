@@ -146,7 +146,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
         return;
     }
 
-    ResourceGuard resGuard = mesh->GetAsset()->GetResource()->GetReadScope();
+    auto resGuard = mesh->GetAsset()->GetReadScope();
 
     if (!resGuard)
     {
@@ -156,10 +156,13 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     }
 
     const MeshDesc& meshDesc = mesh->GetAsset()->GetMeshDesc();
-    const MeshData2& meshData = *mesh->GetAsset()->GetMeshData();
+    const Span<const Vertex> vertexData = mesh->GetAsset()->GetVertexData();
+    const Span<const ubyte> indexData = mesh->GetAsset()->GetIndexData();
+    const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
+    const SizeType numIndices = indexData.Size() / indexSize;
 
     // make sure we have enough memory before adding, otherwise fail
-    if (!HasFreeSpace((meshData.numVertices * sizeof(Vec3f)) + meshData.numIndices * GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType)))
+    if (!HasFreeSpace((vertexData.Size() * sizeof(Vec3f)) + numIndices * indexSize))
     {
         HYP_LOG(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
@@ -169,17 +172,17 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     EditorPickCacheEntry entry {};
     entry.frameVisible = fc;
 
-    entry.positions.Resize(meshData.numVertices);
-    for (SizeType i = 0; i < meshData.numVertices; ++i)
+    entry.positions.Resize(vertexData.Size());
+    for (SizeType i = 0; i < vertexData.Size(); ++i)
     {
-        entry.positions[i] = meshData.vertexData[i].position;
+        entry.positions[i] = vertexData[i].position;
     }
 
     // @TODO fix for non-uint32 indices
-    Assert(GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType) == 4);
+    Assert(indexSize == 4);
 
-    entry.indices.Resize(meshData.numIndices);
-    Memory::Copy(entry.indices.Data(), &meshData.indexData[0], meshData.numIndices * GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType));
+    entry.indices.Resize(numIndices);
+    Memory::Copy(entry.indices.Data(), indexData.Data(), numIndices * indexSize);
 
     entry.residency = ComputeResidency(entry);
 

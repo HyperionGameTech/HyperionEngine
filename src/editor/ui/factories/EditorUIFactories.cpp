@@ -986,7 +986,7 @@ public:
                         return UIEventHandlerResult::ERR;
                     }
 
-                    ResourceGuard resGuard(*scriptAsset->GetResource());
+                    auto resGuard = scriptAsset->GetWriteScope();
                     
                     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 

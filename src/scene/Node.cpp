@@ -1006,7 +1006,8 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
         const Class* entityClass = Entity::StaticClass();
         if (IsA(entityClass))
         {
-            ResourceGuard resGuard;
+            TSharedLock<AssetObject> resGuard;
+
             MeshAsset* meshAsset = nullptr;
 
 #ifdef HYP_EDITOR
@@ -1038,7 +1039,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                             if (meshAsset != nullptr)
                             {
-                                resGuard = ResourceGuard(*meshAsset->GetResource());
+                                resGuard.Reset(*meshAsset);
                             }
                     }
                 }
@@ -1069,13 +1070,14 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                 {
                     AssertDebug(resGuard && meshAsset);
 
-                    const MeshData2& meshData = *meshAsset->GetMeshData();
+                    const Span<const Vertex> vertexData = meshAsset->GetVertexData();
+                    const Span<const ubyte> indexData = meshAsset->GetIndexData();
 
                     // @TODO fix for non-uint32 indices
                     localBvhResults = bvh->TestRay(
                         localSpaceRay,
-                        Span<const Vertex>(&meshData.vertexData[0], meshData.numVertices),
-                        Span<const uint32>(reinterpret_cast<const uint32*>(&meshData.indexData[0]), meshData.numIndices));
+                        vertexData,
+                        Span<const uint32>(reinterpret_cast<const uint32*>(indexData.Data()), indexData.Size() / sizeof(uint32)));
                 }
 
                 if (localBvhResults.Any())

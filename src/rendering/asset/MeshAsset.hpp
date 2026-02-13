@@ -38,66 +38,6 @@ struct MeshDesc
     uint32 numIndices = 0;
 };
 
-HYP_STRUCT()
-struct MeshData
-{
-    HYP_STRUCT_BODY(MeshData);
-
-    HYP_FIELD(Serialize, Compressed)
-    Array<Vertex> vertexData;
-
-    HYP_FIELD(Serialize, Compressed)
-    ByteBuffer indexData;
-};
-
-struct MeshData2
-{
-    static constexpr uint8 Version = 2;
-    static constexpr const char Header[] = "MESH";
-
-    uint32 numVertices;
-    uint32 numIndices;
-
-    BlobPointer<Vertex> vertexData;
-    BlobPointer<ubyte> indexData;
-
-    MeshData2() = default;
-
-    static HYP_NODISCARD MeshData2* Allocate(const MeshData2& other, BlobHeader& outHeader)
-    {
-        return Allocate(
-            Span<const Vertex>(&other.vertexData[0], other.numVertices),
-            Span<const ubyte>(&other.indexData[0], other.numIndices),
-            outHeader);
-    }
-
-    static HYP_NODISCARD MeshData2* Allocate(
-        Span<const Vertex> vertices,
-        Span<const ubyte> indices,
-        BlobHeader& outHeader)
-    {
-        MeshData2 data {};
-        data.numVertices = uint32(vertices.Size());
-        data.numIndices = uint32(indices.Size()) / sizeof(uint32); // @TODO Fix for non-uint32 indices
-
-        TInlineBlobBuilder<MeshData2, 16> builder(&data);
-
-        return builder
-            .Append(offsetof(MeshData2, vertexData), vertices)
-            .Append(offsetof(MeshData2, indexData), indices)
-            .Build(outHeader);
-    }
-
-    HYP_API BoundingBox CalculateAABB() const;
-    HYP_API Array<float> BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const;
-    HYP_API Array<PackedVertex> BuildPackedVertices() const;
-    HYP_API Array<uint32> BuildPackedIndices() const;
-    HYP_API void InvertNormals();
-    HYP_API void CalculateNormals(bool weighted = false);
-    HYP_API void CalculateTangents();
-    HYP_API bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
-};
-
 HYP_CLASS()
 class MeshAsset : public AssetObject
 {
@@ -148,12 +88,35 @@ public:
             : Span<const Vertex>();
     }
 
+    HYP_FORCE_INLINE Span<Vertex> GetVertexData()
+    {
+        return vertexData.raw != nullptr
+            ? Span<Vertex>(reinterpret_cast<Vertex*>(vertexData.raw), vertexData.size / sizeof(Vertex))
+            : Span<Vertex>();
+    }
+
     HYP_FORCE_INLINE Span<const ubyte> GetIndexData() const
     {
         return indexData.raw != nullptr
             ? Span<const ubyte>(reinterpret_cast<const ubyte*>(indexData.raw), indexData.size)
             : Span<const ubyte>();
     }
+
+    HYP_FORCE_INLINE Span<ubyte> GetIndexData()
+    {
+        return indexData.raw != nullptr
+            ? Span<ubyte>(reinterpret_cast<ubyte*>(indexData.raw), indexData.size)
+            : Span<ubyte>();
+    }
+
+    HYP_API BoundingBox CalculateAABB() const;
+    HYP_API Array<float> BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const;
+    HYP_API Array<PackedVertex> BuildPackedVertices() const;
+    HYP_API Array<uint32> BuildPackedIndices() const;
+    HYP_API void InvertNormals();
+    HYP_API void CalculateNormals(bool weighted = false);
+    HYP_API void CalculateTangents();
+    HYP_API bool BuildBVH(BVHNode& bvhNode, int maxDepth = 3) const;
 
 protected:
     void WriteBlobData(BlobStorage& blobStorage) override

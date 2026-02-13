@@ -126,19 +126,6 @@ class HYP_API AssetObject : public ObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 
-protected:
-    template <class T, class... Args>
-    void ConstructBlobData(Args&&... args)
-    {
-        if (m_resource)
-        {
-            PoolDelete(*g_assetPool, m_resource);
-        }
-
-        m_resource = PoolNew<AssetDataResource<NormalizedType<T>>>(*g_assetPool, std::forward<Args>(args)...);
-        m_resource->m_assetObject = this;
-    }
-
 public:
     friend class AssetRegistry;
     friend class AssetPackage;
@@ -208,11 +195,6 @@ public:
         return m_package.Lock();
     }
 
-    HYP_FORCE_INLINE AssetDataResourceBase* GetResource() const
-    {
-        return m_resource;
-    }
-
     HYP_FORCE_INLINE const BlobResourceKey& GetBlobKey() const
     {
         return m_blobKey;
@@ -244,7 +226,7 @@ public:
     HYP_METHOD()
     bool IsPersistent() const
     {
-        return bool(m_persistentResource);
+        return bool(m_persistentReader);
     }
 
     HYP_METHOD()
@@ -269,9 +251,6 @@ public:
     void SetIsTransientByProxy(bool isTransientByProxy);
 
     HYP_METHOD()
-    bool IsDataLoaded() const;
-
-    HYP_METHOD()
     bool IsSaved() const;
 
     HYP_METHOD()
@@ -282,6 +261,17 @@ public:
      *  \return Result indicating success or failure of the operation. */
     Result OpenBinaryReadStream(BufferedReader& stream) const;
 
+    TUniqueLock<AssetObject> GetWriteScope();
+    TSharedLock<AssetObject> GetReadScope();
+    
+    void LockWriter(bool doInitialize = true);
+    void UnlockWriter(bool doDeinitialize = true);
+
+    void LockReader();
+    void UnlockReader();
+
+    void GetNumUsers(int64& outReaders, int64& outWriters) const;
+
     static Result Load(
         JSON::Object& manifestData,
         BlobStorage* blobStorage,
@@ -289,6 +279,16 @@ public:
 
 protected:
     void Init() override;
+
+    virtual void Initialize()
+    {
+        // unused currently; called when num writers/readers >= 1
+    }
+
+    virtual void Destroy()
+    {
+        // same deal as Initialize()
+    }
 
     virtual void OnDirtyStateChanged(bool isDirty)
     {
@@ -336,34 +336,6 @@ protected:
 
     Result SaveManifest(ByteWriter& stream) const;
 
-    template <class T>
-    T* GetResourceData() const
-    {
-        static_assert(std::is_same_v<T, NormalizedType<T>>);
-
-        if (!m_resource)
-        {
-            return nullptr;
-        }
-
-        AssetDataResourceBase* resourceCastedBase = static_cast<AssetDataResourceBase*>(m_resource);
-
-        const bool isExpectedType = TypeInfo_GetId(resourceCastedBase->GetDataTypeInfo()) == TypeIdOf<T>();
-
-        AssertDebug(isExpectedType, "Type mismatch! Expected: {} but got: {}",
-            TypeInfo_GetName(resourceCastedBase->GetDataTypeInfo()),
-            TypeInfo_GetName(TypeOf<T>()));
-
-        if (!isExpectedType)
-        {
-            return nullptr;
-        }
-        
-        AssetDataResource<T>* resourceCasted = static_cast<AssetDataResource<T>*>(m_resource);
-
-        return static_cast<T*>(resourceCasted->GetData());
-    }
-
     HYP_FIELD(Property = "Name")
     Name m_name;
 
@@ -379,9 +351,6 @@ protected:
     HYP_FIELD(Transient)
     WeakHandle<AssetPackage> m_package;
 
-    HYP_FIELD(NoScriptBindings, Transient)
-    AssetDataResourceBase* m_resource; // @TODO remove when all is using blobs
-
     HYP_FIELD()
     BlobResourceKey m_blobKey;
 
@@ -392,10 +361,15 @@ protected:
     FilePath m_manifestPath;
 
     HYP_FIELD(NoScriptBindings, Transient)
-    ResourceGuard m_persistentResource;
-
-    HYP_FIELD(NoScriptBindings, Transient)
     mutable volatile int32 m_isDirty;
+    
+    mutable volatile int64 m_rwState;
+
+    mutable Mutex m_initMutex;
+    ConditionVariable m_initCV;
+    bool m_isInitialized;
+
+    TSharedLock<AssetObject> m_persistentReader;
 };
 
 } // namespace Hyperion

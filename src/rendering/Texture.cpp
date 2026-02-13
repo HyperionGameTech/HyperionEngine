@@ -53,14 +53,14 @@ static const Name s_nameTextureDefault = NAME("<unnamed texture>");
 struct CreateTextureGpuImage : RenderCommand
 {
     Handle<TextureAsset> textureAsset;
-    ResourceGuard resGuard;
+    TSharedLock<AssetObject> resGuard;
     ResourceState initialState;
     GpuImageRef image;
     bool uploadTextureData;
 
     CreateTextureGpuImage(
         Handle<TextureAsset>&& textureAsset,
-        ResourceGuard&& resGuard,
+        TSharedLock<AssetObject>&& resGuard,
         ResourceState initialState,
         GpuImageRef image,
         bool uploadTextureData)
@@ -84,6 +84,8 @@ struct CreateTextureGpuImage : RenderCommand
     {
         if (!textureAsset || !image)
         {
+            HYP_LOG(Streaming, Error, "Image or texture data is null");
+
             return false;
         }
 
@@ -91,26 +93,28 @@ struct CreateTextureGpuImage : RenderCommand
 
         if (!imageData)
         {
+            HYP_LOG(Streaming, Error, "No image data for texture");
+
             return false;
         }
 
         const TextureDesc& textureDesc = textureAsset->GetTextureDesc();
 
-        const uint32 mip0Size = textureDesc.HasStoredMips()
+        const uint32 largestMipSize = textureDesc.HasStoredMips()
             ? textureDesc.mipOffsets[0]
-            : uint32(textureDesc.GetMipByteSize(0));
+            : uint32(textureDesc.GetByteSize());
 
-        ConstByteView mip0Slice = ConstByteView(imageData.Data(), mip0Size);
+        ConstByteView largestMipData = ConstByteView(imageData.Data(), largestMipSize);
 
         if (textureDesc != image->GetTextureDesc())
         {
             HYP_LOG(Streaming, Warning, "Streamed texture data TextureDesc not equal to Image's TextureDesc!");
         }
 
-        if (mip0Slice.Size() != image->GetByteSize())
+        if (largestMipData.Size() != image->GetByteSize())
         {
             HYP_LOG(Streaming, Warning, "Streamed texture data buffer size mismatch for texture asset {}! Expected: {}, Got: {}",
-                textureAsset->GetName(), image->GetByteSize(), mip0Slice.Size());
+                textureAsset->GetName(), image->GetByteSize(), largestMipData.Size());
 
             return false;
         }
@@ -274,7 +278,7 @@ struct CreateTextureGpuImage : RenderCommand
             renderQueue << InsertBarrier(image, initialState);
         }
 
-        resGuard.Release();
+        resGuard.Reset();
 
         return {};
     }
@@ -345,14 +349,14 @@ void Texture::Init()
         m_gpuImage->SetDebugName(m_name);
     }
 
-    ResourceGuard resGuard;
+    TSharedLock<AssetObject> resGuard;
     bool uploadTextureData = false;
 
     Handle<TextureAsset> textureAsset = GetAsset();
 
     if (textureAsset)
     {
-        resGuard = ResourceGuard(*textureAsset->GetResource());
+        resGuard.Reset(*textureAsset);
 
         uploadTextureData = textureAsset->GetImageData().Size() > 0;
     }
@@ -454,7 +458,7 @@ void Texture::SetTextureDesc(const TextureDesc& textureDesc)
         Handle<TextureAsset> prevAsset = asset;
         Handle<AssetPackage> package = prevAsset->GetPackage();
 
-        ResourceGuard resGuard(*prevAsset->GetResource());
+        auto resGuard = prevAsset->GetReadScope();
 
         ConstByteView prevImageData = prevAsset->GetImageData();
 
@@ -797,16 +801,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    ResourceGuard resGuard = ResourceGuard(*asset->GetResource());
-
-    if (!resGuard)
-    {
-        HYP_LOG_ONCE(Texture, Warning, "Texture resource handle is not valid, cannot sample");
-
-        HYP_BREAKPOINT;
-
-        return Vec4f::Zero();
-    }
+    auto resGuard = asset->GetReadScope();
 
     ConstByteView imageData = asset->GetImageData();
 
@@ -834,18 +829,18 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         + coord.y * (textureDesc.extent.x * bytesPerComponent * numComponents)
         + coord.x * bytesPerComponent * numComponents;
 
-    const uint32 mip0Size = textureDesc.HasStoredMips()
+    const uint32 largestMipSize = textureDesc.HasStoredMips()
         ? textureDesc.mipOffsets[0]
-        : textureDesc.GetMipByteSize(0);
+        : uint32(textureDesc.GetByteSize());
 
-    if (index + (bytesPerComponent * numComponents) > mip0Size)
+    if (index + (bytesPerComponent * numComponents) > largestMipSize)
     {
         HYP_LOG_ONCE(Texture, Warning,
             "Sample() call would attempt to read out of bounds of data for Texture {} ({})!\n"
             "Texture format: {}, Texel index: {}, texture data buffer size: {}, coord: {}, dimensions: {}, num faces: {}, bytes per component: {}, num components: {}",
             GetName(), Id(),
             EnumToString(textureDesc.format),
-            index, mip0Size,
+            index, largestMipSize,
             coord, textureDesc.extent, NumArrayLayers(),
             bytesPerComponent, numComponents);
 

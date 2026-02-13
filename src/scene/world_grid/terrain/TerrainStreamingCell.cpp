@@ -238,7 +238,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     Handle<Mesh> mesh = MakeHandle<Mesh>();
     mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
 
-    mesh->GetAsset()->GetMeshData()->CalculateNormals();
+    mesh->GetAsset()->CalculateNormals();
 
     return mesh;
 }

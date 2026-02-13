@@ -37,7 +37,7 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
     {
         if (const Handle<SkeletonAsset>& skeletonAsset = meshComponent.skeleton->GetAsset())
         {
-            m_resourceHandles.Set(meshComponent.skeleton.Get(), ResourceGuard(*skeletonAsset->GetResource()));
+            m_resourceHandles[meshComponent.skeleton.Get()] = MakeUnique<TSharedLock<AssetObject>>(*skeletonAsset);
         }
     }
 
@@ -62,7 +62,11 @@ void AnimationSystem::OnEntityRemoved(Entity* entity)
 
     if (meshComponent.skeleton.IsValid())
     {
-        m_resourceHandles.Erase(meshComponent.skeleton.Get());
+        auto it = m_resourceHandles.Find(meshComponent.skeleton.Get());
+        if (it != m_resourceHandles.End())
+        {
+            m_resourceHandles.Erase(it);
+        }
     }
 }
 
@@ -99,7 +103,9 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
                 auto resourceHandleIt = m_resourceHandles.Find(meshComponent.skeleton.Get());
                 if (resourceHandleIt == m_resourceHandles.End())
                 {
-                    resourceHandleIt = m_resourceHandles.Insert(meshComponent.skeleton.Get(), ResourceGuard(*skeletonAsset->GetResource())).first;
+                    resourceHandleIt = m_resourceHandles.Insert(
+                        meshComponent.skeleton.Get(),
+                        MakeUnique<TSharedLock<AssetObject>>(*skeletonAsset)).first;
                 }
 
                 SkeletonData* skeletonData = skeletonAsset->GetSkeletonData();

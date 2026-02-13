@@ -314,7 +314,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         mesh->SetName(assetName);
         mesh->SetMeshData(meshDesc, model.vertices.ToSpan(), subMesh.indices.ToByteView());
 
-        mesh->GetAsset()->GetMeshData()->CalculateNormals();
+        mesh->GetAsset()->CalculateNormals();
 
         mesh->GetAsset()->Rename(assetName);
         mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));

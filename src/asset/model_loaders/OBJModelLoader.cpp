@@ -422,7 +422,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         mesh->SetName(assetName);
         mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
 
-        mesh->GetAsset()->GetMeshData()->CalculateNormals();
+        mesh->GetAsset()->CalculateNormals();
 
         mesh->GetAsset()->Rename(assetName);
         mesh->GetAsset()->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));

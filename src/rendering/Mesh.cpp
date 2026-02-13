@@ -147,9 +147,9 @@ Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttrib
 {
     if (asset)
     {
-        ResourceGuard resGuard(*asset->GetResource());
+        auto resGuard = asset->GetReadScope();
 
-        m_aabb = asset->GetMeshData()->CalculateAABB();
+        m_aabb = asset->CalculateAABB();
     }
 }
 
@@ -182,7 +182,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
     };
 
     Handle<MeshAsset> meshAsset = MakeHandle<MeshAsset>(s_nameMeshDefault, meshDesc, vertexData.ToSpan(), indexData.ToByteView());
-    m_aabb = meshAsset->GetMeshData()->CalculateAABB();
+    m_aabb = meshAsset->CalculateAABB();
 
     m_meshAsset = TAssetReference<MeshAsset>(meshAsset);
 }
@@ -281,26 +281,19 @@ void Mesh::UploadGpuData()
 
     gpuUploadSemaphore.Reset();
 
-    ResourceGuard resGuard(*asset->GetResource());
-    AssertDebug(asset->IsDataLoaded());
-
-    if (!asset->IsDataLoaded())
-    {
-        HYP_LOG(Mesh, Error, "Mesh asset for {} is not loaded in memory, cannot create GPU buffers", GetName());
-
-        return;
-    }
+    auto resGuard = asset->GetReadScope();
 
     const VertexAttributeSet& vertexAttributes = asset->GetMeshDesc().meshAttributes.vertexAttributes;
-
-    Array<float> vertices = asset->GetMeshData()->BuildVertexBuffer(vertexAttributes);
-
     // @TODO fix for non-uint32 indices
     Assert(GpuElemTypeSize(asset->GetMeshDesc().meshAttributes.indexBufferElemType) == 4);
 
+    Array<float> vertices = asset->BuildVertexBuffer(vertexAttributes);
+
+    const Span<const ubyte> indexData = asset->GetIndexData();
+
     Array<uint32> indices;
-    indices.Resize(asset->GetMeshData()->numIndices);
-    Memory::Copy(indices.Data(), &asset->GetMeshData()->indexData[0], asset->GetMeshData()->numIndices * GpuElemTypeSize(asset->GetMeshDesc().meshAttributes.indexBufferElemType));
+    indices.Resize(indexData.Size() / sizeof(uint32));
+    Memory::Copy(indices.Data(), indexData.Data(), indexData.Size());
 
     AssertDebug(vertices.Size() == asset->GetMeshDesc().numVertices * asset->GetMeshDesc().meshAttributes.vertexAttributes.CalculateVertexSize());
     AssertDebug(indices.Size() == asset->GetMeshDesc().numIndices);
@@ -506,7 +499,7 @@ void Mesh::SetMeshData(
 
     Handle<MeshAsset> asset = MakeHandle<MeshAsset>(NAME_FMT("{}_MeshAsset", m_name), meshDesc, vertices, indices);
 
-    m_aabb = asset->GetMeshData()->CalculateAABB();
+    m_aabb = asset->CalculateAABB();
 
     m_meshAsset = TAssetReference<MeshAsset>(asset);
 
@@ -578,18 +571,11 @@ bool Mesh::BuildBVH(int maxDepth)
         return false;
     }
 
-    ResourceGuard resGuard(*asset->GetResource());
-    AssertDebug(asset->GetMeshData() != nullptr);
+    auto resGuard = asset->GetReadScope();
+    AssertDebug(asset->GetVertexData().Size() > 0);
+    AssertDebug(asset->GetIndexData().Size() > 0);
 
-    if (!asset->GetMeshData())
-    {
-        return false;
-    }
-
-    const MeshData2& meshData = *asset->GetMeshData();
-    AssertDebug(meshData.numVertices > 0 && meshData.numIndices > 0);
-
-    return meshData.BuildBVH(m_bvh, maxDepth);
+    return asset->BuildBVH(m_bvh, maxDepth);
 }
 
 #pragma endregion Mesh
