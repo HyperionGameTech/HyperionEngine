@@ -342,9 +342,6 @@ bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey
     // fill with empty data:
     writeStream->Seek(offset + header.payloadSize);
 
-    // navigate back to where we were
-    writeStream->Seek(offset);
-
     outKey = BlobResourceKey {};
     outKey.offset = offset;
     outKey.size = header.payloadSize;

@@ -310,41 +310,6 @@ Result AssetObject::Save(const FilePath& manifestPath)
         WriteBlobData(*blobStorage);
     }
 
-#if 0
-    const bool saveBinData = m_resource != nullptr;
-
-    // use resource instead to save if it is not null
-    if (saveBinData)
-    {
-        AssetDataResourceBase* resource = static_cast<AssetDataResourceBase*>(m_resource);
-
-        BlobStorage* blobStorage = package->GetBlobStorage();
-        Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
-
-        if (!m_blobKey)
-        {
-            // grab header info from resource
-            BlobHeader header;
-            if (!resource->GetBlobHeader(header))
-                return HYP_MAKE_ERROR(Error, "Failed to get blob header for asset {}", m_name);
-            
-            // allocate blob key
-            if (!blobStorage->AllocateBlob(header, m_blobKey))
-                return HYP_MAKE_ERROR(Error, "Failed to allocate blob data for asset {}", m_name);
-        }
-
-        const void* rawData = resource->GetData();
-        Assert(rawData != nullptr);
-
-        ByteWriter* writeStream = blobStorage->GetWriteStream();
-        Assert(writeStream != nullptr);
-
-        writeStream->Seek(m_blobKey.offset);
-        writeStream->Write(rawData, m_blobKey.size);
-    }
-#endif
-
-    
     // save manifest after updating blob info
 
     {

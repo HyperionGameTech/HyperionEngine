@@ -53,63 +53,6 @@ class Object;
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 
-class AssetDataResourceBase : public ResourceBase
-{
-public:
-    friend class AssetObject;
-
-    AssetDataResourceBase(const AssetDataResourceBase&) = delete;
-    AssetDataResourceBase& operator=(const AssetDataResourceBase&) = delete;
-
-    AssetDataResourceBase(AssetDataResourceBase&&) noexcept = delete;
-    AssetDataResourceBase& operator=(AssetDataResourceBase&&) noexcept = delete;
-
-    virtual ~AssetDataResourceBase() override = default;
-
-protected:
-    AssetDataResourceBase()
-        : m_assetObject(nullptr)
-    {
-    }
-
-    virtual void Initialize() override final;
-    virtual void Destroy() override final;
-
-    virtual void Unload_Internal() = 0;
-
-    AssetObject* m_assetObject;
-
-};
-
-template <class T>
-class AssetDataResource final : public AssetDataResourceBase
-{
-public:
-    AssetDataResource()
-    {
-    }
-
-    template <class... Args>
-    AssetDataResource(Args&&... args)
-    {
-    }
-
-    AssetDataResource(const AssetDataResource&) = delete;
-    AssetDataResource& operator=(const AssetDataResource&) = delete;
-
-    AssetDataResource(AssetDataResource&&) noexcept = delete;
-    AssetDataResource& operator=(AssetDataResource&&) noexcept = delete;
-
-    virtual ~AssetDataResource() override
-    {
-    }
-
-protected:
-    virtual void Unload_Internal() override
-    {
-    }
-};
-
 HYP_ENUM()
 enum class AssetObjectFlags : uint8
 {

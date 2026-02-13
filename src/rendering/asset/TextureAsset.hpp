@@ -8,37 +8,6 @@
 
 namespace Hyperion {
 
-struct TextureData2
-{
-    static constexpr uint8 Version = 1;
-    static constexpr const char Header[] = "TEX";
-
-    uint64 imageDataSize;
-
-    BlobPointer<ubyte> imageData;
-
-    TextureData2() = default;
-
-    static HYP_NODISCARD TextureData2* Allocate(const TextureData2& other, BlobHeader& outHeader)
-    {
-        return Allocate(
-            ConstByteView(&other.imageData[0], other.imageDataSize),
-            outHeader);
-    }
-
-    static HYP_NODISCARD TextureData2* Allocate(ConstByteView imageData, BlobHeader& outHeader)
-    {
-        TextureData2 data {};
-        data.imageDataSize = imageData.Size();
-
-        TInlineBlobBuilder<TextureData2, 16> builder(&data);
-
-        return builder
-            .Append(offsetof(TextureData2, imageData), imageData.ToSpan())
-            .Build(outHeader);
-    }
-};
-
 HYP_CLASS()
 class TextureAsset : public AssetObject
 {
@@ -85,6 +54,42 @@ public:
         return m_imageData.raw != nullptr
             ? ConstByteView(reinterpret_cast<const ubyte*>(m_imageData.raw), m_imageData.size)
             : ConstByteView();
+    }
+
+protected:
+    void WriteBlobData(BlobStorage& blobStorage) override
+    {
+        Assert(m_imageData.raw != nullptr);
+
+        if (!m_imageData.readOnly)
+        {
+            BlobHeader vertexDataHeader {};
+            Memory::Copy(vertexDataHeader.magic, "TEX", 4);
+            vertexDataHeader.version = 1;
+            vertexDataHeader.payloadOffset = 0;
+            vertexDataHeader.payloadSize = m_imageData.size;
+
+            BlobResourceKey key {};
+
+            if (blobStorage.AllocateBlob(vertexDataHeader, key))
+            {
+                m_imageData.bufferOffset = key.offset;
+            }
+            else
+            {
+                return;
+            }
+        }
+        
+        ByteWriter* writeStream = blobStorage.GetWriteStream();
+
+        writeStream->Seek(m_imageData.bufferOffset);
+        writeStream->Write(m_imageData.raw, m_imageData.size);
+    }
+
+    void ReadBlobData(BlobStorage& blobStorage) override
+    {
+        HYP_NOT_IMPLEMENTED();
     }
 
 private:

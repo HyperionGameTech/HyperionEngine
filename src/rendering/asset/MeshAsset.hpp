@@ -166,7 +166,10 @@ protected:
 
         ByteWriter* writeStream = blobStorage.GetWriteStream();
 
+        writeStream->Seek(vertexData.bufferOffset);
         writeStream->Write(vertexData.raw, vertexData.size);
+        
+        writeStream->Seek(indexData.bufferOffset);
         writeStream->Write(indexData.raw, indexData.size);
     }
 
