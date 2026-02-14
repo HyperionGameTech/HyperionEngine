@@ -37,7 +37,7 @@ public:
     ClassRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
         : ClassRegistrationBase(TypeId::ForType<T>(), &ClassInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
     {
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
         *pGlobal = m_class;
 #endif
     }
@@ -54,7 +54,7 @@ public:
     StructRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Name parentName, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
         : ClassRegistrationBase(TypeId::ForType<T>(), &StructInstance<T>::GetInstance(name, staticIndex, numDescendants, parentName, attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
     {
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
         *pGlobal = m_class;
 #endif
     }
@@ -69,7 +69,7 @@ public:
     EnumRegistration(const Class** pGlobal, Name name, int staticIndex, uint32 numDescendants, Span<const ClassAttribute> attributes, Span<MemberVariant> members)
         : ClassRegistrationBase(TypeId::ForType<T>(), &EnumInstance<T>::GetInstance(name, staticIndex, numDescendants, Name::Invalid(), attributes, flags, Span<MemberVariant>(members.Begin(), members.End())))
     {
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
         *pGlobal = m_class;
 #endif
     }

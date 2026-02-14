@@ -5,7 +5,7 @@
 
 #include <core/Constants.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Color.generated.inl>
 #endif
 

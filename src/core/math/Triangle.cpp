@@ -3,7 +3,7 @@
 #include <core/math/Triangle.hpp>
 #include <core/math/MathUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Triangle.generated.inl>
 #endif
 

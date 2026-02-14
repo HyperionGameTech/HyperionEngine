@@ -30,7 +30,7 @@
 
 namespace Hyperion {
 
-#ifdef HYP_BUILDTOOL
+#ifdef HYP_TOOL
 const Class* g_clsObjectBase = nullptr;
 #else
 HYP_API extern const Class* g_clsObjectBase;
@@ -167,7 +167,7 @@ ObjectBase::ObjectBase()
     m_scriptObjectResource = nullptr;
 #endif
 
-#ifndef HYP_BUILDTOOL // If we're building the Build Tool we won't have access to Class data
+#ifndef HYP_TOOL // If we're building the Build Tool we won't have access to Class data
     // get the header by subtracting the offset from this pointer
     m_header = reinterpret_cast<ObjectHeader*>(UIntPtr(this) - sizeof(ObjectHeader));
 #endif

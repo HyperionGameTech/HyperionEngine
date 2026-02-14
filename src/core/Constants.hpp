@@ -12,7 +12,7 @@ namespace Hyperion {
 
 #if !defined(HYP_VERSION_MAJOR) || !defined(HYP_VERSION_MINOR) || !defined(HYP_VERSION_PATCH)
 
-#if defined(HYP_BUILD_LIBRARY) && !defined(HYP_BUILDTOOL)
+#if defined(HYP_BUILD_LIBRARY) && !defined(HYP_TOOL)
 #error "HYP_VERSION_MAJOR, HYP_VERSION_MINOR, and HYP_VERSION_PATCH must be defined"
 #endif
 

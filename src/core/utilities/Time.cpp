@@ -7,7 +7,7 @@
 #include "windows.h"
 #endif
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Time.generated.inl>
 #endif
 

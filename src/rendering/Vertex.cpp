@@ -2,7 +2,7 @@
 
 #include <rendering/Vertex.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Vertex.generated.inl>
 #endif
 
