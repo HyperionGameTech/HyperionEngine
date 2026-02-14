@@ -8,6 +8,7 @@
 #include <asset/AssetReference.hpp>
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
+#include <asset/BlobStorageViews.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 #include <core/utilities/GlobalContext.hpp>

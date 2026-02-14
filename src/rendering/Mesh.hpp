@@ -243,16 +243,7 @@ protected:
             vertexDataHeader.payloadOffset = 0;
             vertexDataHeader.payloadSize = m_vertexData.size;
 
-            BlobResourceKey key {};
-
-            if (blobStorage.AllocateBlob(vertexDataHeader, key))
-            {
-                m_vertexData.bufferOffset = key.offset;
-            }
-            else
-            {
-                return;
-            }
+            Assert(blobStorage.AllocateBlob(vertexDataHeader, m_vertexData.bufferOffset));
         }
         
         if (!m_indexData.readOnly)
@@ -263,16 +254,7 @@ protected:
             indexDataHeader.payloadOffset = 0;
             indexDataHeader.payloadSize = m_indexData.size;
 
-            BlobResourceKey key {};
-
-            if (blobStorage.AllocateBlob(indexDataHeader, key))
-            {
-                m_indexData.bufferOffset = key.offset;
-            }
-            else
-            {
-                return;
-            }
+            Assert(blobStorage.AllocateBlob(indexDataHeader, m_indexData.bufferOffset));
         }
 
         ByteWriter* writeStream = blobStorage.GetWriteStream();

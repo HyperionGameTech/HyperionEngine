@@ -13,6 +13,13 @@ HYP_API extern Pool* g_assetPool;
 
 static constexpr SizeType BlobStorageTransientBlockSize = 4 * 1024 * 1024;
 
+static constexpr uint64 GetBlobHash(SizeType offset, SizeType size)
+{
+    return HashCode::GetHashCode(offset)
+        .Combine(size)
+        .Value();
+}
+
 BlobStorage::BlobStorage()
     : m_name("INVALID_BLOB_STORAGE"),
       m_cursor(0),
@@ -193,36 +200,15 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minR
             return false;
         }
 
-        // Register newly available capacity as a free range
-        const SizeType mappedSize = MathUtil::Max(minRequiredSize, m_file->FileSize());
-
-        if (mappedSize > previousFileSize)
-        {
-            if (!m_freeRanges.Empty() && m_freeRanges.Back().end == previousFileSize)
-            {
-                m_freeRanges.Back().end = mappedSize;
-            }
-            else
-            {
-                BlobMappingRange newRange;
-                newRange.start = previousFileSize;
-                newRange.end = mappedSize;
-
-                m_freeRanges.PushBack(std::move(newRange));
-            }
-        }
-
         return true;
     }
 
     return false;
 }
 
-void* BlobStorage::Map(SizeType offset, SizeType size)
+HYP_NODISCARD void* BlobStorage::Map(SizeType offset, SizeType size)
 {
-    BlobResourceKey key {};
-    key.offset = offset;
-    key.size = size;
+    const uint64 key = GetBlobHash(offset, size);
 
     auto blobResourcesIt = m_allocations.Find(key);
     if (blobResourcesIt != m_allocations.End())
@@ -231,13 +217,13 @@ void* BlobStorage::Map(SizeType offset, SizeType size)
     }
 
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, m_readOnly ? 0 : (key.offset + key.size)))
+    if (!InitMappedFile(file, m_readOnly ? 0 : (offset + size)))
     {
         return nullptr;
     }
 
-    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + key.offset);
-    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(m_view.Data()) + key.size <= m_file->FileSize());
+    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset);
+    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(m_view.Data()) + size <= m_file->FileSize());
 
     m_allocations.Set(key, address);
 
@@ -246,9 +232,7 @@ void* BlobStorage::Map(SizeType offset, SizeType size)
 
 void BlobStorage::Unmap(SizeType offset, SizeType size)
 {
-    BlobResourceKey key {};
-    key.offset = offset;
-    key.size = size;
+    const uint64 key = GetBlobHash(offset, size);
 
     auto it = m_allocations.Find(key);
     if (it != m_allocations.End())
@@ -261,7 +245,7 @@ void BlobStorage::Unmap(SizeType offset, SizeType size)
     HYP_FAIL("Cannot unmap allocation - not found in active allocations set");
 }
 
-bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey)
+bool BlobStorage::AllocateBlob(const BlobHeader& header, SizeType& outOffset)
 {
     Assert(!m_readOnly, "Cannot allocate from read-only BlobStorage!");
     
@@ -286,9 +270,7 @@ bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey
     // fill with empty data:
     writeStream->Seek(offset + header.payloadSize);
 
-    outKey = BlobResourceKey {};
-    outKey.offset = offset;
-    outKey.size = header.payloadSize;
+    outOffset = offset;
 
     m_cursor = writeStream->Position();
 

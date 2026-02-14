@@ -21,14 +21,14 @@ public:
     {
     }
 
-    template <auto MessageString>
-    AnalyzerError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, const FilePath& path)
-        : AnalyzerError(currentFunction, ValueWrapper<MessageString>(), path, 0)
+    template <auto CurrentFunctionString, auto MessageString>
+    AnalyzerError(ValueWrapper<CurrentFunctionString> currentFunction, ValueWrapper<MessageString> messageString, const FilePath& path)
+        : AnalyzerError(currentFunction, messageString, path, 0)
     {
     }
 
-    template <auto MessageString, class... Args>
-    AnalyzerError(const StaticMessage& currentFunction, ValueWrapper<MessageString>, const FilePath& path, int errorCode, Args&&... args)
+    template <auto CurrentFunctionString, auto MessageString, class... Args>
+    AnalyzerError(ValueWrapper<CurrentFunctionString> currentFunction, ValueWrapper<MessageString>, const FilePath& path, int errorCode, Args&&... args)
         : Error(currentFunction, ValueWrapper<HYP_STATIC_STRING("[{}] {}: ").template Concat<MessageString>()>(), errorCode, path, std::forward<Args>(args)...),
           m_path(path),
           m_errorCode(errorCode)

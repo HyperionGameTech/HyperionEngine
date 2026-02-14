@@ -24,9 +24,6 @@ namespace Hyperion {
 
 class ByteReader;
 class ByteWriter;
-struct BlobAllocation;
-
-struct ResourceGuard;
 
 struct BlobStorageCallbacks
 {
@@ -36,6 +33,18 @@ struct BlobStorageCallbacks
     void (*Close)(void* context, MemoryMappedFile* file) = nullptr;
 
     void (*Destroy)(void* context) = nullptr;
+};
+
+HYP_STRUCT()
+struct BlobMappingRange
+{
+    HYP_STRUCT_BODY(BlobMappingRange)
+
+    HYP_FIELD()
+    uint32 start = 0;
+
+    HYP_FIELD()
+    uint32 end = 0;
 };
 
 HYP_CLASS()
@@ -64,7 +73,7 @@ public:
     HYP_NODISCARD void* Map(SizeType offset, SizeType size);
     void Unmap(SizeType offset, SizeType size);
 
-    bool AllocateBlob(const BlobHeader& header, BlobResourceKey& outKey);
+    bool AllocateBlob(const BlobHeader& header, SizeType& outOffset);
 
     void CopyTo(BlobStorage& other);
 
@@ -90,7 +99,7 @@ private:
     
     bool m_readOnly;
 
-    HashMap<BlobResourceKey, void*> m_allocations;
+    HashMap<uint64, void*> m_allocations;
 
     MemoryMappedFile* m_file;
     MemoryMappedFileView m_view;

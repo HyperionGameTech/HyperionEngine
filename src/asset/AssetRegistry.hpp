@@ -3,24 +3,20 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
-#include <asset/BlobStorageViews.hpp>
 
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
 #include <core/filesystem/FilePath.hpp>
 
-#include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
 
-#include <core/utilities/Uuid.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/ForEach.hpp>
 #include <core/utilities/Result.hpp>
 
 #include <core/functional/ScriptableDelegate.hpp>
 
-#include <core/threading/Semaphore.hpp>
 #include <core/threading/SharedMutex.hpp>
 #include <core/threading/SchedulerFwd.hpp>
 
