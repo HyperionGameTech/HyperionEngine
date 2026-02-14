@@ -1,45 +1,52 @@
 #pragma once
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Thread.hpp>
+
+#include <core/threading/Mutex.hpp>
+#include <core/threading/ConditionVariable.hpp>
 
 namespace Hyperion {
 namespace threading {
 
-struct ThreadSignal
+class ThreadSignal
 {
-    using ValueType = uint32;
+public:
+    ThreadSignal() = default;
 
-    ThreadSignal(ValueType initialValue = ValueType())
-        : value(initialValue)
-    {
-    }
+    ThreadSignal(const ThreadSignal&) = delete;
+    ThreadSignal& operator=(const ThreadSignal&) = delete;
 
-    ThreadSignal(const ThreadSignal& other) = delete;
-    ThreadSignal& operator=(const ThreadSignal& other) = delete;
-    ThreadSignal(ThreadSignal&& other) noexcept = delete;
-    ThreadSignal& operator=(ThreadSignal&& other) noexcept = delete;
+    ThreadSignal(ThreadSignal&&) noexcept = delete;
+    ThreadSignal& operator=(ThreadSignal&&) noexcept = delete;
+
     ~ThreadSignal() = default;
 
-    bool Consume()
+    void Wait()
     {
-        ValueType currentValue = value.Get(MemoryOrder::ACQUIRE);
-
-        if (currentValue)
+        Mutex::Guard guard(m_mutex);
+        while (m_signalCount <= 0)
         {
-            value.Decrement(1, MemoryOrder::RELEASE);
-
-            return true;
+            m_conditionVariable.Wait(m_mutex);
         }
 
-        return false;
+        m_signalCount = 0;
     }
 
-    void Notify(ValueType increment = 1)
+    bool IsSignalled() const
     {
-        value.Increment(increment, MemoryOrder::RELAXED);
+        Mutex::Guard guard(m_mutex);
+        return m_signalCount > 0;
     }
 
-    AtomicVar<ValueType> value;
+    void Signal()
+    {
+        Mutex::Guard guard(m_mutex);
+        ++m_signalCount;
+        m_conditionVariable.NotifyOne();
+    }
+
+private:
+    mutable Mutex m_mutex;
+    ConditionVariable m_conditionVariable;
+    int m_signalCount = 0;
 };
 
 } // namespace threading
