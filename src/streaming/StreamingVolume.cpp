@@ -17,7 +17,7 @@ void StreamingVolumeBase::NotifyUpdate()
     {
         Assert(notifier != nullptr);
 
-        notifier->Produce();
+        notifier->Signal();
     }
 }
 

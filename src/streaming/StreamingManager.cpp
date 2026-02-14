@@ -174,7 +174,7 @@ public:
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
 
-            m_notifier.Produce(1);
+            m_notifier.Signal();
         }
     }
 
@@ -197,8 +197,8 @@ public:
                     m_volumes.Erase(it);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
+            
+            m_notifier.Signal();
         }
     }
 
@@ -234,8 +234,8 @@ public:
                     m_layers.EmplaceBack(layer);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
+            
+            m_notifier.Signal();
         }
     }
 
@@ -278,8 +278,8 @@ public:
                     m_layers.Erase(it);
                 },
                 TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
+            
+            m_notifier.Signal();
         }
     }
 
@@ -301,7 +301,7 @@ public:
         m_threadPool->Stop();
 
         m_stopRequested.Set(true, MemoryOrder::RELAXED);
-        m_notifier.Produce(1); // Wake up the thread if it's waiting on the notifier.
+        m_notifier.Signal();
     }
 
 private:
@@ -320,27 +320,21 @@ private:
         StartWorkerThreadPool();
 
         // Set the notifier to the initial value of 1 so it won't block the first call.
-        m_notifier.Produce(1);
+        m_notifier.Signal();
 
         while (!m_stopRequested.Get(MemoryOrder::RELAXED))
         {
-            m_notifier.Acquire();
-
-            int32 num = m_notifier.GetValue();
-
             do
             {
+                m_notifier.Wait();
+
                 DoWork(streamingManager);
 
                 // Reset the streaming arena after each work cycle
                 // NEED to make sure only one manager thread exists and is working on this arena
                 g_streamingArena->Reset();
-
-                num = m_notifier.Release(num);
-
-                AssertDebug(num >= 0); // sanity check
             }
-            while (num > 0 && !m_stopRequested.Get(MemoryOrder::RELAXED));
+            while (m_notifier.IsSignalled() && !m_stopRequested.Get(MemoryOrder::RELAXED));
 
             ThreadSleep(1000);
         }
