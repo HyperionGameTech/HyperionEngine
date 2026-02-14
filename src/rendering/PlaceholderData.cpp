@@ -35,7 +35,7 @@ HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& outBuffer
         }
     }
 
-    if constexpr (Helper::IsFloatType)
+    if constexpr (Helper::IsFloatingPoint)
     {
         outBuffer = ByteBuffer(bitmap.GetUnpackedFloats().ToByteView());
     }
@@ -49,7 +49,7 @@ template <TextureFormat Format>
 HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& outBuffer)
 {
     using Helper = TextureFormatHelper<Format>;
-    static_assert(!Helper::IsFloatType, "FillPlaceholderBuffer_Cubemap not implemented for floating point type textures");
+    static_assert(!Helper::IsFloatingPoint, "FillPlaceholderBuffer_Cubemap not implemented for floating point type textures");
 
     auto bitmap = Bitmap<Format>(dimensions.x, dimensions.y);
 

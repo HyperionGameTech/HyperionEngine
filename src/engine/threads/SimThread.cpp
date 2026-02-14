@@ -115,7 +115,7 @@ void SimThread::Update()
     BeginFrameSim();
 
     // execute posted tasks
-    Array<Scheduler::ScheduledTask, SceneTempAllocator> tasks;
+    Array<Scheduler::ScheduledTask, SceneAllocator> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
     {
         m_scheduler.AcceptAll(tasks);

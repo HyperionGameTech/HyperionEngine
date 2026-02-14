@@ -12,6 +12,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -146,6 +147,8 @@ Result EditorProject::CreatePackage()
         // @NOTE: if package already exists at this path it will be used
         m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(*m_name, /* createIfNotExist */ true);
 
+        m_package->InitBlobStorage(/* readOnly */ false);
+
         OnPackageCreated(m_package);
 
         return {};
@@ -162,6 +165,8 @@ Result EditorProject::CreatePackage()
         {
             m_package = g_assetManager->GetAssetRegistry()->GetPackageFromPath(currentName, /* createIfNotExist */ true);
             m_name = CreateNameFromDynamicString(currentName);
+            
+            m_package->InitBlobStorage(/* readOnly */ false);
 
             OnPackageCreated(m_package);
 

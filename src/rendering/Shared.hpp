@@ -433,11 +433,11 @@ struct TextureFormatHelper
 {
     static constexpr uint32 NumComponents = TextureUtils::NumComponents(Format);
     static constexpr uint32 BytesPerComponent = TextureUtils::BytesPerComponent(Format);
-    static constexpr bool IsSrgb = TextureUtils::IsSRGB(Format);
-    static constexpr bool IsFloatType = (Format >= TextureFormat::R16F && Format <= TextureFormat::RGBA32F);
+    static constexpr bool IsSRGB = TextureUtils::IsSRGB(Format);
+    static constexpr bool IsFloatingPoint = (Format >= TextureFormat::R16F && Format <= TextureFormat::RGBA32F);
 
     using ElementType = std::conditional_t<
-        IsFloatType,
+        IsFloatingPoint,
         std::conditional_t<(Format <= TextureFormat::RGBA16F), Float16, float>,
         SizedUIntT<BytesPerComponent>>;
 };

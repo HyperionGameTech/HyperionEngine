@@ -30,14 +30,14 @@ namespace detail {
 #include "R11G11B10F.inc"
 } // namespace detail
 
-template <class TComponent, uint32 TNumComponents, bool TIsSrgb = false>
+template <class TComponent, uint32 TNumComponents, bool TIsSRGB = false>
 struct ConstPixelReference;
 
-template <class TComponent, uint32 TNumComponents, bool TIsSrgb = false>
+template <class TComponent, uint32 TNumComponents, bool TIsSRGB = false>
 struct PixelReference
 {
     static constexpr uint32 NumComponents = TNumComponents;
-    static constexpr bool IsSrgb = TIsSrgb;
+    static constexpr bool IsSRGB = TIsSRGB;
 
     using ComponentType = TComponent;
 
@@ -103,7 +103,7 @@ struct PixelReference
             fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)));
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             if (NumComponents < 4 || index != 3)
             {
@@ -132,7 +132,7 @@ struct PixelReference
             return;
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from linear to sRGB
             value = MathUtil::Pow(value, 1.0f / 2.2f);
@@ -216,7 +216,7 @@ struct PixelReference
             }
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from sRGB to linear
             rg = MathUtil::Pow(rg, 2.2f);
@@ -237,7 +237,7 @@ struct PixelReference
             return;
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from linear to sRGB
             r = MathUtil::Pow(r, 1.0f / 2.2f);
@@ -302,7 +302,7 @@ struct PixelReference
             }
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from sRGB to linear
             rgb = MathUtil::Pow(rgb, 2.2f);
@@ -323,7 +323,7 @@ struct PixelReference
             return;
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from linear to sRGB
             r = MathUtil::Pow(r, 1.0f / 2.2f);
@@ -409,7 +409,7 @@ struct PixelReference
             }
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from sRGB to linear
             Vec3f linear = MathUtil::Pow(rgba.GetXYZ(), 2.2f);
@@ -433,7 +433,7 @@ struct PixelReference
             return;
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from linear to sRGB
             r = MathUtil::Pow(r, 1.0f / 2.2f);
@@ -532,11 +532,11 @@ struct PixelReference
     }*/
 };
 
-template <class TComponent, uint32 TNumComponents, bool TIsSrgb>
+template <class TComponent, uint32 TNumComponents, bool TIsSRGB>
 struct ConstPixelReference
 {
     static constexpr uint32 NumComponents = TNumComponents;
-    static constexpr bool IsSrgb = TIsSrgb;
+    static constexpr bool IsSRGB = TIsSRGB;
 
     using ComponentType = TComponent;
 
@@ -558,12 +558,12 @@ struct ConstPixelReference
     HYP_FORCE_INLINE ConstPixelReference(ConstPixelReference&& other) noexcept = default;
     HYP_FORCE_INLINE ConstPixelReference& operator=(ConstPixelReference&& other) noexcept = default;
 
-    HYP_FORCE_INLINE ConstPixelReference(const PixelReference<ComponentType, NumComponents, IsSrgb>& other)
+    HYP_FORCE_INLINE ConstPixelReference(const PixelReference<ComponentType, NumComponents, IsSRGB>& other)
         : byteOffset(other.byteOffset)
     {
     }
 
-    HYP_FORCE_INLINE ConstPixelReference& operator=(const PixelReference<ComponentType, NumComponents, IsSrgb>& other)
+    HYP_FORCE_INLINE ConstPixelReference& operator=(const PixelReference<ComponentType, NumComponents, IsSRGB>& other)
     {
         byteOffset = other.byteOffset;
         return *this;
@@ -614,7 +614,7 @@ struct ConstPixelReference
             fv = float(*reinterpret_cast<ComponentType*>(reinterpret_cast<UIntPtr>(byteOffset) + (sizeof(ComponentType) * index)));
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             if (NumComponents < 4 || index != 3)
             {
@@ -674,7 +674,7 @@ struct ConstPixelReference
             }
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from sRGB to linear
             rg = MathUtil::Pow(rg, 2.2f);
@@ -721,7 +721,7 @@ struct ConstPixelReference
             }
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from sRGB to linear
             rgb = MathUtil::Pow(rgb, 2.2f);
@@ -778,7 +778,7 @@ struct ConstPixelReference
             }
         }
 
-        if constexpr (IsSrgb)
+        if constexpr (IsSRGB)
         {
             // convert from sRGB to linear
             Vec3f linear = MathUtil::Pow(rgba.GetXYZ(), 2.2f);
@@ -817,7 +817,7 @@ template <>
 struct PixelReference<detail::R11G11B10F, 1, false>
 {
     static constexpr uint32 NumComponents = 3; // Logical components (R, G, B)
-    static constexpr bool IsSrgb = false;
+    static constexpr bool IsSRGB = false;
 
     using ComponentType = detail::R11G11B10F;
 
@@ -1007,7 +1007,7 @@ template <>
 struct ConstPixelReference<detail::R11G11B10F, 1, false>
 {
     static constexpr uint32 NumComponents = 3;
-    static constexpr bool IsSrgb = false;
+    static constexpr bool IsSRGB = false;
 
     using ComponentType = detail::R11G11B10F;
 
@@ -1121,8 +1121,8 @@ struct TextureFormatHelper<TextureFormat::R11G11B10F>
 {
     static constexpr uint32 NumComponents = 1; // Treated as 1 packed element for byte size calculation
     static constexpr uint32 BytesPerComponent = 4; // The entire pixel is 4 bytes (packed)
-    static constexpr bool IsSrgb = false;
-    static constexpr bool IsFloatType = true;
+    static constexpr bool IsSRGB = false;
+    static constexpr bool IsFloatingPoint = true;
 
     using ElementType = detail::R11G11B10F;
 };
@@ -1135,10 +1135,10 @@ public:
     using PixelComponentType = typename Helper::ElementType;
 
     static constexpr uint32 NumComponents = Helper::NumComponents;
-    static constexpr bool IsSrgb = Helper::IsSrgb;
+    static constexpr bool IsSRGB = Helper::IsSRGB;
 
-    using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSrgb>;
-    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSrgb>;
+    using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSRGB>;
+    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSRGB>;
 
     Bitmap()
         : m_width(0),
@@ -1612,10 +1612,10 @@ public:
     using PixelComponentType = typename TextureFormatHelper<Format>::ElementType;
 
     static constexpr uint32 NumComponents = TextureFormatHelper<Format>::NumComponents;
-    static constexpr bool IsSrgb = TextureFormatHelper<Format>::IsSrgb;
+    static constexpr bool IsSRGB = TextureFormatHelper<Format>::IsSRGB;
 
-    using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSrgb>;
-    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSrgb>;
+    using PixelReferenceType = PixelReference<PixelComponentType, NumComponents, IsSRGB>;
+    using ConstPixelReferenceType = ConstPixelReference<PixelComponentType, NumComponents, IsSRGB>;
 
     Bitmap3D()
         : m_width(0),
