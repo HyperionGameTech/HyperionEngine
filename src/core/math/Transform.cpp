@@ -2,7 +2,7 @@
 
 #include <core/math/Transform.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Transform.generated.inl>
 #endif
 

@@ -5,7 +5,7 @@
 
 #include <float.h>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Quaternion.generated.inl>
 #endif
 

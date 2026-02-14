@@ -4,7 +4,7 @@
 convert=0
 files=()
 exclude_patterns=()
-search_dir="buildtool"
+search_dir="codegen"
 
 # ── arg parsing ──────────────────────────────────────────────────────────────
 while (( $# )); do

@@ -58,34 +58,34 @@ endif()
 # Include ExternalProject for building submodules separately
 include(ExternalProject)
 
-function(RunHypBuildTool version_major version_minor)
+function(RunCodeGen version_major version_minor)
     if(WIN32)
-        set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.bat")
-        set(HYP_BUILD_TOOL_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildHypBuildTool.bat")
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunCodeGen.bat")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildCodeGen.bat")
     else()
-        set(HYP_BUILD_TOOL_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunHypBuildTool.sh")
-        set(HYP_BUILD_TOOL_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildHypBuildTool.sh")
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunCodeGen.sh")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildCodeGen.sh")
     endif()
 
-    message(STATUS "Running HypBuildTool: ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}")
+    message(STATUS "Running CodeGen: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
 
-    if(NOT EXISTS ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH})
-        message(FATAL_ERROR "RunHypBuildTool script not found in tools/scripts! Expected path: ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}")
+    if(NOT EXISTS ${HYP_CODEGEN_RUN_SCRIPT_PATH})
+        message(FATAL_ERROR "RunCodeGen script not found in tools/scripts! Expected path: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
     endif()
 
     execute_process(
-        COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH} ${version_major} ${version_minor}
+        COMMAND ${HYP_CODEGEN_RUN_SCRIPT_PATH} ${version_major} ${version_minor}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE HYP_BUILD_TOOL_RESULT
+        RESULT_VARIABLE HYP_CODEGEN_RESULT
     )
 
-    if(NOT HYP_BUILD_TOOL_RESULT EQUAL 0)
-        message(FATAL_ERROR "HypBuildTool failed with exit code: ${HYP_BUILD_TOOL_RESULT}")
+    if(NOT HYP_CODEGEN_RESULT EQUAL 0)
+        message(FATAL_ERROR "CodeGen failed with exit code: ${HYP_CODEGEN_RESULT}")
     endif()
 endfunction()
 
-# Run HypBuildTool with version 0.9
-RunHypBuildTool(0 9)
+# Run CodeGen with version 0.9
+RunCodeGen(0 9)
 
 set(HYP_DEBUG_MODE 1)
 add_definitions(-DHYP_DEBUG_MODE=1)

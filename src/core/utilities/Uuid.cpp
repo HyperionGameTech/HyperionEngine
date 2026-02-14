@@ -10,7 +10,7 @@
 
 #include <random>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Uuid.generated.inl>
 #endif
 

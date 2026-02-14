@@ -23,7 +23,7 @@
 
 #include <core/utilities/ByteUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Logger.generated.inl>
 #endif
 

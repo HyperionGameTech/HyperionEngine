@@ -35,22 +35,22 @@ lib` exists in the `lib/Win32/{Debug|Release}` directory, Hyperion will link to 
 
 ## Run the Build Tool
 
-In the project's base directory, you'll find a folder named `buildtool` containing source code and CMake files separated from the rest of the engine. This application reads through the engine's header files and parses them to generate code that is used by Hyperion's reflection, serialization, and scripting systems.
+In the project's base directory, you'll find a folder named `codegen` containing source code and CMake files separated from the rest of the engine. This application reads through the engine's header files and parses them to generate code that is used by Hyperion's reflection, serialization, and scripting systems.
 
-buildtool is set up to run whenever you reconfigure the engine's CMake files. To invoke it manually, there are two scripts located under tools/scripts:
+codegen is set up to run whenever you reconfigure the engine's CMake files. To invoke it manually, there are two scripts located under tools/scripts:
 
-* `RunHypBuildTool.bat` (Windows only)
-* `RunHypBuildTool.sh` Linux/macOS/others
+* `RunCodeGen.bat` (Windows only)
+* `RunCodeGen.sh` Linux/macOS/others
 
 Run the appropriate script depending on your platform whenever you want to reprocess files. It's necessary to do this whenever you make changes source code that needs to be seen by the systems mentioned above.
 
-`buildtool` links to Hyperion's core library the same way the rest of the engine does, allowing the two separate systems to share a familiar codebase. Therefore, the first time you attempt to compile Hyperion, it will need to compile `core` first before compiling `buildtool`. After that, you should be able to configure and compile `hyperion`.
+`codegen` links to Hyperion's core library the same way the rest of the engine does, allowing the two separate systems to share a familiar codebase. Therefore, the first time you attempt to compile Hyperion, it will need to compile `core` first before compiling `codegen`. After that, you should be able to configure and compile `hyperion`.
 
 Similiarly to how you can invoke the build tool manually, you can also compile it separately via the following scripts:
-* `BuildHypBuildTool.bat` (Windows only)
-* `BuildHypBuildTool.sh` (macOS / Unix)
+* `BuildCodeGen.bat` (Windows only)
+* `BuildCodeGen.sh` (macOS / Unix)
 
-Run these scripts from the command line to compile buildtool separately from the rest of the engine. This might be useful for debugging purposes or to ensure that any changes in buildtool itself are incorporated without needing to recompile the entire engine immediately.
+Run these scripts from the command line to compile codegen separately from the rest of the engine. This might be useful for debugging purposes or to ensure that any changes in codegen itself are incorporated without needing to recompile the entire engine immediately.
 
 ## Compile library / executable
 

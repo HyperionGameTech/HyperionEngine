@@ -2,7 +2,7 @@
 
 #include <core/math/Frustum.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Frustum.generated.inl>
 #endif
 

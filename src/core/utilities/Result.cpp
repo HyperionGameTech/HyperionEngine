@@ -1,6 +1,6 @@
 #include <core/utilities/Result.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Result.generated.inl>
 #endif
 

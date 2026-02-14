@@ -5,7 +5,7 @@
 
 #include <core/memory/Memory.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Mat3f.generated.inl>
 #endif
 

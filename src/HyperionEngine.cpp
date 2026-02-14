@@ -62,8 +62,8 @@
 #include <dotnet/DotNETHost.hpp>
 #endif
 
-/// ========== If this include is missing, you need to run HypBuildTool (instructions in doc/CompilingTheEngine.md) ==========
-#include <BuildToolOutput.inc>
+/// ========== If this include is missing, you need to run the CodeGen tool (instructions in doc/CompilingTheEngine.md) ==========
+#include <CodeGenOutput.inc>
 
 namespace Hyperion {
 

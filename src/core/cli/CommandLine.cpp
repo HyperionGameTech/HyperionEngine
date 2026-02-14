@@ -8,7 +8,7 @@
 
 #include <core/utilities/StringUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <CommandLine.generated.inl>
 #endif
 

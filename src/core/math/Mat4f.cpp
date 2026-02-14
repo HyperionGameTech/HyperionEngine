@@ -7,7 +7,7 @@
 
 #include <core/memory/Memory.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <Mat4f.generated.inl>
 #endif
 

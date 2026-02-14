@@ -3,7 +3,7 @@
 #include <core/math/BoundingSphere.hpp>
 #include <core/math/MathUtil.hpp>
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 #include <BoundingSphere.generated.inl>
 #endif
 

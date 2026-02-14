@@ -97,7 +97,7 @@ protected:
 
 /// Macros for class / struct body ///
 
-#ifndef HYP_BUILDTOOL
+#ifndef HYP_TOOL
 
 #define HYP_ALLOC_OBJECT(T, size) GetObjectContainer<T>().Allocate(size)
 #define HYP_FREE_OBJECT(T, ptr) GetObjectContainer<T>().Free(ptr)

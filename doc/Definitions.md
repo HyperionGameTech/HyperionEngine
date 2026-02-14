@@ -16,7 +16,7 @@ A `Class` is an abstraction representing a type in the engine that derives from 
 
 All types with a `Class` object must derive from `ObjectBase`. To register a class, you need to define it with the `HYP_CLASS()` macro at the top of the class definition. Additionally, the body of the class should include a `HYP_OBJECT_BODY(TheTypeName)` macro invocation to define the class's metadata. To register individual fields and methods, you can use the `HYP_FIELD()` and `HYP_METHOD()` macros respectively.
 
-> Note: After adding a new type that should have a `Class` generated, you must run the build tool to generate the necessary reflection data. This is done by running the `RunHypBuildTool` script (or just reconfiguring CMake), which will parse the class definitions and generate the required metadata.
+> Note: After adding a new type that should have a `Class` generated, you must run the build tool to generate the necessary reflection data. This is done by running the `RunCodeGen` script (or just reconfiguring CMake), which will parse the class definitions and generate the required metadata.
 
 ### Handle
 A [`Handle`](../src/core/reflection/Handle.hpp) is a strong reference to a `Object`. Handles are used for resources like textures, meshes, and other assets that need to be released once they are no longer needed. Also see `WeakHandle` to use a weak reference to a `Object` rather than a strong reference.
