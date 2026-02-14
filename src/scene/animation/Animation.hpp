@@ -57,9 +57,9 @@ public:
 
     Span<const Keyframe> GetKeyframes() const
     {
-        return m_keyframeData.raw != nullptr
-            ? Span<const Keyframe>(reinterpret_cast<const Keyframe*>(m_keyframeData.raw), m_keyframeData.size / sizeof(Keyframe))
-            : Span<const Keyframe>();
+        Assert(m_keyframeData.raw != nullptr, "Keyframe data not loaded!");
+
+        return Span<const Keyframe>(reinterpret_cast<const Keyframe*>(m_keyframeData.raw), m_keyframeData.size / sizeof(Keyframe));
     }
 
     void SetKeyframes(Span<const Keyframe> keyframes);
@@ -71,11 +71,19 @@ public:
     Keyframe GetKeyframe(float time) const;
 
 protected:
+    void PageBlobData() override;
+    void UnpageBlobData() override;
+
     void WriteBlobData(BlobStorage& blobStorage) override
     {
+        if (m_keyframeData.readOnly)
+        {
+            return;
+        }
+
         Assert(m_keyframeData.raw != nullptr);
 
-        if (!m_keyframeData.readOnly)
+        if (m_keyframeData.bufferOffset == InvalidBufferOffset)
         {
             BlobHeader header {};
             Memory::Copy(header.magic, "TRAK", 4);
@@ -90,15 +98,6 @@ protected:
 
         writeStream->Seek(m_keyframeData.bufferOffset);
         writeStream->Write(m_keyframeData.raw, m_keyframeData.size);
-    }
-
-    void ReadBlobData(BlobStorage& blobStorage) override
-    {
-        if (m_keyframeData.size != 0)
-        {
-            m_keyframeData.raw = blobStorage.Map(m_keyframeData.bufferOffset, m_keyframeData.size);
-            m_keyframeData.readOnly = true;
-        }
     }
 
 private:

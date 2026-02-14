@@ -119,15 +119,17 @@ public:
      */
     double GetSignedDistanceAtPoint(const Vec3f& point) const;
 
+protected:
+    VoxelOctree* CreateChildOctant(const BoundingBox& aabb, uint8 index)
+    {
+        VoxelOctree* newOctree = new VoxelOctree(this, aabb, index);
+        newOctree->m_params = m_params;
+        return newOctree;
+    }
+
     HYP_FORCE_INLINE uint8 MaxDepth() const
     {
         return m_params.maxDepth;
-    }
-
-protected:
-    static VoxelOctree* CreateChildOctant(VoxelOctree* parent, const BoundingBox& aabb, uint8 index)
-    {
-        return new VoxelOctree(parent, aabb, index);
     }
 
     VoxelOctreeParams m_params;

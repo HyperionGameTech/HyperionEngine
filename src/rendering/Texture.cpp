@@ -360,6 +360,39 @@ void Texture::SetImageData(ConstByteView imageData)
     MarkDirty();
 }
 
+void Texture::PageBlobData()
+{
+    if (m_imageData.raw == nullptr
+        && m_imageData.bufferOffset != InvalidBufferOffset
+        && m_imageData.size != 0)
+    {
+        Handle<AssetPackage> package = GetPackage();
+        Assert(package.IsValid());
+
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
+
+        m_imageData.raw = blobStorage->Map(m_imageData.bufferOffset, m_imageData.size);
+        m_imageData.readOnly = true;
+    }
+}
+
+void Texture::UnpageBlobData()
+{
+    if (m_imageData.readOnly)
+    {
+        Handle<AssetPackage> package = GetPackage();
+        Assert(package.IsValid());
+
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
+
+        blobStorage->Unmap(m_imageData.bufferOffset, m_imageData.size);
+
+        m_imageData.raw = nullptr;
+    }
+}
+
 void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
 {
     const uint32 numMipLevels = desc.NumMips();

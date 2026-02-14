@@ -397,13 +397,6 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
 
-    Assert(blobStorage != nullptr);
-
-    if (blobStorage != nullptr)
-    {
-        targetAssetObject->ReadBlobData(*blobStorage);
-    }
-
     outAssetObject = MakeStrongRef(targetAssetObject);
 
     return {};
@@ -488,7 +481,7 @@ void AssetObject::LockWriter(bool doInitialize)
     {
         Mutex::Guard initGuard(m_initMutex);
 
-        Initialize();
+        PageBlobData();
 
         m_isInitialized = true;
     }
@@ -502,7 +495,7 @@ void AssetObject::UnlockWriter(bool doDeinitialize)
 
         Assert(m_isInitialized);
 
-        Destroy();
+        UnpageBlobData();
 
         m_isInitialized = false;
     }
@@ -537,7 +530,7 @@ void AssetObject::LockReader()
                 m_isInitialized = true;
                 isInitializedLocal = true;
 
-                Initialize();
+                PageBlobData();
 
                 m_initCV.NotifyAll();
             }
@@ -607,7 +600,7 @@ void AssetObject::UnlockReader()
 
     if (m_isInitialized && AtomicSub(&m_rwState, 2) == 2)
     {
-        Destroy();
+        UnpageBlobData();
 
         m_isInitialized = false;
     }

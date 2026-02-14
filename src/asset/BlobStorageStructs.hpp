@@ -14,13 +14,15 @@ struct BlobHeader
     uint64 payloadSize;
 };
 
+constexpr uint64 InvalidBufferOffset = uint64(-1);
+
 HYP_STRUCT()
 struct BlobDataReference
 {
     HYP_STRUCT_BODY(BlobDataReference)
 
     HYP_FIELD()
-    uint64 bufferOffset = 0;
+    uint64 bufferOffset = InvalidBufferOffset;
     
     HYP_FIELD()
     uint64 size = 0;

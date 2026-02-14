@@ -203,9 +203,9 @@ private:
         return m_state != nullptr && !Flags[OF_INSERT_ON_OVERLAP];
     }
 
-    static SceneOctree* CreateChildOctant(SceneOctree* parent, const BoundingBox& aabb, uint8 index)
+    SceneOctree* CreateChildOctant(const BoundingBox& aabb, uint8 index)
     {
-        return new SceneOctree(parent->m_entityManager, parent, aabb, index);
+        return new SceneOctree(m_entityManager, this, aabb, index);
     }
 
     void ResetEntriesHash();

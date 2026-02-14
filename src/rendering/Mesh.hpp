@@ -192,9 +192,8 @@ public:
 
     HYP_FORCE_INLINE Span<Vertex> GetVertexData()
     {
-        return m_vertexData.raw != nullptr
-            ? Span<Vertex>(reinterpret_cast<Vertex*>(m_vertexData.raw), m_vertexData.size / sizeof(Vertex))
-            : Span<Vertex>();
+        Assert(m_vertexData.raw != nullptr, "Vertex data not loaded!");
+        return Span<Vertex>(reinterpret_cast<Vertex*>(m_vertexData.raw), m_vertexData.size / sizeof(Vertex));
     }
 
     HYP_FORCE_INLINE Span<const Vertex> GetVertexData() const
@@ -206,9 +205,8 @@ public:
 
     HYP_FORCE_INLINE Span<ubyte> GetIndexData()
     {
-        return m_indexData.raw != nullptr
-            ? Span<ubyte>(reinterpret_cast<ubyte*>(m_indexData.raw), m_indexData.size)
-            : Span<ubyte>();
+        Assert(m_indexData.raw != nullptr, "Index data not loaded!");
+        return Span<ubyte>(reinterpret_cast<ubyte*>(m_indexData.raw), m_indexData.size);
     }
 
     HYP_FORCE_INLINE Span<const ubyte> GetIndexData() const
@@ -230,12 +228,20 @@ public:
     MeshGpuUploadSemaphore gpuUploadSemaphore;
 
 protected:
+    void PageBlobData() override;
+    void UnpageBlobData() override;
+
     void WriteBlobData(BlobStorage& blobStorage) override
     {
+        if (m_vertexData.readOnly && m_indexData.readOnly)
+        {
+            return;
+        }
+
         Assert(m_vertexData.raw != nullptr);
         Assert(m_indexData.raw != nullptr);
 
-        if (!m_vertexData.readOnly)
+        if (m_vertexData.bufferOffset == InvalidBufferOffset)
         {
             BlobHeader vertexDataHeader {};
             Memory::Copy(vertexDataHeader.magic, "VB", 4);
@@ -246,7 +252,7 @@ protected:
             Assert(blobStorage.AllocateBlob(vertexDataHeader, m_vertexData.bufferOffset));
         }
         
-        if (!m_indexData.readOnly)
+        if (m_indexData.bufferOffset == InvalidBufferOffset)
         {
             BlobHeader indexDataHeader {};
             Memory::Copy(indexDataHeader.magic, "IB", 4);
@@ -264,21 +270,6 @@ protected:
         
         writeStream->Seek(m_indexData.bufferOffset);
         writeStream->Write(m_indexData.raw, m_indexData.size);
-    }
-
-    void ReadBlobData(BlobStorage& blobStorage) override
-    {
-        if (m_vertexData.size != 0)
-        {
-            m_vertexData.raw = blobStorage.Map(m_vertexData.bufferOffset, m_vertexData.size);
-            m_vertexData.readOnly = true;
-        }
-        
-        if (m_indexData.size != 0)
-        {
-            m_indexData.raw = blobStorage.Map(m_indexData.bufferOffset, m_indexData.size);
-            m_indexData.readOnly = true;
-        }
     }
 
 private:

@@ -20,6 +20,8 @@ static constexpr uint64 GetBlobHash(SizeType offset, SizeType size)
         .Value();
 }
 
+#pragma region BlobStorage
+
 BlobStorage::BlobStorage()
     : m_name("INVALID_BLOB_STORAGE"),
       m_cursor(0),
@@ -355,5 +357,11 @@ void BlobStorage::Close()
         file = nullptr;
     }
 }
+
+#pragma endregion BlobStorage
+
+#pragma region BlobDataReference
+
+#pragma endregion BlobDataReference
 
 } // namespace Hyperion

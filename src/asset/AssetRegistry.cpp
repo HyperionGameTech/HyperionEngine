@@ -782,6 +782,8 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
             MarkDirty();
         }
     } // end lock scope
+    
+    InitObject(assetObject);
 
     // notify asset object removed if that's the case
     if (existingAssetObject.IsValid())
@@ -3265,8 +3267,6 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             {
                 continue;
             }
-            
-            InitObject(assetObject);
 
             if (Result addAssetResult = outPackage->AddAssetObject(assetObject, /* replaceOnConflict */ false); addAssetResult.HasError())
             {

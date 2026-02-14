@@ -117,9 +117,7 @@ public:
 
     HYP_FORCE_INLINE ConstByteView GetImageData() const
     {
-        return m_imageData.raw != nullptr
-            ? ConstByteView(reinterpret_cast<const ubyte*>(m_imageData.raw), m_imageData.size)
-            : ConstByteView();
+        return ConstByteView(reinterpret_cast<const ubyte*>(m_imageData.raw), m_imageData.size);
     }
 
     void SetImageData(ConstByteView imageData);
@@ -141,12 +139,18 @@ public:
 
 protected:
     void Init() override;
+
+    void PageBlobData() override;
+    void UnpageBlobData() override;
     
     void WriteBlobData(BlobStorage& blobStorage) override
     {
-        Assert(m_imageData.raw != nullptr);
+        if (m_imageData.readOnly)
+        {
+            return;
+        }
 
-        if (!m_imageData.readOnly)
+        if (m_imageData.bufferOffset != InvalidBufferOffset)
         {
             BlobHeader vertexDataHeader {};
             Memory::Copy(vertexDataHeader.magic, "TEX", 4);
@@ -156,20 +160,13 @@ protected:
 
             Assert(blobStorage.AllocateBlob(vertexDataHeader, m_imageData.bufferOffset));
         }
+
+        Assert(m_imageData.bufferOffset != InvalidBufferOffset);
         
         ByteWriter* writeStream = blobStorage.GetWriteStream();
 
         writeStream->Seek(m_imageData.bufferOffset);
         writeStream->Write(m_imageData.raw, m_imageData.size);
-    }
-
-    void ReadBlobData(BlobStorage& blobStorage) override
-    {
-        if (m_imageData.size != 0)
-        {
-            m_imageData.raw = blobStorage.Map(m_imageData.bufferOffset, m_imageData.size);
-            m_imageData.readOnly = true;
-        }
     }
 
     HYP_FIELD(Serialize)

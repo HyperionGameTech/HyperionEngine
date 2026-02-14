@@ -203,7 +203,7 @@ void OctreeBase<Derived, Payload>::Divide()
         Octant& octant = m_octants[i];
         Assert(octant.octree == nullptr);
 
-        octant.octree = Derived::CreateChildOctant(static_cast<Derived*>(this), octant.aabb, uint8(i));
+        octant.octree = static_cast<Derived*>(this)->CreateChildOctant(octant.aabb, uint8(i));
     }
 
     m_isDivided = true;

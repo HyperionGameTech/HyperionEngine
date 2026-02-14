@@ -2,6 +2,8 @@
 
 #include <ScenePch.hpp>
 
+#include <asset/AssetRegistry.hpp>
+
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Skeleton.hpp>
@@ -35,6 +37,38 @@ void AnimationTrack::Init()
     ObjectBase::Init();
 
     SetReady(true);
+}
+
+void AnimationTrack::PageBlobData()
+{
+    if (m_keyframeData.raw == nullptr
+        && m_keyframeData.bufferOffset != InvalidBufferOffset
+        && m_keyframeData.size != 0)
+    {
+        Handle<AssetPackage> package = GetPackage();
+        Assert(package.IsValid());
+
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
+
+        m_keyframeData.raw = blobStorage->Map(m_keyframeData.bufferOffset, m_keyframeData.size);
+        m_keyframeData.readOnly = true;
+    }
+}
+
+void AnimationTrack::UnpageBlobData()
+{
+    if (m_keyframeData.readOnly)
+    {
+        Handle<AssetPackage> package = GetPackage();
+        Assert(package.IsValid());
+
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
+
+        blobStorage->Unmap(m_keyframeData.bufferOffset, m_keyframeData.size);
+        m_keyframeData.raw = nullptr;
+    }   
 }
 
 float AnimationTrack::GetLength() const
@@ -115,6 +149,8 @@ void Animation::Init()
 
     for (const Handle<AnimationTrack>& track : m_tracks)
     {
+        track->SetPersistentRequested(true);
+
         InitObject(track);
     }
 
@@ -135,6 +171,8 @@ void Animation::AddTrack(const Handle<AnimationTrack>& track)
         InitObject(track);
     }
 
+    track->SetPersistentRequested(true);
+
     m_tracks.PushBack(track);
 }
 
@@ -146,6 +184,8 @@ void Animation::SetTracks(const Array<Handle<AnimationTrack>>& tracks)
     {
         for (const Handle<AnimationTrack>& track : tracks)
         {
+            track->SetPersistentRequested(true);
+
             InitObject(track);
         }
     }

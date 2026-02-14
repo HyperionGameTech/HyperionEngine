@@ -210,7 +210,7 @@ protected:
     OctreeBase();
     OctreeBase(const BoundingBox& aabb);
     OctreeBase(Derived* parent, const BoundingBox& aabb, uint8 index);
-    ~OctreeBase();
+    virtual ~OctreeBase();
 
 public:
     using Result = utilities::TResult<OctantId>;
@@ -271,19 +271,19 @@ public:
         return m_state;
     }
 
-    HYP_FORCE_INLINE static constexpr uint8 MaxDepth()
-    {
-        return OctantId::MaxDepth;
-    }
-
 protected:
     static OctreeState<Derived, Payload>* CreateOctreeState()
     {
         return new OctreeState<Derived, Payload>();
     }
 
+    HYP_FORCE_INLINE uint8 MaxDepth() const
+    {
+        return OctantId::MaxDepth;
+    }
+
     //! derived classes must implement this
-    // static Derived* CreateChildOctant(Derived* parent, const BoundingBox& aabb, uint8 index);
+    // Derived* CreateChildOctant(Derived* parent, const BoundingBox& aabb, uint8 index);
 
     HYP_FORCE_INLINE bool ContainsAabb(const BoundingBox& aabb) const
     {

@@ -191,6 +191,8 @@ void Mesh::Init()
 
 void Mesh::SetVertexData(Span<const Vertex> vertexData)
 {
+    Assert(AtomicAdd(&m_rwState, 0) & 0x1);
+
     FreeBlobData(m_vertexData);
     AllocateBlobData(m_vertexData, vertexData);
 
@@ -199,10 +201,50 @@ void Mesh::SetVertexData(Span<const Vertex> vertexData)
 
 void Mesh::SetIndexData(Span<const ubyte> indexData)
 {
+    Assert(AtomicAdd(&m_rwState, 0) & 0x1);
+
     FreeBlobData(m_indexData);
     AllocateBlobData(m_indexData, indexData);
     
     MarkDirty();
+}
+
+void Mesh::PageBlobData()
+{
+    if (m_vertexData.raw == nullptr
+        && m_vertexData.bufferOffset != InvalidBufferOffset
+        && m_vertexData.size != 0)
+    {
+        Handle<AssetPackage> package = GetPackage();
+        Assert(package.IsValid());
+
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
+
+        m_vertexData.raw = blobStorage->Map(m_vertexData.bufferOffset, m_vertexData.size);
+        m_vertexData.readOnly = true;
+
+        m_indexData.raw = blobStorage->Map(m_indexData.bufferOffset, m_indexData.size);
+        m_indexData.readOnly = true;
+    }
+}
+
+void Mesh::UnpageBlobData()
+{
+    if (m_vertexData.readOnly)
+    {
+        Handle<AssetPackage> package = GetPackage();
+        Assert(package.IsValid());
+
+        BlobStorage* blobStorage = package->GetBlobStorage();
+        Assert(blobStorage != nullptr);
+
+        blobStorage->Unmap(m_vertexData.bufferOffset, m_vertexData.size);
+        m_vertexData.raw = nullptr;
+
+        blobStorage->Unmap(m_indexData.bufferOffset, m_indexData.size);
+        m_indexData.raw = nullptr;
+    }
 }
 
 void Mesh::UploadGpuData()

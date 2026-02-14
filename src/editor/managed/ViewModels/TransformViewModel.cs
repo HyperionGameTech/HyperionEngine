@@ -71,6 +71,10 @@ namespace Hyperion.Editor.ViewModels
 
         private Transform ReadTransform()
         {
+
+            // DEADLOCK??
+            return default;
+
             Task<Transform> task = EngineManager.PostToSimThread<Transform>(() =>
             {
                 using BoxedValue boxed = _property.Get(_target);
@@ -85,10 +89,6 @@ namespace Hyperion.Editor.ViewModels
                 
                 return Transform.Identity;
             });
-
-            // return default;
-
-            // DEADLOCK??
             
             return task.Result;
         }

@@ -217,19 +217,17 @@ public:
 protected:
     void Init() override;
 
-    virtual void Initialize()
-    {
-        // unused currently; called when num writers/readers >= 1
-    }
-
-    virtual void Destroy()
-    {
-        // same deal as Initialize()
-    }
-
     virtual void OnDirtyStateChanged(bool isDirty)
     {
         // do nothing by default
+    }
+
+    virtual void PageBlobData()
+    {
+    }
+
+    virtual void UnpageBlobData()
+    {
     }
 
     template <class T>
@@ -262,11 +260,6 @@ protected:
     }
     
     virtual void WriteBlobData(BlobStorage& blobStorage)
-    {
-
-    }
-
-    virtual void ReadBlobData(BlobStorage& blobStorage)
     {
 
     }

@@ -122,16 +122,18 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 {
     Assert(entityManager != nullptr);
 
-    m_aabb = params.aabb;
+    m_params = params;
 
-    if (!params.allowResize && (!m_aabb.IsValid() || !m_aabb.IsFinite() || m_aabb.IsZero()))
+    OctreeBase::m_aabb = params.aabb;
+
+    if (!params.allowResize && (!OctreeBase::m_aabb.IsValid() || !OctreeBase::m_aabb.IsFinite() || OctreeBase::m_aabb.IsZero()))
     {
         return HYP_MAKE_ERROR(Error, "Voxel octree is not allowed to resize and has an invalid AABB");
     }
 
     OctreeBase::Clear();
 
-    BoundingBox newAabb = m_aabb;
+    BoundingBox newAabb = OctreeBase::m_aabb;
 
     Array<Tuple<VoxelOctreeElement, MeshDesc, Span<const Vertex>, Span<const ubyte>, UniquePtr<TSharedLock<AssetObject>>>> meshDatas;
 
@@ -166,7 +168,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         }
         else
         {
-            if (!m_aabb.Overlaps(boundingBoxComponent.worldAabb))
+            if (!OctreeBase::m_aabb.Overlaps(boundingBoxComponent.worldAabb))
             {
                 // Skip meshes that are out of bounds
                 continue;
@@ -180,12 +182,14 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         element.transformMatrix = entity->GetWorldMatrix();
         element.aabb = boundingBoxComponent.worldAabb;
 
+        auto lock = MakeUnique<TSharedLock<AssetObject>>(*meshComponent.mesh);
+
         meshDatas.EmplaceBack(
             element,
             meshComponent.mesh->GetMeshDesc(),
             meshComponent.mesh->GetVertexData(),
             meshComponent.mesh->GetIndexData(),
-            MakeUnique<TSharedLock<AssetObject>>(*meshComponent.mesh));
+            std::move(lock));
     }
 
     if (!newAabb.IsValid() || !newAabb.IsFinite())
@@ -203,7 +207,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         newAabb.SetExtent(Vec3f(maxExtent));
         newAabb.SetCenter(center);
 
-        m_aabb = newAabb;
+        OctreeBase::m_aabb = newAabb;
     }
 
     InitOctants();
@@ -240,9 +244,15 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
                     }
                 };
 
-                BoundingBox triangleAabb = triangle.GetBoundingBox().Expand(0.002f);
+                BoundingBox triangleBounds = triangle.GetBoundingBox().Expand(0.002f);
+                AssertDebug(triangleBounds.IsValid() && triangleBounds.IsFinite());
 
-                (void)OctreeBase::Insert(VoxelOctreePayload { .occupiedBit = 1 }, triangleAabb);
+                if (!triangleBounds.IsValid() || !triangleBounds.IsFinite())
+                {
+                    continue;
+                }
+
+                (void)OctreeBase::Insert(VoxelOctreePayload { .occupiedBit = 1 }, triangleBounds);
             }
         }
 
@@ -278,16 +288,19 @@ double VoxelOctree::GetSignedDistanceAtPoint(const Vec3f& point) const
         const Vec3f min = aabb.GetMin();
         const Vec3f max = aabb.GetMax();
         double distSq = 0.0;
-        auto checkAxis = [&](double pVal, double minVal, double maxVal)
+
+        auto CheckAxis = [&](double pVal, double minVal, double maxVal)
         {
             if (pVal < minVal)
                 distSq += (minVal - pVal) * (minVal - pVal);
             else if (pVal > maxVal)
                 distSq += (pVal - maxVal) * (pVal - maxVal);
         };
-        checkAxis(p.x, min.x, max.x);
-        checkAxis(p.y, min.y, max.y);
-        checkAxis(p.z, min.z, max.z);
+        
+        CheckAxis(p.x, min.x, max.x);
+        CheckAxis(p.y, min.y, max.y);
+        CheckAxis(p.z, min.z, max.z);
+
         return distSq;
     };
 
