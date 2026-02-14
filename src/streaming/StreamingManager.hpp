@@ -13,7 +13,7 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/threading/Semaphore.hpp>
+#include <core/threading/ThreadSignal.hpp>
 
 #include <core/utilities/Uuid.hpp>
 
@@ -30,7 +30,7 @@ class StreamingVolumeBase;
 class WorldGrid;
 class WorldGridLayer;
 
-class StreamingNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>
+class StreamingNotifier final : public ThreadSignal
 {
 };
 
