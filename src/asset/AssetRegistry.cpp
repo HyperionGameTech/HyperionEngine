@@ -3034,7 +3034,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
     if (!forceLoad)
     {
         // try to get existing package if not forcing load
-        if (Handle<AssetPackage> existingPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false); existingPackage.IsValid())
+        if (Handle<AssetPackage> existingPackage = GetPackageFromPath(packagePath, /* createIfNotExist */ false, /* requireLoaded */ false); existingPackage.IsValid())
         {
             return existingPackage;
         }
@@ -3056,7 +3056,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             const String parentPackagePathString = String::Join(parentPackageParts, '/');
 
             // check if parent package already exists first
-            parentPackage = GetPackageFromPath(parentPackagePathString, /* createIfNotExist */ false);
+            parentPackage = GetPackageFromPath(parentPackagePathString, /* createIfNotExist */ false, /* requireLoaded */ false);
 
             if (!parentPackage)
             {

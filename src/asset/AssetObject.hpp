@@ -222,11 +222,11 @@ protected:
         // do nothing by default
     }
 
-    virtual void PageBlobData()
+    virtual void PageBlobData(BlobStorage& blobStorage)
     {
     }
 
-    virtual void UnpageBlobData()
+    virtual void UnpageBlobData(BlobStorage& blobStorage)
     {
     }
 
@@ -257,11 +257,6 @@ protected:
 
         HYP_FREE_ALIGNED(reference.raw);
         reference.raw = nullptr;
-    }
-    
-    virtual void WriteBlobData(BlobStorage& blobStorage)
-    {
-
     }
 
     Result SaveManifest(ByteWriter& stream) const;

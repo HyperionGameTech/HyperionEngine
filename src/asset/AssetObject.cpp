@@ -268,7 +268,6 @@ bool AssetObject::IsSaved() const
     return m_manifestPath.Length() > 0;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
@@ -302,7 +301,7 @@ Result AssetObject::Save(const FilePath& manifestPath)
 
     if (blobStorage != nullptr)
     {
-        WriteBlobData(*blobStorage);
+        UnpageBlobData(*blobStorage);
     }
 
     // save manifest after updating blob info
@@ -397,6 +396,13 @@ Result AssetObject::Load(
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
 
+    Assert(blobStorage != nullptr);
+
+    if (blobStorage != nullptr)
+    {
+        targetAssetObject->PageBlobData(*blobStorage);
+    }
+
     outAssetObject = MakeStrongRef(targetAssetObject);
 
     return {};
@@ -476,30 +482,10 @@ void AssetObject::LockWriter(bool doInitialize)
             }
         }
     }
-
-    if (doInitialize)
-    {
-        Mutex::Guard initGuard(m_initMutex);
-
-        PageBlobData();
-
-        m_isInitialized = true;
-    }
 }
 
 void AssetObject::UnlockWriter(bool doDeinitialize)
 {
-    if (doDeinitialize)
-    {
-        Mutex::Guard initGuard(m_initMutex);
-
-        Assert(m_isInitialized);
-
-        UnpageBlobData();
-
-        m_isInitialized = false;
-    }
-
     AtomicBitAnd(&m_rwState, ~0x1);
 }
 
@@ -512,42 +498,6 @@ void AssetObject::LockReader()
         int64 state;
         uint64 ustate;
     };
-
-    auto MaybeInitialize = [this](int64 state)
-    {
-        bool isInitializedLocal = false;
-
-        if (state == 0)
-        {
-            // successfully acquired read lock
-            Mutex::Guard initGuard(m_initMutex);
-
-            isInitializedLocal = m_isInitialized;
-
-            if (!isInitializedLocal)
-            {
-                // need to do initialize here, since we're the first reader
-                m_isInitialized = true;
-                isInitializedLocal = true;
-
-                PageBlobData();
-
-                m_initCV.NotifyAll();
-            }
-        }
-
-        if (!isInitializedLocal)
-        {
-            // successfully acquired read lock
-            Mutex::Guard initGuard(m_initMutex);
-
-            // wait for initialization to complete
-            while (!m_isInitialized)
-            {
-                m_initCV.Wait(m_initMutex);
-            }
-        }
-    };
         
     // first pass: optimistic read
     if ((m_rwState & 0x1) == 0)
@@ -556,8 +506,6 @@ void AssetObject::LockReader()
 
         if ((state & 0x1) == 0)
         {
-            MaybeInitialize(state);
-
             return;
         }
 
@@ -585,8 +533,6 @@ void AssetObject::LockReader()
 
         if ((state & 0x1) == 0)
         {
-            MaybeInitialize(state);
-
             return;
         }
 
@@ -596,14 +542,7 @@ void AssetObject::LockReader()
 
 void AssetObject::UnlockReader()
 {
-    Mutex::Guard initGuard(m_initMutex);
-
-    if (m_isInitialized && AtomicSub(&m_rwState, 2) == 2)
-    {
-        UnpageBlobData();
-
-        m_isInitialized = false;
-    }
+    AtomicSub(&m_rwState, 2);
 }
 
 void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const

@@ -219,7 +219,7 @@ HYP_NODISCARD void* BlobStorage::Map(SizeType offset, SizeType size)
     }
 
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, m_readOnly ? 0 : (offset + size)))
+    if (!InitMappedFile(file))
     {
         return nullptr;
     }

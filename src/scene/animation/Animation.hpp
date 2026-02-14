@@ -71,34 +71,8 @@ public:
     Keyframe GetKeyframe(float time) const;
 
 protected:
-    void PageBlobData() override;
-    void UnpageBlobData() override;
-
-    void WriteBlobData(BlobStorage& blobStorage) override
-    {
-        if (m_keyframeData.readOnly)
-        {
-            return;
-        }
-
-        Assert(m_keyframeData.raw != nullptr);
-
-        if (m_keyframeData.bufferOffset == InvalidBufferOffset)
-        {
-            BlobHeader header {};
-            Memory::Copy(header.magic, "TRAK", 4);
-            header.version = 1;
-            header.payloadOffset = 0;
-            header.payloadSize = m_keyframeData.size;
-
-            Assert(blobStorage.AllocateBlob(header, m_keyframeData.bufferOffset));
-        }
-        
-        ByteWriter* writeStream = blobStorage.GetWriteStream();
-
-        writeStream->Seek(m_keyframeData.bufferOffset);
-        writeStream->Write(m_keyframeData.raw, m_keyframeData.size);
-    }
+    void PageBlobData(BlobStorage& blobStorage) override;
+    void UnpageBlobData(BlobStorage& blobStorage) override;
 
 private:
     void Init() override;

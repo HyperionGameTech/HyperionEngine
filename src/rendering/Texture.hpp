@@ -140,34 +140,8 @@ public:
 protected:
     void Init() override;
 
-    void PageBlobData() override;
-    void UnpageBlobData() override;
-    
-    void WriteBlobData(BlobStorage& blobStorage) override
-    {
-        if (m_imageData.readOnly)
-        {
-            return;
-        }
-
-        if (m_imageData.bufferOffset != InvalidBufferOffset)
-        {
-            BlobHeader vertexDataHeader {};
-            Memory::Copy(vertexDataHeader.magic, "TEX", 4);
-            vertexDataHeader.version = 1;
-            vertexDataHeader.payloadOffset = 0;
-            vertexDataHeader.payloadSize = m_imageData.size;
-
-            Assert(blobStorage.AllocateBlob(vertexDataHeader, m_imageData.bufferOffset));
-        }
-
-        Assert(m_imageData.bufferOffset != InvalidBufferOffset);
-        
-        ByteWriter* writeStream = blobStorage.GetWriteStream();
-
-        writeStream->Seek(m_imageData.bufferOffset);
-        writeStream->Write(m_imageData.raw, m_imageData.size);
-    }
+    void PageBlobData(BlobStorage& blobStorage) override;
+    void UnpageBlobData(BlobStorage& blobStorage) override;
 
     HYP_FIELD(Serialize)
     TextureDesc m_textureDesc;

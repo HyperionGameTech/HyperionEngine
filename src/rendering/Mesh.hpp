@@ -228,49 +228,8 @@ public:
     MeshGpuUploadSemaphore gpuUploadSemaphore;
 
 protected:
-    void PageBlobData() override;
-    void UnpageBlobData() override;
-
-    void WriteBlobData(BlobStorage& blobStorage) override
-    {
-        if (m_vertexData.readOnly && m_indexData.readOnly)
-        {
-            return;
-        }
-
-        Assert(m_vertexData.raw != nullptr);
-        Assert(m_indexData.raw != nullptr);
-
-        if (m_vertexData.bufferOffset == InvalidBufferOffset)
-        {
-            BlobHeader vertexDataHeader {};
-            Memory::Copy(vertexDataHeader.magic, "VB", 4);
-            vertexDataHeader.version = 1;
-            vertexDataHeader.payloadOffset = 0;
-            vertexDataHeader.payloadSize = m_vertexData.size;
-
-            Assert(blobStorage.AllocateBlob(vertexDataHeader, m_vertexData.bufferOffset));
-        }
-        
-        if (m_indexData.bufferOffset == InvalidBufferOffset)
-        {
-            BlobHeader indexDataHeader {};
-            Memory::Copy(indexDataHeader.magic, "IB", 4);
-            indexDataHeader.version = 1;
-            indexDataHeader.payloadOffset = 0;
-            indexDataHeader.payloadSize = m_indexData.size;
-
-            Assert(blobStorage.AllocateBlob(indexDataHeader, m_indexData.bufferOffset));
-        }
-
-        ByteWriter* writeStream = blobStorage.GetWriteStream();
-
-        writeStream->Seek(m_vertexData.bufferOffset);
-        writeStream->Write(m_vertexData.raw, m_vertexData.size);
-        
-        writeStream->Seek(m_indexData.bufferOffset);
-        writeStream->Write(m_indexData.raw, m_indexData.size);
-    }
+    void PageBlobData(BlobStorage& blobStorage) override;
+    void UnpageBlobData(BlobStorage& blobStorage) override;
 
 private:
     void Init() override;

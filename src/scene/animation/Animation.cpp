@@ -39,36 +39,41 @@ void AnimationTrack::Init()
     SetReady(true);
 }
 
-void AnimationTrack::PageBlobData()
+void AnimationTrack::PageBlobData(BlobStorage& blobStorage)
 {
     if (m_keyframeData.raw == nullptr
         && m_keyframeData.bufferOffset != InvalidBufferOffset
         && m_keyframeData.size != 0)
     {
-        Handle<AssetPackage> package = GetPackage();
-        Assert(package.IsValid());
-
-        BlobStorage* blobStorage = package->GetBlobStorage();
-        Assert(blobStorage != nullptr);
-
-        m_keyframeData.raw = blobStorage->Map(m_keyframeData.bufferOffset, m_keyframeData.size);
+        m_keyframeData.raw = blobStorage.Map(m_keyframeData.bufferOffset, m_keyframeData.size);
         m_keyframeData.readOnly = true;
     }
 }
 
-void AnimationTrack::UnpageBlobData()
+void AnimationTrack::UnpageBlobData(BlobStorage& blobStorage)
 {
     if (m_keyframeData.readOnly)
     {
-        Handle<AssetPackage> package = GetPackage();
-        Assert(package.IsValid());
+        return;
+    }
 
-        BlobStorage* blobStorage = package->GetBlobStorage();
-        Assert(blobStorage != nullptr);
+    Assert(m_keyframeData.raw != nullptr);
 
-        blobStorage->Unmap(m_keyframeData.bufferOffset, m_keyframeData.size);
-        m_keyframeData.raw = nullptr;
-    }   
+    if (m_keyframeData.bufferOffset == InvalidBufferOffset)
+    {
+        BlobHeader header {};
+        Memory::Copy(header.magic, "TRAK", 4);
+        header.version = 1;
+        header.payloadOffset = 0;
+        header.payloadSize = m_keyframeData.size;
+
+        Assert(blobStorage.AllocateBlob(header, m_keyframeData.bufferOffset));
+    }
+        
+    ByteWriter* writeStream = blobStorage.GetWriteStream();
+
+    writeStream->Seek(m_keyframeData.bufferOffset);
+    writeStream->Write(m_keyframeData.raw, m_keyframeData.size);
 }
 
 float AnimationTrack::GetLength() const
