@@ -22,6 +22,9 @@ struct BlobDataReference
     HYP_STRUCT_BODY(BlobDataReference)
 
     HYP_FIELD()
+    uint32 page = 0;
+
+    HYP_FIELD()
     uint64 bufferOffset = InvalidBufferOffset;
     
     HYP_FIELD()

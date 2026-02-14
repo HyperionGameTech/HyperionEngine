@@ -58,8 +58,7 @@ enum class AssetPackageFlags : uint32
 {
     None = 0x0,
     Transient = 0x1,    //!< Not saved to disk
-    Hidden = 0x2,       //!< Hide in content browser
-    HasBlobStorage = 0x4
+    Hidden = 0x2        //!< Hide in content browser
 };
 
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
@@ -122,8 +121,6 @@ public:
     {
         return m_flags;
     }
-
-    void SetBlobStorageEnabled(bool enabled);
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsTransient() const
@@ -203,11 +200,6 @@ public:
 
     Result AddAssetObject(const Handle<AssetObject>& assetObject, bool replaceOnConflict);
     Result RemoveAssetObject(const Handle<AssetObject>& assetObject);
-
-    BlobStorage* GetBlobStorage() const;
-
-    /*! \brief Initialize (owned) BlobStorage for this Package */
-    void InitBlobStorage(bool readOnly = true);
 
     /*! \brief Merges the contents of another package into this one.
      *  Transfers ownership of all asset objects and subpackages from the source package
@@ -302,10 +294,6 @@ private:
 
     Result SaveManifest(ByteWriter& stream) const;
 
-    void InitBlobStorage(BlobStorage& outStorage, bool readOnly = true);
-
-    void LoadBlobStorage();
-
     /*! \brief Check for dirty asset objects and returns true if any are.
      *   Used before saving, to check if we should call MarkDirty() */
     bool HasDirtyAssetObjects() const;
@@ -344,8 +332,6 @@ private:
     mutable Mutex m_loadedMutex;
     ConditionVariable m_loadedCV;
     ThreadId m_loadingThreadId;
-
-    BlobStorage* m_blobStorage;
 };
 
 HYP_CLASS()
@@ -449,6 +435,8 @@ public:
 
     MemoryMappedFile* MapFile(const FilePath& path);
 
+    BlobStorage& GetBlobStorage();
+
     void Initialize();
 
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
@@ -461,6 +449,8 @@ public:
     ScriptableDelegate<void, Handle<AssetPackage>> OnPackageRemoved;
 
 private:
+    void InitBlobStorage();
+
     void LoadPackagesAsync(bool loadSubpackages = false);
 
     template <class Func, class FutureType = void>
@@ -489,6 +479,8 @@ private:
     threading::TaskBatch* m_pruneTaskBatch;
 
     Scheduler* m_scheduler;
+
+    BlobStorage* m_blobStorage;
 };
 
 } // namespace Hyperion

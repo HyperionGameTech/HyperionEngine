@@ -21,8 +21,9 @@ using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 class MappedBlobStorage
 {
 public:
-    MappedBlobStorage(const FilePath& baseDir, bool readOnly)
+    MappedBlobStorage(const FilePath& baseDir, SizeType pageSize, bool readOnly)
         : m_baseDir(baseDir),
+          m_pageSize(pageSize),
           m_readOnly(readOnly)
     {
     }
@@ -44,9 +45,7 @@ public:
     {
         TUniqueLock lock(m_mutex);
 
-        const FilePath dir = m_baseDir / "Blobs";
-
-        if (!dir.IsDirectory() && (m_readOnly || !dir.MkDir()))
+        if (!m_baseDir.IsDirectory() && (m_readOnly || !m_baseDir.MkDir()))
         {
             // cannot map if the dir doesnt exist.
             return nullptr;
@@ -66,7 +65,7 @@ public:
 
         const ANSIString nameStr = ANSIString(name);
         
-        const FilePath filePath = m_baseDir / "Blobs" / (nameStr + ".bin");
+        const FilePath filePath = m_baseDir / (nameStr + ".bin");
 
         MemoryMappedFile* mappedFile = PoolNew<MemoryMappedFile>(
             *g_assetPool,
@@ -82,6 +81,11 @@ public:
             PoolDelete(*g_assetPool, mappedFile);
 
             return nullptr;
+        }
+
+        if (!m_readOnly)
+        {
+            Assert(mappedFile->EnsureCapacity(m_pageSize));
         }
 
         m_mappedFiles[nameStr] = mappedFile;
@@ -111,6 +115,7 @@ public:
 
 private:
     FilePath m_baseDir;
+    SizeType m_pageSize;
     bool m_readOnly;
 
     HashMap<ANSIString, MemoryMappedFile*> m_mappedFiles;

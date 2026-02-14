@@ -72,7 +72,7 @@ AssetObject::AssetObject()
     : m_flags(AssetObjectFlags::None),
       m_isDirty(0),
       m_rwState(0),
-      m_isInitialized(false)
+      m_isBlobLoaded(false)
 {
 }
 
@@ -81,7 +81,7 @@ AssetObject::AssetObject(Name name)
       m_flags(AssetObjectFlags::None),
       m_isDirty(0),
       m_rwState(0),
-      m_isInitialized(false)
+      m_isBlobLoaded(false)
 {
 }
 
@@ -268,6 +268,7 @@ bool AssetObject::IsSaved() const
     return m_manifestPath.Length() > 0;
 }
 
+HYP_DISABLE_OPTIMIZATION;
 Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
@@ -295,14 +296,8 @@ Result AssetObject::Save(const FilePath& manifestPath)
     {
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
-    
-    BlobStorage* blobStorage = package->GetBlobStorage();
-    Assert(blobStorage != nullptr, "No BlobStorage for package, cannot save blob data");
 
-    if (blobStorage != nullptr)
-    {
-        UnpageBlobData(*blobStorage);
-    }
+    WriteBlobData(g_assetManager->GetAssetRegistry()->GetBlobStorage());
 
     // save manifest after updating blob info
 
@@ -356,7 +351,6 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
 
 Result AssetObject::Load(
     JSON::Object& manifestData,
-    BlobStorage* blobStorage,
     Handle<AssetObject>& outAssetObject)
 {
     HYP_SCOPE;
@@ -394,13 +388,6 @@ Result AssetObject::Load(
     if (!ObjectFromJSON(manifestData, cls, targetData))
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
-    }
-
-    Assert(blobStorage != nullptr);
-
-    if (blobStorage != nullptr)
-    {
-        targetAssetObject->PageBlobData(*blobStorage);
     }
 
     outAssetObject = MakeStrongRef(targetAssetObject);
@@ -498,6 +485,42 @@ void AssetObject::LockReader()
         int64 state;
         uint64 ustate;
     };
+
+    auto MaybeInitialize = [this](int64 state)
+    {
+        bool blobLoaded = false;
+
+        if (state == 0)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            blobLoaded = m_isBlobLoaded;
+
+            if (!blobLoaded)
+            {
+                // need to do initialize here, since we're the first reader
+                m_isBlobLoaded = true;
+                blobLoaded = true;
+
+                PageBlobData();
+
+                m_initCV.NotifyAll();
+            }
+        }
+
+        if (!blobLoaded)
+        {
+            // successfully acquired read lock
+            Mutex::Guard initGuard(m_initMutex);
+
+            // wait for initialization to complete
+            while (!m_isBlobLoaded)
+            {
+                m_initCV.Wait(m_initMutex);
+            }
+        }
+    };
         
     // first pass: optimistic read
     if ((m_rwState & 0x1) == 0)
@@ -506,6 +529,8 @@ void AssetObject::LockReader()
 
         if ((state & 0x1) == 0)
         {
+            MaybeInitialize(state);
+
             return;
         }
 
@@ -533,6 +558,8 @@ void AssetObject::LockReader()
 
         if ((state & 0x1) == 0)
         {
+            MaybeInitialize(state);
+
             return;
         }
 
@@ -542,7 +569,14 @@ void AssetObject::LockReader()
 
 void AssetObject::UnlockReader()
 {
-    AtomicSub(&m_rwState, 2);
+    Mutex::Guard initGuard(m_initMutex);
+
+    if (AtomicSub(&m_rwState, 2) == 2 && m_isBlobLoaded)
+    {
+        UnpageBlobData();
+
+        m_isBlobLoaded = false;
+    }
 }
 
 void AssetObject::GetNumUsers(int64& outReaders, int64& outWriters) const

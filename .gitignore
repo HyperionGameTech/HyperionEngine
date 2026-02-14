@@ -307,5 +307,6 @@ src/gen/**/*
 src/dotnet/runtime/gen/**/*
 
 res/projects/**/*
+res/*/BlobStorage/**/*
 
 generated/**/*

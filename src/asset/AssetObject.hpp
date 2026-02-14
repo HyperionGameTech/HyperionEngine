@@ -211,7 +211,6 @@ public:
 
     static Result Load(
         JSON::Object& manifestData,
-        BlobStorage* blobStorage,
         Handle<AssetObject>& outAssetObject);
 
 protected:
@@ -222,11 +221,11 @@ protected:
         // do nothing by default
     }
 
-    virtual void PageBlobData(BlobStorage& blobStorage)
+    virtual void PageBlobData()
     {
     }
 
-    virtual void UnpageBlobData(BlobStorage& blobStorage)
+    virtual void UnpageBlobData()
     {
     }
 
@@ -245,6 +244,7 @@ protected:
             Memory::Copy(reference.raw, inData.Data(), sizeof(T) * inData.Size());
 
             reference.size = sizeof(T) * inData.Size();
+            reference.readOnly = false;
         }
     }
 
@@ -257,6 +257,11 @@ protected:
 
         HYP_FREE_ALIGNED(reference.raw);
         reference.raw = nullptr;
+    }
+    
+    virtual void WriteBlobData(BlobStorage& blobStorage)
+    {
+
     }
 
     Result SaveManifest(ByteWriter& stream) const;
@@ -289,7 +294,9 @@ protected:
 
     mutable Mutex m_initMutex;
     ConditionVariable m_initCV;
-    bool m_isInitialized;
+    bool m_isBlobLoaded;
+
+    BlobStorage* m_blobStorage = nullptr; //temp
 
     TSharedLock<AssetObject> m_persistentReader;
 };

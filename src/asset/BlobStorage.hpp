@@ -10,6 +10,8 @@
 #include <core/utilities/ValueStorage.hpp>
 #include <core/utilities/Range.hpp>
 
+#include <core/filesystem/FilePath.hpp>
+
 #include <core/memory/allocator/ArenaAllocator.hpp>
 
 #include <core/threading/SharedMutex.hpp>
@@ -29,7 +31,7 @@ struct BlobStorageCallbacks
 {
     void* context = nullptr;
 
-    MemoryMappedFile* (*Open)(void* context, const char* name, bool readOnly) = nullptr;
+    MemoryMappedFile* (*Open)(void* context, const char* name) = nullptr;
     void (*Close)(void* context, MemoryMappedFile* file) = nullptr;
 
     void (*Destroy)(void* context) = nullptr;
@@ -47,15 +49,51 @@ struct BlobMappingRange
     uint32 end = 0;
 };
 
+struct BlobAllocationInfo
+{
+    void* ptr = nullptr;
+    uint32 count = 0;
+};
+
+struct BlobAllocationDesc
+{
+    SizeType offset = 0;
+    SizeType size = 0;
+
+    HYP_FORCE_INLINE constexpr bool operator==(const BlobAllocationDesc& other) const = default;
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(offset)
+            .Combine(size);
+    }
+};
+
+HYP_STRUCT()
+struct BlobPageData
+{
+    HYP_STRUCT_BODY(BlobPageData)
+
+    HYP_FIELD()
+    uint64 cursor = 0;
+
+    MemoryMappedFile* file = nullptr;
+    MemoryMappedFileView* view = nullptr;
+    ByteWriter* writeStream = nullptr;
+    ByteReader* readStream = nullptr;
+};
+
 HYP_CLASS()
 class BlobStorage : public ObjectBase
 {
     HYP_OBJECT_BODY(BlobStorage);
 
 public:
+    static constexpr uint64 DefaultPageSize = 256 * 1024 * 1024;
+
     BlobStorage();
 
-    explicit BlobStorage(const ANSIString& name, bool readOnly = true);
+    explicit BlobStorage(const FilePath& baseDirectory, uint64 pageSize);
 
     BlobStorage(const BlobStorage& other) = delete;
     BlobStorage& operator=(const BlobStorage& other) = delete;
@@ -65,47 +103,38 @@ public:
 
     ~BlobStorage();
 
-    ByteWriter* GetWriteStream();
-    ByteReader* GetReadStream();
-
-    void EnsureCapacity(SizeType capacity);
+    ByteWriter* GetWriteStream(uint32 page);
+    ByteReader* GetReadStream(uint32 page);
     
-    HYP_NODISCARD void* Map(SizeType offset, SizeType size);
-    void Unmap(SizeType offset, SizeType size);
+    HYP_NODISCARD void* Map(uint32 page, SizeType offset, SizeType size);
 
-    bool AllocateBlob(const BlobHeader& header, SizeType& outOffset);
-
-    void CopyTo(BlobStorage& other);
-
-    void Close();
+    bool AllocateBlob(const BlobHeader& header, BlobDataReference& outReference);
     
+    Result SaveManifest();
+
     // Needs to be set by impl
     BlobStorageCallbacks callbacks;
 
-    // For allocating memory for read/write data - before data is serialized to disk
-    Arena transientAllocator;
-
 private:
-    bool InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minRequiredSize = 0);
+    bool InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page);
+
+    void ClosePage(uint32 page);
+
+    Result LoadManifest();
 
     HYP_FIELD()
-    ANSIString m_name;
+    FilePath m_baseDirectory;
 
     HYP_FIELD()
-    uint64 m_cursor;
+    uint64 m_pageSize;
 
     HYP_FIELD()
     Array<BlobMappingRange> m_freeRanges; // <---- TODO make use of this
-    
-    bool m_readOnly;
 
-    HashMap<uint64, void*> m_allocations;
+    mutable Mutex m_mutex;
 
-    MemoryMappedFile* m_file;
-    MemoryMappedFileView m_view;
-
-    ByteWriter* m_writeStream;
-    ByteReader* m_readStream;
+    HYP_FIELD()
+    Array<BlobPageData> m_pageData;
 };
 
 } // namespace Hyperion

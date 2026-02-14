@@ -209,59 +209,37 @@ void Mesh::SetIndexData(Span<const ubyte> indexData)
     MarkDirty();
 }
 
-void Mesh::PageBlobData(BlobStorage& blobStorage)
+void Mesh::PageBlobData()
 {
     if (m_vertexData.raw == nullptr
         && m_vertexData.bufferOffset != InvalidBufferOffset
         && m_vertexData.size != 0)
     {
-        m_vertexData.raw = blobStorage.Map(m_vertexData.bufferOffset, m_vertexData.size);
+        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+
+        m_vertexData.raw = blobStorage.Map(
+            m_vertexData.page,
+            m_vertexData.bufferOffset,
+            m_vertexData.size);
+
         m_vertexData.readOnly = true;
 
-        m_indexData.raw = blobStorage.Map(m_indexData.bufferOffset, m_indexData.size);
+        m_indexData.raw = blobStorage.Map(
+            m_indexData.page,
+            m_indexData.bufferOffset,
+            m_indexData.size);
+
         m_indexData.readOnly = true;
     }
 }
 
-void Mesh::UnpageBlobData(BlobStorage& blobStorage)
+void Mesh::UnpageBlobData()
 {
-    if (m_vertexData.readOnly && m_indexData.readOnly)
+    if (m_vertexData.readOnly)
     {
-        return;
+        m_vertexData.raw = nullptr;
+        m_indexData.raw = nullptr;
     }
-
-    Assert(m_vertexData.raw != nullptr);
-    Assert(m_indexData.raw != nullptr);
-
-    if (m_vertexData.bufferOffset == InvalidBufferOffset)
-    {
-        BlobHeader vertexDataHeader {};
-        Memory::Copy(vertexDataHeader.magic, "VB", 4);
-        vertexDataHeader.version = 1;
-        vertexDataHeader.payloadOffset = 0;
-        vertexDataHeader.payloadSize = m_vertexData.size;
-
-        Assert(blobStorage.AllocateBlob(vertexDataHeader, m_vertexData.bufferOffset));
-    }
-        
-    if (m_indexData.bufferOffset == InvalidBufferOffset)
-    {
-        BlobHeader indexDataHeader {};
-        Memory::Copy(indexDataHeader.magic, "IB", 4);
-        indexDataHeader.version = 1;
-        indexDataHeader.payloadOffset = 0;
-        indexDataHeader.payloadSize = m_indexData.size;
-
-        Assert(blobStorage.AllocateBlob(indexDataHeader, m_indexData.bufferOffset));
-    }
-
-    ByteWriter* writeStream = blobStorage.GetWriteStream();
-
-    writeStream->Seek(m_vertexData.bufferOffset);
-    writeStream->Write(m_vertexData.raw, m_vertexData.size);
-        
-    writeStream->Seek(m_indexData.bufferOffset);
-    writeStream->Write(m_indexData.raw, m_indexData.size);
 }
 
 void Mesh::UploadGpuData()

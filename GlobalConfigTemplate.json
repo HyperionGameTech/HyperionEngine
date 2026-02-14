@@ -68,8 +68,12 @@
     }
   },
   "App": {
-    "Name": "HyperionEditor",
-    "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace"
+    "Name": "DefaultGame",
+    "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace",
+    "BlobStorage": {
+      "Location": "DefaultGame/BlobStorage",
+      "PageSize": 268435456
+    }
   },
   "Lightmapper": {
     "MaxTexelsPerFrame": 100000,

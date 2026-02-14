@@ -3,6 +3,7 @@
 #include <ScenePch.hpp>
 
 #include <asset/AssetRegistry.hpp>
+#include <asset/Assets.hpp>
 
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Bone.hpp>
@@ -39,41 +40,29 @@ void AnimationTrack::Init()
     SetReady(true);
 }
 
-void AnimationTrack::PageBlobData(BlobStorage& blobStorage)
+void AnimationTrack::PageBlobData()
 {
     if (m_keyframeData.raw == nullptr
         && m_keyframeData.bufferOffset != InvalidBufferOffset
         && m_keyframeData.size != 0)
     {
-        m_keyframeData.raw = blobStorage.Map(m_keyframeData.bufferOffset, m_keyframeData.size);
+        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+
+        m_keyframeData.raw = blobStorage.Map(
+            m_keyframeData.page,
+            m_keyframeData.bufferOffset,
+            m_keyframeData.size);
+
         m_keyframeData.readOnly = true;
     }
 }
 
-void AnimationTrack::UnpageBlobData(BlobStorage& blobStorage)
+void AnimationTrack::UnpageBlobData()
 {
     if (m_keyframeData.readOnly)
     {
-        return;
-    }
-
-    Assert(m_keyframeData.raw != nullptr);
-
-    if (m_keyframeData.bufferOffset == InvalidBufferOffset)
-    {
-        BlobHeader header {};
-        Memory::Copy(header.magic, "TRAK", 4);
-        header.version = 1;
-        header.payloadOffset = 0;
-        header.payloadSize = m_keyframeData.size;
-
-        Assert(blobStorage.AllocateBlob(header, m_keyframeData.bufferOffset));
-    }
-        
-    ByteWriter* writeStream = blobStorage.GetWriteStream();
-
-    writeStream->Seek(m_keyframeData.bufferOffset);
-    writeStream->Write(m_keyframeData.raw, m_keyframeData.size);
+        m_keyframeData.raw = nullptr;
+    }   
 }
 
 float AnimationTrack::GetLength() const

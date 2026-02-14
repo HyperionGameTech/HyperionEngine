@@ -1,6 +1,11 @@
 /* Copyright (c) 2026 No Tomorrow Games. All rights reserved. */
 
 #include <asset/BlobStorage.hpp>
+#include <asset/BlobStorageViews.hpp>
+
+#include <serialization/SerializationUtils.hpp>
+
+#include <core/json/JSON.hpp>
 
 #include <io/ByteReader.hpp>
 #include <io/ByteWriter.hpp>
@@ -11,56 +16,73 @@ namespace Hyperion {
 
 HYP_API extern Pool* g_assetPool;
 
-static constexpr SizeType BlobStorageTransientBlockSize = 4 * 1024 * 1024;
-
-static constexpr uint64 GetBlobHash(SizeType offset, SizeType size)
+static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirectory, uint64 pageSize)
 {
-    return HashCode::GetHashCode(offset)
-        .Combine(size)
-        .Value();
+    MappedBlobStorage* mappedBlobStorage = PoolNew<MappedBlobStorage>(
+        *g_assetPool,
+        baseDirectory,
+        pageSize,
+        /* readOnly */ false);
+
+    outStorage.callbacks.context = mappedBlobStorage;
+
+    outStorage.callbacks.Destroy = [](void* context)
+    {
+        MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+        mappedBlobStorage->Clear();
+
+        PoolDelete(*g_assetPool, mappedBlobStorage);
+    };
+    
+    outStorage.callbacks.Open = [](void* context, const char* name) -> MemoryMappedFile*
+    {
+        MappedBlobStorage* mappedBlobStorage = static_cast<MappedBlobStorage*>(context);
+
+        MemoryMappedFile* file = mappedBlobStorage->Get(ANSIStringView(name));
+        AssertDebug(file != nullptr, "Failed to open mapped file {} ({})", name, mappedBlobStorage->GetBaseDirectory());
+
+        if (!file->Open())
+        {
+            return nullptr;
+        }
+
+        return file;
+    };
+    
+    outStorage.callbacks.Close = [](void* context, MemoryMappedFile* file)
+    {
+        file->Close();
+    };
 }
 
 #pragma region BlobStorage
 
 BlobStorage::BlobStorage()
-    : m_name("INVALID_BLOB_STORAGE"),
-      m_cursor(0),
-      m_readOnly(true),
-      m_file(nullptr),
-      m_writeStream(nullptr),
-      m_readStream(nullptr),
-      transientAllocator(BlobStorageTransientBlockSize)
+    : m_baseDirectory(FilePath()),
+      m_pageSize(DefaultPageSize)
 {
 }
 
-BlobStorage::BlobStorage(const ANSIString& name, bool readOnly)
-    : m_name(name),
-      m_cursor(0),
-      m_readOnly(readOnly),
-      m_file(nullptr),
-      m_writeStream(nullptr),
-      m_readStream(nullptr),
-      transientAllocator(BlobStorageTransientBlockSize)
+BlobStorage::BlobStorage(const FilePath& baseDirectory, uint64 pageSize)
+    : m_baseDirectory(baseDirectory),
+      m_pageSize(pageSize)
 {
+    InitBlobStorage(*this, baseDirectory, pageSize);
+
+    if (Result result = LoadManifest(); result.HasError())
+    {
+        HYP_LOG(Assets, Error, "Failed to load BlobStorage manifest: {}", result.GetError().GetMessage());
+    }
 }
 
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
     : callbacks(std::move(other.callbacks)),
-      m_cursor(other.m_cursor),
-      m_name(std::move(other.m_name)),
-      m_readOnly(other.m_readOnly),
+      m_baseDirectory(std::move(other.m_baseDirectory)),
+      m_pageSize(other.m_pageSize),
       m_freeRanges(std::move(other.m_freeRanges)),
-      m_file(other.m_file),
-      m_view(std::move(other.m_view)),
-      m_allocations(std::move(other.m_allocations)),
-      m_writeStream(other.m_writeStream),
-      m_readStream(other.m_readStream),
-      transientAllocator(BlobStorageTransientBlockSize)
+      m_pageData(std::move(other.m_pageData))
 {
     other.callbacks = {};
-    other.m_file = nullptr;
-    other.m_writeStream = nullptr;
-    other.m_readStream = nullptr;
 }
 
 BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
@@ -69,8 +91,11 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     {
         return *this;
     }
-
-    Close();
+    
+    for (uint32 page = 0; page < uint32(m_pageData.Size()); page++)
+    {
+        ClosePage(page);
+    }
 
     if (callbacks.Destroy)
     {
@@ -79,27 +104,23 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     
     callbacks = std::move(other.callbacks);
 
-    m_name = std::move(other.m_name);
-    m_cursor = other.m_cursor;
-    m_readOnly = other.m_readOnly;
+    m_baseDirectory = std::move(other.m_baseDirectory);
+    m_pageSize = other.m_pageSize;
     m_freeRanges = std::move(other.m_freeRanges);
-    m_file = other.m_file;
-    m_view = std::move(other.m_view);
-    m_allocations = std::move(other.m_allocations);
-    m_writeStream = other.m_writeStream;
-    m_readStream = other.m_readStream;
+    m_pageData = std::move(other.m_pageData);
+    m_pageSize = other.m_pageSize;
 
     other.callbacks = {};
-    other.m_file = nullptr;
-    other.m_writeStream = nullptr;
-    other.m_readStream = nullptr;
 
     return *this;
 }
 
 BlobStorage::~BlobStorage()
 {
-    Close();
+    for (uint32 page = 0; page < uint32(m_pageData.Size()); page++)
+    {
+        ClosePage(page);
+    }
 
     if (callbacks.Destroy)
     {
@@ -107,97 +128,94 @@ BlobStorage::~BlobStorage()
     }
 }
 
-ByteWriter* BlobStorage::GetWriteStream()
+ByteWriter* BlobStorage::GetWriteStream(uint32 page)
 {
-    if (m_writeStream != nullptr)
+    Mutex::Guard guard(m_mutex);
+
+    if (page >= m_pageData.Size())
     {
-        return m_writeStream;
+        m_pageData.Resize(page + 1);
     }
 
-    Assert(!m_readOnly, "Cannot get a write stream for read-only BlobStorage");
+    BlobPageData& pd = m_pageData[page];
+
+    if (pd.writeStream != nullptr)
+    {
+        return pd.writeStream;
+    }
     
     MemoryMappedFile* file;
-    Assert(InitMappedFile(file));
+    Assert(InitMappedFile(file, page));
 
-    m_writeStream = new MemoryMappedByteWriter(file);
-    m_writeStream->Seek(m_cursor);
+    pd.writeStream = new MemoryMappedByteWriter(file);
+    pd.writeStream->Seek(pd.cursor);
 
-    return m_writeStream;
+    return pd.writeStream;
 }
 
-ByteReader* BlobStorage::GetReadStream()
+ByteReader* BlobStorage::GetReadStream(uint32 page)
 {
-    if (m_readStream != nullptr)
+    Mutex::Guard guard(m_mutex);
+
+    if (page >= m_pageData.Size())
     {
-        return m_readStream;
+        m_pageData.Resize(page + 1);
+    }
+
+    BlobPageData& pd = m_pageData[page];
+
+    if (pd.readStream != nullptr)
+    {
+        return pd.readStream;
     }
 
     MemoryMappedFile* file;
-    Assert(InitMappedFile(file));
+    Assert(InitMappedFile(file, page));
 
-    m_readStream = new MemoryMappedByteReader(file);
-    m_readStream->Seek(0);
+    pd.readStream = new MemoryMappedByteReader(file);
+    pd.readStream->Seek(0);
 
-    return m_readStream;
+    return pd.readStream;
 }
 
-void BlobStorage::EnsureCapacity(SizeType capacity)
+bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page)
 {
-    MemoryMappedFile* file;
-    if (!InitMappedFile(file, capacity))
-    {
-        HYP_FAIL("Failed to set initial capacity");
-    }
-}
+    Assert(m_baseDirectory.Length() != 0);
 
-bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minRequiredSize)
-{
-    Assert(m_name != "INVALID_BLOB_STORAGE");
-
-    if (minRequiredSize != 0 && (m_file != nullptr && minRequiredSize > m_file->FileSize()))
+    if (page >= m_pageData.Size())
     {
-        Assert(!m_readOnly && m_allocations.Empty(),
-            "Cannot request larger required size in read-only mode or active mappings exist!");
+        m_pageData.Resize(page + 1);
     }
 
-    if (m_file != nullptr)
+    BlobPageData& pd = m_pageData[page];
+
+    if (pd.file != nullptr)
     {
-        if (minRequiredSize == 0 || minRequiredSize <= m_file->FileSize())
-        {
-            // fine, size is enough
-            outMappedFile = m_file;
-            return true;
-        }
+        outMappedFile = pd.file;
+        return true;
     }
 
-    const SizeType previousFileSize = m_file ? m_file->FileSize() : 0;
+    const SizeType previousFileSize = pd.file ? pd.file->FileSize() : 0;
 
-    Close();
+    ClosePage(page);
 
-    if ((m_file = callbacks.Open(callbacks.context, m_name.Data(), m_readOnly)))
+    if ((pd.file = callbacks.Open(callbacks.context, ("storage." + String::ToString(page)).Data())))
     {
-        Assert(m_file->IsOpen());
+        Assert(pd.file->IsOpen());
 
-        if (minRequiredSize > 0)
-        {
-            if (!m_file->EnsureCapacity(minRequiredSize))
-            {
-                Assert(false, "Failed to ensure capacity for file (requested size: {}, current size: {})",
-                    minRequiredSize, m_file->FileSize());
+        outMappedFile = pd.file;
 
-                return false;
-            }
-        }
-
-        outMappedFile = m_file;
+        Assert(pd.view == nullptr);
 
         // map entire file
-        if (!m_file->MapRange(0, 0, m_view))
+        pd.view = new MemoryMappedFileView;
+
+        if (!pd.file->MapRange(0, 0, *pd.view))
         {
             Assert(false, "Failed to map file to view!");
 
-            m_file->Close();
-            m_file = nullptr;
+            pd.file->Close();
+            pd.file = nullptr;
 
             return false;
         }
@@ -208,149 +226,153 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, SizeType minR
     return false;
 }
 
-HYP_NODISCARD void* BlobStorage::Map(SizeType offset, SizeType size)
+HYP_NODISCARD void* BlobStorage::Map(uint32 page, SizeType offset, SizeType size)
 {
-    const uint64 key = GetBlobHash(offset, size);
-
-    auto blobResourcesIt = m_allocations.Find(key);
-    if (blobResourcesIt != m_allocations.End())
-    { // @TODO we need ref count so Unmap() doesnt unmap other
-        return blobResourcesIt->second;
-    }
+    Mutex::Guard guard(m_mutex);
 
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file))
+    if (!InitMappedFile(file, page))
     {
+        HYP_FAIL("Failed to map file");
+
         return nullptr;
     }
 
-    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(m_view.Data()) + offset);
-    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(m_view.Data()) + size <= m_file->FileSize());
+    BlobPageData& pd = m_pageData[page];
 
-    m_allocations.Set(key, address);
+    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(pd.view->Data()) + offset);
+    AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(pd.view->Data()) + size <= pd.file->FileSize());
 
     return address;
 }
 
-void BlobStorage::Unmap(SizeType offset, SizeType size)
+bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobDataReference& outReference)
 {
-    const uint64 key = GetBlobHash(offset, size);
+    Mutex::Guard guard(m_mutex);
 
-    auto it = m_allocations.Find(key);
-    if (it != m_allocations.End())
-    {
-        m_allocations.Erase(it);
-
-        return;
-    }
-
-    HYP_FAIL("Cannot unmap allocation - not found in active allocations set");
-}
-
-bool BlobStorage::AllocateBlob(const BlobHeader& header, SizeType& outOffset)
-{
-    Assert(!m_readOnly, "Cannot allocate from read-only BlobStorage!");
-    
-    const SizeType headerOffset = ByteUtil::AlignAs(m_cursor, alignof(BlobHeader));
     const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
 
-    EnsureCapacity(headerOffset + totalBlobSizePlusHeader);
+    if (totalBlobSizePlusHeader > m_pageSize)
+    {
+        return false;
+    }
 
-    ByteWriter* writeStream = GetWriteStream();
-    Assert(writeStream != nullptr);
+    if (m_pageData.Empty())
+    {
+        m_pageData.Resize(1);
+    }
 
-    writeStream->Seek(headerOffset);
+    const auto TryAllocateInPage = [&](uint32 page, bool& outHasSpace) -> bool
+    {
+        if (page >= m_pageData.Size())
+        {
+            m_pageData.Resize(page + 1);
+        }
 
-    // @TODO if we go with having the methods on AssetObject, we won't need to serialize header here (metadata will be in manifest)
-    // or we could keep just a 4 byte header + version?
-    writeStream->Write(header);
+        BlobPageData& pd = m_pageData[page];
 
-    writeStream->Seek(writeStream->Position() + header.payloadOffset);
+        const SizeType headerOffset = ByteUtil::AlignAs(pd.cursor, alignof(BlobHeader));
+        const SizeType requiredSize = headerOffset + totalBlobSizePlusHeader;
 
-    const SizeType offset = writeStream->Position();
+        if (requiredSize > m_pageSize)
+        {
+            outHasSpace = false;
+            return false;
+        }
 
-    // fill with empty data:
-    writeStream->Seek(offset + header.payloadSize);
+        outHasSpace = true;
 
-    outOffset = offset;
+        MemoryMappedFile* file = nullptr;
+        if (!InitMappedFile(file, page))
+        {
+            return false;
+        }
 
-    m_cursor = writeStream->Position();
+        ByteWriter* writeStream = pd.writeStream;
+        if (writeStream == nullptr)
+        {
+            pd.writeStream = new MemoryMappedByteWriter(file);
+            writeStream = pd.writeStream;
+        }
 
-    return true;
+        writeStream->Seek(headerOffset);
+
+        // @TODO if we go with having the methods on AssetObject, we won't need to serialize header here (metadata will be in manifest)
+        // or we could keep just a 4 byte header + version?
+        writeStream->Write(header);
+
+        writeStream->Seek(writeStream->Position() + header.payloadOffset);
+
+        const SizeType offset = writeStream->Position();
+
+        // fill with empty data:
+        writeStream->Seek(offset + header.payloadSize);
+
+        pd.cursor = writeStream->Position();
+
+        outReference.page = page;
+        outReference.bufferOffset = offset;
+        outReference.size = header.payloadSize;
+
+        return true;
+    };
+
+    const uint32 lastPage = uint32(m_pageData.Size() - 1);
+
+    bool hasSpaceInLastPage = false;
+    if (TryAllocateInPage(lastPage, hasSpaceInLastPage))
+    {
+        return true;
+    }
+
+    if (hasSpaceInLastPage)
+    {
+        return false;
+    }
+
+    bool hasSpaceInNewPage = false;
+    if (TryAllocateInPage(lastPage + 1, hasSpaceInNewPage))
+    {
+        return true;
+    }
+
+    return false;
 }
 
-void BlobStorage::CopyTo(BlobStorage& other)
+void BlobStorage::ClosePage(uint32 page)
 {
-    Assert(this != &other);
-
-    if (this == &other)
+    if (page >= m_pageData.Size())
+    {
         return;
-
-    Assert(!other.m_readOnly, "Cannot copy data to read-only BlobStorage!");
-    
-    if (!m_file)
-    {
-        if (!(m_file = callbacks.Open(callbacks.context, m_name.Data(), /* readOnly */ true)))
-        {
-            HYP_LOG(Assets, Error, "Failed to open file for blob {}", m_name);
-
-            return;
-        }
     }
 
-    other.EnsureCapacity(m_file->FileSize());
+    BlobPageData& pd = m_pageData[page];
 
-    MemoryMappedByteReader readStream(m_file, 0);
-
-    MemoryMappedFile*& dst = other.m_file;
-    
-    if (!dst)
+    if (pd.writeStream != nullptr)
     {
-        if (!(dst = other.callbacks.Open(other.callbacks.context, other.m_name.Data(), /* readOnly */ false)))
-        {
-            HYP_LOG(Assets, Error, "Failed to open file for blob {}", other.m_name);
+        pd.writeStream->Close();
 
-            return;
-        }
+        delete pd.writeStream;
+        pd.writeStream = nullptr;
     }
 
-    MemoryMappedByteWriter writeStream(dst, 0, m_file->FileSize());
-    writeStream.Write(readStream.Read(m_file->FileSize()));
-    writeStream.Close();
-
-    HYP_LOG(Assets, Debug, "Copied {} bytes of blob storage {} -> {}", readStream.Position(), m_name, other.m_name);
-
-    readStream.Close();
-    
-    other.m_cursor = m_cursor;
-    other.m_freeRanges = m_freeRanges;
-}
-
-void BlobStorage::Close()
-{
-    Assert(m_allocations.Empty(), "Closing BlobStorage with dangling allocations, may lead to a crash");
-
-    transientAllocator.Reset();
-
-    if (m_writeStream != nullptr)
+    if (pd.readStream != nullptr)
     {
-        m_writeStream->Close();
+        pd.readStream->Close();
 
-        delete m_writeStream;
-        m_writeStream = nullptr;
+        delete pd.readStream;
+        pd.readStream = nullptr;
     }
 
-    if (m_readStream != nullptr)
+    if (pd.view != nullptr)
     {
-        m_readStream->Close();
+        pd.view->Close();
 
-        delete m_readStream;
-        m_readStream = nullptr;
+        delete pd.view;
+        pd.view = nullptr;
     }
 
-    m_view.Close();
-
-    MemoryMappedFile*& file = m_file;
+    MemoryMappedFile*& file = pd.file;
     if (file != nullptr)
     {
         callbacks.Close(callbacks.context, file);
@@ -358,10 +380,80 @@ void BlobStorage::Close()
     }
 }
 
+Result BlobStorage::SaveManifest()
+{
+    if (m_baseDirectory.Empty())
+    {
+        return HYP_MAKE_ERROR(Error, "Base directory not set");
+    }
+
+    if (!m_baseDirectory.IsDirectory() && !m_baseDirectory.MkDir())
+    {
+        return HYP_MAKE_ERROR(Error, "Not a valid directory and could not make directory: {}", m_baseDirectory);
+    }
+
+    const FilePath manifestPath = m_baseDirectory / "Manifest.json";
+
+    FileByteWriter manifestWriter { manifestPath };
+
+    if (!manifestWriter.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for BlobStorage at path: {}, errno: {}", manifestPath, std::strerror(errno));
+    }
+
+    JSON::Object manifestJson;
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
+
+    manifestWriter.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
+
+    return {};
+}
+
+Result BlobStorage::LoadManifest()
+{
+    const FilePath manifestPath = m_baseDirectory / "Manifest.json";
+
+    if (!manifestPath.Exists())
+    {
+        return HYP_MAKE_ERROR(Error, "Manifest path does not exist: {}", manifestPath);
+    }
+    
+    FileByteReader reader { manifestPath };
+
+    if (reader.Eof())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open BlobStorage manifest file: {}", manifestPath);
+    }
+
+    JSON::ParseResult parseResult = JSON::Parse(String(reader.Read(reader.Max()).ToByteView()));
+
+    if (!parseResult.ok)
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to parse BlobStorage manifest file at {}: {}", manifestPath, parseResult.message);
+    }
+
+    JSON::Value json = parseResult.value;
+
+    if (!json.IsObject())
+    {
+        return HYP_MAKE_ERROR(Error, "BlobStorage manifest file is invalid JSON!");
+    }
+
+    json.AsObject().Erase("BaseDirectory");
+    json.AsObject().Erase("PageSize");
+
+    BoxedValue thisBoxed(HandleFromThis());
+
+    if (!ObjectFromJSON(json.AsObject(), InstanceClass(), thisBoxed))
+    {
+        HYP_LOG(Assets, Error, "Failed to deserialize manifest JSON for BlobStorage at '{}'", manifestPath);
+
+        return HYP_MAKE_ERROR(Error, "Failed to load BlobStorage manifset file");
+    }
+
+    return {};
+}
+
 #pragma endregion BlobStorage
-
-#pragma region BlobDataReference
-
-#pragma endregion BlobDataReference
 
 } // namespace Hyperion

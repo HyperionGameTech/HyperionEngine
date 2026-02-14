@@ -360,41 +360,29 @@ void Texture::SetImageData(ConstByteView imageData)
     MarkDirty();
 }
 
-void Texture::PageBlobData(BlobStorage& blobStorage)
+void Texture::PageBlobData()
 {
     if (m_imageData.raw == nullptr
         && m_imageData.bufferOffset != InvalidBufferOffset
         && m_imageData.size != 0)
     {
-        m_imageData.raw = blobStorage.Map(m_imageData.bufferOffset, m_imageData.size);
+        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+
+        m_imageData.raw = blobStorage.Map(
+            m_imageData.page,
+            m_imageData.bufferOffset,
+            m_imageData.size);
+
         m_imageData.readOnly = true;
     }
 }
 
-void Texture::UnpageBlobData(BlobStorage& blobStorage)
+void Texture::UnpageBlobData()
 {
     if (m_imageData.readOnly)
     {
-        return;
+        m_imageData.raw = nullptr;
     }
-
-    if (m_imageData.bufferOffset != InvalidBufferOffset)
-    {
-        BlobHeader vertexDataHeader {};
-        Memory::Copy(vertexDataHeader.magic, "TEX", 4);
-        vertexDataHeader.version = 1;
-        vertexDataHeader.payloadOffset = 0;
-        vertexDataHeader.payloadSize = m_imageData.size;
-
-        Assert(blobStorage.AllocateBlob(vertexDataHeader, m_imageData.bufferOffset));
-    }
-
-    Assert(m_imageData.bufferOffset != InvalidBufferOffset);
-        
-    ByteWriter* writeStream = blobStorage.GetWriteStream();
-
-    writeStream->Seek(m_imageData.bufferOffset);
-    writeStream->Write(m_imageData.raw, m_imageData.size);
 }
 
 void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
