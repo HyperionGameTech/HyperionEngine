@@ -4,8 +4,6 @@
 
 #include <core/Types.hpp>
 
-#include <core/containers/LinkedList.hpp>
-
 #include <core/threading/SharedMutex.hpp>
 
 #include <core/io/MemoryMappedFile.hpp>
@@ -19,50 +17,6 @@ namespace Hyperion {
 
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
-
-// storage for blob data before package is saved
-class MemoryBlobStorage
-{
-public:
-    TByteBuffer<AssetAllocator>& Get(uint32 index)
-    {
-        TUniqueLock lock(m_mutex);
-
-        if (m_list.Empty())
-        {
-            m_list.EmplaceBack();
-        }
-
-        typename decltype(m_list)::Iterator iter = m_list.Begin();
-
-        for (uint32 i = 0; i <= index; ++i, ++iter)
-        {
-            if (i + 1 >= m_list.Size())
-            {
-                m_list.EmplaceBack();
-            }
-        }
-
-        return *iter;
-    }
-
-    SizeType Size() const
-    {
-        TSharedLock lock(m_mutex);
-        return m_list.Size();
-    }
-
-    void Clear()
-    {
-        TUniqueLock lock(m_mutex);
-
-        m_list.Clear();
-    }
-
-private:
-    LinkedList<TByteBuffer<AssetAllocator>, AssetAllocator> m_list;
-    SharedMutex m_mutex;
-};
 
 class MappedBlobStorage
 {

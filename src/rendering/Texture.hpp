@@ -154,16 +154,7 @@ protected:
             vertexDataHeader.payloadOffset = 0;
             vertexDataHeader.payloadSize = m_imageData.size;
 
-            BlobResourceKey key {};
-
-            if (blobStorage.AllocateBlob(vertexDataHeader, key))
-            {
-                m_imageData.bufferOffset = key.offset;
-            }
-            else
-            {
-                return;
-            }
+            Assert(blobStorage.AllocateBlob(vertexDataHeader, m_imageData.bufferOffset));
         }
         
         ByteWriter* writeStream = blobStorage.GetWriteStream();

@@ -83,16 +83,7 @@ protected:
             header.payloadOffset = 0;
             header.payloadSize = m_keyframeData.size;
 
-            BlobResourceKey key {};
-
-            if (blobStorage.AllocateBlob(header, key))
-            {
-                m_keyframeData.bufferOffset = key.offset;
-            }
-            else
-            {
-                return;
-            }
+            Assert(blobStorage.AllocateBlob(header, m_keyframeData.bufferOffset));
         }
         
         ByteWriter* writeStream = blobStorage.GetWriteStream();

@@ -38,6 +38,8 @@
 
 namespace Hyperion {
 
+HYP_API Pool* g_objectPool;
+
 HYP_API Handle<Logger> g_logger;
 
 namespace CodeGen {

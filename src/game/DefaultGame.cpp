@@ -134,8 +134,6 @@ void DefaultGame::OnLaunch_Impl()
     Result assetObjectResult = g_assetManager->GetAssetRegistry()->RegisterAsset("$Import/Scripts", scriptAsset);
     Assert(assetObjectResult, "Failed to register script asset: {}", assetObjectResult.GetError().GetMessage());
 
-    TUniqueLock<AssetObject> resGuard(*scriptAsset);
-
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
     scriptDesc.language = ScriptLanguage::HypScript;
