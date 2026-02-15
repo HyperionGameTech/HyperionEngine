@@ -231,23 +231,23 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page)
     return false;
 }
 
-HYP_NODISCARD void* BlobStorage::GetData(StringHash key, SizeType size)
+bool BlobStorage::GetData(StringHash key, SizeType size, void*& outRawData)
 {
     Mutex::Guard guard(m_mutex);
 
     BlobTableOfContents::Value tocValue;
     if (!m_toc.Get(key, tocValue))
     {
-        AssertDebug(false, "Failed to get value from table of contents for key: {}", key.GetHashCode().Value());
+        HYP_LOG(Assets, Warning, "Blob data not found in table of contents: {}", key.GetHashCode().Value());
 
-        return nullptr;
+        return false;
     }
 
     if (tocValue.size != size)
     {
-        AssertDebug(false, "Data corrupt! Expected size: {} but got {} for key: {}", size, tocValue.size, key.GetHashCode().Value());
+        HYP_LOG(Assets, Warning, "Blob data does not match expected size ({}): {}", size, key.GetHashCode().Value());
 
-        return nullptr;
+        return false;
     }
 
     MemoryMappedFile* file = nullptr;
@@ -255,7 +255,7 @@ HYP_NODISCARD void* BlobStorage::GetData(StringHash key, SizeType size)
     {
         HYP_FAIL("Failed to map file");
 
-        return nullptr;
+        return false;
     }
 
     BlobPageData& pd = m_pageData[tocValue.page];
@@ -263,7 +263,9 @@ HYP_NODISCARD void* BlobStorage::GetData(StringHash key, SizeType size)
     void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(pd.view->Data()) + tocValue.offset);
     AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(pd.view->Data()) + size <= pd.file->FileSize());
 
-    return address;
+    outRawData = address;
+
+    return true;
 }
 
 bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* rawData)

@@ -258,10 +258,9 @@ protected:
         HYP_FREE_ALIGNED(reference.raw);
         reference.raw = nullptr;
     }
-    
-    virtual void WriteBlobData(BlobStorage& blobStorage)
-    {
 
+    virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences)
+    {
     }
 
     Result SaveManifest(ByteWriter& stream) const;

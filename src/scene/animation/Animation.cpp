@@ -48,11 +48,33 @@ void AnimationTrack::PageBlobData()
     {
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-        m_keyframeData.raw = blobStorage.GetData(
-            m_keyframeData.key,
-            m_keyframeData.size);
+        if (!blobStorage.GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
+        {
+#ifdef HYP_EDITOR
+            // check if failed; if so, try to import from raw data blob in project directory
+            Handle<AssetPackage> package = GetPackage();
+            Assert(package.IsValid());
+            Assert(package->IsSaved());
 
-        m_keyframeData.readOnly = true;
+            FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".KEYF.raw.blob") };
+            if (!stream.Eof())
+            {
+                ByteBuffer buffer = stream.Read(stream.Max());
+
+                AllocateBlobData<ubyte>(m_keyframeData, buffer.ToByteView());
+
+                MarkDirty();
+
+                return;
+            }
+#endif
+
+            HYP_FAIL("Blob data missing! Data corruption detected.");
+        }
+        else
+        {
+            m_keyframeData.readOnly = true;
+        }
     }
 }
 
@@ -62,28 +84,6 @@ void AnimationTrack::UnpageBlobData()
     {
         m_keyframeData.raw = nullptr;
     }   
-}
-
-void AnimationTrack::WriteBlobData(BlobStorage& blobStorage)
-{
-    if (m_keyframeData.readOnly)
-    {
-        return;
-    }
-
-    auto resGuard = GetReadScope();
-
-    Assert(m_keyframeData.raw != nullptr);
-
-    BlobHeader header {};
-    Memory::Copy(header.magic, "TRAK", 4);
-    header.version = 1;
-    header.payloadOffset = 0;
-    header.payloadSize = m_keyframeData.size;
-
-    m_keyframeData.key = CreateNameFromDynamicString(GetPath().ToString() + "/KeyframeData");
-
-    Assert(blobStorage.PutData(m_keyframeData.key, header, m_keyframeData.raw));
 }
 
 float AnimationTrack::GetLength() const

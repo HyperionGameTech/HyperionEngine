@@ -106,7 +106,7 @@ public:
     ByteWriter* GetWriteStream(uint32 page);
     ByteReader* GetReadStream(uint32 page);
     
-    HYP_NODISCARD void* GetData(StringHash key, SizeType size);
+    bool GetData(StringHash key, SizeType size, void*& outRawData);
     bool PutData(StringHash key, const BlobHeader& header, const void* rawData);
     
     Result SaveManifest();

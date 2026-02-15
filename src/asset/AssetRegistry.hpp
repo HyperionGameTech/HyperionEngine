@@ -213,6 +213,13 @@ public:
     String BuildPackagePath() const;
 
     HYP_METHOD()
+    FilePath GetSavedDirectory() const
+    {
+        TSharedLock guard(m_mutex);
+        return m_packageDir;
+    }
+
+    HYP_METHOD()
     AssetPath BuildAssetPath(Name assetName) const;
 
     HYP_METHOD()

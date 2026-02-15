@@ -217,17 +217,67 @@ void Mesh::PageBlobData()
     {
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-        m_vertexData.raw = blobStorage.GetData(
-            m_vertexData.key,
-            m_vertexData.size);
+        if (!blobStorage.GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
+        {
+            ([this]()
+            {
+#ifdef HYP_EDITOR
+                // check if failed; if so, try to import from raw data blob in project directory
+                Handle<AssetPackage> package = GetPackage();
+                Assert(package.IsValid());
+                Assert(package->IsSaved());
 
-        m_vertexData.readOnly = true;
+                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".VB.raw.blob") };
+                if (!stream.Eof())
+                {
+                    ByteBuffer buffer = stream.Read(stream.Max());
 
-        m_indexData.raw = blobStorage.GetData(
-            m_indexData.key,
-            m_indexData.size);
+                    AllocateBlobData<ubyte>(m_vertexData, buffer.ToByteView());
 
-        m_indexData.readOnly = true;
+                    MarkDirty();
+
+                    return;
+                }
+#endif
+
+                HYP_FAIL("Blob data missing! Data corruption detected.");
+            })();
+        }
+        else
+        {
+            m_vertexData.readOnly = true;
+        }
+
+        if (!blobStorage.GetData(m_indexData.key, m_indexData.size, m_indexData.raw))
+        {
+            ([this]()
+            {
+#ifdef HYP_EDITOR
+                // check if failed; if so, try to import from raw data blob in project directory
+                Handle<AssetPackage> package = GetPackage();
+                Assert(package.IsValid());
+                Assert(package->IsSaved());
+
+                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".IB.raw.blob") };
+                if (!stream.Eof())
+                {
+                    ByteBuffer buffer = stream.Read(stream.Max());
+
+                    AllocateBlobData<ubyte>(m_indexData, buffer.ToByteView());
+
+                    MarkDirty();
+
+                    return;
+                }
+#endif
+
+                HYP_FAIL("Blob data missing! Data corruption detected.");
+            })();
+        }
+        else
+        {
+            m_indexData.readOnly = true;
+        }
     }
 }
 
@@ -238,39 +288,6 @@ void Mesh::UnpageBlobData()
         m_vertexData.raw = nullptr;
         m_indexData.raw = nullptr;
     }
-}
-
-void Mesh::WriteBlobData(BlobStorage& blobStorage)
-{
-    if (m_vertexData.readOnly && m_indexData.readOnly)
-    {
-        return;
-    }
-
-    auto resGuard = GetReadScope();
-
-    Assert(m_vertexData.raw != nullptr);
-    Assert(m_indexData.raw != nullptr);
-
-    BlobHeader vertexDataHeader {};
-    Memory::Copy(vertexDataHeader.magic, "VB", 4);
-    vertexDataHeader.version = 1;
-    vertexDataHeader.payloadOffset = 0;
-    vertexDataHeader.payloadSize = m_vertexData.size;
-
-    m_vertexData.key = CreateNameFromDynamicString(GetPath().ToString() + "/VertexData");
-
-    Assert(blobStorage.PutData(m_vertexData.key, vertexDataHeader, m_vertexData.raw));
-        
-    BlobHeader indexDataHeader {};
-    Memory::Copy(indexDataHeader.magic, "IB", 4);
-    indexDataHeader.version = 1;
-    indexDataHeader.payloadOffset = 0;
-    indexDataHeader.payloadSize = m_indexData.size;
-
-    m_indexData.key = CreateNameFromDynamicString(GetPath().ToString() + "/IndexData");
-    
-    Assert(blobStorage.PutData(m_indexData.key, indexDataHeader, m_indexData.raw));
 }
 
 void Mesh::UploadGpuData()

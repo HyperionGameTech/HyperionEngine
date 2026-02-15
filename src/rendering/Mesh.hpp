@@ -231,7 +231,11 @@ protected:
     void PageBlobData() override;
     void UnpageBlobData() override;
 
-    void WriteBlobData(BlobStorage& blobStorage) override;
+    void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
+    {
+        outReferences.EmplaceBack("VB", 1, &m_vertexData);
+        outReferences.EmplaceBack("IB", 1, &m_indexData);
+    }
 
 private:
     void Init() override;

@@ -143,7 +143,10 @@ protected:
     void PageBlobData() override;
     void UnpageBlobData() override;
 
-    void WriteBlobData(BlobStorage& blobStorage) override;
+    void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
+    {
+        outReferences.EmplaceBack("TEX", 1, &m_imageData);
+    }
 
     HYP_FIELD(Serialize)
     TextureDesc m_textureDesc;

@@ -74,7 +74,10 @@ protected:
     void PageBlobData() override;
     void UnpageBlobData() override;
 
-    void WriteBlobData(BlobStorage& blobStorage) override;
+    void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences) override
+    {
+        outReferences.EmplaceBack("KEYF", 1, &m_keyframeData);
+    }
 
 private:
     void Init() override;

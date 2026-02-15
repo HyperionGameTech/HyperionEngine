@@ -368,11 +368,33 @@ void Texture::PageBlobData()
     {
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-        m_imageData.raw = blobStorage.GetData(
-            m_imageData.key,
-            m_imageData.size);
+        if (!blobStorage.GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
+        {
+#ifdef HYP_EDITOR
+            // check if failed; if so, try to import from raw data blob in project directory
+            Handle<AssetPackage> package = GetPackage();
+            Assert(package.IsValid());
+            Assert(package->IsSaved());
 
-        m_imageData.readOnly = true;
+            FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".TEX.raw.blob") };
+            if (!stream.Eof())
+            {
+                ByteBuffer buffer = stream.Read(stream.Max());
+
+                AllocateBlobData<ubyte>(m_imageData, buffer.ToByteView());
+
+                MarkDirty();
+
+                return;
+            }
+#endif
+
+            HYP_FAIL("Blob data missing! Data corruption detected.");
+        }
+        else
+        {
+            m_imageData.readOnly = true;
+        }
     }
 }
 
@@ -382,28 +404,6 @@ void Texture::UnpageBlobData()
     {
         m_imageData.raw = nullptr;
     }
-}
-
-void Texture::WriteBlobData(BlobStorage& blobStorage)
-{
-    if (m_imageData.readOnly || m_imageData.raw == nullptr)
-    {
-        return;
-    }
-
-    auto resGuard = GetReadScope();
-
-    BlobHeader header {};
-    Memory::Copy(header.magic, "TEX", 4);
-    header.version = 1;
-    header.payloadOffset = 0;
-    header.payloadSize = m_imageData.size;
-
-    m_imageData.key = CreateNameFromDynamicString(GetPath().ToString() + "/ImageData");
-
-    Assert(blobStorage.PutData(m_imageData.key, header, m_imageData.raw));
-
-    MarkDirty();
 }
 
 void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)

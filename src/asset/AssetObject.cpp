@@ -268,10 +268,11 @@ bool AssetObject::IsSaved() const
     return m_manifestPath.Length() > 0;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
+
+    auto resGuard = GetWriteScope();
 
     Handle<AssetPackage> package = m_package.Lock();
     if (!package.IsValid())
@@ -297,7 +298,47 @@ Result AssetObject::Save(const FilePath& manifestPath)
         return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid directory, cannot save asset", dir);
     }
 
-    WriteBlobData(g_assetManager->GetAssetRegistry()->GetBlobStorage());
+    BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+
+    Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
+    CollectBlobDataReferences(blobDataReferences);
+
+    for (auto& tup : blobDataReferences)
+    {
+        const char* magic = tup.GetElement<0>();
+        uint16 version = tup.GetElement<1>();
+        BlobDataReference* reference = tup.GetElement<2>();
+
+        Assert(magic != nullptr && reference != nullptr && reference->raw != nullptr);
+
+        BlobHeader header {};
+        Memory::StrCpy((char*)header.magic, magic, sizeof(header.magic));
+        header.payloadOffset = 0;
+        header.payloadSize = reference->size;
+        header.version = version;
+
+        reference->key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
+
+        if (!blobStorage.PutData(StringHash(reference->key), header, reference->raw))
+        {
+            AssertDebug(false, "Failed to write blob data reference!");
+
+            return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
+        }
+
+#ifdef HYP_EDITOR
+        // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
+        // and we need to "import" it via individual blobs upon fail.
+        // In cooked builds that data will be excluded
+        FileByteWriter stream { dir / (String(*GetName()) + "." + magic + ".raw.blob") };
+        if (!stream.IsOpen())
+        {
+            return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}", stream.GetFilePath());
+        }
+
+        stream.Write(reference->raw, reference->size);
+#endif
+    }
 
     // save manifest after updating blob info
 
@@ -469,10 +510,28 @@ void AssetObject::LockWriter(bool doInitialize)
             }
         }
     }
+
+    if (doInitialize)
+    {
+        Assert(!m_isBlobLoaded);
+
+        PageBlobData();
+
+        m_isBlobLoaded = true;
+    }
 }
 
 void AssetObject::UnlockWriter(bool doDeinitialize)
 {
+    if (doDeinitialize)
+    {
+        Assert(m_isBlobLoaded);
+
+        UnpageBlobData();
+
+        m_isBlobLoaded = false;
+    }
+
     AtomicBitAnd(&m_rwState, ~0x1);
 }
 
