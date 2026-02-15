@@ -73,6 +73,11 @@ BlobStorage::BlobStorage(const FilePath& baseDirectory, uint64 pageSize)
     {
         HYP_LOG(Assets, Error, "Failed to load BlobStorage manifest: {}", result.GetError().GetMessage());
     }
+
+    if (Result result = LoadTOC(); result.HasError())
+    {
+        HYP_LOG(Assets, Error, "Failed to load BlobStorage table of contents: {}", result.GetError().GetMessage());
+    }
 }
 
 BlobStorage::BlobStorage(BlobStorage&& other) noexcept
@@ -226,31 +231,57 @@ bool BlobStorage::InitMappedFile(MemoryMappedFile*& outMappedFile, uint32 page)
     return false;
 }
 
-HYP_NODISCARD void* BlobStorage::Map(uint32 page, SizeType offset, SizeType size)
+HYP_NODISCARD void* BlobStorage::GetData(StringHash key, SizeType size)
 {
     Mutex::Guard guard(m_mutex);
 
+    BlobTableOfContents::Value tocValue;
+    if (!m_toc.Get(key, tocValue))
+    {
+        AssertDebug(false, "Failed to get value from table of contents for key: {}", key.GetHashCode().Value());
+
+        return nullptr;
+    }
+
+    if (tocValue.size != size)
+    {
+        AssertDebug(false, "Data corrupt! Expected size: {} but got {} for key: {}", size, tocValue.size, key.GetHashCode().Value());
+
+        return nullptr;
+    }
+
     MemoryMappedFile* file = nullptr;
-    if (!InitMappedFile(file, page))
+    if (!InitMappedFile(file, tocValue.page))
     {
         HYP_FAIL("Failed to map file");
 
         return nullptr;
     }
 
-    BlobPageData& pd = m_pageData[page];
+    BlobPageData& pd = m_pageData[tocValue.page];
 
-    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(pd.view->Data()) + offset);
+    void* address = reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(pd.view->Data()) + tocValue.offset);
     AssertDebug(reinterpret_cast<UIntPtr>(address) - reinterpret_cast<UIntPtr>(pd.view->Data()) + size <= pd.file->FileSize());
 
     return address;
 }
 
-bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobDataReference& outReference)
+bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* rawData)
 {
     Mutex::Guard guard(m_mutex);
+    
+    const SizeType totalBlobSize = header.payloadOffset + header.payloadSize;
+    const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + totalBlobSize;
 
-    const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + header.payloadOffset + header.payloadSize;
+    BlobTableOfContents::Value existingValue;
+    if (m_toc.Get(key, existingValue))
+    {
+        if (existingValue.size != header.payloadSize)
+        {
+            // needs new allocation if changed!
+            Assert(m_toc.Delete(key));
+        }
+    }
 
     if (totalBlobSizePlusHeader > m_pageSize)
     {
@@ -296,23 +327,22 @@ bool BlobStorage::AllocateBlob(const BlobHeader& header, BlobDataReference& outR
         }
 
         writeStream->Seek(headerOffset);
-
-        // @TODO if we go with having the methods on AssetObject, we won't need to serialize header here (metadata will be in manifest)
-        // or we could keep just a 4 byte header + version?
         writeStream->Write(header);
 
         writeStream->Seek(writeStream->Position() + header.payloadOffset);
-
+        
         const SizeType offset = writeStream->Position();
 
-        // fill with empty data:
-        writeStream->Seek(offset + header.payloadSize);
+        // fill data
+        writeStream->Write(rawData, header.payloadSize);
 
         pd.cursor = writeStream->Position();
 
-        outReference.page = page;
-        outReference.bufferOffset = offset;
-        outReference.size = header.payloadSize;
+        m_toc.Put(key, BlobTableOfContents::Value {
+            .page = page,
+            .offset = offset,
+            .size = header.payloadSize
+        });
 
         return true;
     };
@@ -452,6 +482,41 @@ Result BlobStorage::LoadManifest()
     }
 
     return {};
+}
+
+Result BlobStorage::SaveTOC()
+{
+    const FilePath tocPath = m_baseDirectory / "storage.toc";
+
+    FileByteWriter tocWriter { tocPath };
+
+    if (!tocWriter.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open table of contents file for BlobStorage at path: {}, errno: {}", tocPath, std::strerror(errno));
+    }
+
+    m_toc.Save(tocWriter);
+
+    return {};
+}
+
+Result BlobStorage::LoadTOC()
+{
+    const FilePath tocPath = m_baseDirectory / "storage.toc";
+
+    if (!tocPath.Exists())
+    {
+        return HYP_MAKE_ERROR(Error, "Blob table of contents file does not exist: {}", tocPath);
+    }
+    
+    FileByteReader reader { tocPath };
+
+    if (reader.Eof())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open BlobStorage table of contents file: {}", tocPath);
+    }
+
+    return BlobTableOfContents::Load(reader, m_toc);
 }
 
 #pragma endregion BlobStorage

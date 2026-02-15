@@ -212,21 +212,19 @@ void Mesh::SetIndexData(Span<const ubyte> indexData)
 void Mesh::PageBlobData()
 {
     if (m_vertexData.raw == nullptr
-        && m_vertexData.bufferOffset != InvalidBufferOffset
+        && m_vertexData.key
         && m_vertexData.size != 0)
     {
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-        m_vertexData.raw = blobStorage.Map(
-            m_vertexData.page,
-            m_vertexData.bufferOffset,
+        m_vertexData.raw = blobStorage.GetData(
+            m_vertexData.key,
             m_vertexData.size);
 
         m_vertexData.readOnly = true;
 
-        m_indexData.raw = blobStorage.Map(
-            m_indexData.page,
-            m_indexData.bufferOffset,
+        m_indexData.raw = blobStorage.GetData(
+            m_indexData.key,
             m_indexData.size);
 
         m_indexData.readOnly = true;
@@ -240,6 +238,39 @@ void Mesh::UnpageBlobData()
         m_vertexData.raw = nullptr;
         m_indexData.raw = nullptr;
     }
+}
+
+void Mesh::WriteBlobData(BlobStorage& blobStorage)
+{
+    if (m_vertexData.readOnly && m_indexData.readOnly)
+    {
+        return;
+    }
+
+    auto resGuard = GetReadScope();
+
+    Assert(m_vertexData.raw != nullptr);
+    Assert(m_indexData.raw != nullptr);
+
+    BlobHeader vertexDataHeader {};
+    Memory::Copy(vertexDataHeader.magic, "VB", 4);
+    vertexDataHeader.version = 1;
+    vertexDataHeader.payloadOffset = 0;
+    vertexDataHeader.payloadSize = m_vertexData.size;
+
+    m_vertexData.key = CreateNameFromDynamicString(GetPath().ToString() + "/VertexData");
+
+    Assert(blobStorage.PutData(m_vertexData.key, vertexDataHeader, m_vertexData.raw));
+        
+    BlobHeader indexDataHeader {};
+    Memory::Copy(indexDataHeader.magic, "IB", 4);
+    indexDataHeader.version = 1;
+    indexDataHeader.payloadOffset = 0;
+    indexDataHeader.payloadSize = m_indexData.size;
+
+    m_indexData.key = CreateNameFromDynamicString(GetPath().ToString() + "/IndexData");
+    
+    Assert(blobStorage.PutData(m_indexData.key, indexDataHeader, m_indexData.raw));
 }
 
 void Mesh::UploadGpuData()

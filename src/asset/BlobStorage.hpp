@@ -106,11 +106,11 @@ public:
     ByteWriter* GetWriteStream(uint32 page);
     ByteReader* GetReadStream(uint32 page);
     
-    HYP_NODISCARD void* Map(uint32 page, SizeType offset, SizeType size);
-
-    bool AllocateBlob(const BlobHeader& header, BlobDataReference& outReference);
+    HYP_NODISCARD void* GetData(StringHash key, SizeType size);
+    bool PutData(StringHash key, const BlobHeader& header, const void* rawData);
     
     Result SaveManifest();
+    Result SaveTOC();
 
     // Needs to be set by impl
     BlobStorageCallbacks callbacks;
@@ -121,6 +121,7 @@ private:
     void ClosePage(uint32 page);
 
     Result LoadManifest();
+    Result LoadTOC();
 
     HYP_FIELD()
     FilePath m_baseDirectory;
@@ -131,10 +132,12 @@ private:
     HYP_FIELD()
     Array<BlobMappingRange> m_freeRanges; // <---- TODO make use of this
 
-    mutable Mutex m_mutex;
-
     HYP_FIELD()
     Array<BlobPageData> m_pageData;
+
+    BlobTableOfContents m_toc;
+
+    mutable Mutex m_mutex;
 };
 
 } // namespace Hyperion

@@ -363,14 +363,13 @@ void Texture::SetImageData(ConstByteView imageData)
 void Texture::PageBlobData()
 {
     if (m_imageData.raw == nullptr
-        && m_imageData.bufferOffset != InvalidBufferOffset
+        && m_imageData.key
         && m_imageData.size != 0)
     {
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-        m_imageData.raw = blobStorage.Map(
-            m_imageData.page,
-            m_imageData.bufferOffset,
+        m_imageData.raw = blobStorage.GetData(
+            m_imageData.key,
             m_imageData.size);
 
         m_imageData.readOnly = true;
@@ -383,6 +382,28 @@ void Texture::UnpageBlobData()
     {
         m_imageData.raw = nullptr;
     }
+}
+
+void Texture::WriteBlobData(BlobStorage& blobStorage)
+{
+    if (m_imageData.readOnly || m_imageData.raw == nullptr)
+    {
+        return;
+    }
+
+    auto resGuard = GetReadScope();
+
+    BlobHeader header {};
+    Memory::Copy(header.magic, "TEX", 4);
+    header.version = 1;
+    header.payloadOffset = 0;
+    header.payloadSize = m_imageData.size;
+
+    m_imageData.key = CreateNameFromDynamicString(GetPath().ToString() + "/ImageData");
+
+    Assert(blobStorage.PutData(m_imageData.key, header, m_imageData.raw));
+
+    MarkDirty();
 }
 
 void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)

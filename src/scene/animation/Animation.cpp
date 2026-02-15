@@ -43,14 +43,13 @@ void AnimationTrack::Init()
 void AnimationTrack::PageBlobData()
 {
     if (m_keyframeData.raw == nullptr
-        && m_keyframeData.bufferOffset != InvalidBufferOffset
+        && m_keyframeData.key
         && m_keyframeData.size != 0)
     {
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-        m_keyframeData.raw = blobStorage.Map(
-            m_keyframeData.page,
-            m_keyframeData.bufferOffset,
+        m_keyframeData.raw = blobStorage.GetData(
+            m_keyframeData.key,
             m_keyframeData.size);
 
         m_keyframeData.readOnly = true;
@@ -63,6 +62,28 @@ void AnimationTrack::UnpageBlobData()
     {
         m_keyframeData.raw = nullptr;
     }   
+}
+
+void AnimationTrack::WriteBlobData(BlobStorage& blobStorage)
+{
+    if (m_keyframeData.readOnly)
+    {
+        return;
+    }
+
+    auto resGuard = GetReadScope();
+
+    Assert(m_keyframeData.raw != nullptr);
+
+    BlobHeader header {};
+    Memory::Copy(header.magic, "TRAK", 4);
+    header.version = 1;
+    header.payloadOffset = 0;
+    header.payloadSize = m_keyframeData.size;
+
+    m_keyframeData.key = CreateNameFromDynamicString(GetPath().ToString() + "/KeyframeData");
+
+    Assert(blobStorage.PutData(m_keyframeData.key, header, m_keyframeData.raw));
 }
 
 float AnimationTrack::GetLength() const

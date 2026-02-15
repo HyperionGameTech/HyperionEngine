@@ -319,6 +319,11 @@ Result EditorProject::SaveAs(FilePath filepath)
         return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage manifest: {}", saveManifestResult.GetError().GetMessage());
     }
 
+    if (Result saveTOCResult = g_assetManager->GetAssetRegistry()->GetBlobStorage().SaveTOC(); saveTOCResult.HasError())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to save BlobStorage table of contents: {}", saveTOCResult.GetError().GetMessage());
+    }
+    
     OnProjectSaved(MakeStrongRef(this));
 
     return {};
