@@ -35,7 +35,15 @@ void AnimationSystem::OnEntityAdded(Entity* entity)
 
     if (meshComponent.skeleton.IsValid())
     {
-        m_resourceHandles[meshComponent.skeleton.Get()] = MakeUnique<TSharedLock<AssetObject>>(*meshComponent.skeleton);
+        auto& locks = m_resourceHandles[meshComponent.skeleton.Get()];
+
+        for (const Handle<Animation>& anim : meshComponent.skeleton->GetAnimations())
+        {
+            for (const Handle<AnimationTrack>& track : anim->GetTracks())
+            {
+                locks.PushBack(MakeUnique<TSharedLock<AssetObject>>(*track));
+            }
+        }
     }
 
     AnimationComponent& animationComponent = entity->GetEntityManager()->GetComponent<AnimationComponent>(entity);
@@ -94,14 +102,6 @@ void AnimationSystem::Process(float delta, Span<Handle<Scene>> scenes)
 
             if (playbackState.status == AnimationPlaybackStatus::PLAYING)
             {
-                auto resourceHandleIt = m_resourceHandles.Find(meshComponent.skeleton.Get());
-                if (resourceHandleIt == m_resourceHandles.End())
-                {
-                    resourceHandleIt = m_resourceHandles.Insert(
-                        meshComponent.skeleton.Get(),
-                        MakeUnique<TSharedLock<AssetObject>>(*meshComponent.skeleton)).first;
-                }
-
                 if (playbackState.animationIndex == ~0u)
                 {
                     playbackState = {};

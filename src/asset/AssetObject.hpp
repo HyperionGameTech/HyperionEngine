@@ -161,12 +161,6 @@ public:
     void SetAssetFlags(EnumFlags<AssetObjectFlags> flags);
 
     HYP_METHOD()
-    bool IsPersistent() const
-    {
-        return bool(m_persistentReader);
-    }
-
-    HYP_METHOD()
     void SetPersistentRequested(bool persistentlyLoaded, bool setFlag = true, bool markDirty = true);
 
     HYP_METHOD()
@@ -263,6 +257,9 @@ protected:
     {
     }
 
+    void SetBlobDataResident(bool resident);
+    void SetBlobDataResident(bool resident, BlobDataReference& reference);
+
     Result SaveManifest(ByteWriter& stream) const;
 
     HYP_FIELD(Property = "Name")
@@ -294,10 +291,6 @@ protected:
     mutable Mutex m_initMutex;
     ConditionVariable m_initCV;
     bool m_isBlobLoaded;
-
-    BlobStorage* m_blobStorage = nullptr; //temp
-
-    TSharedLock<AssetObject> m_persistentReader;
 };
 
 } // namespace Hyperion

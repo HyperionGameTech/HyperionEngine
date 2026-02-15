@@ -687,14 +687,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
 {
-    if (!IsReady())
-    {
-        HYP_LOG_ONCE(Texture, Warning, "Texture is not ready, cannot sample");
-
-        HYP_BREAKPOINT;
-
-        return Vec4f::Zero();
-    }
+    auto readScope = GetReadScope();
 
     if (faceIndex >= NumArrayLayers())
     {
@@ -704,8 +697,6 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
 
         return Vec4f::Zero();
     }
-
-    auto resGuard = GetReadScope();
 
     ConstByteView imageData = GetImageData();
     const TextureDesc& textureDesc = GetTextureDesc();

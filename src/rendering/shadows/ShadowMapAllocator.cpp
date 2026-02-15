@@ -129,6 +129,8 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 {
     HYP_SCOPE;
 
+    AssertDebug(dimensions.Volume() > 0);
+
     if (shadowMapType == SMT_OMNI)
     {
         const uint32 pointLightIndex = m_pointLightShadowMapIdGenerator.Next() - 1;
@@ -137,6 +139,8 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         if (pointLightIndex >= MaxBoundOmniShadowMaps)
         {
             m_pointLightShadowMapIdGenerator.ReleaseId(pointLightIndex + 1);
+
+            HYP_LOG(Rendering, Error, "Too mani omni shadow maps allocated");
             
             return nullptr;
         }
@@ -176,6 +180,8 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             return shadowMap;
         }
     }
+
+    HYP_LOG(Rendering, Error, "Shadow map could not be fit into an atlas, dimensions = {}, num atlases = {}", dimensions, m_atlases.Size());
 
     return nullptr;
 }

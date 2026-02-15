@@ -40,7 +40,7 @@ private:
         };
     }
 
-    HashMap<Skeleton*, UniquePtr<TSharedLock<AssetObject>>> m_resourceHandles;
+    HashMap<Skeleton*, Array<UniquePtr<TSharedLock<AssetObject>>>> m_resourceHandles;
 };
 
 } // namespace Hyperion

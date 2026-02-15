@@ -87,8 +87,6 @@ AssetObject::AssetObject(Name name)
 
 AssetObject::~AssetObject()
 {
-    m_persistentReader.Reset();
-
     // add writer here to wait for all reads to complete and
     // block new readers/writers from acquiring the resource while we're destroying it.
     LockWriter(/* doInitialize */ false);
@@ -98,12 +96,6 @@ void AssetObject::Init()
 {
     HYP_SCOPE;
     ObjectBase::Init();
-
-    if ((m_flags[AssetObjectFlags::Persistent] || DebugDisableUnload) && !m_persistentReader)
-    {
-        m_persistentReader.Reset(*this);
-        Assert(m_persistentReader);
-    }
 
     SetReady(true);
 }
@@ -136,7 +128,8 @@ void AssetObject::MarkDirty()
     }
 }
 
-void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, bool markDirty)
+void AssetObject::SetPersistentRequested(
+    bool persistentlyLoaded, bool setFlag, bool markDirty)
 {
     HYP_SCOPE;
 
@@ -150,18 +143,11 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
         m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
     }
 
+#if 0
     if (persistentlyLoaded)
     {
-        if (!m_persistentReader)
-        {
-            m_persistentReader.Reset(*this);
-        }
+        SetBlobDataResident(true);
 
-        return;
-    }
-
-    if (DebugDisableUnload)
-    {
         return;
     }
 
@@ -169,8 +155,9 @@ void AssetObject::SetPersistentRequested(bool persistentlyLoaded, bool setFlag, 
     // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
     if (!persistentlyLoaded && !m_flags[AssetObjectFlags::Persistent] && !IsTransient())
     {
-        m_persistentReader.Reset();
+        SetBlobDataResident(false);
     }
+#endif
 }
 
 void AssetObject::SetIsTransient(bool isTransient)
@@ -272,7 +259,7 @@ Result AssetObject::Save(const FilePath& manifestPath)
 {
     HYP_SCOPE;
 
-    auto resGuard = GetWriteScope();
+    auto readScope = GetReadScope();
 
     Handle<AssetPackage> package = m_package.Lock();
     if (!package.IsValid())
@@ -476,6 +463,43 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     return {};
 }
 
+void AssetObject::SetBlobDataResident(bool resident)
+{
+    Array<Tuple<const char*, uint16, BlobDataReference*>> tuples;
+    CollectBlobDataReferences(tuples);
+
+    for (auto& tup : tuples)
+    {
+        const char* magic = tup.GetElement<0>();
+        uint16 version = tup.GetElement<1>();
+        BlobDataReference* reference = tup.GetElement<2>();
+
+        Assert(reference != nullptr);
+
+        SetBlobDataResident(resident, *reference);
+    }
+}
+
+void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& reference)
+{
+    if (resident)
+    {
+        if (reference.readOnly)
+        {
+            Assert(reference.raw != nullptr);
+
+            // @TODO align by 16
+            AllocateBlobData<ubyte>(reference, Span<const ubyte>((const ubyte*)reference.raw, reference.size));
+        }
+    }
+    else
+    {
+        if (!reference.readOnly && reference.raw != nullptr && reference.key.IsValid())
+        {
+            FreeBlobData(reference);
+        }
+    }
+}
 
 TUniqueLock<AssetObject> AssetObject::GetWriteScope() const
 {
@@ -511,26 +535,26 @@ void AssetObject::LockWriter(bool doInitialize)
         }
     }
 
-    if (doInitialize)
+    /*if (doInitialize)
     {
         Assert(!m_isBlobLoaded);
 
         PageBlobData();
 
         m_isBlobLoaded = true;
-    }
+    }*/
 }
 
 void AssetObject::UnlockWriter(bool doDeinitialize)
 {
-    if (doDeinitialize)
+    /*if (doDeinitialize)
     {
         Assert(m_isBlobLoaded);
 
         UnpageBlobData();
 
         m_isBlobLoaded = false;
-    }
+    }*/
 
     AtomicBitAnd(&m_rwState, ~0x1);
 }
@@ -563,6 +587,11 @@ void AssetObject::LockReader()
                 blobLoaded = true;
 
                 PageBlobData();
+
+                if (m_flags[AssetObjectFlags::Persistent])
+                {
+                    SetBlobDataResident(true);
+                }
 
                 m_initCV.NotifyAll();
             }
@@ -632,6 +661,11 @@ void AssetObject::UnlockReader()
 
     if (AtomicSub(&m_rwState, 2) == 2 && m_isBlobLoaded)
     {
+        if (m_flags[AssetObjectFlags::Persistent])
+        {
+            SetBlobDataResident(false);
+        }
+
         UnpageBlobData();
 
         m_isBlobLoaded = false;
