@@ -999,7 +999,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
             RayTestResults aabbResult;
 
-            if (false)//flags & RTF_USE_BVH)
+            if (flags & RTF_USE_BVH)
             {
                 // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
                 if (MeshComponent* meshComponent = m_entityManager->TryGetComponent<MeshComponent>(entry.value);

@@ -1018,7 +1018,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             const BVHNode* bvh = nullptr;
             Mat4f modelMatrix = Mat4f::Identity();
 
-            if (false)//flags & RTF_USE_BVH)
+            if (flags & RTF_USE_BVH)
             {
                 if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh.IsValid())
                 {
