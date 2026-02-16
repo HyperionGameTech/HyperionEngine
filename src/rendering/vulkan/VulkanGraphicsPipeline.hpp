@@ -15,7 +15,7 @@
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
-#include <rendering/vulkan/VulkanShader.hpp>
+#include <rendering/vulkan/VulkanShaderInstance.hpp>
 
 #include <rendering/RenderPipeline.hpp>
 #include <rendering/Device.hpp>

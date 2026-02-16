@@ -2,7 +2,7 @@
 
 #include <VulkanPch.hpp>
 
-#include <rendering/vulkan/VulkanShader.hpp>
+#include <rendering/vulkan/VulkanShaderInstance.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanDescriptorSet.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
@@ -18,7 +18,7 @@
 
 #include <algorithm>
 
-#include <VulkanShader.generated.inl>
+#include <VulkanShaderInstance.generated.inl>
 
 namespace Hyperion {
 
@@ -26,13 +26,13 @@ extern VulkanRenderInterface* g_renderInterface;
 
 #pragma region CreateShaderStage
 
-VulkanShader::VulkanShader()
-    : ShaderBase()
+VulkanShaderInstance::VulkanShaderInstance()
+    : ShaderInstanceBase()
 {
 }
 
-VulkanShader::VulkanShader(const CompiledShader* compiledShader)
-    : ShaderBase(compiledShader)
+VulkanShaderInstance::VulkanShaderInstance(const CompiledShader* compiledShader)
+    : ShaderInstanceBase(compiledShader)
 {
 #ifdef HYP_DEBUG_MODE
     if (compiledShader != nullptr)
@@ -42,7 +42,7 @@ VulkanShader::VulkanShader(const CompiledShader* compiledShader)
 #endif
 }
 
-VulkanShader::~VulkanShader()
+VulkanShaderInstance::~VulkanShaderInstance()
 {
     if (!IsCreated())
     {
@@ -57,12 +57,12 @@ VulkanShader::~VulkanShader()
     m_shaderModules.Clear();
 }
 
-bool VulkanShader::IsCreated() const
+bool VulkanShaderInstance::IsCreated() const
 {
     return m_vkShaderStages.Size() != 0;
 }
 
-RendererResult VulkanShader::AttachShaderModule(
+RendererResult VulkanShaderInstance::AttachShaderModule(
     ShaderModuleType type,
     UTF8StringView moduleName,
     UTF8StringView entryPointName,
@@ -90,7 +90,7 @@ RendererResult VulkanShader::AttachShaderModule(
     return {};
 }
 
-RendererResult VulkanShader::AttachShaderModules()
+RendererResult VulkanShaderInstance::AttachShaderModules()
 {
     if (!m_compiledShader)
     {
@@ -128,7 +128,7 @@ RendererResult VulkanShader::AttachShaderModules()
     return {};
 }
 
-RendererResult VulkanShader::CreateShaderGroups()
+RendererResult VulkanShaderInstance::CreateShaderGroups()
 {
     m_shaderGroups.Clear();
 
@@ -169,7 +169,7 @@ RendererResult VulkanShader::CreateShaderGroups()
     return {};
 }
 
-VkPipelineShaderStageCreateInfo VulkanShader::CreateShaderStage(const VulkanShaderModule& shaderModule)
+VkPipelineShaderStageCreateInfo VulkanShaderInstance::CreateShaderStage(const VulkanShaderModule& shaderModule)
 {
     VkPipelineShaderStageCreateInfo createInfo { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
     createInfo.module = shaderModule.handle;
@@ -223,7 +223,7 @@ VkPipelineShaderStageCreateInfo VulkanShader::CreateShaderStage(const VulkanShad
     return createInfo;
 }
 
-RendererResult VulkanShader::Create()
+RendererResult VulkanShaderInstance::Create()
 {
     if (IsCreated())
     {
@@ -258,9 +258,9 @@ RendererResult VulkanShader::Create()
 
 #ifdef HYP_DEBUG_MODE
 
-void VulkanShader::SetDebugName(Name name)
+void VulkanShaderInstance::SetDebugName(Name name)
 {
-    ShaderBase::SetDebugName(name);
+    ShaderInstanceBase::SetDebugName(name);
 
     if (!IsCreated())
     {
@@ -285,6 +285,6 @@ void VulkanShader::SetDebugName(Name name)
 
 #endif
 
-#pragma endregion VulkanShader
+#pragma endregion VulkanShaderInstance
 
 } // namespace Hyperion

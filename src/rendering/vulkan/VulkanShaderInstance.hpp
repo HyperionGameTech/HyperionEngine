@@ -47,16 +47,16 @@ struct VulkanShaderGroup
 };
 
 HYP_CLASS(NoScriptBindings)
-class VulkanShader final : public ShaderBase
+class VulkanShaderInstance final : public ShaderInstanceBase
 {
-    HYP_OBJECT_BODY(VulkanShader);
+    HYP_OBJECT_BODY(VulkanShaderInstance);
 
 public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
-    VulkanShader();
-    explicit VulkanShader(const CompiledShader* compiledShader);
-    ~VulkanShader() override;
+    VulkanShaderInstance();
+    explicit VulkanShaderInstance(const CompiledShader* compiledShader);
+    ~VulkanShaderInstance() override;
 
     HYP_FORCE_INLINE const Array<VulkanShaderModule, VulkanAllocator>& GetShaderModules() const
     {

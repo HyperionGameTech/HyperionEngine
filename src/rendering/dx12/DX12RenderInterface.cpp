@@ -415,7 +415,7 @@ DX12FrameRef DX12RenderInterface::MakeFrame(uint32 frameIndex)
 
 DX12ShaderRef DX12RenderInterface::MakeShader(const CompiledShader* compiledShader)
 {
-    return MakeHandle<DX12Shader>(compiledShader);
+    return MakeHandle<DX12ShaderInstance>(compiledShader);
 }
 
 DX12GpuBlasRef DX12RenderInterface::MakeGpuBlas(

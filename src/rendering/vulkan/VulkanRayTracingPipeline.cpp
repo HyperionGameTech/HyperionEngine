@@ -4,7 +4,7 @@
 
 #include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
-#include <rendering/vulkan/VulkanShader.hpp>
+#include <rendering/vulkan/VulkanShaderInstance.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
@@ -29,7 +29,7 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanRa
 {
     Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
-    VulkanShader* shader = pipeline.GetShader();
+    VulkanShaderInstance* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
     const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
@@ -194,7 +194,7 @@ void VulkanRayTracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, con
         extent.x, extent.y, extent.z);
 }
 
-RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShader* shader)
+RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShaderInstance* shader)
 {
     const Array<VulkanShaderGroup>& shaderGroups = shader->GetShaderGroups();
 

@@ -13,7 +13,7 @@
 #include <rendering/vulkan/VulkanInstance.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
-#include <rendering/vulkan/VulkanShader.hpp>
+#include <rendering/vulkan/VulkanShaderInstance.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanAsyncCompute.hpp>
 #include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
@@ -919,7 +919,7 @@ VulkanFrameRef VulkanRenderInterface::MakeFrame(uint32 frameIndex)
 
 VulkanShaderRef VulkanRenderInterface::MakeShader(const CompiledShader* compiledShader)
 {
-    return MakeHandle<VulkanShader>(compiledShader);
+    return MakeHandle<VulkanShaderInstance>(compiledShader);
 }
 
 VulkanGpuBlasRef VulkanRenderInterface::MakeGpuBlas(

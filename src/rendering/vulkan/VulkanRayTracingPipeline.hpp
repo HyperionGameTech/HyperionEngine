@@ -19,7 +19,7 @@
 
 namespace Hyperion {
 
-class VulkanShader;
+class VulkanShaderInstance;
 
 enum class ShaderModuleType : uint8;
 
@@ -72,7 +72,7 @@ private:
 
     using ShaderBindingTableMap = HashMap<ShaderModuleType, ShaderBindingTableEntry, NodeAllocator<VulkanAllocator>>;
 
-    RendererResult CreateShaderBindingTables(VulkanShader* shader);
+    RendererResult CreateShaderBindingTables(VulkanShaderInstance* shader);
     RendererResult CreateShaderBindingTableEntry(uint32 numShaders, ShaderBindingTableEntry& out);
 
     ShaderBindingTableMap m_shaderBindingTableBuffers;

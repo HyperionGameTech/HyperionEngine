@@ -3,7 +3,7 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
-#include <rendering/dx12/DX12Shader.hpp>
+#include <rendering/dx12/DX12ShaderInstance.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12Framebuffer.hpp>
@@ -230,7 +230,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.SampleDesc.Count = 1;
     psoDesc.SampleDesc.Quality = 0;
 
-    DX12Shader* dxShader = static_cast<DX12Shader*>(m_shader.Get());
+    DX12ShaderInstance* dxShader = static_cast<DX12ShaderInstance*>(m_shader.Get());
     psoDesc.VS = dxShader->GetShaderBytecode(ShaderModuleType::Vertex);
     psoDesc.PS = dxShader->GetShaderBytecode(ShaderModuleType::Pixel);
     psoDesc.GS = dxShader->GetShaderBytecode(ShaderModuleType::Geometry);

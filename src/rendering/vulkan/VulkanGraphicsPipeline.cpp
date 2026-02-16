@@ -5,7 +5,7 @@
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 #include <rendering/vulkan/VulkanFramebuffer.hpp>
-#include <rendering/vulkan/VulkanShader.hpp>
+#include <rendering/vulkan/VulkanShaderInstance.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
@@ -33,7 +33,7 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanGr
 {
     Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
-    VulkanShader* shader = pipeline.GetShader();
+    VulkanShaderInstance* shader = pipeline.GetShader();
     AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
 
     const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();

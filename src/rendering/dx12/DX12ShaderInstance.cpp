@@ -2,21 +2,21 @@
 
 #include <DX12Pch.hpp>
 
-#include <rendering/dx12/DX12Shader.hpp>
+#include <rendering/dx12/DX12ShaderInstance.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 
-#include <DX12Shader.generated.inl>
+#include <DX12ShaderInstance.generated.inl>
 
 namespace Hyperion {
 
-DX12Shader::DX12Shader()
-    : ShaderBase()
+DX12ShaderInstance::DX12ShaderInstance()
+    : ShaderInstanceBase()
 {
 }
 
-DX12Shader::DX12Shader(const RC<CompiledShader>& compiledShader)
-    : ShaderBase(compiledShader)
+DX12ShaderInstance::DX12ShaderInstance(const RC<CompiledShader>& compiledShader)
+    : ShaderInstanceBase(compiledShader)
 {
 #ifdef HYP_DEBUG_MODE
     if (compiledShader != nullptr)
@@ -26,17 +26,17 @@ DX12Shader::DX12Shader(const RC<CompiledShader>& compiledShader)
 #endif
 }
 
-DX12Shader::~DX12Shader()
+DX12ShaderInstance::~DX12ShaderInstance()
 {
     // @TODO
 }
 
-bool DX12Shader::IsCreated() const
+bool DX12ShaderInstance::IsCreated() const
 {
     return m_shaderBlobs.Any();
 }
 
-RendererResult DX12Shader::Create()
+RendererResult DX12ShaderInstance::Create()
 {
     if (IsCreated())
         return {};
@@ -73,7 +73,7 @@ RendererResult DX12Shader::Create()
 }
 
 #ifdef HYP_DEBUG_MODE
-void DX12Shader::SetDebugName(Name name)
+void DX12ShaderInstance::SetDebugName(Name name)
 {
     // @TODO
 }

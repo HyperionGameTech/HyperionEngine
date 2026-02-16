@@ -19,17 +19,17 @@ namespace Hyperion {
 struct CompiledShader;
 
 HYP_CLASS(Abstract, NoScriptBindings)
-class ShaderBase : public ObjectBase
+class ShaderInstanceBase : public ObjectBase
 {
-    HYP_OBJECT_BODY(ShaderBase);
+    HYP_OBJECT_BODY(ShaderInstanceBase);
 
 public:
-    ShaderBase()
+    ShaderInstanceBase()
         : m_compiledShader(nullptr)
     {
     }
 
-    virtual ~ShaderBase() override = default;
+    virtual ~ShaderInstanceBase() override = default;
 
     HYP_FORCE_INLINE const CompiledShader* GetCompiledShader() const
     {
@@ -51,7 +51,7 @@ public:
     }
 
 protected:
-    explicit ShaderBase(const CompiledShader* compiledShader)
+    explicit ShaderInstanceBase(const CompiledShader* compiledShader)
         : m_compiledShader(compiledShader)
     {
     }
@@ -66,9 +66,9 @@ protected:
 #define INCLUDE_FROM_RHI_BASE
 
 #if HYP_VULKAN
-#include <rendering/vulkan/VulkanShader.hpp>
+#include <rendering/vulkan/VulkanShaderInstance.hpp>
 #elif HYP_DX12
-#include <rendering/dx12/DX12Shader.hpp>
+#include <rendering/dx12/DX12ShaderInstance.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI_BASE
