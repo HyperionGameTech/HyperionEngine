@@ -40,7 +40,7 @@ DX12GpuBuffer::~DX12GpuBuffer()
 
 RendererResult DX12GpuBuffer::Create()
 {
-    D3D12MA::Allocator* allocator = g_renderBackend->GetAllocator();
+    D3D12MA::Allocator* allocator = g_renderInterface->GetAllocator();
     AssertDebug(allocator != nullptr);
 
     D3D12_HEAP_TYPE heapType = GetHeapType(m_type, m_requireCpuAccessible);
@@ -49,19 +49,19 @@ RendererResult DX12GpuBuffer::Create()
 
     switch (m_type)
     {
-        case GpuBufferType::SSBO:                           // fallthrough
+        case GpuBufferType::STORAGE_BUFFER:                 // fallthrough
         case GpuBufferType::ATOMIC_COUNTER:                 // fallthrough
         case GpuBufferType::SCRATCH_BUFFER:                 // fallthrough
         case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:  // fallthrough
             flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             break;
-        case GpuBufferType::CBUFF: // fallthrough
+        case GpuBufferType::CONSTANT_BUFFER: // fallthrough
         default:
             break;
     }
 
     UINT64 finalSize = m_size;
-    if (m_type == GpuBufferType::CBUFF)
+    if (m_type == GpuBufferType::CONSTANT_BUFFER)
     {
         finalSize = ByteUtil::AlignAs(m_size, 256);
     }
@@ -74,7 +74,7 @@ RendererResult DX12GpuBuffer::Create()
     }
     else if (m_type == GpuBufferType::ACCELERATION_STRUCTURE_BUFFER)
     {
-        finalState = D3D12_RESOURCE_STATE_RAY_TRACING_ACCELERATION_STRUCTURE;
+        finalState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     }
 
     D3D12_RESOURCE_DESC bufferDesc {};
@@ -165,7 +165,7 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     SizeType minimumSize,
     bool* outSizeChanged)
 {
-    if (m_type == GpuBufferType::CBUFF)
+    if (m_type == GpuBufferType::CONSTANT_BUFFER)
     {
         minimumSize = ByteUtil::AlignAs(minimumSize, 256);
     }
@@ -180,7 +180,7 @@ RendererResult DX12GpuBuffer::EnsureCapacity(
     SizeType alignment,
     bool* outSizeChanged)
 {
-    if (m_type == GpuBufferType::CBUFF)
+    if (m_type == GpuBufferType::CONSTANT_BUFFER)
     {
         minimumSize = ByteUtil::AlignAs(minimumSize, 256);
     }

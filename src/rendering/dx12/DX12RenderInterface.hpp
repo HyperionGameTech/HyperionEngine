@@ -4,11 +4,14 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderInterface.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
+
+#include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 
 #include <rendering/dx12/DX12Shared.hpp>
 
@@ -22,6 +25,7 @@ namespace Hyperion {
 
 class DX12RenderConfig;
 class DX12DescriptorHeapManager;
+class DX12AsyncCompute;
 
 struct DX12QueueData
 {
@@ -54,11 +58,9 @@ public:
     }
 
     RendererResult Initialize() override;
-    RendererResult Destroy() override;
+    RendererResult Shutdown() override;
 
     const IRenderConfig& GetRenderConfig() const override;
-
-    AsyncComputeBase* GetAsyncCompute() const override;
 
     DX12Frame* GetCurrentFrame() const override;
 
@@ -77,15 +79,13 @@ public:
     DX12DescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) override;
 
     DX12GraphicsPipelineRef MakeGraphicsPipeline(
-        const DX12ShaderRef& shader,
+        const DX12ShaderInstanceRef& shaderInstance,
         const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) override;
 
-    DX12ComputePipelineRef MakeComputePipeline(const DX12ShaderRef& shader) override;
+    DX12ComputePipelineRef MakeComputePipeline(const DX12ShaderInstanceRef& shaderInstance) override;
 
-    DX12RayTracingPipelineRef MakeRayTracingPipeline(
-        const DX12ShaderRef& shader,
-        const DX12DescriptorTableRef& descriptorTable) override;
+    DX12RayTracingPipelineRef MakeRayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance) override;
 
     DX12GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
 
@@ -100,7 +100,7 @@ public:
 
     DX12FrameRef MakeFrame(uint32 frameIndex) override;
 
-    DX12ShaderRef MakeShader(const CompiledShader* compiledShader) override;
+    DX12ShaderInstanceRef MakeShader(const Shader* shader) override;
 
     DX12GpuBlasRef MakeGpuBlas(
         const DX12GpuBufferRef& packedVerticesBuffer,
@@ -117,6 +117,9 @@ public:
 
     bool IsSupportedFormat(TextureFormat format, ImageSupport supportType) const override;
     TextureFormat FindSupportedFormat(Span<TextureFormat> possibleFormats, ImageSupport supportType) const override;
+    
+    HYP_NODISCARD DX12AsyncCompute* CreateAsyncCompute() override;
+    void SubmitAsyncCompute(DX12AsyncCompute* asyncCompute) override;
 
     UniquePtr<SingleTimeCommands> GetSingleTimeCommands() override;
 
@@ -145,6 +148,10 @@ private:
     ComPtr<ID3D12DeviceRemovedExtendedDataSettings> m_dredSettings;
 
     D3D12MA::Allocator* m_allocator;
+
+    Array<DX12AsyncCompute*, RenderAllocator> m_asyncComputePool;
+    Array<DX12AsyncCompute*, RenderAllocator> m_submittedAsyncComputes;
+    Mutex m_asyncComputesMutex;
 };
 
 

@@ -40,9 +40,11 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
+// For IndirectDrawCommand
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
-
+#elif HYP_DX12
+#include <rendering/dx12/DX12Structs.hpp>
 #endif
 
 #include <RenderGroup.generated.inl>

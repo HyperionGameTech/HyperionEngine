@@ -10,6 +10,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
+#include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderGroup.hpp>
 

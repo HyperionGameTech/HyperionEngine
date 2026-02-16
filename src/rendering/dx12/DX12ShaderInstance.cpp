@@ -15,13 +15,13 @@ DX12ShaderInstance::DX12ShaderInstance()
 {
 }
 
-DX12ShaderInstance::DX12ShaderInstance(const RC<CompiledShader>& compiledShader)
-    : ShaderInstanceBase(compiledShader)
+DX12ShaderInstance::DX12ShaderInstance(const Shader* shader)
+    : ShaderInstanceBase(shader)
 {
 #ifdef HYP_DEBUG_MODE
-    if (compiledShader != nullptr)
+    if (shader != nullptr)
     {
-        SetDebugName(compiledShader->GetName());
+        SetDebugName(shader->name);
     }
 #endif
 }
@@ -41,21 +41,19 @@ RendererResult DX12ShaderInstance::Create()
     if (IsCreated())
         return {};
 
-    if (!m_compiledShader || !m_compiledShader->IsValid())
-        return HYP_MAKE_ERROR(RendererError, "Invalid CompiledShader, cannot create Shader instance!");
+    if (!m_shader || !m_shader->IsValid())
+        return HYP_MAKE_ERROR(RendererError, "Invalid Shader, cannot create ShaderInstance!");
 
     m_shaderBlobs.Clear();
 
-    const Array<ByteBuffer>& modules = m_compiledShader->modules;
-
-    for (SizeType i = 0; i < modules.Size(); i++)
+    for (SizeType i = 0; i < m_shader->moduleNames.Size(); i++)
     {
-        const ByteBuffer& buffer = modules[i];
+        const ByteBuffer& buffer = m_shader->shaderBlobs[i];
 
         if (buffer.Empty())
             continue;
 
-        ShaderModuleType smt = ShaderModuleType(i);
+        ShaderModuleType smt = m_shader->moduleTypes[i];
 
         D3D12_SHADER_BYTECODE bytecode {};
         bytecode.pShaderBytecode = buffer.Data();

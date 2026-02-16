@@ -19,7 +19,7 @@ class DX12RayTracingPipeline final : public RayTracingPipelineBase
 
 public:
     DX12RayTracingPipeline();
-    DX12RayTracingPipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable);
+    DX12RayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance);
     ~DX12RayTracingPipeline() override;
 
     bool IsCreated() const override;

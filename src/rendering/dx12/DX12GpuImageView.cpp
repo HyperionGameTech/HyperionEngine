@@ -25,11 +25,8 @@ DX12GpuImageView::DX12GpuImageView(const DX12GpuImageRef& image)
 
 DX12GpuImageView::DX12GpuImageView(
     const DX12GpuImageRef& image,
-    uint32 mipIndex,
-    uint32 numMips,
-    uint32 layerIndex,
-    uint32 numLayers)
-    : GpuImageViewBase(image, mipIndex, numMips, layerIndex, numLayers)
+    const ImageSubResource& subResource)
+    : GpuImageViewBase(image, subResource)
 {
 }
 

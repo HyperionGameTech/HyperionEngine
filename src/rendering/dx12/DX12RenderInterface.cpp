@@ -4,12 +4,15 @@
 
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
+#include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
 #include <rendering/dx12/DX12Swapchain.hpp>
+#include <rendering/dx12/DX12AsyncCompute.hpp>
 #include <rendering/dx12/DX12AccelerationStructure.hpp>
 #include <rendering/dx12/DX12DescriptorSet.hpp>
 #include <rendering/dx12/DX12GraphicsPipeline.hpp>
+#include <rendering/dx12/DX12ShaderInstance.hpp>
 
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderConfig.hpp>
@@ -83,8 +86,6 @@ DX12RenderInterface::~DX12RenderInterface()
 
 RendererResult DX12RenderInterface::Initialize()
 {
-    CheckResultOrReturn(RenderInterface::Initialize());
-
     HYP_LOG(RenderingBackend, Info, "Initializing DX12 render backend...");
 
     uint32 createFactoryFlags = 0;
@@ -212,13 +213,28 @@ RendererResult DX12RenderInterface::Initialize()
     CheckResultOrReturn(m_commandBuffer->Create());
 
     descriptorHeapManager->Initialize();
+    
+    CheckResultOrReturn(RenderInterface::Initialize());
 
     return {};
 }
 
-RendererResult DX12RenderInterface::Destroy()
+RendererResult DX12RenderInterface::Shutdown()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
+
+    for (DX12AsyncCompute* ac : m_asyncComputePool)
+    {
+        delete ac;
+    }
+
+    for (DX12AsyncCompute* ac : m_submittedAsyncComputes)
+    {
+        delete ac;
+    }
+
+    m_asyncComputePool.Clear();
+    m_submittedAsyncComputes.Clear();
 
     descriptorHeapManager->Shutdown();
 
@@ -247,12 +263,6 @@ const IRenderConfig& DX12RenderInterface::GetRenderConfig() const
     return *m_renderConfig;
 }
 
-AsyncComputeBase* DX12RenderInterface::GetAsyncCompute() const
-{
-    // @TODO: Implement async compute for DX12
-    return nullptr;
-}
-
 DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 {
     return m_frames[m_currentFrameIndex].Get();
@@ -260,6 +270,47 @@ DX12Frame* DX12RenderInterface::GetCurrentFrame() const
 
 DX12Frame* DX12RenderInterface::PrepareNextFrame()
 {
+    for (auto it = m_submittedAsyncComputes.Begin(); it != m_submittedAsyncComputes.End();)
+    {
+        DX12AsyncCompute* elem = *it;
+
+        if (elem->CheckStatus())
+        {
+            elem->OnCompleted();
+
+            m_asyncComputePool.PushBack(elem);
+
+            it = m_submittedAsyncComputes.Erase(it);
+
+            continue;
+        }
+
+        ++it;
+    }
+
+    if (m_asyncComputePool.Size() > 10)
+    {
+        static constexpr uint32 MaxFramesBeforeDiscard = 100;
+
+        const uint32 currFrameIndex = GetFrameCounter();
+
+        for (auto it = m_asyncComputePool.Begin(); it != m_asyncComputePool.End();)
+        {
+            DX12AsyncCompute* elem = *it;
+
+            if (currFrameIndex - elem->lastFrame >= MaxFramesBeforeDiscard)
+            {
+                delete elem;
+
+                it = m_asyncComputePool.Erase(it);
+
+                continue;
+            }
+
+            ++it;
+        }
+    }
+
     DX12Frame* frame = GetCurrentFrame();
 
     const uint32 frameIndex = frame->GetFrameIndex();
@@ -322,18 +373,18 @@ DX12DescriptorTableRef DX12RenderInterface::MakeDescriptorTable(const ShaderInpu
 }
 
 DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
-    const DX12ShaderRef& shader,
+    const DX12ShaderInstanceRef& shaderInstance,
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
     DX12GraphicsPipelineRef graphicsPipeline = MakeHandle<DX12GraphicsPipeline>();
 
-    if (shader.IsValid())
+    if (shaderInstance.IsValid())
     {
-        graphicsPipeline->SetShader(shader);
+        graphicsPipeline->SetShader(shaderInstance);
 
 #ifdef HYP_DEBUG_MODE
-        graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shader->GetDebugName().IsValid() ? *shader->GetDebugName() : "<unnamed shader>"));
+        graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shaderInstance->GetDebugName().IsValid() ? *shaderInstance->GetDebugName() : "<unnamed shader>"));
 #endif
     }
 
@@ -362,17 +413,13 @@ DX12GraphicsPipelineRef DX12RenderInterface::MakeGraphicsPipeline(
     return graphicsPipeline;
 }
 
-DX12ComputePipelineRef DX12RenderInterface::MakeComputePipeline(
-    const DX12ShaderRef& shader,
-    const DX12DescriptorTableRef& descriptorTable)
+DX12ComputePipelineRef DX12RenderInterface::MakeComputePipeline(const DX12ShaderInstanceRef& shaderInstance)
 {
     // @TODO: Implement compute pipeline creation for DX12
     return ComputePipelineRef();
 }
 
-DX12RayTracingPipelineRef DX12RenderInterface::MakeRayTracingPipeline(
-    const DX12ShaderRef& shader,
-    const DX12DescriptorTableRef& descriptorTable)
+DX12RayTracingPipelineRef DX12RenderInterface::MakeRayTracingPipeline(const DX12ShaderInstanceRef& shaderInstance)
 {
     // @TODO: Implement rayTracing pipeline creation for DX12
     return RayTracingPipelineRef();
@@ -395,7 +442,13 @@ DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& im
 
 DX12GpuImageViewRef DX12RenderInterface::MakeImageView(const DX12GpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers)
 {
-    return MakeHandle<DX12GpuImageView>(image, mipIndex, numMips, layerIndex, numLayers);
+    ImageSubResource subResource {};
+    subResource.baseMipLevel = mipIndex;
+    subResource.baseArrayLayer = layerIndex;
+    subResource.numLevels = numMips;
+    subResource.numLayers = numLayers;
+
+    return MakeHandle<DX12GpuImageView>(image, subResource);
 }
 
 DX12SamplerRef DX12RenderInterface::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)
@@ -413,9 +466,9 @@ DX12FrameRef DX12RenderInterface::MakeFrame(uint32 frameIndex)
     return MakeHandle<DX12Frame>(frameIndex);
 }
 
-DX12ShaderRef DX12RenderInterface::MakeShader(const CompiledShader* compiledShader)
+DX12ShaderInstanceRef DX12RenderInterface::MakeShader(const Shader* shader)
 {
-    return MakeHandle<DX12ShaderInstance>(compiledShader);
+    return MakeHandle<DX12ShaderInstance>(shader);
 }
 
 DX12GpuBlasRef DX12RenderInterface::MakeGpuBlas(
@@ -450,11 +503,11 @@ TextureFormat DX12RenderInterface::GetDefaultFormat(DefaultImageFormat type) con
     switch (type)
     {
     case DefaultImageFormat::DIF_COLOR:
-        return TextureFormat::TF_RGBA8;
+        return TextureFormat::RGBA8;
     case DefaultImageFormat::DIF_DEPTH:
-        return TextureFormat::TF_DEPTH_24;
+        return TextureFormat::D24_S8;
     default:
-        return TextureFormat::TF_NONE;
+        return InvalidTextureFormat;
     }
 }
 
@@ -469,7 +522,7 @@ TextureFormat DX12RenderInterface::FindSupportedFormat(Span<TextureFormat> possi
     // @TODO: Implement supported format finding for DX12
     if (possibleFormats.Size() == 0)
     {
-        return TextureFormat::TF_NONE;
+        return InvalidTextureFormat;
     }
 
     return possibleFormats[0];
@@ -478,6 +531,35 @@ TextureFormat DX12RenderInterface::FindSupportedFormat(Span<TextureFormat> possi
 UniquePtr<SingleTimeCommands> DX12RenderInterface::GetSingleTimeCommands()
 {
     return MakeUnique<DX12SingleTimeCommands>();
+}
+
+DX12AsyncCompute* DX12RenderInterface::CreateAsyncCompute()
+{
+    {
+        Mutex::Guard guard(m_asyncComputesMutex);
+
+        if (m_asyncComputePool.Any())
+        {
+            return m_asyncComputePool.PopBack();
+        }
+    }
+
+    DX12AsyncCompute* newAsyncCompute = new DX12AsyncCompute();
+    newAsyncCompute->Create();
+
+    return newAsyncCompute;
+}
+
+void DX12RenderInterface::SubmitAsyncCompute(DX12AsyncCompute* asyncCompute)
+{
+    Assert(asyncCompute != nullptr);
+
+    Mutex::Guard guard(m_asyncComputesMutex);
+    Assert(!m_submittedAsyncComputes.Contains(asyncCompute));
+
+    asyncCompute->Submit();
+
+    m_submittedAsyncComputes.PushBack(asyncCompute);
 }
 
 void DX12RenderInterface::ReleaseTransientMemory()

@@ -7,6 +7,8 @@
 
 namespace Hyperion {
 
+struct ShaderDesc;
+
 HYP_CLASS(Abstract, NoScriptBindings)
 class RayTracingPipelineBase : public ObjectBase
 {

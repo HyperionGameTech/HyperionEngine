@@ -827,18 +827,18 @@ VulkanDescriptorTableRef VulkanRenderInterface::MakeDescriptorTable(const Shader
 }
 
 VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
-    const VulkanShaderInstanceRef& shader,
+    const VulkanShaderInstanceRef& shaderInstance,
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
     VulkanGraphicsPipelineRef graphicsPipeline = MakeHandle<VulkanGraphicsPipeline>();
 
-    if (shader.IsValid())
+    if (shaderInstance.IsValid())
     {
-        graphicsPipeline->SetShader(shader);
+        graphicsPipeline->SetShader(shaderInstance);
 
 #ifdef HYP_DEBUG_MODE
-        graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shader->GetDebugName().IsValid() ? *shader->GetDebugName() : "<unnamed shader>"));
+        graphicsPipeline->SetDebugName(NAME_FMT("GraphicsPipeline_{}", shaderInstance->GetDebugName().IsValid() ? *shaderInstance->GetDebugName() : "<unnamed shader>"));
 #endif
     }
 
@@ -866,14 +866,14 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     return graphicsPipeline;
 }
 
-VulkanComputePipelineRef VulkanRenderInterface::MakeComputePipeline(const VulkanShaderInstanceRef& shader)
+VulkanComputePipelineRef VulkanRenderInterface::MakeComputePipeline(const VulkanShaderInstanceRef& shaderInstance)
 {
-    return MakeHandle<VulkanComputePipeline>(VulkanShaderInstanceRef(shader));
+    return MakeHandle<VulkanComputePipeline>(shaderInstance);
 }
 
-VulkanRayTracingPipelineRef VulkanRenderInterface::MakeRayTracingPipeline(const VulkanShaderInstanceRef& shader)
+VulkanRayTracingPipelineRef VulkanRenderInterface::MakeRayTracingPipeline(const VulkanShaderInstanceRef& shaderInstance)
 {
-    return MakeHandle<VulkanRayTracingPipeline>(VulkanShaderInstanceRef(shader));
+    return MakeHandle<VulkanRayTracingPipeline>(shaderInstance);
 }
 
 VulkanGpuBufferRef VulkanRenderInterface::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)

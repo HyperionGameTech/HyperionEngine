@@ -31,6 +31,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/Buffers.hpp>
 
 #include <rendering/renderers/UIRenderer.hpp>
 

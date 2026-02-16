@@ -25,10 +25,7 @@ public:
     explicit DX12GpuImageView(const DX12GpuImageRef& image);
     DX12GpuImageView(
         const DX12GpuImageRef& image,
-        uint32 mipIndex,
-        uint32 numMips,
-        uint32 layerIndex,
-        uint32 numLayers);
+        const ImageSubResource& subResource);
 
     ~DX12GpuImageView() override;
 

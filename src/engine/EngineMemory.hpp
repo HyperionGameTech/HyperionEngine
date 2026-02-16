@@ -5,6 +5,8 @@
 namespace Hyperion {
 namespace memory {
 
+struct DynamicAllocator;
+
 template <class AllocatorType, AllocatorType** GlobalInstance>
 struct AllocatorInstance;
 

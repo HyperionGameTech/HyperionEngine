@@ -5,6 +5,9 @@
 #include <core/Defines.hpp>
 #include <core/Constants.hpp>
 
+#include <core/memory/allocator/Allocator.hpp>
+#include <core/memory/allocator/ArenaAllocator.hpp>
+
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
 
@@ -12,17 +15,11 @@
 
 namespace Hyperion {
 
+struct ConstantAllocatorBlock;
+
 class ConstantsAllocator
 {
-    struct Block
-    {
-        HYP_DEF_POOL_NEW_DELETE(g_renderPool);
-
-        GpuBufferRef buffer;
-        uint32 frameCounter; // last used frame
-        uint32 size;
-        uint32 offset;
-    };
+    using Block = ConstantAllocatorBlock;
 
 public:
     ConstantsAllocator();

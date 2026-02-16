@@ -5,6 +5,8 @@
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/Shader.hpp>
 
+#include <rendering/util/ShaderCompiler.hpp>
+
 #include <RayTracingPipeline.generated.inl>
 
 namespace Hyperion {

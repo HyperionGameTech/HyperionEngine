@@ -12,6 +12,9 @@
 
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 
+// Fwd declaration
+namespace D3D12MA { class Allocation; }
+
 namespace Hyperion {
 
 HYP_CLASS(NoScriptBindings)
@@ -66,26 +69,16 @@ public:
     RendererResult Blit(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuImage* srcImage,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) override;
-
-    RendererResult Blit(
-        DX12CommandBuffer* commandBuffer,
-        const DX12GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) override;
-
+        
     RendererResult Blit(
         DX12CommandBuffer* commandBuffer,
         const DX12GpuImage* srcImage,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
-        uint32 srcMip,
-        uint32 dstMip,
-        uint32 srcFace,
-        uint32 dstFace) override;
+        const ImageSubResource& srcSubResource,
+        const ImageSubResource& dstSubResource) override;
 
     RendererResult GenerateMipmaps(DX12CommandBuffer* commandBuffer) override;
 

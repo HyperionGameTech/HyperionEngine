@@ -84,13 +84,13 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
 
     switch (m_textureDesc.type)
     {
-    case TextureType::TT_TEX3D:
+    case TextureType::Texture3D:
         resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
         break;
-    case TextureType::TT_TEX2D: // fallthrough
-    case TextureType::TT_CUBEMAP:
-    case TextureType::TT_TEX2D_ARRAY:
-    case TextureType::TT_CUBEMAP_ARRAY:
+    case TextureType::Texture2D: // fallthrough
+    case TextureType::Cubemap:
+    case TextureType::Texture2DArray:
+    case TextureType::CubemapArray:
         resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
         break;
     default:
@@ -136,13 +136,16 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
 
         switch (m_textureDesc.format)
         {
-        case TextureFormat::TF_DEPTH_16:
+        case TextureFormat::D16:
             clearValue.Format = DXGI_FORMAT_D16_UNORM;
             break;
-        case TextureFormat::TF_DEPTH_24:
+        case TextureFormat::D24_S8:
             clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
             break;
-        case TextureFormat::TF_DEPTH_32F:
+        case TextureFormat::D32F:
+            clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+            break;
+        case TextureFormat::D32F_S8:
             clearValue.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
             break;
         default:
@@ -155,7 +158,7 @@ RendererResult DX12GpuImage::Create(ResourceState initialState)
     D3D12MA::ALLOCATION_DESC allocDesc {};
     allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
-    HRESULT hr = g_renderBackend->GetAllocator()->CreateResource(
+    HRESULT hr = g_renderInterface->GetAllocator()->CreateResource(
         &allocDesc,
         &resourceDesc,
         resourceStates,
@@ -224,34 +227,20 @@ RendererResult DX12GpuImage::Blit(
 RendererResult DX12GpuImage::Blit(
     DX12CommandBuffer* commandBuffer,
     const DX12GpuImage* srcImage,
-    uint32 srcMip,
-    uint32 dstMip,
-    uint32 srcFace,
-    uint32 dstFace)
-{
-    // @TODO
-    return {};
-}
-
-RendererResult DX12GpuImage::Blit(
-    DX12CommandBuffer* commandBuffer,
-    const DX12GpuImage* srcImage,
     Rect<uint32> srcRect,
     Rect<uint32> dstRect)
 {
     // @TODO
     return {};
 }
-
+        
 RendererResult DX12GpuImage::Blit(
     DX12CommandBuffer* commandBuffer,
     const DX12GpuImage* srcImage,
     Rect<uint32> srcRect,
     Rect<uint32> dstRect,
-    uint32 srcMip,
-    uint32 dstMip,
-    uint32 srcFace,
-    uint32 dstFace)
+    const ImageSubResource& srcSubResource,
+    const ImageSubResource& dstSubResource)
 {
     // @TODO
     return {};
@@ -292,7 +281,7 @@ DX12GpuImageViewRef DX12GpuImage::MakeLayerImageView(uint32 layerIndex) const
         return DX12GpuImageViewRef::Null();
     }
 
-    return g_renderBackend->MakeImageView(
+    return g_renderInterface->MakeImageView(
         MakeStrongRef(this),
         0,
         m_textureDesc.NumMips(),

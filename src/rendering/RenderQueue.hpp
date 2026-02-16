@@ -2,6 +2,10 @@
 
 #pragma once
 
+#if !HYP_VULKAN && !HYP_DX12
+#error Rendering backend undefined
+#endif // !HYP_VULKAN && !HYP_DX12
+
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/GpuImage.hpp>
 #include <rendering/Framebuffer.hpp>

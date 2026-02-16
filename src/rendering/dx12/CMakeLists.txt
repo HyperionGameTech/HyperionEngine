@@ -13,6 +13,7 @@ set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 
 add_definitions(-DHYP_BUILD_LIBRARY=1)
+add_definitions(-DHYP_DX12=1)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/generated

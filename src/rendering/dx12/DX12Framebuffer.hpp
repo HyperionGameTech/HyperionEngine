@@ -29,11 +29,11 @@ public:
 
     bool IsCreated() const override;
     RendererResult Create() override;
-    RendererResult Resize(Vec2u newSize) override;
 
-    DX12AttachmentRef AddAttachment(const DX12AttachmentRef& attachment) override;
-    DX12AttachmentRef AddAttachment(uint32 binding, const DX12GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
-    DX12AttachmentRef AddAttachment(
+    DX12Attachment* AddAttachment(DX12Attachment* attachment) override;
+    DX12Attachment* AddAttachment(uint32 binding, const DX12GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+
+    DX12Attachment* AddAttachment(
         uint32 binding,
         TextureFormat format,
         TextureType type,
@@ -44,7 +44,7 @@ public:
     DX12Attachment* GetAttachment(uint32 binding) const override;
     int NumAttachments() const override;
 
-    HYP_FORCE_INLINE const FlatMap<uint32, DX12AttachmentRef>& GetAttachments() const
+    HYP_FORCE_INLINE const FlatMap<uint32, DX12Attachment*>& GetAttachments() const
     {
         return m_attachments;
     }
@@ -57,7 +57,7 @@ public:
 private:
     bool m_isCreated;
 
-    FlatMap<uint32, DX12AttachmentRef> m_attachments;
+    FlatMap<uint32, DX12Attachment*> m_attachments;
 
     DX12DescriptorHandle m_rtvDescriptorHandle;
     DX12DescriptorHandle m_dsvDescriptorHandle;

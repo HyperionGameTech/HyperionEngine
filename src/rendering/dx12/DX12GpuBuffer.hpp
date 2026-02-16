@@ -12,8 +12,7 @@
 
 #include <rendering/dx12/DX12Shared.hpp>
 
-// Fwd declaration
-namespace D3D12MA { class Allocation; }
+#include <D3D12MemAlloc.h>
 
 namespace Hyperion {
 

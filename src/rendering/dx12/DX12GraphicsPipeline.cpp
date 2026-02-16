@@ -178,10 +178,10 @@ DX12GraphicsPipeline::DX12GraphicsPipeline()
 {
 }
 
-DX12GraphicsPipeline::DX12GraphicsPipeline(const DX12ShaderRef& shader)
+DX12GraphicsPipeline::DX12GraphicsPipeline(const DX12ShaderInstanceRef& shaderInstance)
     : GraphicsPipelineBase()
 {
-    m_shader = shader;
+    m_shaderInstance = shaderInstance;
 }
 
 DX12GraphicsPipeline::~DX12GraphicsPipeline()
@@ -218,7 +218,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     CheckResultOrReturn(BuildRootSignature());
 
     Assert(m_rootSignature != nullptr);
-    Assert(m_shader != nullptr);
+    Assert(m_shaderInstance != nullptr);
 
     Array<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
     CheckResultOrReturn(BuildInputElementDesc(m_vertexAttributes, inputElementDescs));
@@ -230,7 +230,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
     psoDesc.SampleDesc.Count = 1;
     psoDesc.SampleDesc.Quality = 0;
 
-    DX12ShaderInstance* dxShader = static_cast<DX12ShaderInstance*>(m_shader.Get());
+    DX12ShaderInstance* dxShader = static_cast<DX12ShaderInstance*>(m_shaderInstance.Get());
     psoDesc.VS = dxShader->GetShaderBytecode(ShaderModuleType::Vertex);
     psoDesc.PS = dxShader->GetShaderBytecode(ShaderModuleType::Pixel);
     psoDesc.GS = dxShader->GetShaderBytecode(ShaderModuleType::Geometry);
@@ -310,7 +310,7 @@ RendererResult DX12GraphicsPipeline::Rebuild()
         }
     }
 
-    HRESULT res = g_renderBackend->GetDevice()->CreateGraphicsPipelineState(
+    HRESULT res = g_renderInterface->GetDevice()->CreateGraphicsPipelineState(
         &psoDesc, 
         __uuidof(ID3D12PipelineState),
         &m_pipelineState
@@ -326,9 +326,9 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
 {
     m_rootSignature.Reset();
 
-    Assert(m_shader != nullptr && m_shader->GetCompiledShader() != nullptr);
+    Assert(m_shaderInstance != nullptr && m_shaderInstance->GetShader() != nullptr);
 
-    const ShaderInputGroup* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = m_shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     Array<D3D12_ROOT_PARAMETER> rootParams;
@@ -352,7 +352,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         Array<D3D12_DESCRIPTOR_RANGE> viewRanges;
         Array<D3D12_DESCRIPTOR_RANGE> samplerRanges;
 
-        for (uint32 slotTypeIndex = NONE + 1; slotTypeIndex < MAX; ++slotTypeIndex)
+        for (uint32 slotTypeIndex = uint32(ShaderRegister::NONE) + 1; slotTypeIndex < uint32(ShaderRegister::MAX); ++slotTypeIndex)
         {
             const auto& declarations = setDecl.slots[slotTypeIndex];
             
@@ -363,22 +363,18 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
             
             D3D12_DESCRIPTOR_RANGE_TYPE rangeType;
 
-            switch (slotTypeIndex)
+            switch (ShaderRegister(slotTypeIndex))
             {
-            case SRV:
-            case ACCELERATION_STRUCTURE:
+            case ShaderRegister::SRV:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; 
                 break;
-            case UAV: // storage texture
+            case ShaderRegister::UAV:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
                 break;
-            case CBUFF:
+            case ShaderRegister::BUFFER:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
                 break;
-            case SSBO:
-                rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; 
-                break;
-            case SAMPLER:
+            case ShaderRegister::SAMPLER:
                 rangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
                 break;
             default:
@@ -394,7 +390,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
                 range.RegisterSpace = (UINT)setIndex;
                 range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-                if (slotTypeIndex == SAMPLER)
+                if (ShaderRegister(slotTypeIndex) == ShaderRegister::SAMPLER)
                 {
                     samplerRanges.PushBack(range);
                 }
@@ -443,7 +439,12 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         return HYP_MAKE_ERROR(RendererError, "Root Signature Serialization Failed! {}", res, errStr);
     }
 
-    res = g_renderBackend->GetDevice()->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), __uuidof(ID3D12RootSignature), &m_rootSignature);
+    res = g_renderInterface->GetDevice()->CreateRootSignature(
+        0,
+        signature->GetBufferPointer(),
+        signature->GetBufferSize(),
+        __uuidof(ID3D12RootSignature),
+        &m_rootSignature);
 
     if (FAILED(res))
     {

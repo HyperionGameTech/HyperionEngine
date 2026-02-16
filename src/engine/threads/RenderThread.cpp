@@ -24,6 +24,8 @@
 #include <rendering/Device.hpp>
 #include <rendering/Swapchain.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/Buffers.hpp>
+#include <rendering/Frame.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 

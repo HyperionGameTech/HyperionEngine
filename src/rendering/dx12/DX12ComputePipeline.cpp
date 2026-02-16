@@ -2,6 +2,8 @@
 
 #include <DX12Pch.hpp>
 
+#include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12ComputePipeline.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 
@@ -18,8 +20,8 @@ DX12ComputePipeline::DX12ComputePipeline()
 {
 }
 
-DX12ComputePipeline::DX12ComputePipeline(const DX12ShaderRef& shader)
-    : ComputePipelineBase(shader)
+DX12ComputePipeline::DX12ComputePipeline(const DX12ShaderInstanceRef& shaderInstance)
+    : ComputePipelineBase(shaderInstance)
 {
 }
 

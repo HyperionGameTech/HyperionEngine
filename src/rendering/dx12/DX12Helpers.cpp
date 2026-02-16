@@ -14,76 +14,82 @@ DXGI_FORMAT ToDXGIFormat(TextureFormat format, DX12ViewType getForViewType)
 {
     switch (format)
     {
-    case TF_R8:
+    case TextureFormat::R8:
         return DXGI_FORMAT_R8_UNORM;
-    case TF_RG8:
+    case TextureFormat::RG8:
         return DXGI_FORMAT_R8G8_UNORM;
-    case TF_RGB8:
+    case TextureFormat::RGB8:
         return DXGI_FORMAT_R8G8B8A8_UNORM;
-    case TF_RGBA8:
+    case TextureFormat::RGBA8:
         return DXGI_FORMAT_R8G8B8A8_UNORM;
-    case TF_R8_SRGB:
+    case TextureFormat::R8_SRGB:
         return DXGI_FORMAT_R8_UNORM;
-    case TF_RG8_SRGB:
+    case TextureFormat::RG8_SRGB:
         return DXGI_FORMAT_R8G8_UNORM;
-    case TF_RGB8_SRGB:
+    case TextureFormat::RGB8_SRGB:
         return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-    case TF_RGBA8_SRGB:
+    case TextureFormat::RGBA8_SRGB:
         return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-    case TF_R11G11B10F:
+    case TextureFormat::R11G11B10F:
         return DXGI_FORMAT_R11G11B10_FLOAT;
-    case TF_R10G10B10A2:
+    case TextureFormat::R10G10B10A2:
         return DXGI_FORMAT_R10G10B10A2_UNORM;
-    case TF_R16:
+    case TextureFormat::R16:
         return DXGI_FORMAT_R16_UINT;
-    case TF_RG16:
+    case TextureFormat::RG16:
         return DXGI_FORMAT_R16G16_UINT;
-    case TF_RGB16:
+    case TextureFormat::RGB16:
         return DXGI_FORMAT_R16G16B16A16_UINT;
-    case TF_RGBA16:
+    case TextureFormat::RGBA16:
         return DXGI_FORMAT_R16G16B16A16_UINT;
-    case TF_R32:
+    case TextureFormat::R32:
         return DXGI_FORMAT_R32_UINT;
-    case TF_RG32:
+    case TextureFormat::RG32:
         return DXGI_FORMAT_R32G32_UINT;
-    case TF_RGB32:
+    case TextureFormat::RGB32:
         return DXGI_FORMAT_R32G32B32A32_UINT;
-    case TF_RGBA32:
+    case TextureFormat::RGBA32:
         return DXGI_FORMAT_R32G32B32A32_UINT;
-    case TF_R16F:
+    case TextureFormat::R16F:
         return DXGI_FORMAT_R16_FLOAT;
-    case TF_RG16F:
+    case TextureFormat::RG16F:
         return DXGI_FORMAT_R16G16_FLOAT;
-    case TF_RGB16F:
+    case TextureFormat::RGB16F:
         return DXGI_FORMAT_R16G16B16A16_FLOAT;
-    case TF_RGBA16F:
+    case TextureFormat::RGBA16F:
         return DXGI_FORMAT_R16G16B16A16_FLOAT;
-    case TF_R32F:
+    case TextureFormat::R32F:
         return DXGI_FORMAT_R32_FLOAT;
-    case TF_RG32F:
+    case TextureFormat::RG32F:
         return DXGI_FORMAT_R32G32_FLOAT;
-    case TF_RGB32F:
+    case TextureFormat::RGB32F:
         return DXGI_FORMAT_R32G32B32A32_FLOAT;
-    case TF_RGBA32F:
+    case TextureFormat::RGBA32F:
         return DXGI_FORMAT_R32G32B32A32_FLOAT;
 
-    case TF_BGRA8:
+    case TextureFormat::BGRA8:
         return DXGI_FORMAT_B8G8R8A8_UNORM;
-    case TF_BGR8_SRGB:
+    case TextureFormat::BGR8_SRGB:
         return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-    case TF_BGRA8_SRGB:
+    case TextureFormat::BGRA8_SRGB:
         return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-    case TF_DEPTH_16:
+    case TextureFormat::D16:
         if (getForViewType == DX12ViewType::RTV_DSV)
             return DXGI_FORMAT_D16_UNORM;
 
         return DXGI_FORMAT_R16_TYPELESS;
-    case TF_DEPTH_24:
+    case TextureFormat::D24_S8:
         if (getForViewType == DX12ViewType::RTV_DSV)
             return DXGI_FORMAT_D24_UNORM_S8_UINT;
 
         return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-    case TF_DEPTH_32F:
+    case TextureFormat::D32F:
+        if (getForViewType == DX12ViewType::SRV_UAV
+            || getForViewType == DX12ViewType::RTV_DSV)
+            return DXGI_FORMAT_D32_FLOAT;
+
+        return DXGI_FORMAT_R32_FLOAT;
+    case TextureFormat::D32F_S8:
         if (getForViewType == DX12ViewType::SRV_UAV)
             return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
 
@@ -260,15 +266,15 @@ D3D12_SRV_DIMENSION ToDX12SRVDimension(TextureType textureType)
 {
     switch (textureType)
     {
-    case TextureType::TT_TEX2D:
+    case TextureType::Texture2D:
         return D3D12_SRV_DIMENSION_TEXTURE2D;
-    case TextureType::TT_TEX3D:
+    case TextureType::Texture3D:
         return D3D12_SRV_DIMENSION_TEXTURE3D;
-    case TextureType::TT_TEX2D_ARRAY:
+    case TextureType::Texture2DArray:
         return D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-    case TextureType::TT_CUBEMAP:
+    case TextureType::Cubemap:
         return D3D12_SRV_DIMENSION_TEXTURECUBE;
-    case TextureType::TT_CUBEMAP_ARRAY:
+    case TextureType::CubemapArray:
         return D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
     default:
         return D3D12_SRV_DIMENSION_UNKNOWN;
@@ -279,13 +285,13 @@ D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType)
 {
     switch (textureType)
     {
-    case TextureType::TT_TEX2D:
+    case TextureType::Texture2D:
         return D3D12_UAV_DIMENSION_TEXTURE2D;
-    case TextureType::TT_TEX3D:
+    case TextureType::Texture3D:
         return D3D12_UAV_DIMENSION_TEXTURE3D;
-    case TextureType::TT_TEX2D_ARRAY:   // fallthrough
-    case TextureType::TT_CUBEMAP:
-    case TextureType::TT_CUBEMAP_ARRAY:
+    case TextureType::Texture2DArray:   // fallthrough
+    case TextureType::Cubemap:
+    case TextureType::CubemapArray:
         return D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
     default:
         return D3D12_UAV_DIMENSION_UNKNOWN;
@@ -295,7 +301,7 @@ D3D12_UAV_DIMENSION ToDX12UAVDimension(TextureType textureType)
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(DX12GpuBuffer* buffer)
 {
     AssertDebug(buffer != nullptr);
-    AssertDebug(buffer->GetBufferType() == GpuBufferType::CBUFF);
+    AssertDebug(buffer->GetBufferType() == GpuBufferType::CONSTANT_BUFFER);
 
     D3D12_CONSTANT_BUFFER_VIEW_DESC desc {};
     desc.BufferLocation = buffer->GetResource()->GetGPUVirtualAddress();
@@ -333,7 +339,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc(DX12GpuBuffer* buffer, uint32 structu
 D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(DX12GpuBuffer* buffer, uint32 structureStride, uint32 firstElement, uint32 numElements)
 {
     AssertDebug(buffer != nullptr);
-    AssertDebug(buffer->GetBufferType() != GpuBufferType::CBUFF);
+    AssertDebug(buffer->GetBufferType() != GpuBufferType::CONSTANT_BUFFER);
 
     const bool useByteAddressBuffer = (structureStride == 0);
 

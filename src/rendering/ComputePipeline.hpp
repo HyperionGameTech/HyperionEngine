@@ -11,6 +11,8 @@
 
 namespace Hyperion {
 
+struct ShaderDesc;
+
 HYP_CLASS(Abstract, NoScriptBindings)
 class ComputePipelineBase : public ObjectBase
 {

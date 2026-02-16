@@ -14,7 +14,7 @@
 
 namespace Hyperion {
 
-enum ShaderModuleType : uint8;
+enum class ShaderModuleType : uint8;
 
 HYP_CLASS(NoScriptBindings)
 class DX12ShaderInstance final : public ShaderInstanceBase
@@ -29,7 +29,7 @@ class DX12ShaderInstance final : public ShaderInstanceBase
 
 public:
     DX12ShaderInstance();
-    explicit DX12ShaderInstance(const RC<CompiledShader>& compiledShader);
+    explicit DX12ShaderInstance(const Shader* shader);
     ~DX12ShaderInstance() override;
 
     ShaderBlob* GetShaderBlob(ShaderModuleType type)

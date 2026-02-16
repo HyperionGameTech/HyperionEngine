@@ -5,6 +5,8 @@
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/Shader.hpp>
 
+#include <rendering/util/ShaderCompiler.hpp>
+
 #include <ComputePipeline.generated.inl>
 
 namespace Hyperion {

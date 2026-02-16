@@ -23,6 +23,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/Buffers.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 

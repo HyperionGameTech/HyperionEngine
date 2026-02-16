@@ -2,6 +2,8 @@
 
 #include <DX12Pch.hpp>
 
+#include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 
@@ -29,9 +31,9 @@ bool DX12CommandBuffer::IsCreated() const
 
 RendererResult DX12CommandBuffer::Create()
 {
-    ID3D12Device* device = g_renderBackend->GetDevice();
+    ID3D12Device* device = g_renderInterface->GetDevice();
 
-    const DX12QueueData* queueData = g_renderBackend->GetQueueData(m_type);
+    const DX12QueueData* queueData = g_renderInterface->GetQueueData(m_type);
     Assert(queueData != nullptr);
 
     ID3D12CommandAllocator* allocator = queueData->commandAllocators[0].Get();

@@ -33,13 +33,20 @@ public:
     ~DX12TextureViewCache() override;
 
     const DX12GpuImageViewRef& GetOrCreate(
-        const Handle<Texture>& texture,
+        Texture* texture,
         uint32 mipIndex = 0,
         uint32 numMips = ~0u,
         uint32 layerIndex = 0,
         uint32 numLayers = ~0u) override;
 
-    const DX12GpuImageViewRef& GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource) override;
+    const DX12GpuImageViewRef& GetOrCreate(
+        Texture* texture,
+        const ImageSubResource& subResource) override;
+
+    const DX12GpuImageViewRef& GetOrCreate(
+        Texture* texture,
+        const ImageSubResource& subResource,
+        TextureType viewTextureType) override;
     
     void RemoveTexture(const Texture* texture) override;
     void CleanupUnusedTextures() override;

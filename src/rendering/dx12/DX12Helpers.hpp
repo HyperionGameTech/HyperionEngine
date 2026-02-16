@@ -7,8 +7,8 @@
 namespace Hyperion {
 
 enum ResourceState : uint8;
-enum TextureFormat : uint8;
-enum TextureType : uint8;
+enum class TextureFormat : uint8;
+enum class TextureType : uint8;
 enum FaceCullMode : uint8;
 enum Topology : uint8;
 enum BlendModeFactor : uint8;

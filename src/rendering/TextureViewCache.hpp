@@ -11,6 +11,8 @@ namespace Hyperion {
 class Texture;
 struct ImageSubResource;
 
+enum class TextureType : uint8;
+
 class TextureViewCacheBase
 {
 public:

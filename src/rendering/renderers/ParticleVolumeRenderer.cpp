@@ -35,8 +35,11 @@
 
 #include <core/math/MathUtil.hpp>
 
+// For IndirectDrawCommand
 #if HYP_VULKAN
 #include <rendering/vulkan/VulkanStructs.hpp>
+#elif HYP_DX12
+#include <rendering/dx12/DX12Structs.hpp>
 #endif
 
 namespace Hyperion {

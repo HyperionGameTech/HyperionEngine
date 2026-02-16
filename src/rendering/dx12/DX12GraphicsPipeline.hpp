@@ -23,7 +23,7 @@ class DX12GraphicsPipeline final : public GraphicsPipelineBase
 
 public:
     DX12GraphicsPipeline();
-    explicit DX12GraphicsPipeline(const DX12ShaderRef& shader);
+    explicit DX12GraphicsPipeline(const DX12ShaderInstanceRef& shaderInstance);
     ~DX12GraphicsPipeline() override;
 
     HYP_FORCE_INLINE ID3D12RootSignature* GetRootSignature() const

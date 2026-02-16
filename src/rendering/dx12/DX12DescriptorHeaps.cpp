@@ -3,6 +3,8 @@
 #include <DX12Pch.hpp>
 
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
+#include <rendering/dx12/DX12GpuBuffer.hpp>
+#include <rendering/dx12/DX12GpuImage.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 #include <rendering/dx12/DX12Frame.hpp>
 
@@ -47,10 +49,10 @@ DX12DescriptorAllocator::DX12DescriptorAllocator(DX12DescriptorHeapType type, ui
         HYP_UNREACHABLE();
     }
 
-    HRESULT res = g_renderBackend->GetDevice()->CreateDescriptorHeap(&heapDesc, __uuidof(ID3D12DescriptorHeap), &heap);
+    HRESULT res = g_renderInterface->GetDevice()->CreateDescriptorHeap(&heapDesc, __uuidof(ID3D12DescriptorHeap), &heap);
     Assert(SUCCEEDED(res), "Failed to create descriptor heap! Error code: {}", res);
     
-    incrementSize = g_renderBackend->GetDevice()->GetDescriptorHandleIncrementSize(heapDesc.Type);
+    incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(heapDesc.Type);
 
     cpuStart = heap->GetCPUDescriptorHandleForHeapStart();
 
@@ -112,7 +114,7 @@ DX12DescriptorHeapManager::DX12DescriptorHeapManager()
 
 void DX12DescriptorHeapManager::Initialize()
 {
-    ID3D12Device* device = g_renderBackend->GetDevice();
+    ID3D12Device* device = g_renderInterface->GetDevice();
 
     // placeholder
     static constexpr uint32 MaxDescriptorsByHeapType[MaxDescriptorHeapType] = {
@@ -139,7 +141,7 @@ void DX12DescriptorHeapManager::Shutdown()
 
 DX12DescriptorHandle DX12DescriptorHeapManager::Allocate(DX12DescriptorHeapType heapType, uint32 count)
 {
-    const DX12Frame* currentFrame = g_renderBackend->GetCurrentFrame();
+    const DX12Frame* currentFrame = g_renderInterface->GetCurrentFrame();
     const uint8 currentFrameIndex = currentFrame ? (uint8)currentFrame->GetFrameIndex() : 0;
 
     return m_descriptorAllocators[uint32(heapType)]->Allocate(currentFrameIndex, count);

@@ -34,7 +34,7 @@ DX12DescriptorSet::DX12DescriptorSet(const DescriptorSetLayout& layout)
         {
         case ShaderInputType::UNIFORM_BUFFER:
         case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
-        case ShaderInputType::SSBO:
+        case ShaderInputType::STORAGE_BUFFER:
         case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
             PrefillElements<DX12GpuBuffer>(name, element.count);
             break;
@@ -58,12 +58,12 @@ DX12DescriptorSet::~DX12DescriptorSet()
 {
     if (m_viewDescriptorHandle.IsValid())
     {
-        g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
+        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
     }
 
     if (m_samplerDescriptorHandle.IsValid())
     {
-        g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(m_samplerDescriptorHandle));
+        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::SAMPLER, std::move(m_samplerDescriptorHandle));
     }
 }
 
@@ -95,7 +95,7 @@ RendererResult DX12DescriptorSet::Create()
         {
         case ShaderInputType::UNIFORM_BUFFER:
         case ShaderInputType::UNIFORM_BUFFER_DYNAMIC:
-        case ShaderInputType::SSBO:
+        case ShaderInputType::STORAGE_BUFFER:
         case ShaderInputType::STORAGE_BUFFER_DYNAMIC:
         case ShaderInputType::IMAGE:
         case ShaderInputType::IMAGE_STORAGE:
@@ -114,7 +114,7 @@ RendererResult DX12DescriptorSet::Create()
 
     if (viewCount > 0)
     {
-        m_viewDescriptorHandle = g_renderBackend->descriptorHeapManager->Allocate(DX12DescriptorHeapType::CBV_SRV_UAV, viewCount);
+        m_viewDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::CBV_SRV_UAV, viewCount);
         
         if (!m_viewDescriptorHandle.IsValid())
         {
@@ -124,14 +124,14 @@ RendererResult DX12DescriptorSet::Create()
 
     if (samplerCount > 0)
     {
-        m_samplerDescriptorHandle = g_renderBackend->descriptorHeapManager->Allocate(DX12DescriptorHeapType::SAMPLER, samplerCount);
+        m_samplerDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::SAMPLER, samplerCount);
         
         if (!m_samplerDescriptorHandle.IsValid())
         {
             // Free already allocated views
             if (m_viewDescriptorHandle.IsValid())
             {
-                g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
+                g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::CBV_SRV_UAV, std::move(m_viewDescriptorHandle));
             }
 
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate {} sampler descriptors for descriptor set: {}", 0, samplerCount, m_layout.GetName());
@@ -402,7 +402,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetViewCpuHandle(uint32 binding) 
     Assert(it != m_viewBindingToHeapOffset.End(), "Binding {} not found in view binding map", binding);
 
     const uint32 offset = it->second;
-    const uint32 incrementSize = g_renderBackend->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    const uint32 incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_viewDescriptorHandle.cpuHandle;
     handle.ptr += incrementSize * offset;
@@ -416,7 +416,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorSet::GetSamplerCpuHandle(uint32 bindin
     Assert(it != m_samplerBindingToHeapOffset.End(), "Binding {} not found in sampler binding map", binding);
 
     const uint32 offset = it->second;
-    const uint32 incrementSize = g_renderBackend->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    const uint32 incrementSize = g_renderInterface->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_samplerDescriptorHandle.cpuHandle;
     handle.ptr += incrementSize * offset;

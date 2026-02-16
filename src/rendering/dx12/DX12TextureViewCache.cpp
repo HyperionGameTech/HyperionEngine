@@ -26,7 +26,7 @@ DX12TextureViewCache::~DX12TextureViewCache()
 }
 
 const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
-    const Handle<Texture>& texture,
+    Texture* texture,
     uint32 mipIndex,
     uint32 numMips,
     uint32 layerIndex,
@@ -44,18 +44,35 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
     return GetOrCreate(texture, subResource);
 }
 
-const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(const Handle<Texture>& texture, const ImageSubResource& subResource)
+const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
+    Texture* texture, const ImageSubResource& subResource)
+{
+    Assert(texture != nullptr);
+
+    DX12GpuImage* gpuImage = texture->GetGpuImage();
+    AssertDebug(gpuImage != nullptr);
+
+    const TextureDesc& textureDesc = gpuImage->GetTextureDesc();
+
+    // Create view to match texture type
+    return GetOrCreate(texture, subResource, textureDesc.type);
+}
+
+const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
+    Texture* texture,
+    const ImageSubResource& subResource,
+    TextureType textureType)
 {
     AssertOnThread(g_renderThread);
 
-    Assert(texture.IsValid());
+    Assert(texture != nullptr);
 
-    const SizeType idx = texture.Id().ToIndex();
+    const SizeType idx = texture->Id().ToIndex();
 
     if (!imageViews.HasIndex(idx))
     {
         imageViews.Emplace(idx);
-        weakTextureHandles.Emplace(idx, texture.ToWeak());
+        weakTextureHandles.Emplace(idx, MakeWeakRef(texture));
     }
 
     auto& textureImageViews = imageViews.Get(idx);
@@ -66,10 +83,7 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(const Handle<Textur
     {
         DX12GpuImageViewRef imageView = MakeHandle<DX12GpuImageView>(
             texture->GetGpuImage(),
-            subResource.baseMipLevel,
-            subResource.numLevels,
-            subResource.baseArrayLayer,
-            subResource.numLayers);
+            subResource);
 
         CheckResult(imageView->Create());
 

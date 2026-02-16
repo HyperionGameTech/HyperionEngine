@@ -24,8 +24,13 @@ DX12Framebuffer::DX12Framebuffer(const RenderTargetDesc& renderTargetDesc)
 
 DX12Framebuffer::~DX12Framebuffer()
 {
-    g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
-    g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
+    g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+    g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::DSV, std::move(m_dsvDescriptorHandle));
+
+    for (auto& it : m_attachments)
+    {
+        it.second->Release();
+    }
 
     m_attachments.Clear();
 }
@@ -45,8 +50,8 @@ RendererResult DX12Framebuffer::Create()
     // Initialize all attachments
     for (auto& it : m_attachments)
     {
-        DX12AttachmentRef& attachment = it.second;
-        Assert(attachment.IsValid());
+        DX12Attachment* attachment = it.second;
+        Assert(attachment != nullptr);
         
         // Ensure image is created
         DX12GpuImageRef image = attachment->GetImage();
@@ -87,7 +92,7 @@ RendererResult DX12Framebuffer::Create()
     // Allocate RTV/DSV descriptors
     if (numRTVs > 0)
     {
-        m_rtvDescriptorHandle = g_renderBackend->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, numRTVs);
+        m_rtvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, numRTVs);
         
         if (!m_rtvDescriptorHandle.IsValid())
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate RTV descriptors");
@@ -95,21 +100,21 @@ RendererResult DX12Framebuffer::Create()
 
     if (hasDepth)
     {
-        m_dsvDescriptorHandle = g_renderBackend->descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
+        m_dsvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::DSV, 1);
         
         if (!m_dsvDescriptorHandle.IsValid())
             return HYP_MAKE_ERROR(RendererError, "Failed to allocate DSV descriptors");
     }
 
     // Create Views
-    ID3D12Device* device = g_renderBackend->GetDevice();
+    ID3D12Device* device = g_renderInterface->GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     
     uint32 rtvIndex = 0;
 
     for (auto& it : m_attachments)
     {
-        DX12AttachmentRef& attachment = it.second;
+        DX12Attachment* attachment = it.second;
         DX12GpuImage* image = attachment->GetImage();
 
         if (attachment->IsDepthAttachment())
@@ -144,76 +149,31 @@ RendererResult DX12Framebuffer::Create()
     return {};
 }
 
-
-RendererResult DX12Framebuffer::Resize(Vec2u newSize)
+DX12Attachment* DX12Framebuffer::AddAttachment(DX12Attachment* attachment)
 {
-    if (GetExtent() == newSize)
+
+    auto it = m_attachments.Find(attachment->GetBinding());
+    if (it != m_attachments.End())
     {
-        return {};
+        it->second->Release();
+        it->second = attachment;
+    }
+    else
+    {
+        attachment->AddRef();
+        m_attachments[attachment->GetBinding()] = attachment;
     }
 
-    m_renderTargetDesc.extent = newSize;
-
-    if (!IsCreated())
-    {
-        return {};
-    }
-
-    // Resize all attachments
-    for (auto& it : m_attachments)
-    {
-        DX12AttachmentRef& attachment = it.second;
-        Assert(attachment.IsValid());
-
-        DX12GpuImageRef image = attachment->GetImage();
-        TextureDesc textureDesc = image->GetTextureDesc();
-        textureDesc.extent = Vec3u {
-            newSize.x,
-            newSize.y,
-            1
-        };
-
-        DX12GpuImageRef newImage = MakeHandle<DX12GpuImage>(textureDesc);
-        newImage->SetDebugName(image->GetDebugName());
-        CheckResultOrReturn(newImage->Create());
-
-        DX12AttachmentRef newAttachment = MakeHandle<DX12Attachment>(
-            newImage,
-            MakeWeakRef(this),
-            AttachmentDesc {
-                .imageType = newImage->GetTextureDesc().type,
-                .format = newImage->GetTextureDesc().format,
-                .loadOp = attachment->GetLoadOperation(),
-                .storeOp = attachment->GetStoreOperation(),
-                .blendFunction = BlendFunction::None(),
-                .clearColor = { }
-            });
-
-        newAttachment->SetBinding(attachment->GetBinding());
-        CheckResultOrReturn(newAttachment->Create());
-
-        it.second = newAttachment;
-
-        attachment.Reset();
-        image.Reset();
-    }
-
-    return {};
-}
-
-AttachmentRef DX12Framebuffer::AddAttachment(const AttachmentRef& attachment)
-{
-    // @TODO
     return attachment;
 }
 
-DX12AttachmentRef DX12Framebuffer::AddAttachment(
+DX12Attachment* DX12Framebuffer::AddAttachment(
     uint32 binding,
     const DX12GpuImageRef& image,
     LoadOperation loadOp,
     StoreOperation storeOp)
 {
-    DX12AttachmentRef attachment = MakeHandle<DX12Attachment>(
+    DX12Attachment* attachment = new DX12Attachment(
         image,
         MakeWeakRef(this),
         AttachmentDesc {
@@ -227,10 +187,21 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
 
     attachment->SetBinding(binding);
 
-    return AddAttachment(attachment);
+    auto it = m_attachments.Find(binding);
+    if (it != m_attachments.End())
+    {
+        it->second->Release();
+        it->second = attachment;
+    }
+    else
+    {
+        m_attachments[binding] = attachment;
+    }
+
+    return attachment;
 }
 
-DX12AttachmentRef DX12Framebuffer::AddAttachment(
+DX12Attachment* DX12Framebuffer::AddAttachment(
     uint32 binding,
     TextureFormat format,
     TextureType type,
@@ -249,7 +220,7 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
 
     DX12GpuImageRef image = MakeHandle<DX12GpuImage>(textureDesc);
 
-    DX12AttachmentRef attachment = MakeHandle<DX12Attachment>(
+    DX12Attachment* attachment = new DX12Attachment(
         image,
         MakeWeakRef(this),
         AttachmentDesc {
@@ -263,7 +234,18 @@ DX12AttachmentRef DX12Framebuffer::AddAttachment(
 
     attachment->SetBinding(binding);
 
-    return AddAttachment(attachment);
+    auto it = m_attachments.Find(binding);
+    if (it != m_attachments.End())
+    {
+        it->second->Release();
+        it->second = attachment;
+    }
+    else
+    {
+        m_attachments[binding] = attachment;
+    }
+
+    return attachment;
 }
 
 bool DX12Framebuffer::RemoveAttachment(uint32 binding)
@@ -274,6 +256,8 @@ bool DX12Framebuffer::RemoveAttachment(uint32 binding)
     {
         return false;
     }
+
+    it->second->Release();
 
     m_attachments.Erase(it);
 

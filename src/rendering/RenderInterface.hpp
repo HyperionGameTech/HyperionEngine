@@ -6,7 +6,6 @@
 
 #include <core/reflection/Handle.hpp>
 
-#include <rendering/Buffers.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/GpuBuffer.hpp>
@@ -53,6 +52,7 @@ class Texture;
 class ApplicationWindow;
 class SingleTimeCommands;
 struct Shader;
+class GpuBufferHolderBase;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;

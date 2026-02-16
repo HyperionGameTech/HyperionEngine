@@ -26,6 +26,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/Buffers.hpp> // For RayTracingConstants
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>

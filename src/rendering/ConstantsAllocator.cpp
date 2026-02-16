@@ -11,6 +11,16 @@ namespace Hyperion {
 
 static constexpr SizeType ConstantBufferSize = 65536;
 
+
+struct ConstantAllocatorBlock
+{
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
+    GpuBuffer buffer { GpuBufferType::CONSTANT_BUFFER, ConstantBufferSize, 256 };
+    uint32 frameCounter = uint32(-1); // last used frame
+    uint32 offset = 0;
+};
+
 ConstantsAllocator::ConstantsAllocator()
 {
 }
@@ -101,11 +111,11 @@ void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& o
 
         const SizeType offset = lastBlock->offset;
 
-        if (offset + size <= lastBlock->size)
+        if (offset + size <= ConstantBufferSize)
         {
-            void* ptr = (void*)(reinterpret_cast<uintptr_t>(lastBlock->buffer->Map()) + offset);
+            void* ptr = (void*)(reinterpret_cast<UIntPtr>(lastBlock->buffer.Map()) + offset);
 
-            outBuffer = lastBlock->buffer;
+            outBuffer = &lastBlock->buffer;
             outStartOffset = lastBlock->offset;
 
             lastBlock->offset = offset + size;
@@ -120,12 +130,12 @@ void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& o
     if (!newBlock)
         newBlock = NewBlock(currentFrameCounter);
 
-    Assert(size <= newBlock->size);
+    Assert(size <= ConstantBufferSize);
     
-    outBuffer = newBlock->buffer;
+    outBuffer = &newBlock->buffer;
     outStartOffset = newBlock->offset;
 
-    void* ptr = newBlock->buffer->Map();
+    void* ptr = newBlock->buffer.Map();
 
     newBlock->offset += size;
 
@@ -135,15 +145,9 @@ void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& o
 ConstantsAllocator::Block* ConstantsAllocator::NewBlock(uint32 currentFrameCounter)
 {
     Block* newBlock = new Block;
+    Assert(newBlock->buffer.Create());
 
-    GpuBufferRef buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, ConstantBufferSize, 256);
-    Assert(buffer != nullptr);
-
-    Assert(buffer->Create());
-
-    newBlock->buffer = std::move(buffer);
     newBlock->frameCounter = currentFrameCounter;
-    newBlock->size = ConstantBufferSize;
     newBlock->offset = 0;
 
     m_currentFrameBlocks.PushBack(newBlock);

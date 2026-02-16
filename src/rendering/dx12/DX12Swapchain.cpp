@@ -26,7 +26,7 @@ DX12Swapchain::~DX12Swapchain()
 {
     if (m_rtvDescriptorHandle.IsValid())
     {
-        g_renderBackend->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
+        g_renderInterface->descriptorHeapManager->Free(DX12DescriptorHeapType::RTV, std::move(m_rtvDescriptorHandle));
     }
 
     for (ID3D12Resource* backBuffer : m_backBuffers)
@@ -48,12 +48,12 @@ RendererResult DX12Swapchain::Create()
         return {};
     }
 
-    ID3D12Device* device = g_renderBackend->GetDevice();
+    ID3D12Device* device = g_renderInterface->GetDevice();
 
-    const DX12QueueData* queueData = g_renderBackend->GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
+    const DX12QueueData* queueData = g_renderInterface->GetQueueData(D3D12_COMMAND_LIST_TYPE_DIRECT);
     Assert(queueData != nullptr);
 
-    ComPtr<IDXGIFactory4> factory = g_renderBackend->dxgiFactory;
+    ComPtr<IDXGIFactory4> factory = g_renderInterface->dxgiFactory;
     Assert(factory != nullptr);
 
     // Check tearing support
@@ -101,7 +101,7 @@ RendererResult DX12Swapchain::Create()
     m_currentBackBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
 
     // Allocate RTV descriptors
-    m_rtvDescriptorHandle = g_renderBackend->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, swapChainDesc.BufferCount);
+    m_rtvDescriptorHandle = g_renderInterface->descriptorHeapManager->Allocate(DX12DescriptorHeapType::RTV, swapChainDesc.BufferCount);
     if (!m_rtvDescriptorHandle.IsValid())
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to allocate RTV descriptors for swapchain");
@@ -168,7 +168,7 @@ void DX12Swapchain::Recreate()
 
     // Re-create RTVs
     // We can reuse the existing allocation since count didn't change
-    ID3D12Device* device = g_renderBackend->GetDevice();
+    ID3D12Device* device = g_renderInterface->GetDevice();
     const uint32 rtvIncrement = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvDescriptorHandle.cpuHandle;
 
