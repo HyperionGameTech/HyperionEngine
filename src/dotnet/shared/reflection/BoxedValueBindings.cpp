@@ -15,8 +15,6 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-
 using namespace Hyperion;
 
 extern "C"

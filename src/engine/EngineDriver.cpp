@@ -429,9 +429,9 @@ void EngineDriver::UpdateSim(float delta)
     const uint32 slot = GetRingIndex();
     const uint32 frameCounter = GetFrameCounter();
 
-    Array<Scene*, SceneAllocator> scenes;
-    Array<View*, SceneAllocator> views;
-    Array<Subsystem*, SceneAllocator> subsystems;
+    Array<Scene*, SceneTempAllocator> scenes;
+    Array<View*, SceneTempAllocator> views;
+    Array<Subsystem*, SceneTempAllocator> subsystems;
 
     TaskBatch worldUpdateTaskBatch;
     TaskBatch* currBatch = &worldUpdateTaskBatch;

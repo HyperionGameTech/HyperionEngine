@@ -462,7 +462,7 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
     Array<BoxedValue, DynamicAllocator> resultArray;
 
-    auto serializeEntityAndComponents = [this, entityManager, &resultArray]()
+    auto SerializeEntityAndComponents = [this, entityManager, &resultArray]()
     {
         Optional<const TypeMap<ComponentId>&> allComponents = entityManager->GetAllComponents(this);
 
@@ -506,17 +506,6 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
                 continue;
             }
 
-            HYP_NAMED_SCOPE_FMT("Serializing component '{}'", componentInterface->GetTypeInfo().name);
-
-            FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(componentTypeId);
-
-            if (!marshal)
-            {
-                HYP_LOG(Serialization, Warning, "Cannot serialize component {} - No marshal registered", componentInterface->GetTypeInfo().name);
-
-                continue;
-            }
-
             resultArray.PushBack(BoxedValue(entityManager->TryGetComponent(componentTypeId, this)));
             serializedComponents.Insert(componentTypeId);
         }
@@ -524,15 +513,15 @@ Array<BoxedValue, DynamicAllocator> Entity::SerializeComponents() const
 
     if (IsOnThread(entityManager->GetOwnerThreadId()))
     {
-        serializeEntityAndComponents();
+        SerializeEntityAndComponents();
     }
     else
     {
         HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-        Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serializeEntityAndComponents]()
+        Task<void> serializeEntityAndComponentsTask = GetThreadById(entityManager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&SerializeEntityAndComponents]()
             {
-                serializeEntityAndComponents();
+                SerializeEntityAndComponents();
             });
 
         serializeEntityAndComponentsTask.Await();

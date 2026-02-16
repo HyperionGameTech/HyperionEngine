@@ -40,9 +40,6 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-
 #include <util/MeshBuilder.hpp>
 
 #include <input/InputManager.hpp>

@@ -309,7 +309,7 @@ Texture::Texture(const TextureDesc& textureDesc, ConstByteView imageData)
     : AssetObject(s_nameTextureDefault),
       m_textureDesc(textureDesc)
 {
-    AllocateBlobData(m_imageData, imageData);
+    AllocateBlobData(m_imageData, imageData.Data(), imageData.Size(), 1);
 }
 
 Texture::~Texture()
@@ -355,7 +355,7 @@ Result Texture::Rename(Name name)
 void Texture::SetImageData(ConstByteView imageData)
 {
     FreeBlobData(m_imageData);
-    AllocateBlobData(m_imageData, imageData);
+    AllocateBlobData(m_imageData, imageData.Data(), imageData.Size(), 1);
 
     MarkDirty();
 }
@@ -381,7 +381,7 @@ void Texture::PageBlobData()
             {
                 ByteBuffer buffer = stream.Read(stream.Max());
 
-                AllocateBlobData<ubyte>(m_imageData, buffer.ToByteView());
+                AllocateBlobData(m_imageData, buffer.Data(), buffer.Size(), 1);
 
                 MarkDirty();
 

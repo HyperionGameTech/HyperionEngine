@@ -315,8 +315,8 @@ public:
     }
 };
 
-#define DECLARE_RENDER_DATA_CONTAINER(resourceType, proxyType, ...)                                             \
-    static ResourceContainerFactory<class resourceType, class proxyType> g_##resourceType##_container_factory { \
+#define DECLARE_RENDER_DATA_CONTAINER(ResourceType, ProxyType, ...)                                             \
+    static ResourceContainerFactory<class ResourceType, class ProxyType> g_##ResourceType##ContainerFactory {   \
         __VA_ARGS__                                                                                             \
     };
 

@@ -61,7 +61,7 @@ void AnimationTrack::PageBlobData()
             {
                 ByteBuffer buffer = stream.Read(stream.Max());
 
-                AllocateBlobData<ubyte>(m_keyframeData, buffer.ToByteView());
+                AllocateBlobData(m_keyframeData, buffer.Data(), buffer.Size(), alignof(Keyframe));
 
                 MarkDirty();
 
@@ -101,7 +101,7 @@ float AnimationTrack::GetLength() const
 void AnimationTrack::SetKeyframes(Span<const Keyframe> keyframes)
 {
     FreeBlobData(m_keyframeData);
-    AllocateBlobData<Keyframe>(m_keyframeData, keyframes);
+    AllocateBlobData(m_keyframeData, keyframes.Data(), sizeof(Keyframe) * keyframes.Size());
 }
 
 Keyframe AnimationTrack::GetKeyframe(float time) const

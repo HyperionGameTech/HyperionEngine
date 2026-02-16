@@ -142,22 +142,6 @@ void AssetObject::SetPersistentRequested(
 
         m_flags[AssetObjectFlags::Persistent] = persistentlyLoaded;
     }
-
-#if 0
-    if (persistentlyLoaded)
-    {
-        SetBlobDataResident(true);
-
-        return;
-    }
-
-    // if transient, we need to keep it in memory.
-    // we also keep it in memory if `setFlag` was false and the PERSISTENT flag is set (it overrides it)
-    if (!persistentlyLoaded && !m_flags[AssetObjectFlags::Persistent] && !IsTransient())
-    {
-        SetBlobDataResident(false);
-    }
-#endif
 }
 
 void AssetObject::SetIsTransient(bool isTransient)
@@ -463,6 +447,38 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
     return {};
 }
 
+void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inData, SizeType count, SizeType alignment)
+{
+    Assert(reference.raw == nullptr || reference.readOnly);
+
+    reference = BlobDataReference {};
+
+    if (count != 0)
+    {
+        reference.raw = HYP_ALLOC_ALIGNED(count, alignment);
+        Assert(reference.raw != nullptr);
+
+        if (inData != nullptr)
+        {
+            Memory::Copy(reference.raw, inData, count);
+        }
+
+        reference.size = count;
+        reference.readOnly = false;
+    }
+}
+
+void AssetObject::FreeBlobData(BlobDataReference& reference)
+{
+    if (reference.raw == nullptr || reference.readOnly)
+    {
+        return;
+    }
+
+    HYP_FREE_ALIGNED(reference.raw);
+    reference.raw = nullptr;
+}
+
 void AssetObject::SetBlobDataResident(bool resident)
 {
     Array<Tuple<const char*, uint16, BlobDataReference*>> tuples;
@@ -488,8 +504,7 @@ void AssetObject::SetBlobDataResident(bool resident, BlobDataReference& referenc
         {
             Assert(reference.raw != nullptr);
 
-            // @TODO align by 16
-            AllocateBlobData<ubyte>(reference, Span<const ubyte>((const ubyte*)reference.raw, reference.size));
+            AllocateBlobData(reference, reference.raw, reference.size, 16);
         }
     }
     else

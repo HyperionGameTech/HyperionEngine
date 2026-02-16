@@ -223,42 +223,15 @@ protected:
     {
     }
 
-    template <class T>
-    void AllocateBlobData(BlobDataReference& reference, Span<const T> inData)
-    {
-        Assert(reference.raw == nullptr || reference.readOnly);
+    void AllocateBlobData(BlobDataReference& reference, const void* inData, SizeType count, SizeType alignment = 16);
+    void FreeBlobData(BlobDataReference& reference);
 
-        reference = BlobDataReference {};
-
-        if (inData.Size() > 0)
-        {
-            reference.raw = HYP_ALLOC_ALIGNED(sizeof(T) * inData.Size(), alignof(T));
-            Assert(reference.raw != nullptr);
-
-            Memory::Copy(reference.raw, inData.Data(), sizeof(T) * inData.Size());
-
-            reference.size = sizeof(T) * inData.Size();
-            reference.readOnly = false;
-        }
-    }
-
-    void FreeBlobData(BlobDataReference& reference)
-    {
-        if (reference.raw == nullptr || reference.readOnly)
-        {
-            return;
-        }
-
-        HYP_FREE_ALIGNED(reference.raw);
-        reference.raw = nullptr;
-    }
+    void SetBlobDataResident(bool resident);
+    void SetBlobDataResident(bool resident, BlobDataReference& reference);
 
     virtual void CollectBlobDataReferences(Array<Tuple<const char*, uint16, BlobDataReference*>>& outReferences)
     {
     }
-
-    void SetBlobDataResident(bool resident);
-    void SetBlobDataResident(bool resident, BlobDataReference& reference);
 
     Result SaveManifest(ByteWriter& stream) const;
 

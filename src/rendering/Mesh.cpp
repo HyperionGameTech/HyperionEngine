@@ -158,8 +158,8 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
     m_meshDesc.numVertices = uint32(vertexData.Size());
     m_meshDesc.numIndices = uint32(indexData.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
 
-    AllocateBlobData(m_vertexData, vertexData.ToSpan());
-    AllocateBlobData(m_indexData, indexData.ToByteView());
+    AllocateBlobData(m_vertexData, vertexData.Data(), sizeof(Vertex) * vertexData.Size(), alignof(Vertex));
+    AllocateBlobData(m_indexData, indexData.Data(), indexData.Size(), alignof(uint32));
 
     m_aabb = CalculateAABB();
 }
@@ -194,7 +194,7 @@ void Mesh::SetVertexData(Span<const Vertex> vertexData)
     Assert(AtomicAdd(&m_rwState, 0) & 0x1);
 
     FreeBlobData(m_vertexData);
-    AllocateBlobData(m_vertexData, vertexData);
+    AllocateBlobData(m_vertexData, vertexData.Data(), sizeof(Vertex) * vertexData.Size(), alignof(Vertex));
 
     MarkDirty();
 }
@@ -204,7 +204,7 @@ void Mesh::SetIndexData(Span<const ubyte> indexData)
     Assert(AtomicAdd(&m_rwState, 0) & 0x1);
 
     FreeBlobData(m_indexData);
-    AllocateBlobData(m_indexData, indexData);
+    AllocateBlobData(m_indexData, indexData.Data(), indexData.Size(), alignof(uint32));
     
     MarkDirty();
 }
@@ -232,7 +232,7 @@ void Mesh::PageBlobData()
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());
 
-                    AllocateBlobData<ubyte>(m_vertexData, buffer.ToByteView());
+                    AllocateBlobData(m_vertexData, buffer.Data(), buffer.Size(), alignof(Vertex));
 
                     MarkDirty();
 
@@ -263,7 +263,7 @@ void Mesh::PageBlobData()
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());
 
-                    AllocateBlobData<ubyte>(m_indexData, buffer.ToByteView());
+                    AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
 
                     MarkDirty();
 
@@ -485,8 +485,8 @@ void Mesh::SetMeshData(
     FreeBlobData(m_vertexData);
     FreeBlobData(m_indexData);
 
-    AllocateBlobData(m_vertexData, vertices);
-    AllocateBlobData(m_indexData, indices);
+    AllocateBlobData(m_vertexData, vertices.Data(), sizeof(Vertex) * vertices.Size(), alignof(Vertex));
+    AllocateBlobData(m_indexData, indices.Data(), indices.Size(), alignof(uint32));
 
     m_meshDesc = meshDesc;
     

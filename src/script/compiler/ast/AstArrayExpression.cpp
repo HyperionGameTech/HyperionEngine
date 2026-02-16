@@ -21,10 +21,6 @@
 
 #include <script/Instructions.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-
 #include <core/reflection/BoxedValue.hpp>
 
 #include <core/debug/Debug.hpp>
