@@ -1018,7 +1018,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             const BVHNode* bvh = nullptr;
             Mat4f modelMatrix = Mat4f::Identity();
 
-            if (flags & RTF_USE_BVH)
+            if (flags & RayTestFlags::TestBVH)
             {
                 if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh.IsValid())
                 {
@@ -1029,7 +1029,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                         bvh = &meshComponent->mesh->GetBVH();
 
 #ifdef HYP_EDITOR
-                        if (flags & RTF_EDITOR_PICK)
+                        if (flags & RayTestFlags::EditorPick)
                         {
                             pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
                         }
@@ -1053,7 +1053,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                 const Ray localSpaceRay = modelMatrix.Inverse() * ray;
 
 #ifdef HYP_EDITOR
-                if ((flags & RTF_EDITOR_PICK) && pickCacheEntry)
+                if ((flags & RayTestFlags::EditorPick) && pickCacheEntry)
                 {
                     localBvhResults = bvh->TestRay(
                         localSpaceRay,

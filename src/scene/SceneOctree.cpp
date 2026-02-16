@@ -999,7 +999,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
             RayTestResults aabbResult;
 
-            if (flags & RTF_USE_BVH)
+            if (flags & RayTestFlags::TestBVH)
             {
                 // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
                 if (MeshComponent* meshComponent = m_entityManager->TryGetComponent<MeshComponent>(entry.value);
@@ -1016,7 +1016,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 #ifdef HYP_EDITOR
                     bool usedPickCache = false;
 
-                    if (flags & RTF_EDITOR_PICK)
+                    if (flags & RayTestFlags::EditorPick)
                     {
                         auto* pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
 

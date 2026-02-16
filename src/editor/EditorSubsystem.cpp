@@ -1721,7 +1721,7 @@ void EditorSubsystem::InitViewport()
                 bool hasHits = false;
                 for (const Handle<EditorViewport>& vp : m_editorViewports)
                 {
-                    if (vp->GetView()->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
+                    if (vp->GetView()->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
                     {
                         hasHits = true;
                     }
@@ -1830,7 +1830,7 @@ void EditorSubsystem::InitViewport()
                 EditorGizmoBase* gizmo = GetSelectedGizmo();
                 bool hitGizmo = false;
 
-                if (gizmo && gizmo->GetNode()->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
+                if (gizmo && gizmo->GetNode()->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
                 {
                     for (const RayHit& rayHit : results)
                     {
@@ -1889,7 +1889,7 @@ void EditorSubsystem::InitViewport()
 
                     RayTestResults results;
 
-                    if (node->TestRay(ray, results, RTF_USE_BVH | RTF_EDITOR_PICK))
+                    if (node->TestRay(ray, results, RayTestFlags::TestBVH | RayTestFlags::EditorPick))
                     {
                         for (const RayHit& rayHit : results)
                         {
@@ -3147,7 +3147,7 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
     }
 
     // raytest using scene's octree
-    if ((activeScene->GetSceneFlags() & SceneFlags::HAS_OCTREE) && activeScene->GetOctree().TestRay(ray, results, RTF_USE_BVH))
+    if ((activeScene->GetSceneFlags() & SceneFlags::HAS_OCTREE) && activeScene->GetOctree().TestRay(ray, results, RayTestFlags::TestBVH))
     {
         const RayHit& closestHit = results.Front();
 

@@ -29,14 +29,14 @@ class Mat4f;
 using RayHitID = uint32;
 
 HYP_ENUM()
-enum RayTestFlags : uint32
+enum class RayTestFlags : uint32
 {
-    RTF_NONE = 0x0,
+    None = 0x0,
 
-    RTF_USE_BVH = 0x1,
-    RTF_EDITOR_PICK = 0x2,
+    TestBVH = 0x1,
+    EditorPick = 0x2,
 
-    RTF_MAX = 0xFFFFFFFFu
+    Max = 0xFFFFFFFFu
 };
 
 HYP_MAKE_ENUM_FLAGS(RayTestFlags)
