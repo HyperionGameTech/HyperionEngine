@@ -1,9 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include "threading/Threads.hpp"
 #include <SystemPch.hpp>
 
 #include <system/AppContext.hpp>
+
+#include <system/commandlet/Commandlet.hpp>
+
 #include <input/Event.hpp>
 
 #include <core/cli/CommandLine.hpp>
@@ -16,7 +18,6 @@
 #include <rendering/Device.hpp>
 
 #if HYP_VULKAN
-
 #include <vulkan/vulkan.h>
 
 #if defined(HYP_WINDOWS)
@@ -28,7 +29,7 @@
 #endif
 
 #include <rendering/vulkan/VulkanInstance.hpp>
-#endif
+#endif // HYP_VULKAN
 
 #include <rendering/Swapchain.hpp>
 
@@ -42,7 +43,7 @@
 #if HYP_SDL
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
-#endif
+#endif // HYP_SDL
 
 #include <AppContext.generated.inl>
 
@@ -258,6 +259,31 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
 
         m_windows.Erase(it);
     }
+}
+
+Result AppContextBase::RunCommandlet(Name commandletName, const CommandLineArguments& args)
+{
+    AssertOnThread(g_mainThread);
+
+    const Class* commandletClass = GetClass(commandletName);
+
+    if (!commandletClass
+        || !commandletClass->IsDerivedFrom(CommandletBase::StaticClass())
+        || commandletClass->IsAbstract())
+    {
+        return HYP_MAKE_ERROR(Error, "'{}' is not a valid commandlet class", commandletName);
+    }
+
+    BoxedValue boxed;
+    if (!commandletClass->CreateInstance(boxed))
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to create an instance of '{}'", commandletClass->GetName());
+    }
+
+    Handle<CommandletBase>& commandlet = boxed.Get<Handle<CommandletBase>>();
+    Assert(commandlet.IsValid());
+
+    return commandlet->Run(args);
 }
 
 #pragma endregion AppContextBase

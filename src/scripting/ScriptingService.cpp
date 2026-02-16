@@ -176,7 +176,12 @@ ScriptingService::ScriptingService(const FilePath& watchDirectory, const FilePat
 
 ScriptingService::~ScriptingService()
 {
-    HYP_BREAKPOINT;
+    if (m_thread != nullptr)
+    {
+        Stop();
+
+        m_thread.Reset();
+    }
 }
 
 void ScriptingService::Start()

@@ -1,14 +1,8 @@
 #include <editor/HyperionEditor.hpp>
 
-#include <system/App.hpp>
-
 #include <core/logging/Logger.hpp>
 
-// temp
-#include <core/json/JSON.hpp>
-
 #include <HyperionEngine.hpp>
-#include <engine/EngineDriver.hpp>
 
 #include <game/DefaultGame.hpp>
 

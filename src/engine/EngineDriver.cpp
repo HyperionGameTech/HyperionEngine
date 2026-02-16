@@ -68,7 +68,6 @@
 #include <input/Event.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/App.hpp>
 
 #include <scripting/ScriptingService.hpp>
 
@@ -689,13 +688,5 @@ void EngineDriver::UpdateSim(float delta)
 }
 
 #pragma endregion EngineDriver
-
-static struct GlobalDescriptorSetsDeclarations
-{
-    GlobalDescriptorSetsDeclarations()
-    {
-#include <rendering/inl/DescriptorSets.inl>
-    }
-} s_globalDescriptorSetsDeclarations;
 
 } // namespace Hyperion

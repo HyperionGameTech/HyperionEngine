@@ -88,6 +88,7 @@ const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
             definitions.Add("Headless", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Detached", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
             definitions.Add("Editor", {}, {}, CommandLineArgumentFlags::NONE, CommandLineArgumentType::BOOLEAN, false);
+            definitions.Add("Commandlet", "c", "Execute the commandlet with the given name immediately following -Commandlet. The program will end immediately after running the commandlet and return 0 upon success or otherwise on failure", CommandLineArgumentFlags::NONE, CommandLineArgumentType::STRING);
 
             definitions.Add("RenderOnMainThread",
                 {},

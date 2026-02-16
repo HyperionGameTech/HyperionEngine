@@ -250,6 +250,9 @@ public:
     HYP_METHOD()
     void RemoveWindow(ApplicationWindow* window);
 
+    HYP_METHOD()
+    Result RunCommandlet(Name commandletName, const CommandLineArguments& args);
+
     virtual int PollEvents(Event& event) = 0;
 
     HYP_FIELD()

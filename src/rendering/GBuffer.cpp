@@ -11,7 +11,6 @@
 
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <system/App.hpp>
 #include <system/AppContext.hpp>
 
 #include <core/threading/Threads.hpp>

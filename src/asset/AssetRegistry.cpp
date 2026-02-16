@@ -1860,6 +1860,12 @@ AssetRegistry::~AssetRegistry()
         m_pruneTaskBatch = nullptr;
     }
 
+    if (m_blobStorage != nullptr)
+    {
+        m_blobStorage->Release();
+        m_blobStorage = nullptr;
+    }
+
     delete m_scheduler;
 }
 

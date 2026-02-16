@@ -226,6 +226,11 @@ void RenderThread::operator()()
     }
 
     m_isRunning.Set(false, MemoryOrder::RELEASE);
+    
+    CheckResult(g_renderInterface->Shutdown());
+
+    delete g_renderInterface;
+    g_renderInterface = nullptr;
 }
 
 } // namespace Hyperion

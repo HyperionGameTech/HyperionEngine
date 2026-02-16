@@ -17,6 +17,7 @@ namespace Hyperion {
 
 class EngineStatsRecorder;
 struct EngineStatsSnapshot;
+class EngineStatGroup;
 
 static constexpr uint32 EngineStatsNumSamples = 1000;
 static constexpr uint32 EngineStatsMinSamples = 10;
@@ -53,12 +54,13 @@ protected:
     EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing);
 
 public:
-    virtual ~EngineStatBase() = default;
-
     int id;
     Name name;
     EngineStatType type;
     EngineStatThreadType threadType;
+    bool isHeapAllocated;
+
+    virtual ~EngineStatBase() = default;
 
     virtual double GetValue() const
     {

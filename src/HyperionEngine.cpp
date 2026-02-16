@@ -33,7 +33,6 @@
 #include <engine/console/ConsoleCommandManager.hpp>
 
 #include <system/MessageBox.hpp>
-#include <system/App.hpp>
 #include <system/AppContext.hpp>
 
 #include <streaming/StreamingManager.hpp>
@@ -276,10 +275,12 @@ extern "C"
 
         InitLogger();
 
-        const FilePath basePath = FilePath(CoreApi::GetCommandLineArguments().GetCommand()).BasePath();
-        CoreApi::SetExecutablePath(basePath);
+        const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
 
-        const bool isEditor = CoreApi::GetCommandLineArguments()["Editor"].ToBool();
+        const FilePath basePath = FilePath(cliArgs.GetCommand()).BasePath();
+        CoreApi::SetExecutablePath(basePath);
+        
+        const bool isEditor = cliArgs["Editor"].ToBool();
 
 #if HYP_DOTNET
         // dont initialize hostfxr if running from editor,
@@ -325,8 +326,6 @@ extern "C"
 
         ComponentInterfaceRegistry::GetInstance().Initialize();
 
-        const CommandLineArguments& cliArgs = CoreApi::GetCommandLineArguments();
-
 #if HYP_WINDOWS
         g_appContext = MakeHandle<Win32AppContext>("Hyperion", cliArgs);
 #elif HYP_MACOS
@@ -337,11 +336,13 @@ extern "C"
         HYP_FAIL("AppContext not implemented for this platform");
 #endif
 
+        const bool isCommandlet = cliArgs["Commandlet"].ToBool();
+
         Vec2i resolution = { 1280, 720 };
 
         EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI | WindowFlags::EVENTS_POLLING;
 
-        if (cliArgs["Headless"].ToBool())
+        if (cliArgs["Headless"].ToBool() || isCommandlet)
         {
             windowFlags |= WindowFlags::HEADLESS;
         }
@@ -368,6 +369,35 @@ extern "C"
         }
 
         InitObject(g_engineDriver);
+        
+        if (isCommandlet)
+        {
+            const String commandletName = cliArgs["Commandlet"].ToString();
+
+            CommandLineArguments commandletArgs = CommandLineArguments::Merge(
+                CoreApi::DefaultCommandLineArgumentDefinitions(),
+                CommandLineArguments { commandletName },
+                cliArgs);
+
+            commandletArgs.Delete("Commandlet");
+
+            Result commandletResult = g_appContext->RunCommandlet(
+                CreateNameFromDynamicString(commandletName),
+                commandletArgs);
+
+            if (commandletResult.HasError())
+            {
+                HYP_LOG(Engine, Error, "Commandlet execution failed! {}", commandletResult.GetError().GetMessage());
+            }
+
+            ThreadSleep(1000);
+
+            Hyp_Shutdown();
+
+            std::exit(commandletResult.HasError() ? 1 : 0);
+
+            return 0;
+        }
 
         return 1;
     }
@@ -391,8 +421,6 @@ extern "C"
         g_renderThread = g_mainThread;
 
         g_engineDriver->FinalizeStop();
-
-        CheckResult(g_renderInterface->Shutdown());
 
 #if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
@@ -431,6 +459,8 @@ extern "C"
         g_materialCache = nullptr;
 
         g_engineDriver.Reset();
+        g_logger.Reset();
+        g_appContext.Reset();
 
         delete g_sceneArena;
         g_sceneArena = nullptr;

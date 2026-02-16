@@ -301,14 +301,7 @@ CommandLineArgumentDefinition* CommandLineArgumentDefinitions::Find(UTF8StringVi
         return nullptr;
     }
 
-    auto it = m_impl->Find(key);
-
-    if (it == m_impl->End())
-    {
-        return nullptr;
-    }
-
-    return &(*it);
+    return m_impl->Find(key);
 }
 
 CommandLineArgumentDefinitions& CommandLineArgumentDefinitions::Add(
@@ -504,7 +497,7 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command, co
             return HYP_MAKE_ERROR(Error, "Invalid argument");
         }
 
-        const auto it = m_definitions->Find(arg);
+        auto it = m_definitions->Find(arg);
 
         if (it == m_definitions->End())
         {

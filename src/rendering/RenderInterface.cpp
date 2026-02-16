@@ -2109,6 +2109,14 @@ DECLARE_RENDER_DATA_CONTAINER(Texture, NullProxy, GRB_INVALID, nullptr, &s_textu
 
 DECLARE_RENDER_DATA_CONTAINER(Skeleton, RenderProxySkeleton, GRB_SKELETONS, nullptr, &s_skeletonBinder);
 
+static struct GlobalDescriptorSetsDeclarations
+{
+    GlobalDescriptorSetsDeclarations()
+    {
+#include <rendering/inl/DescriptorSets.inl>
+    }
+} s_globalDescriptorSetsDeclarations;
+
 } // namespace
 
 } // namespace Hyperion

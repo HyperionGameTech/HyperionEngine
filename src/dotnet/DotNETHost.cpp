@@ -21,7 +21,6 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #include <system/AppContext.hpp>
-#include <system/App.hpp>
 
 #include <dotnet/ManagedClass.hpp>
 

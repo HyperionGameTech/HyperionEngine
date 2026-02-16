@@ -129,6 +129,8 @@ static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView pa
             EngineStatGroup* newGroup = new EngineStatGroup(curr, true);
             currentGroup->stats.PushBack(newGroup);
             currentGroup = newGroup;
+
+            newGroup->isHeapAllocated = true;
         }
         else if (foundStat->type == EST_GROUP)
         {
@@ -189,7 +191,12 @@ EngineStats::EngineStats()
 
 EngineStats::~EngineStats()
 {
+    Assert(g_statPool != nullptr);
+
     delete root;
+    root = nullptr;
+
+    m_impl.Reset();
 
     // destroy pool
     delete g_statPool;
@@ -501,7 +508,8 @@ EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineS
 EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineStatThreadType threadType, bool skipPathParsing)
     : id(-1),
       type(type),
-      threadType(threadType)
+      threadType(threadType),
+      isHeapAllocated(false)
 {
     if (skipPathParsing)
     {
@@ -514,10 +522,16 @@ EngineStatBase::EngineStatBase(EngineStatType type, UTF8StringView path, EngineS
 
 EngineStatGroup::~EngineStatGroup()
 {
-    for (EngineStatBase* stat : stats)
+    for (EngineStatBase*& stat : stats)
     {
-        delete stat;
+        if (stat->isHeapAllocated)
+        {
+            delete stat;
+            stat = nullptr;
+        }
     }
+
+    stats.Clear();
 }
 
 #pragma endregion EngineStatBase

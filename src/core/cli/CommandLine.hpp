@@ -151,6 +151,11 @@ public:
         return m_command;
     }
 
+    HYP_FORCE_INLINE Array<Pair<String, CommandLineArgumentValue>>& GetValues()
+    {
+        return m_values;
+    }
+
     HYP_FORCE_INLINE const Array<Pair<String, CommandLineArgumentValue>>& GetValues() const
     {
         return m_values;
@@ -180,6 +185,19 @@ public:
     HYP_FORCE_INLINE bool Contains(UTF8StringView key) const
     {
         return Find(key) != m_values.End();
+    }
+
+    bool Delete(UTF8StringView key)
+    {
+        const auto it = Find(key);
+        if (it == m_values.End())
+        {
+            return false;
+        }
+
+        m_values.Erase(it);
+
+        return true;
     }
 
     HYP_NODISCARD static CommandLineArguments Merge(const CommandLineArgumentDefinitions& definitions, const CommandLineArguments& a, const CommandLineArguments& b);

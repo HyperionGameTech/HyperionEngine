@@ -298,10 +298,16 @@ public:
 
     void Stop() override
     {
-        m_threadPool->Stop();
-
         m_stopRequested.Set(true, MemoryOrder::RELAXED);
         m_notifier.Signal();
+
+        m_threadPool->Stop();
+
+        // Wait for it to finish
+        while (m_threadPool->IsRunning())
+        {
+            ThreadSleep(10);
+        }
     }
 
 private:
@@ -335,6 +341,11 @@ private:
                 g_streamingArena->Reset();
             }
             while (m_notifier.IsSignalled() && !m_stopRequested.Get(MemoryOrder::RELAXED));
+
+            if (m_stopRequested.Get(MemoryOrder::RELAXED))
+            {
+                return;
+            }
 
             ThreadSleep(1000);
         }
@@ -798,7 +809,7 @@ void StreamingManager::Start()
 
 void StreamingManager::Stop()
 {
-    if (m_thread->IsRunning())
+    if (m_thread != nullptr && m_thread->IsRunning())
     {
         m_thread->Stop();
         m_thread.Reset();

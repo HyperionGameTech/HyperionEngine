@@ -15,6 +15,8 @@
 #include <windows.h>
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
 #include <dlfcn.h>
+#else
+using HMODULE = void*;
 #endif
 
 namespace Hyperion {
@@ -24,16 +26,16 @@ namespace Hyperion {
 struct DynamicLibraryImpl
 {
     PlatformString path;
-    UIntPtr handle;
+    HMODULE handle;
 
     DynamicLibraryImpl()
-        : handle(0)
+        : handle(NULL)
     {
     }
 
     ~DynamicLibraryImpl()
     {
-        Assert(!handle); // should have been freed by DynamicLibrary::~DynamicLibrary()
+        Assert(handle == NULL); // should have been freed by DynamicLibrary::~DynamicLibrary()
     }
 };
 
@@ -55,10 +57,12 @@ DynamicLibrary::~DynamicLibrary()
     }
 
 #ifdef HYP_WINDOWS
-    FreeLibrary(reinterpret_cast<HMODULE>(m_impl->handle));
+    FreeLibrary(m_impl->handle);
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    dlclose(reinterpret_cast<void*>(m_impl->handle));
+    dlclose(m_impl->handle);
 #endif
+
+    m_impl->handle = NULL;
 }
 
 const PlatformString& DynamicLibrary::GetPath() const
@@ -97,28 +101,14 @@ bool DynamicLibrary::Load()
     }
 
 #ifdef HYP_WINDOWS
-    HMODULE handle = reinterpret_cast<HMODULE>(LoadLibraryW(m_impl->path.Data()));
-
-    if (!handle)
-    {
-        return false;
-    }
-
-    m_impl->handle = reinterpret_cast<UIntPtr>(handle);
-
-    return true;
+    m_impl->handle = LoadLibraryW(m_impl->path.Data());
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    m_impl->handle = reinterpret_cast<UIntPtr>(dlopen(m_impl->path.Data(), RTLD_NOW));
-
-    if (!m_impl->handle)
-    {
-        return false;
-    }
-
-    return true;
+    m_impl->handle = dlopen(m_impl->path.Data(), RTLD_NOW);
 #else
     return false;
 #endif
+    
+    return m_impl->handle != NULL;
 }
 
 UIntPtr DynamicLibrary::GetFunction(const char* name) const
