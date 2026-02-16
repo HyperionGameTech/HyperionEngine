@@ -55,7 +55,7 @@ public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
     VulkanShaderInstance();
-    explicit VulkanShaderInstance(const CompiledShader* compiledShader);
+    explicit VulkanShaderInstance(const Shader* shader);
     ~VulkanShaderInstance() override;
 
     HYP_FORCE_INLINE const Array<VulkanShaderModule, VulkanAllocator>& GetShaderModules() const

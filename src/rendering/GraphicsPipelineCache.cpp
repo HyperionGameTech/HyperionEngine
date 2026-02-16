@@ -12,7 +12,7 @@
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
 
-// For CompiledShader
+// For Shader
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
@@ -332,7 +332,7 @@ void GraphicsPipelineCache::GetOrCreate(
     Assert(renderTargetDesc.numAttachments > 0,
         "Cannot create a graphics pipeline with no render target descriptor or 0 attachments!");
 
-    ShaderRef shader = g_shaderManager->GetOrCreate(
+    ShaderInstanceRef shader = g_shaderManager->GetOrCreate(
         attributes.GetMaterialAttributes().shaderName,
         attributes.GetMaterialAttributes().shaderProperties,
         attributes.GetMeshAttributes().vertexAttributes);

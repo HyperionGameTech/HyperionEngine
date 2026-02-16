@@ -129,13 +129,13 @@ public:
     VulkanDescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) override;
 
     VulkanGraphicsPipelineRef MakeGraphicsPipeline(
-        const VulkanShaderRef& shader,
+        const VulkanShaderInstanceRef& shader,
         const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) override;
 
-    VulkanComputePipelineRef MakeComputePipeline(const VulkanShaderRef& shader) override;
+    VulkanComputePipelineRef MakeComputePipeline(const VulkanShaderInstanceRef& shader) override;
 
-    VulkanRayTracingPipelineRef MakeRayTracingPipeline(const VulkanShaderRef& shader) override;
+    VulkanRayTracingPipelineRef MakeRayTracingPipeline(const VulkanShaderInstanceRef& shader) override;
 
     VulkanGpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) override;
 
@@ -150,7 +150,7 @@ public:
 
     VulkanFrameRef MakeFrame(uint32 frameIndex) override;
 
-    VulkanShaderRef MakeShader(const CompiledShader* compiledShader) override;
+    VulkanShaderInstanceRef MakeShader(const Shader* shader) override;
 
     VulkanGpuBlasRef MakeGpuBlas(
         const VulkanGpuBufferRef& packedVerticesBuffer,

@@ -70,7 +70,6 @@ public:
 
     ~VulkanDevice() override;
 
-    void SetRenderSurface(const VkSurfaceKHR& surface);
     void SetWantedExtensions(const ExtensionMap& extensions);
 
     VkDevice GetDevice();

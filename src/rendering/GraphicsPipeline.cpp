@@ -32,12 +32,12 @@ PSOCacheKey::PSOCacheKey(
 
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
-    SafeDelete(std::move(m_shader));
+    SafeDelete(std::move(m_shaderInstance));
 }
 
 RendererResult GraphicsPipelineBase::Create()
 {
-    if (!m_shader.IsValid())
+    if (!m_shaderInstance.IsValid())
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
     }
@@ -59,7 +59,7 @@ RendererResult GraphicsPipelineBase::Create()
 
 uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const
 {
-    const ShaderInputGroup* decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = m_shaderInstance->GetShader()->GetDescriptorTableDeclaration();
 
     if (decl == nullptr)
     {
@@ -69,9 +69,9 @@ uint32 GraphicsPipelineBase::GetDescriptorSetIndex(StringHash nameHash) const
     return decl->GetDescriptorSetIndex(nameHash);
 }
 
-void GraphicsPipelineBase::SetShader(const ShaderRef& shader)
+void GraphicsPipelineBase::SetShader(const ShaderInstanceRef& shaderInstance)
 {
-    m_shader = shader;
+    m_shaderInstance = shaderInstance;
 }
 
 void GraphicsPipelineBase::SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc)
@@ -117,11 +117,11 @@ bool GraphicsPipelineBase::MatchesSignature(
             return false;
     }
 
-    const CompiledShader& compiledShader = *m_shader->GetCompiledShader();
+    const Shader& shader = *m_shaderInstance->GetShader();
 
-    if (materialAttributes.shaderName != compiledShader.name
-        || (compiledShader.vertexAttributes.flagMask & meshAttributes.vertexAttributes.flagMask) != compiledShader.vertexAttributes.flagMask
-        || materialAttributes.shaderProperties != compiledShader.properties)
+    if (materialAttributes.shaderName != shader.name
+        || (shader.vertexAttributes.flagMask & meshAttributes.vertexAttributes.flagMask) != shader.vertexAttributes.flagMask
+        || materialAttributes.shaderProperties != shader.properties)
     {
         return false;
     }

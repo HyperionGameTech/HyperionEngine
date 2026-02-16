@@ -827,7 +827,7 @@ VulkanDescriptorTableRef VulkanRenderInterface::MakeDescriptorTable(const Shader
 }
 
 VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
-    const VulkanShaderRef& shader,
+    const VulkanShaderInstanceRef& shader,
     const RenderTargetDesc& renderTargetDesc,
     const RenderableAttributeSet& attributes)
 {
@@ -866,14 +866,14 @@ VulkanGraphicsPipelineRef VulkanRenderInterface::MakeGraphicsPipeline(
     return graphicsPipeline;
 }
 
-VulkanComputePipelineRef VulkanRenderInterface::MakeComputePipeline(const VulkanShaderRef& shader)
+VulkanComputePipelineRef VulkanRenderInterface::MakeComputePipeline(const VulkanShaderInstanceRef& shader)
 {
-    return MakeHandle<VulkanComputePipeline>(VulkanShaderRef(shader));
+    return MakeHandle<VulkanComputePipeline>(VulkanShaderInstanceRef(shader));
 }
 
-VulkanRayTracingPipelineRef VulkanRenderInterface::MakeRayTracingPipeline(const VulkanShaderRef& shader)
+VulkanRayTracingPipelineRef VulkanRenderInterface::MakeRayTracingPipeline(const VulkanShaderInstanceRef& shader)
 {
-    return MakeHandle<VulkanRayTracingPipeline>(VulkanShaderRef(shader));
+    return MakeHandle<VulkanRayTracingPipeline>(VulkanShaderInstanceRef(shader));
 }
 
 VulkanGpuBufferRef VulkanRenderInterface::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
@@ -917,9 +917,9 @@ VulkanFrameRef VulkanRenderInterface::MakeFrame(uint32 frameIndex)
     return MakeHandle<VulkanFrame>(frameIndex);
 }
 
-VulkanShaderRef VulkanRenderInterface::MakeShader(const CompiledShader* compiledShader)
+VulkanShaderInstanceRef VulkanRenderInterface::MakeShader(const Shader* shader)
 {
-    return MakeHandle<VulkanShaderInstance>(compiledShader);
+    return MakeHandle<VulkanShaderInstance>(shader);
 }
 
 VulkanGpuBlasRef VulkanRenderInterface::MakeGpuBlas(

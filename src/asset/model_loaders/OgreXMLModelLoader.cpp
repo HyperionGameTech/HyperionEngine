@@ -328,8 +328,8 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Handle<Material> material = MakeHandle<Material>(CreateNameFromDynamicString(ANSIString(subMesh.name.Data())), materialAttributes);
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.8f);
-        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.01f);
+        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.9f);
+        material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.2f);
 
         entity->SetLocalBounds(mesh->GetAABB());
 

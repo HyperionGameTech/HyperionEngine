@@ -30,9 +30,15 @@ class VulkanRenderPass final : public ObjectBase
 public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
+    VulkanRenderPass();
+
     VulkanRenderPass(
         const RenderTargetDesc& renderTargetDesc,
         VulkanRenderPassMode renderPassMode);
+
+    VulkanRenderPass(VulkanRenderPass&& other) noexcept;
+    VulkanRenderPass& operator=(VulkanRenderPass&& other) noexcept;
+
     ~VulkanRenderPass() override;
 
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const

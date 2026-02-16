@@ -30,10 +30,10 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanCo
 {
     Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
-    VulkanShaderInstance* shader = pipeline.GetShader();
-    AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
+    VulkanShaderInstance* shaderInstance = pipeline.GetShader();
+    AssertDebug(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
 
-    const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     for (const DescriptorSetDeclaration& setDecl : decl->elements)
@@ -57,15 +57,15 @@ VulkanComputePipeline::VulkanComputePipeline()
 {
 }
 
-VulkanComputePipeline::VulkanComputePipeline(const VulkanShaderRef& shader)
+VulkanComputePipeline::VulkanComputePipeline(const VulkanShaderInstanceRef& shaderInstance)
     : VulkanPipelineBase(),
-      ComputePipelineBase(shader)
+      ComputePipelineBase(shaderInstance)
 {
 }
 
 VulkanComputePipeline::~VulkanComputePipeline()
 {
-    SafeDelete(std::move(m_shader));
+    SafeDelete(std::move(m_shaderInstance));
 }
 
 void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)
@@ -145,12 +145,12 @@ RendererResult VulkanComputePipeline::Create()
 
     VkComputePipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
 
-    if (!m_shader)
+    if (!m_shaderInstance)
     {
         return HYP_MAKE_ERROR(RendererError, "Compute shader not provided to pipeline");
     }
 
-    const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& stages = m_shader->GetVulkanShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& stages = m_shaderInstance->GetVulkanShaderStages();
 
     if (stages.Size() == 0)
     {

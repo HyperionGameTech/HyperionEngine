@@ -31,13 +31,13 @@ VulkanShaderInstance::VulkanShaderInstance()
 {
 }
 
-VulkanShaderInstance::VulkanShaderInstance(const CompiledShader* compiledShader)
-    : ShaderInstanceBase(compiledShader)
+VulkanShaderInstance::VulkanShaderInstance(const Shader* shader)
+    : ShaderInstanceBase(shader)
 {
 #ifdef HYP_DEBUG_MODE
-    if (compiledShader != nullptr)
+    if (shader != nullptr)
     {
-        SetDebugName(compiledShader->name);
+        SetDebugName(shader->name);
     }
 #endif
 }
@@ -68,7 +68,7 @@ RendererResult VulkanShaderInstance::AttachShaderModule(
     UTF8StringView entryPointName,
     ConstByteView shaderBlobView)
 {
-    Assert(m_compiledShader != nullptr);
+    Assert(m_shader != nullptr);
     Assert(shaderBlobView.Size() % sizeof(uint32) == 0);
 
     VkShaderModuleCreateInfo createInfo { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
@@ -92,20 +92,20 @@ RendererResult VulkanShaderInstance::AttachShaderModule(
 
 RendererResult VulkanShaderInstance::AttachShaderModules()
 {
-    if (!m_compiledShader)
+    if (!m_shader)
     {
         return HYP_MAKE_ERROR(RendererError, "No compiled shader attached");
     }
 
-    if (!m_compiledShader->IsValid())
+    if (!m_shader->IsValid())
     {
         return HYP_MAKE_ERROR(RendererError, "Attached compiled shader is in invalid state");
     }
 
-    for (SizeType index = 0; index < m_compiledShader->moduleTypes.Size(); index++)
+    for (SizeType index = 0; index < m_shader->moduleTypes.Size(); index++)
     {
 #ifdef HYP_DEBUG_MODE
-        const Name srcName = NAME_FMT("{}", m_compiledShader->name);
+        const Name srcName = NAME_FMT("{}", m_shader->name);
 #else
         const Name srcName = NAME("<unnamed shader>");
 #endif
@@ -115,7 +115,7 @@ RendererResult VulkanShaderInstance::AttachShaderModules()
         String entryPointName;
         ConstByteView blob;
 
-        if (!m_compiledShader->GetShaderModuleInfo(index, moduleType, moduleName, entryPointName, blob))
+        if (!m_shader->GetShaderModuleInfo(index, moduleType, moduleName, entryPointName, blob))
         {
             continue;
         }

@@ -465,9 +465,9 @@ struct ShaderInputGroup
 };
 
 HYP_STRUCT()
-struct HYP_API CompiledShader
+struct HYP_API Shader
 {
-    HYP_STRUCT_BODY(CompiledShader);
+    HYP_STRUCT_BODY(Shader);
 
     HYP_FIELD(Property = "Name")
     Name name;
@@ -501,15 +501,15 @@ struct HYP_API CompiledShader
     uint64 GetRevisionNumber() const;
     /// ==============================
 
-    CompiledShader() = default;
+    Shader() = default;
 
-    CompiledShader(const CompiledShader& other);
-    CompiledShader& operator=(const CompiledShader& other);
+    Shader(const Shader& other);
+    Shader& operator=(const Shader& other);
 
-    CompiledShader(CompiledShader&& other) noexcept;
-    CompiledShader& operator=(CompiledShader&& other) noexcept;
+    Shader(Shader&& other) noexcept;
+    Shader& operator=(Shader&& other) noexcept;
 
-    ~CompiledShader();
+    ~Shader();
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -587,7 +587,7 @@ struct ShaderBundle
     HYP_STRUCT_BODY(ShaderBundle);
 
     HYP_FIELD()
-    Array<CompiledShader> compiledShaders;
+    Array<Shader> compiledShaders;
 
     HYP_FIELD()
     Array<String> errorMessages;
@@ -690,7 +690,7 @@ public:
         Name name,
         const ShaderPropertySet& properties,
         const VertexAttributeSet& vertexAttributes,
-        CompiledShader& out);
+        Shader& out);
 
 private:
     ProcessResult ProcessShaderSource(

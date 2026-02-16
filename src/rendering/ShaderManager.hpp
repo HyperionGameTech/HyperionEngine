@@ -22,7 +22,7 @@ public:
 
     ShaderManager();
     
-    ShaderRef GetOrCreate(
+    ShaderInstanceRef GetOrCreate(
         Name name,
         const ShaderPropertySet& properties,
         const VertexAttributeSet& vertexAttributes);

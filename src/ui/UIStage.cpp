@@ -474,7 +474,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
             hit.distance = -float(uiObject->GetComputedDepth());
             hit.id = entity->Id().Value();
-            hit.userData = uiObject;
+            hit.node = entity;
 
             rayTestResults.AddHit(hit);
         }
@@ -484,9 +484,19 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
 
     for (const RayHit& hit : rayTestResults)
     {
-        if (Handle<UIObject> uiObject = static_cast<const UIObject*>(hit.userData)->HandleFromThis(); uiObject.IsValid())
+        if (Entity* entity = ObjCast<Entity>(hit.node))
         {
-            outObjects.PushBack(std::move(uiObject));
+            UIComponent* uiComponent = entity->TryGetComponent<UIComponent>();
+
+            if (uiComponent != nullptr)
+            {
+                Handle<UIObject> uiObject = uiComponent->uiObject.Lock();
+
+                if (uiObject.IsValid())
+                {
+                    outObjects.PushBack(std::move(uiObject));
+                }
+            }
         }
     }
 

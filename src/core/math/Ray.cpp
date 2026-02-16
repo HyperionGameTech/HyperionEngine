@@ -61,11 +61,6 @@ bool Ray::TestAABB(const BoundingBox& aabb, RayTestResults& outResults) const
 
 bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outResults) const
 {
-    return TestAABB(aabb, hitId, nullptr, outResults);
-}
-
-bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, const void* userData, RayTestResults& outResults) const
-{
     if (!aabb.IsValid())
     {
         // drop out early
@@ -107,8 +102,8 @@ bool Ray::TestAABB(const BoundingBox& aabb, RayHitID hitId, const void* userData
         .hitpoint = hitpoint,
         .normal = -direction.Normalized(), // TODO: change to be box normal
         .distance = distance,
-        .id = hitId,
-        .userData = userData });
+        .id = hitId
+    });
 
     return true;
 }
@@ -132,11 +127,6 @@ bool Ray::TestPlane(const Vec3f& position, const Vec3f& normal, RayTestResults& 
 
 bool Ray::TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, RayTestResults& outResults) const
 {
-    return TestPlane(position, normal, hitId, nullptr, outResults);
-}
-
-bool Ray::TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, const void* userData, RayTestResults& outResults) const
-{
     const float denom = direction.Dot(normal);
 
     if (MathUtil::Abs(denom) < MathUtil::epsilonF)
@@ -157,8 +147,8 @@ bool Ray::TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, 
         .hitpoint = hitpoint,
         .normal = normal,
         .distance = t,
-        .id = hitId,
-        .userData = userData });
+        .id = hitId
+    });
 
     return true;
 }
@@ -181,11 +171,6 @@ bool Ray::TestTriangle(const Triangle& triangle, RayTestResults& outResults) con
 }
 
 bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults& outResults) const
-{
-    return TestTriangle(triangle, hitId, nullptr, outResults);
-}
-
-bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, const void* userData, RayTestResults& outResults) const
 {
     float t, u, v;
 
@@ -229,8 +214,8 @@ bool Ray::TestTriangle(const Triangle& triangle, RayHitID hitId, const void* use
             .normal = triangle.GetNormal(),
             .barycentricCoords = barycentricCoords,
             .distance = t,
-            .id = hitId,
-            .userData = userData });
+            .id = hitId
+        });
 
         return true;
     }

@@ -25,7 +25,7 @@ public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
     VulkanComputePipeline();
-    explicit VulkanComputePipeline(const VulkanShaderRef& shader);
+    explicit VulkanComputePipeline(const VulkanShaderInstanceRef& shader);
     ~VulkanComputePipeline() override;
 
     bool IsCreated() const override

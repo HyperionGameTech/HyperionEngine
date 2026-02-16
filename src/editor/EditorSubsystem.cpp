@@ -1731,19 +1731,9 @@ void EditorSubsystem::InitViewport()
                 {
                     for (const RayHit& hit : results)
                     {
-                        /// \FIXME: Can't do TypeId::ForType<Entity>, there may be derived types of Entity
-                        if (ObjId<Entity> entityId = ObjId<Entity>(ObjIdBase { TypeId::ForType<Entity>(), hit.id }))
+                        if (hit.node != nullptr)
                         {
-                            Handle<Entity> entity { entityId };
-
-                            EntityManager* entityManager = entity->GetEntityManager();
-
-                            if (!entityManager)
-                            {
-                                continue;
-                            }
-
-                            SetFocusedNode(entity, true);
+                            SetFocusedNode(MakeStrongRef(hit.node), true);
 
                             break;
                         }
@@ -1844,24 +1834,19 @@ void EditorSubsystem::InitViewport()
                 {
                     for (const RayHit& rayHit : results)
                     {
-                        ObjId<Entity> entityId = ObjId<Entity>(ObjIdBase { TypeId::ForType<Entity>(), rayHit.id });
-
-                        if (!entityId.IsValid())
-                        {
+                        if (!rayHit.node)
                             continue;
-                        }
 
-                        Handle<Entity> entity { entityId };
-                        Assert(entity.IsValid());
-
-                        if (entity.Get() == m_hoveredGizmoNode.GetUnsafe())
+                        if (rayHit.node == m_hoveredGizmoNode.GetUnsafe())
                         {
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
 
-                        if (gizmo->OnMouseHover(activeViewport->GetCamera(), event, entity))
+                        Handle<Node> nodeHandle = MakeStrongRef(rayHit.node);
+
+                        if (gizmo->OnMouseHover(activeViewport->GetCamera(), event, nodeHandle))
                         {
-                            SetHoveredGizmo(event, gizmo, entity);
+                            SetHoveredGizmo(event, gizmo, nodeHandle);
 
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }

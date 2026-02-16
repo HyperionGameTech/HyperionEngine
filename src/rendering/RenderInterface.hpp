@@ -52,7 +52,7 @@ struct ShaderInputGroup;
 class Texture;
 class ApplicationWindow;
 class SingleTimeCommands;
-struct CompiledShader;
+struct Shader;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -267,13 +267,13 @@ public:
     virtual DescriptorTableRef MakeDescriptorTable(const ShaderInputGroup* decl) = 0;
 
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
-        const ShaderRef& shader,
+        const ShaderInstanceRef& shader,
         const RenderTargetDesc& renderTargetDesc,
         const RenderableAttributeSet& attributes) = 0;
 
-    virtual ComputePipelineRef MakeComputePipeline(const ShaderRef& shader) = 0;
+    virtual ComputePipelineRef MakeComputePipeline(const ShaderInstanceRef& shader) = 0;
 
-    virtual RayTracingPipelineRef MakeRayTracingPipeline(const ShaderRef& shader) = 0;
+    virtual RayTracingPipelineRef MakeRayTracingPipeline(const ShaderInstanceRef& shader) = 0;
 
     virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) = 0;
 
@@ -288,7 +288,7 @@ public:
 
     virtual FrameRef MakeFrame(uint32 frameIndex) = 0;
 
-    virtual ShaderRef MakeShader(const CompiledShader* compiledShader) = 0;
+    virtual ShaderInstanceRef MakeShader(const Shader* shader) = 0;
 
     virtual GpuBlasRef MakeGpuBlas(
         const GpuBufferRef& packedVerticesBuffer,

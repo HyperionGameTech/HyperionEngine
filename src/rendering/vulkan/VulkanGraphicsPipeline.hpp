@@ -54,7 +54,7 @@ public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
     VulkanGraphicsPipeline();
-    explicit VulkanGraphicsPipeline(const VulkanShaderRef& shader);
+    explicit VulkanGraphicsPipeline(const VulkanShaderInstanceRef& shader);
     ~VulkanGraphicsPipeline();
 
     bool IsCreated() const override

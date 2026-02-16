@@ -1018,7 +1018,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             const BVHNode* bvh = nullptr;
             Mat4f modelMatrix = Mat4f::Identity();
 
-            if (flags & RTF_USE_BVH)
+            if (false)//flags & RTF_USE_BVH)
             {
                 if (MeshComponent* meshComponent = entity->TryGetComponent<MeshComponent>(); meshComponent && meshComponent->mesh.IsValid())
                 {
@@ -1085,7 +1085,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                     for (RayHit hit : localBvhResults)
                     {
                         hit.id = Id().Value();
-                        hit.userData = nullptr;
+                        hit.node = const_cast<Node*>(this);
 
                         Vec4f transformedNormal = normalMatrix * Vec4f(hit.normal, 0.0f);
                         hit.normal = transformedNormal.GetXYZ().Normalized();
@@ -1107,7 +1107,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             }
             else
             {
-                hasEntityHit = ray.TestAABB(worldAabb, entity->Id().Value(), nullptr, outResults);
+                hasEntityHit = ray.TestAABB(worldAabb, entity->Id().Value(), outResults);
             }
         }
 

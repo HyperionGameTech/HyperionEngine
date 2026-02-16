@@ -69,17 +69,14 @@ struct HYP_API Ray
     Optional<RayHit> TestAABB(const BoundingBox& aabb) const;
     bool TestAABB(const BoundingBox& aabb, RayTestResults& outResults) const;
     bool TestAABB(const BoundingBox& aabb, RayHitID hitId, RayTestResults& outResults) const;
-    bool TestAABB(const BoundingBox& aabb, RayHitID hitId, const void* userData, RayTestResults& outResults) const;
 
     Optional<RayHit> TestPlane(const Vec3f& position, const Vec3f& normal) const;
     bool TestPlane(const Vec3f& position, const Vec3f& normal, RayTestResults& outResults) const;
     bool TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, RayTestResults& outResults) const;
-    bool TestPlane(const Vec3f& position, const Vec3f& normal, RayHitID hitId, const void* userData, RayTestResults& outResults) const;
 
     Optional<RayHit> TestTriangle(const Triangle& triangle) const;
     bool TestTriangle(const Triangle& triangle, RayTestResults& outResults) const;
     bool TestTriangle(const Triangle& triangle, RayHitID hitId, RayTestResults& outResults) const;
-    bool TestTriangle(const Triangle& triangle, RayHitID hitId, const void* userData, RayTestResults& outResults) const;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -100,24 +97,11 @@ struct RayHit
     Vec3f barycentricCoords;
     float distance = 0.0f;
     RayHitID id = ~0u;
-    const void* userData = nullptr;
+    class Node* node = nullptr;
 
     bool operator<(const RayHit& other) const
     {
-        return Tie(
-                   distance,
-                   hitpoint,
-                   normal,
-                   barycentricCoords,
-                   id,
-                   userData)
-            < Tie(
-                other.distance,
-                other.hitpoint,
-                other.normal,
-                other.barycentricCoords,
-                other.id,
-                other.userData);
+        return distance < other.distance;
     }
 
     bool operator==(const RayHit& other) const
@@ -126,8 +110,7 @@ struct RayHit
             && hitpoint == other.hitpoint
             && normal == other.normal
             && barycentricCoords == other.barycentricCoords
-            && id == other.id
-            && userData == other.userData;
+            && id == other.id;
     }
 
     HashCode GetHashCode() const
@@ -139,7 +122,6 @@ struct RayHit
         hc.Add(normal.GetHashCode());
         hc.Add(barycentricCoords.GetHashCode());
         hc.Add(id);
-        hc.Add(UIntPtr(userData));
 
         return hc;
     }

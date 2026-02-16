@@ -18,8 +18,8 @@ DX12RayTracingPipeline::DX12RayTracingPipeline()
 {
 }
 
-DX12RayTracingPipeline::DX12RayTracingPipeline(const DX12ShaderRef& shader, const DX12DescriptorTableRef& descriptorTable)
-    : RayTracingPipelineBase(shader, descriptorTable)
+DX12RayTracingPipeline::DX12RayTracingPipeline(const DX12ShaderRef& shaderInstance, const DX12DescriptorTableRef& descriptorTable)
+    : RayTracingPipelineBase(shaderInstance, descriptorTable)
 {
 }
 

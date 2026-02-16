@@ -20,7 +20,7 @@
 namespace Hyperion {
 
 class RenderableAttributeSet;
-struct CompiledShader;
+struct Shader;
 class Material;
 class FrameBase;
 class SwapchainBase;

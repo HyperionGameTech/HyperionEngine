@@ -12,7 +12,7 @@ DECLARE_GFX_TYPE(Attachment);
 DECLARE_GFX_TYPE(ComputePipeline);
 DECLARE_GFX_TYPE(GraphicsPipeline);
 DECLARE_GFX_TYPE(RayTracingPipeline);
-DECLARE_GFX_TYPE(Shader);
+DECLARE_GFX_TYPE(ShaderInstance);
 DECLARE_GFX_TYPE(DescriptorSet);
 DECLARE_GFX_TYPE(DescriptorTable);
 DECLARE_GFX_TYPE(GpuBlas);

@@ -32,7 +32,7 @@ public:
     static Pool* GetAllocator() { return g_vulkanPool; }
 
     VulkanRayTracingPipeline();
-    explicit VulkanRayTracingPipeline(const VulkanShaderRef& shader);
+    explicit VulkanRayTracingPipeline(const VulkanShaderInstanceRef& shader);
     ~VulkanRayTracingPipeline() override;
 
     bool IsCreated() const override

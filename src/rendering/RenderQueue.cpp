@@ -75,7 +75,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, GraphicsPipel
 
     AssertDebug(pipeline && pipeline->GetShader());
 
-    m_bindIndex = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
+    m_bindIndex = pipeline->GetShader()->GetShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
@@ -102,7 +102,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, ComputePipeli
 
     AssertDebug(pipeline && pipeline->GetShader());
 
-    m_bindIndex = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
+    m_bindIndex = pipeline->GetShader()->GetShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 
@@ -129,7 +129,7 @@ BindDescriptorSet::BindDescriptorSet(DescriptorSet* descriptorSet, RayTracingPip
 
     AssertDebug(pipeline && pipeline->GetShader());
 
-    m_bindIndex = pipeline->GetShader()->GetCompiledShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
+    m_bindIndex = pipeline->GetShader()->GetShader()->GetDescriptorTableDeclaration()->GetDescriptorSetIndex(descriptorSet->GetLayout().GetName());
     AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
 }
 

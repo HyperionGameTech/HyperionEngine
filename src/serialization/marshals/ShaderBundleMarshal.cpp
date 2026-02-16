@@ -25,16 +25,16 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
-        out = BoxedValue(CompiledShader());
+        out = BoxedValue(Shader());
 
-        CompiledShader& compiledShader = out.Get<CompiledShader>();
+        Shader& shader = out.Get<Shader>();
 
-        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, CompiledShader::StaticClass(), out))
+        if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Shader::StaticClass(), out))
         {
             return err;
         }
 
-        if (compiledShader.GetRevisionNumber() != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
+        if (shader.GetRevisionNumber() != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
         {
             // force recompile
             return { FBOMResult::FBOM_ERR, "Shader out of date" };
@@ -44,6 +44,6 @@ public:
     }
 };
 
-HYP_DEFINE_MARSHAL(CompiledShader, CompiledShaderMarshal);
+HYP_DEFINE_MARSHAL(Shader, CompiledShaderMarshal);
 
 } // namespace Hyperion::serialization

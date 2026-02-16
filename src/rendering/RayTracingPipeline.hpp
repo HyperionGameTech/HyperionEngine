@@ -25,14 +25,14 @@ public:
         m_debugName = name;
     }
 
-    HYP_FORCE_INLINE const ShaderRef& GetShader() const
+    HYP_FORCE_INLINE const ShaderInstanceRef& GetShader() const
     {
-        return m_shader;
+        return m_shaderInstance;
     }
 
-    HYP_FORCE_INLINE void SetShader(const ShaderRef& shader)
+    HYP_FORCE_INLINE void SetShader(const ShaderInstanceRef& shaderInstance)
     {
-        m_shader = shader;
+        m_shaderInstance = shaderInstance;
     }
 
     virtual bool IsCreated() const = 0;
@@ -55,12 +55,12 @@ public:
 protected:
     RayTracingPipelineBase() = default;
 
-    explicit RayTracingPipelineBase(const ShaderRef& shader)
-        : m_shader(shader)
+    explicit RayTracingPipelineBase(const ShaderInstanceRef& shaderInstance)
+        : m_shaderInstance(shaderInstance)
     {
     }
 
-    ShaderRef m_shader;
+    ShaderInstanceRef m_shaderInstance;
 
     Name m_debugName;
 };

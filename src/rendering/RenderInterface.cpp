@@ -1448,7 +1448,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 {
     AssertDebug(commandBuffer != nullptr);
 
-    Shader* shader = nullptr;
+    ShaderInstance* shaderInstance = nullptr;
     bool pipelineChanged = false;
 
     // set prev pipeline to null if state changed,
@@ -1489,7 +1489,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             pipeline = state.prevGraphicsPipeline;
         }
 
-        shader = pipeline->GetShader();
+        shaderInstance = pipeline->GetShader();
     }
 
     break;
@@ -1514,7 +1514,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             pipeline = state.prevComputePipeline;
         }
 
-        shader = pipeline->GetShader();
+        shaderInstance = pipeline->GetShader();
     }
 
     break;
@@ -1539,7 +1539,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             pipeline = state.prevRayTracingPipeline;
         }
 
-        shader = pipeline->GetShader();
+        shaderInstance = pipeline->GetShader();
     }
 
     break;
@@ -1550,7 +1550,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
     state.prevPsoType = psoType;
 
-    AssertDebug(shader != nullptr);
+    AssertDebug(shaderInstance != nullptr);
 
     if (pipelineChanged)
     {
@@ -1561,10 +1561,10 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         Memory::Fill(state.prevBoundDescriptorSets, 0, sizeof(state.prevBoundDescriptorSets));
     }
 
-    const CompiledShader* compiledShader = shader->GetCompiledShader();
-    AssertDebug(compiledShader != nullptr);
+    const Shader* shader = shaderInstance->GetShader();
+    AssertDebug(shader != nullptr);
 
-    const ShaderInputGroup* tableDecl = compiledShader->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* tableDecl = shader->GetDescriptorTableDeclaration();
     AssertDebug(tableDecl != nullptr);
 
     enum DescriptorSetStateFlags : uint8

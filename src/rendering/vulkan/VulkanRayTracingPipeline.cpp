@@ -29,10 +29,10 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanRa
 {
     Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
-    VulkanShaderInstance* shader = pipeline.GetShader();
-    AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
+    VulkanShaderInstance* shaderInstance = pipeline.GetShader();
+    AssertDebug(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
 
-    const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     for (const DescriptorSetDeclaration& setDecl : decl->elements)
@@ -62,9 +62,9 @@ VulkanRayTracingPipeline::VulkanRayTracingPipeline()
 {
 }
 
-VulkanRayTracingPipeline::VulkanRayTracingPipeline(const VulkanShaderRef& shader)
+VulkanRayTracingPipeline::VulkanRayTracingPipeline(const VulkanShaderInstanceRef& shaderInstance)
     : VulkanPipelineBase(),
-      RayTracingPipelineBase(shader)
+      RayTracingPipelineBase(shaderInstance)
 {
 }
 
@@ -74,8 +74,6 @@ VulkanRayTracingPipeline::~VulkanRayTracingPipeline()
     {
         return;
     }
-
-    SafeDelete(std::move(m_shader));
 
     m_shaderBindingTableBuffers.Clear();
 }
@@ -87,7 +85,7 @@ RendererResult VulkanRayTracingPipeline::Create()
         return HYP_MAKE_ERROR(RendererError, "RayTracing is not supported on this device");
     }
 
-    Assert(m_shader != nullptr);
+    Assert(m_shaderInstance != nullptr);
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layoutInfo { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -120,8 +118,8 @@ RendererResult VulkanRayTracingPipeline::Create()
 
     VkRayTracingPipelineCreateInfoKHR pipelineInfo { VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR };
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
-    const Array<VulkanShaderGroup>& shaderGroups = m_shader->GetShaderGroups();
+    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shaderInstance->GetVulkanShaderStages();
+    const Array<VulkanShaderGroup>& shaderGroups = m_shaderInstance->GetShaderGroups();
 
     Array<VkRayTracingShaderGroupCreateInfoKHR> shaderGroupCreateInfos;
     shaderGroupCreateInfos.Resize(shaderGroups.Size());
@@ -155,7 +153,7 @@ RendererResult VulkanRayTracingPipeline::Create()
     }
 #endif
 
-    CheckResultOrReturn(CreateShaderBindingTables(m_shader));
+    CheckResultOrReturn(CreateShaderBindingTables(m_shaderInstance));
 
     return {};
 }
@@ -194,9 +192,9 @@ void VulkanRayTracingPipeline::TraceRays(VulkanCommandBuffer* commandBuffer, con
         extent.x, extent.y, extent.z);
 }
 
-RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShaderInstance* shader)
+RendererResult VulkanRayTracingPipeline::CreateShaderBindingTables(VulkanShaderInstance* shaderInstance)
 {
-    const Array<VulkanShaderGroup>& shaderGroups = shader->GetShaderGroups();
+    const Array<VulkanShaderGroup>& shaderGroups = shaderInstance->GetShaderGroups();
 
     const VulkanFeatures& features = g_renderInterface->GetDevice()->GetFeatures();
     const auto& properties = features.GetRayTracingPipelineProperties();

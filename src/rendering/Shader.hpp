@@ -16,7 +16,7 @@
 
 namespace Hyperion {
 
-struct CompiledShader;
+struct Shader;
 
 HYP_CLASS(Abstract, NoScriptBindings)
 class ShaderInstanceBase : public ObjectBase
@@ -25,15 +25,15 @@ class ShaderInstanceBase : public ObjectBase
 
 public:
     ShaderInstanceBase()
-        : m_compiledShader(nullptr)
+        : m_shader(nullptr)
     {
     }
 
     virtual ~ShaderInstanceBase() override = default;
 
-    HYP_FORCE_INLINE const CompiledShader* GetCompiledShader() const
+    HYP_FORCE_INLINE const Shader* GetShader() const
     {
-        return m_compiledShader;
+        return m_shader;
     }
 
     virtual bool IsCreated() const = 0;
@@ -51,12 +51,12 @@ public:
     }
 
 protected:
-    explicit ShaderInstanceBase(const CompiledShader* compiledShader)
-        : m_compiledShader(compiledShader)
+    explicit ShaderInstanceBase(const Shader* shader)
+        : m_shader(shader)
     {
     }
 
-    const CompiledShader* m_compiledShader;
+    const Shader* m_shader;
     Name m_debugName;
 };
 

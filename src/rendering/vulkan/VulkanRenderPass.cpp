@@ -21,6 +21,11 @@ extern VulkanRenderInterface* g_renderInterface;
 
 extern VkImageLayout GetVkImageLayout(ResourceState state);
 
+VulkanRenderPass::VulkanRenderPass()
+    : VulkanRenderPass(RenderTargetDesc(), VulkanRenderPassMode::RenderTarget)
+{
+}
+
 VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode)
     : m_renderTargetDesc(renderTargetDesc),
       m_renderPassMode(renderPassMode),
@@ -29,10 +34,49 @@ VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, Vul
 {
 }
 
+VulkanRenderPass::VulkanRenderPass(VulkanRenderPass&& other) noexcept
+    : m_renderTargetDesc(other.m_renderTargetDesc),
+      m_renderPassMode(other.m_renderPassMode),
+      m_dependencies(std::move(other.m_dependencies)),
+      m_vkClearValues(std::move(other.m_vkClearValues)),
+      m_handle(other.m_handle),
+      m_recordingFramebuffer(other.m_recordingFramebuffer)
+{
+    other.m_handle = VK_NULL_HANDLE;
+    other.m_recordingFramebuffer = nullptr;
+}
+
+VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept
+{
+    if (m_handle != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        m_handle = VK_NULL_HANDLE;
+    }
+
+    m_renderTargetDesc = other.m_renderTargetDesc;
+    m_renderPassMode = other.m_renderPassMode;
+
+    m_dependencies = std::move(other.m_dependencies);
+
+    m_vkClearValues = std::move(other.m_vkClearValues);
+
+    m_handle = other.m_handle;
+    other.m_handle = VK_NULL_HANDLE;
+
+    m_recordingFramebuffer = other.m_recordingFramebuffer;
+    other.m_recordingFramebuffer = nullptr;
+
+    return *this;
+}
+
 VulkanRenderPass::~VulkanRenderPass()
 {
-    vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
-    m_handle = VK_NULL_HANDLE;
+    if (m_handle != VK_NULL_HANDLE)
+    {
+        vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        m_handle = VK_NULL_HANDLE;
+    }
 }
 
 void VulkanRenderPass::CreateDependencies()

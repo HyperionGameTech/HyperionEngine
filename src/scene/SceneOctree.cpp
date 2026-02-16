@@ -981,6 +981,7 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags) const
 {
     HYP_SCOPE;
@@ -998,7 +999,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
             RayTestResults aabbResult;
 
-            if (flags & RTF_USE_BVH)
+            if (false)//flags & RTF_USE_BVH)
             {
                 // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
                 if (MeshComponent* meshComponent = m_entityManager->TryGetComponent<MeshComponent>(entry.value);
@@ -1048,10 +1049,10 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
                     {
                         RayTestResults bvhResults;
 
-                        for (RayHit hit : localBvhResults)
+                        for (RayHit& hit : localBvhResults)
                         {
                             hit.id = entry.value->Id().Value();
-                            hit.userData = nullptr;
+                            hit.node = entry.value;
 
                             Vec4f transformedNormal = normalMatrix * Vec4f(hit.normal, 0.0f);
                             hit.normal = transformedNormal.GetXYZ().Normalized();
@@ -1070,17 +1071,18 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
                         hasHit = true;
                     }
+                }
 
-                    continue;
-                }
-                else
-                {
-                    HYP_LOG(Scene, Warning, "Entity #{} (node: {}) does not have a BVH component, using AABB instead", entry.value->Id(), entry.value->GetName());
-                }
+                continue;
             }
 
-            if (ray.TestAABB(entry.aabb, entry.value->Id().Value(), nullptr, aabbResult))
+            if (ray.TestAABB(entry.aabb, entry.value->Id().Value(), aabbResult))
             {
+                for (RayHit& hit : aabbResult)
+                {
+                    hit.node = entry.value;
+                }
+
                 outResults.Merge(std::move(aabbResult));
 
                 hasHit = true;
@@ -1103,5 +1105,6 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
     return hasHit;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace Hyperion

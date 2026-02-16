@@ -13,6 +13,7 @@
 #include <rendering/vulkan/VulkanAttachment.hpp>
 #include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
+#include <rendering/vulkan/VulkanRenderPass.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -158,7 +159,7 @@ public:
         return m_handle;
     }
 
-    HYP_FORCE_INLINE const VulkanRenderPassRef& GetRenderPass() const
+    HYP_FORCE_INLINE const VulkanRenderPass& GetRenderPass() const
     {
         return m_renderPass;
     }
@@ -204,7 +205,7 @@ public:
 private:
     VkFramebuffer m_handle;
     VulkanRenderPassMode m_renderPassMode;
-    VulkanRenderPassRef m_renderPass;
+    VulkanRenderPass m_renderPass;
     VulkanAttachmentMap m_attachmentMap;
 };
 

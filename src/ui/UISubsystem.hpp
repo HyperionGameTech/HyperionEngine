@@ -77,7 +77,7 @@ private:
 
     Handle<UIStage> m_uiStage;
 
-    ShaderRef m_shader;
+    ShaderInstanceRef m_shader;
 
     Handle<View> m_view;
 

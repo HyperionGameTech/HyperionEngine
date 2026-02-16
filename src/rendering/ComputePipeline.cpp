@@ -13,14 +13,14 @@ namespace Hyperion {
 
 bool ComputePipelineBase::MatchesSignature(const ShaderDesc& shaderDesc) const
 {
-    if (!m_shader.IsValid())
+    if (!m_shaderInstance.IsValid())
     {
         return false;
     }
 
-    const CompiledShader& compiledShader = *m_shader->GetCompiledShader();
+    const Shader& shader = *m_shaderInstance->GetShader();
 
-    if (shaderDesc.name != compiledShader.name || shaderDesc.properties != compiledShader.properties)
+    if (shaderDesc.name != shader.name || shaderDesc.properties != shader.properties)
     {
         return false;
     }

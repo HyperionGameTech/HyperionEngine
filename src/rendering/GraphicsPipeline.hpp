@@ -151,12 +151,12 @@ public:
         m_stencilWrite = stencilWrite;
     }
 
-    HYP_FORCE_INLINE const ShaderRef& GetShader() const
+    HYP_FORCE_INLINE const ShaderInstanceRef& GetShader() const
     {
-        return m_shader;
+        return m_shaderInstance;
     }
 
-    void SetShader(const ShaderRef& shader);
+    void SetShader(const ShaderInstanceRef& shader);
 
     HYP_FORCE_INLINE const RenderTargetDesc& GetRenderTargetDesc() const
     {
@@ -203,8 +203,8 @@ protected:
     {
     }
 
-    explicit GraphicsPipelineBase(const ShaderRef& shader)
-        : m_shader(shader)
+    explicit GraphicsPipelineBase(const ShaderInstanceRef& shaderInstance)
+        : m_shaderInstance(shaderInstance)
     {
     }
 
@@ -223,7 +223,7 @@ protected:
     bool m_stencilWrite = false;
     Optional<StencilFunction> m_stencilFunction;
 
-    ShaderRef m_shader;
+    ShaderInstanceRef m_shaderInstance;
     RenderTargetDesc m_renderTargetDesc;
     
     PSOCacheKey m_psoCacheKey;

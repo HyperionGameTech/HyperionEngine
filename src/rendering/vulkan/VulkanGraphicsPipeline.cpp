@@ -13,7 +13,7 @@
 #include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
-#include <rendering/util/ShaderCompiler.hpp> // For CompiledShader
+#include <rendering/util/ShaderCompiler.hpp> // For Shader
 
 #include <core/debug/Debug.hpp>
 
@@ -33,10 +33,10 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanGr
 {
     Array<VkDescriptorSetLayout, VulkanAllocator> usedLayouts;
 
-    VulkanShaderInstance* shader = pipeline.GetShader();
-    AssertDebug(shader != nullptr && shader->GetCompiledShader() != nullptr);
+    VulkanShaderInstance* shaderInstance = pipeline.GetShader();
+    AssertDebug(shaderInstance != nullptr && shaderInstance->GetShader() != nullptr);
 
-    const ShaderInputGroup* decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const ShaderInputGroup* decl = shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
     for (const DescriptorSetDeclaration& setDecl : decl->elements)
@@ -60,9 +60,9 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline()
 {
 }
 
-VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderRef& shader)
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderInstanceRef& shaderInstance)
     : VulkanPipelineBase(),
-      GraphicsPipelineBase(shader)
+      GraphicsPipelineBase(shaderInstance)
 {
 }
 
@@ -175,10 +175,8 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    VulkanRenderPassRef renderPass = MakeHandle<VulkanRenderPass>(
-        m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
-
-    CheckResultOrReturn(renderPass->Create());
+    VulkanRenderPass renderPass(m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
+    CheckResultOrReturn(renderPass.Create());
 
     m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
 
@@ -383,7 +381,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkGraphicsPipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shader->GetVulkanShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shaderInstance->GetVulkanShaderStages();
     Assert(stages.Any(), "No shader stages found");
 
     pipelineInfo.stageCount = uint32(stages.Size());
@@ -397,7 +395,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_layout;
-    pipelineInfo.renderPass = renderPass->GetVulkanHandle();
+    pipelineInfo.renderPass = renderPass.GetVulkanHandle();
     pipelineInfo.subpass = 0; /* Index of the subpass */
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;

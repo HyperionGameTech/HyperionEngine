@@ -50,8 +50,8 @@ public:
         };
 
         ShaderCacheId cacheId = InvalidShaderCacheId;
-        ShaderRef shaderInstance;
-        CompiledShader* compiledShader = nullptr;
+        ShaderInstanceRef shaderInstance;
+        Shader* shader = nullptr;
         AtomicVar<State> state = State::UNLOADED;
         ThreadId loadingThreadId;
     };
@@ -63,14 +63,14 @@ public:
         VertexAttributeSet attributes;
         ShaderMapEntry* entry;
 
-        ShaderRef outShader;
+        ShaderInstanceRef outShader;
     };
 
     HashMap<HashCode, ShaderMapEntry*> m_entryMap;
     SharedMutex m_mutex;
 
     // these live forever to keep pointers valid
-    SparsePagedArray<CompiledShader, 16> m_compiledShaderCache;
+    SparsePagedArray<Shader, 16> m_compiledShaderCache;
     SparsePagedArray<ShaderMapEntry, 16> m_entries;
 
 #if HYP_EDITOR
@@ -86,13 +86,13 @@ public:
     {
         bool isValid = true;
         isValid &= g_shaderCompiler->RequestShader(
-            request.shaderName, request.properties, request.attributes, *request.entry->compiledShader);
+            request.shaderName, request.properties, request.attributes, *request.entry->shader);
 
-        isValid &= request.entry->compiledShader->IsValid();
+        isValid &= request.entry->shader->IsValid();
 
         Assert(isValid, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
 
-        request.outShader = g_renderInterface->MakeShader(request.entry->compiledShader);
+        request.outShader = g_renderInterface->MakeShader(request.entry->shader);
         CheckResult(request.outShader->Create());
 
         // Update the entry
@@ -257,7 +257,7 @@ public:
 
     };
 
-    ShaderRef GetOrCreate(
+    ShaderInstanceRef GetOrCreate(
         Name name, const ShaderPropertySet& properties, const VertexAttributeSet& vertexAttributes,
         ShaderCacheId& outCacheId, bool doLoadShader)
     {
@@ -267,7 +267,7 @@ public:
 
         const auto EnsureMatch = [](
             const ShaderPropertySet& expectedProperties, const VertexAttributeSet& expectedVertexAttributes,
-            const CompiledShader& received) -> bool
+            const Shader& received) -> bool
         {
             if (received.vertexAttributes != expectedVertexAttributes)
             {
@@ -348,7 +348,7 @@ public:
 
             if (EnsureMatch(
                 properties, vertexAttributes,
-                *entry->shaderInstance->GetCompiledShader()))
+                *entry->shaderInstance->GetShader()))
             {
                 return entry->shaderInstance;
             }
@@ -366,7 +366,7 @@ public:
 
             entry = GetShaderMapEntry(cacheId);
             entry->cacheId = cacheId;
-            entry->compiledShader = GetCompiledShader(entry->cacheId);
+            entry->shader = GetShader(entry->cacheId);
 
             if (doLoadShader)
             {
@@ -394,7 +394,7 @@ public:
 
         if (!doLoadShader)
         {
-            return ShaderRef::Null();
+            return ShaderInstanceRef::Null();
         }
 
         CompilingShaderScope compilingShaderScope(this, name, properties, vertexAttributes, entry);
@@ -433,7 +433,7 @@ public:
         return cacheId;
     }
 
-    CompiledShader* GetCompiledShader(ShaderCacheId shaderCacheId)
+    Shader* GetShader(ShaderCacheId shaderCacheId)
     {
         TSharedLock lock(m_mutex);
 
@@ -492,7 +492,7 @@ public:
 
             if (const ShaderMapEntry* entry = it.second)
             {
-                for (const ByteBuffer& byteBuffer : entry->shaderInstance->GetCompiledShader()->shaderBlobs)
+                for (const ByteBuffer& byteBuffer : entry->shaderInstance->GetShader()->shaderBlobs)
                 {
                     totalMemoryUsage += byteBuffer.Size();
                 }
@@ -513,7 +513,7 @@ ShaderManager::ShaderManager()
 {
 }
 
-ShaderRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes)
+ShaderInstanceRef ShaderManager::GetOrCreate(Name name, const ShaderPropertySet& propertySet, const VertexAttributeSet& vertexAttributes)
 {
     ShaderCacheId cacheId;
     return m_impl->GetOrCreate(name, propertySet, vertexAttributes, cacheId, /* doLoadShader */ true);

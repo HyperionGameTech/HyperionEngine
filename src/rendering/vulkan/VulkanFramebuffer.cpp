@@ -124,8 +124,6 @@ VulkanFramebuffer::~VulkanFramebuffer()
         m_handle = VK_NULL_HANDLE;
     }
 
-    m_renderPass.Reset();
-
     m_attachmentMap.Reset();
 }
 
@@ -153,8 +151,8 @@ RendererResult VulkanFramebuffer::Create()
         m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
     }
 
-    m_renderPass = MakeHandle<VulkanRenderPass>(m_renderTargetDesc, m_renderPassMode);
-    CheckResultOrReturn(m_renderPass->Create());
+    m_renderPass = VulkanRenderPass(m_renderTargetDesc, m_renderPassMode);
+    CheckResultOrReturn(m_renderPass.Create());
 
     Array<VkImageView> attachmentImageViews;
     attachmentImageViews.Reserve(m_attachmentMap.attachments.Size());
@@ -179,7 +177,7 @@ RendererResult VulkanFramebuffer::Create()
     }
 
     VkFramebufferCreateInfo framebufferCreateInfo { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-    framebufferCreateInfo.renderPass = m_renderPass->GetVulkanHandle();
+    framebufferCreateInfo.renderPass = m_renderPass.GetVulkanHandle();
     framebufferCreateInfo.attachmentCount = uint32(attachmentImageViews.Size());
     framebufferCreateInfo.pAttachments = attachmentImageViews.Data();
     framebufferCreateInfo.width = m_renderTargetDesc.extent.x;
@@ -301,14 +299,14 @@ void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
     commandBuffer->m_isInRenderPass = true;
     commandBuffer->ResetBoundDescriptorSets();
 
-    m_renderPass->Begin(commandBuffer, this);
+    m_renderPass.Begin(commandBuffer, this);
 }
 
 void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)
 {
     Assert(commandBuffer->IsInRenderPass());
 
-    m_renderPass->End(commandBuffer);
+    m_renderPass.End(commandBuffer);
 
     commandBuffer->m_isInRenderPass = false;
 }
