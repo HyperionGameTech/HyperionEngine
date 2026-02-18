@@ -65,7 +65,7 @@ VulkanComputePipeline::VulkanComputePipeline(const VulkanShaderInstanceRef& shad
 
 VulkanComputePipeline::~VulkanComputePipeline()
 {
-    SafeDelete(std::move(m_shaderInstance));
+    m_shaderInstance.Reset();
 }
 
 void VulkanComputePipeline::Bind(VulkanCommandBuffer* commandBuffer)

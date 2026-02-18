@@ -488,6 +488,8 @@ private:
     Scheduler* m_scheduler;
 
     BlobStorage* m_blobStorage;
+
+    DelegateHandler m_onEngineShutdown;
 };
 
 } // namespace Hyperion

@@ -33,7 +33,7 @@ static RendererResult AcquireNextImage(
     VulkanSwapchain* swapchain,
     VulkanFrame* frame,
     uint32* index,
-    bool& outNeedsRecreate)
+    bool* pOutNeedsRecreate)
 {
     VulkanSemaphore* semaphore = frame->GetImageAvailableSemaphore(swapchain);
     Assert(semaphore != nullptr && semaphore->IsCreated());
@@ -46,9 +46,9 @@ static RendererResult AcquireNextImage(
         VK_NULL_HANDLE,
         index);
 
-    if (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR)
+    if (pOutNeedsRecreate != nullptr && (vkResult == VK_ERROR_OUT_OF_DATE_KHR || vkResult == VK_SUBOPTIMAL_KHR))
     {
-        outNeedsRecreate = true;
+        *pOutNeedsRecreate = true;
     }
 
     if (vkResult != VK_SUCCESS && vkResult != VK_SUBOPTIMAL_KHR)
@@ -74,17 +74,20 @@ VulkanSwapchain::VulkanSwapchain(VkSurfaceKHR surface, const Vec2u& extent)
 
 VulkanSwapchain::~VulkanSwapchain()
 {
-    if (m_handle == VK_NULL_HANDLE)
+    m_images.Clear();
+    m_presentSemaphores.Clear();
+    m_framebuffers.Clear();
+    
+    if (m_handle != VK_NULL_HANDLE)
     {
-        return;
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+            {
+                vkDestroySwapchainKHR(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
     }
 
-    SafeDelete(std::move(m_images));
-    SafeDelete(std::move(m_presentSemaphores));
-    SafeDelete(std::move(m_framebuffers));
-
-    vkDestroySwapchainKHR(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
+    m_surface = VK_NULL_HANDLE;
 }
 
 bool VulkanSwapchain::IsCreated() const
@@ -97,9 +100,16 @@ void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
     if (m_needsRecreate)
     {
         Recreate();
+
+        // if recreation failed our handle will be VK_NULL_HANDLE
+        // this can happen when closing the window
+        if (m_handle == VK_NULL_HANDLE)
+        {
+            return;
+        }
     }
 
-    RendererResult result = AcquireNextImage(this, frame, &m_acquiredImageIndex, m_needsRecreate);
+    RendererResult result = AcquireNextImage(this, frame, &m_acquiredImageIndex, &m_needsRecreate);
 
     if (m_needsRecreate)
     {
@@ -107,7 +117,7 @@ void VulkanSwapchain::PrepareForFrame(VulkanFrame* frame)
 
         frame->RecreateSemaphores(this);
 
-        result = AcquireNextImage(this, frame, &m_acquiredImageIndex, m_needsRecreate);
+        result = AcquireNextImage(this, frame, &m_acquiredImageIndex, &m_needsRecreate);
     }
 
     Assert(result, "Failed to acquire next swapchain image: {}", result.GetError().GetMessage());
@@ -263,12 +273,16 @@ RendererResult VulkanSwapchain::Create()
         m_presentSemaphores[i] = MakeHandle<VulkanSemaphore>();
         CheckResultOrReturn(m_presentSemaphores[i]->Create());
     }
+    
+    m_needsRecreate = false;
 
     return {};
 }
 
 void VulkanSwapchain::SetExtent(Vec2u newExtent)
 {
+    AssertDebug(newExtent.Volume() > 0);
+
     if (m_extent == newExtent)
     {
         return;
@@ -286,13 +300,6 @@ void VulkanSwapchain::SetExtent(Vec2u newExtent)
 
 void VulkanSwapchain::Recreate()
 {
-    if (!IsCreated())
-    {
-        m_needsRecreate = false;
-
-        return;
-    }
-
     HYP_LOG(RenderingBackend, Info, "Recreating Vulkan swapchain {} with new extent: {}", Id(), m_extent);
 
     Array<VulkanGpuImageRef> oldImages = std::move(m_images);
@@ -302,25 +309,25 @@ void VulkanSwapchain::Recreate()
     m_oldHandle = m_handle;
     m_handle = VK_NULL_HANDLE; // so Create() knows it's a new swapchain
 
+    m_acquiredImageIndex = ~0u;
+
     RendererResult createResult = Create();
-    Assert(createResult, "Failed to recreate swapchain during resize: {}", createResult.GetError().GetMessage());
 
-    // we can now destroy the old swapchain
-    vkDestroySwapchainKHR(
-        g_renderInterface->GetDevice()->GetDevice(),
-        m_oldHandle,
-        nullptr);
+    if (m_oldHandle != VK_NULL_HANDLE)
+    {
+        // we can now destroy the old swapchain
+        vkDestroySwapchainKHR(
+            g_renderInterface->GetDevice()->GetDevice(),
+            m_oldHandle,
+            nullptr);
 
-    m_oldHandle = VK_NULL_HANDLE;
+        m_oldHandle = VK_NULL_HANDLE;
+    }
 
     // cleanup old resources
     oldFramebuffers.Clear();
     oldImages.Clear();
     oldPresentSemaphores.Clear();
-
-    OnRecreated();
-
-    m_needsRecreate = false;
 }
 
 RendererResult VulkanSwapchain::ChooseSurfaceFormat()

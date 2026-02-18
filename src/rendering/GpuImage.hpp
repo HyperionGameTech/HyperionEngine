@@ -36,6 +36,8 @@ public:
     using HANDLE = void*;
 #endif
 
+    static Pool* GetAllocator() { return g_rhiPool; }
+
     virtual ~GpuImageBase() override = default;
 
     Name GetDebugName() const

@@ -395,6 +395,34 @@ private:
 
 extern HYP_API SafeDeleter* GetSafeDeleterInstance();
 
+template <class TFunction>
+static inline void SafeDelete(FunctionWrapper<TFunction>&& func)
+{
+    using Payload = NormalizedType<FunctionWrapper<TFunction>>;
+
+    Mutex::Guard* pGuard = nullptr;
+
+    Payload** ppPayload = GetSafeDeleterInstance()->AllocCustom<Payload*>([](void* ptr)
+        {
+            AssertOnThread(g_renderThread);
+
+            Payload* pPayload = *reinterpret_cast<Payload**>(ptr);
+            AssertDebug(pPayload != nullptr);
+
+            (*pPayload)();
+
+            delete pPayload;
+        },
+        &pGuard);
+    
+    *ppPayload = new Payload(std::forward<Payload>(func));
+
+    if (pGuard) // if locking was needed then we can delete the guard now to unlock.
+    {
+        delete pGuard;
+    }
+}
+
 /*! \brief Defers deletion of a resource until enough frames have passed that the renderer can finish using it.
  *   It is garanteed that the number of frames before deletion is at least the number of frames before the sim thread and render thread will sync,
  *   so calling this function on the sim thread for example will ensure that the resource is not deleted until the render thread has a chance to finish using it. */

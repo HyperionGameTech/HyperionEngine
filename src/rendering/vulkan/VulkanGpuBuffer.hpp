@@ -22,8 +22,6 @@ class VulkanGpuBuffer final : public GpuBufferBase
     HYP_OBJECT_BODY(VulkanGpuBuffer);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanGpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
     ~VulkanGpuBuffer() override;
 

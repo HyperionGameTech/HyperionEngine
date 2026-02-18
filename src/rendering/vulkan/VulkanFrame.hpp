@@ -29,8 +29,6 @@ class VulkanFrame final : public FrameBase
     HYP_OBJECT_BODY(VulkanFrame);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanFrame();
     explicit VulkanFrame(uint32 frameIndex);
 

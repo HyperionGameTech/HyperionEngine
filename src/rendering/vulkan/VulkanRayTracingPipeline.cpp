@@ -70,11 +70,7 @@ VulkanRayTracingPipeline::VulkanRayTracingPipeline(const VulkanShaderInstanceRef
 
 VulkanRayTracingPipeline::~VulkanRayTracingPipeline()
 {
-    if (!IsCreated())
-    {
-        return;
-    }
-
+    m_shaderInstance.Reset();
     m_shaderBindingTableBuffers.Clear();
 }
 

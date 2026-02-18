@@ -108,7 +108,7 @@ public:
     const VulkanDeviceRef& GetDevice() const;
 
     RendererResult Initialize() override;
-    RendererResult Shutdown() override;
+    void Shutdown() override;
 
     const IRenderConfig& GetRenderConfig() const override;
 
@@ -208,13 +208,13 @@ private:
 
     Pimpl<VulkanTextureCache> m_textureCache;
 
-    FixedArray<VulkanFrameRef, NumFramesInFlight> m_frames;
+    Array<VulkanFrameRef, VulkanAllocator> m_frames;
     uint32 m_currentFrameIndex;
 
-    FixedArray<VulkanCommandBufferRef, NumFramesInFlight> m_commandBuffers;
+    Array<VulkanCommandBufferRef, VulkanAllocator> m_commandBuffers;
 
-    Array<VulkanAsyncCompute*, RenderAllocator> m_asyncComputePool;
-    Array<VulkanAsyncCompute*, RenderAllocator> m_submittedAsyncComputes;
+    Array<VulkanAsyncCompute*, VulkanAllocator> m_asyncComputePool;
+    Array<VulkanAsyncCompute*, VulkanAllocator> m_submittedAsyncComputes;
     Mutex m_asyncComputesMutex;
 };
 

@@ -18,6 +18,8 @@ class FramebufferBase : public ObjectBase
 
 public:
     virtual ~FramebufferBase() override = default;
+    
+    static Pool* GetAllocator() { return g_rhiPool; }
 
     HYP_FORCE_INLINE uint32 GetWidth() const
     {

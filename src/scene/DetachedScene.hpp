@@ -14,7 +14,9 @@ class ThreadId;
 
 using threading::ThreadId;
 
-HYP_API extern Scene* GetDetachedSceneForCurrentThread();
-HYP_API extern Scene* GetDetachedSceneForThread(const ThreadId& threadId);
+void DestroyDetachedScenes();
+
+Scene* GetDetachedSceneForCurrentThread();
+Scene* GetDetachedSceneForThread(const ThreadId& threadId);
 
 } // namespace Hyperion

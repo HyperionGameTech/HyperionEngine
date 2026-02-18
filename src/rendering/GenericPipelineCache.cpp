@@ -212,7 +212,7 @@ template class GenericPipelineCache<RayTracingPipeline>;
 
 ComputePipelineRef ComputePipelineCache::MakePipeline(Name shaderName, const ShaderPropertySet& properties)
 {
-    ShaderInstanceRef shader = g_shaderManager->GetOrCreate(shaderName, properties, {});
+    ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(shaderName, properties, {});
     
     if (!shader.IsValid())
     {
@@ -228,7 +228,7 @@ ComputePipelineRef ComputePipelineCache::MakePipeline(Name shaderName, const Sha
 
 RayTracingPipelineRef RayTracingPipelineCache::MakePipeline(Name shaderName, const ShaderPropertySet& properties)
 {
-    ShaderInstanceRef shader = g_shaderManager->GetOrCreate(shaderName, properties, {});
+    ShaderInstanceRef shader = g_renderInterface->shaderManager->GetOrCreate(shaderName, properties, {});
     
     if (!shader.IsValid())
     {

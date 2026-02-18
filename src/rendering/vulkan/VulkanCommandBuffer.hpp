@@ -74,8 +74,6 @@ class VulkanCommandBuffer final : public CommandBufferBase
     HYP_OBJECT_BODY(VulkanCommandBuffer);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     friend class VulkanFramebuffer;
     friend class VulkanDescriptorSet;
 

@@ -56,7 +56,7 @@ struct StagingBufferPoolImpl
         {
             for (CachedStagingBuffer& cachedBuffer : cachedBuffers[frameIndex])
             {
-                SafeDelete(std::move(cachedBuffer.buffer));
+                cachedBuffer.buffer.Reset();
             }
         }
     }
@@ -128,21 +128,6 @@ struct StagingBufferPoolImpl
 StagingBufferPool::StagingBufferPool()
     : m_impl(MakePimpl<StagingBufferPoolImpl>())
 {
-}
-
-StagingBufferPool& StagingBufferPool::GetInstance()
-{
-    if (!s_stagingBufferPool)
-    {
-        s_stagingBufferPool = new StagingBufferPool();
-
-        CurrentThreadObject()->AtExit([]()
-            {
-                delete s_stagingBufferPool;
-            });
-    }
-
-    return *s_stagingBufferPool;
 }
 
 void StagingBufferPool::Cleanup(uint32 frameIndex)

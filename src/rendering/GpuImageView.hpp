@@ -16,6 +16,8 @@ class GpuImageViewBase : public ObjectBase
     HYP_OBJECT_BODY(GpuImageViewBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~GpuImageViewBase() override;
 
     Name GetDebugName() const

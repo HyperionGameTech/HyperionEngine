@@ -9,6 +9,8 @@
 
 #include <rendering/Device.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <VulkanSemaphore.generated.inl>
 
 namespace Hyperion {
@@ -26,9 +28,11 @@ VulkanSemaphore::~VulkanSemaphore()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        HYP_LOG(RenderingBackend, Debug, "DESTROY Vulkan semaphore {}", (void*)m_handle);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+            {
+                vkDestroySemaphore(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
 
-        vkDestroySemaphore(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 }

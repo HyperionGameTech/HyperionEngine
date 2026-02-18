@@ -20,6 +20,8 @@ class SwapchainBase : public ObjectBase
     HYP_OBJECT_BODY(SwapchainBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~SwapchainBase() override = default;
 
     virtual bool IsCreated() const = 0;
@@ -67,8 +69,6 @@ public:
     virtual RendererResult Create() = 0;
     virtual void SetExtent(Vec2u newExtent) = 0;
     virtual void Recreate() = 0;
-
-    Delegate<void> OnRecreated;
 
 protected:
     explicit SwapchainBase(const Vec2u& extent = Vec2u::Zero())

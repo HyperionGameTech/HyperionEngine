@@ -53,6 +53,9 @@ class ApplicationWindow;
 class SingleTimeCommands;
 struct Shader;
 class GpuBufferHolderBase;
+class StagingBufferPool;
+class ShaderManager;
+class SafeDeleter;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -231,7 +234,7 @@ public:
     virtual ~RenderInterface();
 
     virtual RendererResult Initialize();
-    virtual RendererResult Shutdown();
+    virtual void Shutdown();
 
     void AddRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
     void RemoveRenderer(GlobalRendererType globalRendererType, RendererBase* renderer);
@@ -251,7 +254,7 @@ public:
 
     virtual Frame* PrepareNextFrame() = 0;
 
-    virtual void BeginFrame();
+    virtual void BeginFrame(AtomicFlag* pCancelFlag);
     virtual void EndFrame();
 
     virtual SwapchainRef CreateSwapchain(ApplicationWindow* window) = 0;
@@ -319,6 +322,10 @@ public:
     virtual void ReleaseTransientMemory() = 0;
     virtual void NextFrame() = 0;
 
+    ShaderManager* shaderManager;
+
+    SafeDeleter* safeDeleter;
+
     BindlessStorage* bindlessStorage;
 
     ShadowMapAllocator* shadowMapAllocator;
@@ -353,6 +360,8 @@ public:
     State state;
 
     DescriptorSetCache* descriptorSetCache;
+
+    StagingBufferPool* stagingBufferPool;
 
     struct ResourceContainer* resources;
 

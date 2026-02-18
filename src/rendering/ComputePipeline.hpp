@@ -20,6 +20,8 @@ class ComputePipelineBase : public ObjectBase
 
 public:
     virtual ~ComputePipelineBase() override = default;
+    
+    static Pool* GetAllocator() { return g_rhiPool; }
 
     HYP_FORCE_INLINE const ShaderInstanceRef& GetShader() const
     {

@@ -52,8 +52,6 @@ class VulkanShaderInstance final : public ShaderInstanceBase
     HYP_OBJECT_BODY(VulkanShaderInstance);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanShaderInstance();
     explicit VulkanShaderInstance(const Shader* shader);
     ~VulkanShaderInstance() override;

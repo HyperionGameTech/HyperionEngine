@@ -11,6 +11,8 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <VulkanCommandBuffer.generated.inl>
 
 namespace Hyperion {
@@ -33,7 +35,10 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
     {
         Assert(m_commandPool != VK_NULL_HANDLE);
 
-        vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), m_commandPool, 1, &m_handle);
+        SafeDelete(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
+            {
+                vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
+            }));
 
         m_handle = VK_NULL_HANDLE;
         m_commandPool = VK_NULL_HANDLE;
@@ -187,6 +192,12 @@ RendererResult VulkanCommandBuffer::SubmitPrimary(
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_handle;
 
+    if (fence != nullptr)
+    {
+        Assert(!fence->isSubmitted);
+        fence->isSubmitted = true;
+    }
+
     VULKAN_CHECK(vkQueueSubmit(queue->queue, 1, &submitInfo, fence ? fence->GetVulkanHandle() : VK_NULL_HANDLE));
 
     return {};
@@ -212,7 +223,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const VulkanGpuBuffer* buffer)
     Assert(buffer->GetBufferType() == GpuBufferType::MESH_VERTEX_BUFFER, "Not a vertex buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
 
     const VkBuffer vertexBuffers[] = { static_cast<const VulkanGpuBuffer*>(buffer)->GetVulkanHandle() };
-
+    
     vkCmdBindVertexBuffers(m_handle, 0, 1, vertexBuffers, BindingOffsets);
 }
 

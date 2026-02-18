@@ -311,7 +311,7 @@ RendererResult VulkanDescriptorSetManager::Create(VulkanDevice* device)
 
 RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
 {
-    RendererResult result = RendererResult {};
+    RendererResult result {};
 
     m_vkDescriptorSetLayouts.Clear();
 
@@ -586,6 +586,8 @@ VulkanRenderInterface::VulkanRenderInterface()
       m_descriptorSetManager(MakePimpl<VulkanDescriptorSetManager>()),
       m_currentFrameIndex(0)
 {
+    m_frames.Resize(NumFramesInFlight);
+    m_commandBuffers.Resize(NumFramesInFlight);
 }
 
 VulkanRenderInterface::~VulkanRenderInterface()
@@ -654,15 +656,30 @@ RendererResult VulkanRenderInterface::Initialize()
 
     CheckResultOrReturn(m_descriptorSetManager->Create(m_instance->GetDevice()));
 
-    CheckResultOrReturn(RenderInterface::Initialize());
-
-    return {};
+    return RenderInterface::Initialize();
 }
 
-RendererResult VulkanRenderInterface::Shutdown()
+void VulkanRenderInterface::Shutdown()
 {
-    SafeDelete(std::move(m_frames));
-    SafeDelete(std::move(m_commandBuffers));
+    CheckResult(m_instance->GetDevice()->WaitIdle());
+
+    for (VulkanFrameRef& frame : m_frames)
+    {
+        if (!frame)
+        {
+            continue;
+        }
+
+        if (frame->GetFence()->isSubmitted && !frame->GetFence()->CheckStatus())
+        {
+            frame->GetFence()->Wait();
+        }
+
+        frame.Reset();
+    }
+
+    m_frames.Clear();
+    m_commandBuffers.Clear();
 
     for (VulkanAsyncCompute* ac : m_asyncComputePool)
     {
@@ -679,14 +696,12 @@ RendererResult VulkanRenderInterface::Shutdown()
     m_asyncComputePool.Clear();
     m_submittedAsyncComputes.Clear();
 
+    RenderInterface::Shutdown();
+
     m_descriptorSetManager->Destroy(m_instance->GetDevice());
-
-    CheckResult(m_instance->GetDevice()->WaitIdle());
-
+    
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
-
-    return {};
 }
 
 VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
@@ -1030,7 +1045,7 @@ UniquePtr<SingleTimeCommands> VulkanRenderInterface::GetSingleTimeCommands()
     return MakeUnique<VulkanSingleTimeCommands>();
 }
 
-VulkanAsyncCompute* VulkanRenderInterface::CreateAsyncCompute()
+HYP_NODISCARD VulkanAsyncCompute* VulkanRenderInterface::CreateAsyncCompute()
 {
     {
         Mutex::Guard guard(m_asyncComputesMutex);

@@ -50,6 +50,8 @@ class GpuTlasBase : public ObjectBase
     HYP_OBJECT_BODY(GpuTlasBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+
     GpuTlasBase()
         : m_meshDescriptionsBuffer(GpuBufferRef::Null())
     {
@@ -108,6 +110,8 @@ protected:
     }
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~GpuBlasBase() override = default;
 
     Name GetDebugName() const

@@ -58,7 +58,7 @@ public:
     }
 
     RendererResult Initialize() override;
-    RendererResult Shutdown() override;
+    void Shutdown() override;
 
     const IRenderConfig& GetRenderConfig() const override;
 

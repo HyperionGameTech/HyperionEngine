@@ -54,9 +54,9 @@ private:
     Block* NewBlock(uint32 currentFrameCounter);
     Block* TryGetRecycledBlock(uint32 currentFrameCounter);
 
-    Array<Block*, RenderAllocator> m_blocks;
-    Array<Block*, RenderAllocator> m_currentFrameBlocks;
-    TByteBuffer<RenderTempAllocator> m_scratch;
+    Array<Block*, RHIAllocator> m_blocks;
+    Array<Block*, RHIAllocator> m_currentFrameBlocks;
+    TByteBuffer<RHITempAllocator> m_scratch;
 };
 
 } // namespace Hyperion

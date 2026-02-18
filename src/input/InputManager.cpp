@@ -499,7 +499,9 @@ void InputManager::ProcessEvent(Event&& event)
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-    switch (event.GetType())
+    const EventType eventType = event.GetType();
+
+    switch (eventType)
     {
     case EventType::KEYDOWN:
         SetKey(event.GetKeyCode(), true);
@@ -545,11 +547,15 @@ void InputManager::ProcessEvent(Event&& event)
         }
 
         break;
+    case EventType::WINDOW_CLOSE:
+    {
+        HYP_BREAKPOINT;
+
+        break;
+    }
     default:
         break;
     }
-
-    const EventType eventType = event.GetType();
 
     if (!m_eventQueue->Push(std::move(event)))
     {

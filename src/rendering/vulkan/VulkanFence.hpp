@@ -23,21 +23,18 @@ public:
 
     HYP_FORCE_INLINE VkFence GetVulkanHandle() const
     {
-        return m_handle;
+        return handle;
     }
-
-    HYP_FORCE_INLINE VkResult GetLastFrameResult() const
-    {
-        return m_lastFrameResult;
-    }
+    
+    bool CheckStatus();
 
     void Create(bool createSignaled = false);
     void Wait(bool timeoutLoop = false);
     void Reset();
-
-private:
-    VkFence m_handle = VK_NULL_HANDLE;
-    VkResult m_lastFrameResult = VK_SUCCESS;
+    
+    VkFence handle;
+    VkResult lastFrameResult;
+    bool isSubmitted;
 };
 
 } // namespace Hyperion

@@ -39,6 +39,8 @@ namespace Hyperion {
 
 HYP_DEFINE_LOG_CHANNEL(SimThread);
 
+extern void DestroyDetachedScenes();
+
 EngineStatTimer g_simTimer("SimThread/Update");
 
 struct LaunchGameAsync
@@ -79,7 +81,8 @@ bool SimThread::Start()
     // -SimulateOnMainThread option
     if (m_id == g_mainThread)
     {
-        Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
+        Assert(m_isRunning.Load() == false);
+        m_isRunning.Store(true);
 
         // DO NOT call SetCurrentThreadObject() if using -SimulateOnMainThread
 
@@ -180,11 +183,13 @@ void SimThread::operator()()
     // Handle -SimulateOnMainThread
     if (m_id != g_mainThread)
     {
-        while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+        while (!m_stopRequested.Load())
         {
             Update();
         }
     }
+
+    DestroyDetachedScenes();
 }
 
 #pragma endregion SimThread

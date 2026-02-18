@@ -19,6 +19,8 @@ class CommandBufferBase : public ObjectBase
 
 public:
     virtual ~CommandBufferBase() override = default;
+    
+    static Pool* GetAllocator() { return g_rhiPool; }
 
     virtual bool IsCreated() const = 0;
 

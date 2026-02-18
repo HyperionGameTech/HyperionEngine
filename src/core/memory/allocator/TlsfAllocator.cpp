@@ -75,6 +75,11 @@ void TlsfAllocator::RemovePool(void* memory)
 
 void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
 {
+    if (HYP_UNLIKELY(m_tlsf == nullptr))
+    {
+        HYP_FAIL("Attempting to allocate memory on destroyed TLSF allocator");
+    }
+
     AssertDebug(m_tlsf != nullptr);
     AssertDebug(bytes > 0 && alignment > 0 && (alignment & (alignment - 1)) == 0); // power of two
 
@@ -83,6 +88,11 @@ void* TlsfAllocator::Allocate(SizeType bytes, SizeType alignment)
 
 void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
 {
+    if (HYP_UNLIKELY(m_tlsf == nullptr))
+    {
+        HYP_FAIL("Attempting to reallocate memory on destroyed TLSF allocator");
+    }
+
     AssertDebug(m_tlsf != nullptr);
     AssertDebug(ptr != nullptr);
 
@@ -91,6 +101,11 @@ void* TlsfAllocator::Reallocate(void* ptr, SizeType newSize, SizeType alignment)
 
 void TlsfAllocator::Free(void* ptr)
 {
+    if (HYP_UNLIKELY(m_tlsf == nullptr))
+    {
+        HYP_FAIL("Attempting to free memory from destroyed TLSF allocator");
+    }
+
     AssertDebug(m_tlsf != nullptr);
     AssertDebug(ptr != nullptr);
 

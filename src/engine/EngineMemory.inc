@@ -9,7 +9,13 @@ HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX] = {
 };
 
 #else
+
+#ifdef HYP_ENGINE_MEMORY_DECL
+#undef HYP_ENGINE_MEMORY_DECL
+#endif // HYP_ENGINE_MEMORY_DECL
+
 #define HYP_ENGINE_MEMORY_DECL HYP_API extern
+
 static constexpr SizeType ObjectPoolBlockSize = 1 * 1024 * 1024;    // 1 MiB
 static constexpr SizeType RenderPoolBlockSize = 2 * 1024 * 1024;    // 2 MiB
 static constexpr SizeType FramePoolBlockSize = 16 * 1024;           // 16 KiB
@@ -27,6 +33,9 @@ static constexpr SizeType RenderArenaSize = 64 * 1024;              // 64 KiB
 #if HYP_VULKAN
 static constexpr SizeType VulkanPoolBlockSize = 8 * 1024 * 1024;
 static constexpr SizeType VulkanArenaSize = 1 * 1024 * 1024;
+#elif HYP_DX12
+static constexpr SizeType DX12PoolBlockSize = 8 * 1024 * 1024;
+static constexpr SizeType DX12ArenaSize = 1 * 1024 * 1024;
 #endif
 
 HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX];
@@ -41,11 +50,33 @@ HYP_ENGINE_MEMORY_DECL Pool* g_resourcePool;                // Pool for paged da
 HYP_ENGINE_MEMORY_DECL Pool* g_streamingPool;               // Pool for streaming system allocations (thread safe)
 
 #if HYP_VULKAN
+
 HYP_ENGINE_MEMORY_DECL Pool* g_vulkanPool;
 using VulkanAllocator = AllocatorInstance<Pool, &g_vulkanPool>;
 
 HYP_ENGINE_MEMORY_DECL Arena* g_vulkanArena;
 using VulkanTempAllocator = AllocatorInstance<Arena, &g_vulkanArena>;
+
+using RHIAllocator = VulkanAllocator;
+using RHITempAllocator = VulkanTempAllocator;
+
+#define g_rhiPool g_vulkanPool
+#define g_rhiArena g_vulkanArena
+
+#elif HYP_DX12
+
+HYP_ENGINE_MEMORY_DECL Pool* g_dx12Pool;
+using DX12Allocator = AllocatorInstance<Pool, &g_dx12Pool>;
+
+HYP_ENGINE_MEMORY_DECL Arena* g_dx12Arena;
+using DX12TempAllocator = AllocatorInstance<Arena, &g_dx12Arena>;
+
+using RHIAllocator = DX12Allocator;
+using RHITempAllocator = DX12TempAllocator;
+
+#define g_rhiPool g_dx12Pool
+#define g_rhiArena g_dx12Arena
+
 #endif
 
 #if HYP_SCRIPT
@@ -87,6 +118,9 @@ static void InitMemoryPools()
 #if HYP_VULKAN
     g_vulkanPool = new Pool(VulkanPoolBlockSize);
     g_vulkanArena = new Arena(VulkanArenaSize);
+#elif HYP_DX12
+    g_dx12Pool = new Pool(DX12PoolBlockSize);
+    g_dx12Arena = new Arena(DX12ArenaSize);
 #endif
 }
 

@@ -153,7 +153,7 @@ void EditorViewport::OnSceneAdded(Scene* scene)
         return;
     }
 
-    m_view->AddScene(MakeStrongRef(scene));
+    m_view->AddScene(scene);
 }
 
 void EditorViewport::OnSceneRemoved(Scene* scene)

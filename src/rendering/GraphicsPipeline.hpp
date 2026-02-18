@@ -61,6 +61,8 @@ class GraphicsPipelineBase : public ObjectBase
 public:
     virtual ~GraphicsPipelineBase() override;
 
+    static Pool* GetAllocator() { return g_rhiPool; }
+
     HYP_FORCE_INLINE const VertexAttributeSet& GetVertexAttributes() const
     {
         return m_vertexAttributes;

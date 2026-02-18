@@ -17,8 +17,9 @@ namespace Hyperion {
 
 HYP_API SafeDeleter* GetSafeDeleterInstance()
 {
-    AssertDebug(g_safeDeleter != nullptr);
-    return g_safeDeleter;
+    AssertDebug(g_renderInterface != nullptr && g_renderInterface->safeDeleter != nullptr);
+
+    return g_renderInterface->safeDeleter;
 }
 
 #pragma region SafeDeleterEntry<Handle<ObjectBase>>
@@ -100,40 +101,33 @@ SafeDeleter::~SafeDeleter()
     HYP_NAMED_SCOPE("SafeDeleter::~SafeDeleter");
 
     AssertOnThread(g_renderThread);
-
-    auto deleteAll = [](auto& entryList)
+    
+    // delete remaining enqueued deletions
+    FixedArray<int, RingBufferDepth> counts {};
+    
+    do
     {
-        // free all entries in the list
-        for (uint32 i = 0; i < 2; ++i)
+        for (uint32 i = 0; i < RingBufferDepth; i++)
         {
-            for (EntryHeader& header : entryList.headers[i])
-            {
-                if (header.destructFn)
-                {
-                    header.destructFn(reinterpret_cast<void*>(entryList.buffer.Data() + header.offset));
-                }
-            }
-
-            entryList.headers[i].Clear();
+            counts[i] = ForceDeleteAll(i);
         }
 
-        entryList.currHeaders = &entryList.headers[0];
-        entryList.buffer.Clear();
-        entryList.bufferPos = 0;
-    };
-
+        ThreadSleep(1); // give some time for other threads to finish
+    }
+    while (AnyOf(counts, [](uint32 count) { return count > 0; }));
+    
     // delete all entries in all buffers
     for (auto* pEntryList : m_entryLists)
     {
-        deleteAll(*pEntryList);
+        Assert(pEntryList->headers->Empty());
 
         delete pEntryList;
     }
 
     // free all temp entry lists
-    for (auto& it : m_tempEntryLists)
+    for (auto& entryList : m_tempEntryLists)
     {
-        deleteAll(it);
+        Assert(entryList.headers->Empty());
     }
 }
 

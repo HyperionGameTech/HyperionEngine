@@ -410,6 +410,8 @@ private:
     RendererConfig m_rendererConfig;
 
     MeshRTData m_meshRTData;
+
+    Handle<Mesh> m_quadMesh;
 };
 
 } // namespace Hyperion

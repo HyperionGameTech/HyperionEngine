@@ -150,11 +150,11 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
     {
         if (!sor || !sor->GetScriptObjectData_Native() || sor->GetScriptObjectData_Native()->nativeObject.GetUnsafe() != scriptComponent.nativeObject.Get())
         {
-            FreeResource<ScriptObjectResource>(sor);
+            delete sor;
             sor = nullptr;
         }
 
-        sor = AllocateResource<ScriptObjectResource>(scriptComponent.nativeObject);
+        sor = new ScriptObjectResource(scriptComponent.nativeObject);
         sor->AddReader();
 
         const Class* nativeClass = scriptComponent.nativeObject->InstanceClass();
@@ -199,7 +199,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         {
             if (!sor || !sor->GetManagedObject() || !sor->GetManagedObject()->IsValid())
             {
-                FreeResource<ScriptObjectResource>(sor);
+                delete sor;
                 sor = nullptr;
 
                 auto resGuard = scriptAsset->GetReadScope();
@@ -253,7 +253,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     dotnet::ManagedObject* object = classPtr->NewObject();
                     Assert(object != nullptr);
 
-                    sor = AllocateResource<ScriptObjectResource>(object, classPtr);
+                    sor = new ScriptObjectResource(object, classPtr);
                     sor->AddReader();
 
                     HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
@@ -299,7 +299,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     {
                         scriptComponent.scriptObjectResource->ReleaseReader();
 
-                        FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
+                        delete scriptComponent.scriptObjectResource;
                         scriptComponent.scriptObjectResource = nullptr;
                     }
 
@@ -317,7 +317,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
             if (!sor || !sor->GetScriptObjectData_HypScript() || !sor->GetScriptObjectData_HypScript()->instance)
             {
-                FreeResource<ScriptObjectResource>(sor);
+                delete sor;
                 sor = nullptr;
 
                 auto resGuard = scriptAsset->GetReadScope();
@@ -367,7 +367,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 // run the script to initialize classes, functions, etc.
                 hs.Run(instance);
 
-                sor = AllocateResource<ScriptObjectResource>(instance, BoxedValue());
+                sor = new ScriptObjectResource(instance, BoxedValue());
                 sor->AddReader();
 
                 if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
@@ -388,7 +388,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     {
                         scriptComponent.scriptObjectResource->ReleaseReader();
 
-                        FreeResource<ScriptObjectResource>(scriptComponent.scriptObjectResource);
+                        delete scriptComponent.scriptObjectResource;
                         scriptComponent.scriptObjectResource = nullptr;
                     }
 
@@ -436,7 +436,7 @@ void EntityScripting::DeinitEntityScriptComponent(Entity* entity, ScriptComponen
 
         sor->ReleaseReader();
 
-        FreeResource<ScriptObjectResource>(sor);
+        delete sor;
         sor = nullptr;
     }
 

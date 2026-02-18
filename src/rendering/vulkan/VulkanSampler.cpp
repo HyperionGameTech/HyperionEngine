@@ -8,6 +8,8 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 
+#include <rendering/util/SafeDeleter.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <VulkanSampler.generated.inl>
@@ -28,7 +30,11 @@ VulkanSampler::~VulkanSampler()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroySampler(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+            {
+                vkDestroySampler(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
+
         m_handle = VK_NULL_HANDLE;
     }
 }

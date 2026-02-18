@@ -300,6 +300,8 @@ class DescriptorSetBase : public ObjectBase
 
 public:
     virtual ~DescriptorSetBase() override;
+    
+    static Pool* GetAllocator() { return g_rhiPool; }
 
     HYP_FORCE_INLINE const DescriptorSetLayout& GetLayout() const
     {

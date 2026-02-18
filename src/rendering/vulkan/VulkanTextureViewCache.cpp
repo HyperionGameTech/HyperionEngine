@@ -27,7 +27,7 @@ VulkanTextureViewCache::~VulkanTextureViewCache()
     {
         for (auto& jt : it)
         {
-            SafeDelete(std::move(jt.second));
+            jt.second.Reset();
         }
     }
 }
@@ -142,7 +142,7 @@ void VulkanTextureViewCache::RemoveTexture(const Texture* texture)
     {
         for (auto& it : imageViews.Get(idx))
         {
-            SafeDelete(std::move(it.second));
+            it.second.Reset();
         }
 
         imageViews.EraseAt(idx);

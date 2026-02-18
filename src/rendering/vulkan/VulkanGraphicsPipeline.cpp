@@ -68,6 +68,7 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderInstanceRef& sh
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
+    m_shaderInstance.Reset();
 }
 
 void VulkanGraphicsPipeline::Bind(VulkanCommandBuffer* cmd)

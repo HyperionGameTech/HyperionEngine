@@ -24,8 +24,6 @@ class VulkanGpuImageView final : public GpuImageViewBase
     HYP_OBJECT_BODY(VulkanGpuImageView);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     explicit VulkanGpuImageView(const VulkanGpuImageRef& image);
 
     VulkanGpuImageView(

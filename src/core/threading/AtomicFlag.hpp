@@ -35,6 +35,16 @@ public:
 
     ~AtomicFlag() = default;
 
+    bool Load() const
+    {
+        return AtomicAdd(&m_value, 0) != 0;
+    }
+
+    void Store(bool value)
+    {
+        AtomicExchange(&m_value, value ? 1 : 0);
+    }
+
     void Acquire() const
     {
         uint32 numSpins = 0;

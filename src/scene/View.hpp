@@ -151,13 +151,13 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Array<Handle<Scene>>& GetScenes() const
+    HYP_FORCE_INLINE const Array<Scene*>& GetScenes() const
     {
         return m_scenes;
     }
 
     HYP_METHOD()
-    void AddScene(const Handle<Scene>& scene);
+    void AddScene(Scene* scene);
 
     HYP_METHOD()
     void RemoveScene(Scene* scene);
@@ -250,7 +250,7 @@ protected:
 
     EnumFlags<ViewFlags> m_flags;
 
-    Array<Handle<Scene>> m_scenes;
+    Array<Scene*> m_scenes;
     Handle<Camera> m_camera;
     ViewOutputTarget m_outputTarget;
 

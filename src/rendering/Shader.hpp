@@ -24,6 +24,8 @@ class ShaderInstanceBase : public ObjectBase
     HYP_OBJECT_BODY(ShaderInstanceBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     ShaderInstanceBase()
         : m_shader(nullptr)
     {

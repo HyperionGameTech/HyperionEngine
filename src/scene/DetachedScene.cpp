@@ -18,16 +18,10 @@ class DetachedScenes
 public:
     DetachedScenes()
     {
-        onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
-            {
-                Mutex::Guard guard(m_mutex);
-                m_scenes.Clear();
-
-                onShutdownHandle.Reset();
-            });
+        m_scenes.Reserve(16);
     }
 
-    Scene* GetDetachedScene(const ThreadId& threadId)
+    Scene*& GetDetachedScene(const ThreadId& threadId)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -38,25 +32,37 @@ public:
             it = m_scenes.Insert({ threadId, CreateSceneForThread(threadId) }).first;
         }
 
-        return it->second.Get();
+        return it->second;
     }
 
-    DelegateHandler onShutdownHandle;
+    void DestroyAll()
+    {
+        Mutex::Guard guard(m_mutex);
+
+        for (auto& pair : m_scenes)
+        {
+            if (pair.second != nullptr)
+            {
+                pair.second->Release();
+                pair.second = nullptr;
+            }
+        }
+    }
 
 private:
-    Handle<Scene> CreateSceneForThread(const ThreadId& threadId)
+    Scene* CreateSceneForThread(const ThreadId& threadId)
     {
-        Handle<Scene> scene = MakeHandle<Scene>(NAME_FMT("DetachedSceneForThread_{}", threadId.GetName()), threadId, SceneFlags::DETACHED);
+        Scene* scene = new Scene(NAME_FMT("DetachedSceneForThread_{}", threadId.GetName()), threadId, SceneFlags::DETACHED);
         InitObject(scene);
 
         return scene;
     }
 
-    HashMap<ThreadId, Handle<Scene>> m_scenes;
+    HashMap<ThreadId, Scene*, DynamicNodeAllocator> m_scenes;
     Mutex m_mutex;
 };
 
-static thread_local Scene* s_sceneForCurrentThread;
+static thread_local Scene** s_ppDetachedScene;
 
 static DetachedScenes& GetDetachedScenes()
 {
@@ -64,14 +70,19 @@ static DetachedScenes& GetDetachedScenes()
     return s_detachedScenes;
 }
 
+void DestroyDetachedScenes()
+{
+    GetDetachedScenes().DestroyAll();
+}
+
 Scene* GetDetachedSceneForCurrentThread()
 {
-    if (!s_sceneForCurrentThread)
+    if (!s_ppDetachedScene)
     {
-        s_sceneForCurrentThread = GetDetachedScenes().GetDetachedScene(CurrentThreadId());
+        s_ppDetachedScene = &GetDetachedScenes().GetDetachedScene(CurrentThreadId());
     }
 
-    return s_sceneForCurrentThread;
+    return *s_ppDetachedScene;
 }
 
 Scene* GetDetachedSceneForThread(const ThreadId& threadId)

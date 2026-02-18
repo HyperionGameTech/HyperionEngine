@@ -39,8 +39,8 @@ VulkanAttachment::VulkanAttachment(
 
 VulkanAttachment::~VulkanAttachment()
 {
-    SafeDelete(std::move(m_image));
-    SafeDelete(std::move(m_imageView));
+    m_image.Reset();
+    m_imageView.Reset();
 }
 
 bool VulkanAttachment::IsCreated() const

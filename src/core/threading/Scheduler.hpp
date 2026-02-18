@@ -78,7 +78,7 @@ protected:
 
     uint32 m_idCounter = 0;
     AtomicVar<uint32> m_numEnqueued { 0 };
-    AtomicVar<bool> m_stopRequested { false };
+    AtomicFlag m_stopRequested;
 
     mutable Mutex m_mutex;
     ConditionVariable m_hasTasksCV;

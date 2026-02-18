@@ -29,8 +29,6 @@ class VulkanRayTracingPipeline final : public RayTracingPipelineBase, public Vul
     HYP_OBJECT_BODY(VulkanRayTracingPipeline);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanRayTracingPipeline();
     explicit VulkanRayTracingPipeline(const VulkanShaderInstanceRef& shader);
     ~VulkanRayTracingPipeline() override;

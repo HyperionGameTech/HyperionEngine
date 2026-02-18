@@ -146,6 +146,8 @@ public:
 
     virtual ~StreamingManagerThread() override
     {
+        StopThreadPool();
+
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
             if (volume.IsValid())
@@ -298,7 +300,19 @@ public:
 
     void Stop() override
     {
-        m_stopRequested.Set(true, MemoryOrder::RELAXED);
+        m_stopRequested.Store(true);
+
+        StopThreadPool();
+    }
+
+private:
+    void StopThreadPool()
+    {
+        if (!m_threadPool || !m_threadPool->IsRunning())
+        {
+            return;
+        }
+
         m_notifier.Signal();
 
         m_threadPool->Stop();
@@ -310,7 +324,6 @@ public:
         }
     }
 
-private:
     virtual void operator()(StreamingManager* streamingManager) override
     {
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
@@ -328,7 +341,7 @@ private:
         // Set the notifier to the initial value of 1 so it won't block the first call.
         m_notifier.Signal();
 
-        while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+        while (!m_stopRequested.Load())
         {
             do
             {
@@ -340,9 +353,9 @@ private:
                 // NEED to make sure only one manager thread exists and is working on this arena
                 g_streamingArena->Reset();
             }
-            while (m_notifier.IsSignalled() && !m_stopRequested.Get(MemoryOrder::RELAXED));
+            while (m_notifier.IsSignalled() && !m_stopRequested.Load());
 
-            if (m_stopRequested.Get(MemoryOrder::RELAXED))
+            if (m_stopRequested.Load())
             {
                 return;
             }

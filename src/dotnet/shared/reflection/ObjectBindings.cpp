@@ -65,7 +65,7 @@ extern "C"
 
         *outInstancePtr = ptr;
 
-        ScriptObjectResource* scriptObjectResource = AllocateResource<ScriptObjectResource>(
+        ScriptObjectResource* scriptObjectResource = new ScriptObjectResource(
             ptr,
             pClass->RefCountedPtrFromThis(),
             *objectReference,

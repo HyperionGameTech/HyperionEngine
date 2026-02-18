@@ -15,6 +15,8 @@ class RayTracingPipelineBase : public ObjectBase
     HYP_OBJECT_BODY(RayTracingPipelineBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~RayTracingPipelineBase() override = default;
 
     Name GetDebugName() const

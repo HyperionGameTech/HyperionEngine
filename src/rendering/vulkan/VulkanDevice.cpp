@@ -104,7 +104,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
     /* TODO: move over to QueueFamilyIndices */
     Array<uint32> foundIndices;
 
-    const auto predicate = [&](uint32 index, VkQueueFlagBits expectedBits, bool expectDedicated) -> bool
+    const auto Predicate = [&](uint32 index, VkQueueFlagBits expectedBits, bool expectDedicated) -> bool
     {
         const uint32 maskedBits = families[index].queueFlags & possibleFlags;
 
@@ -159,7 +159,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
         if (!indices.graphicsFamily.HasValue())
         {
-            if (predicate(i, VK_QUEUE_GRAPHICS_BIT, true))
+            if (Predicate(i, VK_QUEUE_GRAPHICS_BIT, true))
             {
                 HYP_LOG(RenderingBackend, Debug, "Found dedicated graphics presentation queue: {}", i);
                 indices.graphicsFamily = i;
@@ -170,7 +170,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
         if (!indices.transferFamily.HasValue())
         {
-            if (predicate(i, VK_QUEUE_TRANSFER_BIT, true))
+            if (Predicate(i, VK_QUEUE_TRANSFER_BIT, true))
             {
                 HYP_LOG(RenderingBackend, Debug, "Found dedicated transfer queue: {}", i);
                 indices.transferFamily = i;
@@ -181,7 +181,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
         if (!indices.computeFamily.HasValue())
         {
-            if (predicate(i, VK_QUEUE_COMPUTE_BIT, true))
+            if (Predicate(i, VK_QUEUE_COMPUTE_BIT, true))
             {
                 HYP_LOG(RenderingBackend, Debug, "Found dedicated compute queue: {}", i);
                 indices.computeFamily = i;
@@ -216,7 +216,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
         if (!indices.transferFamily.HasValue())
         {
-            if (predicate(i, VK_QUEUE_TRANSFER_BIT, false))
+            if (Predicate(i, VK_QUEUE_TRANSFER_BIT, false))
             {
                 HYP_LOG(RenderingBackend, Debug, "Found non-dedicated transfer queue {}", i);
                 indices.transferFamily = i;
@@ -225,7 +225,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
         if (!indices.computeFamily.HasValue())
         {
-            if (predicate(i, VK_QUEUE_COMPUTE_BIT, false))
+            if (Predicate(i, VK_QUEUE_COMPUTE_BIT, false))
             {
                 HYP_LOG(RenderingBackend, Debug, "Found non-dedicated compute queue {}", i);
                 indices.computeFamily = i;
@@ -299,13 +299,7 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
                 RendererError,
                 "Device does not support required extensions:\n\t{}",
                 -1,
-                String::Join(Map(
-                                 missingRequiredExtensionStrings,
-                                 [](const String& s)
-                                 {
-                                     return s;
-                                 }),
-                    "\n\t"));
+                String::Join(missingRequiredExtensionStrings, "\n\t"));
         }
     }
 
@@ -319,19 +313,20 @@ RendererResult VulkanDevice::CheckDeviceSuitable(const ExtensionMap& unsupported
 
 RendererResult VulkanDevice::SetupAllocator(VulkanInstance* instance)
 {
-    VmaVulkanFunctions vkfuncs {};
-    vkfuncs.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-    vkfuncs.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+    VmaVulkanFunctions vkFuncs {};
+    vkFuncs.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+    vkFuncs.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
 
     VmaAllocatorCreateInfo createInfo {};
     createInfo.vulkanApiVersion = HYP_VULKAN_API_VERSION;
     createInfo.physicalDevice = m_physical;
     createInfo.device = m_device;
     createInfo.instance = instance->GetInstance();
-    createInfo.pVulkanFunctions = &vkfuncs;
-    createInfo.flags = 0 | (m_features->IsRayTracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
+    createInfo.pVulkanFunctions = &vkFuncs;
+    createInfo.flags = (m_features->IsRayTracingSupported() ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0);
 
-    vmaCreateAllocator(&createInfo, &m_allocator);
+    VkResult result = vmaCreateAllocator(&createInfo, &m_allocator);
+    VULKAN_CHECK(result);
 
     return {};
 }

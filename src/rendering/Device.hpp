@@ -7,6 +7,8 @@
 #include <core/reflection/ObjectBase.hpp>
 #include <core/reflection/Handle.hpp>
 
+#include <rendering/RenderMemory.hpp>
+
 namespace Hyperion {
 
 HYP_CLASS(Abstract, NoScriptBindings)
@@ -15,6 +17,8 @@ class DeviceBase : public ObjectBase
     HYP_OBJECT_BODY(DeviceBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~DeviceBase() override = default;
 };
 

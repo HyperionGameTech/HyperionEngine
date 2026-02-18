@@ -22,8 +22,6 @@ class VulkanGpuImage final : public GpuImageBase
     HYP_OBJECT_BODY(VulkanGpuImage);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     friend class VulkanSwapchain;
 
     explicit VulkanGpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE);

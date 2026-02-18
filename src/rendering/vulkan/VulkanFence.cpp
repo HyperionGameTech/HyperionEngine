@@ -19,23 +19,28 @@ namespace Hyperion {
 extern VulkanRenderInterface* g_renderInterface;
 
 VulkanFence::VulkanFence()
-    : m_handle(VK_NULL_HANDLE),
-      m_lastFrameResult(VK_SUCCESS)
+    : handle(VK_NULL_HANDLE),
+      lastFrameResult(VK_SUCCESS),
+      isSubmitted(false)
 {
 }
 
 VulkanFence::~VulkanFence()
 {
-    if (m_handle != VK_NULL_HANDLE)
+    if (handle != VK_NULL_HANDLE)
     {
-        vkDestroyFence(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
-        m_handle = VK_NULL_HANDLE;
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = handle]()
+            {
+                vkDestroyFence(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
+
+        handle = VK_NULL_HANDLE;
     }
 }
 
 void VulkanFence::Create(bool createSignaled)
 {
-    Assert(m_handle == VK_NULL_HANDLE);
+    Assert(handle == VK_NULL_HANDLE);
 
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fenceCreateInfo { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -45,31 +50,60 @@ void VulkanFence::Create(bool createSignaled)
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     }
 
-    VkResult result = vkCreateFence(g_renderInterface->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &m_handle);
+    VkResult result = vkCreateFence(g_renderInterface->GetDevice()->GetDevice(), &fenceCreateInfo, nullptr, &handle);
     Assert(result == VK_SUCCESS, "Failed to create Vulkan fence, VkResult: {}", result);
+}
+
+bool VulkanFence::CheckStatus()
+{
+    Assert(handle != VK_NULL_HANDLE);
+
+    if (!isSubmitted)
+    {
+        return false;
+    }
+
+    VkResult result = vkGetFenceStatus(g_renderInterface->GetDevice()->GetDevice(), handle);
+
+    if (result == VK_NOT_READY)
+    {
+        return false;
+    }
+
+    Assert(result == VK_SUCCESS);
+
+    if (result == VK_SUCCESS)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 void VulkanFence::Wait(bool timeoutLoop)
 {
-    Assert(m_handle != VK_NULL_HANDLE);
+    Assert(handle != VK_NULL_HANDLE);
 
     VkResult result = VK_SUCCESS;
 
     do
     {
-        result = vkWaitForFences(g_renderInterface->GetDevice()->GetDevice(), 1, &m_handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
+        result = vkWaitForFences(g_renderInterface->GetDevice()->GetDevice(), 1, &handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
     }
     while (result == VK_TIMEOUT && timeoutLoop);
 
-    m_lastFrameResult = result;
+    lastFrameResult = result;
+    isSubmitted = false;
 
     Assert(result == VK_SUCCESS, "Failed to wait for Vulkan fence, VkResult: {}", result);
 }
 
 void VulkanFence::Reset()
 {
-    VkResult result = vkResetFences(g_renderInterface->GetDevice()->GetDevice(), 1, &m_handle);
+    VkResult result = vkResetFences(g_renderInterface->GetDevice()->GetDevice(), 1, &handle);
     Assert(result == VK_SUCCESS, "Failed to reset Vulkan fence, VkResult: {}", result);
+
+    isSubmitted = false;
 }
 
 } // namespace Hyperion

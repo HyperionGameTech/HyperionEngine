@@ -89,9 +89,11 @@ void ShadowRendererBase::Shutdown()
     {
         for (ShadowMap* shadowMap : shadowMaps)
         {
-            bool shadowMapFreed = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
-            AssertDebug(shadowMapFreed, "Failed to free shadow map");
+            bool removedFromAtlas = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
+            AssertDebug(removedFromAtlas, "Failed to free shadow map");
         }
+
+        shadowMaps.Clear();
     }
 }
 

@@ -63,8 +63,11 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
     {
         Unmap();
     }
-
-    vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), m_handle, m_vmaAllocation);
+    
+    SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
+        {
+            vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+        }));
 
     m_handle = VK_NULL_HANDLE;
     m_vmaAllocation = VK_NULL_HANDLE;

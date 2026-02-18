@@ -20,7 +20,14 @@ class GpuBufferHolder;
 class GpuBufferHolderMap
 {
 public:
-    HYP_FORCE_INLINE const TypeMap<UniquePtr<GpuBufferHolderBase>>& GetItems() const
+    GpuBufferHolderMap() = default;
+
+    GpuBufferHolderMap(const GpuBufferHolderMap& other) = delete;
+    GpuBufferHolderMap& operator=(const GpuBufferHolderMap& other) = delete;
+
+    ~GpuBufferHolderMap();
+
+    HYP_FORCE_INLINE const TypeMap<GpuBufferHolderBase*>& GetItems() const
     {
         return m_holders;
     }
@@ -28,24 +35,22 @@ public:
     template <class T, GpuBufferType BufferType = GpuBufferType::STORAGE_BUFFER>
     GpuBufferHolder<T, BufferType>* GetOrCreate(uint32 initialCount, bool cpuAccessible)
     {
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
-
         auto it = m_holders.Find<T>();
 
         if (it == m_holders.End())
         {
             HYP_MT_CHECK_WRITE(m_dataRaceDetector);
 
-            it = m_holders.Set<T>(MakeUnique<GpuBufferHolder<T, BufferType>>(initialCount, cpuAccessible)).first;
+            it = m_holders.Set<T>(PoolNew<GpuBufferHolder<T, BufferType>>(*g_renderPool, initialCount, cpuAccessible)).first;
         }
 
-        return static_cast<GpuBufferHolder<T, BufferType>*>(it->second.Get());
+        return static_cast<GpuBufferHolder<T, BufferType>*>(it->second);
     }
 
-private:
-    TypeMap<UniquePtr<GpuBufferHolderBase>> m_holders;
+    void DeleteAll();
 
-    HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
+private:
+    TypeMap<GpuBufferHolderBase*> m_holders;
 };
 
 } // namespace Hyperion

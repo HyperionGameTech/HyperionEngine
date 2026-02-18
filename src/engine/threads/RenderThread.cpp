@@ -66,7 +66,8 @@ bool RenderThread::Start()
     // -RenderOnMainThread option
     if (m_id == g_mainThread)
     {
-        Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
+        Assert(m_isRunning.Load() == false);
+        m_isRunning.Store(true);
 
         // DO NOT call SetCurrentThreadObject() if using RenderOnMainThread
 
@@ -82,7 +83,12 @@ void RenderThread::Update()
 {
     ENGINE_STAT_SCOPE(&g_renderTimer);
 
-    g_renderInterface->BeginFrame();
+    g_renderInterface->BeginFrame(&m_stopRequested);
+
+    if (m_stopRequested.Load())
+    {
+        return;
+    }
 
     Queue<Scheduler::ScheduledTask> tasks;
     if (uint32 numEnqueued = m_scheduler.NumEnqueued())
@@ -103,25 +109,22 @@ void RenderThread::Update()
 
     if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
     {
-        if (Swapchain* swapchain = mainWindow->GetSwapchain().Get())
+        Swapchain* swapchain = mainWindow->GetSwapchain();
+
+        if (swapchain != nullptr && swapchain->IsCreated())
         {
             swapchains.PushBack(swapchain);
         }
     }
 
+    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
+    
     for (Swapchain* swapchain : swapchains)
     {
         g_renderInterface->PrepareSwapchain(swapchain);
     }
 
-    g_renderInterface->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, GetWorldBufferData(), sizeof(WorldShaderData));
-
-    Swapchain* swapchain = nullptr;
-
-    if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
-    {
-        swapchain = mainWindow->GetSwapchain();
-    }
+    Swapchain* swapchain = swapchains.Any() ? swapchains[0] : nullptr;
 
     Span<World*> worldsToRender = GetActiveWorlds();
 
@@ -213,21 +216,24 @@ void RenderThread::operator()()
     HYP_FAIL("Not compiled with any rendering backend - cannot initialize renderer!");
 #endif
 
-    CheckResult(g_renderInterface->Initialize());
+    if (!CheckResult(g_renderInterface->Initialize()))
+    {
+        HYP_FAIL("Failed to initialize rendering backend");
+    }
 
     g_renderThreadInit.release();
 
     if (m_id != g_mainThread) // !RenderOnMainThread
     {
-        while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+        while (!m_stopRequested.Load())
         {
             Update();
         }
     }
 
-    m_isRunning.Set(false, MemoryOrder::RELEASE);
+    m_isRunning.Store(false);
     
-    CheckResult(g_renderInterface->Shutdown());
+    g_renderInterface->Shutdown();
 
     delete g_renderInterface;
     g_renderInterface = nullptr;

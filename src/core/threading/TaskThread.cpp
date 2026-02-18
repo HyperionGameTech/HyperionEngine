@@ -39,7 +39,7 @@ void TaskThread::SetPriority(ThreadPriorityValue priority)
 
 void TaskThread::operator()()
 {
-    while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+    while (!m_stopRequested.Load())
     {
         Scheduler::ScheduledTask scheduledTask;
         bool gotTask = false;

@@ -51,8 +51,6 @@ class VulkanGraphicsPipeline final : public GraphicsPipelineBase, public VulkanP
     HYP_OBJECT_BODY(VulkanGraphicsPipeline);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanGraphicsPipeline();
     explicit VulkanGraphicsPipeline(const VulkanShaderInstanceRef& shader);
     ~VulkanGraphicsPipeline();

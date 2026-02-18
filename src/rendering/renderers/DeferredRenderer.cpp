@@ -1306,10 +1306,14 @@ DeferredRenderer::~DeferredRenderer()
 
 void DeferredRenderer::Initialize()
 {
+    m_quadMesh = MeshBuilder::Quad();
+    m_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
+    InitObject(m_quadMesh);
 }
 
 void DeferredRenderer::Shutdown()
 {
+    m_quadMesh.Reset();
 }
 
 Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
@@ -1838,25 +1842,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     }
 }
 
-static Handle<Mesh> s_quadMesh;
-
-static Mesh* GetQuadMesh()
-{
-    if (HYP_UNLIKELY(!s_quadMesh))
-    {
-        s_quadMesh = MeshBuilder::Quad();
-        s_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
-        InitObject(s_quadMesh);
-
-        CurrentThreadObject()->AtExit([]()
-            {
-                s_quadMesh.Reset();
-            });
-    }
-
-    return s_quadMesh;
-}
-
 void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
@@ -2076,8 +2061,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->renderQueue << CommitDrawState();
 
-            frame->renderQueue << BindVertexBuffer(GetQuadMesh()->GetVertexBuffer());
-            frame->renderQueue << BindIndexBuffer(GetQuadMesh()->GetIndexBuffer());
+            frame->renderQueue << BindVertexBuffer(m_quadMesh->GetVertexBuffer());
+            frame->renderQueue << BindIndexBuffer(m_quadMesh->GetIndexBuffer());
 
             frame->renderQueue << DrawIndexed(6);
 

@@ -503,11 +503,6 @@ public:
     }
 };
 
-ShaderManager* ShaderManager::GetInstance()
-{
-    return g_shaderManager;
-}
-
 ShaderManager::ShaderManager()
     : m_impl(MakePimpl<ShaderManagerImpl>())
 {

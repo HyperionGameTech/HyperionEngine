@@ -41,7 +41,7 @@ bool MainThread::Start()
 
     SetCurrentThreadObject(this);
 
-    m_isRunning.Set(true, MemoryOrder::RELAXED);
+    m_isRunning.Store(true);
 
     (*this)();
 
@@ -52,7 +52,7 @@ void MainThread::Stop()
 {
     Thread::Stop();
 
-    m_isRunning.Set(false, MemoryOrder::RELAXED);
+    m_isRunning.Store(false);
 }
 
 void MainThread::Update()
@@ -113,7 +113,7 @@ void MainThread::operator()()
 
     if (!s_isDetached)
     {
-        while (m_isRunning.Get(MemoryOrder::RELAXED))
+        while (m_isRunning.Load())
         {
             Update();
         }

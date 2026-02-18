@@ -52,8 +52,12 @@ VulkanGpuImage::~VulkanGpuImage()
         if (m_allocation != VK_NULL_HANDLE)
         {
             Assert(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
+            
+            SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]() -> void
+                {
+                    vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+                }));
 
-            vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
         }
 

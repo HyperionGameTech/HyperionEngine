@@ -22,8 +22,6 @@ class VulkanComputePipeline final : public ComputePipelineBase, public VulkanPip
     HYP_OBJECT_BODY(VulkanComputePipeline);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanComputePipeline();
     explicit VulkanComputePipeline(const VulkanShaderInstanceRef& shader);
     ~VulkanComputePipeline() override;

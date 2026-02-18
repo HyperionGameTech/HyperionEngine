@@ -1891,6 +1891,35 @@ void AssetRegistry::Initialize()
     // Add transient package for imported assets in editor mode
     Handle<AssetPackage> importsPackage = GetPackageFromPath("$Import", true);
 #endif
+
+    m_onEngineShutdown = g_engineDriver->GetDelegates().OnShutdown.Bind([this, weakThis = MakeWeakRef(this)]()
+        {
+            Handle<AssetRegistry> strongThis = weakThis.Lock();
+            if (!strongThis.IsValid())
+                return;
+
+            AssetPackageSet packages;
+
+            { // grab packages after prune task batch is complete (if applicable)
+                TUniqueLock lock(m_mutex);
+
+                if (m_pruneTaskBatch != nullptr)
+                {
+                    if (!m_pruneTaskBatch->IsCompleted())
+                    {
+                        HYP_LOG(Assets, Warning, "Waiting for prune task batch to complete.");
+                        m_pruneTaskBatch->AwaitCompletion();
+                    }
+
+                    delete m_pruneTaskBatch;
+                    m_pruneTaskBatch = nullptr;
+                }
+
+                packages = std::move(m_packages);
+            }
+
+            packages.Clear();
+        });
 }
 
 void AssetRegistry::PruneTransientPackages()

@@ -219,7 +219,7 @@ RendererResult DX12RenderInterface::Initialize()
     return {};
 }
 
-RendererResult DX12RenderInterface::Shutdown()
+void DX12RenderInterface::Shutdown()
 {
     HYP_LOG(RenderingBackend, Info, "Destroying DX12 render backend...");
 
@@ -247,6 +247,8 @@ RendererResult DX12RenderInterface::Shutdown()
 
     m_queueData = {};
 
+    RenderInterface::Shutdown();
+
     m_allocator->Release();
     m_allocator = nullptr;
 
@@ -254,8 +256,6 @@ RendererResult DX12RenderInterface::Shutdown()
     m_hardwareAdapter.Reset();
     
     dxgiFactory.Reset();
-
-    return {};
 }
 
 const IRenderConfig& DX12RenderInterface::GetRenderConfig() const

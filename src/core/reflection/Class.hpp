@@ -329,7 +329,6 @@ class HYP_API Class
 {
 public:
     friend struct ClassRegistrationBase;
-    friend class ObjectPool;
     friend class ObjectContainerBase;
 
     Class(
@@ -741,7 +740,7 @@ public:
 
     virtual void Initialize() override
     {
-        m_objectContainer = &ObjectPool::GetObjectContainerMap().GetOrCreate<T>(this);
+        m_objectContainer = &GetObjectContainerMap().GetOrCreate<T>(this);
         m_objectContainer->Initialize();
 
         Class::Initialize();

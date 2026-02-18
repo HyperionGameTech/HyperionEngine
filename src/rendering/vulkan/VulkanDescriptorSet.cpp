@@ -241,7 +241,10 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        g_renderInterface->DestroyDescriptorSet(m_handle, m_vkDescriptorPool);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, pool = m_vkDescriptorPool]() -> void
+            {
+                g_renderInterface->DestroyDescriptorSet(handle, pool);
+            }));
 
         m_handle = VK_NULL_HANDLE;
         m_vkDescriptorSetLayout = VK_NULL_HANDLE;

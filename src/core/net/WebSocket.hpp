@@ -30,7 +30,7 @@ public:
 
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
     bool IsRunning() const
-        { return m_isRunning.Get(MemoryOrder::RELAXED); }
+        { return m_isRunning.Load(); }
 
 private:
     virtual void operator()(WebSocket *) override;

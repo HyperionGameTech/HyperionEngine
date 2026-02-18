@@ -51,7 +51,10 @@ VulkanGpuImageView::~VulkanGpuImageView()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyImageView(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]() -> void
+            {
+                vkDestroyImageView(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
 
         m_handle = VK_NULL_HANDLE;
     }

@@ -86,9 +86,7 @@ Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
 Handle<Logger> g_logger;
-ShaderManager* g_shaderManager;
 MaterialCache* g_materialCache;
-SafeDeleter* g_safeDeleter;
 ShaderCompiler* g_shaderCompiler;
 
 #ifdef HYP_EDITOR
@@ -312,9 +310,7 @@ extern "C"
         InitObject(g_editorState);
 #endif
 
-        g_shaderManager = new ShaderManager;
         g_materialCache = new MaterialCache;
-        g_safeDeleter = new SafeDeleter;
 
         LoadShaderPropertyDictionary();
 
@@ -361,7 +357,17 @@ extern "C"
         {
             HYP_LOG(Engine, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
-            g_appContext->SetMainWindow(g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
+            Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
+
+            window->OnClose.Bind([]()
+                {
+                    // shut down application on main window close.
+                    Hyp_Shutdown();
+                }).Detach();
+
+            Assert(window.IsValid());
+
+            g_appContext->SetMainWindow(window);
         }
         else
         {
@@ -452,15 +458,30 @@ extern "C"
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;
 
-        delete g_shaderManager;
-        g_shaderManager = nullptr;
-
         delete g_materialCache;
         g_materialCache = nullptr;
 
         g_engineDriver.Reset();
         g_logger.Reset();
         g_appContext.Reset();
+
+        // Named threads
+        delete g_mainThreadInstance;
+        g_mainThreadInstance = nullptr;
+
+        delete g_simThreadInstance;
+        g_simThreadInstance = nullptr;
+
+        delete g_renderThreadInstance;
+        g_renderThreadInstance = nullptr;
+
+        delete g_visThreadInstance;
+        g_visThreadInstance = nullptr;
+        
+        // Shutdown object container map - destroys all remaining ObjectBase instances
+        GetObjectContainerMap().Shutdown();
+
+        // Pools / arenas
 
         delete g_sceneArena;
         g_sceneArena = nullptr;
@@ -491,21 +512,6 @@ extern "C"
 
         delete g_objectPool;
         g_objectPool = nullptr;
-
-        delete g_safeDeleter;
-        g_safeDeleter = nullptr;
-
-        delete g_mainThreadInstance;
-        g_mainThreadInstance = nullptr;
-
-        delete g_simThreadInstance;
-        g_simThreadInstance = nullptr;
-
-        delete g_renderThreadInstance;
-        g_renderThreadInstance = nullptr;
-
-        delete g_visThreadInstance;
-        g_visThreadInstance = nullptr;
 
 #if HYP_WINDOWS
         Win32_CleanupWindowClasses();

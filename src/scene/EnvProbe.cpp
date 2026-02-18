@@ -124,11 +124,17 @@ void EnvProbe::SetIsVisible(ObjId<Camera> cameraId, bool isVisible)
 
 EnvProbe::~EnvProbe()
 {
-    AssertDebug(m_view == nullptr);
+    if (m_view.IsValid())
+    {
+        SafeDelete(std::move(m_view));
+    }
 
-    SafeDelete(std::move(m_texture));
+    if (m_texture.IsValid())
+    {
+        SafeDelete(std::move(m_texture));
+    }
 
-    if (m_camera)
+    if (m_camera != nullptr)
     {
         RemoveChild(m_camera);
         m_camera = nullptr;
@@ -211,7 +217,7 @@ void EnvProbe::OnAddedToScene(Scene* scene)
 
     if (m_view)
     {
-        m_view->AddScene(MakeStrongRef(scene));
+        m_view->AddScene(scene);
     }
 
     Invalidate();
@@ -372,9 +378,9 @@ void EnvProbe::Update(float delta)
         cacheKeysToRemove.PushBack(kvp.first);
     }
 
-    for (const Handle<Scene>& scene : m_view->GetScenes())
+    for (Scene* scene : m_view->GetScenes())
     {
-        auto applyFrustumCheck = [&]()
+        auto ApplyFrustumCheck = [&]()
         {
             // don't bother with the check for sky
             if (IsA(SkyProbe::StaticClass()))
@@ -431,7 +437,7 @@ void EnvProbe::Update(float delta)
             if (it == m_cachedOctantHashCodes.End())
             {
                 if (!needsUpdate)
-                    applyFrustumCheck();
+                    ApplyFrustumCheck();
 
                 m_cachedOctantHashCodes[scene->Id()] = octantHashCode;
 
@@ -441,7 +447,7 @@ void EnvProbe::Update(float delta)
             if (it->second != octantHashCode)
             {
                 if (!needsUpdate)
-                    applyFrustumCheck();
+                    ApplyFrustumCheck();
 
                 it->second = octantHashCode;
 
@@ -451,7 +457,7 @@ void EnvProbe::Update(float delta)
         else
         {
             if (!needsUpdate)
-                applyFrustumCheck();
+                ApplyFrustumCheck();
         }
     }
 
@@ -464,9 +470,7 @@ void EnvProbe::Update(float delta)
     }
 
     if (!needsUpdate)
-    {
         return;
-    }
 
     AssertDebug(m_camera != nullptr);
     m_camera->Update(delta);

@@ -32,7 +32,7 @@
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSetCache.hpp>
-#include <rendering/DDGI.hpp>
+#include <rendering/ShaderManager.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -879,8 +879,11 @@ RenderInterface::RenderInterface()
       computePipelineCache(PoolNew<ComputePipelineCache>(*g_renderPool)),
       rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
+      shaderManager(PoolNew<ShaderManager>(*g_renderPool)),
+      safeDeleter(PoolNew<SafeDeleter>(*g_renderPool)),
       finalPass(nullptr),
-      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool))
+      textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
+      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool))
 {
 }
 
@@ -890,7 +893,7 @@ RenderInterface::~RenderInterface()
 
 RendererResult RenderInterface::Initialize()
 {
-    HYP_LOG(Rendering, Debug, "Init() called");
+    HYP_LOG(Rendering, Debug, "Initializing base render interface");
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
@@ -968,7 +971,7 @@ RendererResult RenderInterface::Initialize()
     return {};
 }
 
-RendererResult RenderInterface::Shutdown()
+void RenderInterface::Shutdown()
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
@@ -1015,10 +1018,20 @@ RendererResult RenderInterface::Shutdown()
         }
     }
 
+    blueNoiseBuffer.Reset();
+    sphereSamplesBuffer.Reset();
+    envProbesTexture.Reset();
+
     shadowMapAllocator->Destroy();
     placeholderData->Destroy();
 
     globalDescriptorTable.Reset();
+
+    PoolDelete(*g_renderPool, shaderManager);
+    shaderManager = nullptr;
+
+    PoolDelete(*g_renderPool, stagingBufferPool);
+    stagingBufferPool = nullptr;
 
     PoolDelete(*g_renderPool, textureViewCache);
     textureViewCache = nullptr;
@@ -1050,10 +1063,11 @@ RendererResult RenderInterface::Shutdown()
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
 
-    return {};
+    PoolDelete(*g_renderPool, safeDeleter);
+    safeDeleter = nullptr;
 }
 
-void RenderInterface::BeginFrame()
+void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1061,7 +1075,15 @@ void RenderInterface::BeginFrame()
     {
         ENGINE_STAT_SCOPE(&g_renderCpuSyncTimer);
 
-        s_fullSemaphore.acquire();
+        while (!s_fullSemaphore.try_acquire())
+        {
+            if (pCancelFlag != nullptr && pCancelFlag->Load())
+            {
+                return;
+            }
+
+            ThreadSleep(0);
+        }
     }
 
     const uint32 slot = s_frameIndex[CONSUMER];
@@ -1195,12 +1217,14 @@ void RenderInterface::BeginFrame()
     {
         resourceBinder->ApplyUpdates();
     }
+    
+    TBitset<RenderAllocator> currentBoundIndices;
 
     for (ResourceSubtypeData& subtypeData : resources->dataByType)
     {
         if (subtypeData.indicesPendingUpdate.Count() != 0)
         {
-            TBitset<RenderAllocator> currentBoundIndices;
+            currentBoundIndices.Clear();
 
             for (ResourceBinderBase** it = subtypeData.resourceBinders; *it; ++it)
             {
@@ -1393,11 +1417,10 @@ void RenderInterface::EndFrame()
         subtypeData.indicesPendingDelete.Clear();
     }
 
-    g_safeDeleter->UpdateEntryListQueue();
+    safeDeleter->UpdateEntryListQueue();
+    safeDeleter->Iterate();
 
     g_engineStats->Advance();
-
-    g_safeDeleter->Iterate();
 
     ReleaseTransientMemory();
     NextFrame();
@@ -1994,10 +2017,10 @@ void RenderInterface::UpdateBuffers(Frame* frame)
     for (auto& it : gpuBufferHolders->GetItems())
     {
         it.second->UpdateBufferSize(frameIndex);
-        it.second->UpdateBufferData(frameIndex, frame->preRenderQueue);
+        it.second->UpdateBufferData(frameIndex, *stagingBufferPool, frame->preRenderQueue);
     }
 
-    StagingBufferPool::GetInstance().Cleanup(frameIndex);
+    stagingBufferPool->Cleanup(frameIndex);
 }
 
 void RenderInterface::CreateBlueNoiseBuffer()

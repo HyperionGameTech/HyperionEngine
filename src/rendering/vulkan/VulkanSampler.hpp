@@ -22,8 +22,6 @@ class VulkanSampler final : public SamplerBase
     HYP_OBJECT_BODY(VulkanSampler);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanSampler(
         TextureFilterMode minFilterMode = TFM_NEAREST,
         TextureFilterMode magFilterMode = TFM_NEAREST,

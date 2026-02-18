@@ -40,12 +40,6 @@ GpuImageViewBase::GpuImageViewBase(const GpuImageRef& image, const ImageSubResou
     }
 }
 
-GpuImageViewBase::~GpuImageViewBase()
-{
-    if (m_image.IsValid())
-    {
-        SafeDelete(std::move(m_image));
-    }
-}
+GpuImageViewBase::~GpuImageViewBase() = default;
 
 } // namespace Hyperion

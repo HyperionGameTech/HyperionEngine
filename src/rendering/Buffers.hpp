@@ -98,12 +98,10 @@ struct RayTracingConstants
 class StagingBufferPool
 {
 public:
-    HYP_API static StagingBufferPool& GetInstance();
+    StagingBufferPool();
 
-    HYP_API StagingBufferPool();
-
-    HYP_API void Cleanup(uint32 frameIndex);
-    HYP_API GpuBuffer* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
+    void Cleanup(uint32 frameIndex);
+    GpuBuffer* AcquireStagingBuffer(uint32 frameIndex, uint32 offset, uint32 bufferSize);
 
 private:
     Pimpl<struct StagingBufferPoolImpl> m_impl;
@@ -139,7 +137,11 @@ public:
     virtual void MarkDirty(uint32 index) = 0;
 
     virtual void UpdateBufferSize(uint32 frameIndex) = 0;
-    virtual void UpdateBufferData(uint32 frameIndex, RenderQueue& renderQueue) = 0;
+
+    virtual void UpdateBufferData(
+        uint32 frameIndex,
+        StagingBufferPool& stagingBufferPool,
+        RenderQueue& renderQueue) = 0;
 
     virtual uint32 AcquireIndex(void** outElementPtr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -166,6 +168,11 @@ public:
     }
 
     virtual void* GetCpuMapping(uint32 index) = 0;
+
+    void DeleteBuffer()
+    {
+        m_gpuBuffer.Reset();
+    }
 
 protected:
     void CreateBuffers(GpuBufferType bufferType, SizeType count, SizeType size);
@@ -241,6 +248,7 @@ public:
      */
     void BuildUpdates(
         uint32 frameIndex,
+        StagingBufferPool& stagingBufferPool,
         GpuBuffer* dstBuffer,
         Array<uint32, RenderAllocator>& outChunkStarts,
         Array<uint32, RenderAllocator>& outChunkEnds,
@@ -317,7 +325,7 @@ public:
 
         for (DirtyBlockInfo& dirtyBlock : dirtyBlocks)
         {
-            GpuBuffer* stagingBuffer = StagingBufferPool::GetInstance().AcquireStagingBuffer(frameIndex, 0, dirtyBlock.bufferSize);
+            GpuBuffer* stagingBuffer = stagingBufferPool.AcquireStagingBuffer(frameIndex, 0, dirtyBlock.bufferSize);
             Assert(stagingBuffer != nullptr && stagingBuffer->IsCreated());
 
             stagingBuffer->Copy(0, dirtyBlock.bufferSize, dirtyBlock.dataPtr);
@@ -369,7 +377,10 @@ public:
         m_pool.EnsureGpuBufferCapacity(m_gpuBuffer, frameIndex);
     }
 
-    virtual void UpdateBufferData(uint32 frameIndex, RenderQueue& renderQueue) override
+    virtual void UpdateBufferData(
+        uint32 frameIndex,
+        StagingBufferPool& stagingBufferPool,
+        RenderQueue& renderQueue) override
     {
         Array<uint32, RenderAllocator> chunkStarts;
         Array<uint32, RenderAllocator> chunkEnds;
@@ -377,6 +388,7 @@ public:
 
         m_pool.BuildUpdates(
             frameIndex,
+            stagingBufferPool,
             m_gpuBuffer,
             chunkStarts,
             chunkEnds,

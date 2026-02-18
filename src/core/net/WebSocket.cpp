@@ -29,16 +29,16 @@ WebSocketThread::WebSocketThread()
 
 void WebSocketThread::Stop()
 {
-    m_isRunning.Set(false, MemoryOrder::RELAXED);
+    m_isRunning.Store(false);
 }
 
 void WebSocketThread::operator()(WebSocket *websocket)
 {
-    m_isRunning.Set(true, MemoryOrder::RELAXED);
+    m_isRunning.Store(true);
     
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (m_isRunning.Get(MemoryOrder::RELAXED)) {
+    while (m_isRunning.Load()) {
         if (uint32 numEnqueued = m_scheduler.NumEnqueued()) {
             m_scheduler.AcceptAll(tasks);
 

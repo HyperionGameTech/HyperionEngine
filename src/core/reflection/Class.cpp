@@ -1374,7 +1374,7 @@ DynamicClassInstance::DynamicClassInstance(
     SizeType dynamicSize = sizeof(ObjectBase);
     SizeType dynamicAlignment = alignof(ObjectBase);
 
-    auto calculateDynamicClassSize = [](const Class* cls, SizeType& dynamicSize, SizeType& dynamicAlignment)
+    auto CalculateDynamicClassSize = [](const Class* cls, SizeType& dynamicSize, SizeType& dynamicAlignment)
     {
         AssertDebug(cls->IsDynamic());
 
@@ -1422,16 +1422,16 @@ DynamicClassInstance::DynamicClassInstance(
 
     for (SizeType i = dynamicParents.Size(); i > 0; --i)
     {
-        calculateDynamicClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
+        CalculateDynamicClassSize(dynamicParents[i - 1], dynamicSize, dynamicAlignment);
     }
 
-    calculateDynamicClassSize(this, dynamicSize, dynamicAlignment);
+    CalculateDynamicClassSize(this, dynamicSize, dynamicAlignment);
 
     // if no fields, we must at least be the size of ObjectBase
     m_size = MathUtil::Max(sizeof(ObjectBase), dynamicSize);
     m_alignment = MathUtil::Max(alignof(ObjectBase), dynamicAlignment);
 
-    m_objectContainer = &ObjectPool::GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> ObjectContainerBase*
+    m_objectContainer = &GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> ObjectContainerBase*
         {
             return new ObjectContainer<ObjectBase>(thisClass);
         });
@@ -1600,7 +1600,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
             if (!scriptObjectResource)
             {
-                scriptObjectResource = AllocateResource<ScriptObjectResource>(target, managedClass);
+                scriptObjectResource = new ScriptObjectResource(target, managedClass);
                 AssertDebug(scriptObjectResource != nullptr);
 
                 target->SetScriptObjectResource(scriptObjectResource);
@@ -1724,7 +1724,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
     if (!scriptObjectResource)
     {
-        scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
+        scriptObjectResource = new ScriptObjectResource((Script_Instance*)nullptr, std::move(obj));
         Assert(scriptObjectResource != nullptr);
 
         target->SetScriptObjectResource(scriptObjectResource);

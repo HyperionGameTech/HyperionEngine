@@ -326,6 +326,8 @@ bool EngineDriver::StartThreads()
 
 void EngineDriver::RequestStop()
 {
+    m_delegates.OnShutdown();
+
     if (int32 shutdownCounter = AtomicIncrement(&m_isShuttingDown); shutdownCounter == 1)
     {
         if (g_renderThreadInstance != nullptr && g_renderThreadInstance->IsRunning())
@@ -348,8 +350,6 @@ void EngineDriver::FinalizeStop()
     Assert(AtomicAdd(&m_isShuttingDown, 0) >= 1);
 
     HYP_LOG(Engine, Info, "Stopping all engine processes");
-
-    m_delegates.OnShutdown();
 
     if (m_scriptingService)
     {
@@ -383,27 +383,9 @@ void EngineDriver::FinalizeStop()
         SetGlobalNetRequestThread(nullptr);
     }
 
-    SafeDelete(std::move(m_worlds));
+    m_worlds.Clear();
 
     m_debugDrawer.Reset();
-
-    // delete remaining enqueued deletions.
-    // loop until all deletions are done
-
-    // clang-format off
-    FixedArray<int, RingBufferDepth> counts {};
-    
-    do
-    {
-        for (uint32 i = 0; i < RingBufferDepth; i++)
-        {
-            counts[i] = g_safeDeleter->ForceDeleteAll(i);
-        }
-
-        ThreadSleep(1); // give some time for other threads to finish
-    }
-    while (AnyOf(counts, [](uint32 count) { return count > 0; }));
-    // clang-format on
 
     m_isShuttingDown = 0;
 }

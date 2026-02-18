@@ -314,7 +314,7 @@ void Light::CreateShadowViews()
 
         if (Scene* scene = GetScene())
         {
-            m_shadowViews[i]->AddScene(MakeStrongRef(scene));
+            m_shadowViews[i]->AddScene(scene);
         }
 
         InitObject(m_shadowViews[i]);
@@ -388,7 +388,7 @@ void Light::OnAddedToScene(Scene* scene)
                 continue;
             }
 
-            shadowView->AddScene(MakeStrongRef(scene));
+            shadowView->AddScene(scene);
         }
     }
 }

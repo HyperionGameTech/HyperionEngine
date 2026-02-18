@@ -25,7 +25,21 @@ HYP_API void ReleaseObject(ObjectHeader* header)
     cls->GetObjectContainer()->Release(header);
 }
 
-ObjectPool::ContainerMap::~ContainerMap()
+#pragma region ObjectContainerMap
+
+ObjectContainerMap& GetObjectContainerMap()
+{
+    static ObjectContainerMap s_objectContainerMap;
+
+    return s_objectContainerMap;
+}
+
+ObjectContainerMap::~ObjectContainerMap()
+{
+    Shutdown();
+}
+
+void ObjectContainerMap::Shutdown()
 {
     for (auto& it : m_map)
     {
@@ -35,16 +49,11 @@ ObjectPool::ContainerMap::~ContainerMap()
             it.second = nullptr;
         }
     }
+
+    m_map.Clear();
 }
 
-ObjectPool::ContainerMap& ObjectPool::GetObjectContainerMap()
-{
-    static ObjectPool::ContainerMap s_objectContainerMap;
-
-    return s_objectContainerMap;
-}
-
-ObjectContainerBase& ObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const Class* cls, ObjectContainerBase* (*createFn)(const Class* cls))
+ObjectContainerBase& ObjectContainerMap::GetOrCreate(TypeId typeId, const Class* cls, ObjectContainerBase* (*createFn)(const Class* cls))
 {
     AssertDebug(cls != nullptr);
     AssertDebug(cls->GetTypeId() != TypeId::Void());
@@ -78,7 +87,7 @@ ObjectContainerBase& ObjectPool::ContainerMap::GetOrCreate(TypeId typeId, const 
     return *m_map.EmplaceBack(typeId, container).second;
 }
 
-ObjectContainerBase& ObjectPool::ContainerMap::Get(TypeId typeId)
+ObjectContainerBase& ObjectContainerMap::Get(TypeId typeId)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -97,7 +106,7 @@ ObjectContainerBase& ObjectPool::ContainerMap::Get(TypeId typeId)
     return *it->second;
 }
 
-ObjectContainerBase* ObjectPool::ContainerMap::TryGet(TypeId typeId)
+ObjectContainerBase* ObjectContainerMap::TryGet(TypeId typeId)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -114,6 +123,8 @@ ObjectContainerBase* ObjectPool::ContainerMap::TryGet(TypeId typeId)
     return it->second;
 }
 
+#pragma endregion ObjectContainerMap
+
 #pragma region ObjectContainerBase
 
 ObjectContainerBase::ObjectContainerBase(TypeId typeId, const Class* cls)
@@ -122,6 +133,31 @@ ObjectContainerBase::ObjectContainerBase(TypeId typeId, const Class* cls)
       m_pool(nullptr)
 {
     AssertDebug(typeId != TypeId::Void());
+}
+
+ObjectContainerBase::~ObjectContainerBase()
+{
+    if (m_pool != nullptr)
+    {
+        TLockGuard<AtomicFlag> guard;
+        LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
+
+        for (ObjectHeader* header : m_headers)
+        {
+            AssertDebug(header != nullptr);
+
+            if (!header)
+                continue;
+
+            int32 refCount = header->GetRefCountStrong();
+            if (refCount > 0)
+            {
+                // Using DebugLog here because g_logger may be destroyed
+                DebugLog(LogType::Warn, "Object %s#%u still has strong references on ObjectContainer destruction!!!\n",
+                    m_class->GetName().LookupString(), header->index + 1);
+            }
+        }
+    }
 }
 
 void ObjectContainerBase::LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int flags)
@@ -137,16 +173,6 @@ void ObjectContainerBase::LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int fla
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
         return;
     }
-
-    /*if (!IsOnThread(EngineMemory_GetPoolThreadId(poolName)))
-    {
-        HYP_LOG(Core, Warning, "Create/destroying object of type {} from thread: {} but its pool is owned by thread: {}",
-            m_class->GetName(),
-            CurrentThreadId().GetName(),
-            EngineMemory_GetPoolThreadId(poolName).GetName());
-    }*/
-
-    // AssertOnThread(EngineMemory_GetPoolThreadId(poolName), "Object can only be created/destroyed from its owning pool thread");
 #endif
 }
 

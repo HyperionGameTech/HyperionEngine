@@ -114,8 +114,9 @@ protected:
     LinkedList<Block> m_blocks;
     SizeType m_blockSize;
     EnumFlags<PoolFlags> m_flags;
-    ThreadId m_ownerThreadId;
     AtomicFlag m_atomicFlag;
+    
+    const ThreadId& m_ownerThreadId;
 };
 
 template <class T>
@@ -131,7 +132,7 @@ static inline void PoolFree(Pool& pool, void* ptr)
 
 #define HYP_POOL_NEW(pool, T, ...)                                                      \
     ([]() {                                                                             \
-        void* address = (pool).Allocate(sizeof(T), alignof(T));                         \
+        void* address = (*pool).Allocate(sizeof(T), alignof(T));                        \
         HYP_CORE_ASSERT(address != nullptr, "Failed to allocate " #T " from pool!");    \
         return new (address) T(__VA_ARGS__);                                            \
     })()

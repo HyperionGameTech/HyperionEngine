@@ -74,7 +74,11 @@ VulkanRenderPass::~VulkanRenderPass()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+            {
+                vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
+
         m_handle = VK_NULL_HANDLE;
     }
 }
@@ -289,6 +293,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
     }
 
     Assert(framebuffer != nullptr);
+    Assert(m_handle != VK_NULL_HANDLE);
 
     VkRenderPassBeginInfo renderPassInfo { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     renderPassInfo.renderPass = m_handle;

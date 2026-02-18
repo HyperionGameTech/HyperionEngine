@@ -18,8 +18,6 @@ static constexpr ShaderCacheId InvalidShaderCacheId = ShaderCacheId(0);
 class ShaderManager
 {
 public:
-    static ShaderManager* GetInstance();
-
     ShaderManager();
     
     ShaderInstanceRef GetOrCreate(

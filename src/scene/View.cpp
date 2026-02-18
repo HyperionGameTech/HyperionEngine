@@ -150,7 +150,7 @@ View::View(const ViewDesc& viewDesc)
             continue;
         }
 
-        m_scenes.PushBack(MakeStrongRef(scene));
+        m_scenes.PushBack(scene);
     }
 
     for (auto it = std::begin(m_renderProxyLists); it != std::end(m_renderProxyLists); ++it)
@@ -257,7 +257,7 @@ bool View::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
     bool hasHits = false;
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
         AssertDebug(scene != nullptr);
 
@@ -490,7 +490,7 @@ void View::SetPriority(int priority)
     m_priority = priority;
 }
 
-void View::AddScene(const Handle<Scene>& scene)
+void View::AddScene(Scene* scene)
 {
     HYP_SCOPE;
 
@@ -505,11 +505,6 @@ void View::AddScene(const Handle<Scene>& scene)
     }
 
     m_scenes.PushBack(scene);
-
-    if (IsInitCalled())
-    {
-        InitObject(scene);
-    }
 }
 
 void View::RemoveScene(Scene* scene)
@@ -521,10 +516,7 @@ void View::RemoveScene(Scene* scene)
         return;
     }
 
-    auto it = m_scenes.FindIf([scene](const auto& item)
-        {
-            return item.Get() == scene;
-        });
+    auto it = m_scenes.Find(scene);
 
     if (it == m_scenes.End())
     {
@@ -549,7 +541,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
 
     const ObjId<Camera> cameraId = m_camera->Id();
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
         AssertDebug(scene && scene->IsReady());
 
@@ -912,10 +904,9 @@ void View::CollectCameras(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene != nullptr && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -935,10 +926,9 @@ void View::CollectLights(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1004,10 +994,9 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<LightmapVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1042,10 +1031,9 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ParticleVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1081,10 +1069,9 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<FogVolume>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1120,10 +1107,9 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvGrid>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
@@ -1159,10 +1145,9 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
         return;
     }
 
-    for (const Handle<Scene>& scene : m_scenes)
+    for (Scene* scene : m_scenes)
     {
-        Assert(scene.IsValid());
-        Assert(scene->IsReady());
+        AssertDebug(scene && scene->IsReady());
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {

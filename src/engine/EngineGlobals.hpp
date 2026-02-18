@@ -44,9 +44,7 @@ extern Handle<AudioManager> g_audioManager;
 extern Handle<AppContextBase> g_appContext;
 extern Handle<StreamingManager> g_streamingManager;
 extern Handle<EngineStats> g_engineStats;
-extern ShaderManager* g_shaderManager;
 extern MaterialCache* g_materialCache;
-extern SafeDeleter* g_safeDeleter;
 extern ShaderCompiler* g_shaderCompiler;
 
 #if HYP_EDITOR

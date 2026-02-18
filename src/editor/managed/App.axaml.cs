@@ -22,12 +22,6 @@ namespace Hyperion.Editor
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.Exit += (sender, e) =>
-                {
-                    // Shutdown the engine
-                    EngineManager.Shutdown();
-                };
-
                 desktop.MainWindow = new MainWindow();
             }
 

@@ -128,7 +128,8 @@ bool VisThread::Start()
 {
     if (m_id == g_simThread) // ! -DedicatedVisThread
     {
-        Assert(m_isRunning.Exchange(true, MemoryOrder::ACQUIRE_RELEASE) == false);
+        Assert(m_isRunning.Load() == false);
+        m_isRunning.Store(true);
 
         return true;
     }
@@ -210,9 +211,9 @@ void VisThread::Process()
 
 void VisThread::operator()()
 {
-    while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+    while (!m_stopRequested.Load())
     {
-        if (m_stopRequested.Get(MemoryOrder::RELAXED))
+        if (m_stopRequested.Load())
         {
             break;
         }

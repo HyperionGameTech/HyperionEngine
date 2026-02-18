@@ -23,6 +23,8 @@ class GpuBufferBase : public ObjectBase
     HYP_OBJECT_BODY(GpuBufferBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~GpuBufferBase() override = default;
 
     Name GetDebugName() const

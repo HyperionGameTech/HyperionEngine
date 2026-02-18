@@ -44,10 +44,10 @@ HYP_API extern void Object_DecScriptObjectRef(class ObjectBase* ptr);
 
 class HYP_API ObjectContainerBase
 {
-    friend class ObjectPool;
+    friend class ObjectContainerMap;
 
 public:
-    virtual ~ObjectContainerBase() = default;
+    virtual ~ObjectContainerBase();
 
     HYP_FORCE_INLINE const TypeId& GetObjectTypeId() const
     {
@@ -86,6 +86,7 @@ protected:
     IdGenerator m_idGenerator;
     Pool* m_pool;
     AtomicFlag m_atomicFlag;
+    SparsePagedArray<ObjectHeader*, 1024> m_headers;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -240,10 +241,7 @@ public:
     ObjectContainer(ObjectContainer&& other) noexcept = delete;
     ObjectContainer& operator=(ObjectContainer&& other) noexcept = delete;
 
-    ~ObjectContainer() override
-    {
-        HYP_CORE_ASSERT(m_headers.Empty(), "Destroying ObjectContainer with live objects!");
-    }
+    ~ObjectContainer() override = default;
     
     void Initialize() override
     {
@@ -352,58 +350,56 @@ public:
 
         Release(header);
     }
-
-private:
-    SparsePagedArray<ObjectHeader*, 1024> m_headers;
 };
 
-class HYP_API ObjectPool
+class ObjectContainerMap
 {
+    // Maps TypeId to object container
+    // Use a linked list so that references are never invalidated.
+    LinkedList<Pair<TypeId, ObjectContainerBase*>> m_map;
+    Mutex m_mutex;
+
 public:
-    class ContainerMap
+    ObjectContainerMap() = default;
+    
+    ObjectContainerMap(const ObjectContainerMap&) = delete;
+    ObjectContainerMap& operator=(const ObjectContainerMap&) = delete;
+
+    ObjectContainerMap(ObjectContainerMap&&) noexcept = delete;
+    ObjectContainerMap& operator=(ObjectContainerMap&&) noexcept = delete;
+
+    ~ObjectContainerMap();
+
+    void Shutdown();
+
+    ObjectContainerBase& Get(TypeId typeId);
+    ObjectContainerBase* TryGet(TypeId typeId);
+
+    HYP_API ObjectContainerBase& GetOrCreate(
+        TypeId typeId,
+        const Class* cls,
+        ObjectContainerBase* (*createFn)(const Class* cls));
+
+    template <class T>
+    ObjectContainer<T>& GetOrCreate(const Class* cls)
     {
-        // Maps TypeId to object container
-        // Use a linked list so that references are never invalidated.
-        LinkedList<Pair<TypeId, ObjectContainerBase*>> m_map;
-        Mutex m_mutex;
+        // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
+        static ObjectContainer<T>& s_container = static_cast<ObjectContainer<T>&>(GetOrCreate(
+            TypeId::ForType<T>(), cls, +[](const Class* cls) -> ObjectContainerBase*
+            {
+                return new ObjectContainer<T>(cls);
+            }));
 
-    public:
-        ContainerMap() = default;
-        ContainerMap(const ContainerMap&) = delete;
-        ContainerMap& operator=(const ContainerMap&) = delete;
-        ContainerMap(ContainerMap&&) noexcept = delete;
-        ContainerMap& operator=(ContainerMap&&) noexcept = delete;
-        ~ContainerMap();
-
-        ObjectContainerBase& Get(TypeId typeId);
-        ObjectContainerBase* TryGet(TypeId typeId);
-
-        HYP_API ObjectContainerBase& GetOrCreate(
-            TypeId typeId,
-            const Class* cls,
-            ObjectContainerBase* (*createFn)(const Class* cls));
-
-        template <class T>
-        ObjectContainer<T>& GetOrCreate(const Class* cls)
-        {
-            // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static ObjectContainer<T>& s_container = static_cast<ObjectContainer<T>&>(GetOrCreate(
-                TypeId::ForType<T>(), cls, +[](const Class* cls) -> ObjectContainerBase*
-                {
-                    return new ObjectContainer<T>(cls);
-                }));
-
-            return s_container;
-        }
-    };
-
-    static ContainerMap& GetObjectContainerMap();
+        return s_container;
+    }
 };
+
+HYP_API ObjectContainerMap& GetObjectContainerMap();
 
 template <class T>
 static inline ObjectContainer<T>& GetObjectContainer()
 {
-    static ObjectContainer<T>& s_container = ObjectPool::GetObjectContainerMap().GetOrCreate<T>(GetClass<T>());
+    static ObjectContainer<T>& s_container = GetObjectContainerMap().GetOrCreate<T>(GetClass<T>());
     return s_container;
 }
 

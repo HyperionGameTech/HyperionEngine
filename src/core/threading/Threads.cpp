@@ -253,9 +253,11 @@ void AssertOnThread(const ThreadId& threadId, const char* message)
 
     AssertDebug(
         threadId == currentThreadId,
-        "Expected current thread to be {}, but got {}. Message: {}",
+        "Expected current thread to be {} ({}), but got {} ({}). Message: {}",
         threadId.GetName().LookupString(),
+        threadId.GetValue(),
         currentThreadId.GetName().LookupString(),
+        currentThreadId.GetValue(),
         message ? message : "(no message)");
 #else
     HYP_LOG(Threading, Error, "AssertOnThread() called but thread IDs are currently disabled!");

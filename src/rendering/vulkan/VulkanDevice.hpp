@@ -58,8 +58,6 @@ class VulkanDevice final : public DeviceBase
     HYP_OBJECT_BODY(VulkanDevice);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     explicit VulkanDevice(VkPhysicalDevice physical);
 
     VulkanDevice(const VulkanDevice&) = delete;

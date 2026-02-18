@@ -42,7 +42,7 @@ private:
     {
         if (StartConnection(profilerConnection))
         {
-            while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+            while (!m_stopRequested.Load())
             {
                 DoWork(profilerConnection);
             }

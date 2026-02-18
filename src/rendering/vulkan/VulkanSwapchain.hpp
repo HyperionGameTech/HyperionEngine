@@ -36,8 +36,6 @@ class VulkanSwapchain final : public SwapchainBase
     HYP_OBJECT_BODY(VulkanSwapchain);
 
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanSwapchain(VkSurfaceKHR surface, const Vec2u& extent);
     ~VulkanSwapchain() override;
 

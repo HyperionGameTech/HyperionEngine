@@ -10,7 +10,7 @@ namespace threading {
 
 void SchedulerBase::RequestStop()
 {
-    m_stopRequested.Set(true, MemoryOrder::RELAXED);
+    m_stopRequested.Store(true);
 
     if (!IsOnThread(m_ownerThread))
     {
@@ -22,7 +22,7 @@ void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
 {
     // must be locked before calling this function
 
-    if (m_stopRequested.Get(MemoryOrder::RELAXED))
+    if (m_stopRequested.Load())
     {
         if (outStopRequested)
         {
@@ -32,14 +32,14 @@ void SchedulerBase::WaitForTasks(Mutex& mtx, bool* outStopRequested)
         return;
     }
 
-    while (!m_stopRequested.Get(MemoryOrder::RELAXED) && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
+    while (!m_stopRequested.Load() && m_numEnqueued.Get(MemoryOrder::ACQUIRE) == 0)
     {
         m_hasTasksCV.Wait(mtx);
     }
 
     if (outStopRequested)
     {
-        *outStopRequested = m_stopRequested.Get(MemoryOrder::RELAXED);
+        *outStopRequested = m_stopRequested.Load();
     }
 }
 

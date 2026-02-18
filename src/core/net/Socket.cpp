@@ -294,7 +294,7 @@ void SocketServerThread::operator()(SocketServer* server)
 {
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (!m_stopRequested.Get(MemoryOrder::RELAXED))
+    while (!m_stopRequested.Load())
     {
         // Check for incoming connections
 

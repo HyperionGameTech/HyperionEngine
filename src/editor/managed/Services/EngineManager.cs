@@ -215,9 +215,13 @@ namespace Hyperion.Editor
             _onSceneAddedHandler?.Remove();
             _onSceneRemovedHandler?.Remove();
 
+            GameInstance = null;
             EditorGame = null;
 
+            GC.Collect(0, GCCollectionMode.Forced, true);
+
             NativeBindings.Hyp_Shutdown();
+
             IsInitialized = false;
         }
 

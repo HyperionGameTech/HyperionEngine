@@ -157,7 +157,7 @@ public:
     ScriptableDelegate& operator=(const ScriptableDelegate& other) = delete;
 
     ScriptableDelegate(ScriptableDelegate&& other) noexcept
-        : Delegate<ReturnType, Args...>(std::move(other.m_delegate))
+        : Delegate<ReturnType, Args...>(static_cast<Delegate<ReturnType, Args...>&&>(other))
     {
     }
 

@@ -82,6 +82,12 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     const uint32 acquiredImageIndex = rs.swapchain->GetAcquiredImageIndex();
 
+    if (acquiredImageIndex == ~0u)
+    {
+        // invalid, skip the frame
+        return;
+    }
+
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 

@@ -23,6 +23,8 @@ class AttachmentBase : public ObjectBase
 
 public:
     virtual ~AttachmentBase() override = default;
+    
+    static Pool* GetAllocator() { return g_rhiPool; }
 
     HYP_FORCE_INLINE const GpuImageRef& GetImage() const
     {

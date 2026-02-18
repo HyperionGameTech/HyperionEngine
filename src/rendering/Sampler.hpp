@@ -15,6 +15,8 @@ class SamplerBase : public ObjectBase
     HYP_OBJECT_BODY(SamplerBase);
 
 public:
+    static Pool* GetAllocator() { return g_rhiPool; }
+    
     virtual ~SamplerBase() override = default;
 
     HYP_FORCE_INLINE TextureFilterMode GetMinFilterMode() const

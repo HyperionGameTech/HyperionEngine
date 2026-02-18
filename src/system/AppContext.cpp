@@ -99,24 +99,12 @@ ApplicationWindow::ApplicationWindow(ANSIString title, Vec2i size)
 {
 }
 
-ApplicationWindow::~ApplicationWindow()
-{
-#if HYP_VULKAN
-    if (m_vkSurface)
-    {
-        VulkanInstance* vkInstance = g_renderInterface->GetInstance();
-        Assert(vkInstance != nullptr);
-
-        vkDestroySurfaceKHR(vkInstance->GetInstance(), m_vkSurface, nullptr);
-        m_vkSurface = VK_NULL_HANDLE;
-    }
-#endif
-}
+ApplicationWindow::~ApplicationWindow() = default;
 
 void ApplicationWindow::HandleResize(Vec2i newSize)
 {
     {
-        Mutex::Guard guard(m_mtx);
+        TUniqueLock lock(m_mtx);
 
         if (m_size == newSize)
         {
@@ -158,6 +146,8 @@ void ApplicationWindow::CreateSwapchain()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
+    TUniqueLock lock(m_mtx);
+
 #if HYP_VULKAN
     AssertDebug(GetDimensions() != Vec2i::Zero());
 
@@ -191,10 +181,34 @@ void ApplicationWindow::CreateSwapchain()
                 SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
                 Assert(swapchain.IsValid());
 
+                TUniqueLock lock(m_mtx);
+
+                if (m_swapchain.IsValid())
+                    SafeDelete(std::move(m_swapchain));
+
                 m_swapchain = swapchain;
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
+}
+
+Swapchain* ApplicationWindow::GetSwapchain() const
+{
+    TSharedLock lock(m_mtx);
+    return m_swapchain.Get();
+}
+
+void ApplicationWindow::SetSwapchain(const SwapchainRef& swapchain)
+{
+    TUniqueLock lock(m_mtx);
+
+    if (swapchain == m_swapchain)
+        return;
+
+    if (m_swapchain.IsValid())
+        SafeDelete(std::move(m_swapchain));
+
+    m_swapchain = swapchain;
 }
 
 #pragma endregion ApplicationWindow
@@ -248,16 +262,18 @@ void AppContextBase::RemoveWindow(ApplicationWindow* window)
             return other.Get() == window;
         });
 
+    AssertDebug(it != m_windows.End(), "Invalid window specified");
+
     if (it != m_windows.End())
     {
+        m_windows.Erase(it);
+
         if (m_mainWindow == window)
         {
             m_mainWindow = nullptr;
 
             OnCurrentWindowChanged(nullptr);
         }
-
-        m_windows.Erase(it);
     }
 }
 
@@ -407,6 +423,11 @@ bool SDLApplicationWindow::IsHighDPI() const
     return false;
 }
 
+void SDLApplicationWindow::Close()
+{
+    // not implemented
+}
+
 #else
 
 SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2i size)
@@ -452,6 +473,11 @@ bool SDLApplicationWindow::HasMouseFocus() const
 }
 
 bool SDLApplicationWindow::IsHighDPI() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void SDLApplicationWindow::Close()
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1147,6 +1173,8 @@ static bool HandleWindowEvent(
     {
         event = Event(EventType::WINDOW_CLOSE, window, platformEvent);
 
+        HYP_BREAKPOINT;
+
         return true;
     }
 
@@ -1184,28 +1212,52 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
 LRESULT CALLBACK Win32ApplicationWindow::StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (msg == WM_NCCREATE)
+    switch (msg)
     {
-        auto* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
-        auto* self = static_cast<Win32ApplicationWindow*>(cs->lpCreateParams);
+    case WM_NCCREATE:
+    {
+        CREATESTRUCTW* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
+        Win32ApplicationWindow* self = static_cast<Win32ApplicationWindow*>(cs->lpCreateParams);
 
         SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
 
         return DefWindowProcW(hWnd, msg, wParam, lParam);
     }
-
-    Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
-
-    if (window)
+    case WM_NCDESTROY:
     {
-        return window->WndProc(hWnd, msg, wParam, lParam);
-    }
+        Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+        Assert(window != nullptr);
 
-    return DefWindowProcW(hWnd, msg, wParam, lParam);
+        LRESULT result = window->WndProc(hWnd, msg, wParam, lParam);
+
+        // we are destroying, so remove the user data so we don't accidentally access it later
+        SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0);
+
+        return result;
+    }
+    default:
+    {
+        Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+
+        if (window != nullptr)
+        {
+            return window->WndProc(hWnd, msg, wParam, lParam);
+        }
+
+        return DefWindowProcW(hWnd, msg, wParam, lParam);
+    }
+    }
 }
 
 LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    PlatformEvent platformEvent {};
+    platformEvent.win32Event = Win32Event();
+    platformEvent.win32Event.hwnd = hWnd;
+    platformEvent.win32Event.message = msg;
+    platformEvent.win32Event.wParam = wParam;
+    platformEvent.win32Event.lParam = lParam;
+
     switch (msg)
     {
     case WM_SIZE: // fallthrough
@@ -1213,13 +1265,16 @@ LRESULT Win32ApplicationWindow::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
         int width = LOWORD(lParam);
         int height = HIWORD(lParam);
 
-        Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
-        AssertDebug(window != nullptr);
+        HandleResize(Vec2i(width, height));
 
-        window->HandleResize(Vec2i(width, height));
+        break;
+    }
+    case WM_NCDESTROY:
+    {
+        // we set hwnd to nullptr here so we don't infinitely recurse in Close().
+        m_hwnd = nullptr;
 
-        // event = Event(Event::WINDOW_RESIZED, platformEvent);
-        // event.GetEventData().Set(Vec2i(width, height));
+        Close();
 
         break;
     }
@@ -1293,6 +1348,48 @@ bool Win32ApplicationWindow::HasMouseFocus() const
     return GetFocus() == m_hwnd;
 }
 
+void Win32ApplicationWindow::Close()
+{
+    AssertOnThread(g_mainThread);
+
+    TUniqueLock lock(m_mtx);
+
+    if (m_swapchain.IsValid())
+    {
+        // delete on render thread
+        SafeDelete(std::move(m_swapchain));
+    }
+
+#if HYP_VULKAN
+    if (m_vkSurface)
+    {
+        SafeDelete(FunctionWrapper<Proc<void()>>([surface = m_vkSurface]()
+            {
+                VulkanInstance* vulkanInstance = g_renderInterface->GetInstance();
+                Assert(vulkanInstance != nullptr);
+
+                vkDestroySurfaceKHR(vulkanInstance->GetInstance(), surface, nullptr);
+            }));
+
+        m_vkSurface = VK_NULL_HANDLE;
+    }
+#endif
+    
+    if (m_hwnd != nullptr)
+    {
+        DestroyWindow(m_hwnd);
+        m_hwnd = nullptr;
+    }
+
+    auto onClose = std::move(OnClose);
+
+    lock.Reset();
+
+    g_appContext->RemoveWindow(this);
+
+    onClose();
+}
+
 #else // Stub impls for non-Windows platforms
 
 Win32ApplicationWindow::Win32ApplicationWindow(ANSIString title, Vec2i size)
@@ -1332,6 +1429,11 @@ void Win32ApplicationWindow::SetIsMouseLocked(bool locked)
 }
 
 bool Win32ApplicationWindow::HasMouseFocus() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void Win32ApplicationWindow::Close()
 {
     HYP_NOT_IMPLEMENTED();
 }
@@ -1557,6 +1659,11 @@ bool CocoaApplicationWindow::HasMouseFocus() const
 }
 
 bool CocoaApplicationWindow::IsHighDPI() const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
+void CocoaApplicationWindow::Close()
 {
     HYP_NOT_IMPLEMENTED();
 }

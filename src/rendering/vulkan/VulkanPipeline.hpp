@@ -17,8 +17,6 @@ extern Pool* g_vulkanPool;
 class VulkanPipelineBase
 {
 public:
-    static Pool* GetAllocator() { return g_vulkanPool; }
-
     VulkanPipelineBase();
     ~VulkanPipelineBase();
 

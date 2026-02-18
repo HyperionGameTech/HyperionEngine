@@ -89,7 +89,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             {
                 if (!scriptObjectResource)
                 {
-                    scriptObjectResource = AllocateResource<ScriptObjectResource>(target, managedClass);
+                    scriptObjectResource = new ScriptObjectResource(target, managedClass);
 
                     target->SetScriptObjectResource(scriptObjectResource);
                 }
@@ -113,7 +113,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 
             if (!scriptObjectResource)
             {
-                scriptObjectResource = AllocateResource<ScriptObjectResource>((Script_Instance*)nullptr, std::move(obj));
+                scriptObjectResource = new ScriptObjectResource((Script_Instance*)nullptr, std::move(obj));
 
                 target->SetScriptObjectResource(scriptObjectResource);
             }
@@ -213,7 +213,7 @@ ObjectBase::~ObjectBase()
         }
 #endif
 
-        FreeResource(m_scriptObjectResource);
+        delete m_scriptObjectResource;
         m_scriptObjectResource = nullptr;
     }
 #endif

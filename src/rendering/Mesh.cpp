@@ -166,8 +166,8 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 
 Mesh::~Mesh()
 {
-    SafeDelete(std::move(m_vertexBuffer));
-    SafeDelete(std::move(m_indexBuffer));
+    m_vertexBuffer.Reset();
+    m_indexBuffer.Reset();
 
     FreeBlobData(m_vertexData);
     FreeBlobData(m_indexData);
@@ -351,8 +351,6 @@ void Mesh::UploadGpuData()
     {
         if (!m_vertexBuffer.IsValid() || m_vertexBuffer->Size() != packedBufferSize)
         {
-            SafeDelete(std::move(m_vertexBuffer));
-
             m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
 
 #ifdef HYP_DEBUG_MODE
@@ -364,8 +362,6 @@ void Mesh::UploadGpuData()
 
         if (!m_indexBuffer.IsValid() || m_indexBuffer->Size() != packedIndicesSize)
         {
-            SafeDelete(std::move(m_indexBuffer));
-
             m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
 #ifdef HYP_DEBUG_MODE
@@ -409,9 +405,6 @@ void Mesh::UploadGpuData()
 
             if (!mesh.IsValid())
             {
-                SafeDelete(std::move(vertexBuffer));
-                SafeDelete(std::move(indexBuffer));
-
                 return {};
             }
 
@@ -439,13 +432,11 @@ void Mesh::UploadGpuData()
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {
-                SafeDelete(std::move(mesh->m_vertexBuffer));
                 mesh->m_vertexBuffer = std::move(vertexBuffer);
             }
 
             if (mesh->m_indexBuffer != indexBuffer)
             {
-                SafeDelete(std::move(mesh->m_indexBuffer));
                 mesh->m_indexBuffer = std::move(indexBuffer);
             }
 

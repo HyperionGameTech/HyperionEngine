@@ -26,6 +26,8 @@ class FrameBase : public ObjectBase
 
 public:
     virtual ~FrameBase() override = default;
+    
+    static Pool* GetAllocator() { return g_rhiPool; }
 
     virtual bool IsCreated() const = 0;
     virtual RendererResult Create() = 0;

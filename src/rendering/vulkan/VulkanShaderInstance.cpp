@@ -49,12 +49,13 @@ VulkanShaderInstance::~VulkanShaderInstance()
         return;
     }
 
-    for (const VulkanShaderModule& shaderModule : m_shaderModules)
-    {
-        vkDestroyShaderModule(g_renderInterface->GetDevice()->GetDevice(), shaderModule.handle, nullptr);
-    }
-
-    m_shaderModules.Clear();
+    SafeDelete(FunctionWrapper<Proc<void()>>([shaderModules = std::move(m_shaderModules)]()
+        {
+            for (const VulkanShaderModule& shaderModule : shaderModules)
+            {
+                vkDestroyShaderModule(g_renderInterface->GetDevice()->GetDevice(), shaderModule.handle, nullptr);
+            }
+        }));
 }
 
 bool VulkanShaderInstance::IsCreated() const

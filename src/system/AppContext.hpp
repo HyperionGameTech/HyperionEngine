@@ -107,15 +107,8 @@ public:
         return m_hwnd;
     }
 
-    HYP_FORCE_INLINE const SwapchainRef& GetSwapchain() const
-    {
-        return m_swapchain;
-    }
-
-    HYP_FORCE_INLINE void SetSwapchain(const SwapchainRef& swapchain)
-    {
-        m_swapchain = swapchain;
-    }
+    Swapchain* GetSwapchain() const;
+    void SetSwapchain(const SwapchainRef& swapchain);
 
 #if HYP_VULKAN
     HYP_FORCE_INLINE VkSurfaceKHR GetVkSurface() const
@@ -125,9 +118,9 @@ public:
 #endif
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Vec2i& GetSize() const
+    HYP_FORCE_INLINE Vec2i GetSize() const
     {
-        Mutex::Guard guard(m_mtx);
+        TSharedLock lock(m_mtx);
         return m_size;
     }
 
@@ -159,8 +152,14 @@ public:
     HYP_METHOD()
     virtual Vec2i GetDimensions() const = 0;
 
+    HYP_METHOD()
+    virtual void Close() = 0;
+
     HYP_FIELD()
     ScriptableDelegate<void, Vec2i> OnWindowSizeChanged;
+
+    HYP_FIELD()
+    ScriptableDelegate<void> OnClose;
 
 protected:
     ANSIString m_title;
@@ -173,7 +172,7 @@ protected:
     VkSurfaceKHR m_vkSurface = VK_NULL_HANDLE;
 #endif
 
-    mutable Mutex m_mtx;
+    SharedMutex m_mtx;
 };
 
 HYP_CLASS()
@@ -205,6 +204,9 @@ public:
 
     HYP_METHOD()
     bool IsHighDPI() const override;
+
+    HYP_METHOD()
+    void Close() override;
 
     void Initialize(WindowOptions windowOptions);
 };
@@ -320,6 +322,9 @@ public:
     HYP_METHOD()
     bool HasMouseFocus() const override;
 
+    HYP_METHOD()
+    void Close() override;
+
 #ifdef HYP_WINDOWS
     HYP_FORCE_INLINE HINSTANCE GetHINSTANCE() const
     {
@@ -406,6 +411,9 @@ public:
     {
         return m_nsView;
     }
+
+    HYP_METHOD()
+    void Close() override;
 
 #ifdef HYP_MACOS
     HYP_FORCE_INLINE bool IsEmbeddedView() const

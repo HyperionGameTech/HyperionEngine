@@ -4,7 +4,7 @@
 
 #include <core/threading/util/ThreadId.hpp>
 
-#include <core/threading/AtomicVar.hpp>
+#include <core/threading/AtomicFlag.hpp>
 
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/StringView.hpp>
@@ -114,12 +114,12 @@ public:
 
     bool IsRunning() const override
     {
-        return m_isRunning.Get(MemoryOrder::RELAXED);
+        return m_isRunning.Load();
     }
 
     bool IsStopping() const
     {
-        return m_stopRequested.Get(MemoryOrder::RELAXED);
+        return m_stopRequested.Load();
     }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
@@ -143,8 +143,8 @@ protected:
 
     Scheduler m_scheduler;
 
-    AtomicVar<bool> m_stopRequested;
-    AtomicVar<bool> m_isRunning;
+    AtomicFlag m_stopRequested;
+    AtomicFlag m_isRunning;
 
     std::thread* m_thread;
 };
@@ -152,8 +152,6 @@ protected:
 template <class Scheduler, class... Args>
 Thread<Scheduler, Args...>::Thread(const ThreadId& id, ThreadPriorityValue priority)
     : ThreadBase(id, priority),
-      m_isRunning(false),
-      m_stopRequested(false),
       m_thread(nullptr)
 {
     m_scheduler.SetOwnerThread(id);
@@ -182,9 +180,9 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
         return false;
     }
 
-    HYP_CORE_ASSERT(!m_isRunning.Get(MemoryOrder::RELAXED), "Thread is already running");
+    HYP_CORE_ASSERT(!m_isRunning.Load(), "Thread is already running");
 
-    m_isRunning.Set(true, MemoryOrder::RELAXED);
+    m_isRunning.Store(true);
 
     m_thread = new std::thread([this, tupleArgs = MakeTuple(args...)](...) -> void
         {
@@ -192,7 +190,7 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
 
             (*this)((tupleArgs.template GetElement<Args>())...);
 
-            m_isRunning.Set(false, MemoryOrder::RELAXED);
+            m_isRunning.Store(false);
 
             OnCurrentThreadExit();
         });
@@ -203,7 +201,7 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
 template <class Scheduler, class... Args>
 void Thread<Scheduler, Args...>::Stop()
 {
-    m_stopRequested.Set(true, MemoryOrder::RELAXED);
+    m_stopRequested.Store(true);
 
     m_scheduler.RequestStop();
 }

@@ -215,15 +215,16 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
 
             if (!result)
             {
-                HYP_LOG(Rendering, Error, "Failed to free shadow map from atlas (atlas index: {})", atlasElement.layerIndex);
+                HYP_LOG(Rendering, Error, "Failed to remove shadow map from atlas - not found! (atlas index: {})", atlasElement.layerIndex);
             }
         }
     }
     else
     {
-        HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid layer index");
+        HYP_LOG(Rendering, Error, "Failed to remove shadow map from atlas - invalid layer index");
     }
 
+    // delete even if not removed from atlas, caller is expecting it
     delete shadowMap;
 
     return result;

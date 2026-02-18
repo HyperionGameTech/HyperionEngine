@@ -493,16 +493,23 @@ private:
 
     bool ShutdownDotNetRuntime()
     {
-        Assert(m_cxt != nullptr);
+        m_assembliesByPath.Clear();
+        m_coreAssemblies.Clear();
 
-        HYP_LOG(DotNET, Debug, "Shutting down .NET runtime");
+        // can be nullptr if init from managed
+        if (m_cxt != nullptr)
+        {
+            HYP_LOG(DotNET, Debug, "Shutting down .NET runtime");
 
-        m_closeFptr(m_cxt);
-        m_cxt = nullptr;
+            Assert(m_closeFptr != nullptr);
+            m_closeFptr(m_cxt);
 
-        m_shouldInitializeRuntime = true;
+            m_cxt = nullptr;
 
-        HYP_LOG(DotNET, Debug, "Shut down .NET runtime");
+            m_shouldInitializeRuntime = true;
+
+            HYP_LOG(DotNET, Debug, "Shut down .NET runtime");
+        }
 
         return true;
     }

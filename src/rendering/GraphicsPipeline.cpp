@@ -32,7 +32,6 @@ PSOCacheKey::PSOCacheKey(
 
 GraphicsPipelineBase::~GraphicsPipelineBase()
 {
-    SafeDelete(std::move(m_shaderInstance));
 }
 
 RendererResult GraphicsPipelineBase::Create()

@@ -120,7 +120,11 @@ VulkanFramebuffer::~VulkanFramebuffer()
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+            {
+                vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
+
         m_handle = VK_NULL_HANDLE;
     }
 

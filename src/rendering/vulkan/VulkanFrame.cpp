@@ -125,10 +125,7 @@ RendererResult VulkanFrame::Submit(
 
 void VulkanFrame::RecreateFence()
 {
-    if (m_queueSubmitFence != nullptr)
-    {
-        SafeDelete(m_queueSubmitFence);
-    }
+    delete m_queueSubmitFence;
 
     m_queueSubmitFence = new VulkanFence();
     m_queueSubmitFence->Create(/* createSignalled */ true);
@@ -214,8 +211,7 @@ void VulkanFrame::ResetTransientStates()
         if (swapchain->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
         {
             // swapchain is destroyed, remove semaphores
-            SafeDelete(it->second.imageAvailableSemaphore);
-
+            delete it->second.imageAvailableSemaphore;
             it->second.imageAvailableSemaphore = nullptr;
 
             it = m_swapchainData.Erase(it);
