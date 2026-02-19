@@ -40,6 +40,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
@@ -426,13 +427,15 @@ extern "C"
 
         g_mainThreadInstance->Stop();
 
-        g_simThreadInstance->Join();
-        g_simThread = g_mainThread;
-
         g_renderThreadInstance->Join();
         g_renderThread = g_mainThread;
 
+        g_simThreadInstance->Join();
+        g_simThread = g_mainThread;
+
         g_engineDriver->FinalizeStop();
+
+        DebugDrawer::GetInstance().Shutdown();
 
 #if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();

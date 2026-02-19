@@ -1519,7 +1519,7 @@ void EditorSubsystem::Update(float delta)
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
-            DebugDrawCommandList& dbg = g_renderInterface->debugDrawer->CreateCommandList();
+            DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
             dbg.box(focusedNode->GetWorldTranslation(), focusedNode->GetWorldBounds().GetExtent() * 0.5f + Vec3f(FLT_EPSILON), Color::Cyan());
         }
