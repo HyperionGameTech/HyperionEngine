@@ -165,7 +165,7 @@ void SimThread::Update()
         m_gameInstance->m_gameState.gameTime += m_counter.delta;
     }
 
-    g_renderInterface->debugDrawer->Update(m_counter.delta);
+    DebugDrawer::GetInstance().Update();
 
     EndFrameSim();
 }

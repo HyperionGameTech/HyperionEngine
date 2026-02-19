@@ -884,8 +884,7 @@ RenderInterface::RenderInterface()
       safeDeleter(PoolNew<SafeDeleter>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
-      debugDrawer(PoolNew<DebugDrawer>(*g_renderPool))
+      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool))
 {
 }
 
@@ -943,7 +942,8 @@ RendererResult RenderInterface::Initialize()
 
     placeholderData->Initialize();
     shadowMapAllocator->Initialize();
-    debugDrawer->Initialize();
+
+    DebugDrawer::GetInstance().Initialize();
 
     CreateSphereSamplesBuffer();
     CreateBlueNoiseBuffer();
@@ -1036,9 +1036,6 @@ void RenderInterface::Shutdown()
     placeholderData->Shutdown();
 
     globalDescriptorTable.Reset();
-
-    PoolDelete(*g_renderPool, debugDrawer);
-    debugDrawer = nullptr;
 
     PoolDelete(*g_renderPool, shaderManager);
     shaderManager = nullptr;
