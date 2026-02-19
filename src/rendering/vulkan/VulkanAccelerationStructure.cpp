@@ -51,7 +51,11 @@ static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(Acceleration
 
 #pragma region VulkanAccelerationGeometry
 
-VulkanAccelerationGeometry::VulkanAccelerationGeometry(const VulkanGpuBufferRef& packedVerticesBuffer, const VulkanGpuBufferRef& packedIndicesBuffer, uint32 numVertices, uint32 numIndices, const Handle<Material>& material)
+VulkanAccelerationGeometry::VulkanAccelerationGeometry(
+    const VulkanGpuBufferRef& packedVerticesBuffer,
+    const VulkanGpuBufferRef& packedIndicesBuffer,
+    uint32 numVertices, uint32 numIndices,
+    const Handle<Material>& material)
     : m_isCreated(false),
       m_packedVerticesBuffer(packedVerticesBuffer),
       m_packedIndicesBuffer(packedIndicesBuffer),
@@ -124,10 +128,11 @@ RendererResult VulkanAccelerationGeometry::Create()
             .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
             .vertexData = verticesAddress,
             .vertexStride = sizeof(PackedVertex),
-            .maxVertex = uint32(m_packedVerticesBuffer->Size() / sizeof(PackedVertex)),
+            .maxVertex = uint32(m_packedVerticesBuffer->Size() / sizeof(PackedVertex)) - 1,
             .indexType = VK_INDEX_TYPE_UINT32,
             .indexData = indicesAddress,
-            .transformData = { {} } }
+            .transformData = { {} }
+        }
     };
 
     m_isCreated = true;

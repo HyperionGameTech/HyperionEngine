@@ -2108,13 +2108,13 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     // debug draw
     if (renderCollector.mappingsByBucket[RB_DEBUG].Any()
-        || g_renderInterface->debugDrawer->NumEnqueuedDrawCommands() > 0)
+        || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
     {
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
 
-        g_renderInterface->debugDrawer->Render(frame, rs);
+        DebugDrawer::GetInstance().Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(debugPassFramebuffer);
     }

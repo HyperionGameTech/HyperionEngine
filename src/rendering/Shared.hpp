@@ -608,17 +608,14 @@ struct TextureDesc
     }
 };
 
-struct alignas(16) PackedVertex
+#pragma pack(push, 1)
+struct PackedVertex
 {
-    float positionX,
-        positionY,
-        positionZ,
-        normalX,
-        normalY,
-        normalZ,
-        texcoord0X,
-        texcoord0Y;
+    float position[3];
+    float normal[3];
+    float uv[2];
 };
+#pragma pack(pop)
 
 static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
 

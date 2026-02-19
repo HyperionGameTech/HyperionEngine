@@ -474,6 +474,12 @@ static FixedArray<ByteBuffer, RingBufferDepth> CreateDebugDrawBuffers()
     return std::move(buffersStorage).Get();
 }
 
+DebugDrawer& DebugDrawer::GetInstance()
+{
+    static DebugDrawer s_instance;
+    return s_instance;
+}
+
 DebugDrawer::DebugDrawer()
     : m_config(DebugDrawerConfig::FromConfig()),
       m_buffers(CreateDebugDrawBuffers()),
@@ -483,6 +489,14 @@ DebugDrawer::DebugDrawer()
 }
 
 DebugDrawer::~DebugDrawer()
+{
+}
+
+void DebugDrawer::Initialize()
+{
+}
+
+void DebugDrawer::Shutdown()
 {
     for (uint32 i = 0; i < uint32(m_commandLists.Size()); i++)
     {
@@ -546,11 +560,7 @@ DebugDrawer::~DebugDrawer()
     SafeDelete(std::move(m_instanceBuffers));
 }
 
-void DebugDrawer::Initialize()
-{
-}
-
-void DebugDrawer::Update(float delta)
+void DebugDrawer::Update()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -911,6 +921,18 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
 #pragma endregion DebugDrawer
 
 #pragma region DebugDrawCommandList
+
+DebugDrawCommandList::DebugDrawCommandList(DebugDrawer* debugDrawer)
+    : m_debugDrawer(debugDrawer),
+      m_lock(debugDrawer->m_sharedMutex),
+      sphere(*this),
+      ambientProbe(*this),
+      reflectionProbe(*this),
+      box(*this),
+      plane(*this),
+      m_bufferOffset(0)
+{
+}
 
 DebugDrawCommandList::~DebugDrawCommandList()
 {
