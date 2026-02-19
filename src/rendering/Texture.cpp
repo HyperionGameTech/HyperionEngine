@@ -314,7 +314,8 @@ Texture::Texture(const TextureDesc& textureDesc, ConstByteView imageData)
 
 Texture::~Texture()
 {
-    m_gpuImage.Reset();
+    if (m_gpuImage.IsValid())
+        SafeDelete(std::move(m_gpuImage));
 
     FreeBlobData(m_imageData);
 }

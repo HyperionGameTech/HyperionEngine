@@ -33,6 +33,11 @@ struct SubtypeResourceBindings
 
 static SparsePagedArray<SubtypeResourceBindings, 64> s_subtypeBindings;
 
+void ClearSubtypeBindings()
+{
+    s_subtypeBindings.Clear(/* freeMemory */ true);
+}
+
 static inline SubtypeResourceBindings& GetSubtypeBindings(const Class* cls)
 {
     HYP_SCOPE;

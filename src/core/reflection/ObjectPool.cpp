@@ -137,6 +137,7 @@ ObjectContainerBase::ObjectContainerBase(TypeId typeId, const Class* cls)
 
 ObjectContainerBase::~ObjectContainerBase()
 {
+#ifdef HYP_DEBUG_MODE
     if (m_pool != nullptr)
     {
         TLockGuard<AtomicFlag> guard;
@@ -150,14 +151,17 @@ ObjectContainerBase::~ObjectContainerBase()
                 continue;
 
             int32 refCount = header->GetRefCountStrong();
+
             if (refCount > 0)
             {
                 // Using DebugLog here because g_logger may be destroyed
-                DebugLog(LogType::Warn, "Object %s#%u still has strong references on ObjectContainer destruction!!!\n",
-                    m_class->GetName().LookupString(), header->index + 1);
+                DebugLog(LogType::Warn, "Object %s#%u still has %d strong references on ObjectContainer destruction!!!\n",
+                    m_class->GetName().LookupString(), header->index + 1,
+                    refCount);
             }
         }
     }
+#endif
 }
 
 void ObjectContainerBase::LockIfNeeded(TLockGuard<AtomicFlag>& outGuard, int flags)

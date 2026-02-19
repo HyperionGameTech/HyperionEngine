@@ -84,8 +84,8 @@ private:                                         \
 #undef HYP_DEF_DUMMY_DATA
 
 public:
-    void Create();
-    void Destroy();
+    void Initialize();
+    void Shutdown();
 
     /*! \brief Get or create a buffer of at least the given size */
     const GpuBufferRef& GetOrCreateBuffer(GpuBufferType bufferType, SizeType requiredSize, bool exactSize = false)

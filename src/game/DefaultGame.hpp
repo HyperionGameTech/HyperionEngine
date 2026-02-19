@@ -22,10 +22,13 @@ class HYP_API DefaultGame : public Game
 
 public:
     DefaultGame();
+
     DefaultGame(const DefaultGame& other) = delete;
     DefaultGame& operator=(const DefaultGame& other) = delete;
+
     DefaultGame(DefaultGame&& other) noexcept = delete;
     DefaultGame& operator=(DefaultGame&& other) noexcept = delete;
+
     virtual ~DefaultGame() override;
 
 protected:

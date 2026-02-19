@@ -342,6 +342,7 @@ private:
 #endif
 
     bool m_mouseLocked = false;
+    bool m_isOpen = false;
 };
 
 HYP_CLASS()

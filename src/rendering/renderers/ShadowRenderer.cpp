@@ -90,7 +90,11 @@ void ShadowRendererBase::Shutdown()
         for (ShadowMap* shadowMap : shadowMaps)
         {
             bool removedFromAtlas = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
-            AssertDebug(removedFromAtlas, "Failed to free shadow map");
+
+            if (!removedFromAtlas)
+            {
+                HYP_LOG(Rendering, Warning, "Failed to remove shadow map from atlas.");
+            }
         }
 
         shadowMaps.Clear();

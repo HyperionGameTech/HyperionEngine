@@ -116,6 +116,7 @@ static ResourceBinderBase* s_resourceBinders[] = {
     &s_lightBinder,
     &s_lightmapVolumeBinder,
     &s_particleVolumeBinder,
+    &s_fogVolumeBinder,
     &s_materialBinder,
     &s_textureBinder,
     &s_skeletonBinder
