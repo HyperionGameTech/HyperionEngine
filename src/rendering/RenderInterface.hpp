@@ -56,6 +56,7 @@ class GpuBufferHolderBase;
 class StagingBufferPool;
 class ShaderManager;
 class SafeDeleter;
+class DebugDrawer;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -362,6 +363,8 @@ public:
     DescriptorSetCache* descriptorSetCache;
 
     StagingBufferPool* stagingBufferPool;
+
+    DebugDrawer* debugDrawer;
 
     struct ResourceContainer* resources;
 

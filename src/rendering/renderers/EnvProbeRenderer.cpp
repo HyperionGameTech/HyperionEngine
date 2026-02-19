@@ -97,9 +97,9 @@ void EnvProbeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     RenderProbe(frame, rs, envProbe);
 }
 
-Handle<PassData> EnvProbeRenderer::CreateViewPassData(View* view, PassDataExt& ext)
+PassData* EnvProbeRenderer::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    Handle<EnvProbeRendererPassData> pd = MakeHandle<EnvProbeRendererPassData>();
+    EnvProbeRendererPassData* pd = new EnvProbeRendererPassData();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 

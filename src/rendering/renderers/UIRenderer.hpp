@@ -50,7 +50,7 @@ public:
     UIRenderCollector renderCollector;
 
 protected:
-    Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
+    PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
     Handle<View> m_view;
 };

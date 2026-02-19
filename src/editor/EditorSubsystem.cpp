@@ -67,6 +67,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/RenderInterface.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
 
@@ -89,7 +90,7 @@
 #include <engine/Game.hpp>
 
 #include <engine/EngineDriver.hpp>
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -1511,13 +1512,14 @@ void EditorSubsystem::Update(float delta)
     m_editorDelegates->Update();
 
     UpdateCamera(delta);
+
     UpdateDebugOverlays(delta);
 
     if (m_focusedNode.IsValid())
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
-            DebugDrawCommandList& dbg = g_engineDriver->GetDebugDrawer()->CreateCommandList();
+            DebugDrawCommandList& dbg = g_renderInterface->debugDrawer->CreateCommandList();
 
             dbg.box(focusedNode->GetWorldTranslation(), focusedNode->GetWorldBounds().GetExtent() * 0.5f + Vec3f(FLT_EPSILON), Color::Cyan());
         }

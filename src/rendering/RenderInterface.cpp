@@ -33,6 +33,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSetCache.hpp>
 #include <rendering/ShaderManager.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/SafeDeleter.hpp>
@@ -883,7 +884,8 @@ RenderInterface::RenderInterface()
       safeDeleter(PoolNew<SafeDeleter>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool))
+      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
+      debugDrawer(PoolNew<DebugDrawer>(*g_renderPool))
 {
 }
 
@@ -941,6 +943,7 @@ RendererResult RenderInterface::Initialize()
 
     placeholderData->Initialize();
     shadowMapAllocator->Initialize();
+    debugDrawer->Initialize();
 
     CreateSphereSamplesBuffer();
     CreateBlueNoiseBuffer();
@@ -1033,6 +1036,9 @@ void RenderInterface::Shutdown()
     placeholderData->Shutdown();
 
     globalDescriptorTable.Reset();
+
+    PoolDelete(*g_renderPool, debugDrawer);
+    debugDrawer = nullptr;
 
     PoolDelete(*g_renderPool, shaderManager);
     shaderManager = nullptr;

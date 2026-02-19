@@ -457,9 +457,9 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     }
 }
 
-Handle<PassData> ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
+PassData* ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
-    Handle<ShadowRendererPassData> pd = MakeHandle<ShadowRendererPassData>();
+    ShadowRendererPassData* pd = new ShadowRendererPassData();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 

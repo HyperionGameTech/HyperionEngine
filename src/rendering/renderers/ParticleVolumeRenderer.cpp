@@ -77,9 +77,9 @@ void ParticleVolumeRenderer::Shutdown()
     SafeDelete(std::move(m_staging.zeroIndirectArgs));
 }
 
-Handle<PassData> ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    Handle<PassData> pd = MakeHandle<PassData>();
+    PassData* pd = new PassData();
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 
