@@ -903,7 +903,12 @@ VulkanGpuImageRef VulkanRenderInterface::MakeImage(const TextureDesc& textureDes
 
 VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageRef& image)
 {
-    return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image));
+    VulkanGpuImageViewRef ref = MakeHandle<VulkanGpuImageView>(image);
+#ifdef HYP_DEBUG_MODE
+    ref->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
+#endif
+
+    return ref;
 }
 
 VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageRef& image, uint8 mipIndex, uint8 numMips, uint16 layerIndex, uint16 numLayers)
@@ -914,7 +919,12 @@ VulkanGpuImageViewRef VulkanRenderInterface::MakeImageView(const VulkanGpuImageR
     subResource.numLevels = numMips;
     subResource.numLayers = numLayers;
 
-    return MakeHandle<VulkanGpuImageView>(VulkanGpuImageRef(image), subResource);
+    VulkanGpuImageViewRef ref = MakeHandle<VulkanGpuImageView>(image, subResource);
+#ifdef HYP_DEBUG_MODE
+    ref->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
+#endif
+
+    return ref;
 }
 
 VulkanSamplerRef VulkanRenderInterface::MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode)

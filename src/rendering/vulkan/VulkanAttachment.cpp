@@ -34,7 +34,13 @@ VulkanAttachment::VulkanAttachment(
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
 {
-    m_imageView = MakeHandle<VulkanGpuImageView>(image);
+    if (image.IsValid())
+    {
+        m_imageView = MakeHandle<VulkanGpuImageView>(image);
+#ifdef HYP_DEBUG_MODE
+        m_imageView->SetDebugName(NAME_FMT("{}_IV", image->GetDebugName()));
+#endif
+    }
 }
 
 VulkanAttachment::~VulkanAttachment()

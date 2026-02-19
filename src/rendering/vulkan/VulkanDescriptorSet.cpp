@@ -137,62 +137,6 @@ static inline void PopulateDynamicOffsets(
 
 #pragma region VulkanDescriptorSet
 
-static SharedMutex s_defaultsMutex;
-
-static const VulkanGpuImageViewRef& GetDefaultVulkanImageView()
-{
-    TSharedLock lock(s_defaultsMutex);
-
-    static VulkanGpuImageViewRef s_imageView;
-
-    if (HYP_UNLIKELY(!s_imageView))
-    {
-        lock.Reset();
-
-        TUniqueLock lock2(s_defaultsMutex);
-
-        if (s_imageView)
-        {
-            return s_imageView;
-        }
-
-        TextureDesc textureDesc {};
-        textureDesc.imageUsage = IU_SAMPLED | IU_STORAGE;
-
-        VulkanGpuImageRef placeholderImage = MakeHandle<VulkanGpuImage>(textureDesc);
-        Assert(placeholderImage->Create());
-
-        s_imageView = MakeHandle<VulkanGpuImageView>(placeholderImage);
-        Assert(s_imageView->Create());
-    }
-
-    return s_imageView;
-}
-
-static const VulkanSamplerRef& GetDefaultVulkanSampler()
-{
-    TSharedLock lock(s_defaultsMutex);
-
-    static VulkanSamplerRef s_sampler;
-
-    if (HYP_UNLIKELY(!s_sampler))
-    {
-        lock.Reset();
-
-        TUniqueLock lock2(s_defaultsMutex);
-
-        if (s_sampler)
-        {
-            return s_sampler;
-        }
-
-        s_sampler = MakeHandle<VulkanSampler>(TFM_LINEAR, TFM_LINEAR, TWM_CLAMP_TO_EDGE);
-        Assert(s_sampler->Create());
-    }
-
-    return s_sampler;
-}
-
 VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
     : DescriptorSetBase(layout),
       m_handle(VK_NULL_HANDLE),
@@ -215,7 +159,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
 
             break;
         case ShaderInputType::IMAGE:
-            PrefillElements<VulkanGpuImageView>(name, element.count, GetDefaultVulkanImageView());
+            PrefillElements<VulkanGpuImageView>(name, element.count, g_renderInterface->placeholderData->GetImageView2D1x1R8());
 
             break;
         case ShaderInputType::IMAGE_STORAGE:
@@ -224,7 +168,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
 
             break;
         case ShaderInputType::SAMPLER:
-            PrefillElements<VulkanSampler>(name, element.count, GetDefaultVulkanSampler());
+            PrefillElements<VulkanSampler>(name, element.count, g_renderInterface->placeholderData->GetSamplerLinear());
 
             break;
         case ShaderInputType::TLAS:

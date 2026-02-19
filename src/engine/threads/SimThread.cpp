@@ -45,9 +45,9 @@ EngineStatTimer g_simTimer("SimThread/Update");
 
 struct LaunchGameAsync
 {
-    Handle<Game> gameInstance;
+    Game* gameInstance;
 
-    explicit LaunchGameAsync(const Handle<Game>& gameInstance)
+    explicit LaunchGameAsync(Game* gameInstance)
         : gameInstance(gameInstance)
     {
         Assert(gameInstance != nullptr);
@@ -65,14 +65,15 @@ struct LaunchGameAsync
             gameInstance->OnLaunched();
         }
 
-        g_simThreadInstance->m_game = gameInstance;
+        g_simThreadInstance->m_gameInstance = gameInstance;
     }
 };
 
 #pragma region SimThread
 
 SimThread::SimThread()
-    : Thread(g_simThread, ThreadPriorityValue::HIGHEST)
+    : Thread(g_simThread, ThreadPriorityValue::HIGHEST),
+      m_gameInstance(nullptr)
 {
 }
 
@@ -94,17 +95,17 @@ bool SimThread::Start()
     return Thread::Start();
 }
 
-void SimThread::SetGame(const Handle<Game>& game)
+void SimThread::SetGameInstance(Game* gameInstance)
 {
     if (IsOnThread(m_id) && IsRunning())
     {
-        LaunchGameAsync { game }();
+        LaunchGameAsync { gameInstance }();
     }
     else
     {
         HYP_LOG(SimThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
 
-        GetScheduler().Enqueue(LaunchGameAsync(game), TaskEnqueueFlags::FIRE_AND_FORGET);
+        GetScheduler().Enqueue(LaunchGameAsync(gameInstance), TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 
@@ -131,12 +132,12 @@ void SimThread::Update()
 
     g_assetManager->Update(m_counter.delta);
 
-    if (m_game != nullptr)
+    if (m_gameInstance != nullptr)
     {
         // game instance should be null if not launched yet
-        AssertDebug(m_game->m_isLaunched.Get(MemoryOrder::RELAXED));
+        AssertDebug(m_gameInstance->m_isLaunched.Get(MemoryOrder::RELAXED));
 
-        m_game->m_gameState.deltaTime = m_counter.delta;
+        m_gameInstance->m_gameState.deltaTime = m_counter.delta;
     }
 
     if (ApplicationWindow* mainWindow = g_appContext->GetMainWindow())
@@ -144,9 +145,9 @@ void SimThread::Update()
         Event event;
         while (mainWindow->GetInputManager()->PollEvent(event))
         {
-            if (m_game != nullptr)
+            if (m_gameInstance != nullptr)
             {
-                m_game->HandleEvent(std::move(event));
+                m_gameInstance->HandleEvent(std::move(event));
             }
         }
     }
@@ -157,11 +158,11 @@ void SimThread::Update()
 
     g_engineDriver->UpdateSim(m_counter.delta);
 
-    if (m_game != nullptr)
+    if (m_gameInstance != nullptr)
     {
-        m_game->OnUpdate(m_counter.delta);
+        m_gameInstance->OnUpdate(m_counter.delta);
 
-        m_game->m_gameState.gameTime += m_counter.delta;
+        m_gameInstance->m_gameState.gameTime += m_counter.delta;
     }
 
     g_engineDriver->GetDebugDrawer()->Update(m_counter.delta);

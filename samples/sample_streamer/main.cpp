@@ -15,9 +15,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    Handle<game::DefaultGame> defaultGame = MakeHandle<game::DefaultGame>();
+    game::DefaultGame defaultGame;
 
-    Hyp_SetGame(defaultGame);
+    Hyp_SetGame(&defaultGame);
 
     if (!Hyp_LaunchThreads())
     {

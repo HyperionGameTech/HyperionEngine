@@ -274,10 +274,8 @@ void EngineDriver::SetGameInstance(Game* gameInstance)
 
     Assert(gameInstance != nullptr);
 
-    Handle<Game> gameInstanceStrong = MakeStrongRef(gameInstance);
-
-    g_gameInstance = gameInstanceStrong;
-    g_simThreadInstance->SetGame(gameInstanceStrong);
+    g_gameInstance = gameInstance;
+    g_simThreadInstance->SetGameInstance(gameInstance);
 }
 
 Game* EngineDriver::GetGameInstance() const

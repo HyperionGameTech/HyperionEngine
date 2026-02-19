@@ -27,11 +27,11 @@ public:
 
     bool Start();
 
-    void SetGame(const Handle<Game>& game);
+    void SetGameInstance(Game* gameInstance);
 
-    HYP_FORCE_INLINE const Handle<Game>& GetGame() const
+    HYP_FORCE_INLINE Game* GetGameInstance() const
     {
-        return m_game;
+        return m_gameInstance;
     }
 
     void Update();
@@ -39,7 +39,7 @@ public:
 private:
     virtual void operator()() override;
 
-    Handle<Game> m_game;
+    Game* m_gameInstance;
     ClockTimer m_counter;
 };
 

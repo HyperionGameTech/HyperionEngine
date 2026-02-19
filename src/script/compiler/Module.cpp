@@ -17,10 +17,7 @@ Module::Module(
 {
 }
 
-Module::~Module()
-{
-    HYP_LOG(HypScript, Debug, "Destroying module '{}'", m_name);
-}
+Module::~Module() = default;
 
 FlatSet<String> Module::GenerateAllScanPaths() const
 {

@@ -1026,6 +1026,8 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 
     UpdateWindow(m_hwnd);
 
+    m_isOpen = true;
+
     // // Register raw input
     // RAWINPUTDEVICE rid[2];
 
@@ -1172,8 +1174,6 @@ static bool HandleWindowEvent(
     case WM_DESTROY:
     {
         event = Event(EventType::WINDOW_CLOSE, window, platformEvent);
-
-        HYP_BREAKPOINT;
 
         return true;
     }
@@ -1354,11 +1354,12 @@ void Win32ApplicationWindow::Close()
 
     TUniqueLock lock(m_mtx);
 
-    if (m_swapchain.IsValid())
+    if (!m_isOpen)
     {
-        // delete on render thread
-        SafeDelete(std::move(m_swapchain));
+        return;
     }
+
+    m_swapchain.Reset();
 
 #if HYP_VULKAN
     if (m_vkSurface)
@@ -1382,6 +1383,8 @@ void Win32ApplicationWindow::Close()
     }
 
     auto onClose = std::move(OnClose);
+
+    m_isOpen = false;
 
     lock.Reset();
 

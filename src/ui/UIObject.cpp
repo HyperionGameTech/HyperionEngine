@@ -28,6 +28,8 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
+#include <engine/EngineDriver.hpp>
+
 #include <UIObject.generated.inl>
 
 namespace Hyperion {
@@ -60,6 +62,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
     static struct QuadMeshInitializer
     {
         Handle<Mesh> quad;
+        DelegateHandler onShutdownHandle;
 
         QuadMeshInitializer()
         {
@@ -67,7 +70,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             quad->SetFlags(MF_VIEW_INDEPENDENT);
 
             // Hack to make vertices be from 0..1 rather than -1..1
-;
+
             Assert(quad->GetVertexData().Size() != 0);
             Assert(quad->GetIndexData().Size() != 0);
 
@@ -90,6 +93,12 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             quad->SetName(NAME("UIObject_QuadMesh"));
 
             InitObject(quad);
+
+            // clean up on engine shutdown
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([q = &quad]()
+                {
+                    q->Reset();
+                });
         }
     } quadMeshInitializer;
 

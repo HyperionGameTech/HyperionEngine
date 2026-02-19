@@ -24,7 +24,6 @@ static constexpr SizeType TaskPoolBlockSize = 16 * 1024 * 1024;     // 16 KiB
 static constexpr SizeType ResourcePoolBlockSize = 1 * 1024 * 1024;  // 1 MiB
 static constexpr SizeType AssetPoolBlockSize = 64 * 1024 * 1024;    // 64 MiB
 static constexpr SizeType StreamingPoolBlockSize = 1 * 1024 * 1024; // 1 MiB
-static constexpr SizeType ScriptPoolBlockSize = 1 * 1024 * 1024;    // 1 MiB
 
 static constexpr SizeType SceneArenaSize = 64 * 1024;               // 64 KiB
 static constexpr SizeType StreamingArenaSize = 64 * 1024;           // 64 KiB
@@ -79,17 +78,9 @@ using RHITempAllocator = DX12TempAllocator;
 
 #endif
 
-#if HYP_SCRIPT
-HYP_ENGINE_MEMORY_DECL Pool* g_scriptPool; // Pool for script-related allocations (sim thread only)
-#endif
-
 using SceneAllocator = AllocatorInstance<Pool, &g_scenePool>;
 using RenderAllocator = AllocatorInstance<Pool, &g_renderPool>;
 using StreamingAllocator = AllocatorInstance<Pool, &g_streamingPool>;
-
-#if HYP_SCRIPT
-using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
-#endif
 
 HYP_ENGINE_MEMORY_DECL Arena* g_renderArena; // Arena for the render thread to use for temporary allocations during the frame
 HYP_ENGINE_MEMORY_DECL Arena* g_sceneArena;   // Arena for scene-related temporary allocations during the frame
@@ -110,7 +101,6 @@ static void InitMemoryPools()
     g_resourcePool = new Pool(ResourcePoolBlockSize);
     g_assetPool = new Pool(AssetPoolBlockSize);
     g_streamingPool = new Pool(StreamingPoolBlockSize);
-    g_scriptPool = new Pool(ScriptPoolBlockSize, PF_NONE, g_simThread);
 
     g_sceneArena = new Arena(SceneArenaSize);
     g_streamingArena = new Arena(StreamingArenaSize);
