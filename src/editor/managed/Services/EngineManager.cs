@@ -87,13 +87,11 @@ namespace Hyperion.Editor
                     throw new Exception("Failed to initialize Hyperion Engine. NativeBindings.Hyp_Initialize returned false.");
                 }
 
-                InitializeEditorTasks();
-
                 NativeBindings.Hyp_LaunchThreads();
             }
             catch (Exception ex)
             {
-                throw new Exception("Exception during Hyperion Engine initialization!", ex);
+                throw new Exception("Exception during engine startup: " + ex.Message, ex);
             }
             finally
             {
@@ -108,6 +106,8 @@ namespace Hyperion.Editor
                 if (argv != IntPtr.Zero)
                     Marshal.FreeHGlobal(argv);
             }
+
+            InitializeEditorTasks();
 
             IsInitialized = true;
         }

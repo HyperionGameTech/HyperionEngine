@@ -77,6 +77,8 @@ namespace Hyperion
 
                 Object_IncRef(_classPtr, _nativeAddress, false);
             }
+
+            Logger.Log(LogType.Debug, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~ObjectBase()
@@ -84,6 +86,8 @@ namespace Hyperion
             if (IsValid && Class.IsReferenceCounted)
             {
                 Object_DecRef(_classPtr, _nativeAddress, false);
+
+                Logger.Log(LogType.Debug, "Finalized ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
             }
         }
 

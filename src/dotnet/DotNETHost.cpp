@@ -187,6 +187,7 @@ public:
 
         static const Array<Pair<String, FilePath>> s_coreAssemblies = {
             Pair<String, FilePath> { "interop", *interopAssemblyPath }
+            //Pair<String, FilePath> { "runtime", FindAssemblyFilePath(m_basePath, "Hyperion.NET.Runtime.dll").GetOr(FilePath()) }
         };
 
         int result = int(LoadAssemblyResult::OK);
@@ -196,7 +197,7 @@ public:
 
         if (result != int(LoadAssemblyResult::OK))
         {
-            HYP_FAIL("Failed to initialize Hyperion .NET interop: Got error code %d", result);
+            HYP_FAIL("Failed to initialize Hyperion .NET interop: Got error code {}", result);
         }
 
         for (const Pair<String, FilePath>& entry : s_coreAssemblies)
@@ -222,6 +223,8 @@ public:
             m_coreAssemblies.Insert(entry.first, assembly->GetGuid());
             m_assembliesByPath.Insert(entry.second, assembly);
         }
+
+        LoadAssembly("Hyperion.NET.Runtime.dll");
     }
 
     virtual RC<Assembly> LoadAssembly(const char* path) override
@@ -431,7 +434,7 @@ private:
         // Load hostfxr and get desired exports
         m_dll = DynamicLibrary(wpath);
 
-        if (!m_dll.Load())
+        if (!m_dll.Open())
         {
             AssertDebug(false, "Failed to load hostfxr library at {}", wpath);
             return false;
@@ -510,6 +513,8 @@ private:
 
             HYP_LOG(DotNET, Debug, "Shut down .NET runtime");
         }
+
+        m_dll.Close();
 
         return true;
     }
@@ -600,15 +605,11 @@ bool DotNETHost::EnsureInitialized() const
 {
     if (!IsEnabled())
     {
-        HYP_LOG(DotNET, Error, "DotNETHost not enabled, cannot load/unload assemblies");
-
         return false;
     }
 
     if (!IsInitialized())
     {
-        HYP_LOG(DotNET, Error, "DotNETHost not initialized, call Initialize() before attempting to load/unload assemblies");
-
         return false;
     }
 
@@ -704,6 +705,13 @@ void DotNETHost::Shutdown()
     }
 
     HYP_NAMED_SCOPE("Shutdown .NET System");
+
+    if (m_globalFunctions.cleanupOnShutdownFunction != nullptr)
+    {
+        m_globalFunctions.cleanupOnShutdownFunction();
+    }
+
+    m_globalFunctions = {};
 
     delete m_impl;
     m_impl = nullptr;
