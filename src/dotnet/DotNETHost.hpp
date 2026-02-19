@@ -24,12 +24,13 @@ class DotNetImpl;
 
 using AddObjectToCacheFunction = void (*)(void* ptr, dotnet::ManagedClass** outClass, dotnet::ObjectReference* outObjectReference, int8 isWeak);
 using SetKeepAliveFunction = void (*)(dotnet::ObjectReference* objectReference, int32* keepAlive);
-using TriggerGCFunction = void (*)();
+using TriggerGCFunction = void (*)(void);
 using GetAssemblyPointerFunction = void (*)(dotnet::ObjectReference* assemblyObjectReference, dotnet::Assembly** pOutAssembly);
+using CleanupOnShutdownFunction = void (*)(void);
 
 using InitFromManagedCallback = void (*)(struct ManagedDelegates*);
 
-using InitializeRuntimeDelegate = int (*)();
+using InitializeRuntimeDelegate = int (*)(void);
 using InitializeAssemblyDelegate = int (*)(dotnet::ManagedGuid*, dotnet::Assembly*, const char*, int32);
 using UnloadAssemblyDelegate = void (*)(dotnet::ManagedGuid*, int32*);
 
@@ -57,6 +58,8 @@ public:
         SetKeepAliveFunction setKeepAliveFunction = nullptr;
         TriggerGCFunction triggerGcFunction = nullptr;
         GetAssemblyPointerFunction getAssemblyPointerFunction = nullptr;
+        CleanupOnShutdownFunction cleanupOnShutdownFunction = nullptr;
+
     };
 
     static DotNETHost& GetInstance();
@@ -99,7 +102,9 @@ public:
 private:
     bool EnsureInitialized() const;
 
+    mutable Mutex m_mutex;
     bool m_isInitialized;
+
     DotNetImplBase* m_impl;
 
     GlobalFunctions m_globalFunctions;

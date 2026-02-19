@@ -359,13 +359,17 @@ extern "C"
 
             Handle<ApplicationWindow> window = g_appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags });
 
-            window->OnClose.Bind([]()
+            DelegateHandler* onCloseHandle = new DelegateHandler();
+            
+            *onCloseHandle = window->OnClose.Bind([onCloseHandle]()
                 {
                     // shut down application on main window close.
                     Hyp_Shutdown();
 
+                    delete onCloseHandle;
+
                     std::exit(0);
-                }).Detach();
+                });
 
             Assert(window.IsValid());
 

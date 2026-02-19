@@ -102,7 +102,10 @@ extern "C"
             return nullptr;
         }
 
-        return managedClass->GetClass();
+        const Class* cls = managedClass->GetClass();
+        AssertDebug(cls != nullptr);
+
+        return cls;
     }
 
     HYP_EXPORT void Class_GetName(const Class* cls, Name* outName)

@@ -117,6 +117,11 @@ extern "C"
         DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction = getAssemblyPointerFunction;
     }
 
+    HYP_EXPORT void NativeInterop_SetCleanupOnShutdownFunction(CleanupOnShutdownFunction cleanupOnShutdownFunction)
+    {
+        DotNETHost::GetInstance().GetGlobalFunctions().cleanupOnShutdownFunction = cleanupOnShutdownFunction;
+    }
+
     HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference* assemblyObjectReference, Assembly** pOutAssembly)
     {
         Assert(assemblyObjectReference != nullptr);
@@ -125,6 +130,8 @@ extern "C"
         *pOutAssembly = nullptr;
 
         DotNETHost::GetInstance().GetGlobalFunctions().getAssemblyPointerFunction(assemblyObjectReference, pOutAssembly);
+
+        AssertDebug(*pOutAssembly != nullptr);
     }
 
     HYP_EXPORT void NativeInterop_AddObjectToCache(void* ptr, ManagedClass** outClass, ObjectReference* outObjectReference, int8 weak)

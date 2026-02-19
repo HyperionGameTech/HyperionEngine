@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -409,12 +410,16 @@ namespace Hyperion
 
             while (true)
             {
-                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(ClassBinding));
+                Assert.Throw(currentType != null);
+
+                Attribute? attribute = Attribute.GetCustomAttribute(currentType, typeof(ClassBinding));
 
                 if (attribute != null)
                     break;
 
-                currentType = ((Type)currentType).BaseType;
+                currentType = currentType.BaseType;
+
+                Assert.Throw(currentType != null);
 
                 if (currentType == null)
                     return null;

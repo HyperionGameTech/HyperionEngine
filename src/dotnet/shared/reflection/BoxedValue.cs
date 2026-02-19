@@ -373,7 +373,7 @@ namespace Hyperion
                 return;
             }
 
-#if DEBUG
+// #if DEBUG
             string? hierarchyStr = null;
 
             try
@@ -383,7 +383,16 @@ namespace Hyperion
 
                 while (currentType != null)
                 {
-                    classHierarchy.Add(currentType.Name);
+                    // attempting to figure out why some types with ObjectBase aren't being picked up
+                    // (Mismatched assemblies?)
+                    if (currentType.Name.Contains("ObjectBase"))
+                    {
+                        Logger.Log(LogType.Debug, "Type is derived from ObjectBase but failed to set BoxedValue. Type: " + type.FullName + ", ref'd ObjectBase Assembly path: " + currentType.Assembly.Location + ", our ObjectBase path: " + typeof(ObjectBase).Assembly.Location
+                            + ", is assignable from ObjectBase: " + typeof(ObjectBase).IsAssignableFrom(currentType)
+                            + ", equal types : " + (typeof(ObjectBase) == currentType));
+                    }
+
+                    classHierarchy.Add(currentType.Name + ", Assembly path: " + currentType.Assembly.Location);
                     currentType = currentType.BaseType;
                 }
 
@@ -395,11 +404,11 @@ namespace Hyperion
 
             if (hierarchyStr != null)
             {
-                throw new NotImplementedException($"Unsupported type to set BoxedValue: {type.FullName}, hierarchy: {hierarchyStr}");
+                throw new NotImplementedException($"Unsupported type to set BoxedValue: {type.FullName}, Assembly path: {type.Assembly.Location}, hierarchy: {hierarchyStr}");
             }
-#endif
+// #endif
 
-            throw new NotImplementedException($"Unsupported type to set BoxedValue: {type.FullName}");
+            throw new NotImplementedException($"Unsupported type to set BoxedValue: {type.FullName}, Assembly path: {type.Assembly.Location}");
         }
 
         public unsafe object? GetValue()

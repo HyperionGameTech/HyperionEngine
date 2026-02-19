@@ -68,6 +68,8 @@ namespace Hyperion
                     continue;
                 }
 
+                Logger.Log(LogType.Debug, "Processing type: {0} for assembly: {1}", type.FullName, assembly.FullName);
+
                 if (type.IsClass || type.IsValueType || type.IsEnum)
                 {
                     InitManagedClass(type, isCoreAssembly);
@@ -95,6 +97,7 @@ namespace Hyperion
                 NativeInterop_SetSetKeepAliveFunction((delegate* unmanaged<IntPtr, int*, void>)&SetKeepAlive);
                 NativeInterop_SetTriggerGCFunction((delegate* unmanaged<void>)&TriggerGC);
                 NativeInterop_SetGetAssemblyPointerFunction((delegate* unmanaged<IntPtr, IntPtr, void>)&GetAssemblyPointer);
+                NativeInterop_SetCleanupOnShutdownFunction((delegate* unmanaged<void>)&CleanupOnShutdown);
             }
             catch (Exception ex)
             {
@@ -919,16 +922,27 @@ namespace Hyperion
             ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)assemblyObjectReferencePtr);
 
             Assembly? assembly = (Assembly?)objectReference.LoadObject();
+            Assert.Throw(assembly != null);
 
             if (assembly == null)
                 return;
 
             AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(assembly);
+            Assert.Throw(assemblyInstance != null);
 
             if (assemblyInstance == null)
                 return;
 
             Marshal.WriteIntPtr(outAssemblyPtr, assemblyInstance.AssemblyPtr);
+        }
+
+        [UnmanagedCallersOnly]
+        public static unsafe void CleanupOnShutdown()
+        {
+            AssemblyInstance.CoreAssemblyLoadContext.Unload();
+            AssemblyCache.Instance.Clear();
+
+            GC.Collect(0, GCCollectionMode.Forced, blocking: true, compacting: true);
         }
 
         public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -980,16 +994,19 @@ namespace Hyperion
         private static extern void NativeInterop_SetInvokeSetterFunction([In] ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr invokeSetterPtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetAddObjectToCacheFunction")]
-        private static extern void NativeInterop_SetAddObjectToCacheFunction(IntPtr addObjectToCachePtr);
+        private static extern void NativeInterop_SetAddObjectToCacheFunction(IntPtr addObjectToCacheFunction);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetSetKeepAliveFunction")]
-        private static extern unsafe void NativeInterop_SetSetKeepAliveFunction(void* setKeepAlivePtr);
+        private static extern unsafe void NativeInterop_SetSetKeepAliveFunction(void* setKeepAliveFunction);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetTriggerGCFunction")]
-        private static extern unsafe void NativeInterop_SetTriggerGCFunction(void* setTriggerGCFunctionPtr);
+        private static extern unsafe void NativeInterop_SetTriggerGCFunction(void* setTriggerGcFunctionFunction);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetGetAssemblyPointerFunction")]
-        private static extern unsafe void NativeInterop_SetGetAssemblyPointerFunction(void* getAssemblyPointerFunctionPtr);
+        private static extern unsafe void NativeInterop_SetGetAssemblyPointerFunction(void* getAssemblyPointerFunction);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetCleanupOnShutdownFunction")]
+        private static extern unsafe void NativeInterop_SetCleanupOnShutdownFunction(void* cleanupOnShutdownFunction);
 
         [DllImport("hyperion")]
         private static extern int NativeInterop_NewAssembly(Guid guid, out IntPtr outAssemblyPtr);
