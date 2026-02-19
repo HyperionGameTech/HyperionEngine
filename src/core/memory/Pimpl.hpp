@@ -21,6 +21,9 @@ namespace memory {
 template <class T>
 class Pimpl
 {
+    template <class TOther>
+    friend class Pimpl;
+
     struct AllocationBase
     {
         void (*destructObject)(void*);
@@ -53,18 +56,12 @@ public:
 
     Pimpl& operator=(Pimpl&& other) noexcept
     {
-        if (this == &other)
-        {
-            return *this;
-        }
-
         if (m_allocation)
         {
             Reset();
         }
 
         m_allocation = other.m_allocation;
-
         other.m_allocation = nullptr;
 
         return *this;

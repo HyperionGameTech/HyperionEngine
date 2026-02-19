@@ -8,8 +8,6 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
-
 #include <core/config/Config.hpp>
 
 #include <core/math/Transform.hpp>
@@ -228,14 +226,13 @@ private:
     uint32 m_bufferOffset;
 };
 
-HYP_CLASS()
-class HYP_API DebugDrawer final : public ObjectBase
+class DebugDrawer
 {
-    HYP_OBJECT_BODY(DebugDrawer);
-
 public:
     DebugDrawer();
-    ~DebugDrawer() override;
+    DebugDrawer(const DebugDrawer& other) = delete;
+    DebugDrawer& operator=(const DebugDrawer& other) = delete;
+    ~DebugDrawer();
 
     HYP_FORCE_INLINE bool IsEnabled() const
     {
@@ -251,6 +248,8 @@ public:
     {
         return uint32(m_headers[GetRingIndex()].Size());
     }
+    
+    void Initialize();
 
     void Update(float delta);
     void Render(Frame* frame, const RenderSetup& renderSetup);
@@ -258,8 +257,6 @@ public:
     DebugDrawCommandList& CreateCommandList();
 
 private:
-    void Init() override;
-
     DebugDrawerConfig m_config;
 
 private:

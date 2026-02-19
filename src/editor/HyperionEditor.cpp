@@ -13,7 +13,7 @@
 
 #include <rendering/shadows/ShadowMap.hpp>
 
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 

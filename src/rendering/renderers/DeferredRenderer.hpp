@@ -393,7 +393,7 @@ private:
     void UpdateRayTracingView(Frame* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
-    virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
+    virtual PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
     void CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData);
 

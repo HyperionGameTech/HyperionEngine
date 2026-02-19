@@ -2,10 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <engine/EngineGlobals.hpp>
-#include <engine/DebugDrawer.hpp>
-#include <engine/EngineStats.hpp>
-
+#include <rendering/DebugDrawer.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
@@ -28,6 +25,10 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 
 #include <rendering/util/SafeDeleter.hpp>
+
+#include <engine/EngineGlobals.hpp>
+#include <engine/EngineStats.hpp>
+#include <engine/EngineDriver.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
@@ -132,6 +133,7 @@ Mesh* SphereDebugDrawShape::GetMesh_Internal() const
     static struct MeshInitializer
     {
         Handle<Mesh> mesh;
+        DelegateHandler onShutdownHandle;
 
         MeshInitializer()
         {
@@ -142,10 +144,15 @@ Mesh* SphereDebugDrawShape::GetMesh_Internal() const
             g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh);
 
             InitObject(mesh);
-        }
-    } initializer;
 
-    return initializer.mesh;
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
+            {
+                m->Reset();
+            });
+        }
+    } s_initializer;
+
+    return s_initializer.mesh;
 }
 
 void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const Color& color)
@@ -302,6 +309,7 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
     static struct MeshInitializer
     {
         Handle<Mesh> mesh;
+        DelegateHandler onShutdownHandle;
 
         MeshInitializer()
         {
@@ -312,10 +320,15 @@ Mesh* BoxDebugDrawShape::GetMesh_Internal() const
             g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh);
 
             InitObject(mesh);
+            
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
+            {
+                m->Reset();
+            });
         }
-    } initializer;
+    } s_initializer;
 
-    return initializer.mesh;
+    return s_initializer.mesh;
 }
 
 void BoxDebugDrawShape::operator()(const Vec3f& position, const Vec3f& size, const Color& color)
@@ -367,6 +380,7 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
     static struct MeshInitializer
     {
         Handle<Mesh> mesh;
+        DelegateHandler onShutdownHandle;
 
         MeshInitializer()
         {
@@ -377,10 +391,15 @@ Mesh* PlaneDebugDrawShape::GetMesh_Internal() const
             g_assetManager->GetAssetRegistry()->RegisterAsset("Engine/Media/Meshes", mesh);
 
             InitObject(mesh);
+            
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([m = &mesh]()
+            {
+                m->Reset();
+            });
         }
-    } initializer;
+    } s_initializer;
 
-    return initializer.mesh;
+    return s_initializer.mesh;
 }
 
 void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const Color& color)
@@ -527,12 +546,8 @@ DebugDrawer::~DebugDrawer()
     SafeDelete(std::move(m_instanceBuffers));
 }
 
-void DebugDrawer::Init()
+void DebugDrawer::Initialize()
 {
-    HYP_SCOPE;
-
-    ObjectBase::Init();
-    SetReady(true);
 }
 
 void DebugDrawer::Update(float delta)

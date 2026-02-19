@@ -147,13 +147,13 @@ int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename P
             }
         }
 
-        Handle<PassData>& pd = *iter;
+        PassData* pd = *iter;
 
         if (!pd->view.Lock())
         {
             HYP_LOG(Rendering, Debug, "Removing PassData for View {} as it is no longer valid.", pd->view.Id());
 
-            pd.Reset();
+            delete pd;
 
             iter = passData.Erase(iter);
         }
@@ -174,53 +174,53 @@ int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename P
     return numCycles;
 }
 
-const Handle<PassData>& RendererBase::TryGetViewPassData(View* view)
+PassData* RendererBase::TryGetViewPassData(View* view)
 {
     if (!view)
     {
-        return Handle<PassData>::empty;
+        return nullptr;
     }
 
     AssertDebug(view->InstanceClass() == View::StaticClass(), "View cannot be subclassed"); // indices would get messed up
 
-    if (Handle<PassData>* passData = m_viewPassData.TryGet(view->Id().ToIndex()))
+    if (PassData** ppPassData = m_viewPassData.TryGet(view->Id().ToIndex()))
     {
-        return *passData;
+        return *ppPassData;
     }
 
-    return Handle<PassData>::empty;
+    return nullptr;
 }
 
-const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt* ext, bool forceNew)
+PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext, bool forceNew)
 {
     if (!view)
     {
-        return Handle<PassData>::empty;
+        return nullptr;
     }
 
     AssertDebug(view->InstanceClass() == View::StaticClass(), "View cannot be subclassed"); // indices would get messed up
 
-    Handle<PassData>* passDataHandle = m_viewPassData.TryGet(view->Id().ToIndex());
+    PassData** ppPassData = m_viewPassData.TryGet(view->Id().ToIndex());
 
-    if (!passDataHandle)
+    if (!ppPassData)
     {
         NullPassDataExt nullPassDataExt {};
 
         // call virtual function to alloc / create
 
-        Handle<PassData> pd = CreateViewPassData(view, ext ? *ext : nullPassDataExt);
+        PassData* pd = CreateViewPassData(view, ext ? *ext : nullPassDataExt);
         AssertDebug(pd != nullptr);
 
         pd->next = ext ? ext->Clone() : nullptr;
 
         InitObject(pd);
 
-        passDataHandle = &*m_viewPassData.Set(view->Id().ToIndex(), pd);
+        ppPassData = &*m_viewPassData.Set(view->Id().ToIndex(), pd);
     }
-    else if (forceNew || (*passDataHandle)->view.GetUnsafe() != view)
+    else if (forceNew || (*ppPassData)->view.GetUnsafe() != view)
     {
-        Handle<PassData>& pd = *passDataHandle;
-        pd.Reset();
+        PassData* pd = *ppPassData;
+        delete pd;
 
         NullPassDataExt nullPassDataExt {};
 
@@ -231,13 +231,13 @@ const Handle<PassData>& RendererBase::FetchViewPassData(View* view, PassDataExt*
 
         InitObject(pd);
 
-        m_viewPassData.Set(view->Id().ToIndex(), pd);
+        ppPassData = &*m_viewPassData.Set(view->Id().ToIndex(), pd);
     }
 
-    AssertDebug(passDataHandle != nullptr && *passDataHandle != nullptr);
-    AssertDebug((*passDataHandle)->view.GetUnsafe() == view);
+    AssertDebug(ppPassData != nullptr && *ppPassData != nullptr);
+    AssertDebug((*ppPassData)->view.GetUnsafe() == view);
 
-    return *passDataHandle;
+    return *ppPassData;
 }
 
 #pragma region RendererBase

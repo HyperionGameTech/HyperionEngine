@@ -6,7 +6,6 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
-#include <engine/DebugDrawer.hpp>
 #include <engine/Game.hpp>
 
 #include <engine/threads/SimThread.hpp>
@@ -166,8 +165,6 @@ HYP_API void EngineDriver::Init()
             /* endpointUrl */ CoreApi::GetCommandLineArguments()["TraceURL"].ToString(),
             /* enabled */ true });
     }
-
-    m_debugDrawer = MakeHandle<DebugDrawer>();
 
     m_viewCollectionBatch = new TaskBatch();
     m_viewCollectionBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_GENERIC);
@@ -382,8 +379,6 @@ void EngineDriver::FinalizeStop()
     }
 
     m_worlds.Clear();
-
-    m_debugDrawer.Reset();
 
     m_isShuttingDown = 0;
 }

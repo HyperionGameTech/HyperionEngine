@@ -5,7 +5,7 @@
 #include <engine/Game.hpp>
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <asset/Assets.hpp>
 

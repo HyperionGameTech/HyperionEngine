@@ -235,17 +235,23 @@ class HYP_API PassData : public ObjectBase
 {
     HYP_OBJECT_BODY(PassData);
 
-public:
-    PassData() = default;
-    virtual ~PassData();
-
     struct RenderGroupCacheEntry
     {
         WeakHandle<RenderGroup> renderGroup;
         GraphicsPipelineCacheHandle cacheHandle;
     };
 
-    using RenderGroupCache = SparsePagedArray<RenderGroupCacheEntry, 32>;
+    using RenderGroupCache = SparsePagedArray<RenderGroupCacheEntry, 32, RenderAllocator>;
+
+public:
+    static Pool* GetAllocator() { return g_renderPool; }
+
+    PassData() = default;
+
+    PassData(PassData&& other) noexcept = default;
+    PassData& operator=(PassData&& other) noexcept = default;
+
+    virtual ~PassData();
 
     WeakHandle<View> view;
     Viewport viewport;
@@ -271,7 +277,7 @@ class HYP_API RendererBase
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    using PassDataMap = SparsePagedArray<Handle<PassData>, 16>;
+    using PassDataMap = SparsePagedArray<PassData*, 16, RenderAllocator>;
 
     virtual ~RendererBase();
 
@@ -287,10 +293,10 @@ public:
 protected:
     RendererBase();
 
-    virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) = 0;
+    virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) = 0;
 
-    const Handle<PassData>& TryGetViewPassData(View* view);
-    const Handle<PassData>& FetchViewPassData(View* view, PassDataExt* ext = nullptr, bool forceNew = false);
+    PassData* TryGetViewPassData(View* view);
+    PassData* FetchViewPassData(View* view, PassDataExt* ext = nullptr, bool forceNew = false);
 
     static int RunCleanupCycle(PassDataMap& passData, int maxIter, typename PassDataMap::Iterator* pIter = nullptr);
 

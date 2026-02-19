@@ -42,7 +42,7 @@
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/SafeDeleter.hpp>
 
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>
@@ -1316,7 +1316,7 @@ void DeferredRenderer::Shutdown()
     m_quadMesh.Reset();
 }
 
-Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -1325,7 +1325,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
     if (view->GetFlags() & ViewFlags::GBUFFER)
     {
-        Handle<DeferredRendererPassData> pd = MakeHandle<DeferredRendererPassData>();
+        DeferredRendererPassData* pd = new DeferredRendererPassData();
         DeferredRendererPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
@@ -1411,7 +1411,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
     }
     else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && g_renderInterface->GetRenderConfig().rayTracing)
     {
-        Handle<RayTracingPassData> pd = MakeHandle<RayTracingPassData>();
+        RayTracingPassData* pd = new RayTracingPassData();
         RayTracingPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
@@ -1424,7 +1424,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         "Cannot create PassData for View {}! View does not have any flags set that would allow us to create PassData for it. View flags: {}",
         view->Id(), uint32(view->GetFlags()));
 
-    return Handle<PassData>::empty;
+    return nullptr;
 }
 
 void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPassData& passData)
@@ -1588,10 +1588,10 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
         if (view->GetFlags() & ViewFlags::GBUFFER)
         {
-            const Handle<PassData>& pd = FetchViewPassData(view);
+            PassData* pd = FetchViewPassData(view);
             Assert(pd != nullptr);
 
-            DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd.Get());
+            DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd);
             Assert(pdCasted != nullptr);
 
             const Viewport vp = view->GetViewport();
@@ -1605,10 +1605,10 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && g_renderInterface->GetRenderConfig().rayTracing)
         {
-            const Handle<PassData>& pd = FetchViewPassData(view);
+            PassData* pd = FetchViewPassData(view);
             Assert(pd != nullptr);
 
-            RayTracingPassData* pdCasted = ObjCast<RayTracingPassData>(pd.Get());
+            RayTracingPassData* pdCasted = ObjCast<RayTracingPassData>(pd);
             Assert(pdCasted != nullptr);
 
             RenderSetup newRS = rs.Fork();
@@ -1772,7 +1772,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
         RenderSetup viewRS = rs.Fork();
 
-        const Handle<DeferredRendererPassData>& pd = ObjCast<DeferredRendererPassData>(FetchViewPassData(view));
+        DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
         AssertDebug(pd->viewport.extent.Volume() != 0);
 
@@ -1940,7 +1940,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         if (rayTracingView != nullptr)
         {
-            const Handle<RayTracingPassData>& rayTracingPassData = ObjCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
+            RayTracingPassData* rayTracingPassData = ObjCast<RayTracingPassData>(FetchViewPassData(rayTracingView));
             Assert(rayTracingPassData != nullptr);
 
             const GpuTlasRef& tlas = rayTracingPassData->rayTracingTlases[frameIndex];
@@ -2107,12 +2107,14 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     // debug draw
-    if (renderCollector.mappingsByBucket[RB_DEBUG].Any() || g_engineDriver->GetDebugDrawer()->NumEnqueuedDrawCommands() > 0)
+    if (renderCollector.mappingsByBucket[RB_DEBUG].Any()
+        || g_renderInterface->debugDrawer->NumEnqueuedDrawCommands() > 0)
     {
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
-        g_engineDriver->GetDebugDrawer()->Render(frame, rs);
+
+        g_renderInterface->debugDrawer->Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(debugPassFramebuffer);
     }
