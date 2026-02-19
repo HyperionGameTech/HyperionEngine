@@ -28,7 +28,8 @@ public:
     const PlatformString& GetPath() const;
     void SetPath(const PlatformString& path);
 
-    bool Load();
+    bool Open();
+    void Close();
 
     UIntPtr GetFunction(const char* name) const;
 

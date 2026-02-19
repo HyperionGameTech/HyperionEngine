@@ -1,8 +1,10 @@
 using System;
-using System.Reflection;
-using System.Runtime.Loader;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 
 namespace Hyperion
 {
@@ -30,6 +32,8 @@ namespace Hyperion
 
             if (assembly != null)
             {
+                Logger.Log(LogType.Debug, "Global assembly at path: " + path + " already loaded, returning existing");
+
                 return assembly;
             }
 
@@ -51,6 +55,8 @@ namespace Hyperion
 
             if (assembly != null)
             {
+                Logger.Log(LogType.Debug, "Global assembly at path: " + name.ToString() + " already loaded, returning existing");
+
                 return assembly;
             }
 
@@ -70,11 +76,11 @@ namespace Hyperion
         }
     }
 
-    internal class ScriptAssemblyContext : AssemblyLoadContext
+    public class BasicAssemblyLoadContext : AssemblyLoadContext
     {
         private AssemblyDependencyResolver resolver;
 
-        public ScriptAssemblyContext(string basePath) : base(isCollectible: true)
+        public BasicAssemblyLoadContext(string basePath) : base(isCollectible: true)
         {
             resolver = new AssemblyDependencyResolver(basePath);
         }
@@ -110,6 +116,8 @@ namespace Hyperion
 
     public class AssemblyInstance
     {
+        public static readonly BasicAssemblyLoadContext CoreAssemblyLoadContext = new(AppContext.BaseDirectory);
+
         public static Guid thisAssemblyGuid;
 
         private string basePath;
@@ -250,16 +258,10 @@ namespace Hyperion
 
             if (isCoreAssembly)
             {
-                // Load core assemblies into the default (global) context. They won't be unloaded.
-                // We only create core assemblies when the application starts, and all referenced assemblies from core assemblies
-                // are also core assemblies.
-
-                // When we attempt to load an assembly from a non-core assembly, it will be shared across all assemblies.
                 if (assemblyName != null)
                 {
                     assembly = GlobalAssemblyHelper.LoadGlobalAssembly(assemblyName);
-                }
-                else
+                } else
                 {
                     if (assemblyPath == null)
                     {
@@ -273,8 +275,16 @@ namespace Hyperion
             {
                 if (context == null)
                 {
-                    context = new ScriptAssemblyContext(basePath);
-                    ownsContext = true;
+                    if (isCoreAssembly)
+                    {
+                        context = CoreAssemblyLoadContext;
+                        ownsContext = false;
+                    }
+                    else
+                    {
+                        context = new BasicAssemblyLoadContext(basePath);
+                        ownsContext = true;
+                    }
                 }
 
                 if (assemblyName != null)
@@ -290,10 +300,10 @@ namespace Hyperion
 
                     assembly = context.LoadFromAssemblyPath(assemblyPath);
                 }
-
-                // Load all referenced assemblies to ensure nothing will crash later
-                Logger.Log(LogType.Debug, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
             }
+
+            // Load all referenced assemblies to ensure nothing will crash later
+            Logger.Log(LogType.Debug, "Loaded assembly: {0}, with {1} referenced assemblies.", assembly.FullName, assembly.GetReferencedAssemblies().Length);
 
             // Load referenced assemblies
             foreach (AssemblyName referencedAssemblyName in assembly.GetReferencedAssemblies())
@@ -302,10 +312,9 @@ namespace Hyperion
 
                 if (referencedAssembly == null)
                 {
-                    Guid assemblyGuid = Guid.NewGuid();
-
                     Logger.Log(LogType.Debug, "Loading referenced assembly: {0} (version: {1})", referencedAssemblyName.Name, referencedAssemblyName.Version);
 
+                    Guid assemblyGuid = Guid.NewGuid();
                     IntPtr assemblyPtr = IntPtr.Zero;
                     int res = NativeInterop_NewAssembly(assemblyGuid, out assemblyPtr);
 
@@ -348,7 +357,7 @@ namespace Hyperion
 
             if (context == null)
             {
-                throw new Exception($"Cannot unload assembly with GUID {guid} ({AssemblyName?.FullName?.ToString() ?? AssemblyPath}) because it has no context");
+                return;
             }
 
             foreach (AssemblyInstance referencedAssembly in referencedAssemblies)
@@ -488,11 +497,13 @@ namespace Hyperion
 
         public AssemblyInstance? Get(Assembly assembly)
         {
+            string assemblyPath = assembly.Location;
+
             lock (lockObject)
             {
                 foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
                 {
-                    if (kvp.Value.Assembly == assembly)
+                    if (kvp.Value.Assembly?.Location == assemblyPath)
                     {
                         return kvp.Value;
                     }
@@ -575,6 +586,21 @@ namespace Hyperion
 
                     Logger.Log(LogType.Debug, $"Removed assembly {guid}");
                 }
+            }
+        }
+
+        public void Clear()
+        {
+            lock (lockObject)
+            {
+                foreach (KeyValuePair<Guid, AssemblyInstance> kvp in assemblies)
+                {
+                    kvp.Value.Unload();
+                }
+
+                assemblies.Clear();
+
+                Logger.Log(LogType.Debug, "Cleared .NET AssemblyCache");
             }
         }
     }

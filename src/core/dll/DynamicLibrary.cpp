@@ -51,18 +51,7 @@ DynamicLibrary::DynamicLibrary(const PlatformString& path)
 
 DynamicLibrary::~DynamicLibrary()
 {
-    if (!m_impl)
-    {
-        return;
-    }
-
-#ifdef HYP_WINDOWS
-    FreeLibrary(m_impl->handle);
-#elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    dlclose(m_impl->handle);
-#endif
-
-    m_impl->handle = NULL;
+    Close();
 }
 
 const PlatformString& DynamicLibrary::GetPath() const
@@ -88,7 +77,7 @@ void DynamicLibrary::SetPath(const PlatformString& path)
     m_impl->path = path;
 }
 
-bool DynamicLibrary::Load()
+bool DynamicLibrary::Open()
 {
     if (!m_impl) // disposed
     {
@@ -109,6 +98,22 @@ bool DynamicLibrary::Load()
 #endif
     
     return m_impl->handle != NULL;
+}
+
+void DynamicLibrary::Close()
+{
+    if (!m_impl)
+    {
+        return;
+    }
+
+#ifdef HYP_WINDOWS
+    FreeLibrary(m_impl->handle);
+#elif defined(HYP_LINUX) || defined(HYP_MACOS)
+    dlclose(m_impl->handle);
+#endif
+
+    m_impl->handle = NULL;
 }
 
 UIntPtr DynamicLibrary::GetFunction(const char* name) const
@@ -161,7 +166,7 @@ DynamicLibrary* DynamicLibraryCache::LoadLibrary(PlatformStringView path)
 
     UniquePtr<DynamicLibrary> library = MakeUnique<DynamicLibrary>(PlatformString(path));
 
-    if (!library->Load())
+    if (!library->Open())
     {
         return nullptr;
     }
