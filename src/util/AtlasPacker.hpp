@@ -70,7 +70,7 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
         return false;
     }
 
-    auto tryAddElementToSkyline = [this, &outElement, &outElementIndex](const Vec2u& dim) -> bool
+    auto TryAddElementToSkyline = [this, &outElement, &outElementIndex](const Vec2u& dim) -> bool
     {
         int bestY = INT32_MAX;
         int bestX = -1;
@@ -112,7 +112,7 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
 
     if (elementDimensions.x <= atlasDimensions.x && elementDimensions.y <= atlasDimensions.y)
     {
-        if (tryAddElementToSkyline(elementDimensions))
+        if (TryAddElementToSkyline(elementDimensions))
         {
             return true;
         }
@@ -142,7 +142,7 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
 
         do
         {
-            if (tryAddElementToSkyline(newDimensions))
+            if (TryAddElementToSkyline(newDimensions))
             {
                 return true;
             }
@@ -159,12 +159,10 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
 template <class AtlasElement>
 bool AtlasPacker<AtlasElement>::RemoveElement(const AtlasElement& element)
 {
-    auto it = elements.Find(element);
-
-    if (it == elements.End())
-    {
+    if (element.index >= elements.Size())
         return false;
-    }
+
+    auto it = elements.Begin() + element.index;
 
     freeSpaces.EmplaceBack(Vec2i(element.offsetUv * Vec2f(atlasDimensions)), Vec2i(element.dimensions));
 

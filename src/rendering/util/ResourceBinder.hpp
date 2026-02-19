@@ -85,6 +85,7 @@ public:
     }
 
     virtual void Initialize() = 0;
+    virtual void Shutdown() = 0;
 
     /*! \brief Mark the object to be considered to be a bound resource for the current frame
      *   \param pResource The resource to consider
@@ -359,6 +360,44 @@ public:
 
     virtual ~ResourceBinder() override
     {
+        Assert(!IsInitialized(), "Shutdown() not called");
+    }
+
+    virtual void Initialize() override
+    {
+        if (IsInitialized())
+        {
+            return;
+        }
+
+        AssertDebug(m_bindingAllocator != nullptr);
+
+        AssertDebug(m_emptyBitset == nullptr);
+        m_emptyBitset = new BitsetType;
+
+        AssertDebug(m_baseImpl == nullptr);
+        m_baseImpl = new Impl(&TypeOf<T>());
+
+        const SizeType numDescendants = GetNumDescendants(TypeId::ForType<T>());
+
+        // Create storage for subclass implementations
+        // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized
+        m_subclassImpls.Resize(numDescendants);
+    }
+
+    virtual void Shutdown() override
+    {
+        if (!IsInitialized())
+        {
+            return;
+        }
+
+        if (m_emptyBitset)
+        {
+            delete m_emptyBitset;
+            m_emptyBitset = nullptr;
+        }
+
         if (m_baseImpl)
         {
             m_baseImpl->ReleaseBindings(m_bindingAllocator);
@@ -377,25 +416,6 @@ public:
 
             m_subclassImpls[i].Destruct();
         }
-    }
-
-    virtual void Initialize() override
-    {
-        if (IsInitialized())
-        {
-            return;
-        }
-
-        AssertDebug(m_bindingAllocator != nullptr);
-
-        AssertDebug(m_baseImpl == nullptr);
-        m_baseImpl = new Impl(&TypeOf<T>());
-
-        const SizeType numDescendants = GetNumDescendants(TypeId::ForType<T>());
-
-        // Create storage for subclass implementations
-        // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized
-        m_subclassImpls.Resize(numDescendants);
     }
 
     virtual void Consider(ObjectBase* pResource, bool forceRebind = false) override
@@ -540,13 +560,11 @@ public:
 
     virtual const BitsetType& GetBoundIndices(TypeId typeId) const override
     {
-        static const BitsetType s_emptyBitset;
-
         const TypeId baseTypeId = TypeId::ForType<T>();
 
         if (typeId == TypeId::Void())
         {
-            return s_emptyBitset;
+            return *m_emptyBitset;
         }
 
         if (typeId == baseTypeId)
@@ -563,7 +581,7 @@ public:
             if (!m_subclassImplsInitialized.Test(subclassIndex))
             {
                 // not initialized, return empty bitset
-                return s_emptyBitset;
+                return *m_emptyBitset;
             }
 
             return m_subclassImpls[subclassIndex].Get().lastFrameIds;
@@ -594,6 +612,8 @@ protected:
     // per-subtype implementations (only constructed and setup on first Consider() call with that type)
     Array<ValueStorage<Impl>, FixedAllocator<32>> m_subclassImpls;
     TBitset<FixedAllocator<32>> m_subclassImplsInitialized;
+
+    BitsetType* m_emptyBitset;
 };
 
 } // namespace Hyperion

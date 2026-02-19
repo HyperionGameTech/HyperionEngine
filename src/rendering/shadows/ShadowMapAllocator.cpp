@@ -68,10 +68,6 @@ ShadowMapAllocator::~ShadowMapAllocator()
 
 void ShadowMapAllocator::Initialize()
 {
-    HYP_SCOPE;
-
-    AssertOnThread(g_renderThread);
-
     m_atlasImage = g_renderInterface->MakeImage(TextureDesc {
         TextureType::Texture2DArray,
         TextureFormat::RG16F,
@@ -107,12 +103,8 @@ void ShadowMapAllocator::Initialize()
     CheckResult(m_pointLightShadowMapImageView->Create());
 }
 
-void ShadowMapAllocator::Destroy()
+void ShadowMapAllocator::Shutdown()
 {
-    HYP_SCOPE;
-
-    AssertOnThread(g_renderThread);
-
     for (ShadowMapAtlas& atlas : m_atlases)
     {
         atlas.Clear();

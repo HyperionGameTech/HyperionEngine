@@ -98,7 +98,7 @@ SimThread* g_simThreadInstance;
 RenderThread* g_renderThreadInstance;
 VisThread* g_visThreadInstance;
 
-Handle<Game> g_gameInstance; // active game instance, read/write only from the main thread
+Game* g_gameInstance; // active game instance, read/write only from the main thread
 
 #if HYP_VULKAN
 VulkanRenderInterface* g_renderInterface;
@@ -363,6 +363,8 @@ extern "C"
                 {
                     // shut down application on main window close.
                     Hyp_Shutdown();
+
+                    std::exit(0);
                 }).Detach();
 
             Assert(window.IsValid());
@@ -495,9 +497,6 @@ extern "C"
         delete g_streamingPool;
         g_streamingPool = nullptr;
 
-        delete g_scriptPool;
-        g_scriptPool = nullptr;
-
         delete g_taskPool;
         g_taskPool = nullptr;
 
@@ -522,12 +521,10 @@ extern "C"
     {
         AssertOnThread(g_mainThread);
 
-        Handle<Game> gameStrong = pGame ? MakeStrongRef(pGame) : Handle<Game>::Null();
-
-        g_engineDriver->SetGameInstance(gameStrong);
+        g_engineDriver->SetGameInstance(pGame);
 
         Assert(g_simThreadInstance != nullptr);
-        g_simThreadInstance->SetGame(gameStrong);
+        g_simThreadInstance->SetGameInstance(pGame);
     }
 
     HYP_EXPORT int Hyp_LaunchThreads()

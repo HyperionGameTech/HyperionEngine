@@ -36,16 +36,58 @@ namespace Hyperion {
 
 class Camera;
 
-static const Handle<NullInputHandler>& GetNullInputHandler()
+static NullInputHandler* GetNullInputHandler()
 {
-    static const Handle<NullInputHandler> s_nullInputHandler = MakeHandle<NullInputHandler>();
-    return s_nullInputHandler;
+    static struct NullInputHandlerInitializer
+    {
+        NullInputHandler* inputHandler;
+        DelegateHandler onShutdownHandle;
+
+        NullInputHandlerInitializer()
+        {
+            inputHandler = new NullInputHandler;
+
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+                {
+                    if (inputHandler != nullptr)
+                    {
+                        inputHandler->Release();
+                        inputHandler = nullptr;
+                    }
+
+                    onShutdownHandle.Reset();
+                });
+        }
+    } s_initializer;
+
+    return s_initializer.inputHandler;
 }
 
-static const Handle<NullCameraController>& GetNullCameraController()
+static NullCameraController* GetNullCameraController()
 {
-    static const Handle<NullCameraController> s_nullCameraController = MakeHandle<NullCameraController>();
-    return s_nullCameraController;
+    static struct NullCameraControllerInitializer
+    {
+        NullCameraController* controller;
+        DelegateHandler onShutdownHandle;
+
+        NullCameraControllerInitializer()
+        {
+            controller = new NullCameraController;
+
+            onShutdownHandle = g_engineDriver->GetDelegates().OnShutdown.Bind([this]()
+                {
+                    if (controller != nullptr)
+                    {
+                        controller->Release();
+                        controller = nullptr;
+                    }
+
+                    onShutdownHandle.Reset();
+                });
+        }
+    } s_initializer;
+
+    return s_initializer.controller;
 }
 
 #pragma region CameraController
@@ -56,7 +98,7 @@ CameraController::CameraController()
 }
 
 CameraController::CameraController(CameraProjectionMode projectionMode)
-    : m_inputHandler(GetNullInputHandler()),
+    : m_inputHandler(MakeStrongRef(GetNullInputHandler())),
       m_camera(nullptr),
       m_projectionMode(projectionMode),
       m_mouseLockRequested(false)
@@ -161,7 +203,7 @@ Camera::Camera(int width, int height)
       m_up(Vec3f::UnitY())
 {
     // make sure there is always at least 1 camera controller
-    m_cameraControllers.PushBack(GetNullCameraController());
+    m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
 
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.canEverUpdate = true;
@@ -179,7 +221,7 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_up(Vec3f::UnitY())
 {
     // make sure there is always at least 1 camera controller
-    m_cameraControllers.PushBack(GetNullCameraController());
+    m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
 
     SetToPerspectiveProjection(fov, _near, _far);
 
@@ -199,7 +241,7 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_up(Vec3f::UnitY())
 {
     // make sure there is always at least 1 camera controller
-    m_cameraControllers.PushBack(GetNullCameraController());
+    m_cameraControllers.PushBack(MakeStrongRef(GetNullCameraController()));
 
     SetToOrthographicProjection(left, right, bottom, top, _near, _far);
 

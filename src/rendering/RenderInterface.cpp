@@ -939,7 +939,7 @@ RendererResult RenderInterface::Initialize()
 
     globalDescriptorTable = MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
 
-    placeholderData->Create();
+    placeholderData->Initialize();
     shadowMapAllocator->Initialize();
 
     CreateSphereSamplesBuffer();
@@ -997,6 +997,13 @@ void RenderInterface::Shutdown()
 
     s_viewData.Clear();
 
+    for (ResourceBinderBase* resourceBinder : s_resourceBinders)
+    {
+        resourceBinder->Shutdown();
+    }
+
+    ClearSubtypeBindings();
+
     PoolDelete(*g_renderPool, resources);
     resources = nullptr;
 
@@ -1022,8 +1029,8 @@ void RenderInterface::Shutdown()
     sphereSamplesBuffer.Reset();
     envProbesTexture.Reset();
 
-    shadowMapAllocator->Destroy();
-    placeholderData->Destroy();
+    shadowMapAllocator->Shutdown();
+    placeholderData->Shutdown();
 
     globalDescriptorTable.Reset();
 

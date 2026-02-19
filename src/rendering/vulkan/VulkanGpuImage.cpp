@@ -29,7 +29,7 @@
 
 namespace Hyperion {
 
-static constexpr SizeType MaxImageBytes = 1024 * 1024 * 1024; // 1 GiB
+static constexpr SizeType MaxImageBytes = 256 * 1024 * 1024; // 256 MiB - cannot be larger than a block in our blob storage system
 
 extern VulkanRenderInterface* g_renderInterface;
 
@@ -432,7 +432,11 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         // destroy and recreate
         if (m_allocation != VK_NULL_HANDLE)
         {
-            vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), m_handle, m_allocation);
+            SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]()
+                {
+                    vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+                }));
+
             m_allocation = VK_NULL_HANDLE;
         }
 

@@ -50,7 +50,11 @@ VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
+        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+            {
+                vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+            }));
+
         m_handle = VK_NULL_HANDLE;
     }
 

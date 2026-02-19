@@ -56,7 +56,7 @@ extern SimThread* g_simThreadInstance;
 extern RenderThread* g_renderThreadInstance;
 extern VisThread* g_visThreadInstance;
 
-extern Handle<Game> g_gameInstance;
+extern Game* g_gameInstance;
 
 #if HYP_VULKAN
 extern VulkanRenderInterface* g_renderInterface;

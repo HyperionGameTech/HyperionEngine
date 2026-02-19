@@ -170,12 +170,9 @@ PlaceholderData::PlaceholderData()
 {
 }
 
-PlaceholderData::~PlaceholderData()
-{
-    DebugLog(LogType::Debug, "PlaceholderData destructor\n");
-}
+PlaceholderData::~PlaceholderData() = default;
 
-void PlaceholderData::Create()
+void PlaceholderData::Initialize()
 {
     AssertOnThread(g_renderThread);
 
@@ -361,7 +358,7 @@ void PlaceholderData::Create()
 #pragma endregion Samplers
 }
 
-void PlaceholderData::Destroy()
+void PlaceholderData::Shutdown()
 {
     SafeDelete(std::move(m_image2d1x1R8));
     SafeDelete(std::move(m_imageView2d1x1R8));
