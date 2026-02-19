@@ -2,7 +2,7 @@
 #include "DefaultGame.hpp"
 
 #include <engine/EngineGlobals.hpp>
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Light.hpp>

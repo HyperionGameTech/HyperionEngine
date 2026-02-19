@@ -7,7 +7,7 @@
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -165,7 +165,7 @@ void SimThread::Update()
         m_gameInstance->m_gameState.gameTime += m_counter.delta;
     }
 
-    g_engineDriver->GetDebugDrawer()->Update(m_counter.delta);
+    g_renderInterface->debugDrawer->Update(m_counter.delta);
 
     EndFrameSim();
 }

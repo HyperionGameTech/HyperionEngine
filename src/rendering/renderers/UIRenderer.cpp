@@ -252,7 +252,7 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    const Handle<UIRendererPassData>& pd = ObjCast<UIRendererPassData>(FetchViewPassData(m_view));
+    UIRendererPassData* pd = ObjCast<UIRendererPassData>(FetchViewPassData(m_view));
     AssertDebug(pd != nullptr);
 
     RenderSetup rs = renderSetup;
@@ -273,9 +273,9 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     renderCollector.ExecuteDrawCalls(frame, rs, outputTarget.GetFramebuffer(), 0);
 }
 
-Handle<PassData> UIRenderer::CreateViewPassData(View* view, PassDataExt&)
+PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
-    Handle<UIRendererPassData> pd = MakeHandle<UIRendererPassData>();
+    UIRendererPassData* pd = new UIRendererPassData();
 
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();

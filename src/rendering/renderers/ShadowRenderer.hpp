@@ -60,7 +60,7 @@ protected:
 
     virtual int RunCleanupCycle(int maxIter) override;
 
-    virtual Handle<PassData> CreateViewPassData(View* view, PassDataExt&) override;
+    virtual PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
     virtual ShadowMap* AllocateShadowMap(Light* light) = 0;
 

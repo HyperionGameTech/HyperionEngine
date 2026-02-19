@@ -8,7 +8,7 @@
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 #include <engine/EngineMemory.hpp>
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderGroup.hpp>

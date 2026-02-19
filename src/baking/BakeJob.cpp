@@ -35,7 +35,7 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
-#include <engine/DebugDrawer.hpp>
+#include <rendering/DebugDrawer.hpp>
 
 namespace Hyperion {
 

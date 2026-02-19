@@ -28,7 +28,7 @@ public:
     int RunCleanupCycle(int maxIter = 10) override;
 
 protected:
-    Handle<PassData> CreateViewPassData(View* view, PassDataExt& ext) override;
+    PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
 
 private:
     struct VolumeState
