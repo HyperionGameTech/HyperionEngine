@@ -435,8 +435,6 @@ extern "C"
 
         g_engineDriver->FinalizeStop();
 
-        DebugDrawer::GetInstance().Shutdown();
-
 #if HYP_DOTNET
         DotNETHost::GetInstance().Shutdown();
 #endif

@@ -41,7 +41,7 @@ namespace Hyperion
             }
             catch (Exception e)
             {
-                Logger.Log(_logChannel, LogType.Error, "Failed to get files in projects directory: " + e.Message);
+                Logger.Log(_logChannel, LogLevel.Error, "Failed to get files in projects directory: " + e.Message);
             }
 
             for (int i = 1; i < int.MaxValue; i++)

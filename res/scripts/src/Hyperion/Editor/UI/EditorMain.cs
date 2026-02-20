@@ -11,7 +11,7 @@ public class CustomSystem : ScriptableSystem
 {
     public CustomSystem()
     {
-        Logger.Log(LogType.Info, "CustomSystem constructor called");
+        Logger.Log(LogLevel.Info, "CustomSystem constructor called");
     }
 
     protected override ComponentInfo[] GetComponentInfos()
@@ -29,13 +29,13 @@ public class CustomSystem : ScriptableSystem
 
     public override void OnEntityAdded(Entity entity)
     {
-        Logger.Log(LogType.Info, "CustomSystem OnEntityAdded called for entity: " + entity.Id);
+        Logger.Log(LogLevel.Info, "CustomSystem OnEntityAdded called for entity: " + entity.Id);
     }
 
     public override void Init()
     {
         base.Init();
-        Logger.Log(LogType.Info, "CustomSystem Init called");
+        Logger.Log(LogLevel.Info, "CustomSystem Init called");
     }
 
     public override void ProcessScene(Scene scene, float delta)
@@ -51,7 +51,7 @@ public class TestEditorTask : LongRunningEditorTask
 
     public override void Cancel()
     {
-        Logger.Log(LogType.Info, "Cancel task");
+        Logger.Log(LogLevel.Info, "Cancel task");
     }
 
     public override bool IsCompleted()
@@ -61,6 +61,6 @@ public class TestEditorTask : LongRunningEditorTask
 
     public override void Process()
     {
-        Logger.Log(LogType.Info, "Process task! testing");
+        Logger.Log(LogLevel.Info, "Process task! testing");
     }
 }

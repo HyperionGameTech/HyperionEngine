@@ -12,18 +12,18 @@ public class AddComponent : UIEventHandler
     [UIEvent(AllowNested = true)]
     public void LoadComponents()
     {
-        Logger.Log(LogType.Info, "Load components here");
+        Logger.Log(LogLevel.Info, "Load components here");
     }
 
     [UIEvent(AllowNested = true)]
     public void AddComponentClicked()
     {
-        Logger.Log(LogType.Info, "AddComponentClicked");
+        Logger.Log(LogLevel.Info, "AddComponentClicked");
     }
 
     [UIEvent(AllowNested = true)]
     public void CancelClicked()
     {
-        Logger.Log(LogType.Info, "CancelClicked");
+        Logger.Log(LogLevel.Info, "CancelClicked");
     }
 }

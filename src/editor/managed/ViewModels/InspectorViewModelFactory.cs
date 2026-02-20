@@ -50,7 +50,7 @@ namespace Hyperion.Editor.ViewModels
                 return Initialize(new TransformViewModel(target, property, isReadOnly));
             }
 
-            Logger.Log(LogType.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
+            Logger.Log(LogLevel.Debug, $"Inspector creating read-only property view model for property '{property.Name}' of type '{typeInfo.Name}'");
 
             return Initialize(new ReadOnlyPropertyViewModel(target, property, isReadOnly));
         }
