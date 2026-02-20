@@ -35,7 +35,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <engine/Game.hpp>
 
@@ -146,8 +146,8 @@ World::~World()
 
     m_rayTracingView = nullptr;
 
-    SafeDelete(std::move(m_scenes));
-    SafeDelete(std::move(m_views));
+    EnqueueDeletion(std::move(m_scenes));
+    EnqueueDeletion(std::move(m_views));
 
     for (Subsystem* subsystem : m_subsystemsArray)
     {
@@ -189,7 +189,7 @@ void World::Init()
 
         subsystem->OnAddedToWorld();
     }
-
+    
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
@@ -917,7 +917,7 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
         }
     }
 
-    SafeDelete(std::move(strongScene));
+    EnqueueDeletion(std::move(strongScene));
 
     return true;
 }
@@ -1038,7 +1038,7 @@ void World::RemoveView(View* view)
     Handle<View> strongView = std::move(*it);
     m_views.Erase(it);
 
-    SafeDelete(std::move(strongView));
+    EnqueueDeletion(std::move(strongView));
 }
 
 Span<View* const> World::GetViews() const
@@ -1083,7 +1083,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
             }
         }
 
-        SafeDelete(std::move(scene));
+        EnqueueDeletion(std::move(scene));
     }
 
     m_scenes.Clear();

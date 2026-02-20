@@ -17,7 +17,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -42,8 +42,8 @@ FinalPass::FinalPass()
 
 FinalPass::~FinalPass()
 {
-    SafeDelete(std::move(m_quadMesh));
-    SafeDelete(std::move(m_uiLayerImageView));
+    EnqueueDeletion(std::move(m_quadMesh));
+    EnqueueDeletion(std::move(m_uiLayerImageView));
 }
 
 void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
@@ -51,7 +51,7 @@ void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    SafeDelete(std::move(m_uiLayerImageView));
+    EnqueueDeletion(std::move(m_uiLayerImageView));
 
     m_uiLayerImageView = imageView;
 }

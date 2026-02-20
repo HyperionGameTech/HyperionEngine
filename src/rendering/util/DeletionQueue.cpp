@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/RenderInterface.hpp>
 
@@ -15,16 +15,15 @@
 
 namespace Hyperion {
 
-HYP_API SafeDeleter* GetSafeDeleterInstance()
+DeletionQueue& DeletionQueue::GetInstance()
 {
-    AssertDebug(g_renderInterface != nullptr && g_renderInterface->safeDeleter != nullptr);
-
-    return g_renderInterface->safeDeleter;
+    static DeletionQueue s_instance;
+    return s_instance;
 }
 
-#pragma region SafeDeleterEntry<Handle<ObjectBase>>
+#pragma region DeletionQueueElem<Handle<ObjectBase>>
 
-SafeDeleterEntry<Handle<ObjectBase>>::SafeDeleterEntry(ObjectBase* ptr)
+DeletionQueueElem<Handle<ObjectBase>>::DeletionQueueElem(ObjectBase* ptr)
     : ptr(ptr)
 {
     if (ptr)
@@ -58,7 +57,7 @@ SafeDeleterEntry<Handle<ObjectBase>>::SafeDeleterEntry(ObjectBase* ptr)
     }
 }
 
-SafeDeleterEntry<Handle<ObjectBase>>::~SafeDeleterEntry()
+DeletionQueueElem<Handle<ObjectBase>>::~DeletionQueueElem()
 {
     // call destructor if no more strong references
     if (ptr)
@@ -82,26 +81,103 @@ SafeDeleterEntry<Handle<ObjectBase>>::~SafeDeleterEntry()
     }
 }
 
-#pragma region SafeDeleterEntry<Handle<ObjectBase>>
+#pragma region DeletionQueueElem<Handle<ObjectBase>>
 
-#pragma region SafeDeleter
+#pragma region DeletionQueue
 
-SafeDeleter::SafeDeleter()
+DeletionQueue::DeletionQueue()
     : m_entryLists { nullptr },
       m_tempEntryListCount(0)
 {
     for (uint32 i = 0; i < RingBufferDepth; i++)
     {
-        m_entryLists[i] = new SafeDeleter::EntryList<DynamicAllocator>();
+        m_entryLists[i] = new DeletionQueue::EntryList<DynamicAllocator>();
     }
 }
 
-SafeDeleter::~SafeDeleter()
-{
-    HYP_NAMED_SCOPE("SafeDeleter::~SafeDeleter");
+DeletionQueue::~DeletionQueue() = default;
 
+void DeletionQueue::Shutdown()
+{
+    HYP_SCOPE;
     AssertOnThread(g_renderThread);
+
+    const uint32 bufferIndex = GetRingIndex();
+    AssertDebug(bufferIndex < m_entryLists.Size());
+
+    auto& currentEntryList = *m_entryLists[bufferIndex];
     
+    Mutex::Guard guard(m_mutex);
+    for (auto it = m_tempEntryLists.Begin(); it != m_tempEntryLists.End();)
+    {
+        auto& entryList = *it;
+
+        if (entryList.desiredIdx != ~0u && entryList.desiredIdx != bufferIndex)
+        {
+            // not desired index, skip for now (will be picked up by next iter that matches)
+            ++it;
+            continue;
+        }
+
+        if (entryList.bufferPos == 0)
+        {
+            // no data in buffers, skip
+            it = m_tempEntryLists.Erase(it);
+            AtomicDecrement(&m_tempEntryListCount);
+
+            continue;
+        }
+
+        AssertDebug(entryList.currHeaders == &entryList.headers[0]);
+        AssertDebug(entryList.headers[1].Empty());
+
+        Array<EntryHeader>& itHeaders = *entryList.currHeaders;
+        entryList.SwapHeaderBuffers();
+
+        // concat all lists and take ownership of the data
+        for (EntryHeader& header : itHeaders)
+        {
+            const uint32 newAlignedOffset = ByteUtil::AlignAs(currentEntryList.bufferPos, 16);
+
+            void* vp = entryList.buffer.Data() + header.offset;
+
+            if (currentEntryList.buffer.Size() < newAlignedOffset + header.size)
+            {
+                currentEntryList.ResizeBuffer(newAlignedOffset + header.size);
+            }
+
+            if (header.moveFn)
+            {
+                header.moveFn(reinterpret_cast<void*>(currentEntryList.buffer.Data() + newAlignedOffset), vp);
+            }
+            else
+            {
+                Memory::Copy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
+            }
+
+            if (header.destructFn)
+            {
+                header.destructFn(vp);
+            }
+
+            header.offset = newAlignedOffset;
+
+            currentEntryList.bufferPos = newAlignedOffset + header.size;
+
+            currentEntryList.currHeaders->PushBack(header);
+        }
+
+        entryList.currHeaders->Clear();
+        entryList.currHeaders = &entryList.headers[0];
+
+        entryList.buffer.Clear();
+        entryList.bufferPos = 0;
+
+        it = m_tempEntryLists.Erase(it);
+
+        AtomicDecrement(&m_tempEntryListCount);
+    }
+
     // delete remaining enqueued deletions
     FixedArray<int, RingBufferDepth> counts {};
     
@@ -123,15 +199,9 @@ SafeDeleter::~SafeDeleter()
 
         delete pEntryList;
     }
-
-    // free all temp entry lists
-    for (auto& entryList : m_tempEntryLists)
-    {
-        Assert(entryList.headers->Empty());
-    }
 }
 
-void SafeDeleter::GetCounterValues(uint32& outNumElements, uint32& outTotalBytes) const
+void DeletionQueue::GetCounterValues(uint32& outNumElements, uint32& outTotalBytes) const
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -146,7 +216,7 @@ void SafeDeleter::GetCounterValues(uint32& outNumElements, uint32& outTotalBytes
     }
 }
 
-int SafeDeleter::Iterate(int maxIter)
+int DeletionQueue::Iterate(int maxIter)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -229,7 +299,7 @@ int SafeDeleter::Iterate(int maxIter)
     return iterCount;
 }
 
-int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
+int DeletionQueue::ForceDeleteAll(uint32 bufferIndex)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -263,7 +333,7 @@ int SafeDeleter::ForceDeleteAll(uint32 bufferIndex)
     return iterCount;
 }
 
-void SafeDeleter::UpdateCounter(uint32 bufferIndex)
+void DeletionQueue::UpdateCounter(uint32 bufferIndex)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -277,7 +347,16 @@ void SafeDeleter::UpdateCounter(uint32 bufferIndex)
     counter.numTotalBytes = entryList.buffer.Size();
 }
 
-void SafeDeleter::UpdateEntryListQueue()
+void DeletionQueue::Flush()
+{
+    HYP_SCOPE;
+    AssertOnThread(g_renderThread);
+    
+    uint32 bufferIndex = GetRingIndex();
+    ForceDeleteAll(bufferIndex);
+}
+
+void DeletionQueue::UpdateEntryListQueue()
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -370,11 +449,11 @@ void SafeDeleter::UpdateEntryListQueue()
     UpdateCounter(bufferIndex);
 }
 
-#pragma endregion SafeDeleter
+#pragma endregion DeletionQueue
 
-#pragma region SafeDeleter::EntryList
+#pragma region DeletionQueue::EntryList
 
-SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGuard)
+DeletionQueue::EntryListBase& DeletionQueue::GetCurrentEntryList(Mutex::Guard** ppGuard)
 {
     HYP_SCOPE;
 
@@ -397,7 +476,7 @@ SafeDeleter::EntryListBase& SafeDeleter::GetCurrentEntryList(Mutex::Guard** ppGu
     return entryList;
 }
 
-SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx)
+DeletionQueue::EntryListBase& DeletionQueue::GetEntryList(Mutex::Guard** ppGuard, uint32 desiredIdx)
 {
     // If:
     //  - desiredIdx == ~0u (not specified) OR
@@ -419,6 +498,6 @@ SafeDeleter::EntryListBase& SafeDeleter::GetEntryList(Mutex::Guard** ppGuard, ui
     return entryList;
 }
 
-#pragma endregion SafeDeleter::EntryList
+#pragma endregion DeletionQueue::EntryList
 
 } // namespace Hyperion

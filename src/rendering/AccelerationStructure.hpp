@@ -9,7 +9,7 @@
 #include <core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {
 
@@ -59,7 +59,7 @@ public:
 
     virtual ~GpuTlasBase() override
     {
-        SafeDelete(std::move(m_meshDescriptionsBuffer));
+        EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
     }
 
     Name GetDebugName() const

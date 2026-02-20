@@ -12,7 +12,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/AssetRegistry.hpp>
 
@@ -65,10 +65,10 @@ struct BuildMeshBlas : public RenderCommand
 
     virtual ~BuildMeshBlas() override
     {
-        SafeDelete(std::move(packedVerticesBuffer));
-        SafeDelete(std::move(packedIndicesBuffer));
-        SafeDelete(std::move(verticesStagingBuffer));
-        SafeDelete(std::move(indicesStagingBuffer));
+        EnqueueDeletion(std::move(packedVerticesBuffer));
+        EnqueueDeletion(std::move(packedIndicesBuffer));
+        EnqueueDeletion(std::move(verticesStagingBuffer));
+        EnqueueDeletion(std::move(indicesStagingBuffer));
     }
 
     virtual RendererResult operator()() override

@@ -25,7 +25,7 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
@@ -410,7 +410,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(Frame* frame, const Rende
     *delegateHandle = frame->OnFrameEnd.Bind([delegateHandle,
                                                  buffers = std::move(buffers)](...) mutable
         {
-            SafeDelete(std::move(buffers));
+            EnqueueDeletion(std::move(buffers));
 
             delete delegateHandle;
         });
@@ -619,8 +619,8 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
                 // @TODO! Copy to cpu side data
 
-                SafeDelete(std::move(shTilesBuffers));
-                SafeDelete(std::move(uniformBuffers));
+                EnqueueDeletion(std::move(shTilesBuffers));
+                EnqueueDeletion(std::move(uniformBuffers));
             })
         .Detach();
 

@@ -31,7 +31,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Task.hpp>
 
@@ -66,7 +66,7 @@ ViewOutputTarget::ViewOutputTarget(const Handle<GBuffer>& gbuffer)
 
 ViewOutputTarget::~ViewOutputTarget()
 {
-    SafeDelete(std::move(m_impl));
+    EnqueueDeletion(std::move(m_impl));
 }
 
 const Handle<GBuffer>& ViewOutputTarget::GetGBuffer() const
@@ -182,12 +182,12 @@ View::~View()
 
     if (m_camera != nullptr)
     {
-        SafeDelete(std::move(m_camera));
+        EnqueueDeletion(std::move(m_camera));
     }
 
     if (m_readbackTexture != nullptr)
     {
-        SafeDelete(std::move(m_readbackTexture));
+        EnqueueDeletion(std::move(m_readbackTexture));
     }
 }
 

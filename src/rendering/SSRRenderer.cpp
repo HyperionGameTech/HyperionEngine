@@ -19,7 +19,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderHelpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
@@ -103,15 +103,15 @@ SSRRenderer::~SSRRenderer()
     delete m_writeUvs;
     delete m_sampleGbuffer;
 
-    SafeDelete(std::move(m_uvsTexture));
-    SafeDelete(std::move(m_sampledResultTexture));
+    EnqueueDeletion(std::move(m_uvsTexture));
+    EnqueueDeletion(std::move(m_sampledResultTexture));
 
     if (m_temporalBlending)
     {
         m_temporalBlending.Reset();
     }
 
-    SafeDelete(std::move(m_uniformBuffer));
+    EnqueueDeletion(std::move(m_uniformBuffer));
 }
 
 void SSRRenderer::Create()
@@ -220,7 +220,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
         delete m_sampleGbuffer;
         m_sampleGbuffer = nullptr;
 
-        SafeDelete(std::move(m_uniformBuffer));
+        EnqueueDeletion(std::move(m_uniformBuffer));
 
         if (m_temporalBlending)
         {

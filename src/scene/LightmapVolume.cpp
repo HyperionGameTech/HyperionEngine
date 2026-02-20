@@ -18,7 +18,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
@@ -57,8 +57,8 @@ LightmapVolume::LightmapVolume(const BoundingBox& localBounds)
 
 LightmapVolume::~LightmapVolume()
 {
-    SafeDelete(std::move(m_radianceAtlasTextures));
-    SafeDelete(std::move(m_irradianceAtlasTextures));
+    EnqueueDeletion(std::move(m_radianceAtlasTextures));
+    EnqueueDeletion(std::move(m_irradianceAtlasTextures));
 }
 
 bool LightmapVolume::AddElement(Vec2u dimensions, LightmapElement& outElement, bool shrinkToFit, float downscaleLimit)
@@ -195,7 +195,7 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type
     switch (type)
     {
     case LTT_RADIANCE:
-        SafeDelete(std::move(m_radianceAtlasTextures[atlasIndex]));
+        EnqueueDeletion(std::move(m_radianceAtlasTextures[atlasIndex]));
         m_radianceAtlasTextures[atlasIndex] = texture;
 
         if (IsInitCalled())
@@ -205,7 +205,7 @@ void LightmapVolume::SetAtlasTexture(uint16 atlasIndex, LightmapTextureType type
 
         break;
     case LTT_IRRADIANCE:
-        SafeDelete(std::move(m_irradianceAtlasTextures[atlasIndex]));
+        EnqueueDeletion(std::move(m_irradianceAtlasTextures[atlasIndex]));
         m_irradianceAtlasTextures[atlasIndex] = texture;
 
         if (IsInitCalled())

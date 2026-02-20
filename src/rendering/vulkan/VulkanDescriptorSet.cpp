@@ -185,7 +185,7 @@ VulkanDescriptorSet::~VulkanDescriptorSet()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, pool = m_vkDescriptorPool]() -> void
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, pool = m_vkDescriptorPool]() -> void
             {
                 g_renderInterface->DestroyDescriptorSet(handle, pool);
             }));

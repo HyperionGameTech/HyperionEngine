@@ -29,7 +29,7 @@
 #include <core/io/ByteReader.hpp>
 #include <core/io/ByteWriter.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -67,7 +67,7 @@ EditorProject::EditorProject(Name name, const Handle<Game>& gameInstance)
 
 EditorProject::~EditorProject()
 {
-    SafeDelete(std::move(m_gameInstance));
+    EnqueueDeletion(std::move(m_gameInstance));
 }
 
 void EditorProject::Init()

@@ -15,7 +15,7 @@
 // For Shader
 #include <rendering/util/ShaderCompiler.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Task.hpp>
@@ -100,7 +100,7 @@ public:
 
         reverseAttrMap.Erase(reverseAttrMapIt);
 
-        SafeDelete(std::move(*graphicsPipelinePtr));
+        EnqueueDeletion(std::move(*graphicsPipelinePtr));
     }
 
     GraphicsPipelineCacheHandle Alloc(SizeType& outIndex)
@@ -292,7 +292,7 @@ GraphicsPipelineCache::~GraphicsPipelineCache()
 {
     for (GraphicsPipelineRef& pipeline : *m_cachedPipelines)
     {
-        SafeDelete(std::move(pipeline));
+        EnqueueDeletion(std::move(pipeline));
     }
 
     m_cachedPipelines->Clear();

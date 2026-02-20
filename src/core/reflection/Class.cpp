@@ -531,7 +531,7 @@ const char* LookupTypeName(const TypeId& typeId)
         s_formattedStringMap = currentThreadObject->GetTLS().Allocate<FormattedStringMap>();
         InitFormattedStringMap(s_formattedStringMap);
 
-        currentThreadObject->AtExit([]()
+        currentThreadObject->AddOnExitCallback([]()
             {
                 s_formattedStringMap->~FormattedStringMap();
             });

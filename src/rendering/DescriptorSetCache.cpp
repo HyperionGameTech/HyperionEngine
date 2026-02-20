@@ -6,7 +6,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -23,13 +23,13 @@ DescriptorSetCache::~DescriptorSetCache()
     {
         for (auto& jt : it.second)
         {
-            SafeDelete(std::move(jt));
+            EnqueueDeletion(std::move(jt));
         }
     }
 
     for (auto& it : m_descriptorSetsInUse)
     {
-        SafeDelete(std::move(it.descriptorSet));
+        EnqueueDeletion(std::move(it.descriptorSet));
     }
 }
 

@@ -42,7 +42,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/DebugDrawer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
@@ -435,22 +435,6 @@ extern "C"
 
         g_engineDriver->FinalizeStop();
 
-#if HYP_DOTNET
-        DotNETHost::GetInstance().Shutdown();
-#endif
-
-        ComponentInterfaceRegistry::GetInstance().Shutdown();
-        ConsoleCommandManager::GetInstance().Shutdown();
-
-        if (TaskSystem::GetInstance().IsRunning())
-        {
-            TaskSystem::GetInstance().Stop();
-        }
-
-        DestroyNameRegistry();
-
-        CoreApi::Shutdown();
-
         g_streamingManager->Stop();
         g_streamingManager.Reset();
 
@@ -462,15 +446,34 @@ extern "C"
         g_editorState.Reset();
 #endif
 
+        g_engineDriver.Reset();
+        g_appContext.Reset();
+
+        ComponentInterfaceRegistry::GetInstance().Shutdown();
+        ConsoleCommandManager::GetInstance().Shutdown();
+
+#if HYP_DOTNET
+        DotNETHost::GetInstance().Shutdown();
+#endif
+
+        if (TaskSystem::GetInstance().IsRunning())
+        {
+            TaskSystem::GetInstance().Stop();
+        }
+
+        DeletionQueue::GetInstance().Shutdown();
+
+        DestroyNameRegistry();
+
+        CoreApi::Shutdown();
+        
+        g_logger.Reset();
+
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;
 
         delete g_materialCache;
         g_materialCache = nullptr;
-
-        g_engineDriver.Reset();
-        g_logger.Reset();
-        g_appContext.Reset();
 
         // Named threads
         delete g_mainThreadInstance;

@@ -69,7 +69,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <ui/font/FontAtlas.hpp>
 

@@ -9,7 +9,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -84,7 +84,7 @@ GBuffer::~GBuffer()
         it.SetFramebuffer(nullptr);
     }
 
-    SafeDelete(std::move(m_framebuffers));
+    EnqueueDeletion(std::move(m_framebuffers));
 }
 
 void GBuffer::Create()
@@ -123,7 +123,7 @@ void GBuffer::Resize(Vec2u extent)
         target.SetFramebuffer(nullptr);
     }
 
-    SafeDelete(std::move(m_framebuffers));
+    EnqueueDeletion(std::move(m_framebuffers));
 
     CreateBucketFramebuffers();
 

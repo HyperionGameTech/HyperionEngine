@@ -31,28 +31,28 @@ static constexpr uint32 MinSafeDeleteCycles = 10; // minimum number of cycles to
 HYP_API extern uint32 GetFrameCounter();
 
 template <class T>
-class SafeDeleterEntry;
+class DeletionQueueElem;
 
 template <>
-class SafeDeleterEntry<Handle<ObjectBase>>
+class DeletionQueueElem<Handle<ObjectBase>>
 {
 public:
-    HYP_API explicit SafeDeleterEntry(Handle<ObjectBase>&& handle)
-        : SafeDeleterEntry(handle.ptr)
+    HYP_API explicit DeletionQueueElem(Handle<ObjectBase>&& handle)
+        : DeletionQueueElem(handle.ptr)
     {
         handle.ptr = nullptr; // unset so DecRefStrong() doesn't get called on Handle destruction.
     }
 
-    SafeDeleterEntry(const SafeDeleterEntry&) = delete;
-    SafeDeleterEntry& operator=(const SafeDeleterEntry&) = delete;
+    DeletionQueueElem(const DeletionQueueElem&) = delete;
+    DeletionQueueElem& operator=(const DeletionQueueElem&) = delete;
 
-    SafeDeleterEntry(SafeDeleterEntry&& other) noexcept
+    DeletionQueueElem(DeletionQueueElem&& other) noexcept
         : ptr(other.ptr)
     {
         other.ptr = nullptr;
     }
 
-    SafeDeleterEntry& operator=(SafeDeleterEntry&& other) noexcept
+    DeletionQueueElem& operator=(DeletionQueueElem&& other) noexcept
     {
         if (this != &other)
         {
@@ -63,44 +63,44 @@ public:
         return *this;
     }
 
-    HYP_API ~SafeDeleterEntry();
+    HYP_API ~DeletionQueueElem();
 
 protected:
-    HYP_API explicit SafeDeleterEntry(ObjectBase* ptr);
+    HYP_API explicit DeletionQueueElem(ObjectBase* ptr);
 
     ObjectBase* ptr;
 };
 
 template <class T>
-class SafeDeleterEntry<Handle<T>> final : public SafeDeleterEntry<Handle<ObjectBase>>
+class DeletionQueueElem<Handle<T>> final : public DeletionQueueElem<Handle<ObjectBase>>
 {
 public:
-    HYP_API SafeDeleterEntry(Handle<T>&& handle)
-        : SafeDeleterEntry<Handle<ObjectBase>>(handle.ptr)
+    HYP_API DeletionQueueElem(Handle<T>&& handle)
+        : DeletionQueueElem<Handle<ObjectBase>>(handle.ptr)
     {
         handle.ptr = nullptr;
     }
 };
 
 template <class T>
-class SafeDeleterEntry<T*>
+class DeletionQueueElem<T*>
 {
 public:
-    explicit SafeDeleterEntry(T* ptr)
+    explicit DeletionQueueElem(T* ptr)
         : ptr(ptr)
     {
     }
 
-    SafeDeleterEntry(const SafeDeleterEntry&) = delete;
-    SafeDeleterEntry& operator=(const SafeDeleterEntry&) = delete;
+    DeletionQueueElem(const DeletionQueueElem&) = delete;
+    DeletionQueueElem& operator=(const DeletionQueueElem&) = delete;
 
-    SafeDeleterEntry(SafeDeleterEntry&& other) noexcept
+    DeletionQueueElem(DeletionQueueElem&& other) noexcept
         : ptr(other.ptr)
     {
         other.ptr = nullptr;
     }
 
-    SafeDeleterEntry& operator=(SafeDeleterEntry&& other) noexcept
+    DeletionQueueElem& operator=(DeletionQueueElem&& other) noexcept
     {
         if (this != &other)
         {
@@ -111,7 +111,7 @@ public:
         return *this;
     }
 
-    ~SafeDeleterEntry()
+    ~DeletionQueueElem()
     {
         delete ptr;
     }
@@ -127,24 +127,24 @@ enum CustomDeleterTag
 };
 
 template <class T>
-class SafeDeleterEntry final
+class DeletionQueueElem final
 {
-    SafeDeleterEntry() = delete;
+    DeletionQueueElem() = delete;
 
 public:
-    SafeDeleterEntry(const T& value, void (*deleteFn)(T&), CustomDeleterTag)
+    DeletionQueueElem(const T& value, void (*deleteFn)(T&), CustomDeleterTag)
         : value(value),
           deleteFn(deleteFn)
     {
     }
 
-    SafeDeleterEntry(T&& value, void (*deleteFn)(T&), CustomDeleterTag)
+    DeletionQueueElem(T&& value, void (*deleteFn)(T&), CustomDeleterTag)
         : value(std::move(value)),
           deleteFn(deleteFn)
     {
     }
 
-    ~SafeDeleterEntry()
+    ~DeletionQueueElem()
     {
         if (deleteFn)
         {
@@ -157,7 +157,7 @@ private:
     void (*deleteFn)(T&);
 };
 
-class DeletionQueue
+class HYP_API DeletionQueue
 {
 public:
     struct EntryHeader
@@ -283,12 +283,19 @@ public:
         }
     };
 
+    static DeletionQueue& GetInstance();
+
     DeletionQueue();
+
     DeletionQueue(const DeletionQueue&) = delete;
     DeletionQueue& operator=(const DeletionQueue&) = delete;
+    
     DeletionQueue(DeletionQueue&&) = delete;
     DeletionQueue& operator=(DeletionQueue&&) = delete;
+    
     ~DeletionQueue();
+
+    void Shutdown();
 
     /*! \brief Read the counter values for the last n frames, accumulated (n = num multi buffers).
      *   - only call this on the render thread.
@@ -300,6 +307,7 @@ public:
 
     // returns number of entries that were deleted
     int ForceDeleteAll(uint32 bufferIndex);
+    void Flush();
 
     // copy from temp entry list to sim thread / render thread queue
     void UpdateEntryListQueue();
@@ -307,22 +315,22 @@ public:
     /*! \brief Allocate storage for a safe deleter of type T. The instance will need to be constructed using placement new by the caller.
         \param ppGuard Pointer-to-pointer of a mutex guard that will be set if locking is required. The caller is responsible for deleting the guard if set. */
     template <class T>
-    SafeDeleterEntry<T>* Alloc(Mutex::Guard** ppGuard)
+    DeletionQueueElem<T>* Alloc(Mutex::Guard** ppGuard)
     {
         EntryHeader header;
 
         EntryListBase& list = GetCurrentEntryList(ppGuard);
 
-        SafeDeleterEntry<T>* ptr = reinterpret_cast<SafeDeleterEntry<T>*>(list.Alloc(sizeof(SafeDeleterEntry<T>), alignof(SafeDeleterEntry<T>), header));
+        DeletionQueueElem<T>* ptr = reinterpret_cast<DeletionQueueElem<T>*>(list.Alloc(sizeof(DeletionQueueElem<T>), alignof(DeletionQueueElem<T>), header));
 
         header.fc = GetFrameCounter();
 
-        if constexpr (!std::is_trivially_destructible_v<SafeDeleterEntry<T>>)
+        if constexpr (!std::is_trivially_destructible_v<DeletionQueueElem<T>>)
         {
             header.destructFn = [](void* ptr)
             {
-                SafeDeleterEntry<T>* ptrCasted = reinterpret_cast<SafeDeleterEntry<T>*>(ptr);
-                ptrCasted->~SafeDeleterEntry<T>();
+                DeletionQueueElem<T>* ptrCasted = reinterpret_cast<DeletionQueueElem<T>*>(ptr);
+                ptrCasted->~DeletionQueueElem<T>();
             };
         }
         else
@@ -330,11 +338,11 @@ public:
             header.destructFn = nullptr;
         }
 
-        if constexpr (!std::is_trivially_move_assignable_v<SafeDeleterEntry<T>>)
+        if constexpr (!std::is_trivially_move_assignable_v<DeletionQueueElem<T>>)
         {
             header.moveFn = [](void* dst, void* src)
             {
-                new (dst) SafeDeleterEntry<T>(std::move(*reinterpret_cast<SafeDeleterEntry<T>*>(src)));
+                new (dst) DeletionQueueElem<T>(std::move(*reinterpret_cast<DeletionQueueElem<T>*>(src)));
             };
         }
         else
@@ -393,16 +401,14 @@ private:
     Counter m_counters[RingBufferDepth];
 };
 
-extern HYP_API DeletionQueue* GetSafeDeleterInstance();
-
 template <class TFunction>
-static inline void SafeDelete(FunctionWrapper<TFunction>&& func)
+static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
 {
     using Payload = NormalizedType<FunctionWrapper<TFunction>>;
 
     Mutex::Guard* pGuard = nullptr;
 
-    Payload** ppPayload = GetSafeDeleterInstance()->AllocCustom<Payload*>([](void* ptr)
+    Payload** ppPayload = DeletionQueue::GetInstance().AllocCustom<Payload*>([](void* ptr)
         {
             AssertOnThread(g_renderThread);
 
@@ -427,11 +433,11 @@ static inline void SafeDelete(FunctionWrapper<TFunction>&& func)
  *   It is garanteed that the number of frames before deletion is at least the number of frames before the sim thread and render thread will sync,
  *   so calling this function on the sim thread for example will ensure that the resource is not deleted until the render thread has a chance to finish using it. */
 template <class T>
-static inline void SafeDelete(T&& value)
+static inline void EnqueueDeletion(T&& value)
 {
     Mutex::Guard* pGuard = nullptr;
-    SafeDeleterEntry<T>* ptr = GetSafeDeleterInstance()->Alloc<T>(&pGuard);
-    new (ptr) SafeDeleterEntry<T>(std::forward<T>(value));
+    DeletionQueueElem<T>* ptr = DeletionQueue::GetInstance().Alloc<T>(&pGuard);
+    new (ptr) DeletionQueueElem<T>(std::forward<T>(value));
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
     {
@@ -440,11 +446,11 @@ static inline void SafeDelete(T&& value)
 }
 
 template <class T>
-static inline void SafeDelete(T* value)
+static inline void EnqueueDeletion(T* value)
 {
     Mutex::Guard* pGuard = nullptr;
-    SafeDeleterEntry<std::remove_const_t<T>*>* ptr = GetSafeDeleterInstance()->Alloc<std::remove_const_t<T>*>(&pGuard);
-    new (ptr) SafeDeleterEntry<std::remove_const_t<T>*>(value);
+    DeletionQueueElem<std::remove_const_t<T>*>* ptr = DeletionQueue::GetInstance().Alloc<std::remove_const_t<T>*>(&pGuard);
+    new (ptr) DeletionQueueElem<std::remove_const_t<T>*>(value);
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
     {
@@ -452,21 +458,21 @@ static inline void SafeDelete(T* value)
     }
 }
 
-/*! \see SafeDelete(T&& value) */
+/*! \see EnqueueDeletion(T&& value) */
 template <class T, class AllocatorType>
-static inline void SafeDelete(Array<T, AllocatorType>&& value)
+static inline void EnqueueDeletion(Array<T, AllocatorType>&& value)
 {
     for (auto& item : value)
     {
-        SafeDelete(std::move(item));
+        EnqueueDeletion(std::move(item));
     }
 
     value.Clear();
 }
 
-/*! \see SafeDelete(T&& value) */
+/*! \see EnqueueDeletion(T&& value) */
 template <class T, SizeType Sz>
-static inline void SafeDelete(FixedArray<T, Sz>&& value)
+static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
 {
     for (auto& it : value)
     {
@@ -475,15 +481,15 @@ static inline void SafeDelete(FixedArray<T, Sz>&& value)
             continue;
         }
 
-        SafeDelete(std::move(it));
+        EnqueueDeletion(std::move(it));
     }
 
     value = {};
 }
 
-/*! \see SafeDelete(T&& value) */
+/*! \see EnqueueDeletion(T&& value) */
 template <class T, auto KeyBy>
-static inline void SafeDelete(HashSet<T, KeyBy>&& value)
+static inline void EnqueueDeletion(HashSet<T, KeyBy>&& value)
 {
     for (auto& it : value)
     {
@@ -492,7 +498,7 @@ static inline void SafeDelete(HashSet<T, KeyBy>&& value)
             continue;
         }
 
-        SafeDelete(std::move(it));
+        EnqueueDeletion(std::move(it));
     }
 
     value.Clear();

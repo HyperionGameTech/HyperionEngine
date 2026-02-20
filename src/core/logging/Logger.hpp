@@ -94,7 +94,9 @@ static constexpr Span<const char> LogLevelTermColor(LogLevel logLevel)
 
     if (uint8(logLevel) >= uint8(std::size(ColorTable)))
     {
-        return ColorTable[0];
+        constexpr Span<const char> DefaultColor = "\033[0m";
+        
+        return DefaultColor;
     }
     else
     {

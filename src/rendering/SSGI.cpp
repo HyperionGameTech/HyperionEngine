@@ -21,7 +21,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -73,7 +73,7 @@ SSGI::~SSGI()
         m_temporalBlending.Reset();
     }
 
-    SafeDelete(std::move(m_uniformBuffers));
+    EnqueueDeletion(std::move(m_uniformBuffers));
 }
 
 void SSGI::Create()

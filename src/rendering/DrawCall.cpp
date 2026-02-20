@@ -9,7 +9,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/Entity.hpp>
 

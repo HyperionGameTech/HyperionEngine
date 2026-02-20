@@ -23,7 +23,7 @@
 
 #include <rendering/renderers/ShadowRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -114,12 +114,12 @@ Light::~Light()
 {
     if (m_shadowViews.Any())
     {
-        SafeDelete(std::move(m_shadowViews));
+        EnqueueDeletion(std::move(m_shadowViews));
     }
 
     if (m_material != nullptr)
     {
-        SafeDelete(std::move(m_material));
+        EnqueueDeletion(std::move(m_material));
     }
 }
 
@@ -164,7 +164,7 @@ void Light::CreateShadowViews()
         RemoveChild(shadowCamera);
     }
 
-    SafeDelete(std::move(m_shadowViews));
+    EnqueueDeletion(std::move(m_shadowViews));
 
     if (!(m_flags & LF_SHADOW))
     {
@@ -556,7 +556,7 @@ void Light::SetMaterial(Handle<Material> material)
 
     if (m_material)
     {
-        SafeDelete(std::move(m_material));
+        EnqueueDeletion(std::move(m_material));
     }
 
     m_material = std::move(material);

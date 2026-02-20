@@ -15,7 +15,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/TextureViewCache.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/Texture.hpp>
 
@@ -115,8 +115,8 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::~TemporalBlending()
 {
-    SafeDelete(std::move(m_cBuffers));
-    SafeDelete(std::move(m_inputFramebuffer));
+    EnqueueDeletion(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_inputFramebuffer));
 }
 
 void TemporalBlending::Create()

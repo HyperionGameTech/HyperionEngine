@@ -184,7 +184,7 @@ void ApplicationWindow::CreateSwapchain()
                 TUniqueLock lock(m_mtx);
 
                 if (m_swapchain.IsValid())
-                    SafeDelete(std::move(m_swapchain));
+                    EnqueueDeletion(std::move(m_swapchain));
 
                 m_swapchain = swapchain;
             },
@@ -206,7 +206,7 @@ void ApplicationWindow::SetSwapchain(const SwapchainRef& swapchain)
         return;
 
     if (m_swapchain.IsValid())
-        SafeDelete(std::move(m_swapchain));
+        EnqueueDeletion(std::move(m_swapchain));
 
     m_swapchain = swapchain;
 }
@@ -1364,7 +1364,7 @@ void Win32ApplicationWindow::Close()
 #if HYP_VULKAN
     if (m_vkSurface)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([surface = m_vkSurface]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([surface = m_vkSurface]()
             {
                 VulkanInstance* vulkanInstance = g_renderInterface->GetInstance();
                 Assert(vulkanInstance != nullptr);

@@ -20,7 +20,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
@@ -653,7 +653,7 @@ static inline void DeleteOnRenderThread(Func&& function)
     Mutex::Guard* pGuard = nullptr;
     HYP_DEFER({ if (pGuard) delete pGuard; });
 
-    Payload** ppPayload = GetSafeDeleterInstance()->AllocCustom<Payload*>([](void* ptr)
+    Payload** ppPayload = DeletionQueue::GetInstance().AllocCustom<Payload*>([](void* ptr)
         {
             AssertOnThread(g_renderThread);
 

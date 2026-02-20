@@ -6,7 +6,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -360,29 +360,29 @@ void PlaceholderData::Initialize()
 
 void PlaceholderData::Shutdown()
 {
-    SafeDelete(std::move(m_image2d1x1R8));
-    SafeDelete(std::move(m_imageView2d1x1R8));
-    SafeDelete(std::move(m_image2d1x1R8Storage));
-    SafeDelete(std::move(m_imageView2d1x1R8Storage));
-    SafeDelete(std::move(m_image3d1x1x1R8));
-    SafeDelete(std::move(m_imageView3d1x1x1R8));
-    SafeDelete(std::move(m_image3d1x1x1R8Storage));
-    SafeDelete(std::move(m_imageView3d1x1x1R8Storage));
-    SafeDelete(std::move(m_imageCube1x1R8));
-    SafeDelete(std::move(m_imageViewCube1x1R8));
-    SafeDelete(std::move(m_image2d1x1R8Array));
-    SafeDelete(std::move(m_imageView2d1x1R8Array));
-    SafeDelete(std::move(m_imageCube1x1R8Array));
-    SafeDelete(std::move(m_imageViewCube1x1R8Array));
-    SafeDelete(std::move(m_samplerLinear));
-    SafeDelete(std::move(m_samplerLinearMipmap));
-    SafeDelete(std::move(m_samplerNearest));
+    EnqueueDeletion(std::move(m_image2d1x1R8));
+    EnqueueDeletion(std::move(m_imageView2d1x1R8));
+    EnqueueDeletion(std::move(m_image2d1x1R8Storage));
+    EnqueueDeletion(std::move(m_imageView2d1x1R8Storage));
+    EnqueueDeletion(std::move(m_image3d1x1x1R8));
+    EnqueueDeletion(std::move(m_imageView3d1x1x1R8));
+    EnqueueDeletion(std::move(m_image3d1x1x1R8Storage));
+    EnqueueDeletion(std::move(m_imageView3d1x1x1R8Storage));
+    EnqueueDeletion(std::move(m_imageCube1x1R8));
+    EnqueueDeletion(std::move(m_imageViewCube1x1R8));
+    EnqueueDeletion(std::move(m_image2d1x1R8Array));
+    EnqueueDeletion(std::move(m_imageView2d1x1R8Array));
+    EnqueueDeletion(std::move(m_imageCube1x1R8Array));
+    EnqueueDeletion(std::move(m_imageViewCube1x1R8Array));
+    EnqueueDeletion(std::move(m_samplerLinear));
+    EnqueueDeletion(std::move(m_samplerLinearMipmap));
+    EnqueueDeletion(std::move(m_samplerNearest));
 
     for (auto& bufferMap : m_buffers)
     {
         for (auto& it : bufferMap.second)
         {
-            SafeDelete(std::move(it.second));
+            EnqueueDeletion(std::move(it.second));
         }
     }
 

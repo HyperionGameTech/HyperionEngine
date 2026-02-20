@@ -31,7 +31,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/World.hpp>
 #include <scene/View.hpp>
@@ -254,7 +254,7 @@ void EngineDriver::RemoveWorld(const World* world)
             SetCurrentWorld(nullptr);
         }
 
-        SafeDelete(std::move(*it));
+        EnqueueDeletion(std::move(*it));
         m_worlds.Erase(it);
     }
 }

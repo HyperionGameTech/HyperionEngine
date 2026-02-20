@@ -16,7 +16,7 @@
 #include <rendering/Shared.hpp>
 #include <rendering/Bindless.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/utilities/Range.hpp>
 
@@ -68,8 +68,8 @@ VulkanAccelerationGeometry::VulkanAccelerationGeometry(
 
 VulkanAccelerationGeometry::~VulkanAccelerationGeometry()
 {
-    SafeDelete(std::move(m_packedVerticesBuffer));
-    SafeDelete(std::move(m_packedIndicesBuffer));
+    EnqueueDeletion(std::move(m_packedVerticesBuffer));
+    EnqueueDeletion(std::move(m_packedIndicesBuffer));
 
     m_isCreated = false;
 }
@@ -154,9 +154,9 @@ VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Mat4f& tr
 
 VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
 {
-    SafeDelete(std::move(m_geometries));
-    SafeDelete(std::move(m_buffer));
-    SafeDelete(std::move(m_scratchBuffer));
+    EnqueueDeletion(std::move(m_geometries));
+    EnqueueDeletion(std::move(m_buffer));
+    EnqueueDeletion(std::move(m_scratchBuffer));
 
     if (m_accelerationStructure != VK_NULL_HANDLE)
     {
@@ -221,7 +221,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     if (m_buffer && m_buffer->Size() < accelerationStructureSize)
     {
-        SafeDelete(std::move(m_buffer));
+        EnqueueDeletion(std::move(m_buffer));
         wasRebuilt = true;
     }
 
@@ -298,7 +298,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     if (m_scratchBuffer && m_scratchBuffer->Size() < scratchSize)
     {
-        SafeDelete(std::move(m_scratchBuffer));
+        EnqueueDeletion(std::move(m_scratchBuffer));
     }
 
     if (!m_scratchBuffer)
@@ -362,7 +362,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     CheckResultOrReturn(commandBuffer->SubmitPrimary(g_renderInterface->GetDevice()->GetGraphicsQueue(), nullptr, nullptr, nullptr));
 
-    SafeDelete(std::move(commandBuffer));
+    EnqueueDeletion(std::move(commandBuffer));
 
     ClearFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 
@@ -378,7 +378,7 @@ void VulkanAccelerationStructureBase::RemoveGeometry(uint32 index)
         return;
     }
 
-    SafeDelete(std::move(*it));
+    EnqueueDeletion(std::move(*it));
 
     m_geometries.Erase(it);
 
@@ -399,7 +399,7 @@ void VulkanAccelerationStructureBase::RemoveGeometry(const VulkanAccelerationGeo
         return;
     }
 
-    SafeDelete(std::move(*it));
+    EnqueueDeletion(std::move(*it));
 
     m_geometries.Erase(it);
 
@@ -440,10 +440,10 @@ VulkanGpuTlas::VulkanGpuTlas()
 
 VulkanGpuTlas::~VulkanGpuTlas()
 {
-    SafeDelete(std::move(m_instancesBuffer));
-    SafeDelete(std::move(m_meshDescriptionsBuffer));
-    SafeDelete(std::move(m_scratchBuffer));
-    SafeDelete(std::move(m_blases));
+    EnqueueDeletion(std::move(m_instancesBuffer));
+    EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
+    EnqueueDeletion(std::move(m_scratchBuffer));
+    EnqueueDeletion(std::move(m_blases));
 
     for (auto& it : m_blasToStorageId)
     {
@@ -587,7 +587,7 @@ void VulkanGpuTlas::RemoveGpuBlas(const VulkanGpuBlasRef& blas)
             m_blasToStorageId.Erase(storageIt);
         }
 
-        SafeDelete(std::move(vulkanBlas));
+        EnqueueDeletion(std::move(vulkanBlas));
 
         SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
     }
@@ -632,7 +632,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     if (m_instancesBuffer && m_instancesBuffer->Size() < instancesBufferSize)
     {
-        SafeDelete(std::move(m_instancesBuffer));
+        EnqueueDeletion(std::move(m_instancesBuffer));
     }
 
     if (!m_instancesBuffer)
@@ -707,7 +707,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
     
     if (m_meshDescriptionsBuffer && m_meshDescriptionsBuffer->Size() < meshDescriptionsBufferSize)
     {
-        SafeDelete(std::move(m_meshDescriptionsBuffer));
+        EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
     }
 
     if (!m_meshDescriptionsBuffer)
@@ -901,9 +901,9 @@ VulkanGpuBlas::VulkanGpuBlas(
 
 VulkanGpuBlas::~VulkanGpuBlas()
 {
-    SafeDelete(std::move(m_material));
-    SafeDelete(std::move(m_packedVerticesBuffer));
-    SafeDelete(std::move(m_packedIndicesBuffer));
+    EnqueueDeletion(std::move(m_material));
+    EnqueueDeletion(std::move(m_packedVerticesBuffer));
+    EnqueueDeletion(std::move(m_packedIndicesBuffer));
 }
 
 bool VulkanGpuBlas::IsCreated() const

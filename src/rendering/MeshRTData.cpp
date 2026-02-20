@@ -4,7 +4,7 @@
 
 #include <rendering/MeshRTData.hpp>
 #include <rendering/MeshBlasBuilder.hpp>
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
@@ -24,7 +24,7 @@ public:
     {
         for (auto& pair : blasMap)
         {
-            SafeDelete(std::move(pair.second));
+            EnqueueDeletion(std::move(pair.second));
         }
         
         blasMap.Clear();
@@ -72,7 +72,7 @@ const BLASRef& MeshRTData::GetOrCreateBLAS(Entity* entity, Mesh* mesh, Material*
         // Material changed or BLAS is null, need to rebuild
         if (existingBlas != nullptr)
         {
-            SafeDelete(std::move(existingBlas));
+            EnqueueDeletion(std::move(existingBlas));
         }
     }
     
@@ -98,7 +98,7 @@ void MeshRTData::InvalidateBLAS(Entity* entity)
     
     if (it != m_impl->blasMap.End())
     {
-        SafeDelete(std::move(it->second));
+        EnqueueDeletion(std::move(it->second));
         m_impl->blasMap.Erase(entityId);
     }
 }

@@ -8,7 +8,7 @@
 
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {
 
@@ -179,7 +179,7 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
     {
         auto& entry = *cleanupIterator;
 
-        if (!entry.Lock())
+        if (entry.Expired())
         {
             const SizeType idx = weakTextureHandles.IndexOf(cleanupIterator);
 
@@ -188,7 +188,7 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
 
             for (auto& it : imageViews.Get(idx))
             {
-                SafeDelete(std::move(it.second));
+                EnqueueDeletion(std::move(it.second));
             }
 
             imageViews.EraseAt(idx);

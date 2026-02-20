@@ -30,7 +30,7 @@
 #include <engine/EngineDriver.hpp>
 
 #include <rendering/Mesh.hpp>
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <cstring>
 
@@ -92,7 +92,7 @@ Node::Node(Name name, const Transform& localTransform, Scene* scene)
                 continue;
             }
 
-            child->SetScene(scene);
+            child->SetScene(m_scene);
         }
     }
 }
@@ -108,7 +108,7 @@ Node::~Node()
 
         child->m_parentNode = nullptr;
 
-        SafeDelete(std::move(child));
+        EnqueueDeletion(std::move(child));
     }
 }
 
@@ -431,7 +431,7 @@ bool Node::RemoveChild(const Node* node)
     }
 
     UpdateWorldTransform();
-    SafeDelete(std::move(childNode));
+    EnqueueDeletion(std::move(childNode));
 
     return true;
 }
@@ -496,7 +496,7 @@ void Node::RemoveAllChildren()
         }
 
         it = m_childNodes.Erase(it);
-        SafeDelete(std::move(*it));
+        EnqueueDeletion(std::move(*it));
     }
 
     UpdateWorldTransform();

@@ -6,7 +6,7 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderGroup.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 
@@ -149,7 +149,7 @@ int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename P
 
         PassData* pd = *iter;
 
-        if (!pd->view.Lock())
+        if (pd->view.Expired())
         {
             HYP_LOG(Rendering, Debug, "Removing PassData for View {} as it is no longer valid.", pd->view.Id());
 

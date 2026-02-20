@@ -192,10 +192,7 @@ struct ObjectHeader
         AssertDebug(count > 0, "RefCount bug! strong count went negative");
 
 #ifdef HYP_DOTNET
-        if (count > 1)
-        {
-            Object_DecScriptObjectRef(GetObjectPointer(this));
-        }
+        Object_DecScriptObjectRef(GetObjectPointer(this));
 #endif
 
         return count;
