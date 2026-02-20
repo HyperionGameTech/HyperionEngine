@@ -258,13 +258,6 @@ String StackDump::ToString() const
 // Implementation of global LogStackTrace() function from Defines.hpp
 void LogStackTrace(int depth)
 {
-    if (HYP_UNLIKELY(!g_logger)) // logger system not initialized yet
-    {
-        std::printf("Stack trace (logger not initialized):\n\n%s\n", StackDump(depth, 1).ToString().Data());
-
-        return;
-    }
-
     HYP_LOG(StackTrace, Debug, "Stack trace:\n\n{}", StackDump(depth, 1).ToString());
 }
 

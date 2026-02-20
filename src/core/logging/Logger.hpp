@@ -225,15 +225,17 @@ public:
     static constexpr uint32 MaxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
     HYP_METHOD()
-    static const Handle<Logger>& GetInstance();
+    static Logger& GetInstance();
 
     Logger();
     Logger(ILoggerOutputStream& outputStream);
 
     Logger(const Logger& other) = delete;
     Logger& operator=(const Logger& other) = delete;
+
     Logger(Logger&& other) noexcept = delete;
     Logger& operator=(Logger&& other) noexcept = delete;
+
     ~Logger();
 
     ILoggerOutputStream* GetOutputStream() const;
@@ -415,8 +417,6 @@ using logging::LogChannelRegistration;
 using logging::Logger;
 using logging::LogLevel;
 using logging::LogMessage;
-
-HYP_API extern Handle<Logger> g_logger;
 
 } // namespace Hyperion
 

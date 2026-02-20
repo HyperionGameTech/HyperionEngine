@@ -44,12 +44,6 @@ namespace logging {
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
 
-HYP_API Logger& GetLogger()
-{
-    Assert(g_logger != nullptr);
-    return *g_logger;
-}
-
 class LogChannelIdGenerator
 {
 public:
@@ -515,7 +509,7 @@ void LogChannelRegistrar::RegisterAll()
         }
 
         // out of slots, need to store dynamic
-        s_dynamicLogChannelHandles.PushBack(g_logger->CreateDynamicLogChannel(*channel));
+        s_dynamicLogChannelHandles.PushBack(Logger::GetInstance().CreateDynamicLogChannel(*channel));
     }
 
     m_channels.Clear();
@@ -553,9 +547,10 @@ private:
 
 #pragma region Logger
 
-const Handle<Logger>& Logger::GetInstance()
+Logger& Logger::GetInstance()
 {
-    return g_logger;
+    static Logger s_instance;
+    return s_instance;
 }
 
 Logger::Logger()
