@@ -86,7 +86,6 @@ Handle<AudioManager> g_audioManager;
 Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
-Handle<Logger> g_logger;
 MaterialCache* g_materialCache;
 ShaderCompiler* g_shaderCompiler;
 
@@ -226,10 +225,7 @@ static void InitThreads()
 
 static void InitLogger()
 {
-    g_logger = MakeHandle<Logger>();
-    g_logger->fatalErrorHook = &HandleFatalError;
-
-    InitObject(g_logger);
+    Logger::GetInstance().fatalErrorHook = &HandleFatalError;
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
@@ -466,8 +462,6 @@ extern "C"
         DestroyNameRegistry();
 
         CoreApi::Shutdown();
-        
-        g_logger.Reset();
 
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;
@@ -696,7 +690,7 @@ extern "C"
 
         //if (g_logRedirectId == -1)
         //{
-        //    g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+        //    g_logRedirectId = Logger::GetInstance().GetOutputStream()->AddRedirect(
         //        Bitset(~0u), // All channels
         //        nullptr,
         //        HandleLogMessage,
