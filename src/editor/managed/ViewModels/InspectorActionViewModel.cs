@@ -63,7 +63,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector action '{Label}' failed: {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector action '{Label}' failed: {ex.Message}");
                 }
                 finally
                 {

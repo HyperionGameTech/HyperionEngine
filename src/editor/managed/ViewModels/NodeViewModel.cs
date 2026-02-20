@@ -29,7 +29,7 @@ namespace Hyperion.Editor.ViewModels
                     }
                     catch
                     {
-                        Logger.Log(LogType.Error, $"Failed to set node name to '{value}'.");
+                        Logger.Log(LogLevel.Error, $"Failed to set node name to '{value}'.");
                     }
 
                     // Update derived properties when name changes
@@ -86,7 +86,7 @@ namespace Hyperion.Editor.ViewModels
                 NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
                 {
-                    Logger.Log(LogType.Warn, "NodeViewModel target has been garbage collected before child added handler could be invoked.");
+                    Logger.Log(LogLevel.Warning, "NodeViewModel target has been garbage collected before child added handler could be invoked.");
                     return;
                 }
 
@@ -98,7 +98,7 @@ namespace Hyperion.Editor.ViewModels
                 NodeViewModel? target;
                 if (!weakThis.TryGetTarget(out target))
                 {
-                    Logger.Log(LogType.Warn, "NodeViewModel target has been garbage collected before child removed handler could be invoked.");
+                    Logger.Log(LogLevel.Warning, "NodeViewModel target has been garbage collected before child removed handler could be invoked.");
                     return;
                 }
 

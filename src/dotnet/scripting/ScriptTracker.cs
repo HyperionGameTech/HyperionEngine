@@ -21,17 +21,17 @@ namespace Hyperion
 
         public void Initialize(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory, IntPtr callbackPtr, IntPtr callbackSelfPtr)
         {
-            Logger.Log(logChannel, LogType.Info, "Initializing script tracker...");
+            Logger.Log(logChannel, LogLevel.Info, "Initializing script tracker...");
 
             this.callback = Marshal.GetDelegateForFunctionPointer<ScriptEventCallback>(callbackPtr);
             this.callbackSelfPtr = callbackSelfPtr;
 
-            Logger.Log(logChannel, LogType.Info, "Source directory: {0}", sourceDirectory);
+            Logger.Log(logChannel, LogLevel.Info, "Source directory: {0}", sourceDirectory);
 
             scriptCompiler = new ScriptCompiler(sourceDirectory, intermediateDirectory, binaryOutputDirectory);
             scriptCompiler.BuildAllProjects();
 
-            Logger.Log(logChannel, LogType.Info, "Script tracker initialized.");
+            Logger.Log(logChannel, LogLevel.Info, "Script tracker initialized.");
 
             watcher = new FileSystemWatcher(sourceDirectory);
             watcher.NotifyFilter = NotifyFilters.LastWrite;
@@ -48,7 +48,7 @@ namespace Hyperion
                 return;
             }
 
-            Logger.Log(logChannel, LogType.Info, "Processing {0} scripts...", processingScripts.Count);
+            Logger.Log(logChannel, LogLevel.Info, "Processing {0} scripts...", processingScripts.Count);
 
             List<string> scriptsToRemove = new List<string>();
 
@@ -93,7 +93,7 @@ namespace Hyperion
                     }
                     catch (Exception e)
                     {
-                        Logger.Log(logChannel, LogType.Error, "Error compiling script {0}: {1}", entry.Key, e.Message);
+                        Logger.Log(logChannel, LogLevel.Error, "Error compiling script {0}: {1}", entry.Key, e.Message);
 
                         scriptDesc.CompileStatus |= ScriptCompileStatus.Errored;
                     }
@@ -115,16 +115,16 @@ namespace Hyperion
 
         private void OnFileChanged(object source, FileSystemEventArgs e)
         {
-            Logger.Log(logChannel, LogType.Info, "ScriptTracker: File changed: {0} {1}", e.FullPath, e.ChangeType);
+            Logger.Log(logChannel, LogLevel.Info, "ScriptTracker: File changed: {0} {1}", e.FullPath, e.ChangeType);
 
             if (processingScripts.ContainsKey(e.FullPath))
             {
-                Logger.Log(logChannel, LogType.Info, "Script {0} is already being processed. Skipping...", e.FullPath);
+                Logger.Log(logChannel, LogLevel.Info, "Script {0} is already being processed. Skipping...", e.FullPath);
 
                 return;
             }
 
-            Logger.Log(logChannel, LogType.Info, "Adding script {0} to processing queue...", e.FullPath);
+            Logger.Log(logChannel, LogLevel.Info, "Adding script {0} to processing queue...", e.FullPath);
 
             ScriptInstance scriptInstance = new ScriptInstance(new ScriptDesc
             {

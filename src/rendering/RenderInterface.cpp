@@ -310,7 +310,7 @@ public:
                         static_cast<ResourceBinderBase*>(resourceBinders)... },
                     writeBufferDataFn);
 
-                HYP_LOG(Rendering, Debug, "Registered resource container for resource class '{}'",
+                HYP_LOG(Rendering, Verbose, "Registered resource container for resource class '{}'",
                     *resourceClass->GetName());
             });
     }
@@ -1027,6 +1027,8 @@ void RenderInterface::Shutdown()
             }
         }
     }
+    
+    DebugDrawer::GetInstance().Shutdown();
 
     blueNoiseBuffer.Reset();
     sphereSamplesBuffer.Reset();

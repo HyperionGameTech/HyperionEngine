@@ -3,36 +3,22 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public enum LogType : uint
+    [ClassBinding(Name = "LogLevel")]
+    public enum LogLevel : byte
     {
-        Debug,
-        Info,
-        Warn,
+        Fatal,
         Error,
-        Fatal
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct LogCategory
-    {
-        private uint value;
-
-        public LogCategory(uint value)
-        {
-            this.value = value;
-        }
-
-        public uint Value
-        {
-            get { return value; }
-        }
+        Warning,
+        Info,
+        Verbose,
+        Debug
     }
 
     public class Logger : ObjectBase
     {
         private static LogChannel defaultChannel = LogChannel.ByName("Default");
 
-        public static void Log(LogType logLevel, string message, params object?[] args)
+        public static void Log(LogLevel logLevel, string message, params object?[] args)
         {
             var frame = new System.Diagnostics.StackFrame(1, true);
 
@@ -60,7 +46,7 @@ namespace Hyperion
             Logger_Log(defaultChannel.ptr, (uint)logLevel, fileName ?? string.Empty, line, formattedMessage + '\n');
         }
 
-        public static void Log(LogChannel channel, LogType logLevel, string message, params object?[] args)
+        public static void Log(LogChannel channel, LogLevel logLevel, string message, params object?[] args)
         {
             var frame = new System.Diagnostics.StackFrame(1, true);
 

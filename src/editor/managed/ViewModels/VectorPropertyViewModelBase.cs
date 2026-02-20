@@ -109,7 +109,7 @@ namespace Hyperion.Editor.ViewModels
             {
                 _isRefreshing = 0;
 
-                Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
             }
         }
 
@@ -122,7 +122,7 @@ namespace Hyperion.Editor.ViewModels
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Warn, $"Inspector failed to read vector for '{_property.Name}': {ex.Message}");
+                Logger.Log(LogLevel.Warning, $"Inspector failed to read vector for '{_property.Name}': {ex.Message}");
                 vector = default;
                 return false;
             }
@@ -160,7 +160,7 @@ namespace Hyperion.Editor.ViewModels
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, $"Inspector failed to set vector component for '{_property.Name}': {ex.Message}");
+                Logger.Log(LogLevel.Error, $"Inspector failed to set vector component for '{_property.Name}': {ex.Message}");
                 RefreshValue();
             }
         }
@@ -230,7 +230,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Error, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Error, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
                 }
                 finally
                 {

@@ -78,7 +78,7 @@ namespace Hyperion
                 Object_IncRef(_classPtr, _nativeAddress, false);
             }
 
-            Logger.Log(LogType.Debug, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+            Logger.Log(LogLevel.Debug, "Construct ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
         }
 
         ~ObjectBase()
@@ -87,7 +87,7 @@ namespace Hyperion
             {
                 Object_DecRef(_classPtr, _nativeAddress, false);
 
-                Logger.Log(LogType.Debug, "Finalized ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                Logger.Log(LogLevel.Debug, "Finalized ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
             }
         }
 
@@ -103,7 +103,7 @@ namespace Hyperion
 
                     Object_DecRef(_classPtr, _nativeAddress, false);
 
-                    Logger.Log(LogType.Debug, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
+                    Logger.Log(LogLevel.Debug, "Disposed ObjectBase of type " + GetType().Name + ", _classPtr: " + _classPtr + ", _nativeAddress: " + _nativeAddress);
                 }
 
                 GC.SuppressFinalize(this);

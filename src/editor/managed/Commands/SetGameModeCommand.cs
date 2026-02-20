@@ -26,7 +26,7 @@ namespace Hyperion.Editor.Commands
         {
             if (Interlocked.CompareExchange(ref _isChangingGameMode, 1, 0) != 0)
             {
-                Logger.Log(LogType.Warn, "Cannot set game mode; already setting");
+                Logger.Log(LogLevel.Warning, "Cannot set game mode; already setting");
                 return;
             }
 

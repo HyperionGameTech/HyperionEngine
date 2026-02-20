@@ -170,7 +170,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to create view model for property '{property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for property '{property.Name}': {ex.Message}");
                 }
             }
 
@@ -193,7 +193,7 @@ namespace Hyperion.Editor.ViewModels
                 .ThenBy(m => m.Name.ToString())
                 .ToList();
 
-            Logger.Log(LogType.Debug, $"Inspector found {actions.Count} actions for node '{SelectedNode.Name}'");
+            Logger.Log(LogLevel.Debug, $"Inspector found {actions.Count} actions for node '{SelectedNode.Name}'");
 
             foreach (Method method in actions)
             {
@@ -226,7 +226,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to create view model for action '{method.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for action '{method.Name}': {ex.Message}");
                 }
             }
 
@@ -242,7 +242,7 @@ namespace Hyperion.Editor.ViewModels
                     EntityManager? mgr = entity.EntityManager;
                     if (mgr == null)
                     {
-                        Logger.Log(LogType.Warn, $"Inspector failed to get EntityManager for entity '{entity.Name}'");
+                        Logger.Log(LogLevel.Warning, $"Inspector failed to get EntityManager for entity '{entity.Name}'");
 
                         return;
                     }
@@ -273,7 +273,7 @@ namespace Hyperion.Editor.ViewModels
                                     Components.Add(new InspectorComponentViewModel<VisibilityStateComponent>(entity));
                                     break;
                                 default:
-                                    Logger.Log(LogType.Debug, $"Inspector has no view model for component type '{typeId}'");
+                                    Logger.Log(LogLevel.Debug, $"Inspector has no view model for component type '{typeId}'");
                                     break;
                             }
                         }
@@ -345,7 +345,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to create view model for scene property '{property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to create view model for scene property '{property.Name}': {ex.Message}");
                 }
             }
 
@@ -406,7 +406,7 @@ namespace Hyperion.Editor.ViewModels
 
                     if (mgr == null)
                     {
-                        Logger.Log(LogType.Warn, "Inspector failed to get EntityManager while adding component");
+                        Logger.Log(LogLevel.Warning, "Inspector failed to get EntityManager while adding component");
 
                         return;
                     }
@@ -446,13 +446,13 @@ namespace Hyperion.Editor.ViewModels
                                 break;
                             }
                             default:
-                                Logger.Log(LogType.Warn, $"Inspector cannot add unsupported component type '{option.TypeId}'");
+                                Logger.Log(LogLevel.Warning, $"Inspector cannot add unsupported component type '{option.TypeId}'");
                                 break;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogType.Warn, $"Inspector failed to add component '{option.Label}': {ex.Message}");
+                        Logger.Log(LogLevel.Warning, $"Inspector failed to add component '{option.Label}': {ex.Message}");
                     }
                 });
             }
@@ -489,7 +489,7 @@ namespace Hyperion.Editor.ViewModels
                         return boolResult;
                     }
 
-                    Logger.Log(LogType.Warn, $"Inspector editcondition method '{methodName}' on member '{memberName}' did not return a bool");
+                    Logger.Log(LogLevel.Warning, $"Inspector editcondition method '{methodName}' on member '{memberName}' did not return a bool");
                 }
             }
             else if (attrEditCondition.Value.IsBool)
@@ -498,7 +498,7 @@ namespace Hyperion.Editor.ViewModels
             }
             else
             {
-                Logger.Log(LogType.Warn, $"Inspector editcondition attribute on member '{memberName}' is not a valid type");
+                Logger.Log(LogLevel.Warning, $"Inspector editcondition attribute on member '{memberName}' is not a valid type");
             }
 
             return true; // continue if no condition or invalid condition
