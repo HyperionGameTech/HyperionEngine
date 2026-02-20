@@ -13,12 +13,6 @@
 
 #include <core/serialization/SerializationUtils.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
-
 #include <core/io/BufferedByteReader.hpp>
 #include <core/io/ByteWriter.hpp>
 

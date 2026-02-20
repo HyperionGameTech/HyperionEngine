@@ -11,7 +11,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, Array<T, AllocatorType>
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const Array<T, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
+        return BoxedValueHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
@@ -107,7 +107,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const Array<T, AllocatorType
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const Array<T, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
+        return BoxedValueHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
@@ -203,7 +203,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, Array<T, AllocatorType>&& ar
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const Array<T, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
+        return BoxedValueHelper<Array<T, AllocatorType>>::Serialize(arr, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
@@ -297,7 +297,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);
-        return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
+        return BoxedValueHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
@@ -371,7 +371,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);
-        return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
+        return BoxedValueHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
@@ -445,7 +445,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& arr = *static_cast<const FixedArray<T, Sz>*>(array.pInternalArray);
-        return HypDataHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
+        return BoxedValueHelper<FixedArray<T, Sz>>::Serialize(arr, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(arr)>>();
@@ -517,7 +517,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashSet<T, KeyByFunctio
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
+        return BoxedValueHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -544,7 +544,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashSet<T, KeyByFuncti
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
+        return BoxedValueHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -571,7 +571,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashSet<T, KeyByFunction, Al
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashSet = *static_cast<const HashSet<T, KeyByFunction, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
+        return BoxedValueHelper<HashSet<T, KeyByFunction, AllocatorType>>::Serialize(hashSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -596,7 +596,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatSet<T>& set)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
-        return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
+        return BoxedValueHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -623,7 +623,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatSet<T>& set)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
-        return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
+        return BoxedValueHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -650,7 +650,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatSet<T>&& set)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& flatSet = *static_cast<const FlatSet<T>*>(array.pInternalArray);
-        return HypDataHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
+        return BoxedValueHelper<FlatSet<T>>::Serialize(flatSet, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(set)>>();
@@ -675,7 +675,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, FlatMap<K, V>& map)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
-        return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
+        return BoxedValueHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
@@ -702,7 +702,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const FlatMap<K, V>& map)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
-        return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
+        return BoxedValueHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
@@ -729,7 +729,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, FlatMap<K, V>&& map)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& flatMap = *static_cast<const FlatMap<K, V>*>(array.pInternalArray);
-        return HypDataHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
+        return BoxedValueHelper<FlatMap<K, V>>::Serialize(flatMap, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
@@ -754,7 +754,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, HashMap<K, V, Allocator
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
+        return BoxedValueHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
@@ -781,7 +781,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const HashMap<K, V, Allocato
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
+        return BoxedValueHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
@@ -808,7 +808,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, HashMap<K, V, AllocatorType>
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& hashMap = *static_cast<const HashMap<K, V, AllocatorType>*>(array.pInternalArray);
-        return HypDataHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
+        return BoxedValueHelper<HashMap<K, V, AllocatorType>>::Serialize(hashMap, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(map)>>();
@@ -833,7 +833,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsReferenceTag, LinkedList<T>& list)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
-        return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
+        return BoxedValueHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(list)>>();
@@ -874,7 +874,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, const LinkedList<T>& list)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
-        return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
+        return BoxedValueHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(list)>>();
@@ -915,7 +915,7 @@ GenericArrayWrapper::GenericArrayWrapper(AsCopyTag, LinkedList<T>&& list)
     functionTable.serializeFunction = [](const GenericArrayWrapper& array, FBOMData& outData, EnumFlags<FBOMDataFlags> flags)
     {
         auto& linkedList = *static_cast<const LinkedList<T>*>(array.pInternalArray);
-        return HypDataHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
+        return BoxedValueHelper<LinkedList<T>>::Serialize(linkedList, outData, flags);
     };
 
     typeInfo = &TypeOf<std::remove_cvref_t<decltype(list)>>();

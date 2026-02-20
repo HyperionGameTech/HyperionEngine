@@ -130,7 +130,15 @@ bool ManagedObject::SetKeepAlive(bool keepAlive)
 
     // used as result (inout parameter)
     int paramResult = int(keepAlive);
-    DotNETHost::GetInstance().GetGlobalFunctions().setKeepAliveFunction(&m_objectReference, &paramResult);
+
+    auto setKeepAliveFunction = DotNETHost::GetInstance().GetGlobalFunctions().setKeepAliveFunction;
+
+    if (setKeepAliveFunction == nullptr)
+    {
+        return false;
+    }
+
+    setKeepAliveFunction(&m_objectReference, &paramResult);
 
     if (paramResult)
     {

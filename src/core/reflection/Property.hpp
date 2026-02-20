@@ -64,7 +64,7 @@ struct PropertyGetter
             }),
           serializeProc([memFn](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                   }
@@ -84,7 +84,7 @@ struct PropertyGetter
             }),
           serializeProc([memFn](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize((static_cast<const TargetType*>(target.ToRef().GetPointer())->*memFn)(), out, flags))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                   }
@@ -103,7 +103,7 @@ struct PropertyGetter
             }),
           serializeProc([fnptr](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())), out, flags))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(fnptr(static_cast<const TargetType*>(target.ToRef().GetPointer())), out, flags))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                   }
@@ -123,7 +123,7 @@ struct PropertyGetter
             }),
           serializeProc([fnptr](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(fnptr(), out, flags))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(fnptr(), out, flags))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                   }
@@ -142,7 +142,7 @@ struct PropertyGetter
             }),
           serializeProc([member](const BoxedValue& target, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
               {
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Serialize(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member, out, flags))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Serialize(static_cast<const TargetType*>(target.ToRef().GetPointer())->*member, out, flags))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
                   }
@@ -217,7 +217,7 @@ struct PropertySetter
               {
                   BoxedValue value;
 
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                   }
@@ -254,7 +254,7 @@ struct PropertySetter
               {
                   BoxedValue value;
 
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                   }
@@ -291,7 +291,7 @@ struct PropertySetter
               {
                   BoxedValue value;
 
-                  if (FBOMResult err = HypDataHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
+                  if (FBOMResult err = BoxedValueHelper<NormalizedType<ValueType>>::Deserialize(context, data, value))
                   {
                       return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                   }

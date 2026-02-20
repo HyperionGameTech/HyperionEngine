@@ -96,7 +96,7 @@ bool DynamicStructInstance::GetManagedObject(const void* objectPtr, dotnet::Obje
 }
 #endif
 
-bool DynamicStructInstance::ToHypData(ByteView memory, BoxedValue& out) const
+bool DynamicStructInstance::ToBoxed(ByteView memory, BoxedValue& out) const
 {
     void* data = Memory::Allocate(m_size);
     Memory::Copy(data, memory.Data(), m_size);

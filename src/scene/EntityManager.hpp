@@ -617,9 +617,9 @@ public:
         // Notify systems that entity is being removed from them
         removedComponents.Set(componentTypeId, componentId);
 
-        BoxedValue componentHypData;
+        BoxedValue componentBoxed;
 
-        if (!GetContainer<Component>().RemoveComponent(componentId, componentHypData))
+        if (!GetContainer<Component>().RemoveComponent(componentId, componentBoxed))
         {
             return false;
         }
@@ -651,10 +651,10 @@ public:
         else
         {
             // Notify the entity that a component was removed
-            entity->OnComponentRemoved(componentHypData.ToRef());
+            entity->OnComponentRemoved(componentBoxed.ToRef());
         }
 
-        componentHypData.Reset();
+        componentBoxed.Reset();
 
         return true;
     }

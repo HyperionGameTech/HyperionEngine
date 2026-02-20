@@ -43,7 +43,7 @@ inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fi
 HYP_API extern void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber);
 #endif
 
-HYP_API extern Logger& GetLogger();
+extern Logger& GetLogger();
 
 } // namespace logging
 

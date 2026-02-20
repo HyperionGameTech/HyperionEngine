@@ -553,6 +553,11 @@ Logger& Logger::GetInstance()
     return s_instance;
 }
 
+Handle<Logger> Logger::MakeScriptLogger()
+{
+    return MakeHandle<Logger>();
+}
+
 Logger::Logger()
     : Logger(BasicLoggerOutputStream::GetDefaultInstance())
 {

@@ -7,9 +7,9 @@ using System.Diagnostics;
 
 namespace Hyperion
 {
-    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
-    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
-    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
     public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
     public delegate bool SetKeepAliveDelegate(IntPtr objectReferencePtr, bool keepAlive);
@@ -776,7 +776,7 @@ namespace Hyperion
             }
         }
 
-        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
@@ -785,10 +785,10 @@ namespace Hyperion
             object? thisObject = objectReferenceRef.LoadObject();
             object? returnValue = propertyInfo.GetValue((object?)thisObject);
 
-            ((BoxedValueInternal*)outReturnHypDataPtr)->SetValue(returnValue);
+            ((BoxedValueInternal*)outBoxed)->SetValue(returnValue);
         }
 
-        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 

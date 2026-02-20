@@ -27,7 +27,7 @@ enum class EntityTag : uint64;
 template <EntityTag Tag>
 struct TagComponent;
 
-extern HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outHypData);
+extern HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed);
 
 enum class ComponentInterfaceFlags : uint32
 {

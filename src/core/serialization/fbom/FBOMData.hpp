@@ -58,7 +58,7 @@ class Value;
 struct BoxedValue;
 
 template <class T, class T2>
-struct HypDataHelper;
+struct BoxedValueHelper;
 
 enum class FBOMDataFlags : uint32
 {

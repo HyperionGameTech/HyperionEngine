@@ -9,25 +9,25 @@
 
 namespace Hyperion {
 
-static HashMap<TypeId, HypDataSerializeFunction>& GetHypDataSerializeFunctionMap()
+static HashMap<TypeId, BoxedValueSerializeFunction>& GetBoxedValueSerializeFunctionMap()
 {
-    static HashMap<TypeId, HypDataSerializeFunction> s_serializeFunctions;
+    static HashMap<TypeId, BoxedValueSerializeFunction> s_serializeFunctions;
 
     return s_serializeFunctions;
 }
 
-static Mutex& GetHypDataSerializeFunctionMapMutex()
+static Mutex& GetBoxedValueSerializeFunctionMapMutex()
 {
     static Mutex s_serializeFunctionsMutex;
 
     return s_serializeFunctionsMutex;
 }
 
-HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeId)
+HYP_API BoxedValueSerializeFunction GetBoxedValueSerializeFunction(TypeId typeId)
 {
-    Mutex::Guard guard(GetHypDataSerializeFunctionMapMutex());
+    Mutex::Guard guard(GetBoxedValueSerializeFunctionMapMutex());
 
-    auto& map = GetHypDataSerializeFunctionMap();
+    auto& map = GetBoxedValueSerializeFunctionMap();
 
     const auto it = map.Find(typeId);
 
@@ -39,19 +39,14 @@ HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeId)
     return nullptr;
 }
 
-HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFunction func)
+HYP_API void RegisterBoxedValueSerializeFunction(TypeId typeId, BoxedValueSerializeFunction func)
 {
     Assert(func != nullptr);
 
-    Mutex::Guard guard(GetHypDataSerializeFunctionMapMutex());
+    Mutex::Guard guard(GetBoxedValueSerializeFunctionMapMutex());
 
-    auto& map = GetHypDataSerializeFunctionMap();
+    auto& map = GetBoxedValueSerializeFunctionMap();
     map[typeId] = func;
-}
-
-HYP_API void SetHypDataFromReference(BoxedValue& boxed, AnyRef ref)
-{
-    HypDataHelper<AnyRef> {}.Set(boxed, ref);
 }
 
 } // namespace Hyperion

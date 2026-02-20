@@ -82,10 +82,10 @@ bool ObjectToJSON(
  *
  *  \param jsonValue The Value to convert.
  *  \param typeInfo The TypeInfo for the target type.
- *  \param outHypData The output BoxedValue.
+ *  \param outBoxed The output BoxedValue.
  *  \return True if conversion was successful, false otherwise.
  */
-bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outHypData);
+bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed);
 
 /*! \brief Deserializes a Object to a BoxedValue object.
  *  Only fields and properties of the Class are deserialized.

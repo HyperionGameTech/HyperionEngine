@@ -622,7 +622,7 @@ public:
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
      *  \returns True if the operation was successful. */
-    virtual HYP_DEPRECATED bool ToHypData(ByteView memory, BoxedValue& outHypData) const
+    virtual HYP_DEPRECATED bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const
     {
         return false;
     }
@@ -775,7 +775,7 @@ public:
         }
     }
 
-    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override
+    virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override
     {
         HYP_CORE_ASSERT(memory.Size() == sizeof(T),
             "Expected memory size to be %zu but got %zu! This could indicate a type safety violation.",
@@ -788,7 +788,7 @@ public:
         {
             if constexpr (std::is_base_of_v<ObjectBase, T>)
             {
-                outHypData = BoxedValue(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
+                outBoxed = BoxedValue(Handle<ObjectBase>::FromPointer(static_cast<ObjectBase*>(ptr)));
             }
             else
             {
@@ -799,7 +799,7 @@ public:
         }
         else
         {
-            outHypData = BoxedValue(Any(ptr));
+            outBoxed = BoxedValue(Any(ptr));
 
             return true;
         }
@@ -945,7 +945,7 @@ public:
 
     virtual bool CanCreateInstance() const override;
 
-    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override;
+    virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override;
 
     using Class::AddField;
     using Class::AddMethod;

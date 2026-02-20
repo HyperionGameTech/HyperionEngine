@@ -702,6 +702,8 @@ void VulkanRenderInterface::Shutdown()
     
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
+    
+    DeletionQueue::GetInstance().Flush();
 }
 
 VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const
