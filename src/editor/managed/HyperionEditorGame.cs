@@ -26,7 +26,7 @@ namespace Hyperion.Editor
 
         protected override void OnLaunch()
         {
-            Logger.Log(LogType.Debug, "HyperionEditorGame Launched");
+            Logger.Log(LogLevel.Debug, "HyperionEditorGame Launched");
 
             World.Name = new Name("EditorWorld");
             World.WorldFlags |= WorldFlags.EditorWorld;
@@ -89,7 +89,7 @@ namespace Hyperion.Editor
 
                 if (testModelAsset != null && testModelAsset.IsValid)
                 {
-                    Logger.Log(LogType.Debug, "Test model asset loaded successfully.");
+                    Logger.Log(LogLevel.Debug, "Test model asset loaded successfully.");
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
@@ -97,7 +97,7 @@ namespace Hyperion.Editor
                 }
                 else
                 {
-                    Logger.Log(LogType.Error, "Failed to load test model asset.");
+                    Logger.Log(LogLevel.Error, "Failed to load test model asset.");
                 }
 
                 _assetBatchTask = null; // Prevent repeated checks
@@ -106,7 +106,7 @@ namespace Hyperion.Editor
 
         private void OnFocusedNodeChanged(Node? newNode, Node? prevNode, bool shouldSelectInOutline)
         {
-            Logger.Log(LogType.Debug, "Focused node changed from " + (prevNode != null ? prevNode.Name.ToString() : "null") +
+            Logger.Log(LogLevel.Debug, "Focused node changed from " + (prevNode != null ? prevNode.Name.ToString() : "null") +
                        " to " + (newNode != null ? newNode.Name.ToString() : "null") +
                        ", shouldSelectInOutline: " + shouldSelectInOutline);
 
@@ -129,7 +129,7 @@ namespace Hyperion.Editor
                     }
                 });
 
-            Logger.Log(LogType.Info, "Project opened: " + (project != null ? project.Name.ToString() : "null"));
+            Logger.Log(LogLevel.Info, "Project opened: " + (project != null ? project.Name.ToString() : "null"));
 
             Scene? activeScene = _editorSubsystem!.GetActiveScene();
 
@@ -146,13 +146,13 @@ namespace Hyperion.Editor
                 editorGame._onChildAdded = node.GetOnChildAddedDelegate()
                     .Bind((Node child, bool isDirect) =>
                     {
-                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' added" + "' (isDirect: " + isDirect + ")");
+                        Logger.Log(LogLevel.Debug, "Child node '" + child.Name.ToString() + "' added" + "' (isDirect: " + isDirect + ")");
                     });
 
                 editorGame._onChildRemoved = node.GetOnChildRemovedDelegate()
                     .Bind((Node child, bool isDirect) =>
                     {
-                        Logger.Log(LogType.Debug, "Child node '" + child.Name.ToString() + "' removed" + "' (isDirect: " + isDirect + ")");
+                        Logger.Log(LogLevel.Debug, "Child node '" + child.Name.ToString() + "' removed" + "' (isDirect: " + isDirect + ")");
                     });
             };
 
@@ -170,7 +170,7 @@ namespace Hyperion.Editor
                     {
                         if (weakThis.Target is HyperionEditorGame editorGame)
                         {
-                            Logger.Log(LogType.Info, "Root node changed from " + (oldRoot != null ? oldRoot.Name.ToString() : "null") +
+                            Logger.Log(LogLevel.Info, "Root node changed from " + (oldRoot != null ? oldRoot.Name.ToString() : "null") +
                                     " to " + (newRoot != null ? newRoot.Name.ToString() : "null"));
 
                             setChildAddRemovedHandlers(editorGame, newRoot);
@@ -191,7 +191,7 @@ namespace Hyperion.Editor
                 {
                     if (weakThis.Target is HyperionEditorGame editorGame)
                     {
-                        Logger.Log(LogType.Info, "Active scene changed to: " + (scene != null ? scene.Name.ToString() : "null"));
+                        Logger.Log(LogLevel.Info, "Active scene changed to: " + (scene != null ? scene.Name.ToString() : "null"));
 
                         addRootNodeChangedHandler(editorGame, scene);
                     }
@@ -200,7 +200,7 @@ namespace Hyperion.Editor
 
         private void HandleProjectClosing(EditorProject project)
         {
-            Logger.Log(LogType.Info, "Project closing: " + (project != null ? project.Name.ToString() : "null"));
+            Logger.Log(LogLevel.Info, "Project closing: " + (project != null ? project.Name.ToString() : "null"));
 
             _onActionStackStateChanged?.Remove();
             _onActionStackStateChanged = null;
@@ -208,14 +208,14 @@ namespace Hyperion.Editor
 
         private void UpdateUndo()
         {
-            Logger.Log(LogType.Debug, "UpdateUndo called");
+            Logger.Log(LogLevel.Debug, "UpdateUndo called");
 
             /// \todo : Model after EditorMain.cpp
         }
 
         private void UpdateRedo()
         {
-            Logger.Log(LogType.Debug, "UpdateRedo called");
+            Logger.Log(LogLevel.Debug, "UpdateRedo called");
 
 
             /// \todo : Model after EditorMain.cpp

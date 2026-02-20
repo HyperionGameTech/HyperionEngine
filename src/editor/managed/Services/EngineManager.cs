@@ -163,7 +163,7 @@ namespace Hyperion.Editor
             {
                 CurrentProject = newProject;
 
-                Logger.Log(LogType.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
+                Logger.Log(LogLevel.Info, "Current project changed to: " + (CurrentProject != null ? CurrentProject.Name : "null"));
 
                 if (CurrentProject != null)
                 {
@@ -363,7 +363,7 @@ namespace Hyperion.Editor
                         EditorViewport? registeredViewport = _registeredViewports.Find(v => v.Id == viewport.Id);
                         if (registeredViewport == null)
                         {
-                            Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is no longer registered - skipping addition to EditorSubsystem.");
+                            Logger.Log(LogLevel.Warning, $"EditorViewport {viewport.Id} is no longer registered - skipping addition to EditorSubsystem.");
                             return;
                         }
 
@@ -405,7 +405,7 @@ namespace Hyperion.Editor
                         EditorViewport? registeredViewport = _registeredViewports.Find(v => v.Id == viewportWeak.Id);
                         if (registeredViewport == null)
                         {
-                            Logger.Log(LogType.Warn, $"EditorViewport {viewportWeak.Id} is no longer registered - skipping addition to EditorSubsystem.");
+                            Logger.Log(LogLevel.Warning, $"EditorViewport {viewportWeak.Id} is no longer registered - skipping addition to EditorSubsystem.");
                             return;
                         }
                     
@@ -458,7 +458,7 @@ namespace Hyperion.Editor
                         // check it is still not contained in the list
                         if (_registeredViewports.Find(v => v.Id == viewport.Id) != null)
                         {
-                            Logger.Log(LogType.Warn, $"EditorViewport {viewport.Id} is still registered (re-added?) - skipping removal from EditorSubsystem.");
+                            Logger.Log(LogLevel.Warning, $"EditorViewport {viewport.Id} is still registered (re-added?) - skipping removal from EditorSubsystem.");
                             return;
                         }
 

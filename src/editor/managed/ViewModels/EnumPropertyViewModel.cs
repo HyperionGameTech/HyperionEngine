@@ -61,7 +61,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _isRefreshing = 0;
 
-                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
                 }
             });
         }
@@ -96,7 +96,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _isRefreshing = 0;
 
-                    Logger.Log(LogType.Error, $"Inspector failed to set enum property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Error, $"Inspector failed to set enum property '{_property.Name}': {ex.Message}");
 
                     RefreshValue();
                 }
@@ -111,11 +111,11 @@ namespace Hyperion.Editor.ViewModels
                 {
                     object? enumValue = staticField.ReadObject();
                     _enumEntries.Add(new EnumEntry(staticField.Name.ToString(), enumValue));
-                    Logger.Log(LogType.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{_property.Name}'");
+                    Logger.Log(LogLevel.Debug, $"Inspector added enum static field '{staticField.Name}' to enum values for property '{_property.Name}'");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Inspector failed to read enum static field '{staticField.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read enum static field '{staticField.Name}': {ex.Message}");
                 }
             }
         }

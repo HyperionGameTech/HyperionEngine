@@ -357,7 +357,7 @@ namespace Hyperion
                                 throw new InvalidOperationException("Failed to set array!");
                             }
 
-                            Logger.Log(LogType.Debug, "BoxedValue.SetValue: Set array of type " + ((Class)cls).Name + " with length " + arr.Length + " type Id: " + TypeId.Value);
+                            Logger.Log(LogLevel.Debug, "BoxedValue.SetValue: Set array of type " + ((Class)cls).Name + " with length " + arr.Length + " type Id: " + TypeId.Value);
                         }
                     }
                     finally
@@ -387,7 +387,7 @@ namespace Hyperion
                     // (Mismatched assemblies?)
                     if (currentType.Name.Contains("ObjectBase"))
                     {
-                        Logger.Log(LogType.Debug, "Type is derived from ObjectBase but failed to set BoxedValue. Type: " + type.FullName + ", ref'd ObjectBase Assembly path: " + currentType.Assembly.Location + ", our ObjectBase path: " + typeof(ObjectBase).Assembly.Location
+                        Logger.Log(LogLevel.Debug, "Type is derived from ObjectBase but failed to set BoxedValue. Type: " + type.FullName + ", ref'd ObjectBase Assembly path: " + currentType.Assembly.Location + ", our ObjectBase path: " + typeof(ObjectBase).Assembly.Location
                             + ", is assignable from ObjectBase: " + typeof(ObjectBase).IsAssignableFrom(currentType)
                             + ", equal types : " + (typeof(ObjectBase) == currentType));
                     }
