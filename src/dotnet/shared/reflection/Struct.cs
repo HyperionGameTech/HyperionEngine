@@ -136,19 +136,19 @@ namespace Hyperion
             }
         }
 
-        public object? MarshalFromHypData(ref BoxedValueInternal buffer)
+        public object? MarshalFromBoxed(ref BoxedValueInternal buffer)
         {
             TypeId typeId = buffer.TypeId;
             Assert.Throw(typeId == cls.TypeId, "TypeId mismatch: " + typeId + " != " + cls.TypeId);
 
-            IntPtr hypDataPtr = buffer.Pointer;
+            IntPtr boxedPtr = buffer.Pointer;
 
-            if (hypDataPtr == IntPtr.Zero)
+            if (boxedPtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return Marshal.PtrToStructure(hypDataPtr, type);
+            return Marshal.PtrToStructure(boxedPtr, type);
         }
 
         public static DynamicStruct GetOrCreate<T>()

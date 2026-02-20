@@ -187,7 +187,7 @@ public:
         {
             decltype(auto) target = targetData.Get<ThisType>();
 
-            if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
+            if (FBOMResult err = BoxedValueHelper<NormalizedType<FieldType>>::Serialize(target.*member, outData, flags))
             {
                 return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message);
             }
@@ -210,7 +210,7 @@ public:
 
                 BoxedValue value;
 
-                if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
+                if (FBOMResult err = BoxedValueHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                 }

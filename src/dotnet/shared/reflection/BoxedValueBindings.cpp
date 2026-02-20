@@ -20,21 +20,21 @@ using namespace Hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void HypData_Construct(ValueStorage<BoxedValue>* pBoxed)
+    HYP_EXPORT void BoxedValue_Construct(ValueStorage<BoxedValue>* pBoxed)
     {
         Assert(pBoxed != nullptr);
 
         pBoxed->Construct();
     }
 
-    HYP_EXPORT void HypData_Destruct(ValueStorage<BoxedValue>* pBoxed)
+    HYP_EXPORT void BoxedValue_Destruct(ValueStorage<BoxedValue>* pBoxed)
     {
         Assert(pBoxed != nullptr);
 
         pBoxed->Destruct();
     }
 
-    HYP_EXPORT void HypData_GetTypeId(const BoxedValue* pBoxed, TypeId* outTypeId)
+    HYP_EXPORT void BoxedValue_GetTypeId(const BoxedValue* pBoxed, TypeId* outTypeId)
     {
         if (!pBoxed || !outTypeId)
         {
@@ -44,7 +44,7 @@ extern "C"
         *outTypeId = pBoxed->GetTypeId();
     }
 
-    HYP_EXPORT const TypeInfo* HypData_GetTypeInfo(const BoxedValue* pBoxed)
+    HYP_EXPORT const TypeInfo* BoxedValue_GetTypeInfo(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -54,7 +54,7 @@ extern "C"
         return pBoxed->GetTypeInfo();
     }
 
-    HYP_EXPORT const void* HypData_GetPointer(const BoxedValue* pBoxed)
+    HYP_EXPORT const void* BoxedValue_GetPointer(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -64,7 +64,7 @@ extern "C"
         return pBoxed->ToRef().GetPointer();
     }
 
-    HYP_EXPORT int8 HypData_IsNull(const BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_IsNull(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -74,7 +74,7 @@ extern "C"
         return pBoxed->IsNull();
     }
 
-    HYP_EXPORT void HypData_Reset(BoxedValue* pBoxed)
+    HYP_EXPORT void BoxedValue_Reset(BoxedValue* pBoxed)
     {
         if (pBoxed)
         {
@@ -82,8 +82,8 @@ extern "C"
         }
     }
 
-#define HYP_DEFINE_HYPDATA_GET(type, name)                                                    \
-    HYP_EXPORT int8 HypData_Get##name(const BoxedValue* pBoxed, int8 strict, type* pOutValue) \
+#define HYP_DEFINE_BOXED_VALUE_GET(type, name)                                                    \
+    HYP_EXPORT int8 BoxedValue_Get##name(const BoxedValue* pBoxed, int8 strict, type* pOutValue) \
     {                                                                                         \
         if (!pBoxed || !pOutValue)                                                            \
         {                                                                                     \
@@ -100,8 +100,8 @@ extern "C"
         return false;                                                                         \
     }
 
-#define HYP_DEFINE_HYPDATA_IS(type, name)                                   \
-    HYP_EXPORT int8 HypData_Is##name(const BoxedValue* pBoxed, int8 strict) \
+#define HYP_DEFINE_BOXED_VALUE_IS(type, name)                                   \
+    HYP_EXPORT int8 BoxedValue_Is##name(const BoxedValue* pBoxed, int8 strict) \
     {                                                                       \
         if (!pBoxed)                                                        \
         {                                                                   \
@@ -111,8 +111,8 @@ extern "C"
         return pBoxed->Is<type>(bool(strict));                              \
     }
 
-#define HYP_DEFINE_HYPDATA_SET(type, name)                            \
-    HYP_EXPORT int8 HypData_Set##name(BoxedValue* pBoxed, type value) \
+#define HYP_DEFINE_BOXED_VALUE_SET(type, name)                            \
+    HYP_EXPORT int8 BoxedValue_Set##name(BoxedValue* pBoxed, type value) \
     {                                                                 \
         if (!pBoxed)                                                  \
         {                                                             \
@@ -123,50 +123,50 @@ extern "C"
         return true;                                                  \
     }
 
-    HYP_DEFINE_HYPDATA_GET(int8, Int8)
-    HYP_DEFINE_HYPDATA_GET(int16, Int16)
-    HYP_DEFINE_HYPDATA_GET(int32, Int32)
-    HYP_DEFINE_HYPDATA_GET(int64, Int64)
-    HYP_DEFINE_HYPDATA_GET(uint8, UInt8)
-    HYP_DEFINE_HYPDATA_GET(uint16, UInt16)
-    HYP_DEFINE_HYPDATA_GET(uint32, UInt32)
-    HYP_DEFINE_HYPDATA_GET(uint64, UInt64)
-    HYP_DEFINE_HYPDATA_GET(float, Float)
-    HYP_DEFINE_HYPDATA_GET(double, Double)
-    HYP_DEFINE_HYPDATA_GET(bool, Bool)
-    HYP_DEFINE_HYPDATA_GET(void*, IntPtr)
+    HYP_DEFINE_BOXED_VALUE_GET(int8, Int8)
+    HYP_DEFINE_BOXED_VALUE_GET(int16, Int16)
+    HYP_DEFINE_BOXED_VALUE_GET(int32, Int32)
+    HYP_DEFINE_BOXED_VALUE_GET(int64, Int64)
+    HYP_DEFINE_BOXED_VALUE_GET(uint8, UInt8)
+    HYP_DEFINE_BOXED_VALUE_GET(uint16, UInt16)
+    HYP_DEFINE_BOXED_VALUE_GET(uint32, UInt32)
+    HYP_DEFINE_BOXED_VALUE_GET(uint64, UInt64)
+    HYP_DEFINE_BOXED_VALUE_GET(float, Float)
+    HYP_DEFINE_BOXED_VALUE_GET(double, Double)
+    HYP_DEFINE_BOXED_VALUE_GET(bool, Bool)
+    HYP_DEFINE_BOXED_VALUE_GET(void*, IntPtr)
 
-    HYP_DEFINE_HYPDATA_SET(int8, Int8)
-    HYP_DEFINE_HYPDATA_SET(int16, Int16)
-    HYP_DEFINE_HYPDATA_SET(int32, Int32)
-    HYP_DEFINE_HYPDATA_SET(int64, Int64)
-    HYP_DEFINE_HYPDATA_SET(uint8, UInt8)
-    HYP_DEFINE_HYPDATA_SET(uint16, UInt16)
-    HYP_DEFINE_HYPDATA_SET(uint32, UInt32)
-    HYP_DEFINE_HYPDATA_SET(uint64, UInt64)
-    HYP_DEFINE_HYPDATA_SET(float, Float)
-    HYP_DEFINE_HYPDATA_SET(double, Double)
-    HYP_DEFINE_HYPDATA_SET(bool, Bool)
-    HYP_DEFINE_HYPDATA_SET(void*, IntPtr)
+    HYP_DEFINE_BOXED_VALUE_SET(int8, Int8)
+    HYP_DEFINE_BOXED_VALUE_SET(int16, Int16)
+    HYP_DEFINE_BOXED_VALUE_SET(int32, Int32)
+    HYP_DEFINE_BOXED_VALUE_SET(int64, Int64)
+    HYP_DEFINE_BOXED_VALUE_SET(uint8, UInt8)
+    HYP_DEFINE_BOXED_VALUE_SET(uint16, UInt16)
+    HYP_DEFINE_BOXED_VALUE_SET(uint32, UInt32)
+    HYP_DEFINE_BOXED_VALUE_SET(uint64, UInt64)
+    HYP_DEFINE_BOXED_VALUE_SET(float, Float)
+    HYP_DEFINE_BOXED_VALUE_SET(double, Double)
+    HYP_DEFINE_BOXED_VALUE_SET(bool, Bool)
+    HYP_DEFINE_BOXED_VALUE_SET(void*, IntPtr)
 
-    HYP_DEFINE_HYPDATA_IS(int8, Int8)
-    HYP_DEFINE_HYPDATA_IS(int16, Int16)
-    HYP_DEFINE_HYPDATA_IS(int32, Int32)
-    HYP_DEFINE_HYPDATA_IS(int64, Int64)
-    HYP_DEFINE_HYPDATA_IS(uint8, UInt8)
-    HYP_DEFINE_HYPDATA_IS(uint16, UInt16)
-    HYP_DEFINE_HYPDATA_IS(uint32, UInt32)
-    HYP_DEFINE_HYPDATA_IS(uint64, UInt64)
-    HYP_DEFINE_HYPDATA_IS(float, Float)
-    HYP_DEFINE_HYPDATA_IS(double, Double)
-    HYP_DEFINE_HYPDATA_IS(bool, Bool)
-    HYP_DEFINE_HYPDATA_IS(void*, IntPtr)
+    HYP_DEFINE_BOXED_VALUE_IS(int8, Int8)
+    HYP_DEFINE_BOXED_VALUE_IS(int16, Int16)
+    HYP_DEFINE_BOXED_VALUE_IS(int32, Int32)
+    HYP_DEFINE_BOXED_VALUE_IS(int64, Int64)
+    HYP_DEFINE_BOXED_VALUE_IS(uint8, UInt8)
+    HYP_DEFINE_BOXED_VALUE_IS(uint16, UInt16)
+    HYP_DEFINE_BOXED_VALUE_IS(uint32, UInt32)
+    HYP_DEFINE_BOXED_VALUE_IS(uint64, UInt64)
+    HYP_DEFINE_BOXED_VALUE_IS(float, Float)
+    HYP_DEFINE_BOXED_VALUE_IS(double, Double)
+    HYP_DEFINE_BOXED_VALUE_IS(bool, Bool)
+    HYP_DEFINE_BOXED_VALUE_IS(void*, IntPtr)
 
-#undef HYP_DEFINE_HYPDATA_GET
-#undef HYP_DEFINE_HYPDATA_IS
-#undef HYP_DEFINE_HYPDATA_SET
+#undef HYP_DEFINE_BOXED_VALUE_GET
+#undef HYP_DEFINE_BOXED_VALUE_IS
+#undef HYP_DEFINE_BOXED_VALUE_SET
 
-    HYP_EXPORT int8 HypData_IsArray(const BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_IsArray(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -176,7 +176,7 @@ extern "C"
         return pBoxed->IsArray();
     }
 
-    HYP_EXPORT int8 HypData_GetArraySize(const BoxedValue* pBoxed, int32* pOutSize)
+    HYP_EXPORT int8 BoxedValue_GetArraySize(const BoxedValue* pBoxed, int32* pOutSize)
     {
         if (!pBoxed || !pOutSize)
         {
@@ -195,7 +195,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_GetArrayElem(BoxedValue* pBoxed, int32 index, BoxedValue* pOutArrayElem)
+    HYP_EXPORT int8 BoxedValue_GetArrayElem(BoxedValue* pBoxed, int32 index, BoxedValue* pOutArrayElem)
     {
         if (!pBoxed || !pOutArrayElem)
         {
@@ -230,7 +230,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetArray(BoxedValue* pBoxed, const Class* pClass, BoxedValue* pElements, uint32 size)
+    HYP_EXPORT int8 BoxedValue_SetArray(BoxedValue* pBoxed, const Class* pClass, BoxedValue* pElements, uint32 size)
     {
         if (!pBoxed || !pClass || !pElements)
         {
@@ -245,7 +245,7 @@ extern "C"
         return pClass->CreateInstanceArray(Span<BoxedValue>(pElements, pElements + size), *pBoxed, /* allowAbstract */ false);
     }
 
-    HYP_EXPORT int8 HypData_IsString(const BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_IsString(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -255,7 +255,7 @@ extern "C"
         return pBoxed->Is<String>();
     }
 
-    HYP_EXPORT int8 HypData_GetString(const BoxedValue* pBoxed, const char** ppOutStringValue)
+    HYP_EXPORT int8 BoxedValue_GetString(const BoxedValue* pBoxed, const char** ppOutStringValue)
     {
         if (!pBoxed || !ppOutStringValue)
         {
@@ -274,7 +274,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetString(BoxedValue* pBoxed, const char* pStringValue)
+    HYP_EXPORT int8 BoxedValue_SetString(BoxedValue* pBoxed, const char* pStringValue)
     {
         if (!pBoxed || !pStringValue)
         {
@@ -286,7 +286,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT int8 HypData_IsId(const BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_IsId(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -296,7 +296,7 @@ extern "C"
         return pBoxed->Is<ObjIdBase>();
     }
 
-    HYP_EXPORT int8 HypData_GetId(const BoxedValue* pBoxed, ObjIdBase* pOutId)
+    HYP_EXPORT int8 BoxedValue_GetId(const BoxedValue* pBoxed, ObjIdBase* pOutId)
     {
         if (!pBoxed || !pOutId)
         {
@@ -313,7 +313,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetId(BoxedValue* pBoxed, ObjIdBase* pId)
+    HYP_EXPORT int8 BoxedValue_SetId(BoxedValue* pBoxed, ObjIdBase* pId)
     {
         if (!pBoxed || !pId)
         {
@@ -325,7 +325,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT int8 HypData_IsName(const BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_IsName(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -335,7 +335,7 @@ extern "C"
         return pBoxed->Is<Name>();
     }
 
-    HYP_EXPORT int8 HypData_GetName(const BoxedValue* pBoxed, Name* pOutName)
+    HYP_EXPORT int8 BoxedValue_GetName(const BoxedValue* pBoxed, Name* pOutName)
     {
         if (!pBoxed || !pOutName)
         {
@@ -352,7 +352,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetName(BoxedValue* pBoxed, Name nameValue)
+    HYP_EXPORT int8 BoxedValue_SetName(BoxedValue* pBoxed, Name nameValue)
     {
         if (!pBoxed)
         {
@@ -364,7 +364,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT int8 HypData_GetObject(const BoxedValue* pBoxed, dotnet::ObjectReference* pOutObjectReference)
+    HYP_EXPORT int8 BoxedValue_GetObject(const BoxedValue* pBoxed, dotnet::ObjectReference* pOutObjectReference)
     {
 #ifdef HYP_DOTNET
         if (!pBoxed || !pOutObjectReference)
@@ -414,7 +414,7 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetObject(BoxedValue* pBoxed, const Class* pClass, void* address)
+    HYP_EXPORT int8 BoxedValue_SetObject(BoxedValue* pBoxed, const Class* pClass, void* address)
     {
         if (!pBoxed || !pClass || !address)
         {
@@ -425,13 +425,13 @@ extern "C"
 
         if (pClass->IsClassType())
         {
-            return pClass->ToHypData(ByteView(reinterpret_cast<ubyte*>(address), pClass->GetSize()), *pBoxed);
+            return pClass->ToBoxed(ByteView(reinterpret_cast<ubyte*>(address), pClass->GetSize()), *pBoxed);
         }
 
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetNullObject(BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_SetNullObject(BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -443,7 +443,7 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT int8 HypData_GetStruct(const BoxedValue* pBoxed, dotnet::ObjectReference* pOutObjectReference)
+    HYP_EXPORT int8 BoxedValue_GetStruct(const BoxedValue* pBoxed, dotnet::ObjectReference* pOutObjectReference)
     {
 #ifdef HYP_DOTNET
         if (!pBoxed || !pOutObjectReference)
@@ -487,7 +487,7 @@ extern "C"
 #endif
     }
 
-    HYP_EXPORT int8 HypData_SetStruct(BoxedValue* pBoxed, const Class* pClass, uint32 size, void* pStructData)
+    HYP_EXPORT int8 BoxedValue_SetStruct(BoxedValue* pBoxed, const Class* pClass, uint32 size, void* pStructData)
     {
         if (!pBoxed || !pClass || !pStructData)
         {
@@ -511,10 +511,10 @@ extern "C"
             return false;
         }
 
-        return pStruct->ToHypData(ByteView(reinterpret_cast<ubyte*>(pStructData), size), *pBoxed);
+        return pStruct->ToBoxed(ByteView(reinterpret_cast<ubyte*>(pStructData), size), *pBoxed);
     }
 
-    HYP_EXPORT int8 HypData_IsByteBuffer(const BoxedValue* pBoxed)
+    HYP_EXPORT int8 BoxedValue_IsByteBuffer(const BoxedValue* pBoxed)
     {
         if (!pBoxed)
         {
@@ -524,7 +524,7 @@ extern "C"
         return pBoxed->Is<ByteBuffer>();
     }
 
-    HYP_EXPORT int8 HypData_GetByteBuffer(const BoxedValue* pBoxed, const void** outPtr, uint32* outSize)
+    HYP_EXPORT int8 BoxedValue_GetByteBuffer(const BoxedValue* pBoxed, const void** outPtr, uint32* outSize)
     {
         if (!pBoxed || !outPtr || !outSize)
         {
@@ -544,7 +544,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetByteBuffer(BoxedValue* pBoxed, const void* ptr, uint32 size)
+    HYP_EXPORT int8 BoxedValue_SetByteBuffer(BoxedValue* pBoxed, const void* ptr, uint32 size)
     {
         if (!pBoxed || !ptr)
         {

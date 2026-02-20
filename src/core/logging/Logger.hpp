@@ -224,8 +224,10 @@ public:
 
     static constexpr uint32 MaxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
-    HYP_METHOD()
     static Logger& GetInstance();
+
+    HYP_METHOD()
+    static Handle<Logger> MakeScriptLogger();
 
     Logger();
     Logger(ILoggerOutputStream& outputStream);
@@ -265,6 +267,11 @@ public:
 private:
     Pimpl<LoggerImpl> m_impl;
 };
+
+inline Logger& GetLogger()
+{
+    return Logger::GetInstance();
+}
 
 struct LogOnceHelper
 {

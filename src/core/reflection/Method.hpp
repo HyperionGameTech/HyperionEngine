@@ -238,7 +238,7 @@ public:
             }
             else
             {
-                if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
+                if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
                 }
@@ -260,7 +260,7 @@ public:
 
                 BoxedValue value;
 
-                if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
+                if (FBOMResult err = BoxedValueHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
                 }
@@ -339,7 +339,7 @@ public:
             }
             else
             {
-                if (FBOMResult err = HypDataHelper<NormalizedType<ReturnType>>::Serialize(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
+                if (FBOMResult err = BoxedValueHelper<NormalizedType<ReturnType>>::Serialize(CallMethod<decltype(fn), ReturnType, TargetType, ArgTypes...>(fn, argPtrs), out, flags))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
                 }
@@ -361,7 +361,7 @@ public:
 
                 BoxedValue value;
 
-                if (FBOMResult err = HypDataHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
+                if (FBOMResult err = BoxedValueHelper<NormalizedType<typename TupleElement<sizeof...(ArgTypes) - 1, ArgTypes...>::Type>>::Deserialize(context, data, value))
                 {
                     return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", *err.message);
                 }

@@ -350,10 +350,10 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "UIObject_Spawn")]
-        private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr classPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out BoxedValueInternal outHypData);
+        private static extern void UIObject_Spawn([In] IntPtr spawnParentPtr, [In] IntPtr classPtr, [In] ref Name name, [In] ref Vec2i position, [In] ref UIObjectSize size, [Out] out BoxedValueInternal outBoxed);
 
         [DllImport("hyperion", EntryPoint = "UIObject_Find")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr classPtr, [In] ref Name name, [Out] out BoxedValueInternal outHypData);
+        private static extern bool UIObject_Find([In] IntPtr parentPtr, [In] IntPtr classPtr, [In] ref Name name, [Out] out BoxedValueInternal outBoxed);
     }
 }

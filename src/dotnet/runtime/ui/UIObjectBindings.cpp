@@ -35,25 +35,25 @@ extern "C"
         return nullptr;
     }
 
-    HYP_EXPORT void UIObject_Spawn(UIObject* spawnParent, const Class* cls, Name* name, Vec2i* position, UIObjectSize* size, BoxedValue* outHypData)
+    HYP_EXPORT void UIObject_Spawn(UIObject* spawnParent, const Class* cls, Name* name, Vec2i* position, UIObjectSize* size, BoxedValue* outBoxed)
     {
         Assert(spawnParent != nullptr);
         Assert(cls != nullptr);
         Assert(name != nullptr);
         Assert(position != nullptr);
         Assert(size != nullptr);
-        Assert(outHypData != nullptr);
+        Assert(outBoxed != nullptr);
 
         Handle<UIObject> uiObject = spawnParent->CreateUIObject(cls, *name, *position, *size);
-        *outHypData = BoxedValue(std::move(uiObject));
+        *outBoxed = BoxedValue(std::move(uiObject));
     }
 
-    HYP_EXPORT int8 UIObject_Find(UIObject* parent, const Class* cls, Name* name, BoxedValue* outHypData)
+    HYP_EXPORT int8 UIObject_Find(UIObject* parent, const Class* cls, Name* name, BoxedValue* outBoxed)
     {
         Assert(parent != nullptr);
         Assert(cls != nullptr);
         Assert(name != nullptr);
-        Assert(outHypData != nullptr);
+        Assert(outBoxed != nullptr);
 
         if (!cls->IsDerivedFrom(UIObject::StaticClass()))
         {
@@ -70,7 +70,7 @@ extern "C"
             return false;
         }
 
-        *outHypData = BoxedValue(std::move(uiObject));
+        *outBoxed = BoxedValue(std::move(uiObject));
 
         return true;
     }

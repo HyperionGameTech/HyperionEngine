@@ -22,9 +22,6 @@
 #define HYP_DEBUG_OUTPUT_STREAM stdout
 
 namespace Hyperion {
-
-HYP_API extern Handle<Logger> g_logger;
-
 namespace debug {
 
 char* GetErrorStringBuffer()
@@ -129,22 +126,22 @@ bool IsDebuggerAttached()
 
 void LogAssert(const char* str)
 {
-    if (HYP_UNLIKELY(!g_logger)) // logger system not yet initialized
-    {
-        std::fprintf(HYP_DEBUG_OUTPUT_STREAM, "%s\n", str);
-        std::fflush(HYP_DEBUG_OUTPUT_STREAM);
+    // if (HYP_UNLIKELY(!g_logger)) // logger system not yet initialized
+    // {
+    //     std::fprintf(HYP_DEBUG_OUTPUT_STREAM, "%s\n", str);
+    //     std::fflush(HYP_DEBUG_OUTPUT_STREAM);
 
-        if (IsDebuggerAttached())
-        {
-            HYP_BREAKPOINT;
+    //     if (IsDebuggerAttached())
+    //     {
+    //         HYP_BREAKPOINT;
 
-            return;
-        }
+    //         return;
+    //     }
 
-        TerminateProgram();
+    //     TerminateProgram();
 
-        return;
-    }
+    //     return;
+    // }
 
 #ifdef HYP_DEBUG_MODE
     HYP_LOG_DYNAMIC(Core, Error, str);

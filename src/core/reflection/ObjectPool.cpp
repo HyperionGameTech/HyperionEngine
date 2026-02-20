@@ -154,8 +154,8 @@ ObjectContainerBase::~ObjectContainerBase()
 
             if (refCount > 0)
             {
-                HYP_LOG(Core, Warning, "Object %s#%u still has %d strong references on ObjectContainer destruction!!!\n",
-                    m_class->GetName().LookupString(), header->index + 1,
+                HYP_LOG(Core, Warning, "Object {} still has {} strong references during ObjectContainer destruction\n",
+                    ObjIdBase(header->cls->GetTypeId(), header->index + 1),
                     refCount);
             }
         }

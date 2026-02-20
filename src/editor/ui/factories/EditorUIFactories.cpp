@@ -134,7 +134,7 @@ static Handle<UIObject> CreatePropertyPanel(UIObject* spawnParent, const BoxedVa
     return propertyPanelCasted;
 }
 
-class HypDataUIElementFactory : public UIElementFactory<BoxedValue>
+class BoxedValueUIElementFactory : public UIElementFactory<BoxedValue>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const BoxedValue& value) const
@@ -231,7 +231,7 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(BoxedValue, HypDataUIElementFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(BoxedValue, BoxedValueUIElementFactory);
 
 template <int StringType>
 class StringUIElementFactory : public UIElementFactory<containers::String<StringType>>
@@ -720,9 +720,9 @@ public:
                 ComponentContainerBase* componentContainer = entityManager->TryGetContainer(componentTypeId);
                 Assert(componentContainer != nullptr);
 
-                BoxedValue componentHypData;
+                BoxedValue componentBoxed;
 
-                if (!componentContainer->TryGetComponent(it.second, componentHypData))
+                if (!componentContainer->TryGetComponent(it.second, componentBoxed))
                 {
                     HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with Id {} for Entity {}", componentInterface->GetTypeName(), it.second, entity->Id());
 
@@ -783,7 +783,7 @@ public:
                         continue;
                     }
 
-                    propertyPanelCasted->Build(componentHypData);
+                    propertyPanelCasted->Build(componentBoxed);
 
                     element = std::move(propertyPanelCasted);
                 }
@@ -798,7 +798,7 @@ public:
                         continue;
                     }
 
-                    element = factory->CreateUIObject(parent, componentHypData, {});
+                    element = factory->CreateUIObject(parent, componentBoxed, {});
                 }
 
                 if (!element)
@@ -1044,11 +1044,11 @@ public:
         Assert(factory != nullptr);
 
         // create a UIObject for the BoxedValue
-        Handle<UIObject> hypDataElement = factory->CreateUIObject(parent, BoxedValue(entity), {});
-        Assert(hypDataElement != nullptr);
+        Handle<UIObject> uiObject = factory->CreateUIObject(parent, BoxedValue(entity), {});
+        Assert(uiObject != nullptr);
 
         // add the BoxedValue UIObject to the list view
-        listView->AddChildUIObject(hypDataElement);
+        listView->AddChildUIObject(uiObject);
 
         /// \todo : Add components to the list view
 

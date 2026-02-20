@@ -1526,11 +1526,11 @@ bool DynamicClassInstance::CanCreateInstance() const
     return false;
 }
 
-bool DynamicClassInstance::ToHypData(ByteView memory, BoxedValue& outHypData) const
+bool DynamicClassInstance::ToBoxed(ByteView memory, BoxedValue& outBoxed) const
 {
     if (m_parent != nullptr)
     {
-        return m_parent->ToHypData(memory, outHypData);
+        return m_parent->ToBoxed(memory, outBoxed);
     }
 
 #ifdef HYP_SCRIPT

@@ -138,11 +138,11 @@ public:
     /*! \brief Tries to get the component with the given Id from the component container.
      *
      *  \param id The Id of the component to get.
-     *  \param outHypData The value to store a reference to the component in
+     *  \param outBoxed The value to store a reference to the component in
      *
      *  \return True if the component was found, false otherwise
      */
-    bool TryGetComponent(ComponentId id, BoxedValue& outHypData);
+    bool TryGetComponent(ComponentId id, BoxedValue& outBoxed);
 
     /*! \brief Checks if the component container has a component with the given Id.
      *
@@ -179,11 +179,11 @@ public:
     /*! \brief Removes the component with the given Id from the component container and stores the component object in BoxedValue
      *
      *  \param id The Id of the component to remove.
-     *  \param outHypData Out reference to store the component data in
+     *  \param outBoxed Out reference to store the component data in
      *
      *  \return True if the component was removed, false otherwise.
      */
-    virtual bool RemoveComponent(ComponentId id, BoxedValue& outHypData) = 0;
+    virtual bool RemoveComponent(ComponentId id, BoxedValue& outBoxed) = 0;
 
     /*! \brief Moves the component with the given Id from this component container to the given component container.
      *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
@@ -363,7 +363,7 @@ public:
         return false;
     }
 
-    virtual bool RemoveComponent(ComponentId id, BoxedValue& outHypData) override
+    virtual bool RemoveComponent(ComponentId id, BoxedValue& outBoxed) override
     {
         HYP_MT_CHECK_RW(m_dataRaceDetector);
 
@@ -371,7 +371,7 @@ public:
 
         if (it != m_components.End())
         {
-            outHypData = BoxedValue(std::move(it->second));
+            outBoxed = BoxedValue(std::move(it->second));
 
             m_components.Erase(it);
 

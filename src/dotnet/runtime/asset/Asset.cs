@@ -7,8 +7,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Asset_Destroy")]
         internal static extern void Asset_Destroy([In] IntPtr pLoadedAsset);
 
-        [DllImport("hyperion", EntryPoint = "Asset_GetHypData")]
-        internal static extern void Asset_GetHypData([In] IntPtr pLoadedAsset, [Out] out BoxedValueInternal outDataBuffer);
+        [DllImport("hyperion", EntryPoint = "Asset_GetBoxed")]
+        internal static extern void Asset_GetBoxed([In] IntPtr pLoadedAsset, [Out] out BoxedValueInternal outBoxed);
     }
 
     public class LoadedAsset : IDisposable
@@ -20,7 +20,7 @@ namespace Hyperion
             if (pLoadedAsset != IntPtr.Zero)
             {
                 BoxedValueInternal dataBuffer;
-                AssetNativeFunctions.Asset_GetHypData(pLoadedAsset, out dataBuffer);
+                AssetNativeFunctions.Asset_GetBoxed(pLoadedAsset, out dataBuffer);
 
                 if (dataBuffer.IsNull)
                 {
@@ -69,7 +69,7 @@ namespace Hyperion
             if (pLoadedAsset != IntPtr.Zero)
             {
                 BoxedValueInternal dataBuffer;
-                AssetNativeFunctions.Asset_GetHypData(pLoadedAsset, out dataBuffer);
+                AssetNativeFunctions.Asset_GetBoxed(pLoadedAsset, out dataBuffer);
 
                 if (dataBuffer.IsNull)
                 {

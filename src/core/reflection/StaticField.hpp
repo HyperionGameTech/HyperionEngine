@@ -55,7 +55,7 @@ public:
 
         m_serializeProc = [value](FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> Result
         {
-            if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out, flags))
+            if (FBOMResult err = BoxedValueHelper<NormalizedType<ConstantType>>::Serialize(value, out, flags))
             {
                 return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
             }
@@ -80,7 +80,7 @@ public:
         {
             HYP_CORE_ASSERT(pValue != nullptr);
 
-            if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
+            if (FBOMResult err = BoxedValueHelper<NormalizedType<ConstantType>>::Serialize(*pValue, out, flags))
             {
                 return HYP_MAKE_ERROR(Error, "Failed to serialize data: {}", err.message.Data());
             }

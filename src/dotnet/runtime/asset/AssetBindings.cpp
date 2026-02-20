@@ -19,7 +19,7 @@ extern "C"
         delete pLoadedAsset;
     }
 
-    HYP_EXPORT void Asset_GetHypData(LoadedAsset* pLoadedAsset, BoxedValue* pOutData)
+    HYP_EXPORT void Asset_GetBoxed(LoadedAsset* pLoadedAsset, BoxedValue* pOutData)
     {
         if (!pLoadedAsset || !pOutData)
         {

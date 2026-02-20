@@ -150,22 +150,22 @@ namespace Hyperion
 
             bool shouldStackAlloc = numArgs * Marshal.SizeOf<BoxedValueInternal>() < 1024;
 
-            Span<BoxedValueInternal> hypDataArgsBuffers = shouldStackAlloc
+            Span<BoxedValueInternal> argsBuffers = shouldStackAlloc
                 ? stackalloc BoxedValueInternal[(int)numArgs]
                 : new BoxedValueInternal[(int)numArgs];
 
             int argIndex = 0;
 
-            BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
-            hypDataArgsBuffers[argIndex].SetValue(thisObject);
+            BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);
+            argsBuffers[argIndex].SetValue(thisObject);
             argIndex++;
 
             if (numArgs > 1)
             {
                 for (; argIndex < numArgs; argIndex++)
                 {
-                    BoxedValueInternal.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
-                    hypDataArgsBuffers[argIndex].SetValue(args[argIndex - 1]);
+                    BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);
+                    argsBuffers[argIndex].SetValue(args[argIndex - 1]);
                 }
             }
 
@@ -174,12 +174,12 @@ namespace Hyperion
             // Args is pointer to contiguous BoxedValueInternal objects
             unsafe
             {
-                fixed (BoxedValueInternal* pArgs = hypDataArgsBuffers)
+                fixed (BoxedValueInternal* pArgs = argsBuffers)
                 {
                     bool result = Method_Invoke(_ptr, (IntPtr)pArgs, numArgs, out resultBuffer);
 
                     for (int i = 0; i < numArgs; i++)
-                        hypDataArgsBuffers[i].Dispose();
+                        argsBuffers[i].Dispose();
 
                     if (!result)
                         throw new InvalidOperationException("Failed to invoke method");
@@ -244,14 +244,14 @@ namespace Hyperion
                         {
                             if (thisObject != null)
                             {
-                                BoxedValueInternal.HypData_Construct(ref argsBuffers[argIndex]);
+                                BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);
                                 argsBuffers[argIndex].SetValue(thisObject);
                                 argIndex++;
                             }
 
                             for (; argIndex < numArgs; argIndex++)
                             {
-                                BoxedValueInternal.HypData_Construct(ref argsBuffers[argIndex]);
+                                BoxedValueInternal.BoxedValue_Construct(ref argsBuffers[argIndex]);
                                 argsBuffers[argIndex].SetValue(args[argIndex]);
                             }
                         }
