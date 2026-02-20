@@ -8,7 +8,7 @@
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/debug/Debug.hpp>

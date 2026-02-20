@@ -36,7 +36,7 @@
 #include <rendering/DebugDrawer.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/ResourceBinder.hpp>
@@ -365,7 +365,7 @@ struct ViewData
         {
             Handle<View> viewHandle;
             viewHandle.ptr = view;
-            SafeDelete(std::move(viewHandle));
+            EnqueueDeletion(std::move(viewHandle));
 
             view = nullptr;
         }
@@ -881,7 +881,6 @@ RenderInterface::RenderInterface()
       rayTracingPipelineCache(PoolNew<RayTracingPipelineCache>(*g_renderPool)),
       bindlessStorage(PoolNew<BindlessStorage>(*g_renderPool)),
       shaderManager(PoolNew<ShaderManager>(*g_renderPool)),
-      safeDeleter(PoolNew<SafeDeleter>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
       stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool))
@@ -1074,9 +1073,8 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, rayTracingPipelineCache);
     rayTracingPipelineCache = nullptr;
-
-    PoolDelete(*g_renderPool, safeDeleter);
-    safeDeleter = nullptr;
+    
+    DeletionQueue::GetInstance().Flush();
 }
 
 void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
@@ -1429,8 +1427,8 @@ void RenderInterface::EndFrame()
         subtypeData.indicesPendingDelete.Clear();
     }
 
-    safeDeleter->UpdateEntryListQueue();
-    safeDeleter->Iterate();
+    DeletionQueue::GetInstance().UpdateEntryListQueue();
+    DeletionQueue::GetInstance().Iterate();
 
     g_engineStats->Advance();
 

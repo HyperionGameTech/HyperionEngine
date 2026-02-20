@@ -80,6 +80,7 @@ Scene* GetDetachedSceneForCurrentThread()
     if (!s_ppDetachedScene)
     {
         s_ppDetachedScene = &GetDetachedScenes().GetDetachedScene(CurrentThreadId());
+        Assert(*s_ppDetachedScene != nullptr);
     }
 
     return *s_ppDetachedScene;

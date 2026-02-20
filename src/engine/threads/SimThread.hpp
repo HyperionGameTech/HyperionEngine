@@ -24,8 +24,10 @@ class SimThread final : public Thread<Scheduler>
 
 public:
     SimThread();
+    ~SimThread() override;
 
     bool Start();
+    void Stop() override;
 
     void SetGameInstance(Game* gameInstance);
 

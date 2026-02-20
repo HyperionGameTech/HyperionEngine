@@ -122,7 +122,20 @@ ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, B
 
 ScriptObjectResource::~ScriptObjectResource()
 {
-    ScriptObjectResource::Destroy();
+#ifdef HYP_SCRIPT
+    if (hypScriptData.HasValue())
+    {
+        if (hypScriptData->instance)
+        {
+            HypScript::GetInstance().DestroyScript(hypScriptData->instance);
+            hypScriptData->instance = nullptr;
+        }
+
+        hypScriptData->obj = BoxedValue();
+
+        hypScriptData.Unset();
+    }
+#endif
 }
 
 uint32 ScriptObjectResource::GetScriptLanguageMask() const
@@ -241,33 +254,9 @@ void ScriptObjectResource::Destroy()
         {
             const bool result = dotNetData->objectPtr->SetKeepAlive(false);
             Assert(result);
-
-            delete dotNetData->objectPtr;
-            dotNetData->objectPtr = nullptr;
         }
-
-        dotNetData->managedClass = nullptr;
-
-        dotNetData.Unset();
     }
 #endif
-
-#ifdef HYP_SCRIPT
-    if (hypScriptData.HasValue())
-    {
-        if (hypScriptData->instance)
-        {
-            HypScript::GetInstance().DestroyScript(hypScriptData->instance);
-            hypScriptData->instance = nullptr;
-        }
-
-        hypScriptData->obj = BoxedValue();
-
-        hypScriptData.Unset();
-    }
-#endif
-
-    nativeData.Unset();
 }
 
 #pragma endregion ScriptObjectResource

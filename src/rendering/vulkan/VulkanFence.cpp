@@ -29,7 +29,7 @@ VulkanFence::~VulkanFence()
 {
     if (handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = handle]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = handle]()
             {
                 vkDestroyFence(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
             }));

@@ -9,7 +9,7 @@
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -51,7 +51,7 @@ VulkanGpuImageView::~VulkanGpuImageView()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]() -> void
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]() -> void
             {
                 vkDestroyImageView(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
             }));

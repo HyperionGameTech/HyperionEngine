@@ -25,7 +25,7 @@
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Light.hpp>
@@ -50,7 +50,7 @@ RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& confi
 RayTracingReflections::~RayTracingReflections()
 {
     // remove result image from global descriptor set
-    SafeDelete(std::move(m_texture));
+    EnqueueDeletion(std::move(m_texture));
 }
 
 const GpuImageViewRef& RayTracingReflections::GetFinalImageView() const

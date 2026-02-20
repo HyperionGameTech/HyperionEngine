@@ -8,7 +8,7 @@
 
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {
 
@@ -20,7 +20,7 @@ DX12TextureViewCache::~DX12TextureViewCache()
     {
         for (auto& jt : it)
         {
-            SafeDelete(std::move(jt.second));
+            EnqueueDeletion(std::move(jt.second));
         }
     }
 }
@@ -110,7 +110,7 @@ void DX12TextureViewCache::RemoveTexture(const Texture* texture)
     {
         for (auto& it : imageViews.Get(idx))
         {
-            SafeDelete(std::move(it.second));
+            EnqueueDeletion(std::move(it.second));
         }
 
         imageViews.EraseAt(idx);
@@ -150,7 +150,7 @@ void DX12TextureViewCache::CleanupUnusedTextures()
 
             for (auto& it : imageViews.Get(idx))
             {
-                SafeDelete(std::move(it.second));
+                EnqueueDeletion(std::move(it.second));
             }
 
             imageViews.EraseAt(idx);

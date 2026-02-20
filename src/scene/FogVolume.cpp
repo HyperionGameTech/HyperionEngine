@@ -8,7 +8,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Shared.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/reflection/Handle.hpp>
 #include <core/threading/Threads.hpp>
@@ -36,12 +36,12 @@ FogVolume::~FogVolume()
 {
     if (m_volumeTexture)
     {
-        SafeDelete(std::move(m_volumeTexture));
+        EnqueueDeletion(std::move(m_volumeTexture));
     }
 
     if (m_noiseTexture)
     {
-        SafeDelete(std::move(m_noiseTexture));
+        EnqueueDeletion(std::move(m_noiseTexture));
     }
 }
 
@@ -72,7 +72,7 @@ void FogVolume::SetTextures(
     {
         if (m_volumeTexture)
         {
-            SafeDelete(std::move(m_volumeTexture));
+            EnqueueDeletion(std::move(m_volumeTexture));
         }
 
         m_volumeTexture = volumeTexture;
@@ -82,7 +82,7 @@ void FogVolume::SetTextures(
     {
         if (m_noiseTexture)
         {
-            SafeDelete(std::move(m_noiseTexture));
+            EnqueueDeletion(std::move(m_noiseTexture));
         }
 
         m_noiseTexture = noiseTexture;

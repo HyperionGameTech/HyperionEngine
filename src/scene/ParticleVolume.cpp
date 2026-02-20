@@ -7,7 +7,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -33,7 +33,7 @@ ParticleVolume::ParticleVolume(const BoundingBox& localBounds, const ParticleVol
 
 ParticleVolume::~ParticleVolume()
 {
-    SafeDelete(std::move(m_params.texture));
+    EnqueueDeletion(std::move(m_params.texture));
 }
 
 void ParticleVolume::Init()

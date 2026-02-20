@@ -9,7 +9,7 @@
 
 #include <rendering/Device.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <VulkanSemaphore.generated.inl>
 
@@ -28,7 +28,7 @@ VulkanSemaphore::~VulkanSemaphore()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
                 vkDestroySemaphore(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
             }));

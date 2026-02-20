@@ -55,7 +55,7 @@ struct Shader;
 class GpuBufferHolderBase;
 class StagingBufferPool;
 class ShaderManager;
-class SafeDeleter;
+class DeletionQueue;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -324,7 +324,7 @@ public:
 
     ShaderManager* shaderManager;
 
-    SafeDeleter* safeDeleter;
+    DeletionQueue* safeDeleter;
 
     BindlessStorage* bindlessStorage;
 

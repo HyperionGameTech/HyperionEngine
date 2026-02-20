@@ -12,7 +12,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
@@ -47,7 +47,7 @@ ShadowMap::ShadowMap(
 
 ShadowMap::~ShadowMap()
 {
-    SafeDelete(std::move(m_imageView));
+    EnqueueDeletion(std::move(m_imageView));
 
     if (m_atlasElement)
     {

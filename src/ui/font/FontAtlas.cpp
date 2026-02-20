@@ -11,7 +11,7 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -32,7 +32,7 @@ FontAtlasTextureSet::~FontAtlasTextureSet()
 {
     for (auto& atlas : atlases)
     {
-        SafeDelete(std::move(atlas.second));
+        EnqueueDeletion(std::move(atlas.second));
     }
 }
 

@@ -10,7 +10,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -64,7 +64,7 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
         Unmap();
     }
     
-    SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
+    EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
         {
             vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
         }));
@@ -449,7 +449,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
         HYP_DEFER({ if (guard) delete guard; });
 
         // safely destroy the buffer after the GPU is done with it:
-        VulkanBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<VulkanBufferDeleter>([](void* ptr)
+        VulkanBufferDeleter* deleter = DeletionQueue::GetInstance().AllocCustom<VulkanBufferDeleter>([](void* ptr)
             {
                 VulkanBufferDeleter* bufferDeleter = reinterpret_cast<VulkanBufferDeleter*>(ptr);
 

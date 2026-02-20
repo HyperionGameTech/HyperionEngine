@@ -11,7 +11,7 @@
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/RenderQueue.hpp>
 
@@ -120,7 +120,7 @@ VulkanFramebuffer::~VulkanFramebuffer()
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
                 vkDestroyFramebuffer(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
             }));

@@ -24,7 +24,7 @@
 #include <rendering/renderers/DeferredRenderer.hpp>
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EnvProbe.hpp>

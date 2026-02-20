@@ -6,7 +6,7 @@
 #include <rendering/GpuImageView.hpp>
 #include <rendering/GpuBuffer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {
 
@@ -25,7 +25,7 @@ CullData& CullData::operator=(const CullData& other)
 
     if (depthPyramidImageView != other.depthPyramidImageView)
     {
-        SafeDelete(std::move(depthPyramidImageView));
+        EnqueueDeletion(std::move(depthPyramidImageView));
 
         depthPyramidImageView = other.depthPyramidImageView;
     }
@@ -51,7 +51,7 @@ CullData& CullData::operator=(CullData&& other) noexcept
 
     if (depthPyramidImageView != other.depthPyramidImageView)
     {
-        SafeDelete(std::move(depthPyramidImageView));
+        EnqueueDeletion(std::move(depthPyramidImageView));
 
         depthPyramidImageView = std::move(other.depthPyramidImageView);
     }
@@ -64,7 +64,7 @@ CullData& CullData::operator=(CullData&& other) noexcept
 
 CullData::~CullData()
 {
-    SafeDelete(std::move(depthPyramidImageView));
+    EnqueueDeletion(std::move(depthPyramidImageView));
 }
 
 } // namespace Hyperion

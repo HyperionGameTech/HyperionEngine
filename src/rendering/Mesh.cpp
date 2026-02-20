@@ -7,7 +7,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Frame.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 
@@ -427,8 +427,8 @@ void Mesh::UploadGpuData()
             renderQueue << CopyBuffer(stagingBufferVertices, vertexBuffer, packedBufferSize);
             renderQueue << CopyBuffer(stagingBufferIndices, indexBuffer, packedIndicesSize);
 
-            SafeDelete(std::move(stagingBufferVertices));
-            SafeDelete(std::move(stagingBufferIndices));
+            EnqueueDeletion(std::move(stagingBufferVertices));
+            EnqueueDeletion(std::move(stagingBufferIndices));
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {
@@ -454,8 +454,8 @@ void Mesh::ReleaseGpuData()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    SafeDelete(std::move(m_vertexBuffer));
-    SafeDelete(std::move(m_indexBuffer));
+    EnqueueDeletion(std::move(m_vertexBuffer));
+    EnqueueDeletion(std::move(m_indexBuffer));
 
     gpuUploadSemaphore.Reset();
 }

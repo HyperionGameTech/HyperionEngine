@@ -13,9 +13,11 @@ class RenderThread final : public Thread<Scheduler>
 {
 public:
     RenderThread();
-    ~RenderThread();
+    ~RenderThread() override;
 
     bool Start();
+    void Stop() override;
+
     void Update();
 
 private:

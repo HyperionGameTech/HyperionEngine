@@ -81,20 +81,24 @@ public:
 
     /*! \brief Check if the thread can be joined (i.e. it is not detached) and is joinable (i.e. it is not already joined) */
     virtual bool CanJoin() const = 0;
-
-    void AtExit(Proc<void()>&& proc);
+    
+    void AddOnExitCallback(void (*callback)(void));
 
 protected:
     ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
+    void OnExit();
+
     const ThreadId m_id;
     ThreadPriorityValue m_priority;
     mutable ThreadLocalStorage* m_tls;
+
+    mutable Mutex m_onExitMutex;
+    Array<void (*)(void), DynamicAllocator> m_onExitCallbacks;
 };
 
 HYP_API extern void SetCurrentThreadObject(ThreadBase*);
 HYP_API extern void SetCurrentThreadPriority(ThreadPriorityValue priority);
-HYP_API extern void OnCurrentThreadExit();
 
 template <class Scheduler, class... Args>
 class Thread : public ThreadBase
@@ -192,7 +196,7 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
 
             m_isRunning.Store(false);
 
-            OnCurrentThreadExit();
+            OnExit();
         });
 
     return true;
@@ -240,6 +244,7 @@ bool Thread<Scheduler, Args...>::CanJoin() const
 
     return m_thread->joinable();
 }
+
 } // namespace threading
 
 using threading::Thread;

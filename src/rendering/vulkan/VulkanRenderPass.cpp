@@ -11,7 +11,7 @@
 #include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <VulkanRenderPass.generated.inl>
 
@@ -50,7 +50,7 @@ VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
                 vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
             }));
@@ -78,7 +78,7 @@ VulkanRenderPass::~VulkanRenderPass()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle]()
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle]()
             {
                 vkDestroyRenderPass(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
             }));

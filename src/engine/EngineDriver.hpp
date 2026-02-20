@@ -38,7 +38,7 @@ class FinalPass;
 class PlaceholderData;
 class RenderThread;
 class SimThread;
-class SafeDeleter;
+class DeletionQueue;
 class RenderState;
 class World;
 class EngineStats;

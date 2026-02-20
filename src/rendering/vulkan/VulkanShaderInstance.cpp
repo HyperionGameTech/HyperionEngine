@@ -49,7 +49,7 @@ VulkanShaderInstance::~VulkanShaderInstance()
         return;
     }
 
-    SafeDelete(FunctionWrapper<Proc<void()>>([shaderModules = std::move(m_shaderModules)]()
+    EnqueueDeletion(FunctionWrapper<Proc<void()>>([shaderModules = std::move(m_shaderModules)]()
         {
             for (const VulkanShaderModule& shaderModule : shaderModules)
             {

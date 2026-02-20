@@ -49,7 +49,7 @@ static void InitThreadLocalCache()
         {
             new (s_cache) ThreadLocalCacheMap;
 
-            thisThread->AtExit([]()
+            thisThread->AddOnExitCallback([]()
                 {
                     s_cache->~ThreadLocalCacheMap();
                 });

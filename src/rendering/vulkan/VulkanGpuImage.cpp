@@ -53,7 +53,7 @@ VulkanGpuImage::~VulkanGpuImage()
         {
             Assert(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
             
-            SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]() -> void
+            EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]() -> void
                 {
                     vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
                 }));
@@ -432,7 +432,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
         // destroy and recreate
         if (m_allocation != VK_NULL_HANDLE)
         {
-            SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]()
+            EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]()
                 {
                     vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
                 }));

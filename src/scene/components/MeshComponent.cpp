@@ -8,7 +8,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <MeshComponent.generated.inl>
 
@@ -23,17 +23,17 @@ MeshComponent& MeshComponent::operator=(const MeshComponent& other)
 
     if (mesh)
     {
-        SafeDelete(std::move(mesh));
+        EnqueueDeletion(std::move(mesh));
     }
 
     if (material)
     {
-        SafeDelete(std::move(material));
+        EnqueueDeletion(std::move(material));
     }
 
     if (skeleton)
     {
-        SafeDelete(std::move(skeleton));
+        EnqueueDeletion(std::move(skeleton));
     }
 
     mesh = other.mesh;
@@ -63,17 +63,17 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
 
     if (mesh)
     {
-        SafeDelete(std::move(mesh));
+        EnqueueDeletion(std::move(mesh));
     }
 
     if (material)
     {
-        SafeDelete(std::move(material));
+        EnqueueDeletion(std::move(material));
     }
 
     if (skeleton)
     {
-        SafeDelete(std::move(skeleton));
+        EnqueueDeletion(std::move(skeleton));
     }
 
     mesh = std::move(other.mesh);
@@ -87,9 +87,9 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
 
 MeshComponent::~MeshComponent()
 {
-    SafeDelete(std::move(mesh));
-    SafeDelete(std::move(material));
-    SafeDelete(std::move(skeleton));
+    EnqueueDeletion(std::move(mesh));
+    EnqueueDeletion(std::move(material));
+    EnqueueDeletion(std::move(skeleton));
 }
 
 } // namespace Hyperion

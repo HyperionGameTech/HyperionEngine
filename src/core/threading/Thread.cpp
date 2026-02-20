@@ -33,19 +33,6 @@ namespace threading {
 
 #pragma region ThreadBase
 
-thread_local Delegate<void>* s_onThreadExit;
-
-HYP_API void OnCurrentThreadExit()
-{
-    if (s_onThreadExit)
-    {
-        (*s_onThreadExit)();
-
-        delete s_onThreadExit;
-        s_onThreadExit = nullptr;
-    }
-}
-
 ThreadBase::ThreadBase(const ThreadId& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
@@ -86,17 +73,23 @@ ThreadLocalStorage& ThreadBase::GetTLS() const
     return *m_tls;
 }
 
-void ThreadBase::AtExit(Proc<void()>&& proc)
+void ThreadBase::AddOnExitCallback(void (*callback)(void))
 {
-    HYP_SCOPE;
-    AssertOnThread(m_id);
+    if (!callback)
+        return;
 
-    if (!s_onThreadExit)
+    Mutex::Guard guard(m_onExitMutex);
+    m_onExitCallbacks.PushBack(callback);
+}
+
+void ThreadBase::OnExit()
+{
+    Mutex::Guard guard(m_onExitMutex);
+
+    for (auto& cb : m_onExitCallbacks)
     {
-        s_onThreadExit = new Delegate<void>();
+        cb();
     }
-
-    s_onThreadExit->Bind(std::move(proc)).Detach();
 }
 
 #pragma endregion ThreadBase

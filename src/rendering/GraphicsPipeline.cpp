@@ -8,7 +8,7 @@
 #include <rendering/Shader.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 

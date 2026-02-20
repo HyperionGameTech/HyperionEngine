@@ -460,7 +460,7 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         g_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
         InitObject(g_quadMesh);
 
-        CurrentThreadObject()->AtExit([]()
+        CurrentThreadObject()->AddOnExitCallback([]()
             {
                 g_quadMesh.Reset();
             });

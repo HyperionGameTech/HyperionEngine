@@ -24,7 +24,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
@@ -526,7 +526,7 @@ void DebugDrawer::Shutdown()
         HYP_DEFER({ if (pGuard) delete pGuard; });
 
         // safely destroy the buffer data on the correct frame
-        DebugDrawBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
+        DebugDrawBufferDeleter* deleter = DeletionQueue::GetInstance().AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
             {
                 AssertOnThread(g_renderThread);
 
@@ -557,7 +557,7 @@ void DebugDrawer::Shutdown()
         };
     }
 
-    SafeDelete(std::move(m_instanceBuffers));
+    EnqueueDeletion(std::move(m_instanceBuffers));
 }
 
 void DebugDrawer::Update()
@@ -677,7 +677,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     {
         if (instanceBuffer)
         {
-            SafeDelete(std::move(instanceBuffer));
+            EnqueueDeletion(std::move(instanceBuffer));
         }
 
         instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());

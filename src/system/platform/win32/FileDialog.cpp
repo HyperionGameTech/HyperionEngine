@@ -118,7 +118,7 @@ static void InitializeCOM()
         ThreadBase* thread = CurrentThreadObject();
         Assert(thread != nullptr, "CurrentThreadObject returned null");
         
-        thread->AtExit([]()
+        thread->AddOnExitCallback([]()
         {
             if (s_isCOMInitialized)
             {
