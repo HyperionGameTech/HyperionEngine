@@ -11,7 +11,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 

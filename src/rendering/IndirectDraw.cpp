@@ -13,7 +13,7 @@
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/PlaceholderData.hpp>
 

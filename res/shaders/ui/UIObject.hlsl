@@ -135,13 +135,20 @@ PSOutput PSMain(PSInput input)
 
     const UIObjectProperties properties = GetUIObjectProperties(input.properties);
 
-    float4 ui_color = CURRENT_MATERIAL.albedo;
+    float4 ui_color = (float4)1.0;
 
 #ifdef TEXTURED
     float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, input.texcoord0);
 
     ui_color *= albedo_texture;
 #endif
+    
+#ifdef UI_TEXT
+    // ui text uses R8 font atlas bitmap so swizzle red channel into rgba before mult by color value
+    ui_color.rgba = (float4)albedo_texture.r;
+#endif
+    
+    ui_color *= CURRENT_MATERIAL.albedo;
 
     float2 size = float2(properties.size);
     float2 position = input.texcoord0 * size;

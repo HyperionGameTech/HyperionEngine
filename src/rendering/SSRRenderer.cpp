@@ -15,7 +15,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderHelpers.hpp>
 

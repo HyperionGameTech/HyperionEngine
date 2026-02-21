@@ -5,6 +5,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/ComputePipeline.hpp>
 #include <rendering/RenderInterface.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/Shader.hpp>
 
 #include <rendering/util/ShaderPropertyDictionary.hpp>
@@ -63,7 +64,7 @@ public:
         VertexAttributeSet attributes;
         ShaderMapEntry* entry;
 
-        ShaderInstanceRef outShader;
+        ShaderInstanceRef shaderInstance;
     };
 
     HashMap<HashCode, ShaderMapEntry*> m_entryMap;
@@ -86,17 +87,17 @@ public:
     {
         bool isValid = true;
         isValid &= g_shaderCompiler->RequestShader(
-            request.shaderName, request.properties, request.attributes, *request.entry->shader);
+            request.shaderName, request.properties, request.attributes, request.entry->shader);
 
         isValid &= request.entry->shader->IsValid();
 
         Assert(isValid, "Compiled shader '{}' is not a valid compiled shader", request.shaderName);
 
-        request.outShader = g_renderInterface->MakeShader(request.entry->shader);
-        CheckResult(request.outShader->Create());
+        request.shaderInstance = g_renderInterface->MakeShader(request.entry->shader);
+        CheckResult(request.shaderInstance->Create());
 
         // Update the entry
-        request.entry->shaderInstance = request.outShader;
+        request.entry->shaderInstance = request.shaderInstance;
         request.entry->state.Set(ShaderMapEntry::State::LOADED, MemoryOrder::SEQUENTIAL);
     }
 
@@ -492,9 +493,9 @@ public:
 
             if (const ShaderMapEntry* entry = it.second)
             {
-                for (const ByteBuffer& byteBuffer : entry->shaderInstance->GetShader()->shaderBlobs)
+                for (const BlobDataReference& blob : entry->shaderInstance->GetShader()->shaderBlobs)
                 {
-                    totalMemoryUsage += byteBuffer.Size();
+                    totalMemoryUsage += blob.size;
                 }
             }
         }

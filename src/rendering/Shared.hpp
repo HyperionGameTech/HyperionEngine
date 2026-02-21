@@ -1664,6 +1664,7 @@ struct ShaderProperty
         : name(name),
           flags(flags)
     {
+        cachedHashCode = GetHashCode();
     }
 
     ShaderProperty(Name name, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
@@ -1671,6 +1672,7 @@ struct ShaderProperty
           flags(flags),
           currentValue(currentValue)
     {
+        cachedHashCode = GetHashCode();
     }
 
     explicit ShaderProperty(const VertexAttribute& vertexAttribute)
@@ -2126,9 +2128,7 @@ public:
     {
         if (m_needsHashCodeRecalculation)
         {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
+            RecalculateHashCode_Const();
         }
 
         return m_cachedHashCode;
@@ -2138,18 +2138,21 @@ public:
     {
         if (m_needsHashCodeRecalculation)
         {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
+            RecalculateHashCode_Const();
         }
 
         return m_cachedPropertySetHashCode;
     }
 
-    HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
+    HashCode RecalculateHashCode()
+    {
+        return RecalculateHashCode_Const();
+    }
 
+    HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
+    
 private:
-    void RecalculateHashCode() const
+    HashCode RecalculateHashCode_Const() const
     {
         HashCode hc;
 
@@ -2174,14 +2177,18 @@ private:
                 return std::strcmp(*a->name, *b->name) < 0;
             });
 
-        for (const ShaderProperty* pShaderProperty : propsPtrs)
+        for (const ShaderProperty* property : propsPtrs)
         {
-            m_cachedPropertySetHashCode.Add(pShaderProperty->GetHashCode());
+            m_cachedPropertySetHashCode.Add(property->GetHashCode());
         }
 
         hc.Add(m_cachedPropertySetHashCode);
+        hc.Add(m_requiredVertexAttributes.GetHashCode());
 
         m_cachedHashCode = hc;
+        m_needsHashCodeRecalculation = false;
+
+        return hc;
     }
 
     HYP_FIELD()

@@ -272,6 +272,12 @@ public:
         return IsSaved_Internal();
     }
 
+    HYP_FORCE_INLINE Time GetLastSavedTimestamp() const
+    {
+        TSharedLock lock(m_mutex);
+        return m_lastSavedTimestamp;
+    }
+
     HYP_FIELD()
     ScriptableDelegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
 
@@ -335,6 +341,8 @@ private:
     FilePath m_packageDir;
 
     SharedMutex m_mutex;
+
+    Time m_lastSavedTimestamp;
 
     mutable Mutex m_loadedMutex;
     ConditionVariable m_loadedCV;

@@ -1201,6 +1201,8 @@ struct BoxedValueHelper<Handle<T>> : BoxedValueHelper<Handle<ObjectBase>, std::e
     }
 };
 
+#if 1
+
 /// Objects can be stored inline via Handle<ObjectBase> like Handle<T>, and converted to/from Handle<T>
 
 template <class T>
@@ -1238,7 +1240,19 @@ struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> :
     {
         BoxedValueHelper<Handle<T>>::Set(boxed, value.HandleFromThis());
     }
+
+    static FBOMResult Serialize(const T& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        return BoxedValueHelper<Handle<T>>::Serialize(value.HandleFromThis(), outData, flags);
+    }
+
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
+    {
+        return BoxedValueHelper<Handle<T>>::Deserialize(context, data, out);
+    }
 };
+
+#endif
 
 /// RefCountedPtr void type can be used to hold any other RefCountedPtr type
 

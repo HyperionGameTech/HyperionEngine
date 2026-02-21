@@ -3,6 +3,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/RayTracingPipeline.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/Shader.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
@@ -22,7 +23,7 @@ bool RayTracingPipelineBase::MatchesSignature(const ShaderDesc& shaderDesc) cons
 
     const Shader& shader = *m_shaderInstance->GetShader();
 
-    if (shaderDesc.name != shader.name || shaderDesc.properties != shader.properties)
+    if (shaderDesc.name != shader.baseName || shaderDesc.properties != shader.properties)
     {
         return false;
     }

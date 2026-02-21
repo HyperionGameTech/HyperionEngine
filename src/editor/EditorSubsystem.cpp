@@ -2743,7 +2743,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
     Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));
 
-    if (Result renderAtlasResult = atlas->RenderAtlasTextures(); renderAtlasResult.HasError())
+    if (Result renderAtlasResult = atlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }

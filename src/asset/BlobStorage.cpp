@@ -414,6 +414,8 @@ void BlobStorage::ClosePage(uint32 page)
 
 Result BlobStorage::SaveManifest()
 {
+    Mutex::Guard guard(m_mutex);
+
     if (m_baseDirectory.Empty())
     {
         return HYP_MAKE_ERROR(Error, "Base directory not set");
@@ -443,6 +445,8 @@ Result BlobStorage::SaveManifest()
 
 Result BlobStorage::LoadManifest()
 {
+    Mutex::Guard guard(m_mutex);
+
     const FilePath manifestPath = m_baseDirectory / "Manifest.json";
 
     if (!manifestPath.Exists())
@@ -488,6 +492,8 @@ Result BlobStorage::LoadManifest()
 
 Result BlobStorage::SaveTOC()
 {
+    Mutex::Guard guard(m_mutex);
+
     const FilePath tocPath = m_baseDirectory / "storage.toc";
 
     FileByteWriter tocWriter { tocPath };
@@ -504,6 +510,8 @@ Result BlobStorage::SaveTOC()
 
 Result BlobStorage::LoadTOC()
 {
+    Mutex::Guard guard(m_mutex);
+
     const FilePath tocPath = m_baseDirectory / "storage.toc";
 
     if (!tocPath.Exists())
