@@ -343,6 +343,9 @@ public:
             header.moveFn = [](void* dst, void* src)
             {
                 new (dst) DeletionQueueElem<T>(std::move(*reinterpret_cast<DeletionQueueElem<T>*>(src)));
+
+                // destruct prev in place, since we won't be using it again (this is done upon buffer resize)
+                reinterpret_cast<DeletionQueueElem<T>*>(src)->~DeletionQueueElem();
             };
         }
         else
@@ -404,15 +407,13 @@ private:
 template <class TFunction>
 static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
 {
-    using Payload = NormalizedType<FunctionWrapper<TFunction>>;
-
     Mutex::Guard* pGuard = nullptr;
 
-    Payload** ppPayload = DeletionQueue::GetInstance().AllocCustom<Payload*>([](void* ptr)
+    FunctionWrapper<TFunction>** ppPayload = DeletionQueue::GetInstance().AllocCustom<FunctionWrapper<TFunction>*>([](void* ptr)
         {
             AssertOnThread(g_renderThread);
 
-            Payload* pPayload = *reinterpret_cast<Payload**>(ptr);
+            FunctionWrapper<TFunction>* pPayload = *reinterpret_cast<FunctionWrapper<TFunction>**>(ptr);
             AssertDebug(pPayload != nullptr);
 
             (*pPayload)();
@@ -421,7 +422,7 @@ static inline void EnqueueDeletion(FunctionWrapper<TFunction>&& func)
         },
         &pGuard);
     
-    *ppPayload = new Payload(std::forward<Payload>(func));
+    *ppPayload = new FunctionWrapper<TFunction>(std::move(func));
 
     if (pGuard) // if locking was needed then we can delete the guard now to unlock.
     {

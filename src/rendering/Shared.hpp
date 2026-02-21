@@ -2183,7 +2183,6 @@ private:
         }
 
         hc.Add(m_cachedPropertySetHashCode);
-        hc.Add(m_requiredVertexAttributes.GetHashCode());
 
         m_cachedHashCode = hc;
         m_needsHashCodeRecalculation = false;

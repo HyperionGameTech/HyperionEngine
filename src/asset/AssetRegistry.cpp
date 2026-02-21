@@ -238,6 +238,7 @@ static bool IsPackageInList(
  *   This is to be used primarily for internal packages (e.g $Temp, Engine) */
 static bool ShouldSavePackageOnChanged(const AssetPackage& package)
 {
+    return false; // TEMP
     if (package.IsTransient())
     {
         return false;

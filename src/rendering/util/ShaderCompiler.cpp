@@ -3134,7 +3134,10 @@ bool ShaderCompiler::CompileBundle(
                 perm.ToString(),
                 perm.GetRequiredVertexAttributes().ToString());
 
-            Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, perm.GetHashCode().Value()));
+            HashCode permHashCode = perm.GetPropertySetHashCode();
+            permHashCode.Add(perm.GetRequiredVertexAttributes().GetHashCode());
+
+            Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, permHashCode.Value()));
             shader->baseName = decl.name;
 
             for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
@@ -3451,7 +3454,7 @@ bool ShaderCompiler::CompileBundle(
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
             Result registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
-                HYP_FORMAT("Engine/Shaders/{}", shader->baseName),
+                HYP_FORMAT("Engine/Shaders/{}Perms", shader->baseName),
                 shader,
                 AddAssetConflictMode::ReplaceExisting);
 
