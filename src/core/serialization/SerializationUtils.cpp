@@ -767,6 +767,10 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
         case MemberType::Property:
         {
             const Property& property = static_cast<const Property&>(member);
+
+            if (!property.CanSet())
+                return false;
+
             const TypeInfo& typeInfo = property.GetTypeInfo();
 
             BoxedValue boxed;

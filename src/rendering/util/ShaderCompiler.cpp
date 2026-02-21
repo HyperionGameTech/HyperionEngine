@@ -1632,7 +1632,7 @@ Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
         + ByteUtil::BitCount(chunks[3]));
 
     uint64 chunkOffset = 0;
-    for (uint64 chunk : chunks)
+    for (uint32 chunk : chunks)
     {
         FOR_EACH_BIT(chunk, bit)
         {
@@ -1641,7 +1641,7 @@ Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
             result.PushBack(propertyId);
         }
 
-        chunkOffset += 64;
+        chunkOffset += ShaderPropertySet::ChunkSizeBits;
     }
 
     return result;
@@ -2017,19 +2017,6 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
     if (m_definitions && m_definitions->IsValid())
     {
         return true;
-    }
-
-    const FilePath dataPath = GetCacheDirectory() / "ShaderBundles";
-
-    if (!dataPath.Exists())
-    {
-        if (FileSystem::MkDir(dataPath.Data()) != 0)
-        {
-            HYP_LOG(ShaderCompiler, Error, "Failed to create data path at {}",
-                dataPath);
-
-            return false;
-        }
     }
 
     if (m_definitions)
