@@ -2210,12 +2210,12 @@ struct ShaderPropertySet
     HYP_STRUCT_BODY(ShaderPropertySet);
 
     static constexpr uint32 NumChunks = 8;
-    static constexpr uint32 ChunkSize = sizeof(uint64);
+    static constexpr uint32 ChunkSize = sizeof(uint32);
     static constexpr uint32 ChunkSizeBits = ChunkSize * CHAR_BIT;
     static constexpr uint32 MaxProperties = ChunkSize * NumChunks;
 
     HYP_FIELD()
-    FixedArray<uint64, NumChunks> chunks;
+    FixedArray<uint32, NumChunks> chunks;
 
     HYP_FORCE_INLINE constexpr ShaderPropertySet()
         : chunks{}
@@ -2257,10 +2257,10 @@ struct ShaderPropertySet
 
     HYP_FORCE_INLINE constexpr bool Test(ShaderPropertyId id) const
     {
-        return bool(chunks[0] & (1ull << uint32(id)))
-            || bool(chunks[1] & (1ull << uint32(id)))
-            || bool(chunks[2] & (1ull << uint32(id)))
-            || bool(chunks[3] & (1ull << uint32(id)));
+        return bool(chunks[0] & (1u << uint32(id)))
+            || bool(chunks[1] & (1u << uint32(id)))
+            || bool(chunks[2] & (1u << uint32(id)))
+            || bool(chunks[3] & (1u << uint32(id)));
     }
 
     HYP_FORCE_INLINE constexpr bool operator==(const ShaderPropertySet& other) const
