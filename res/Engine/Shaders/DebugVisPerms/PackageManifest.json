@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "DebugVisPerms",
+  "FriendlyName": "DebugVisPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/DebugVisPerms"
+}

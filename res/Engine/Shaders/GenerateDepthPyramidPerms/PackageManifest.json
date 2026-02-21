@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "GenerateDepthPyramidPerms",
+  "FriendlyName": "GenerateDepthPyramidPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/GenerateDepthPyramidPerms"
+}

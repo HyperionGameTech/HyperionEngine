@@ -45,6 +45,8 @@ extern HYP_NODISCARD FilePath CreateTempDirectory();
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
+HYP_API extern const FilePath& GetCacheDirectory();
+
 static const ThreadId& s_assetRegistryThread = g_simThread;
 
 static constexpr const char* BlobStorageName = "Storage";
@@ -238,7 +240,6 @@ static bool IsPackageInList(
  *   This is to be used primarily for internal packages (e.g $Temp, Engine) */
 static bool ShouldSavePackageOnChanged(const AssetPackage& package)
 {
-    return false; // TEMP
     if (package.IsTransient())
     {
         return false;
@@ -2034,17 +2035,11 @@ void AssetRegistry::InitBlobStorage()
         return;
     }
 
-    static const String& s_blobStorageLocation = CoreApi::GetGlobalConfig().Get("App.BlobStorage.Location").AsString();
-    static const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.BlobStorage.PageSize").ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
+    const FilePath& s_blobStorageLocation = GetCacheDirectory();
+    const uint64 s_blobStoragePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize")
+        .ToUInt64(/* defaultValue */ BlobStorage::DefaultPageSize);
 
-    const FilePath storageDirectory = g_assetManager->GetBasePath() / FilePath(s_blobStorageLocation);
-    if (!storageDirectory.Exists() && !storageDirectory.MkDir())
-    {
-        HYP_FAIL("Failed to initialize storage directory {}!", storageDirectory);
-        return;
-    }
-
-    m_blobStorage = new BlobStorage(storageDirectory, s_blobStoragePageSize);
+    m_blobStorage = new BlobStorage(s_blobStorageLocation, s_blobStoragePageSize);
 }
 
 void AssetRegistry::Update(float delta)

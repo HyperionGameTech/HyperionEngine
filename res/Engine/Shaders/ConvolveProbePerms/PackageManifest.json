@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "ConvolveProbePerms",
+  "FriendlyName": "ConvolveProbePerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/ConvolveProbePerms"
+}

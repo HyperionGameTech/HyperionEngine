@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "ComputeSHPerms",
+  "FriendlyName": "ComputeSHPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/ComputeSHPerms"
+}

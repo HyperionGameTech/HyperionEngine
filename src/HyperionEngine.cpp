@@ -166,10 +166,44 @@ HYP_EXPORT const FilePath& GetResourceDirectory()
 }
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
+static bool s_cacheDirectoryInit = false;
+static SharedMutex s_cacheDirectoryMutex;
+
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Cache")> s_resourceDirectory;
-    return s_resourceDirectory.path;
+    static const ConfigurationValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
+    static const ConfigurationValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
+
+    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / FilePath(s_cfgCacheDirectory.AsString());
+
+    TSharedLock sharedLock(s_cacheDirectoryMutex);
+
+    if (s_cacheDirectoryInit)
+        return s_cacheDirectory;
+
+    sharedLock.Reset();
+
+    TUniqueLock uniqueLock(s_cacheDirectoryMutex);
+
+    if (s_cacheDirectoryInit)
+        return s_cacheDirectory;
+
+    if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
+    {
+        ConfigurationTable newConfigurationTable;
+        newConfigurationTable.Set("App.Cache.PageSize", ConfigurationValue(BlobStorage::DefaultPageSize));
+
+        CoreApi::UpdateGlobalConfig(newConfigurationTable);
+    }
+
+    if (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir())
+    {
+        HYP_FAIL("Failed to initialize cache storage directory {}!", s_cacheDirectory);
+    }
+
+    s_cacheDirectoryInit = true;
+
+    return s_cacheDirectory;
 }
 
 // Directory for temporary data (intermediate compilation outputs, etc.) Will be not be used in production builds

@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "SkyboxPerms",
+  "FriendlyName": "SkyboxPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/SkyboxPerms"
+}

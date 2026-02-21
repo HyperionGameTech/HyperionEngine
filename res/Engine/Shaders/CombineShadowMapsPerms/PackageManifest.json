@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "CombineShadowMapsPerms",
+  "FriendlyName": "CombineShadowMapsPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/CombineShadowMapsPerms"
+}
