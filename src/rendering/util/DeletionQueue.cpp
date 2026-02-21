@@ -152,12 +152,7 @@ void DeletionQueue::Shutdown()
             }
             else
             {
-                Memory::Copy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
-            }
-
-            if (header.destructFn)
-            {
-                header.destructFn(vp);
+                Memory::Move(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
             }
 
             header.offset = newAlignedOffset;
@@ -420,12 +415,7 @@ void DeletionQueue::UpdateEntryListQueue()
             }
             else
             {
-                Memory::Copy(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
-            }
-
-            if (header.destructFn)
-            {
-                header.destructFn(vp);
+                Memory::Move(currentEntryList.buffer.Data() + newAlignedOffset, vp, header.size);
             }
 
             header.offset = newAlignedOffset;

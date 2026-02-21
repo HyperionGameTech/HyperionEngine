@@ -66,6 +66,7 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
     
     EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
         {
+            HYP_LOG_TEMP("Destory vulkan buffer {}", (void*)handle);
             vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
         }));
 
@@ -344,6 +345,8 @@ void VulkanGpuBuffer::CopyFrom(
 
 RendererResult VulkanGpuBuffer::Create()
 {
+    AssertOnThread(g_renderThread);
+
     if (IsCreated())
     {
         // already created
@@ -415,6 +418,8 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
     SizeType alignment,
     bool* outSizeChanged)
 {
+    AssertOnThread(g_renderThread);
+
     if (minimumSize == 0)
     {
         return {};
@@ -441,6 +446,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
             {
+                HYP_LOG_TEMP("Destory vulkan buffer {}", (void*)handle);
                 vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
             }));
 
