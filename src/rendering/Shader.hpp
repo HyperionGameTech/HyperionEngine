@@ -85,7 +85,7 @@ public:
 
     /// ===== Serialization only =====
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
-    uint64 GetRevisionNumber() const;
+    int GetRevisionNumber() const;
     /// ==============================
 
     Shader() = default;
