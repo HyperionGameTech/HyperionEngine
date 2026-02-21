@@ -51,7 +51,7 @@ struct ShaderInputGroup;
 class Texture;
 class ApplicationWindow;
 class SingleTimeCommands;
-struct Shader;
+class Shader;
 class GpuBufferHolderBase;
 class StagingBufferPool;
 class ShaderManager;

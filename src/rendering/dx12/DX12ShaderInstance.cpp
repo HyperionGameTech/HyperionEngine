@@ -6,6 +6,8 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 
+#include <rendering/Shader.hpp>
+
 #include <DX12ShaderInstance.generated.inl>
 
 namespace Hyperion {

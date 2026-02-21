@@ -12,7 +12,7 @@
 #include <rendering/GpuImage.hpp>
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 

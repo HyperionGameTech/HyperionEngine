@@ -23,7 +23,7 @@
 namespace Hyperion {
 
 class Texture;
-using FontAtlasBitmap = Bitmap_RGBA8;
+using FontAtlasBitmap = Bitmap_R8;
 
 HYP_STRUCT()
 struct HYP_API FontAtlasTextureSet
@@ -77,7 +77,7 @@ public:
 
     ~FontAtlas();
 
-    HYP_API Result RenderAtlasTextures();
+    HYP_API Result RenderAtlasTextures(float mainAtlasScale, float maxScale, float step = 0.1f);
 
     HYP_FORCE_INLINE const GlyphMetricsBuffer& GetGlyphMetrics() const
     {

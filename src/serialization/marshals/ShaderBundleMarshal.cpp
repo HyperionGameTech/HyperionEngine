@@ -6,6 +6,7 @@
 #include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 
@@ -25,16 +26,16 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const override
     {
-        out = BoxedValue(Shader());
+        Handle<Shader> shader = MakeHandle<Shader>();
 
-        Shader& shader = out.Get<Shader>();
+        out = BoxedValue(shader);
 
         if (FBOMResult err = ObjectMarshal::Deserialize_Internal(context, in, Shader::StaticClass(), out))
         {
             return err;
         }
 
-        if (shader.GetRevisionNumber() != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
+        if (shader->GetRevisionNumber() != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
         {
             // force recompile
             return { FBOMResult::FBOM_ERR, "Shader out of date" };

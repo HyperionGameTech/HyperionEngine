@@ -14,6 +14,8 @@
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/StringUtil.hpp>
 
+#include <asset/AssetObject.hpp>
+
 #include <rendering/Shared.hpp>
 
 #include <util/ini/INIFile.hpp>
@@ -24,6 +26,7 @@
 namespace Hyperion {
 
 struct ShaderInputGroup;
+class Shader;
 
 static constexpr const char* DefaultEntryPointNames[NumShaderModuleTypes] = {
     "",                     // ShaderModuleType::None
@@ -325,8 +328,10 @@ struct DescriptorSetDeclaration
 
     DescriptorSetDeclaration(const DescriptorSetDeclaration& other) = default;
     DescriptorSetDeclaration& operator=(const DescriptorSetDeclaration& other) = default;
+
     DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
     DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
+
     ~DescriptorSetDeclaration() = default;
 
     HYP_FORCE_INLINE void AddDescriptorDeclaration(ShaderInput decl)
@@ -464,185 +469,33 @@ struct ShaderInputGroup
     };
 };
 
-HYP_STRUCT()
-struct HYP_API Shader
+HYP_CLASS()
+class HYP_API ShaderBundle : public AssetObject
 {
-    HYP_STRUCT_BODY(Shader);
+    HYP_OBJECT_BODY(ShaderBundle);
 
-    HYP_FIELD(Property = "Name")
-    Name name;
-
-    HYP_FIELD(Property = "PropertySet")
-    ShaderPropertySet properties;
-
-    HYP_FIELD(Property = "VertexAttributes")
-    VertexAttributeSet vertexAttributes;
-
-    HYP_FIELD(Property = "ShaderInputGroup")
-    ShaderInputGroup inputGroup;
-
-    HYP_FIELD(Property = "ShaderModuleTypes")
-    Array<ShaderModuleType> moduleTypes;
-
-    HYP_FIELD(Property = "ShaderModuleNames")
-    Array<String> moduleNames;
-
-    HYP_FIELD(Property = "EntryPointNames")
-    Array<String> entryPointNames;
-
-    HYP_FIELD(Property = "ShaderBlobs", Compressed)
-    Array<ByteBuffer> shaderBlobs;
-
-    HYP_FIELD(Property = "PropertySetHashCode")
-    HashCode propertySetHashCode;
-
-    /// ===== Serialization only =====
-    HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
-    uint64 GetRevisionNumber() const;
-    /// ==============================
-
-    Shader() = default;
-
-    Shader(const Shader& other);
-    Shader& operator=(const Shader& other);
-
-    Shader(Shader&& other) noexcept;
-    Shader& operator=(Shader&& other) noexcept;
-
-    ~Shader();
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return IsValid();
-    }
-
-    HYP_FORCE_INLINE bool IsValid() const
-    {
-        return name.IsValid()
-            && shaderBlobs.Any()
-            && moduleTypes.Size() == shaderBlobs.Size()
-            && moduleNames.Size() == shaderBlobs.Size()
-            && entryPointNames.Size() == shaderBlobs.Size();
-    }
-
-    HYP_FORCE_INLINE const ShaderInputGroup* GetDescriptorTableDeclaration() const
-    {
-        // \TODO return reference
-        return &inputGroup;
-    }
-
-    void AddShaderModule(
-        ShaderModuleType moduleType,
-        UTF8StringView moduleName,
-        UTF8StringView entryPointName,
-        ByteBuffer&& shaderBlob);
-
-    void AddShaderModule(
-        ShaderModuleType moduleType,
-        UTF8StringView moduleName,
-        ByteBuffer&& shaderBlob)
-    {
-        AddShaderModule(moduleType, moduleName, DefaultEntryPointNames[uint8(moduleType)], std::move(shaderBlob));
-    }
-
-    bool GetShaderModuleInfo(
-        uint32 index,
-        ShaderModuleType& outModuleType,
-        String& outModuleName,
-        String& outEntryPointName,
-        ConstByteView& outShaderBlob) const
-    {
-        if (!IsValid() || index < 0 || index >= moduleTypes.Size())
-        {
-            return false;
-        }
-
-        outModuleType = moduleTypes[index];
-        outModuleName = moduleNames[index];
-        outEntryPointName = entryPointNames[index];
-        outShaderBlob = shaderBlobs[index].ToByteView();
-
-        return true;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(name.GetHashCode());
-        hc.Add(properties.GetHashCode());
-        hc.Add(vertexAttributes.GetHashCode());
-        hc.Add(moduleTypes.GetHashCode());
-        hc.Add(moduleNames.GetHashCode());
-        hc.Add(entryPointNames.GetHashCode());
-        hc.Add(shaderBlobs.GetHashCode());
-        hc.Add(propertySetHashCode);
-
-        return hc;
-    }
-};
-
-HYP_STRUCT()
-struct ShaderBundle
-{
-    HYP_STRUCT_BODY(ShaderBundle);
-
+public:
     HYP_FIELD()
-    Array<Shader> compiledShaders;
+    Array<Handle<Shader>> compiledShaders;
 
-    HYP_FIELD()
+    HYP_FIELD(Transient)
     Array<String> errorMessages;
 
     ShaderBundle() = default;
 
-    ShaderBundle(const ShaderBundle& other)
-        : compiledShaders(other.compiledShaders),
-          errorMessages(other.errorMessages)
+    explicit ShaderBundle(Name name)
+        : AssetObject(name)
     {
     }
 
-    ShaderBundle& operator=(const ShaderBundle& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        compiledShaders = other.compiledShaders;
-        errorMessages = other.errorMessages;
-
-        return *this;
-    }
-
-    ShaderBundle(ShaderBundle&& other) noexcept
-        : compiledShaders(std::move(other.compiledShaders)),
-          errorMessages(std::move(other.errorMessages))
-    {
-    }
-
-    ShaderBundle& operator=(ShaderBundle&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        compiledShaders = std::move(other.compiledShaders);
-        errorMessages = std::move(other.errorMessages);
-
-        return *this;
-    }
-
-    ~ShaderBundle() = default;
+    ~ShaderBundle() override = default;
 
     HYP_FORCE_INLINE bool HasErrors() const
     {
         return errorMessages.Any();
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return compiledShaders.GetHashCode();
-    }
+    HashCode GetHashCode() const;
 };
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out);
@@ -690,7 +543,7 @@ public:
         Name name,
         const ShaderPropertySet& properties,
         const VertexAttributeSet& vertexAttributes,
-        Shader& out);
+        Shader*& outShader);
 
 private:
     ProcessResult ProcessShaderSource(
@@ -707,7 +560,7 @@ private:
 
     bool CompileBundle(
         ShaderBundleDecl& decl,
-        ShaderBundle& outBundle)
+        Handle<ShaderBundle>& outBundle)
     {
         return CompileBundle(decl, {}, outBundle, false);
     }
@@ -715,19 +568,19 @@ private:
     bool HandleBundle(
         ShaderBundleDecl& decl,
         Optional<ShaderRequest> shaderRequest,
-        const FilePath& outputFilePath,
-        ShaderBundle& inOutBundle);
+        const Time& lastSavedTimestamp,
+        Handle<ShaderBundle>& inOutBundle);
 
     bool CompileBundle(
         const ShaderBundleDecl& decl,
         Optional<ShaderRequest> shaderRequest,
-        ShaderBundle& outBundle,
+        Handle<ShaderBundle>& outBundle,
         bool onlyCompileRequested = false);
 
     bool LoadBundle(
         Name name,
         Optional<ShaderRequest> shaderRequest,
-        ShaderBundle& outBundle);
+        Handle<ShaderBundle>& outBundle);
 
     INIFile* m_definitions;
     Array<ShaderBundleDecl> m_shaderBundleDecls;

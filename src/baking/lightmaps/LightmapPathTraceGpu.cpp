@@ -23,7 +23,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/DescriptorSet.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Buffers.hpp> // For RayTracingConstants

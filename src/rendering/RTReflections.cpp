@@ -12,7 +12,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderHelpers.hpp>

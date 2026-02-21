@@ -20,7 +20,7 @@
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>

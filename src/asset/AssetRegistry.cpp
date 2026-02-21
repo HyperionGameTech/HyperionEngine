@@ -238,9 +238,6 @@ static bool IsPackageInList(
  *   This is to be used primarily for internal packages (e.g $Temp, Engine) */
 static bool ShouldSavePackageOnChanged(const AssetPackage& package)
 {
-    // TEMP: Return false until blob storage is figured out
-    return false;
-
     if (package.IsTransient())
     {
         return false;
@@ -354,7 +351,8 @@ AssetPackage::AssetPackage()
 
 AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
     : m_flags(flags),
-      m_stateFlags(0)
+      m_stateFlags(0),
+      m_lastSavedTimestamp(Time(0))
 {
     if (name.IsValid())
     {
@@ -1426,6 +1424,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
         manifestWriter.Close();
             
         m_packageDir = packageDir;
+        m_lastSavedTimestamp = Time::Now();
     }
 
     Name packageName = m_name;
@@ -1919,6 +1918,23 @@ void AssetRegistry::Initialize()
             }
 
             packages.Clear();
+
+            if (m_blobStorage != nullptr)
+            {
+                Result result = m_blobStorage->SaveTOC();
+
+                if (result.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to save blob storage table of contents! Error message was: {}", result.GetError().GetMessage());
+                }
+
+                result = m_blobStorage->SaveManifest();
+
+                if (result.HasError())
+                {
+                    HYP_LOG(Assets, Error, "Failed to save blob storage manifest! Error message was: {}", result.GetError().GetMessage());
+                }
+            }
         });
 }
 
@@ -2996,6 +3012,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
     outPackage->m_registry = WeakHandleFromThis();
     outPackage->m_packageDir = dir;
     outPackage->m_parentPackage = parentPackage;
+    outPackage->m_lastSavedTimestamp = manifestPath.LastModifiedTimestamp();
 
     // start out in loading state so other threads requesting this package will
     // have to wait for us, rather than trying to load repeatedly

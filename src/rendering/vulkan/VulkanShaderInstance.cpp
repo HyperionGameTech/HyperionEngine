@@ -10,6 +10,8 @@
 
 #include <rendering/util/ShaderCompiler.hpp>
 
+#include <rendering/Shader.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/utilities/Format.hpp>
@@ -37,7 +39,7 @@ VulkanShaderInstance::VulkanShaderInstance(const Shader* shader)
 #ifdef HYP_DEBUG_MODE
     if (shader != nullptr)
     {
-        SetDebugName(shader->name);
+        SetDebugName(shader->GetName());
     }
 #endif
 }
@@ -103,14 +105,10 @@ RendererResult VulkanShaderInstance::AttachShaderModules()
         return HYP_MAKE_ERROR(RendererError, "Attached compiled shader is in invalid state");
     }
 
+    auto resGuard = m_shader->GetReadScope();
+
     for (SizeType index = 0; index < m_shader->moduleTypes.Size(); index++)
     {
-#ifdef HYP_DEBUG_MODE
-        const Name srcName = NAME_FMT("{}", m_shader->name);
-#else
-        const Name srcName = NAME("<unnamed shader>");
-#endif
-
         ShaderModuleType moduleType;
         String moduleName;
         String entryPointName;

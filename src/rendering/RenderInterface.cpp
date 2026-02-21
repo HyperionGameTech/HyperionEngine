@@ -24,7 +24,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Swapchain.hpp>
@@ -34,6 +34,7 @@
 #include <rendering/DescriptorSetCache.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/DebugDrawer.hpp>
+#include <rendering/Shader.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/DeletionQueue.hpp>

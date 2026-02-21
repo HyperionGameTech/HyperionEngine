@@ -11,6 +11,8 @@
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
+#include <rendering/Shader.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/math/MathUtil.hpp>
