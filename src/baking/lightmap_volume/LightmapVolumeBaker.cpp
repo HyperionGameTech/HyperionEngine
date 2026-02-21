@@ -16,7 +16,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/RenderQueue.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/LightmapVolume.hpp>
@@ -62,10 +62,10 @@ struct BlitAtlasElements : RenderCommand
     {
         for (auto& it : elementTextures)
         {
-            SafeDelete(std::move(it.second));
+            EnqueueDeletion(std::move(it.second));
         }
 
-        SafeDelete(std::move(atlasTextures));
+        EnqueueDeletion(std::move(atlasTextures));
     }
 
     virtual RendererResult operator()() override
@@ -501,7 +501,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         if (bakeEntity.material)
         {
             Handle<Material> clonedMaterial = bakeEntity.material->Clone();
-            SafeDelete(std::move(bakeEntity.material));
+            EnqueueDeletion(std::move(bakeEntity.material));
 
             bakeEntity.material = clonedMaterial;
         }
@@ -537,7 +537,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                 {
                     InitObject(newMaterial);
 
-                    SafeDelete(std::move(meshComponent.material));
+                    EnqueueDeletion(std::move(meshComponent.material));
 
                     meshComponent.material = std::move(newMaterial);
                 }

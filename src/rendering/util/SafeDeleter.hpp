@@ -157,7 +157,7 @@ private:
     void (*deleteFn)(T&);
 };
 
-class HYP_API SafeDeleter
+class DeletionQueue
 {
 public:
     struct EntryHeader
@@ -283,12 +283,12 @@ public:
         }
     };
 
-    SafeDeleter();
-    SafeDeleter(const SafeDeleter&) = delete;
-    SafeDeleter& operator=(const SafeDeleter&) = delete;
-    SafeDeleter(SafeDeleter&&) = delete;
-    SafeDeleter& operator=(SafeDeleter&&) = delete;
-    ~SafeDeleter();
+    DeletionQueue();
+    DeletionQueue(const DeletionQueue&) = delete;
+    DeletionQueue& operator=(const DeletionQueue&) = delete;
+    DeletionQueue(DeletionQueue&&) = delete;
+    DeletionQueue& operator=(DeletionQueue&&) = delete;
+    ~DeletionQueue();
 
     /*! \brief Read the counter values for the last n frames, accumulated (n = num multi buffers).
      *   - only call this on the render thread.
@@ -393,7 +393,7 @@ private:
     Counter m_counters[RingBufferDepth];
 };
 
-extern HYP_API SafeDeleter* GetSafeDeleterInstance();
+extern HYP_API DeletionQueue* GetSafeDeleterInstance();
 
 template <class TFunction>
 static inline void SafeDelete(FunctionWrapper<TFunction>&& func)

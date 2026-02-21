@@ -16,7 +16,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DescriptorSet.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -24,7 +24,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineStats.hpp>
@@ -474,6 +474,12 @@ static FixedArray<ByteBuffer, RingBufferDepth> CreateDebugDrawBuffers()
     return std::move(buffersStorage).Get();
 }
 
+DebugDrawer& DebugDrawer::GetInstance()
+{
+    static DebugDrawer s_instance;
+    return s_instance;
+}
+
 DebugDrawer::DebugDrawer()
     : m_config(DebugDrawerConfig::FromConfig()),
       m_buffers(CreateDebugDrawBuffers()),
@@ -483,6 +489,14 @@ DebugDrawer::DebugDrawer()
 }
 
 DebugDrawer::~DebugDrawer()
+{
+}
+
+void DebugDrawer::Initialize()
+{
+}
+
+void DebugDrawer::Shutdown()
 {
     for (uint32 i = 0; i < uint32(m_commandLists.Size()); i++)
     {
@@ -512,7 +526,7 @@ DebugDrawer::~DebugDrawer()
         HYP_DEFER({ if (pGuard) delete pGuard; });
 
         // safely destroy the buffer data on the correct frame
-        DebugDrawBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
+        DebugDrawBufferDeleter* deleter = DeletionQueue::GetInstance().AllocCustom<DebugDrawBufferDeleter>([](void* ptr)
             {
                 AssertOnThread(g_renderThread);
 
@@ -543,14 +557,10 @@ DebugDrawer::~DebugDrawer()
         };
     }
 
-    SafeDelete(std::move(m_instanceBuffers));
+    EnqueueDeletion(std::move(m_instanceBuffers));
 }
 
-void DebugDrawer::Initialize()
-{
-}
-
-void DebugDrawer::Update(float delta)
+void DebugDrawer::Update()
 {
     HYP_SCOPE;
     AssertOnThread(g_simThread);
@@ -667,7 +677,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     {
         if (instanceBuffer)
         {
-            SafeDelete(std::move(instanceBuffer));
+            EnqueueDeletion(std::move(instanceBuffer));
         }
 
         instanceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ImmediateDrawShaderData) * m_headers[idx].Size());
@@ -911,6 +921,18 @@ DebugDrawCommandList& DebugDrawer::CreateCommandList()
 #pragma endregion DebugDrawer
 
 #pragma region DebugDrawCommandList
+
+DebugDrawCommandList::DebugDrawCommandList(DebugDrawer* debugDrawer)
+    : m_debugDrawer(debugDrawer),
+      m_lock(debugDrawer->m_sharedMutex),
+      sphere(*this),
+      ambientProbe(*this),
+      reflectionProbe(*this),
+      box(*this),
+      plane(*this),
+      m_bufferOffset(0)
+{
+}
 
 DebugDrawCommandList::~DebugDrawCommandList()
 {

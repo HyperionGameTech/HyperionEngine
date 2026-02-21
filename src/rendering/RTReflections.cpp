@@ -12,7 +12,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderHelpers.hpp>
@@ -25,7 +25,7 @@
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Light.hpp>
@@ -50,7 +50,7 @@ RayTracingReflections::RayTracingReflections(RayTracingReflectionsConfig&& confi
 RayTracingReflections::~RayTracingReflections()
 {
     // remove result image from global descriptor set
-    SafeDelete(std::move(m_texture));
+    EnqueueDeletion(std::move(m_texture));
 }
 
 const GpuImageViewRef& RayTracingReflections::GetFinalImageView() const

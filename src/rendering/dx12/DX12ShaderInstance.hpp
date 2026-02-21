@@ -4,7 +4,7 @@
 
 #ifndef INCLUDE_FROM_RHI_BASE
 #define INCLUDE_FROM_RHI
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #endif
 
 #undef INCLUDE_FROM_RHI

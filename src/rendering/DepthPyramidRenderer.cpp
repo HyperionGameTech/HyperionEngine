@@ -12,11 +12,11 @@
 #include <rendering/GpuImage.hpp>
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <engine/EngineDriver.hpp>
 
@@ -39,15 +39,15 @@ DepthPyramidRenderer::DepthPyramidRenderer(GBuffer* gbuffer)
 
 DepthPyramidRenderer::~DepthPyramidRenderer()
 {
-    SafeDelete(std::move(m_depthImageView));
+    EnqueueDeletion(std::move(m_depthImageView));
 
-    SafeDelete(std::move(m_depthPyramid));
-    SafeDelete(std::move(m_depthPyramidView));
+    EnqueueDeletion(std::move(m_depthPyramid));
+    EnqueueDeletion(std::move(m_depthPyramidView));
 
-    SafeDelete(std::move(m_depthPyramidSampler));
+    EnqueueDeletion(std::move(m_depthPyramidSampler));
 
-    SafeDelete(std::move(m_mipImageViews));
-    SafeDelete(std::move(m_mipUniformBuffers));
+    EnqueueDeletion(std::move(m_mipImageViews));
+    EnqueueDeletion(std::move(m_mipUniformBuffers));
 }
 
 void DepthPyramidRenderer::Create()

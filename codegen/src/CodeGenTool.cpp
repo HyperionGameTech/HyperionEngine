@@ -40,8 +40,6 @@ namespace Hyperion {
 
 HYP_API Pool* g_objectPool;
 
-HYP_API Handle<Logger> g_logger;
-
 namespace CodeGen {
 
 HYP_DEFINE_LOG_CHANNEL(Tool);
@@ -1830,11 +1828,6 @@ using namespace CodeGen;
 int main(int argc, char** argv)
 {
     SetCurrentThreadId(g_mainThread);
-
-    static Logger s_buildToolLogger;
-
-    g_logger.ptr = &s_buildToolLogger;
-    HYP_DEFER({ g_logger.ptr = nullptr; });
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 

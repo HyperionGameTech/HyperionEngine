@@ -39,139 +39,44 @@ struct LogMessage
 };
 
 HYP_ENUM()
-enum LogLevel : uint32
+enum class LogLevel : uint8
 {
-    DEBUG = 0,
-    INFO,
-    WARNING,
-    ERR,
-    FATAL,
-
-    MAX
+    Fatal,
+    Error,
+    Warning,
+    Info,
+    Verbose,
+    Debug
 };
 
-HYP_STRUCT()
-struct LogCategory
-{
-    HYP_STRUCT_BODY(LogCategory);
-
-    enum LogCategoryFlags : uint8
-    {
-        LCF_NONE = 0x0,
-        LCF_ENABLED = 0x1,
-#ifdef HYP_DEBUG_MODE
-        LCF_ENABLED_IF_DEBUG_MODE = LCF_ENABLED,
-#else
-        LCF_ENABLED_IF_DEBUG_MODE = LCF_NONE,
-#endif
-        LCF_FATAL = 0x4,
-
-        LCF_DEFAULT = LCF_ENABLED
-    };
-
-    constexpr LogCategory()
-        : value(0)
-    {
-    }
-
-    constexpr LogCategory(LogLevel level, uint16 priority, uint8 flags = LCF_DEFAULT)
-        : value(uint32(flags) | (uint32(priority) << 8) | (uint32(level) << 24))
-    {
-    }
-
-    constexpr LogCategory(const LogCategory& other)
-        : value(other.value)
-    {
-    }
-
-    LogCategory& operator=(const LogCategory& other)
-    {
-        value = other.value;
-
-        return *this;
-    }
-
-    HYP_FORCE_INLINE constexpr bool operator==(const LogCategory& other) const
-    {
-        return value == other.value;
-    }
-
-    HYP_FORCE_INLINE constexpr bool operator!=(const LogCategory& other) const
-    {
-        return value != other.value;
-    }
-
-    HYP_FORCE_INLINE constexpr bool operator<(const LogCategory& other) const
-    {
-        return GetPriority() < other.GetPriority();
-    }
-
-    HYP_FORCE_INLINE constexpr uint8 GetFlags() const
-    {
-        return value & 0xFF;
-    }
-
-    HYP_FORCE_INLINE constexpr uint16 GetPriority() const
-    {
-        return uint16((value >> 8) & 0xFFFF);
-    }
-
-    HYP_FORCE_INLINE constexpr LogLevel GetLevel() const
-    {
-        return LogLevel((value >> 24) & 0xFF);
-    }
-
-    HYP_FORCE_INLINE constexpr bool IsEnabled() const
-    {
-        return (GetFlags() & LCF_ENABLED) != 0;
-    }
-
-    HYP_FIELD()
-    static const LogCategory Debug;
-
-    HYP_FIELD()
-    static const LogCategory Warning;
-
-    HYP_FIELD()
-    static const LogCategory Info;
-
-    HYP_FIELD()
-    static const LogCategory Error;
-
-    HYP_FIELD()
-    static const LogCategory Fatal;
-
-    uint32 value;
-};
-
-inline constexpr LogCategory LogCategory::Debug = LogCategory(LogLevel::DEBUG, 10000, LogCategory::LCF_ENABLED_IF_DEBUG_MODE);
-inline constexpr LogCategory LogCategory::Warning = LogCategory(LogLevel::WARNING, 1000);
-inline constexpr LogCategory LogCategory::Info = LogCategory(LogLevel::INFO, 100);
-inline constexpr LogCategory LogCategory::Error = LogCategory(LogLevel::ERR, 10);
-inline constexpr LogCategory LogCategory::Fatal = LogCategory(LogLevel::FATAL, 1, LogCategory::LCF_ENABLED | LogCategory::LCF_FATAL);
+constexpr uint8 NumLogLevels = uint8(LogLevel::Debug) + 1;
 
 template <LogLevel Level>
 static constexpr auto LogLevelToString()
 {
-    if constexpr (Level == LogLevel::DEBUG)
-    {
-        return HYP_STATIC_STRING("Debug");
-    }
-    else if constexpr (Level == LogLevel::INFO)
+    if constexpr (Level == LogLevel::Info)
     {
         return HYP_STATIC_STRING("Info");
     }
-    else if constexpr (Level == LogLevel::WARNING)
+    else if constexpr (Level == LogLevel::Warning)
     {
         return HYP_STATIC_STRING("Warning");
     }
-    else if constexpr (Level == LogLevel::ERR)
+    else if constexpr (Level == LogLevel::Error)
     {
         return HYP_STATIC_STRING("Error");
     }
-    else if constexpr (Level == LogLevel::FATAL)
+    else if constexpr (Level == LogLevel::Fatal)
     {
         return HYP_STATIC_STRING("Fatal");
+    }
+    else if constexpr (Level == LogLevel::Debug)
+    {
+        return HYP_STATIC_STRING("Debug");
+    }
+    else if constexpr (Level == LogLevel::Verbose)
+    {
+        return HYP_STATIC_STRING("Verbose");
     }
     else
     {
@@ -181,18 +86,22 @@ static constexpr auto LogLevelToString()
 
 static constexpr Span<const char> LogLevelTermColor(LogLevel logLevel)
 {
-    constexpr Span<const char> ColorTable[uint32(LogLevel::MAX)] = {
-        "", // DEBUG
-        "", // INFO
-        // Yellow - WARNING
-        "\033[33m",
-        // Red - ERR
-        "\033[31m",
-        // Bright Red - FATAL
-        "\033[91m"
+    constexpr Span<const char> ColorTable[] = {
+        "\033[91m"  // Fatal
+        "\033[31m", // Error
+        "\033[33m"  // Warning
     };
 
-    return ColorTable[uint32(logLevel)];
+    if (uint8(logLevel) >= uint8(std::size(ColorTable)))
+    {
+        constexpr Span<const char> DefaultColor = "\033[0m";
+        
+        return DefaultColor;
+    }
+    else
+    {
+        return ColorTable[uint8(logLevel)];
+    }
 }
 
 HYP_STRUCT()
@@ -315,16 +224,20 @@ public:
 
     static constexpr uint32 MaxChannels = sizeof(ChannelMask) * CHAR_BIT;
 
+    static Logger& GetInstance();
+
     HYP_METHOD()
-    static const Handle<Logger>& GetInstance();
+    static Handle<Logger> MakeScriptLogger();
 
     Logger();
     Logger(ILoggerOutputStream& outputStream);
 
     Logger(const Logger& other) = delete;
     Logger& operator=(const Logger& other) = delete;
+
     Logger(Logger&& other) noexcept = delete;
     Logger& operator=(Logger&& other) noexcept = delete;
+
     ~Logger();
 
     ILoggerOutputStream* GetOutputStream() const;
@@ -347,7 +260,7 @@ public:
     void LogFatal(const LogChannel& channel, const LogMessage& message);
 
     HYP_METHOD()
-    void LogScript(const LogChannel& channel, const LogCategory& category, const String& message);
+    void LogScript(const LogChannel& channel, LogLevel level, const String& message);
 
     void (*fatalErrorHook)(const char*);
 
@@ -355,9 +268,14 @@ private:
     Pimpl<LoggerImpl> m_impl;
 };
 
+inline Logger& GetLogger()
+{
+    return Logger::GetInstance();
+}
+
 struct LogOnceHelper
 {
-    template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, auto CategoryArg, auto ChannelArg, auto LogOnceFormatString, class... LogOnceArgTypes>
+    template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogLevel Level, auto ChannelArg, auto LogOnceFormatString, class... LogOnceArgTypes>
     static void ExecuteLogOnce(Logger& logger, LogOnceArgTypes&&... args)
     {
         static volatile int64 timesExecutedCounter = 0;
@@ -366,93 +284,72 @@ struct LogOnceHelper
 
         if (count == 0)
         {
-            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString, HYP_STATIC_STRING(""), 0>(logger, std::forward<LogOnceArgTypes>(args)...);
+            LogStatic<Level, ChannelArg, LogOnceFormatString, HYP_STATIC_STRING(""), 0>(logger, std::forward<LogOnceArgTypes>(args)...);
         }
         else if ((uint32(count) & (uint32(count) - 1)) == 0)
         {
-            LogStatic<CategoryArg, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>(), HYP_STATIC_STRING(""), 0>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
+            LogStatic<Level, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>(), HYP_STATIC_STRING(""), 0>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
         }
     }
 };
 
-template <auto CategoryArg, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
+template <LogLevel Level, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args)
 {
-    static constexpr const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
-
-    if constexpr (!Category.IsEnabled())
-    {
-        return;
-    }
-
     static const LogChannel& s_channel = *HYP_GET_CONST_ARG(ChannelArg);
-    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
+    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Level>());
 
     if (logger.IsChannelEnabled(s_channel))
     {
-        if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
+        if constexpr (Level == LogLevel::Fatal)
         {
-            logger.LogFatal(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
+            logger.LogFatal(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(s_channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
+            logger.Log(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
         }
     }
 }
 
-template <auto CategoryArg, auto FormatString, auto FileName, int LineNumber, class... Args>
+template <LogLevel Level, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&... args)
 {
-    static constexpr const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
-
-    if constexpr (!Category.IsEnabled())
-    {
-        return;
-    }
-
-    const String prefix = HYP_FORMAT("{} [{}]: ", channel.name, LogLevelToString<Category.GetLevel()>());
+    const String prefix = HYP_FORMAT("{} [{}]: ", channel.name, LogLevelToString<Level>());
 
     if (logger.IsChannelEnabled(channel))
     {
-        if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
+        if constexpr (Level == LogLevel::Fatal)
         {
-            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
+            logger.LogFatal(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
+            logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
         }
     }
 }
 
-template <auto CategoryArg>
+template <LogLevel Level>
 inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fileName, int lineNumber, const char* str)
 {
-    static constexpr const LogCategory& Category = *HYP_GET_CONST_ARG(CategoryArg);
-
-    if constexpr (!Category.IsEnabled())
-    {
-        return;
-    }
-
-    const String s_prefix = HYP_FORMAT("{} [{}]: ", channel.name, LogLevelToString<Category.GetLevel()>());
+    const String s_prefix = HYP_FORMAT("{} [{}]: ", channel.name, LogLevelToString<Level>());
 
     if (logger.IsChannelEnabled(channel))
     {
-        if constexpr (Category.GetFlags() & LogCategory::LCF_FATAL)
+        if constexpr (Level == LogLevel::Fatal)
         {
-            logger.LogFatal(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
+            logger.LogFatal(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
 
             HYP_UNREACHABLE();
         }
         else
         {
-            logger.Log(channel, LogMessage { Category.GetLevel(), Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
+            logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
         }
     }
 }
@@ -502,33 +399,31 @@ struct LogChannelRegistration
     }
 };
 
-#define DEFINE_LOG_CATEGORY_GLOBAL(name)       \
-    inline constexpr const LogCategory& name() \
-    {                                          \
-        return LogCategory::name;              \
+#define DEFINE_LOG_LEVEL_GLOBAL(name)           \
+    inline constexpr LogLevel name()            \
+    {                                           \
+        return LogLevel::name;                  \
     }
 
-DEFINE_LOG_CATEGORY_GLOBAL(Debug);
-DEFINE_LOG_CATEGORY_GLOBAL(Warning);
-DEFINE_LOG_CATEGORY_GLOBAL(Info);
-DEFINE_LOG_CATEGORY_GLOBAL(Error);
-DEFINE_LOG_CATEGORY_GLOBAL(Fatal);
+DEFINE_LOG_LEVEL_GLOBAL(Fatal);
+DEFINE_LOG_LEVEL_GLOBAL(Error);
+DEFINE_LOG_LEVEL_GLOBAL(Warning);
+DEFINE_LOG_LEVEL_GLOBAL(Info);
+DEFINE_LOG_LEVEL_GLOBAL(Verbose);
+DEFINE_LOG_LEVEL_GLOBAL(Debug);
 
-#undef DEFINE_LOG_CATEGORY_GLOBAL
+#undef DEFINE_LOG_LEVEL_GLOBAL
 
 } // namespace logging
 
 using logging::DynamicLogChannelHandle;
 using logging::ILoggerOutputStream;
-using logging::LogCategory;
 using logging::LogChannel;
 using logging::LogChannelRegistrar;
 using logging::LogChannelRegistration;
 using logging::Logger;
 using logging::LogLevel;
 using logging::LogMessage;
-
-HYP_API extern Handle<Logger> g_logger;
 
 } // namespace Hyperion
 
@@ -548,9 +443,9 @@ HYP_API extern Handle<Logger> g_logger;
 #undef HYP_LOG_ONCE
 #endif
 
-#define HYP_LOG_ONCE(channel, category, fmt, ...)                                                                                                                                                                                                                                                                         \
+#define HYP_LOG_ONCE(channel, level, fmt, ...)                                                                                                                                                                                                                                                                         \
     do                                                                                                                                                                                                                                                                                                                    \
     {                                                                                                                                                                                                                                                                                                                     \
-        ::Hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT), HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(Hyperion::logging::GetLogger(), ##__VA_ARGS__); \
+        ::Hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT), Hyperion::logging::LogLevel::level, HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n")>(Hyperion::logging::GetLogger(), ##__VA_ARGS__); \
     }                                                                                                                                                                                                                                                                                                                     \
     while (0)

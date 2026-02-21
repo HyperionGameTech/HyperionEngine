@@ -1,11 +1,11 @@
 #ifdef HYP_WINDOWS
 template <>
-struct HypDataHelperDecl<HWND>
+struct BoxedValueHelperDecl<HWND>
 {
 };
 
 template <>
-struct HypDataHelper<HWND> : HypDataHelper<void*>
+struct BoxedValueHelper<HWND> : BoxedValueHelper<void*>
 {
     HYP_FORCE_INLINE bool Is(HWND value) const
     {

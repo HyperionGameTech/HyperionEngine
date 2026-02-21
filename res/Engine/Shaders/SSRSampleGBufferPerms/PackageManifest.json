@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "SSRSampleGBufferPerms",
+  "FriendlyName": "SSRSampleGBufferPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/SSRSampleGBufferPerms"
+}

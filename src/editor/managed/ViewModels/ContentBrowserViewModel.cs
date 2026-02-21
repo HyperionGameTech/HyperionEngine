@@ -40,7 +40,7 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            Logger.Log(LogType.Debug, "Loading content browser packages...");
+            Logger.Log(LogLevel.Debug, "Loading content browser packages...");
 
             Packages.Clear();
             Assets.Clear();
@@ -50,7 +50,7 @@ namespace Hyperion.Editor.ViewModels
 
             foreach (AssetPackage pkg in registry.Packages)
             {
-                Logger.Log(LogType.Debug, "Found package: {0}", pkg.Name);
+                Logger.Log(LogLevel.Debug, "Found package: {0}", pkg.Name);
 
                 if (pkg.Hidden)
                     continue;
@@ -62,7 +62,7 @@ namespace Hyperion.Editor.ViewModels
 
             _onSelectedPackageChangedHandler = _editorSubsystem.GetOnSelectedPackageChangedDelegate().Bind((AssetPackage? package) =>
             {
-                Logger.Log(LogType.Debug, "Selected package changed: {0}", package?.Name ?? "null");
+                Logger.Log(LogLevel.Debug, "Selected package changed: {0}", package?.Name ?? "null");
                 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -89,7 +89,7 @@ namespace Hyperion.Editor.ViewModels
 
             _onPackageAddedHandler = registry.GetOnPackageAddedDelegate().Bind((AssetPackage package) =>
             {
-                Logger.Log(LogType.Debug, "Package added: {0}", package.Name);
+                Logger.Log(LogLevel.Debug, "Package added: {0}", package.Name);
 
             if (!package.Hidden)
             {
@@ -110,7 +110,7 @@ namespace Hyperion.Editor.ViewModels
 
             _onPackageRemovedHandler = registry.GetOnPackageRemovedDelegate().Bind((AssetPackage package) =>
             {
-                Logger.Log(LogType.Debug, "Package removed: {0}", package.Name);
+                Logger.Log(LogLevel.Debug, "Package removed: {0}", package.Name);
 
                 ObjIdBase removedPackageId = package.Id;
 

@@ -7,7 +7,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Frame.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 
@@ -427,8 +427,8 @@ void Mesh::UploadGpuData()
             renderQueue << CopyBuffer(stagingBufferVertices, vertexBuffer, packedBufferSize);
             renderQueue << CopyBuffer(stagingBufferIndices, indexBuffer, packedIndicesSize);
 
-            SafeDelete(std::move(stagingBufferVertices));
-            SafeDelete(std::move(stagingBufferIndices));
+            EnqueueDeletion(std::move(stagingBufferVertices));
+            EnqueueDeletion(std::move(stagingBufferIndices));
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {
@@ -454,8 +454,8 @@ void Mesh::ReleaseGpuData()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    SafeDelete(std::move(m_vertexBuffer));
-    SafeDelete(std::move(m_indexBuffer));
+    EnqueueDeletion(std::move(m_vertexBuffer));
+    EnqueueDeletion(std::move(m_indexBuffer));
 
     gpuUploadSemaphore.Reset();
 }
@@ -670,18 +670,15 @@ Array<PackedVertex> Mesh::BuildPackedVertices() const
 
     for (SizeType i = 0; i < vertices.Size(); i++)
     {
-        const Vertex& vertex = vertices[i];
-
-        packedVertices[i] = PackedVertex {
-            .positionX = vertex.GetPosition().x,
-            .positionY = vertex.GetPosition().y,
-            .positionZ = vertex.GetPosition().z,
-            .normalX = vertex.GetNormal().x,
-            .normalY = vertex.GetNormal().y,
-            .normalZ = vertex.GetNormal().z,
-            .texcoord0X = vertex.GetTexCoord0().x,
-            .texcoord0Y = vertex.GetTexCoord0().y
-        };
+        PackedVertex& packed = packedVertices[i];
+        packed.position[0] = vertices[i].position.x;
+        packed.position[1] = vertices[i].position.y;
+        packed.position[2] = vertices[i].position.z;
+        packed.normal[0] = vertices[i].normal.x;
+        packed.normal[1] = vertices[i].normal.y;
+        packed.normal[2] = vertices[i].normal.z;
+        packed.uv[0] = vertices[i].texcoord0.x;
+        packed.uv[1] = vertices[i].texcoord0.y;
     }
 
     return packedVertices;
@@ -692,7 +689,7 @@ Array<uint32> Mesh::BuildPackedIndices() const
     HYP_SCOPE;
 
     const Span<const ubyte> indices = GetIndexData();
-    const uint32 numIndices = uint32(indices.Size() / sizeof(uint32));
+    const uint32 numIndices = GetMeshDesc().numIndices;
 
     Assert(numIndices % 3 == 0);
 
@@ -701,7 +698,7 @@ Array<uint32> Mesh::BuildPackedIndices() const
     Array<uint32> packedIndices;
     packedIndices.Resize(numIndices);
 
-    Memory::Copy(packedIndices.Data(), indices.Data(), numIndices);
+    Memory::Copy(packedIndices.Data(), indices.Data(), numIndices * sizeof(uint32));
 
     // Ensure indices are a multiple of 3
     if (packedIndices.Size() % 3 != 0)

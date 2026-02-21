@@ -3,7 +3,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/AccelerationStructure.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <RenderProxy.generated.inl>
 
@@ -13,7 +13,7 @@ MeshRayTracingData::~MeshRayTracingData()
 {
     if (blas != nullptr)
     {
-        SafeDelete(std::move(blas));
+        EnqueueDeletion(std::move(blas));
     }
 }
 

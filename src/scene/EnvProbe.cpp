@@ -126,12 +126,12 @@ EnvProbe::~EnvProbe()
 {
     if (m_view.IsValid())
     {
-        SafeDelete(std::move(m_view));
+        EnqueueDeletion(std::move(m_view));
     }
 
     if (m_texture.IsValid())
     {
-        SafeDelete(std::move(m_texture));
+        EnqueueDeletion(std::move(m_texture));
     }
 
     if (m_camera != nullptr)
@@ -523,7 +523,7 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 
     if (m_texture != nullptr)
     {
-        SafeDelete(std::move(m_texture));
+        EnqueueDeletion(std::move(m_texture));
     }
 
     m_texture = texture;

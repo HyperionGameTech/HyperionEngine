@@ -17,7 +17,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 
@@ -88,8 +88,8 @@ HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
 
 HBAO::~HBAO()
 {
-    SafeDelete(std::move(m_uniformBuffer));
-    SafeDelete(std::move(m_descriptorSet));
+    EnqueueDeletion(std::move(m_uniformBuffer));
+    EnqueueDeletion(std::move(m_descriptorSet));
 }
 
 void HBAO::CreateUniformBuffers()
@@ -108,8 +108,8 @@ void HBAO::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
 
-    SafeDelete(std::move(m_uniformBuffer));
-    SafeDelete(std::move(m_descriptorSet));
+    EnqueueDeletion(std::move(m_uniformBuffer));
+    EnqueueDeletion(std::move(m_descriptorSet));
 
     FullScreenPass::Resize_Internal(newSize);
 }

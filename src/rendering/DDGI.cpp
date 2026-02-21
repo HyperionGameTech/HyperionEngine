@@ -16,12 +16,12 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderHelpers.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
@@ -50,13 +50,13 @@ DDGI::DDGI(DDGIInfo&& gridInfo)
 
 DDGI::~DDGI()
 {
-    SafeDelete(std::move(m_cBuffers));
-    SafeDelete(std::move(m_lightsBuffers));
-    SafeDelete(std::move(m_radianceBuffer));
-    SafeDelete(std::move(m_irradianceImage));
-    SafeDelete(std::move(m_irradianceImageView));
-    SafeDelete(std::move(m_depthImage));
-    SafeDelete(std::move(m_depthImageView));
+    EnqueueDeletion(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_lightsBuffers));
+    EnqueueDeletion(std::move(m_radianceBuffer));
+    EnqueueDeletion(std::move(m_irradianceImage));
+    EnqueueDeletion(std::move(m_irradianceImageView));
+    EnqueueDeletion(std::move(m_depthImage));
+    EnqueueDeletion(std::move(m_depthImageView));
 }
 
 void DDGI::Create()

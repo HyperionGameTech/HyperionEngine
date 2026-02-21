@@ -608,17 +608,14 @@ struct TextureDesc
     }
 };
 
-struct alignas(16) PackedVertex
+#pragma pack(push, 1)
+struct PackedVertex
 {
-    float positionX,
-        positionY,
-        positionZ,
-        normalX,
-        normalY,
-        normalZ,
-        texcoord0X,
-        texcoord0Y;
+    float position[3];
+    float normal[3];
+    float uv[2];
 };
+#pragma pack(pop)
 
 static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
 
@@ -1667,6 +1664,7 @@ struct ShaderProperty
         : name(name),
           flags(flags)
     {
+        cachedHashCode = GetHashCode();
     }
 
     ShaderProperty(Name name, const Value& currentValue, ShaderPropertyFlags flags = SPF_NONE)
@@ -1674,6 +1672,7 @@ struct ShaderProperty
           flags(flags),
           currentValue(currentValue)
     {
+        cachedHashCode = GetHashCode();
     }
 
     explicit ShaderProperty(const VertexAttribute& vertexAttribute)
@@ -2129,9 +2128,7 @@ public:
     {
         if (m_needsHashCodeRecalculation)
         {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
+            RecalculateHashCode_Const();
         }
 
         return m_cachedHashCode;
@@ -2141,18 +2138,21 @@ public:
     {
         if (m_needsHashCodeRecalculation)
         {
-            RecalculateHashCode();
-
-            m_needsHashCodeRecalculation = false;
+            RecalculateHashCode_Const();
         }
 
         return m_cachedPropertySetHashCode;
     }
 
-    HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
+    HashCode RecalculateHashCode()
+    {
+        return RecalculateHashCode_Const();
+    }
 
+    HYP_DEF_STL_BEGIN_END(m_props.Begin(), m_props.End());
+    
 private:
-    void RecalculateHashCode() const
+    HashCode RecalculateHashCode_Const() const
     {
         HashCode hc;
 
@@ -2177,14 +2177,17 @@ private:
                 return std::strcmp(*a->name, *b->name) < 0;
             });
 
-        for (const ShaderProperty* pShaderProperty : propsPtrs)
+        for (const ShaderProperty* property : propsPtrs)
         {
-            m_cachedPropertySetHashCode.Add(pShaderProperty->GetHashCode());
+            m_cachedPropertySetHashCode.Add(property->GetHashCode());
         }
 
         hc.Add(m_cachedPropertySetHashCode);
 
         m_cachedHashCode = hc;
+        m_needsHashCodeRecalculation = false;
+
+        return hc;
     }
 
     HYP_FIELD()
@@ -2207,12 +2210,12 @@ struct ShaderPropertySet
     HYP_STRUCT_BODY(ShaderPropertySet);
 
     static constexpr uint32 NumChunks = 8;
-    static constexpr uint32 ChunkSize = sizeof(uint64);
+    static constexpr uint32 ChunkSize = sizeof(uint32);
     static constexpr uint32 ChunkSizeBits = ChunkSize * CHAR_BIT;
     static constexpr uint32 MaxProperties = ChunkSize * NumChunks;
 
     HYP_FIELD()
-    FixedArray<uint64, NumChunks> chunks;
+    FixedArray<uint32, NumChunks> chunks;
 
     HYP_FORCE_INLINE constexpr ShaderPropertySet()
         : chunks{}
@@ -2254,10 +2257,10 @@ struct ShaderPropertySet
 
     HYP_FORCE_INLINE constexpr bool Test(ShaderPropertyId id) const
     {
-        return bool(chunks[0] & (1ull << uint32(id)))
-            || bool(chunks[1] & (1ull << uint32(id)))
-            || bool(chunks[2] & (1ull << uint32(id)))
-            || bool(chunks[3] & (1ull << uint32(id)));
+        return bool(chunks[0] & (1u << uint32(id)))
+            || bool(chunks[1] & (1u << uint32(id)))
+            || bool(chunks[2] & (1u << uint32(id)))
+            || bool(chunks[3] & (1u << uint32(id)));
     }
 
     HYP_FORCE_INLINE constexpr bool operator==(const ShaderPropertySet& other) const

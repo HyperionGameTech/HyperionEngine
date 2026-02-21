@@ -29,7 +29,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/Assets.hpp>
 
@@ -54,14 +54,20 @@ RenderThread::RenderThread()
 {
 }
 
-RenderThread::~RenderThread()
-{
-}
+RenderThread::~RenderThread() = default;
 
 bool RenderThread::Start()
 {
     signal(SIGINT, HandleSignal);
     signal(SIGSEGV, HandleSignal);
+
+    AddOnExitCallback([](void)
+        {
+            g_renderInterface->Shutdown();
+
+            delete g_renderInterface;
+            g_renderInterface = nullptr;
+        });
 
     // -RenderOnMainThread option
     if (m_id == g_mainThread)
@@ -77,6 +83,20 @@ bool RenderThread::Start()
     }
 
     return Thread::Start();
+}
+
+void RenderThread::Stop()
+{
+    Thread::Stop();
+
+    if (m_id == g_mainThread)
+    {
+        AssertOnThread(g_mainThread);
+
+        m_isRunning.Store(false);
+
+        OnExit();
+    }
 }
 
 void RenderThread::Update()
@@ -202,7 +222,7 @@ void RenderThread::operator()()
     AssertDebug(g_renderArena == nullptr);
     g_renderArena = new Arena(RenderArenaSize);
 
-    AtExit([]()
+    AddOnExitCallback([]()
         {
             delete g_renderArena;
             g_renderArena = nullptr;
@@ -230,13 +250,6 @@ void RenderThread::operator()()
             Update();
         }
     }
-
-    m_isRunning.Store(false);
-    
-    g_renderInterface->Shutdown();
-
-    delete g_renderInterface;
-    g_renderInterface = nullptr;
 }
 
 } // namespace Hyperion

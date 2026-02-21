@@ -1,7 +1,7 @@
 #include <RenderingPch.hpp>
 
 #include <rendering/util/TextureMipmapRenderer.hpp>
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderQueue.hpp>
@@ -59,7 +59,7 @@ struct RenderTextureMipmapLevelsTask
             delete pass;
         }
 
-        SafeDelete(std::move(mipImageViews));
+        EnqueueDeletion(std::move(mipImageViews));
     }
 
     void operator()()

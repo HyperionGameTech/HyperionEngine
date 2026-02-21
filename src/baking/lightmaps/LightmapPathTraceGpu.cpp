@@ -23,12 +23,12 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/DescriptorSet.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Buffers.hpp> // For RayTracingConstants
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <rendering/MeshBlasBuilder.hpp>
@@ -156,14 +156,14 @@ LightmapRenderer_GpuPathTracing::LightmapRenderer_GpuPathTracing(
 
 LightmapRenderer_GpuPathTracing::~LightmapRenderer_GpuPathTracing()
 {
-    SafeDelete(std::move(m_tlas));
+    EnqueueDeletion(std::move(m_tlas));
 
     for (KeyValuePair<BakeJobBase*, JobData>& it : m_jobData)
     {
-        SafeDelete(std::move(it.second.cBuffer));
-        SafeDelete(std::move(it.second.raysBuffer));
-        SafeDelete(std::move(it.second.lightsBuffer));
-        SafeDelete(std::move(it.second.hitsBufferGpu));
+        EnqueueDeletion(std::move(it.second.cBuffer));
+        EnqueueDeletion(std::move(it.second.raysBuffer));
+        EnqueueDeletion(std::move(it.second.lightsBuffer));
+        EnqueueDeletion(std::move(it.second.hitsBufferGpu));
     }
 }
 

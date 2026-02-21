@@ -59,7 +59,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _isRefreshing = 0;
 
-                    Logger.Log(LogType.Warn, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to read property '{_property.Name}': {ex.Message}");
                 }
             });
         }
@@ -92,7 +92,7 @@ namespace Hyperion.Editor.ViewModels
                 {
                     _isRefreshing = 0;
 
-                    Logger.Log(LogType.Warn, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Inspector failed to write property '{_property.Name}': {ex.Message}");
                 }
             });
         }

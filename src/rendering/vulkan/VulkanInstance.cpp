@@ -14,7 +14,7 @@
 
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/utilities/Span.hpp>
 

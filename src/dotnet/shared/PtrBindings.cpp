@@ -10,11 +10,11 @@ using namespace Hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void Ptr_Get(const TypeInfo* pTypeInfo, void* pObject, ValueStorage<BoxedValue>* outHypData)
+    HYP_EXPORT void Ptr_Get(const TypeInfo* pTypeInfo, void* pObject, ValueStorage<BoxedValue>* outBoxed)
     {
-        Assert(outHypData != nullptr);
+        Assert(outBoxed != nullptr);
 
-        outHypData->Construct(AnyRef(pTypeInfo, pObject));
+        outBoxed->Construct(AnyRef(pTypeInfo, pObject));
     }
 
 } // extern "C"

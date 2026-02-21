@@ -69,7 +69,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <ui/font/FontAtlas.hpp>
 
@@ -1519,7 +1519,7 @@ void EditorSubsystem::Update(float delta)
     {
         if (Handle<Node> focusedNode = m_focusedNode.Lock(); focusedNode.IsValid())
         {
-            DebugDrawCommandList& dbg = g_renderInterface->debugDrawer->CreateCommandList();
+            DebugDrawCommandList& dbg = DebugDrawer::GetInstance().CreateCommandList();
 
             dbg.box(focusedNode->GetWorldTranslation(), focusedNode->GetWorldBounds().GetExtent() * 0.5f + Vec3f(FLT_EPSILON), Color::Cyan());
         }
@@ -2743,7 +2743,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 
     Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));
 
-    if (Result renderAtlasResult = atlas->RenderAtlasTextures(); renderAtlasResult.HasError())
+    if (Result renderAtlasResult = atlas->RenderAtlasTextures(1.0f, 2.0f, 0.1f); renderAtlasResult.HasError())
     {
         return renderAtlasResult.GetError();
     }

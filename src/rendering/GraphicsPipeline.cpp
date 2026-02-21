@@ -5,11 +5,11 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/Framebuffer.hpp>
 #include <rendering/DescriptorSet.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderableAttributes.hpp>
+#include <rendering/Shader.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
-
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <GraphicsPipeline.generated.inl>
@@ -118,7 +118,7 @@ bool GraphicsPipelineBase::MatchesSignature(
 
     const Shader& shader = *m_shaderInstance->GetShader();
 
-    if (materialAttributes.shaderName != shader.name
+    if (materialAttributes.shaderName != shader.baseName
         || (shader.vertexAttributes.flagMask & meshAttributes.vertexAttributes.flagMask) != shader.vertexAttributes.flagMask
         || materialAttributes.shaderProperties != shader.properties)
     {

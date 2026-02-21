@@ -40,7 +40,7 @@
 #include <rendering/DDGI.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/DebugDrawer.hpp>
 
@@ -215,7 +215,7 @@ DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer
 
 DeferredPass::~DeferredPass()
 {
-    SafeDelete(std::move(m_ltcSampler));
+    EnqueueDeletion(std::move(m_ltcSampler));
 }
 
 void DeferredPass::Create()
@@ -617,7 +617,7 @@ LightmapPass::~LightmapPass()
 {
     for (auto& data : m_lightmapVolumePassData)
     {
-        SafeDelete(std::move(data.uniformBuffers));
+        EnqueueDeletion(std::move(data.uniformBuffers));
     }
 }
 
@@ -804,7 +804,7 @@ FogVolumePass::~FogVolumePass()
 {
     for (FogVolumePassData& data : m_fogVolumePassData)
     {
-        SafeDelete(std::move(data.cBuffer));
+        EnqueueDeletion(std::move(data.cBuffer));
     }
 }
 
@@ -997,7 +997,7 @@ ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageV
 
 ReflectionsPass::~ReflectionsPass()
 {
-    SafeDelete(std::move(m_mipChainImageView));
+    EnqueueDeletion(std::move(m_mipChainImageView));
 
     m_ssrRenderer.Reset();
 }
@@ -1250,9 +1250,9 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
 RayTracingPassData::~RayTracingPassData()
 {
-    SafeDelete(std::move(cBuffer));
-    SafeDelete(std::move(lightsBuffer));
-    SafeDelete(std::move(rayTracingTlases));
+    EnqueueDeletion(std::move(cBuffer));
+    EnqueueDeletion(std::move(lightsBuffer));
+    EnqueueDeletion(std::move(rayTracingTlases));
 }
 
 #pragma endregion RayTracingPassData
@@ -1460,7 +1460,7 @@ void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPa
 
 void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayTracingPassData& passData)
 {
-    SafeDelete(std::move(passData.rayTracingTlases));
+    EnqueueDeletion(std::move(passData.rayTracingTlases));
 
     // Hack to fix driver crash when building TLAS with no meshes
     Handle<Mesh> defaultMesh = MeshBuilder::Cube(true);
@@ -1505,7 +1505,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     {
         if (passData.deferredShadingFramebuffer.IsValid())
         {
-            SafeDelete(std::move(passData.deferredShadingFramebuffer));
+            EnqueueDeletion(std::move(passData.deferredShadingFramebuffer));
         }
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
@@ -2108,13 +2108,13 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     // debug draw
     if (renderCollector.mappingsByBucket[RB_DEBUG].Any()
-        || g_renderInterface->debugDrawer->NumEnqueuedDrawCommands() > 0)
+        || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
     {
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
 
-        g_renderInterface->debugDrawer->Render(frame, rs);
+        DebugDrawer::GetInstance().Render(frame, rs);
 
         frame->renderQueue << EndFramebuffer(debugPassFramebuffer);
     }

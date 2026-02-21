@@ -7,7 +7,7 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/Frame.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
 #include <core/reflection/TypeInfo.hpp>
@@ -72,7 +72,7 @@ struct StagingBufferPoolImpl
             if (frameDiff >= MaxFramesBeforeDiscard)
             {
                 GpuBufferRef& gpuBuffer = it->buffer;
-                SafeDelete(std::move(gpuBuffer));
+                EnqueueDeletion(std::move(gpuBuffer));
 
                 it = cachedBuffers[frameIndex].Erase(it);
 
@@ -146,7 +146,7 @@ GpuBuffer* StagingBufferPool::AcquireStagingBuffer(uint32 frameIndex, uint32 off
 
 GpuBufferHolderBase::~GpuBufferHolderBase()
 {
-    SafeDelete(std::move(m_gpuBuffer));
+    EnqueueDeletion(std::move(m_gpuBuffer));
 }
 
 void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, SizeType size)

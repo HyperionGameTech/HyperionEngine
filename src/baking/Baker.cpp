@@ -21,7 +21,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/RendererBase.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/BVH.hpp>
 #include <scene/World.hpp>
@@ -122,7 +122,7 @@ BakerBase::~BakerBase()
 
     if (m_view != nullptr)
     {
-        SafeDelete(std::move(m_view));
+        EnqueueDeletion(std::move(m_view));
     }
 
     if (m_threadPool)

@@ -530,6 +530,11 @@ struct WeakHandle final
         return Handle<T>::FromPointer(ptr);
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE bool Expired() const
+    {
+        return !ptr || ptr->m_header->GetRefCountStrong() == 0;
+    }
+
     HYP_FORCE_INLINE T* GetUnsafe() const
     {
         return static_cast<T*>(ptr);

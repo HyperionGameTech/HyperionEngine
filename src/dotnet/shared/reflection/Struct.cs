@@ -74,7 +74,7 @@ namespace Hyperion
             DestructDynamicStructDelegate destructFunction = GetDestructFunction(type);
             destructFunctionHandle = GCHandle.Alloc(destructFunction);
 
-            Logger.Log(LogType.Debug, "Creating dynamic Struct for type: " + type.Name);
+            Logger.Log(LogLevel.Debug, "Creating dynamic Struct for type: " + type.Name);
 
             IntPtr classPtr = Struct_CreateDynamicStruct(
                 ref typeId,
@@ -136,19 +136,19 @@ namespace Hyperion
             }
         }
 
-        public object? MarshalFromHypData(ref BoxedValueInternal buffer)
+        public object? MarshalFromBoxed(ref BoxedValueInternal buffer)
         {
             TypeId typeId = buffer.TypeId;
             Assert.Throw(typeId == cls.TypeId, "TypeId mismatch: " + typeId + " != " + cls.TypeId);
 
-            IntPtr hypDataPtr = buffer.Pointer;
+            IntPtr boxedPtr = buffer.Pointer;
 
-            if (hypDataPtr == IntPtr.Zero)
+            if (boxedPtr == IntPtr.Zero)
             {
                 return null;
             }
 
-            return Marshal.PtrToStructure(hypDataPtr, type);
+            return Marshal.PtrToStructure(boxedPtr, type);
         }
 
         public static DynamicStruct GetOrCreate<T>()

@@ -11,9 +11,9 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -171,7 +171,7 @@ int GenericPipelineCache<PipelineType>::RunCleanupCycle(int maxIter)
 
             m_keyToIndex.Erase(keyToIndexIt);
             
-            SafeDelete(std::move(cached.pipeline));
+            EnqueueDeletion(std::move(cached.pipeline));
 
             m_cleanupIterator = m_pipelines.Erase(m_cleanupIterator);
 
@@ -193,7 +193,7 @@ void GenericPipelineCache<PipelineType>::Clear()
     {
         if (cached.pipeline.IsValid())
         {
-            SafeDelete(std::move(cached.pipeline));
+            EnqueueDeletion(std::move(cached.pipeline));
         }
     }
 

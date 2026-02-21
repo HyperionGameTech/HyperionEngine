@@ -154,6 +154,6 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddTypedEntity")]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr pManager, IntPtr pClass, [Out] BoxedValueInternal* pOutHypData);
+        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr pManager, IntPtr pClass, [Out] BoxedValueInternal* pOutBoxed);
     }
 }

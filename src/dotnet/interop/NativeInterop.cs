@@ -7,9 +7,9 @@ using System.Diagnostics;
 
 namespace Hyperion
 {
-    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
-    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
-    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr);
+    public delegate void InvokeMethodDelegate(IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
+    public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
     public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
     public delegate bool SetKeepAliveDelegate(IntPtr objectReferencePtr, bool keepAlive);
@@ -51,7 +51,7 @@ namespace Hyperion
 
         private static void InitializeHyperionAssembly(Assembly assembly, bool isCoreAssembly)
         {
-            Logger.Log(LogType.Debug, "Initializing Hyperion assembly: {0}", assembly.FullName);
+            Logger.Log(LogLevel.Debug, "Initializing Hyperion assembly: {0}", assembly.FullName);
 
             if (!IsHyperionAssembly(assembly))
             {
@@ -68,7 +68,7 @@ namespace Hyperion
                     continue;
                 }
 
-                Logger.Log(LogType.Debug, "Processing type: {0} for assembly: {1}", type.FullName, assembly.FullName);
+                Logger.Log(LogLevel.Debug, "Processing type: {0} for assembly: {1}", type.FullName, assembly.FullName);
 
                 if (type.IsClass || type.IsValueType || type.IsEnum)
                 {
@@ -89,7 +89,7 @@ namespace Hyperion
             {
                 AppDomain currentDomain = AppDomain.CurrentDomain;
 
-                Logger.Log(LogType.Info, "Initializing .NET runtime in AppDomain: {0}, ID: {1}", currentDomain.FriendlyName, currentDomain.Id);
+                Logger.Log(LogLevel.Info, "Initializing .NET runtime in AppDomain: {0}, ID: {1}", currentDomain.FriendlyName, currentDomain.Id);
 
                 currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
 
@@ -101,7 +101,7 @@ namespace Hyperion
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, "Error loading assembly: {0}", ex);
+                Logger.Log(LogLevel.Error, "Error loading assembly: {0}", ex);
 
                 return (int)LoadAssemblyResult.UnknownError;
             }
@@ -129,7 +129,7 @@ namespace Hyperion
                     {
                         // throw new Exception("Assembly already loaded: " + assemblyPath + " (" + AssemblyCache.Instance.Get(assemblyPath).Guid + ")");
 
-                        Logger.Log(LogType.Info, "Assembly already loaded: {0}", assemblyPath);
+                        Logger.Log(LogLevel.Info, "Assembly already loaded: {0}", assemblyPath);
 
                         return (int)LoadAssemblyResult.Ok;
                     }
@@ -144,7 +144,7 @@ namespace Hyperion
                     int res = NativeInterop_NewAssembly(assemblyGuid, out assemblyPtr);
                     if (res != (int)LoadAssemblyResult.Ok)
                     {
-                        Logger.Log(LogType.Error, "Failed to allocate new assembly at " + assemblyPath + ". Error code: " + (LoadAssemblyResult)res);
+                        Logger.Log(LogLevel.Error, "Failed to allocate new assembly at " + assemblyPath + ". Error code: " + (LoadAssemblyResult)res);
 
                         return res;
                     }
@@ -161,7 +161,7 @@ namespace Hyperion
 
                 if (assembly == null)
                 {
-                    Logger.Log(LogType.Error, "Failed to load assembly: " + assemblyPath);
+                    Logger.Log(LogLevel.Error, "Failed to load assembly: " + assemblyPath);
 
                     return (int)LoadAssemblyResult.NotFound;
                 }
@@ -173,7 +173,7 @@ namespace Hyperion
                     // Verify the engine version (major, minor)
                     if (!VerifyEngineVersion(hyperionSharedDependency.Version?.ToString() ?? string.Empty, true, true, false))
                     {
-                        Logger.Log(LogType.Error, "Assembly version does not match engine version");
+                        Logger.Log(LogLevel.Error, "Assembly version does not match engine version");
 
                         return (int)LoadAssemblyResult.VersionMismatch;
                     }
@@ -192,7 +192,7 @@ namespace Hyperion
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, "Error loading assembly: {0}", ex);
+                Logger.Log(LogLevel.Error, "Error loading assembly: {0}", ex);
 
                 return (int)LoadAssemblyResult.UnknownError;
             }
@@ -211,25 +211,25 @@ namespace Hyperion
 
                 if (AssemblyCache.Instance.Get(assemblyGuid) == null)
                 {
-                    Logger.Log(LogType.Warn, "Failed to unload assembly: {0} not found", assemblyGuid);
+                    Logger.Log(LogLevel.Warning, "Failed to unload assembly: {0} not found", assemblyGuid);
 
                     foreach (var kv in AssemblyCache.Instance.GetAssemblies())
                     {
-                        Logger.Log(LogType.Info, "Assembly: {0}", kv.Key);
+                        Logger.Log(LogLevel.Info, "Assembly: {0}", kv.Key);
                     }
 
                     result = false;
                 }
                 else
                 {
-                    Logger.Log(LogType.Info, "Unloading assembly: {0}...", assemblyGuid);
+                    Logger.Log(LogLevel.Info, "Unloading assembly: {0}...", assemblyGuid);
 
                     AssemblyCache.Instance.Remove(assemblyGuid);
                 }
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Error, "Error unloading assembly: {0}", ex);
+                Logger.Log(LogLevel.Error, "Error unloading assembly: {0}", ex);
 
                 result = false;
             }
@@ -361,7 +361,7 @@ namespace Hyperion
             // Skip classes with the NoNativeClass attribute
             if (TryGetAttributeByName(type, "NoNativeClass") != null)
             {
-                Logger.Log(LogType.Debug, "Skipping managed class for type: {0} due to NoNativeClass attribute", type.Name);
+                Logger.Log(LogLevel.Debug, "Skipping managed class for type: {0} due to NoNativeClass attribute", type.Name);
 
                 return IntPtr.Zero;
             }
@@ -561,7 +561,7 @@ namespace Hyperion
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogType.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType?.Name, ex);
+                        Logger.Log(LogLevel.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType?.Name, ex);
 
                         throw;
                     }
@@ -776,7 +776,7 @@ namespace Hyperion
             }
         }
 
-        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeGetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
@@ -785,10 +785,10 @@ namespace Hyperion
             object? thisObject = objectReferenceRef.LoadObject();
             object? returnValue = propertyInfo.GetValue((object?)thisObject);
 
-            ((BoxedValueInternal*)outReturnHypDataPtr)->SetValue(returnValue);
+            ((BoxedValueInternal*)outBoxed)->SetValue(returnValue);
         }
 
-        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outReturnHypDataPtr)
+        public static unsafe void InvokeSetter(Guid managedPropertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsBoxedPtr, IntPtr outBoxed)
         {
             PropertyInfo propertyInfo = BasicCache<PropertyInfo>.Instance.Get(managedPropertyGuid);
 
@@ -947,7 +947,7 @@ namespace Hyperion
 
         public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Log(LogType.Error, "Unhandled managed exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
+            Logger.Log(LogLevel.Error, "Unhandled managed exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
 
             // rethrow in debug mode
 #if DEBUG

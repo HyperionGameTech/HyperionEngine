@@ -11,7 +11,7 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -32,7 +32,7 @@ FontAtlasTextureSet::~FontAtlasTextureSet()
 {
     for (auto& atlas : atlases)
     {
-        SafeDelete(std::move(atlas.second));
+        EnqueueDeletion(std::move(atlas.second));
     }
 }
 
@@ -133,7 +133,7 @@ FontAtlas::SymbolList FontAtlas::GetDefaultSymbolList()
     return symbolList;
 }
 
-Result FontAtlas::RenderAtlasTextures()
+Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, float step)
 {
     Assert(m_face != nullptr);
 
@@ -145,7 +145,7 @@ Result FontAtlas::RenderAtlasTextures()
     m_glyphMetrics.Clear();
     m_glyphMetrics.Resize(m_symbolList.Size());
 
-    const auto renderGlyphs = [&](float scale, bool isMainAtlas) -> Result
+    const auto RenderGlyphs = [&](float scale, bool isMainAtlas) -> Result
     {
         const Vec2i scaledExtent {
             MathUtil::Ceil<float, int>(float(m_cellDimensions.x) * scale),
@@ -209,14 +209,14 @@ Result FontAtlas::RenderAtlasTextures()
 
         const TextureDesc atlasTextureDesc {
             TextureType::Texture2D,
-            TextureFormat::RGBA8,
+            TextureFormat::R8,
             Vec3u { atlasBitmap->GetWidth(), atlasBitmap->GetHeight(), 1 },
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE
         };
 
-        ByteBuffer imageData = atlasBitmap->GetUnpackedBytes(4);
+        ByteBuffer imageData = atlasBitmap->GetUnpackedBytes(1);
 
         Handle<Texture> atlasTexture = MakeHandle<Texture>(atlasTextureDesc, imageData.ToByteView());
         atlasTexture->SetName(NAME_FMT("FontAtlas_{}", scale));
@@ -228,14 +228,16 @@ Result FontAtlas::RenderAtlasTextures()
         return {};
     };
 
-    if (Result result = renderGlyphs(1.0f, true); result.HasError())
+    // main
+    if (Result result = RenderGlyphs(mainAtlasScale, true); result.HasError())
     {
         return result.GetError();
     }
 
-    for (float i = 1.1f; i <= 3.0f; i += 0.1f)
+    // different scales
+    for (float i = mainAtlasScale + step; i <= maxScale; i += step)
     {
-        if (auto result = renderGlyphs(i, false); result.HasError())
+        if (auto result = RenderGlyphs(i, false); result.HasError())
         {
             return result.GetError();
         }

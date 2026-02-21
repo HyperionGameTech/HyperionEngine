@@ -22,7 +22,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/GBuffer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/ParticleVolume.hpp>
@@ -51,10 +51,10 @@ static const ShaderPropertyId s_propHasPhysics = InternShaderProperty(ShaderProp
 
 ParticleVolumeRenderer::VolumeState::~VolumeState()
 {
-    SafeDelete(std::move(particleBuffer));
-    SafeDelete(std::move(indirectBuffer));
-    SafeDelete(std::move(uniformBuffers));
-    SafeDelete(std::move(noiseMap));
+    EnqueueDeletion(std::move(particleBuffer));
+    EnqueueDeletion(std::move(indirectBuffer));
+    EnqueueDeletion(std::move(uniformBuffers));
+    EnqueueDeletion(std::move(noiseMap));
 }
 
 ParticleVolumeRenderer::ParticleVolumeRenderer() = default;
@@ -71,10 +71,10 @@ void ParticleVolumeRenderer::Shutdown()
 
     if (m_staging.quadMesh.IsValid())
     {
-        SafeDelete(std::move(m_staging.quadMesh));
+        EnqueueDeletion(std::move(m_staging.quadMesh));
     }
 
-    SafeDelete(std::move(m_staging.zeroIndirectArgs));
+    EnqueueDeletion(std::move(m_staging.zeroIndirectArgs));
 }
 
 PassData* ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
@@ -125,7 +125,7 @@ static void CreateNoiseMap(Handle<Texture>& tex)
 
     if (tex.IsValid())
     {
-        SafeDelete(std::move(tex));
+        EnqueueDeletion(std::move(tex));
     }
 
     tex = MakeHandle<Texture>(textureDesc, noiseMap.ToByteView());

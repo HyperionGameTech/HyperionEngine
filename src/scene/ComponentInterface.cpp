@@ -10,14 +10,14 @@
 
 namespace Hyperion {
 
-HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outHypData)
+HYP_API bool ComponentInterface_CreateInstance(const Class* cls, BoxedValue& outBoxed)
 {
     if (!cls || !cls->CanCreateInstance())
     {
         return false;
     }
 
-    return cls->CreateInstance(outHypData);
+    return cls->CreateInstance(outBoxed);
 }
 
 #pragma region IComponentInterface

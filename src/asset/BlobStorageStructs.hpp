@@ -35,6 +35,12 @@ struct BlobDataReference
     
     HYP_FIELD(Transient)
     bool readOnly = false;
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(key)
+            .Combine(size);
+    }
 };
 
 class BlobTableOfContents

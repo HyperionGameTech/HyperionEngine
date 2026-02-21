@@ -16,32 +16,34 @@ namespace logging {
 
 class Logger;
 class LogChannel;
-struct LogCategory;
-enum LogLevel : uint32;
+enum class LogLevel : uint8;
 
-#define DECLARE_LOG_CATEGORY_GLOBAL(name) \
-    extern constexpr const LogCategory& name();
+#define DECLARE_LOG_LEVEL_GLOBAL(name) \
+    extern constexpr LogLevel name();
 
-DECLARE_LOG_CATEGORY_GLOBAL(Debug);
-DECLARE_LOG_CATEGORY_GLOBAL(Warning);
-DECLARE_LOG_CATEGORY_GLOBAL(Info);
-DECLARE_LOG_CATEGORY_GLOBAL(Error);
-DECLARE_LOG_CATEGORY_GLOBAL(Fatal);
+DECLARE_LOG_LEVEL_GLOBAL(Fatal);
+DECLARE_LOG_LEVEL_GLOBAL(Error);
+DECLARE_LOG_LEVEL_GLOBAL(Warning);
+DECLARE_LOG_LEVEL_GLOBAL(Info);
+DECLARE_LOG_LEVEL_GLOBAL(Verbose);
+DECLARE_LOG_LEVEL_GLOBAL(Debug);
 
-#undef DECLARE_LOG_CATEGORY_GLOBAL
+#undef DECLARE_LOG_LEVEL_GLOBAL
 
-template <auto CategoryArg, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
+template <LogLevel Level, auto ChannelArg, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic(Logger& logger, Args&&... args);
 
-template <auto Category, auto FormatString, auto FileName, int LineNumber, class... Args>
+template <LogLevel Level, auto FormatString, auto FileName, int LineNumber, class... Args>
 inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&... args);
 
-template <auto CategoryArg>
+template <LogLevel Level>
 inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fileName, int lineNumber, const char* str);
 
+#ifdef HYP_DEBUG_MODE
 HYP_API extern void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber);
+#endif
 
-HYP_API extern Logger& GetLogger();
+extern Logger& GetLogger();
 
 } // namespace logging
 
@@ -56,11 +58,11 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 #error "HYP_LOG already defined!"
 #endif
 
-#define HYP_LOG(channel, category, fmt, ...) \
-    Hyperion::logging::LogStatic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category()), HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n"), HYP_STATIC_STRING(__FILE__), (__LINE__)>(Hyperion::logging::GetLogger(), ##__VA_ARGS__)
+#define HYP_LOG(channel, level, fmt, ...) \
+    Hyperion::logging::LogStatic<Hyperion::logging::LogLevel::level, HYP_MAKE_CONST_ARG(&g_logChannel_##channel), HYP_STATIC_STRING(fmt "\n"), HYP_STATIC_STRING(__FILE__), (__LINE__)>(Hyperion::logging::GetLogger(), ##__VA_ARGS__)
 
-#define HYP_LOG_DYNAMIC(channel, category, str) \
-    Hyperion::logging::LogDynamic<HYP_MAKE_CONST_ARG(&Hyperion::logging::category())>(Hyperion::logging::GetLogger(), g_logChannel_##channel, HYP_STATIC_STRING(__FILE__).Data(), (__LINE__), str)
+#define HYP_LOG_DYNAMIC(channel, level, str) \
+    Hyperion::logging::LogDynamic<Hyperion::logging::LogLevel::level>(Hyperion::logging::GetLogger(), g_logChannel_##channel, HYP_STATIC_STRING(__FILE__).Data(), (__LINE__), str)
 
 #ifdef HYP_DEBUG_MODE
 #define HYP_LOG_TEMP(fmt, ...) \

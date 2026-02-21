@@ -10,6 +10,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/ComputePipeline.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -460,7 +461,7 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
         g_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
         InitObject(g_quadMesh);
 
-        CurrentThreadObject()->AtExit([]()
+        CurrentThreadObject()->AddOnExitCallback([]()
             {
                 g_quadMesh.Reset();
             });

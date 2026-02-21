@@ -12,7 +12,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderHelpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/TextureMipmapRenderer.hpp>
 
 #include <asset/Assets.hpp>
@@ -197,7 +197,7 @@ struct CreateTextureGpuImage : RenderCommand
             CheckResultOrReturn(stagingBuffer->Create());
             stagingBuffer->Copy(imageData.Size(), imageData.Data());
 
-            HYP_DEFER({ SafeDelete(std::move(stagingBuffer)); });
+            HYP_DEFER({ EnqueueDeletion(std::move(stagingBuffer)); });
 
             Frame* frame = g_renderInterface->GetCurrentFrame();
 
@@ -315,7 +315,7 @@ Texture::Texture(const TextureDesc& textureDesc, ConstByteView imageData)
 Texture::~Texture()
 {
     if (m_gpuImage.IsValid())
-        SafeDelete(std::move(m_gpuImage));
+        EnqueueDeletion(std::move(m_gpuImage));
 
     FreeBlobData(m_imageData);
 }
@@ -674,8 +674,8 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
 
                                   stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
 
-                                  SafeDelete(std::move(stagingBuffer));
-                                  SafeDelete(std::move(gpuImageRef));
+                                  EnqueueDeletion(std::move(stagingBuffer));
+                                  EnqueueDeletion(std::move(gpuImageRef));
 
                                   callback(std::move(byteBuffer));
 

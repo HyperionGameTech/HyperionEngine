@@ -106,11 +106,11 @@ extern "C"
         pManager->AddComponent(pEntity, boxed);
     }
 
-    HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* pManager, const Class* pClass, BoxedValue* pOutHypData)
+    HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* pManager, const Class* pClass, BoxedValue* pOutBoxed)
     {
         Assert(pManager != nullptr);
         Assert(pClass != nullptr);
-        Assert(pOutHypData != nullptr);
+        Assert(pOutBoxed != nullptr);
 
         Handle<Entity> entityHandle = pManager->AddTypedEntity(pClass);
 
@@ -119,7 +119,7 @@ extern "C"
             return false;
         }
 
-        *pOutHypData = BoxedValue(entityHandle);
+        *pOutBoxed = BoxedValue(entityHandle);
 
         return true;
     }

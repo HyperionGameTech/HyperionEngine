@@ -13,14 +13,14 @@
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/PlaceholderData.hpp>
 
 #include <rendering/renderers/EnvProbeRenderer.hpp>
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 
@@ -85,7 +85,7 @@ static inline bool CreateOrResizeBuffer(
         const GpuBufferType prevBufferType = buffer->GetBufferType();
         const bool prevWasCpuAccessible = buffer->IsCpuAccessible();
 
-        SafeDelete(std::move(buffer));
+        EnqueueDeletion(std::move(buffer));
         buffer = g_renderInterface->MakeGpuBuffer(prevBufferType, newBufferSize);
 
         if (prevWasCpuAccessible)
@@ -187,9 +187,9 @@ IndirectDrawState::IndirectDrawState()
 
 IndirectDrawState::~IndirectDrawState()
 {
-    SafeDelete(std::move(m_indirectBuffers));
-    SafeDelete(std::move(m_instanceBuffers));
-    SafeDelete(std::move(m_stagingBuffers));
+    EnqueueDeletion(std::move(m_indirectBuffers));
+    EnqueueDeletion(std::move(m_instanceBuffers));
+    EnqueueDeletion(std::move(m_stagingBuffers));
 }
 
 void IndirectDrawState::Create()
@@ -350,7 +350,7 @@ IndirectRenderer::IndirectRenderer()
 
 IndirectRenderer::~IndirectRenderer()
 {
-    SafeDelete(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_cBuffers));
 }
 
 void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)

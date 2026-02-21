@@ -7,7 +7,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/DescriptorSet.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -125,7 +125,7 @@ void PostProcessing::Destroy()
         m_effects[stageIndex].Clear();
     }
 
-    SafeDelete(std::move(m_uniformBuffer));
+    EnqueueDeletion(std::move(m_uniformBuffer));
 }
 
 void PostProcessing::PerformUpdates()

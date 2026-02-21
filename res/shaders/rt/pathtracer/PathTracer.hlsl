@@ -163,12 +163,12 @@ void RayGenMain()
     const float tmin = 0.01;
     const float tmax = 10000.0;
 
-    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+    float4 color = (float4)0;
 
     const float3 albedo = SAMPLE_TEXTURE_2D_LOD(sampler_nearest, gbuffer_albedo_texture, uv, 0.0).rgb;
     const float3 N0 = normalize(normal);
 
-    float4 accumRadiance = float4(0.0, 0.0, 0.0, 0.0);
+    float4 accumRadiance = (float4)0;
 
     for (uint sample_index = 0; sample_index < NUM_SAMPLES; sample_index++)
     {
@@ -197,8 +197,9 @@ void RayGenMain()
             direction = normalize(SampleCosineDir(rnd, N0));
         }
 
-        float3 radiance = float3(0.0, 0.0, 0.0);
-        float3 beta = float3(1.0, 1.0, 1.0);
+
+        float3 radiance = (float3)0;
+        float3 beta = (float3)1.0;
         
         {
             float3 L = direction;
@@ -353,7 +354,7 @@ void RayGenMain()
 
             // Sample next direction (Diffuse - cosine weighted)
             direction = normalize(SampleCosineDir(rnd, N));
-            
+
             beta *= diffuseColor;
 
             origin = hitPos + N * RAY_OFFSET;

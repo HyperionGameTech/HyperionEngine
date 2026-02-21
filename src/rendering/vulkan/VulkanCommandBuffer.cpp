@@ -11,7 +11,7 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <VulkanCommandBuffer.generated.inl>
 
@@ -35,7 +35,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
     {
         Assert(m_commandPool != VK_NULL_HANDLE);
 
-        SafeDelete(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([commandPool = m_commandPool, handle = m_handle]() -> void
             {
                 vkFreeCommandBuffers(g_renderInterface->GetDevice()->GetDevice(), commandPool, 1, &handle);
             }));

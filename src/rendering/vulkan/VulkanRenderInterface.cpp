@@ -19,7 +19,7 @@
 #include <rendering/vulkan/VulkanRayTracingPipeline.hpp>
 #include <rendering/vulkan/VulkanAccelerationStructure.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderInterface.hpp>
@@ -702,6 +702,8 @@ void VulkanRenderInterface::Shutdown()
     
     PoolDelete(*g_vulkanPool, m_instance);
     m_instance = nullptr;
+    
+    DeletionQueue::GetInstance().Flush();
 }
 
 VulkanFrame* VulkanRenderInterface::GetCurrentFrame() const

@@ -14,7 +14,7 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/RenderMemory.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -23,7 +23,7 @@
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
 #include <scene/View.hpp>
@@ -137,10 +137,10 @@ FullScreenPass::~FullScreenPass()
 {
     m_fullScreenQuad.Reset();
 
-    SafeDelete(std::move(m_framebuffer));
-    SafeDelete(std::move(m_mergeHalfResTexturesUniformBuffer));
+    EnqueueDeletion(std::move(m_framebuffer));
+    EnqueueDeletion(std::move(m_mergeHalfResTexturesUniformBuffer));
 
-    // not calling SafeDelete() for graphics pipeline as it is managed by the graphics pipeline caching system
+    // not calling EnqueueDeletion() for graphics pipeline as it is managed by the graphics pipeline caching system
 }
 
 const GpuImageViewRef& FullScreenPass::GetFinalImageView() const
@@ -270,7 +270,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
     {
         if (!m_framebuffer || m_framebuffer->GetExtent() == newSize)
         {
-            SafeDelete(std::move(m_framebuffer));
+            EnqueueDeletion(std::move(m_framebuffer));
             CreateFramebuffer();
         }
     }
@@ -319,7 +319,7 @@ void FullScreenPass::CreateFramebuffer()
             return;
         }
 
-        SafeDelete(std::move(m_framebuffer));
+        EnqueueDeletion(std::move(m_framebuffer));
     }
 
     Assert(m_extent.Volume() != 0);
@@ -396,7 +396,7 @@ void FullScreenPass::CreateHistoryTexture()
 
     if (m_historyTexture.IsValid())
     {
-        SafeDelete(std::move(m_historyTexture));
+        EnqueueDeletion(std::move(m_historyTexture));
     }
 
     m_historyTexture = MakeHandle<Texture>(TextureDesc {

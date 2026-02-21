@@ -12,7 +12,7 @@
 #include <rendering/Device.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <VulkanFrame.generated.inl>
 

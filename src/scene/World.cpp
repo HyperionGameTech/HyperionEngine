@@ -35,7 +35,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <engine/Game.hpp>
 
@@ -146,8 +146,8 @@ World::~World()
 
     m_rayTracingView = nullptr;
 
-    SafeDelete(std::move(m_scenes));
-    SafeDelete(std::move(m_views));
+    EnqueueDeletion(std::move(m_scenes));
+    EnqueueDeletion(std::move(m_views));
 
     for (Subsystem* subsystem : m_subsystemsArray)
     {
@@ -189,7 +189,7 @@ void World::Init()
 
         subsystem->OnAddedToWorld();
     }
-
+    
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
@@ -349,9 +349,9 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
 
     m_worldFlags = flags;
 
-    const bool isReady = IsReady();
+    const bool isInitialized = IsInitCalled();
 
-    if (isReady)
+    if (isInitialized)
     {
         if (changedFlags & uint32(WorldFlags::HAS_PHYSICS))
         {
@@ -692,7 +692,7 @@ const Handle<Subsystem>& World::AddSubsystem(TypeId typeId, const Handle<Subsyst
 
     // If World is already initialized, initialize the subsystem
     // otherwise, it will be initialized when World::Init() is called
-    if (IsReady())
+    if (IsInitCalled())
     {
         if (insertResult.second)
         {
@@ -782,7 +782,7 @@ bool World::RemoveSubsystem(Subsystem* subsystem)
 
     Assert(it->second.Get() == subsystem);
 
-    if (IsReady())
+    if (IsInitCalled())
     {
         for (const Handle<Scene>& scene : m_scenes)
         {
@@ -840,7 +840,7 @@ void World::AddScene(const Handle<Scene>& scene, bool addToStreamingLayer)
 
     scene->SetWorld(this);
 
-    if (IsReady())
+    if (IsInitCalled())
     {
         InitObject(scene);
 
@@ -894,7 +894,7 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
     {
         scene->SetWorld(nullptr);
 
-        if (IsReady())
+        if (IsInitCalled())
         {
             if (removeFromStreamingLayer && (m_worldFlags & WorldFlags::HAS_SCENE_STREAMING_LAYER))
             {
@@ -917,7 +917,7 @@ bool World::RemoveScene(Scene* scene, bool removeFromStreamingLayer)
         }
     }
 
-    SafeDelete(std::move(strongScene));
+    EnqueueDeletion(std::move(strongScene));
 
     return true;
 }
@@ -960,7 +960,7 @@ void World::AddView(const Handle<View>& view)
 
     m_views.PushBack(view);
 
-    if (IsReady())
+    if (IsInitCalled())
     {
         if (view->m_rayTracingView.GetUnsafe() != m_rayTracingView)
         {
@@ -1009,7 +1009,7 @@ void World::RemoveView(View* view)
         return;
     }
 
-    if (IsReady())
+    if (IsInitCalled())
     {
         view->m_rayTracingView.Reset();
 
@@ -1038,7 +1038,7 @@ void World::RemoveView(View* view)
     Handle<View> strongView = std::move(*it);
     m_views.Erase(it);
 
-    SafeDelete(std::move(strongView));
+    EnqueueDeletion(std::move(strongView));
 }
 
 Span<View* const> World::GetViews() const
@@ -1054,7 +1054,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
     HYP_SCOPE;
     // no thread assertion if not yet init since this is used for deserialization mainly
 
-    const bool isReady = IsReady();
+    const bool isInitialized = IsInitCalled();
 
     for (Handle<Scene>& scene : m_scenes)
     {
@@ -1068,7 +1068,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
         scene->SetWorld(nullptr);
 
-        if (isReady)
+        if (isInitialized)
         {
             OnSceneRemoved(this, scene);
 
@@ -1083,7 +1083,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
             }
         }
 
-        SafeDelete(std::move(scene));
+        EnqueueDeletion(std::move(scene));
     }
 
     m_scenes.Clear();
@@ -1102,7 +1102,7 @@ void World::DeserializeNonStreamingScenes(const Array<Handle<Scene>>& scenes)
 
         scene->SetWorld(this);
 
-        if (isReady)
+        if (isInitialized)
         {
             InitObject(scene);
 

@@ -40,8 +40,9 @@
 #include <rendering/Material.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
+#include <rendering/DebugDrawer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
@@ -85,7 +86,6 @@ Handle<AudioManager> g_audioManager;
 Handle<AppContextBase> g_appContext;
 Handle<StreamingManager> g_streamingManager;
 Handle<EngineStats> g_engineStats;
-Handle<Logger> g_logger;
 MaterialCache* g_materialCache;
 ShaderCompiler* g_shaderCompiler;
 
@@ -166,10 +166,44 @@ HYP_EXPORT const FilePath& GetResourceDirectory()
 }
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
+static bool s_cacheDirectoryInit = false;
+static SharedMutex s_cacheDirectoryMutex;
+
 HYP_EXPORT const FilePath& GetCacheDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Cache")> s_resourceDirectory;
-    return s_resourceDirectory.path;
+    static const ConfigurationValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
+    static const ConfigurationValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
+
+    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / FilePath(s_cfgCacheDirectory.AsString());
+
+    TSharedLock sharedLock(s_cacheDirectoryMutex);
+
+    if (s_cacheDirectoryInit)
+        return s_cacheDirectory;
+
+    sharedLock.Reset();
+
+    TUniqueLock uniqueLock(s_cacheDirectoryMutex);
+
+    if (s_cacheDirectoryInit)
+        return s_cacheDirectory;
+
+    if (!s_cfgCachePageSize.IsNumber() || s_cfgCachePageSize.AsNumber() < 1024 * 1024)
+    {
+        ConfigurationTable newConfigurationTable;
+        newConfigurationTable.Set("App.Cache.PageSize", ConfigurationValue(BlobStorage::DefaultPageSize));
+
+        CoreApi::UpdateGlobalConfig(newConfigurationTable);
+    }
+
+    if (!s_cacheDirectory.Exists() && !s_cacheDirectory.MkDir())
+    {
+        HYP_FAIL("Failed to initialize cache storage directory {}!", s_cacheDirectory);
+    }
+
+    s_cacheDirectoryInit = true;
+
+    return s_cacheDirectory;
 }
 
 // Directory for temporary data (intermediate compilation outputs, etc.) Will be not be used in production builds
@@ -225,10 +259,7 @@ static void InitThreads()
 
 static void InitLogger()
 {
-    g_logger = MakeHandle<Logger>();
-    g_logger->fatalErrorHook = &HandleFatalError;
-
-    InitObject(g_logger);
+    Logger::GetInstance().fatalErrorHook = &HandleFatalError;
 
     LogChannelRegistrar::GetInstance().RegisterAll();
 }
@@ -426,29 +457,13 @@ extern "C"
 
         g_mainThreadInstance->Stop();
 
-        g_simThreadInstance->Join();
-        g_simThread = g_mainThread;
-
         g_renderThreadInstance->Join();
         g_renderThread = g_mainThread;
 
+        g_simThreadInstance->Join();
+        g_simThread = g_mainThread;
+
         g_engineDriver->FinalizeStop();
-
-#if HYP_DOTNET
-        DotNETHost::GetInstance().Shutdown();
-#endif
-
-        ComponentInterfaceRegistry::GetInstance().Shutdown();
-        ConsoleCommandManager::GetInstance().Shutdown();
-
-        if (TaskSystem::GetInstance().IsRunning())
-        {
-            TaskSystem::GetInstance().Stop();
-        }
-
-        DestroyNameRegistry();
-
-        CoreApi::Shutdown();
 
         g_streamingManager->Stop();
         g_streamingManager.Reset();
@@ -461,15 +476,32 @@ extern "C"
         g_editorState.Reset();
 #endif
 
+        g_engineDriver.Reset();
+        g_appContext.Reset();
+
+        ComponentInterfaceRegistry::GetInstance().Shutdown();
+        ConsoleCommandManager::GetInstance().Shutdown();
+
+#if HYP_DOTNET
+        DotNETHost::GetInstance().Shutdown();
+#endif
+
+        if (TaskSystem::GetInstance().IsRunning())
+        {
+            TaskSystem::GetInstance().Stop();
+        }
+
+        DeletionQueue::GetInstance().Shutdown();
+
+        DestroyNameRegistry();
+
+        CoreApi::Shutdown();
+
         delete g_shaderCompiler;
         g_shaderCompiler = nullptr;
 
         delete g_materialCache;
         g_materialCache = nullptr;
-
-        g_engineDriver.Reset();
-        g_logger.Reset();
-        g_appContext.Reset();
 
         // Named threads
         delete g_mainThreadInstance;
@@ -692,7 +724,7 @@ extern "C"
 
         //if (g_logRedirectId == -1)
         //{
-        //    g_logRedirectId = g_logger->GetOutputStream()->AddRedirect(
+        //    g_logRedirectId = Logger::GetInstance().GetOutputStream()->AddRedirect(
         //        Bitset(~0u), // All channels
         //        nullptr,
         //        HandleLogMessage,

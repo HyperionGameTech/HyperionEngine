@@ -246,7 +246,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
 
             if (imageViews.Any())
             {
-                SafeDelete(std::move(imageViews));
+                EnqueueDeletion(std::move(imageViews));
             }
         }
     }
@@ -276,7 +276,7 @@ void OnBindingChanged_Material(Material* material, uint32 prev, uint32 next)
                 }
                 
                 // defer release until a few frames from now
-                SafeDelete(std::move(imageViews[i]));
+                EnqueueDeletion(std::move(imageViews[i]));
             }
 
             imageViews[i] = g_renderInterface->textureViewCache->GetOrCreate(proxyCasted->boundTextures[i]);

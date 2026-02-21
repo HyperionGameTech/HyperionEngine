@@ -6,6 +6,15 @@
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler/ShaderCompilerInternal.hpp>
 
+#include <rendering/RenderInterface.hpp>
+#include <rendering/RenderConfig.hpp>
+#include <rendering/DescriptorSet.hpp>
+#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
+
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/json/JSON.hpp>
@@ -27,11 +36,6 @@
 #include <core/math/MathUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
-
-#include <rendering/RenderInterface.hpp>
-#include <rendering/RenderConfig.hpp>
-#include <rendering/DescriptorSet.hpp>
-#include <rendering/Shader.hpp>
 
 #if HYP_GLSLANG
 #include <glslang/Include/ResourceLimits.h>
@@ -386,112 +390,6 @@ static bool SatisfiesRequested(
 }
 
 #pragma endregion Helpers
-
-#pragma region Shader
-
-Shader::Shader(const Shader& other)
-    : name(other.name),
-      properties(other.properties),
-      vertexAttributes(other.vertexAttributes),
-      inputGroup(other.inputGroup),
-      moduleTypes(other.moduleTypes),
-      moduleNames(other.moduleNames),
-      entryPointNames(other.entryPointNames),
-      shaderBlobs(other.shaderBlobs),
-      propertySetHashCode(other.propertySetHashCode)
-{
-}
-
-Shader& Shader::operator=(const Shader& other)
-{
-    if (this != &other)
-    {
-        name = other.name;
-        properties = other.properties;
-        vertexAttributes = other.vertexAttributes;
-        inputGroup = other.inputGroup;
-        moduleTypes = other.moduleTypes;
-        moduleNames = other.moduleNames;
-        entryPointNames = other.entryPointNames;
-        shaderBlobs = other.shaderBlobs;
-        propertySetHashCode = other.propertySetHashCode;
-    }
-
-    return *this;
-}
-
-Shader::Shader(Shader&& other) noexcept
-    : name(other.name),
-      properties(other.properties),
-      vertexAttributes(other.vertexAttributes),
-      inputGroup(std::move(other.inputGroup)),
-      moduleTypes(std::move(other.moduleTypes)),
-      moduleNames(std::move(other.moduleNames)),
-      entryPointNames(std::move(other.entryPointNames)),
-      shaderBlobs(std::move(other.shaderBlobs)),
-      propertySetHashCode(other.propertySetHashCode)
-{
-}
-
-Shader& Shader::operator=(Shader&& other) noexcept
-{
-    if (this != &other)
-    {
-        name = other.name;
-        properties = other.properties;
-        vertexAttributes = other.vertexAttributes;
-        moduleTypes = std::move(other.moduleTypes);
-        moduleNames = std::move(other.moduleNames);
-        entryPointNames = std::move(other.entryPointNames);
-        shaderBlobs = std::move(other.shaderBlobs);
-        inputGroup = std::move(other.inputGroup);
-        propertySetHashCode = other.propertySetHashCode;
-    }
-    return *this;
-}
-
-Shader::~Shader()
-{
-}
-
-void Shader::AddShaderModule(
-    ShaderModuleType moduleType,
-    UTF8StringView moduleName,
-    UTF8StringView entryPointName,
-    ByteBuffer&& shaderBlob)
-{
-    auto it = moduleTypes.Find(moduleType);
-
-    // if we already have this module type, replace the blob and entry point name
-    if (it != moduleTypes.End())
-    {
-        const SizeType index = it - moduleTypes.Begin();
-
-        Assert(index < shaderBlobs.Size() && index < entryPointNames.Size());
-
-        moduleNames[index] = moduleName;
-        shaderBlobs[index] = std::move(shaderBlob);
-        entryPointNames[index] = entryPointName;
-
-        return;
-    }
-
-    Assert(moduleTypes.Size() == shaderBlobs.Size()
-        && moduleTypes.Size() == moduleNames.Size()
-        && moduleTypes.Size() == entryPointNames.Size());
-
-    moduleTypes.PushBack(moduleType);
-    moduleNames.PushBack(moduleName);
-    entryPointNames.PushBack(entryPointName);
-    shaderBlobs.PushBack(std::move(shaderBlob));
-}
-
-uint64 Shader::GetRevisionNumber() const
-{
-    return GetStaticDescriptorTableDeclaration().GetHashCode().Value();
-}
-
-#pragma endregion Shader
 
 #pragma region DescriptorUsageSet
 
@@ -1544,34 +1442,17 @@ static void ForEachPermutation(
     }
 }
 
-static bool LoadBundleFromFilePath(const FilePath& filePath, ShaderBundle& outBundle)
+static bool LoadBundleFromAssetPath(
+    const AssetPath& path, Handle<ShaderBundle>& outBundle)
 {
-    // read file if it already exists.
-    FBOMReader reader { FBOMReaderConfig {} };
+    Handle<AssetObject> asset = g_assetManager->GetAssetRegistry()->GetAssetFromPath(path.ToString(), /* attemptLoading */ true);
 
-    FBOMResult err;
-
-    BoxedValue value;
-
-    if ((err = reader.LoadFromFile(filePath, value)))
+    if (!asset.IsValid() || !asset->IsA(ShaderBundle::StaticClass()))
     {
-        HYP_LOG(ShaderCompiler, Error, "Failed to load shader at path: {}\n\tMessage: {}", filePath, err.message);
-
         return false;
     }
 
-    Optional<ShaderBundle&> bundleOpt = value.TryGet<ShaderBundle>();
-
-    if (!bundleOpt.HasValue())
-    {
-        HYP_LOG(ShaderCompiler, Error,
-            "Failed to load compiled shader at path: {}\n\tMessage: {}",
-            filePath, "Failed to deserialize ShaderBundle");
-
-        return false;
-    }
-
-    outBundle = *bundleOpt;
+    outBundle = ObjCast<ShaderBundle>(asset);
 
     return true;
 }
@@ -1751,7 +1632,7 @@ Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
         + ByteUtil::BitCount(chunks[3]));
 
     uint64 chunkOffset = 0;
-    for (uint64 chunk : chunks)
+    for (uint32 chunk : chunks)
     {
         FOR_EACH_BIT(chunk, bit)
         {
@@ -1760,7 +1641,7 @@ Array<ShaderPropertyId> ShaderPropertySet::ToArray() const
             result.PushBack(propertyId);
         }
 
-        chunkOffset += 64;
+        chunkOffset += ShaderPropertySet::ChunkSizeBits;
     }
 
     return result;
@@ -1788,6 +1669,21 @@ String ShaderPropertySet::GetDebugString() const
 }
 
 #pragma endregion ShaderPropertySet
+
+#pragma region ShaderBundle
+
+HashCode ShaderBundle::GetHashCode() const
+{
+    HashCode hashCode;
+    for (auto& shader : compiledShaders)
+    {
+        hashCode.Add(shader->GetHashCode());
+    }
+
+    return hashCode;
+}
+
+#pragma endregion ShaderBundle
 
 #pragma region ShaderCompiler
 
@@ -1927,15 +1823,14 @@ void ShaderCompiler::ParseDefinitionSection(
 bool ShaderCompiler::HandleBundle(
     ShaderBundleDecl& decl,
     Optional<ShaderRequest> shaderRequest,
-    const FilePath& outputFilePath,
-    ShaderBundle& inOutBundle)
+    const Time& lastSavedTimestamp,
+    Handle<ShaderBundle>& inOutBundle)
 {
+    Assert(inOutBundle.IsValid());
+
     // Check that each version specified is present in the ShaderBundle.
     // OR any src files have been changed since the object file was compiled.
     // if not, we need to recompile those versions.
-
-    // TODO: Each individual item should have a timestamp internally set
-    const Time objectFileLastModified = outputFilePath.LastModifiedTimestamp();
 
     Time maxSourceFileLastModified = Time(0);
 
@@ -1944,14 +1839,12 @@ bool ShaderCompiler::HandleBundle(
         maxSourceFileLastModified = MathUtil::Max(maxSourceFileLastModified, FilePath(sourceFile.second).LastModifiedTimestamp());
     }
 
-    if (maxSourceFileLastModified > objectFileLastModified)
+    if (maxSourceFileLastModified > lastSavedTimestamp)
     {
         HYP_LOG(ShaderCompiler, Info,
             "Source file in bundle {} has been modified since the bundle was "
             "last compiled, recompiling...",
             *decl.name);
-
-        inOutBundle = ShaderBundle {};
 
         return CompileBundle(decl, shaderRequest, inOutBundle, !ShouldCompileEntireBundle);
     }
@@ -1972,13 +1865,13 @@ bool ShaderCompiler::HandleBundle(
                 // contents changing
                 const HashCode propertySetHashCode = perm.GetPropertySetHashCode();
 
-                const auto it = inOutBundle.compiledShaders.FindIf(
-                    [propertySetHashCode](const Shader& item)
+                const auto it = inOutBundle->compiledShaders.FindIf(
+                    [propertySetHashCode](const Handle<Shader>& item)
                     {
-                        return item.propertySetHashCode == propertySetHashCode;
+                        return item->propertySetHashCode == propertySetHashCode;
                     });
 
-                if (it == inOutBundle.compiledShaders.End())
+                if (it == inOutBundle->compiledShaders.End())
                 {
                     missingPerms.PushBack(perm);
                 }
@@ -1988,11 +1881,11 @@ bool ShaderCompiler::HandleBundle(
 
     const bool anyMissing = missingPerms.Any();
 
-    const bool requestedFound = shaderRequest.HasValue() && inOutBundle.compiledShaders.FindIf([&shaderRequest](const Shader& shader)
-                                                                {
-                                                                    return SatisfiesRequested(shaderRequest->properties, shaderRequest->vertexAttributes, shader);
-                                                                })
-            != inOutBundle.compiledShaders.End();
+    const bool requestedFound = shaderRequest.HasValue() && inOutBundle->compiledShaders.FindIf(
+        [&shaderRequest](const Handle<Shader>& shader)
+        {
+            return SatisfiesRequested(shaderRequest->properties, shaderRequest->vertexAttributes, *shader);
+        }) != inOutBundle->compiledShaders.End();
 
     if (anyMissing || (shaderRequest.HasValue() && !requestedFound))
     {
@@ -2035,8 +1928,10 @@ bool ShaderCompiler::HandleBundle(
 bool ShaderCompiler::LoadBundle(
     Name name,
     Optional<ShaderRequest> shaderRequest,
-    ShaderBundle& bundle)
+    Handle<ShaderBundle>& outBundle)
 {
+    outBundle.Reset();
+
     if (!CanCompileShaders())
     {
         HYP_LOG(ShaderCompiler, Warning,
@@ -2071,55 +1966,50 @@ bool ShaderCompiler::LoadBundle(
     const INIFile::Section& section = m_definitions->GetSection(nameString);
     ParseDefinitionSection(section, decl);
 
-    auto ForceRecompile = [&](const FilePath& outputFilePath)
+    auto ForceRecompile = [&](const AssetPath& path)
     {
         if (CanCompileShaders())
         {
             HYP_LOG(ShaderCompiler, Info, "Attempting to compile shader {}...",
-                outputFilePath);
+                path.ToString());
         }
         else
         {
             HYP_LOG(ShaderCompiler, Error,
-                "Failed to load compiled shader file: {}. The file could not be "
-                "found.",
-                outputFilePath);
+                "Failed to load compiled shader file: {}",
+                path.ToString());
 
             return false;
         }
 
-        if (!CompileBundle(decl, shaderRequest, bundle, !ShouldCompileEntireBundle))
+        if (!CompileBundle(decl, shaderRequest, outBundle, !ShouldCompileEntireBundle))
         {
             HYP_LOG(ShaderCompiler, Error, "Failed to compile shader bundle {}", name);
 
             return false;
         }
 
-        return LoadBundleFromFilePath(outputFilePath, bundle);
+        return LoadBundleFromAssetPath(path, outBundle);
     };
 
-    const FilePath outputFilePath = GetCacheDirectory() / "ShaderBundles" / nameString + ".shaderbundle";
+    const AssetPath bundleAssetPath(HYP_FORMAT("Engine/Shaders/{}", name));
 
-    if (outputFilePath.Exists())
+    if (!LoadBundleFromAssetPath(bundleAssetPath, outBundle))
     {
-#ifdef HYP_SHADER_COMPILER_LOGGING
-        HYP_LOG(ShaderCompiler, Info, "Attempting to load compiled shader {}...", outputFilePath);
-#endif
-
-        if (!LoadBundleFromFilePath(outputFilePath, bundle))
+        if (!ForceRecompile(bundleAssetPath))
         {
-            if (!ForceRecompile(outputFilePath))
-            {
-                return false;
-            }
+            return false;
         }
     }
-    else if (!ForceRecompile(outputFilePath))
-    {
-        return false;
-    }
 
-    return HandleBundle(decl, shaderRequest, outputFilePath, bundle);
+    Assert(outBundle != nullptr);
+
+    Handle<AssetPackage> package = outBundle->GetPackage();
+    Assert(package.IsValid());
+
+    const Time lastSavedTimestamp = package.IsValid() ? package->GetLastSavedTimestamp() : Time(0);
+
+    return HandleBundle(decl, shaderRequest, lastSavedTimestamp, outBundle);
 }
 
 bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
@@ -2127,19 +2017,6 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
     if (m_definitions && m_definitions->IsValid())
     {
         return true;
-    }
-
-    const FilePath dataPath = GetCacheDirectory() / "ShaderBundles";
-
-    if (!dataPath.Exists())
-    {
-        if (FileSystem::MkDir(dataPath.Data()) != 0)
-        {
-            HYP_LOG(ShaderCompiler, Error, "Failed to create data path at {}",
-                dataPath);
-
-            return false;
-        }
     }
 
     if (m_definitions)
@@ -2218,7 +2095,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
                         vertexAttributes.Set(*attr);
                     }
 
-                    Shader shader;
+                    Shader* shader = nullptr;
                     bool result = RequestShader(decl.name, properties, vertexAttributes, shader);
 
                     Mutex::Guard guard(resultsMutex);
@@ -2911,13 +2788,15 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 bool ShaderCompiler::CompileBundle(
     const ShaderBundleDecl& decl,
     Optional<ShaderRequest> shaderRequest,
-    ShaderBundle& out,
+    Handle<ShaderBundle>& outBundle,
     bool onlyCompileRequested)
 {
     if (!CanCompileShaders())
     {
         return false;
     }
+
+    outBundle = MakeHandle<ShaderBundle>(decl.name);
 
     Array<LoadedSourceFile> loadedSourceFiles;
     loadedSourceFiles.Resize(decl.sources.Size());
@@ -3242,17 +3121,20 @@ bool ShaderCompiler::CompileBundle(
                 perm.ToString(),
                 perm.GetRequiredVertexAttributes().ToString());
 
-            Shader shader;
-            shader.name = decl.name;
+            HashCode permHashCode = perm.GetPropertySetHashCode();
+            permHashCode.Add(perm.GetRequiredVertexAttributes().GetHashCode());
+
+            Handle<Shader> shader = MakeHandle<Shader>(NAME_FMT("{}_{}", decl.name, permHashCode.Value()));
+            shader->baseName = decl.name;
 
             for (const ShaderProperty& shaderProperty : perm.GetPropertySet())
             {
                 const ShaderPropertyId propertyId = InternShaderProperty(shaderProperty);
-                shader.properties.Add(propertyId);
+                shader->properties.Add(propertyId);
             }
 
-            shader.vertexAttributes = perm.GetRequiredVertexAttributes();
-            shader.propertySetHashCode = perm.GetPropertySetHashCode();
+            shader->vertexAttributes = perm.GetRequiredVertexAttributes();
+            shader->propertySetHashCode = perm.GetPropertySetHashCode();
 
             uint32 numErrored = 0;
             uint32 numCompiled = 0;
@@ -3275,7 +3157,7 @@ bool ShaderCompiler::CompileBundle(
                 const LoadedSourceFile& item = loadedSourceFiles[index];
 
                 // check if a file exists w/ same hash
-                const FilePath outputFilepath = item.GetOutputFilepath(shader);
+                const FilePath outputFilepath = item.GetOutputFilepath(*shader);
 
                 filepaths[index] = { outputFilepath, false };
 
@@ -3307,7 +3189,7 @@ bool ShaderCompiler::CompileBundle(
                         }
 
                         Mutex::Guard guard(errorMessagesMutex);
-                        out.errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
+                        outBundle->errorMessages.Concat(Map(processResult.errors, &ProcessError::errorMessage));
 
                         ++numErrored;
 
@@ -3400,7 +3282,7 @@ bool ShaderCompiler::CompileBundle(
                     if (errorMessages.Any())
                     {
                         Mutex::Guard guard(errorMessagesMutex);
-                        out.errorMessages.Concat(errorMessages);
+                        outBundle->errorMessages.Concat(errorMessages);
 
                         ++numErrored;
 
@@ -3408,7 +3290,7 @@ bool ShaderCompiler::CompileBundle(
                     }
 #else
                     Mutex::Guard guard(errorMessagesMutex);
-                    out.errorMessages.EmplaceBack("Cannot compile GLSL code, glslang not linked");
+                    outBundle->errorMessages.EmplaceBack("Cannot compile GLSL code, glslang not linked");
 
                     ++numErrored;
 
@@ -3439,7 +3321,7 @@ bool ShaderCompiler::CompileBundle(
                     if (errorMessages.Any())
                     {
                         Mutex::Guard guard(errorMessagesMutex);
-                        out.errorMessages.Concat(errorMessages);
+                        outBundle->errorMessages.Concat(errorMessages);
 
                         ++numErrored;
 
@@ -3448,7 +3330,7 @@ bool ShaderCompiler::CompileBundle(
 
 #else
                     Mutex::Guard guard(errorMessagesMutex);
-                    out.errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
+                    outBundle->errorMessages.EmplaceBack("Cannot compile HLSL code, DXC not linked");
 
                     ++numErrored;
 
@@ -3459,7 +3341,7 @@ bool ShaderCompiler::CompileBundle(
                 if (byteBuffer.Empty())
                 {
                     Mutex::Guard guard(errorMessagesMutex);
-                    out.errorMessages.EmplaceBack("No shader IL returned");
+                    outBundle->errorMessages.EmplaceBack("No shader IL returned");
 
                     ++numErrored;
 
@@ -3472,7 +3354,7 @@ bool ShaderCompiler::CompileBundle(
                     if (!tempWriter.IsOpen())
                     {
                         Mutex::Guard guard(errorMessagesMutex);
-                        out.errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", outputFilepath));
+                        outBundle->errorMessages.PushBack(HYP_FORMAT("Could not open file {} for writing!", outputFilepath));
 
                         ++numErrored;
 
@@ -3486,12 +3368,12 @@ bool ShaderCompiler::CompileBundle(
                 if (item.language == ShaderLanguage::GLSL)
                 {
                     // for GLSL, we always have "main" as entry point
-                    shader.AddShaderModule(item.type, item.file, "main", std::move(byteBuffer));
+                    shader->AddShaderModule(item.type, item.file, "main", byteBuffer.ToByteView());
                 }
                 else
                 {
                     // for HLSL, we use entry point name based on stage
-                    shader.AddShaderModule(item.type, item.file, std::move(byteBuffer));
+                    shader->AddShaderModule(item.type, item.file, byteBuffer.ToByteView());
                 }
 
                 ++numCompiled;
@@ -3502,22 +3384,22 @@ bool ShaderCompiler::CompileBundle(
 
             if (numErrored == 0 && numCompiled > 0)
             {
-                shader.inputGroup = ShaderInputGroup();
-                descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader.inputGroup);
+                shader->inputGroup = ShaderInputGroup();
+                descriptorUsageSetsMerged.BuildDescriptorTableDeclaration(shader->inputGroup);
 
                 Mutex::Guard guard(compiledShadersMutex);
-                out.compiledShaders.PushBack(std::move(shader));
+                outBundle->compiledShaders.PushBack(std::move(shader));
             }
         },
         false); // true);
 
-    if (out.HasErrors())
+    if (outBundle->HasErrors())
     {
         HYP_LOG(ShaderCompiler, Error,
             "Shader compilation failed for shader {} with {} errored permutations!",
             decl.name, numErroredPermutations.Get(MemoryOrder::RELAXED));
 
-        for (const String& errorMessage : out.errorMessages)
+        for (const String& errorMessage : outBundle->errorMessages)
         {
             HYP_LOG(ShaderCompiler, Error, "\t{}", errorMessage);
         }
@@ -3527,7 +3409,7 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    if (out.compiledShaders.Empty())
+    if (outBundle->compiledShaders.Empty())
     {
         HYP_LOG(ShaderCompiler, Error,
             "No compiled shaders were produced for shader {}",
@@ -3538,12 +3420,12 @@ bool ShaderCompiler::CompileBundle(
 
     // more attributes = higher pri, better fit found first
     std::sort(
-        out.compiledShaders.Begin(),
-        out.compiledShaders.End(),
-        [](const Shader& a, const Shader& b) -> bool
+        outBundle->compiledShaders.Begin(),
+        outBundle->compiledShaders.End(),
+        [](const Handle<Shader>& a, const Handle<Shader>& b) -> bool
         {
-            return ByteUtil::BitCount(a.vertexAttributes.flagMask)
-                > ByteUtil::BitCount(b.vertexAttributes.flagMask);
+            return ByteUtil::BitCount(a->vertexAttributes.flagMask)
+                > ByteUtil::BitCount(b->vertexAttributes.flagMask);
         });
 
     { // Save the shader property DB
@@ -3555,36 +3437,37 @@ bool ShaderCompiler::CompileBundle(
         shaderPropertyDbWriter.Close();
     }
 
-    {
-        const FilePath shaderBundleWriterPath = GetCacheDirectory() / "ShaderBundles" / String(*decl.name) + ".shaderbundle";
-
-        FileByteWriter shaderBundleWriter { shaderBundleWriterPath };
-
-        FBOMWriter serializer { FBOMWriterConfig {} };
-
-        if (FBOMResult err = serializer.Append(out))
+    { // register assets
+        for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
-            HYP_LOG(ShaderCompiler, Error,
-                "Failed to serialize compiled shader {}: {}",
-                decl.name, err.message);
+            Result registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
+                HYP_FORMAT("Engine/Shaders/{}Perms", shader->baseName),
+                shader,
+                AddAssetConflictMode::ReplaceExisting);
 
-            HYP_BREAKPOINT_DEBUG_MODE;
-
-            return false;
+            if (registerResult.HasError())
+            {
+                HYP_LOG(ShaderCompiler, Warning, "Failed to register shader asset: {}", registerResult.GetError().GetMessage());
+            }
+            else
+            {
+                HYP_LOG(ShaderCompiler, Debug, "Registered shader asset {}", shader->GetName());
+            }
         }
 
-        if (FBOMResult err = serializer.Emit(&shaderBundleWriter))
+        Result registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
+            "Engine/Shaders",
+            outBundle->HandleFromThis(),
+            AddAssetConflictMode::ReplaceExisting);
+
+        if (registerResult.HasError())
         {
             HYP_LOG(ShaderCompiler, Error,
-                "Failed to write compiled shader {} to file {}: {}",
-                decl.name, shaderBundleWriterPath, err.message);
-
-            HYP_BREAKPOINT_DEBUG_MODE;
-
+                "Failed to register shader bundle asset {}: {}",
+                outBundle->GetName(), registerResult.GetError().GetMessage());
+            
             return false;
         }
-
-        shaderBundleWriter.Close();
     }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
@@ -3604,12 +3487,12 @@ bool ShaderCompiler::RequestShader(
     Name name,
     const ShaderPropertySet& properties,
     const VertexAttributeSet& vertexAttributes,
-    Shader& out)
+    Shader*& outShader)
 {
     ShaderPropertySet mergedProperties = properties;
     MergeGlobalShaderProperties(mergedProperties);
 
-    ShaderBundle bundle;
+    Handle<ShaderBundle> bundle;
 
     if (!LoadBundle(name, ShaderRequest { mergedProperties, vertexAttributes }, bundle))
     {
@@ -3618,29 +3501,20 @@ bool ShaderCompiler::RequestShader(
         return false;
     }
 
-    if (bundle.compiledShaders.Empty())
+    if (bundle->compiledShaders.Empty())
     {
         AssertDebug(false, "Loaded shader bundle has no compiled shaders! Corrupted file?");
         return false;
     }
 
     // make sure we properly created it
-    auto it = bundle.compiledShaders.FindIf(
-        [&mergedProperties, &vertexAttributes](const Shader& shader) -> bool
+    auto it = bundle->compiledShaders.FindIf(
+        [&mergedProperties, &vertexAttributes](const Handle<Shader>& shader) -> bool
         {
-            if (!shader.IsValid())
-            {
-                HYP_LOG(ShaderCompiler, Error,
-                    "Invalid compiled shader found when looking for shader {}",
-                    shader.name);
-
-                return false;
-            }
-
-            return SatisfiesRequested(mergedProperties, vertexAttributes, shader);
+            return SatisfiesRequested(mergedProperties, vertexAttributes, *shader);
         });
 
-    if (it == bundle.compiledShaders.End())
+    if (it == bundle->compiledShaders.End())
     {
         HYP_LOG(ShaderCompiler, Error,
             "No match found for requested shader!\n"
@@ -3648,18 +3522,18 @@ bool ShaderCompiler::RequestShader(
             "\tRequested properties: {}\n\tVertex Attributes: {}\n\n"
             "Found: {}",
             name, mergedProperties.GetDebugString(), vertexAttributes.ToString(),
-            String::Join(bundle.compiledShaders, "\n", [](const Shader& cs)
+            String::Join(bundle->compiledShaders, "\n", [](const Handle<Shader>& shader)
                 {
                     return HYP_FORMAT("-----\n\tProperties: {}\n\tVertex Attributes: {}\n-----",
-                        cs.properties.GetDebugString(), cs.vertexAttributes.ToString());
+                        shader->properties.GetDebugString(), shader->vertexAttributes.ToString());
                 }));
-
-        HYP_BREAKPOINT;
 
         return false;
     }
 
-    out = *it;
+    Assert((*it)->IsValid());
+
+    outShader = it->Get();
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
     HYP_LOG(ShaderCompiler, Debug,
@@ -3668,8 +3542,6 @@ bool ShaderCompiler::RequestShader(
         finalProperties.ToString(),
         finalProperties.GetRequiredVertexAttributes().ToString());
 #endif
-
-    Assert(out.IsValid());
 
     return true;
 }

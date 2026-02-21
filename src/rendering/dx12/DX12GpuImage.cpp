@@ -9,7 +9,7 @@
 #include <rendering/dx12/DX12GpuBuffer.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <DX12GpuImage.generated.inl>
 

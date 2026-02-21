@@ -44,12 +44,6 @@ namespace logging {
 static volatile int32 s_maxLogChannelId = -1;
 static bool s_registerAllCalled = false;
 
-HYP_API Logger& GetLogger()
-{
-    Assert(g_logger != nullptr);
-    return *g_logger;
-}
-
 class LogChannelIdGenerator
 {
 public:
@@ -515,7 +509,7 @@ void LogChannelRegistrar::RegisterAll()
         }
 
         // out of slots, need to store dynamic
-        s_dynamicLogChannelHandles.PushBack(g_logger->CreateDynamicLogChannel(*channel));
+        s_dynamicLogChannelHandles.PushBack(Logger::GetInstance().CreateDynamicLogChannel(*channel));
     }
 
     m_channels.Clear();
@@ -553,9 +547,15 @@ private:
 
 #pragma region Logger
 
-const Handle<Logger>& Logger::GetInstance()
+Logger& Logger::GetInstance()
 {
-    return g_logger;
+    static Logger s_instance;
+    return s_instance;
+}
+
+Handle<Logger> Logger::MakeScriptLogger()
+{
+    return MakeHandle<Logger>();
 }
 
 Logger::Logger()
@@ -721,7 +721,7 @@ void Logger::SetChannelEnabled(const LogChannel& channel, bool enabled)
 
 void Logger::Log(const LogChannel& channel, const LogMessage& message)
 {
-    if (uint32(message.level) >= uint32(LogLevel::WARNING))
+    if (uint32(message.level) <= uint32(LogLevel::Warning))
     {
         m_impl->m_outputStream->WriteError(channel, message);
     }
@@ -761,7 +761,7 @@ void Logger::LogFatal(const LogChannel& channel, const LogMessage& message)
     HYP_UNREACHABLE();
 }
 
-void Logger::LogScript(const LogChannel& channel, const LogCategory& category, const String& message)
+void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& message)
 {
     constexpr UTF8StringView NewlineChunk = UTF8StringView("\n");
 
@@ -783,15 +783,10 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
         return;
     }
 
-    if (!category.IsEnabled())
-    {
-        return;
-    }
-
     UTF8StringView sv[2] = { UTF8StringView(message), NewlineChunk };
 
     LogMessage lm {};
-    lm.level = category.GetLevel();
+    lm.level = level;
     lm.timestamp = uint64(Time::Now());
     lm.chunks = sv;
 
@@ -806,22 +801,18 @@ void Logger::LogScript(const LogChannel& channel, const LogCategory& category, c
 
 namespace logging {
 
+#ifdef HYP_DEBUG_MODE
 void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber)
 {
-    static constexpr const LogCategory& Category = LogCategory::Debug;
-
-    if constexpr (!Category.IsEnabled())
-    {
-        return;
-    }
+    static constexpr LogLevel Level = LogLevel::Debug;
 
     static const LogChannel& s_channel = g_logChannel_Temp;
-    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Category.GetLevel()>());
+    static const String s_prefix = HYP_FORMAT("{} [{}]: ", s_channel.name, LogLevelToString<Level>());
 
     FixedArray<UTF8StringView, 3> views { s_prefix, str, "\n" };
 
     LogMessage lm {};
-    lm.level = Category.GetLevel();
+    lm.level = Level;
     lm.timestamp = uint64(Time::Now());
     lm.chunks = views.ToSpan();
     lm.fileName = fileName;
@@ -829,6 +820,7 @@ void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumb
 
     logger.Log(s_channel, lm);
 }
+#endif
 
 } // namespace logging
 

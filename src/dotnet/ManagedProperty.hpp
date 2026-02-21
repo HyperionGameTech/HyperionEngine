@@ -55,24 +55,24 @@ public:
     template <class ReturnType>
     ReturnType InvokeGetter(const ManagedObject* pManagedObject)
     {
-        BoxedValue returnHypData;
-        InvokeGetter_Internal(pManagedObject, &returnHypData);
+        BoxedValue returnValue;
+        InvokeGetter_Internal(pManagedObject, &returnValue);
 
-        return std::move(returnHypData.Get<ReturnType>());
+        return std::move(returnValue.Get<ReturnType>());
     }
 
     template <class T>
     void InvokeSetter(const ManagedObject* pManagedObject, T&& value)
     {
-        BoxedValue valueHypData(std::forward<T>(value));
-        const BoxedValue* valueHypDataPtr = &valueHypData;
+        BoxedValue returnValue(std::forward<T>(value));
+        const BoxedValue* returnValuePtr = &returnValue;
 
-        return InvokeSetter_Internal(pManagedObject, &valueHypDataPtr);
+        return InvokeSetter_Internal(pManagedObject, &returnValuePtr);
     }
 
 private:
-    void InvokeGetter_Internal(const ManagedObject* pManagedObject, BoxedValue* outReturnHypData);
-    void InvokeSetter_Internal(const ManagedObject* pManagedObject, const BoxedValue** valueHypData);
+    void InvokeGetter_Internal(const ManagedObject* pManagedObject, BoxedValue* outBoxed);
+    void InvokeSetter_Internal(const ManagedObject* pManagedObject, const BoxedValue** boxedValue);
 
     ManagedGuid m_guid;
     ManagedAttributeSet m_attributes;

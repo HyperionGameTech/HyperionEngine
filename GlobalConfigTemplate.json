@@ -7,10 +7,10 @@
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
-      "RayStep": 1.500000,
+      "RayStep": 1.5,
       "NumIterations": 64,
-      "EyeFade": [0.990000, 0.995000],
-      "ScreenEdgeFade": [0.990000, 0.995000]
+      "EyeFade": [0.99, 0.995],
+      "ScreenEdgeFade": [0.99, 0.995]
     },
     "EnvGrid": {
       "Reflections": {
@@ -48,8 +48,8 @@
       "Enabled": true
     },
     "HBAO": {
-      "Radius": 2.500000,
-      "Power": 0.800000,
+      "Radius": 2.5,
+      "Power": 0.8,
       "UseTemporalBlending": false,
       "Enabled": false
     },
@@ -70,8 +70,8 @@
   "App": {
     "Name": "DefaultGame",
     "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace",
-    "BlobStorage": {
-      "Location": "DefaultGame/BlobStorage",
+    "Cache": {
+      "BaseDirectory": "Cache",
       "PageSize": 268435456
     }
   },

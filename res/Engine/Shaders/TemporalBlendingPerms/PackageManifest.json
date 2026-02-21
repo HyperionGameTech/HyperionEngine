@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "TemporalBlendingPerms",
+  "FriendlyName": "TemporalBlendingPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/TemporalBlendingPerms"
+}

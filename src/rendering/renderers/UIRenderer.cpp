@@ -43,6 +43,7 @@ HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 #pragma region UIRenderCollector
 
 static const ShaderPropertyId s_propTextured = InternShaderProperty(ShaderProperty(NAME("TEXTURED")));
+static const ShaderPropertyId s_propUIText = InternShaderProperty(ShaderProperty(NAME("UI_TEXT")));
 
 static RenderableAttributeSet GetMergedRenderableAttributes(
     const RenderableAttributeSet& inAttributes,
@@ -112,6 +113,14 @@ static void BuildRenderGroupsOrdered(
 
                 attributes.SetShaderProperties(newProperties);
             }
+        }
+
+        if (const MaterialParameter& textParam = material->GetParameter(MaterialParameterKey::MATERIAL_KEY_RESERVED2); int(textParam) == 1) // text
+        {
+            ShaderPropertySet newProperties = attributes.GetShaderProperties();
+            newProperties.Add(s_propUIText);
+
+            attributes.SetShaderProperties(newProperties);
         }
 
         const RenderBucket rb = attributes.GetMaterialAttributes().bucket;

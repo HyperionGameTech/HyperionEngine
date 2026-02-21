@@ -2,7 +2,7 @@
 
 #include <rendering/GpuImageView.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <GpuImageView.generated.inl>
 

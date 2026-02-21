@@ -767,6 +767,10 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
         case MemberType::Property:
         {
             const Property& property = static_cast<const Property&>(member);
+
+            if (!property.CanSet())
+                return false;
+
             const TypeInfo& typeInfo = property.GetTypeInfo();
 
             BoxedValue boxed;
@@ -985,7 +989,7 @@ bool ObjectFromJSON(const JSON::Object& jsonObject, const Class* targetClass, Bo
     return true;
 }
 
-bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outHypData)
+bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, BoxedValue& outBoxed)
 {
     if (typeInfo.IsBoolType())
     {
@@ -995,7 +999,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        outHypData = BoxedValue(jsonValue.AsBool());
+        outBoxed = BoxedValue(jsonValue.AsBool());
         return true;
     }
 
@@ -1017,7 +1021,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(int8(number));
+            outBoxed = BoxedValue(int8(number));
             return true;
         }
 
@@ -1029,7 +1033,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(int16(number));
+            outBoxed = BoxedValue(int16(number));
             return true;
         }
 
@@ -1041,7 +1045,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(int32(number));
+            outBoxed = BoxedValue(int32(number));
             return true;
         }
 
@@ -1053,7 +1057,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(int64(number));
+            outBoxed = BoxedValue(int64(number));
             return true;
         }
 
@@ -1065,7 +1069,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(uint8(number));
+            outBoxed = BoxedValue(uint8(number));
             return true;
         }
 
@@ -1077,7 +1081,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(uint16(number));
+            outBoxed = BoxedValue(uint16(number));
             return true;
         }
 
@@ -1089,7 +1093,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(uint32(number));
+            outBoxed = BoxedValue(uint32(number));
             return true;
         }
 
@@ -1101,7 +1105,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = BoxedValue(uint64(number));
+            outBoxed = BoxedValue(uint64(number));
             return true;
         }
 
@@ -1115,7 +1119,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                     return false;
                 }
 
-                outHypData = BoxedValue(SizeType(number));
+                outBoxed = BoxedValue(SizeType(number));
                 return true;
             }
         }
@@ -1138,19 +1142,19 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
         {
             // Clamp to representable range of Float16
             const double clamped = MathUtil::Clamp(double(number), double(-FLT16_MAX), double(FLT16_MAX));
-            outHypData = BoxedValue(Float16(float(MathUtil::Clamp(double(clamped), double(-FLT16_MAX), double(FLT16_MAX)))));
+            outBoxed = BoxedValue(Float16(float(MathUtil::Clamp(double(clamped), double(-FLT16_MAX), double(FLT16_MAX)))));
             return true;
         }
 
         if (typeInfo.id == TypeId::ForType<float>())
         {
-            outHypData = BoxedValue(float(MathUtil::Clamp(double(number), double(-FLT_MAX), double(FLT_MAX))));
+            outBoxed = BoxedValue(float(MathUtil::Clamp(double(number), double(-FLT_MAX), double(FLT_MAX))));
             return true;
         }
 
         if (typeInfo.id == TypeId::ForType<double>())
         {
-            outHypData = BoxedValue(double(number));
+            outBoxed = BoxedValue(double(number));
             return true;
         }
 
@@ -1184,7 +1188,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
 
         stringHandler->SetValue(stringInstance, jsonValue.AsString().ToUtf8());
 
-        outHypData = std::move(stringInstance);
+        outBoxed = std::move(stringInstance);
 
         return true;
     }
@@ -1204,42 +1208,42 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
         {
             if (underlyingTypeInfo->id == TypeId::ForType<int8>())
             {
-                outHypData = BoxedValue(jsonValue.ToInt8());
+                outBoxed = BoxedValue(jsonValue.ToInt8());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<int16>())
             {
-                outHypData = BoxedValue(jsonValue.ToInt16());
+                outBoxed = BoxedValue(jsonValue.ToInt16());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<int32>())
             {
-                outHypData = BoxedValue(jsonValue.ToInt32());
+                outBoxed = BoxedValue(jsonValue.ToInt32());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<int64>())
             {
-                outHypData = BoxedValue(jsonValue.ToInt64());
+                outBoxed = BoxedValue(jsonValue.ToInt64());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint8>())
             {
-                outHypData = BoxedValue(jsonValue.ToUInt8());
+                outBoxed = BoxedValue(jsonValue.ToUInt8());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint16>())
             {
-                outHypData = BoxedValue(jsonValue.ToUInt16());
+                outBoxed = BoxedValue(jsonValue.ToUInt16());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint32>())
             {
-                outHypData = BoxedValue(jsonValue.ToUInt32());
+                outBoxed = BoxedValue(jsonValue.ToUInt32());
                 return true;
             }
             else if (underlyingTypeInfo->id == TypeId::ForType<uint64>())
             {
-                outHypData = BoxedValue(jsonValue.ToUInt64());
+                outBoxed = BoxedValue(jsonValue.ToUInt64());
                 return true;
             }
             else
@@ -1270,13 +1274,13 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             return false;
         }
 
-        outHypData = BoxedValue(UUID(*jsonString.ToAnsi()));
+        outBoxed = BoxedValue(UUID(*jsonString.ToAnsi()));
         return true;
     }
 
     if (typeInfo.id == TypeId::ForType<Name>())
     {
-        outHypData = BoxedValue(Name(CreateNameFromDynamicString(*jsonValue.ToString().ToAnsi())));
+        outBoxed = BoxedValue(Name(CreateNameFromDynamicString(*jsonValue.ToString().ToAnsi())));
         return true;
     }
 
@@ -1336,7 +1340,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             vectorHandler->SetComponent(vectorInstance, i, elementData);
         }
 
-        outHypData = std::move(vectorInstance);
+        outBoxed = std::move(vectorInstance);
 
         return true;
     }
@@ -1397,7 +1401,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             matrixHandler->SetElement(matrixInstance, i / matrixHandler->GetNumColumns(), i % matrixHandler->GetNumColumns(), elementData);
         }
 
-        outHypData = std::move(matrixInstance);
+        outBoxed = std::move(matrixInstance);
 
         return true;
     }
@@ -1462,7 +1466,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             }
         }
 
-        outHypData = std::move(arrayInstance);
+        outBoxed = std::move(arrayInstance);
 
         return true;
     }
@@ -1526,7 +1530,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
             }
         }
 
-        outHypData = std::move(setInstance);
+        outBoxed = std::move(setInstance);
 
         return true;
     }
@@ -1550,7 +1554,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = std::move(variantInstance);
+            outBoxed = std::move(variantInstance);
 
             return true;
         }
@@ -1585,7 +1589,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                     return false;
                 }
 
-                outHypData = std::move(variantInstance);
+                outBoxed = std::move(variantInstance);
                 return true;
             }
         }
@@ -1598,7 +1602,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
     if (jsonValue.IsNull() && typeInfo.IsClass())
     {
         // null object
-        outHypData = BoxedValue();
+        outBoxed = BoxedValue();
 
         return true;
     }
@@ -1645,7 +1649,7 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
                 return false;
             }
 
-            outHypData = std::move(instance);
+            outBoxed = std::move(instance);
 
             return true;
         }

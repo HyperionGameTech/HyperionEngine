@@ -41,7 +41,7 @@ public:
 
     virtual bool CanCreateInstance() const override = 0;
 
-    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override = 0;
+    virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override = 0;
 
     virtual FBOMResult SerializeStruct(ConstAnyRef value, FBOMObject& out) const = 0;
     virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, BoxedValue& out) const = 0;
@@ -122,7 +122,7 @@ public:
         }
     }
 
-    virtual bool ToHypData(ByteView memory, BoxedValue& outHypData) const override
+    virtual bool ToBoxed(ByteView memory, BoxedValue& outBoxed) const override
     {
         if constexpr (std::is_abstract_v<T>)
         {
@@ -132,7 +132,7 @@ public:
         {
             HYP_CORE_ASSERT(memory.Size() == sizeof(T));
 
-            outHypData = BoxedValue(std::move(*reinterpret_cast<T*>(memory.Data())));
+            outBoxed = BoxedValue(std::move(*reinterpret_cast<T*>(memory.Data())));
 
             return true;
         }
@@ -310,7 +310,7 @@ public:
         return true;
     }
 
-    virtual bool ToHypData(ByteView memory, BoxedValue& out) const override;
+    virtual bool ToBoxed(ByteView memory, BoxedValue& out) const override;
 
     virtual FBOMResult SerializeStruct(ConstAnyRef in, FBOMObject& out) const override
     {

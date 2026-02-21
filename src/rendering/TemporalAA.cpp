@@ -14,12 +14,12 @@
 #include <rendering/Framebuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 
@@ -46,8 +46,8 @@ TemporalAA::TemporalAA(const GpuImageViewRef& inputImageView, const Vec2u& exten
 
 TemporalAA::~TemporalAA()
 {
-    SafeDelete(std::move(m_inputImageView));
-    SafeDelete(std::move(m_cBuffers));
+    EnqueueDeletion(std::move(m_inputImageView));
+    EnqueueDeletion(std::move(m_cBuffers));
 }
 
 void TemporalAA::Create()

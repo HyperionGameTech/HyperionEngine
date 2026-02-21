@@ -12,7 +12,7 @@ class AppContextBase;
 class EngineDriver;
 class AssetManager;
 class AudioManager;
-class SafeDeleter;
+class DeletionQueue;
 class ShaderManager;
 class MaterialCache;
 class RenderInterface;

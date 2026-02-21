@@ -59,9 +59,9 @@ public:
         return m_attributes;
     }
 
-    HYP_FORCE_INLINE void Invoke(ObjectReference* thisObjectReference, const BoxedValue** argsBoxed, BoxedValue* outReturnHypData) const
+    HYP_FORCE_INLINE void Invoke(ObjectReference* thisObjectReference, const BoxedValue** argsBoxed, BoxedValue* outBoxed) const
     {
-        m_invokeFptr(thisObjectReference, argsBoxed, outReturnHypData);
+        m_invokeFptr(thisObjectReference, argsBoxed, outBoxed);
     }
 
 private:

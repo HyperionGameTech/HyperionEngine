@@ -36,7 +36,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to create directory {0}: {1}", directory, e.Message);
+                    Logger.Log(logChannel, LogLevel.Error, "Failed to create directory {0}: {1}", directory, e.Message);
                 }
             }
         }
@@ -51,7 +51,7 @@ namespace Hyperion
 
         public void BuildAllProjects()
         {
-            Logger.Log(logChannel, LogType.Info, "Building all projects in source directory: {0}", sourceDirectory);
+            Logger.Log(logChannel, LogLevel.Info, "Building all projects in source directory: {0}", sourceDirectory);
 
             string[] symLinks = System.IO.Directory.GetFiles(binaryOutputDirectory, "*.*.dll", System.IO.SearchOption.AllDirectories)
                 .Where(file => (System.IO.File.GetAttributes(file) & System.IO.FileAttributes.ReparsePoint) == System.IO.FileAttributes.ReparsePoint)
@@ -65,7 +65,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to delete symlink: {0}", e.Message);
+                    Logger.Log(logChannel, LogLevel.Error, "Failed to delete symlink: {0}", e.Message);
                 }
             }
 
@@ -76,7 +76,7 @@ namespace Hyperion
 
             foreach (string directory in directories)
             {
-                Logger.Log(logChannel, LogType.Info, "Processing module directory: {0}", directory);
+                Logger.Log(logChannel, LogLevel.Info, "Processing module directory: {0}", directory);
 
                 string moduleName;
                 int hotReloadVersion;
@@ -114,7 +114,7 @@ namespace Hyperion
                 return true;
             }
 
-            Logger.Log(logChannel, LogType.Info, "binaryOutputDirectory: {0}", binaryOutputDirectory);
+            Logger.Log(logChannel, LogLevel.Info, "binaryOutputDirectory: {0}", binaryOutputDirectory);
 
             string[] dlls = System.IO.Directory.GetFiles(binaryOutputDirectory, $"{moduleName}.dll", System.IO.SearchOption.AllDirectories);
 
@@ -126,7 +126,7 @@ namespace Hyperion
 
             foreach (string dll in dlls)
             {
-                Logger.Log(logChannel, LogType.Info, "Checking DLL: {0}", dll);
+                Logger.Log(logChannel, LogLevel.Info, "Checking DLL: {0}", dll);
                 if (System.IO.File.GetLastWriteTime(dll).ToFileTime() < maxTimestamp)
                 {
                     return true;
@@ -143,7 +143,7 @@ namespace Hyperion
                 .Replace(" ", "")
                 .Replace(".", "");
 
-            Logger.Log(logChannel, LogType.Info, $"Relative path: {relativePath}");
+            Logger.Log(logChannel, LogLevel.Info, $"Relative path: {relativePath}");
 
             while (relativePath.EndsWith("/") || relativePath.EndsWith("\\"))
             {
@@ -204,7 +204,7 @@ namespace Hyperion
 
         private bool BuildProject(string scriptDirectory, bool forceRebuild, out string moduleName, out int hotReloadVersion)
         {
-            Logger.Log(logChannel, LogType.Info, "Building project in directory {0}", scriptDirectory);
+            Logger.Log(logChannel, LogLevel.Info, "Building project in directory {0}", scriptDirectory);
 
             moduleName = GetModuleNameForScriptDirectory(scriptDirectory);
             hotReloadVersion = -1;
@@ -213,19 +213,19 @@ namespace Hyperion
             {
                 if (!forceRebuild && !DetectNeedsRebuild(scriptDirectory: scriptDirectory, moduleName: moduleName))
                 {
-                    Logger.Log(logChannel, LogType.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
+                    Logger.Log(logChannel, LogLevel.Info, "Skipping rebuild of module {0}, no changes detected", moduleName);
 
                     return true;
                 }
             }
             catch (Exception e)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to detect if module {0} needs rebuild: {1}", moduleName, e.Message);
+                Logger.Log(logChannel, LogLevel.Error, "Failed to detect if module {0} needs rebuild: {1}", moduleName, e.Message);
 
                 return false;
             }
 
-            Logger.Log(logChannel, LogType.Info, "Rebuilding module {0}...", moduleName);
+            Logger.Log(logChannel, LogLevel.Info, "Rebuilding module {0}...", moduleName);
 
             string projectOutputDirectory = GetProjectOutputDirectory(
                 moduleName: moduleName,
@@ -237,7 +237,7 @@ namespace Hyperion
                 projectOutputDirectory: projectOutputDirectory
             );
 
-            Logger.Log(logChannel, LogType.Info, "Generating .csproj at {0}", projectFilePath);
+            Logger.Log(logChannel, LogLevel.Info, "Generating .csproj at {0}", projectFilePath);
 
             if (!GenerateCSharpProjectFile(
                 projectFilePath: projectFilePath,
@@ -266,7 +266,7 @@ namespace Hyperion
             string? dependenciesDirectory = System.IO.Path.GetDirectoryName(System.Environment.ProcessPath);
             if (dependenciesDirectory == null)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to get dependencies directory!");
+                Logger.Log(logChannel, LogLevel.Error, "Failed to get dependencies directory!");
 
                 return false;
             }
@@ -315,7 +315,7 @@ namespace Hyperion
             }
             catch (Exception e)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to write project file: {0}", e.Message);
+                Logger.Log(logChannel, LogLevel.Error, "Failed to write project file: {0}", e.Message);
 
                 return false;
             }
@@ -325,7 +325,7 @@ namespace Hyperion
 
         private bool RunDotNetCLI(string projectOutputDirectory, out int hotReloadVersion)
         {
-            Logger.Log(logChannel, LogType.Info, "Running dotnet CLI in {0}", projectOutputDirectory);
+            Logger.Log(logChannel, LogLevel.Info, "Running dotnet CLI in {0}", projectOutputDirectory);
 
             hotReloadVersion = -1;
 
@@ -339,7 +339,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to create project output directory {0}: {1}", projectOutputDirectory, e.Message);
+                    Logger.Log(logChannel, LogLevel.Error, "Failed to create project output directory {0}: {1}", projectOutputDirectory, e.Message);
                     return false;
                 }
             }
@@ -360,11 +360,11 @@ namespace Hyperion
 #if !HYP_MACOS
             process.OutputDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
             {
-                Logger.Log(logChannel, LogType.Info, "{0}", eventArgs.Data);
+                Logger.Log(logChannel, LogLevel.Info, "{0}", eventArgs.Data);
             };
             process.ErrorDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
             {
-                Logger.Log(logChannel, LogType.Error, "{0}", eventArgs.Data);
+                Logger.Log(logChannel, LogLevel.Error, "{0}", eventArgs.Data);
             };
 #endif
 
@@ -374,7 +374,7 @@ namespace Hyperion
             }
             catch (Exception e)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to start dotnet process: {0}", e.Message);
+                Logger.Log(logChannel, LogLevel.Error, "Failed to start dotnet process: {0}", e.Message);
 
                 return false;
             }
@@ -389,17 +389,17 @@ namespace Hyperion
             string standardErrorOutput = process.StandardError.ReadToEnd();
 
             if (!string.IsNullOrEmpty(standardOutput))
-                Logger.Log(logChannel, LogType.Info, "{0}", standardOutput);
+                Logger.Log(logChannel, LogLevel.Info, "{0}", standardOutput);
 
             if (!string.IsNullOrEmpty(standardErrorOutput))
-                Logger.Log(logChannel, LogType.Error, "{0}", standardErrorOutput);
+                Logger.Log(logChannel, LogLevel.Error, "{0}", standardErrorOutput);
 #endif
 
-            Logger.Log(logChannel, LogType.Info, "Waiting for dotnet process to finish...");
+            Logger.Log(logChannel, LogLevel.Info, "Waiting for dotnet process to finish...");
 
             if (!process.WaitForExit(timeoutMilliseconds))
             {
-                Logger.Log(logChannel, LogType.Error, "dotnet process timed out after {0} milliseconds", timeoutMilliseconds);
+                Logger.Log(logChannel, LogLevel.Error, "dotnet process timed out after {0} milliseconds", timeoutMilliseconds);
 
                 // kill the process
                 process.Kill();
@@ -407,22 +407,22 @@ namespace Hyperion
                 return false;
             }
 
-            Logger.Log(logChannel, LogType.Info, "dotnet process finished with exit code {0}", process.ExitCode);
+            Logger.Log(logChannel, LogLevel.Info, "dotnet process finished with exit code {0}", process.ExitCode);
 
             if (process.ExitCode != 0)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to compile script. Check the output log for more information.");
+                Logger.Log(logChannel, LogLevel.Error, "Failed to compile script. Check the output log for more information.");
 
                 MessageBox.Critical()
                     .Title("Script Compilation Error")
                     .Text("Failed to compile script. Check the output log for more information.")
-                    .Button("OK", () => { Logger.Log(logChannel, LogType.Info, "OK clicked"); })
+                    .Button("OK", () => { Logger.Log(logChannel, LogLevel.Info, "OK clicked"); })
                     .Show();
 
                 return false;
             }
 
-            Logger.Log(logChannel, LogType.Info, "Script compiled successfully");
+            Logger.Log(logChannel, LogLevel.Info, "Script compiled successfully");
 
             // Grep all DLLs in the output directory
             string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectOutputDirectory, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
@@ -433,7 +433,7 @@ namespace Hyperion
                 // Copy the DLL to the output directory
                 string outputDllPath = System.IO.Path.Combine(binaryOutputDirectory, System.IO.Path.GetFileName(dlls[i]));
 
-                Logger.Log(logChannel, LogType.Info, "Copying output script assembly {0} to {1}", dlls[i], outputDllPath);
+                Logger.Log(logChannel, LogLevel.Info, "Copying output script assembly {0} to {1}", dlls[i], outputDllPath);
 
                 try
                 {
@@ -441,7 +441,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to copy script assembly: {0}", e.Message);
+                    Logger.Log(logChannel, LogLevel.Error, "Failed to copy script assembly: {0}", e.Message);
 
                     continue;
                 }
@@ -472,7 +472,7 @@ namespace Hyperion
 
                 if (directoryName == null)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to get directory name for DLL {0}", dll);
+                    Logger.Log(logChannel, LogLevel.Error, "Failed to get directory name for DLL {0}", dll);
 
                     continue;
                 }
@@ -532,7 +532,7 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to create symlink from {0} to {1}: {2}", dll, newFilePath, e.Message);
+                    Logger.Log(logChannel, LogLevel.Error, "Failed to create symlink from {0} to {1}: {2}", dll, newFilePath, e.Message);
 
                     return false;
                 }
@@ -550,7 +550,7 @@ namespace Hyperion
 
             if (scriptDirectory == null)
             {
-                Logger.Log(logChannel, LogType.Error, "Failed to get script directory for script {0}", scriptDesc.Path);
+                Logger.Log(logChannel, LogLevel.Error, "Failed to get script directory for script {0}", scriptDesc.Path);
 
                 return false;
             }

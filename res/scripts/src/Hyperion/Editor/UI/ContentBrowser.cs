@@ -16,7 +16,7 @@ public class ContentBrowser : UIEventHandler
     [UIEvent(AllowNested = true)]
     public void ImportClicked()
     {
-        Logger.Log(LogType.Info, "Import content clicked");
+        Logger.Log(LogLevel.Info, "Import content clicked");
     }
 
     // temp debug

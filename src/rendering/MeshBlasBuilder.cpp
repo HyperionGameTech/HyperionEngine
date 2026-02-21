@@ -12,7 +12,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/RenderHelpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <asset/AssetRegistry.hpp>
 
@@ -21,6 +21,8 @@
 #include <core/memory/resource/Resource.hpp>
 
 namespace Hyperion {
+
+HYP_DISABLE_OPTIMIZATION;
 
 struct BuildMeshBlas : public RenderCommand
 {
@@ -39,8 +41,8 @@ struct BuildMeshBlas : public RenderCommand
           packedIndices(std::move(packedIndices)),
           material(material)
     {
-        const SizeType packedVerticesSize = ByteUtil::AlignAs(this->packedVertices.Size() * sizeof(PackedVertex), 16);
-        const SizeType packedIndicesSize = ByteUtil::AlignAs(this->packedIndices.Size() * sizeof(uint32), 16);
+        const SizeType packedVerticesSize = this->packedVertices.Size() * sizeof(PackedVertex);
+        const SizeType packedIndicesSize = this->packedIndices.Size() * sizeof(uint32);
 
         packedVerticesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_VERTEX_BUFFER, packedVerticesSize);
         packedIndicesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_INDEX_BUFFER, packedIndicesSize);
@@ -53,33 +55,38 @@ struct BuildMeshBlas : public RenderCommand
             material,
             Mat4f::identity);
 
+#ifdef HYP_DEBUG_MODE
+        packedVerticesBuffer->SetDebugName(NAME_FMT("PackedVertexBuffer_GpuBlas_{}", blas->GetDebugName()));
+        packedIndicesBuffer->SetDebugName(NAME_FMT("PackedIndexBuffer_GpuBlas_{}", blas->GetDebugName()));
+#endif
+
         this->blas = blas;
     }
 
     virtual ~BuildMeshBlas() override
     {
-        SafeDelete(std::move(packedVerticesBuffer));
-        SafeDelete(std::move(packedIndicesBuffer));
-        SafeDelete(std::move(verticesStagingBuffer));
-        SafeDelete(std::move(indicesStagingBuffer));
+        EnqueueDeletion(std::move(packedVerticesBuffer));
+        EnqueueDeletion(std::move(packedIndicesBuffer));
+        EnqueueDeletion(std::move(verticesStagingBuffer));
+        EnqueueDeletion(std::move(indicesStagingBuffer));
     }
 
     virtual RendererResult operator()() override
     {
-        const SizeType packedVerticesSize = ByteUtil::AlignAs(packedVertices.Size() * sizeof(PackedVertex), 16);
-        const SizeType packedIndicesSize = ByteUtil::AlignAs(packedIndices.Size() * sizeof(uint32), 16);
+        const SizeType packedVerticesSize = packedVertices.Size() * sizeof(PackedVertex);
+        const SizeType packedIndicesSize = packedIndices.Size() * sizeof(uint32);
 
         CheckResultOrReturn(packedVerticesBuffer->Create());
         CheckResultOrReturn(packedIndicesBuffer->Create());
 
         verticesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedVerticesSize);
-        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_V_GpuBlas_{}", blas->GetDebugName()));
+        verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_VB_GpuBlas_{}", blas->GetDebugName()));
         CheckResultOrReturn(verticesStagingBuffer->Create());
         verticesStagingBuffer->Memset(packedVerticesSize, 0); // zero out
         verticesStagingBuffer->Copy(packedVertices.Size() * sizeof(PackedVertex), packedVertices.Data());
 
         indicesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-        indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_I_GpuBlas_{}", blas->GetDebugName()));
+        indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_IB_GpuBlas_{}", blas->GetDebugName()));
         CheckResultOrReturn(indicesStagingBuffer->Create());
         indicesStagingBuffer->Memset(packedIndicesSize, 0); // zero out
         indicesStagingBuffer->Copy(packedIndices.Size() * sizeof(uint32), packedIndices.Data());

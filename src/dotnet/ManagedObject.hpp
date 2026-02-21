@@ -126,7 +126,7 @@ private:
      * */
     void Reset();
 
-    void InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsBoxed, BoxedValue* outReturnHypData);
+    void InvokeMethod_Internal(const ManagedMethod* pMethod, const BoxedValue** argsBoxed, BoxedValue* outBoxed);
 
     template <class ReturnType, class... Args>
     ReturnType InvokeMethod_CheckArgs(const ManagedMethod* pMethod, Args&&... args)
@@ -136,7 +136,7 @@ private:
             BoxedValue* argsArray = (BoxedValue*)StackAlloc(sizeof(BoxedValue) * sizeof...(args));
             const BoxedValue* argsArrayPtr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
 
-            SetArgs_HypData(std::make_index_sequence<sizeof...(args)>(), argsArray, argsArrayPtr, std::forward<Args>(args)...);
+            SetArgsBoxed(std::make_index_sequence<sizeof...(args)>(), argsArray, argsArrayPtr, std::forward<Args>(args)...);
 
             if constexpr (std::is_void_v<ReturnType>)
             {

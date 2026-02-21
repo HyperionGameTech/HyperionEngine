@@ -14,14 +14,14 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/Shader.hpp>
+#include <rendering/ShaderInstance.hpp>
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
 
@@ -73,7 +73,7 @@ SSGI::~SSGI()
         m_temporalBlending.Reset();
     }
 
-    SafeDelete(std::move(m_uniformBuffers));
+    EnqueueDeletion(std::move(m_uniformBuffers));
 }
 
 void SSGI::Create()

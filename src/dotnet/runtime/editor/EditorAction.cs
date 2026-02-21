@@ -57,14 +57,14 @@ namespace Hyperion
 
         public override void Execute(EditorSubsystem editorSubsystem, EditorProject editorProject)
         {
-            Logger.Log(LogType.Info, "Execute action: " + name);
+            Logger.Log(LogLevel.Info, "Execute action: " + name);
 
             execute(editorSubsystem, editorProject);
         }
 
         public override void Revert(EditorSubsystem editorSubsystem, EditorProject editorProject)
         {
-            Logger.Log(LogType.Info, "Revert action: " + name);
+            Logger.Log(LogLevel.Info, "Revert action: " + name);
 
             revert(editorSubsystem, editorProject);
         }

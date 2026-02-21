@@ -51,12 +51,11 @@ struct ShaderInputGroup;
 class Texture;
 class ApplicationWindow;
 class SingleTimeCommands;
-struct Shader;
+class Shader;
 class GpuBufferHolderBase;
 class StagingBufferPool;
 class ShaderManager;
-class SafeDeleter;
-class DebugDrawer;
+class DeletionQueue;
 
 enum class GpuBufferType : uint8;
 enum RenderTargetType : uint8;
@@ -325,7 +324,7 @@ public:
 
     ShaderManager* shaderManager;
 
-    SafeDeleter* safeDeleter;
+    DeletionQueue* safeDeleter;
 
     BindlessStorage* bindlessStorage;
 
@@ -363,8 +362,6 @@ public:
     DescriptorSetCache* descriptorSetCache;
 
     StagingBufferPool* stagingBufferPool;
-
-    DebugDrawer* debugDrawer;
 
     struct ResourceContainer* resources;
 

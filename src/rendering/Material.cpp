@@ -9,7 +9,7 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/Bindless.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
 
@@ -211,7 +211,7 @@ Material::~Material()
 
         if (texture)
         {
-            SafeDelete(std::move(texture));
+            EnqueueDeletion(std::move(texture));
         }
     }
 }
@@ -335,7 +335,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
     if (m_textures[key] != nullptr)
     {
         // if the texture is already set, delete it
-        SafeDelete(std::move(m_textures[key]));
+        EnqueueDeletion(std::move(m_textures[key]));
     }
 
     m_textures[key] = texture;
@@ -378,7 +378,7 @@ void Material::SetTextures(const MaterialTextures& textures)
 
         if (texture != nullptr)
         {
-            SafeDelete(std::move(texture));
+            EnqueueDeletion(std::move(texture));
         }
     }
 

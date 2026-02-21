@@ -22,7 +22,7 @@
 
 #include <rendering/Mesh.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -175,11 +175,11 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    SafeDelete(std::move(m_childUiObjects));
-    SafeDelete(std::move(m_node));
-    SafeDelete(std::move(m_dataSource));
-    SafeDelete(std::move(m_verticalScrollbar));
-    SafeDelete(std::move(m_horizontalScrollbar));
+    EnqueueDeletion(std::move(m_childUiObjects));
+    EnqueueDeletion(std::move(m_node));
+    EnqueueDeletion(std::move(m_dataSource));
+    EnqueueDeletion(std::move(m_verticalScrollbar));
+    EnqueueDeletion(std::move(m_horizontalScrollbar));
 
     OnInit.RemoveAllDetached();
     OnAttached.RemoveAllDetached();
@@ -1563,7 +1563,7 @@ bool UIObject::RemoveChildUIObject(UIObject* uiObject)
 
         // update depths for the child and all nested UIObjects after its been removed
         strongUiObject->UpdateComputedDepth(true);
-        SafeDelete(std::move(strongUiObject));
+        EnqueueDeletion(std::move(strongUiObject));
 
         if (UseAutoSizing())
         {
@@ -2495,7 +2495,7 @@ void UIObject::UpdateMaterial_Internal()
         // need to get a new Material if attributes have changed
         Handle<Material> newMaterial = CreateMaterial();
 
-        SafeDelete(std::move(currentMaterial));
+        EnqueueDeletion(std::move(currentMaterial));
         meshComponent->material = std::move(newMaterial);
 
         GetEntity()->SetNeedsRenderProxyUpdate();
@@ -2515,7 +2515,7 @@ void UIObject::UpdateMaterial_Internal()
                 "Consider setting the material to dynamic if you want to update it at runtime.",
                 GetName());
 
-            SafeDelete(std::move(currentMaterial));
+            EnqueueDeletion(std::move(currentMaterial));
             meshComponent->material = CreateMaterial();
 
             GetEntity()->SetNeedsRenderProxyUpdate();

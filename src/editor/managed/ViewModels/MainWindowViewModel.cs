@@ -130,7 +130,7 @@ namespace Hyperion.Editor.ViewModels
             get => _activeScene;
             set
             {
-                Logger.Log(LogType.Info, $"Setting ActiveScene to {(value != null ? value.Scene.Name.ToString() : "null")}");
+                Logger.Log(LogLevel.Info, $"Setting ActiveScene to {(value != null ? value.Scene.Name.ToString() : "null")}");
                 if (_activeScene == value)
                     return;
 
@@ -144,7 +144,7 @@ namespace Hyperion.Editor.ViewModels
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogType.Warn, $"Failed to set active scene: {ex.Message}");
+                        Logger.Log(LogLevel.Warning, $"Failed to set active scene: {ex.Message}");
                     }
                 });
 
@@ -171,7 +171,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            Logger.Log(LogType.Info, "Game instance not yet launched, setting up callback to be notified when ready");
+            Logger.Log(LogLevel.Info, "Game instance not yet launched, setting up callback to be notified when ready");
 
             _gameInstanceLaunchedHandler = editorGame.GetOnLaunchedDelegate().Bind(() =>
             {
@@ -439,7 +439,7 @@ namespace Hyperion.Editor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log(LogType.Warn, $"Failed to set focused node: {ex.Message}");
+                    Logger.Log(LogLevel.Warning, $"Failed to set focused node: {ex.Message}");
                 }
             });
 

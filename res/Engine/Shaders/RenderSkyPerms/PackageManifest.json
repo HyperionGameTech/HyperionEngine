@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "RenderSkyPerms",
+  "FriendlyName": "RenderSkyPerms",
+  "Flags": 0,
+  "Path": "Engine/Shaders/RenderSkyPerms"
+}

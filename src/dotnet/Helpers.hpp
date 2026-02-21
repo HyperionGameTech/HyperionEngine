@@ -30,7 +30,7 @@ class ManagedObject;
 
 // Conditionally construct or reference existing BoxedValue
 template <class T>
-static inline const BoxedValue* SetArg_HypData(BoxedValue* arr, SizeType index, T&& arg)
+static inline const BoxedValue* SetArgBoxed(BoxedValue* arr, SizeType index, T&& arg)
 {
     if constexpr (IsBoxedValueV<T>)
     {
@@ -47,9 +47,9 @@ static inline const BoxedValue* SetArg_HypData(BoxedValue* arr, SizeType index, 
 // ^^^ clang-lint wants to treat this as a global variable?
 // Expand over each argument to fill argsArray and argsArrayPtr
 template <class... Args, SizeType... Indices>
-static inline void SetArgs_HypData(std::index_sequence<Indices...>, BoxedValue* arr, const BoxedValue* (&arrayPtr)[sizeof...(Args) + 1], Args&&... args)
+static inline void SetArgsBoxed(std::index_sequence<Indices...>, BoxedValue* arr, const BoxedValue* (&arrayPtr)[sizeof...(Args) + 1], Args&&... args)
 {
-    ((arrayPtr[Indices] = SetArg_HypData(arr, Indices, std::forward<Args>(args))), ...);
+    ((arrayPtr[Indices] = SetArgBoxed(arr, Indices, std::forward<Args>(args))), ...);
     arrayPtr[sizeof...(Args)] = nullptr;
 }
 

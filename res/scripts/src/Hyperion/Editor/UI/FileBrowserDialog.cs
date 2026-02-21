@@ -125,13 +125,13 @@ public class FileBrowserDialog : UIEventHandler
     {
         base.OnAdded(entity);
 
-        Logger.Log(LogType.Info, "FileBrowserDialog added");
+        Logger.Log(LogLevel.Info, "FileBrowserDialog added");
     }
 
     [UIEvent(AllowNested = true)]
     public override UIEventHandlerResult OnAttached()
     {
-        Logger.Log(LogType.Info, "OnAttached");
+        Logger.Log(LogLevel.Info, "OnAttached");
 
         Class cls = Class.GetClass<FileInfo>();
 
@@ -155,7 +155,7 @@ public class FileBrowserDialog : UIEventHandler
     [UIEvent]
     public UIEventHandlerResult BackButtonClicked()
     {
-        Logger.Log(LogType.Info, "Back button clicked");
+        Logger.Log(LogLevel.Info, "Back button clicked");
 
         PopDirectory();
 
@@ -256,7 +256,7 @@ public class FileBrowserDialog : UIEventHandler
         }
         catch (Exception e)
         {
-            Logger.Log(LogType.Error, $"Error getting files: {e.Message}");
+            Logger.Log(LogLevel.Error, $"Error getting files: {e.Message}");
         }
 
         return files;

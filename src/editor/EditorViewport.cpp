@@ -9,7 +9,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
@@ -28,7 +28,7 @@ EditorViewport::EditorViewport(const Handle<Camera>& camera)
 
 EditorViewport::~EditorViewport()
 {
-    SafeDelete(std::move(m_camera));
+    EnqueueDeletion(std::move(m_camera));
 }
 
 void EditorViewport::Init()

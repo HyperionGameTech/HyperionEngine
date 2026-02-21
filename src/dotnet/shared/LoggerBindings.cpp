@@ -7,10 +7,6 @@
 
 using namespace Hyperion;
 
-namespace Hyperion {
-HYP_API extern Handle<Logger> g_logger;
-} // namespace Hyperion
-
 extern "C"
 {
 
@@ -21,33 +17,34 @@ extern "C"
             pChannel = &g_logChannel_Script;
         }
 
-        if (logLevel > uint32(LogLevel::FATAL))
-        {
-            logLevel = uint32(LogLevel::FATAL);
-        }
-
         switch (LogLevel(logLevel))
         {
-        case LogLevel::DEBUG:
-            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Debug())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
+        case LogLevel::Debug:
+            logging::LogDynamic<LogLevel::Debug>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
-        case LogLevel::INFO:
-            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Info())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
+        case LogLevel::Verbose:
+            logging::LogDynamic<LogLevel::Verbose>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
-        case LogLevel::WARNING:
-            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Warning())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
+        case LogLevel::Info:
+            logging::LogDynamic<LogLevel::Info>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
-        case LogLevel::ERR:
-            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Error())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
+        case LogLevel::Warning:
+            logging::LogDynamic<LogLevel::Warning>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
-        case LogLevel::FATAL:
-            logging::LogDynamic<HYP_MAKE_CONST_ARG(&logging::Fatal())>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
+        case LogLevel::Error:
+            logging::LogDynamic<LogLevel::Error>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
 
             break;
+        case LogLevel::Fatal:
+            logging::LogDynamic<LogLevel::Fatal>(logging::GetLogger(), *pChannel, pFileName, line, pMessage);
+
+            break;
+        default:
+            HYP_UNREACHABLE();
         }
     }
 
@@ -58,7 +55,7 @@ extern "C"
             return nullptr;
         }
 
-        return g_logger->FindLogChannel(*pNameHash);
+        return Logger::GetInstance().FindLogChannel(*pNameHash);
     }
 
     HYP_EXPORT LogChannel* Logger_CreateLogChannel(const char* pName)
@@ -68,7 +65,7 @@ extern "C"
         // owns allocation
         LogChannel* pChannel = new LogChannel(channelName, &g_logChannel_Script);
 
-        g_logger->CreateDynamicLogChannel(*pChannel).Release();
+        Logger::GetInstance().CreateDynamicLogChannel(*pChannel).Release();
 
         return pChannel;
     }
@@ -80,7 +77,7 @@ extern "C"
             return;
         }
 
-        g_logger->RemoveDynamicLogChannel(pChannel);
+        Logger::GetInstance().RemoveDynamicLogChannel(pChannel);
 
         // owns allocation
         delete pChannel;

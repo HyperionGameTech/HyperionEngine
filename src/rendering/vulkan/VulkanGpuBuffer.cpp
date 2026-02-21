@@ -10,7 +10,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -64,8 +64,9 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
         Unmap();
     }
     
-    SafeDelete(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
+    EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
         {
+            HYP_LOG_TEMP("Destory vulkan buffer {}", (void*)handle);
             vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
         }));
 
@@ -344,6 +345,8 @@ void VulkanGpuBuffer::CopyFrom(
 
 RendererResult VulkanGpuBuffer::Create()
 {
+    AssertOnThread(g_renderThread);
+
     if (IsCreated())
     {
         // already created
@@ -415,6 +418,8 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
     SizeType alignment,
     bool* outSizeChanged)
 {
+    AssertOnThread(g_renderThread);
+
     if (minimumSize == 0)
     {
         return {};
@@ -439,28 +444,11 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
             Unmap();
         }
 
-        struct VulkanBufferDeleter
-        {
-            VkBuffer buffer;
-            VmaAllocation vmaAllocation;
-        };
-
-        Mutex::Guard* guard = nullptr;
-        HYP_DEFER({ if (guard) delete guard; });
-
-        // safely destroy the buffer after the GPU is done with it:
-        VulkanBufferDeleter* deleter = GetSafeDeleterInstance()->AllocCustom<VulkanBufferDeleter>([](void* ptr)
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
             {
-                VulkanBufferDeleter* bufferDeleter = reinterpret_cast<VulkanBufferDeleter*>(ptr);
-
-                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), bufferDeleter->buffer, bufferDeleter->vmaAllocation);
-            },
-            &guard);
-
-        new (deleter) VulkanBufferDeleter {
-            .buffer = m_handle,
-            .vmaAllocation = m_vmaAllocation
-        };
+                HYP_LOG_TEMP("Destory vulkan buffer {}", (void*)handle);
+                vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
+            }));
 
         m_handle = VK_NULL_HANDLE;
         m_vmaAllocation = VK_NULL_HANDLE;

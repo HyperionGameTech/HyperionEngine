@@ -13,12 +13,6 @@
 
 #include <core/serialization/SerializationUtils.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
-
 #include <core/io/BufferedByteReader.hpp>
 #include <core/io/ByteWriter.hpp>
 
@@ -277,13 +271,19 @@ Result AssetObject::Save(const FilePath& manifestPath)
     for (auto& tup : blobDataReferences)
     {
         const char* magic = tup.GetElement<0>();
+        const SizeType magicLen = magic ? std::strlen(magic) : 0;
+
+        AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
+            "Blob data reference magic must be non-empty and at most {} characters long",
+            sizeof(BlobHeader::magic));
+
         uint16 version = tup.GetElement<1>();
         BlobDataReference* reference = tup.GetElement<2>();
 
-        Assert(magic != nullptr && reference != nullptr && reference->raw != nullptr);
+        Assert(reference != nullptr && reference->raw != nullptr);
 
         BlobHeader header {};
-        Memory::StrCpy((char*)header.magic, magic, sizeof(header.magic));
+        Memory::StrCpy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));
         header.payloadOffset = 0;
         header.payloadSize = reference->size;
         header.version = version;

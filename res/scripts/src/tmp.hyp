@@ -1,4 +1,4 @@
-import Lib::{Logger,LogChannel,LogCategory, EngineDriver};
+import Lib::{Logger,LogChannel,LogLevel, EngineDriver};
 
 Logger := Logger.GetInstance();
 Channel := new LogChannel();
@@ -18,5 +18,5 @@ export func Update(DeltaTime : float)
         Counter = 0;
     }
 
-    Logger.LogScript(Channel, LogCategory.Info, "fps: " + string(Fps)); //string(EngineDriver.GetInstance().GetDefaultWorld().GetGameState().GameTime));
+    Logger.LogScript(Channel, LogLevel.Info, "fps: " + string(Fps)); //string(EngineDriver.GetInstance().GetDefaultWorld().GetGameState().GameTime));
 };

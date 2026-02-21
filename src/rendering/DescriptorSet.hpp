@@ -22,7 +22,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
 #include <core/Types.hpp>
@@ -442,7 +442,7 @@ public:
     {
         for (auto& it : m_sets)
         {
-            SafeDelete(std::move(it));
+            EnqueueDeletion(std::move(it));
         }
     }
 

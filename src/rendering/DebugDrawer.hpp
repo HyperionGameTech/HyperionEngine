@@ -186,16 +186,7 @@ class DebugDrawCommandList final
 public:
     friend class DebugDrawer;
 
-    DebugDrawCommandList(DebugDrawer* debugDrawer)
-        : m_debugDrawer(debugDrawer),
-          sphere(*this),
-          ambientProbe(*this),
-          reflectionProbe(*this),
-          box(*this),
-          plane(*this),
-          m_bufferOffset(0)
-    {
-    }
+    DebugDrawCommandList(DebugDrawer* debugDrawer);
 
     DebugDrawCommandList(const DebugDrawCommandList& other) = delete;
     DebugDrawCommandList& operator=(const DebugDrawCommandList& other) = delete;
@@ -224,11 +215,16 @@ private:
     Array<DebugDrawCommandHeader> m_headers;
     ByteBuffer m_buffer;
     uint32 m_bufferOffset;
+    TSharedLock<SharedMutex> m_lock;
 };
 
 class DebugDrawer
 {
+    friend class DebugDrawCommandList;
+
 public:
+    static DebugDrawer& GetInstance();
+
     DebugDrawer();
     DebugDrawer(const DebugDrawer& other) = delete;
     DebugDrawer& operator=(const DebugDrawer& other) = delete;
@@ -250,19 +246,18 @@ public:
     }
     
     void Initialize();
+    void Shutdown();
 
-    void Update(float delta);
+    void Update();
     void Render(Frame* frame, const RenderSetup& renderSetup);
 
     DebugDrawCommandList& CreateCommandList();
 
 private:
-    DebugDrawerConfig m_config;
-
-private:
     GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 layerIndex, PassData* passData);
-
     void ClearCommands(uint32 idx);
+
+    DebugDrawerConfig m_config;
 
     FixedArray<Array<DebugDrawCommandHeader>, RingBufferDepth> m_headers;
     FixedArray<ByteBuffer, RingBufferDepth> m_buffers;
@@ -278,6 +273,8 @@ private:
     typedef Array<ImmediateDrawShaderData, DynamicAllocator> CachedPartitionedShaderData[MaxDebugDrawShapeTypes];
 
     CachedPartitionedShaderData m_cachedPartitionedShaderData;
+
+    SharedMutex m_sharedMutex;
 };
 
 } // namespace Hyperion

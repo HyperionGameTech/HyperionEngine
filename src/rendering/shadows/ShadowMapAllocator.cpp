@@ -12,7 +12,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/Texture.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
@@ -59,11 +59,11 @@ ShadowMapAllocator::ShadowMapAllocator()
 
 ShadowMapAllocator::~ShadowMapAllocator()
 {
-    SafeDelete(std::move(m_atlasImage));
-    SafeDelete(std::move(m_atlasImageView));
+    EnqueueDeletion(std::move(m_atlasImage));
+    EnqueueDeletion(std::move(m_atlasImageView));
 
-    SafeDelete(std::move(m_pointLightShadowMapImage));
-    SafeDelete(std::move(m_pointLightShadowMapImageView));
+    EnqueueDeletion(std::move(m_pointLightShadowMapImage));
+    EnqueueDeletion(std::move(m_pointLightShadowMapImageView));
 }
 
 void ShadowMapAllocator::Initialize()
@@ -110,11 +110,11 @@ void ShadowMapAllocator::Shutdown()
         atlas.Clear();
     }
 
-    SafeDelete(std::move(m_atlasImage));
-    SafeDelete(std::move(m_atlasImageView));
+    EnqueueDeletion(std::move(m_atlasImage));
+    EnqueueDeletion(std::move(m_atlasImageView));
 
-    SafeDelete(std::move(m_pointLightShadowMapImage));
-    SafeDelete(std::move(m_pointLightShadowMapImageView));
+    EnqueueDeletion(std::move(m_pointLightShadowMapImage));
+    EnqueueDeletion(std::move(m_pointLightShadowMapImageView));
 }
 
 ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, ShadowMapFilter filterMode, const Vec2u& dimensions)

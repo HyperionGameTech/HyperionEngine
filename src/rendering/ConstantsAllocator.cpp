@@ -5,7 +5,7 @@
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/RenderInterface.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 namespace Hyperion {
 

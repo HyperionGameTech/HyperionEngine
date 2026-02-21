@@ -50,40 +50,39 @@ HYP_API extern const Class* GetClass(const TypeId& typeId);
 HYP_API extern bool IsA(const Class* cls, const Class* instanceClass);
 
 template <class T, class T2 = void>
-struct HypDataHelper;
+struct BoxedValueHelper;
 
 template <class T, class T2 = void>
-struct HypDataHelperDecl;
+struct BoxedValueHelperDecl;
 
 template <class T, class ConvertibleFromTuple>
-struct HypData_Is;
+struct BoxedValue_Is;
 
 template <class ReturnType, class T, class ConvertibleFromTuple>
-struct HypData_Get;
+struct BoxedValue_Get;
 
 template <class T, bool IsConst>
-struct HypDataGetReturnTypeHelper
+struct GetReturnTypeHelper
 {
-    using Type = decltype(std::declval<HypDataHelper<T>>().Get(std::declval<std::conditional_t<IsConst, const typename HypDataHelper<T>::StorageType&, typename HypDataHelper<T>::StorageType&>>()));
+    using Type = decltype(std::declval<BoxedValueHelper<T>>().Get(std::declval<std::conditional_t<IsConst, const typename BoxedValueHelper<T>::StorageType&, typename BoxedValueHelper<T>::StorageType&>>()));
 };
 
 template <>
-struct HypDataGetReturnTypeHelper<BoxedValue, false>
+struct GetReturnTypeHelper<BoxedValue, false>
 {
     using Type = BoxedValue&;
 };
 
 template <>
-struct HypDataGetReturnTypeHelper<BoxedValue, true>
+struct GetReturnTypeHelper<BoxedValue, true>
 {
     using Type = const BoxedValue&;
 };
 
-using HypDataSerializeFunction = FBOMResult (*)(const BoxedValue& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags);
+using BoxedValueSerializeFunction = FBOMResult (*)(const BoxedValue& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags);
 
-extern HYP_API HypDataSerializeFunction GetHypDataSerializeFunction(TypeId typeId);
-extern HYP_API void RegisterHypDataSerializeFunction(TypeId typeId, HypDataSerializeFunction func);
-extern HYP_API void SetHypDataFromReference(BoxedValue& boxed, AnyRef ref);
+HYP_API extern BoxedValueSerializeFunction GetBoxedValueSerializeFunction(TypeId typeId);
+HYP_API extern void RegisterBoxedValueSerializeFunction(TypeId typeId, BoxedValueSerializeFunction func);
 
 struct GenericArrayWrapper;
 
@@ -198,18 +197,7 @@ struct BoxedValue
     explicit BoxedValue(T&& value)
         : BoxedValue()
     {
-#if 0
-        if constexpr (std::is_lvalue_reference_v<T> && !std::is_const_v<std::remove_reference_t<T>>)
-        {
-            SetHypDataFromReference(*this, AnyRef(&value));
-        }
-        else
-        {
-            HypDataHelper<NormalizedType<T>> {}.Set(*this, std::forward<T>(value));
-        }
-#else
-        HypDataHelper<NormalizedType<T>> {}.Set(*this, std::forward<T>(value));
-#endif
+        BoxedValueHelper<NormalizedType<T>> {}.Set(*this, std::forward<T>(value));
     }
 
     BoxedValue(const BoxedValue& other)
@@ -339,15 +327,15 @@ struct BoxedValue
         {
             if (strict)
             {
-                return HypData_Is<T, Tuple<>> {}(value, /* checkReference */ true);
+                return BoxedValue_Is<T, Tuple<>> {}(value, /* checkReference */ true);
             }
 
-            return HypData_Is<T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, /* checkReference */ true);
+            return BoxedValue_Is<T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, /* checkReference */ true);
         }
     }
 
     template <class T>
-    auto Get() -> typename HypDataGetReturnTypeHelper<T, false>::Type
+    auto Get() -> typename GetReturnTypeHelper<T, false>::Type
     {
         if constexpr (std::is_same_v<T, BoxedValue>)
         {
@@ -359,10 +347,10 @@ struct BoxedValue
             HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeName<T>().Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
-            using ReturnType = typename HypDataGetReturnTypeHelper<T, false>::Type;
+            using ReturnType = typename GetReturnTypeHelper<T, false>::Type;
 
             Optional<ReturnType> resultValue;
-            HypData_Get<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, resultValue);
+            BoxedValue_Get<ReturnType, T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, resultValue);
 
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
@@ -376,7 +364,7 @@ struct BoxedValue
     }
 
     template <class T>
-    auto Get() const -> typename HypDataGetReturnTypeHelper<T, true>::Type
+    auto Get() const -> typename GetReturnTypeHelper<T, true>::Type
     {
         if constexpr (std::is_same_v<T, BoxedValue>)
         {
@@ -388,10 +376,10 @@ struct BoxedValue
             HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeName<T>().Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
-            using ReturnType = typename HypDataGetReturnTypeHelper<T, true>::Type;
+            using ReturnType = typename GetReturnTypeHelper<T, true>::Type;
 
             Optional<ReturnType> resultValue;
-            HypData_Get<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, resultValue);
+            BoxedValue_Get<ReturnType, T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, resultValue);
 
 #ifdef HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
@@ -405,7 +393,7 @@ struct BoxedValue
     }
 
     template <class T>
-    auto TryGet() -> Optional<typename HypDataGetReturnTypeHelper<T, false>::Type>
+    auto TryGet() -> Optional<typename GetReturnTypeHelper<T, false>::Type>
     {
         if constexpr (std::is_same_v<T, BoxedValue>)
         {
@@ -413,17 +401,17 @@ struct BoxedValue
         }
         else
         {
-            using ReturnType = typename HypDataGetReturnTypeHelper<T, false>::Type;
+            using ReturnType = typename GetReturnTypeHelper<T, false>::Type;
 
             Optional<ReturnType> resultValue;
-            HypData_Get<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, resultValue);
+            BoxedValue_Get<ReturnType, T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, resultValue);
 
             return resultValue;
         }
     }
 
     template <class T>
-    auto TryGet() const -> Optional<typename HypDataGetReturnTypeHelper<T, true>::Type>
+    auto TryGet() const -> Optional<typename GetReturnTypeHelper<T, true>::Type>
     {
         if constexpr (std::is_same_v<T, BoxedValue>)
         {
@@ -431,10 +419,10 @@ struct BoxedValue
         }
         else
         {
-            using ReturnType = typename HypDataGetReturnTypeHelper<T, true>::Type;
+            using ReturnType = typename GetReturnTypeHelper<T, true>::Type;
 
             Optional<ReturnType> resultValue;
-            HypData_Get<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> {}(value, resultValue);
+            BoxedValue_Get<ReturnType, T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, resultValue);
 
             return resultValue;
         }
@@ -453,7 +441,7 @@ struct BoxedValue
             return {};
         }
 
-        const HypDataSerializeFunction serializeFunction = GetHypDataSerializeFunction(GetTypeId());
+        const BoxedValueSerializeFunction serializeFunction = GetBoxedValueSerializeFunction(GetTypeId());
 
         if (!serializeFunction)
         {
@@ -466,7 +454,7 @@ struct BoxedValue
     template <class T>
     static FBOMResult Serialize(T&& value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
-        return HypDataHelper<NormalizedType<T>>::Serialize(value, out, flags);
+        return BoxedValueHelper<NormalizedType<T>>::Serialize(value, out, flags);
     }
 
     template <class T>
@@ -474,7 +462,7 @@ struct BoxedValue
     {
         BoxedValue outData;
 
-        if (FBOMResult err = HypDataHelper<NormalizedType<T>>::Deserialize(context, data, outData))
+        if (FBOMResult err = BoxedValueHelper<NormalizedType<T>>::Deserialize(context, data, outData))
         {
             return err;
         }
@@ -491,11 +479,11 @@ struct BoxedValue
         {
             InitializeSerializeFunction()
             {
-                RegisterHypDataSerializeFunction(
+                RegisterBoxedValueSerializeFunction(
                     TypeId::ForType<NormalizedType<T>>(),
                     [](const BoxedValue& data, FBOMData& out, EnumFlags<FBOMDataFlags> flags) -> FBOMResult
                     {
-                        return HypDataHelper<NormalizedType<T>>::Serialize(data.Get<NormalizedType<T>>(), out, flags);
+                        return BoxedValueHelper<NormalizedType<T>>::Serialize(data.Get<NormalizedType<T>>(), out, flags);
                     });
             }
         } s_initializeSerializeFunction;
@@ -505,12 +493,12 @@ struct BoxedValue
 };
 
 template <class T>
-struct HypDataHelperDecl<T, std::enable_if_t<std::is_fundamental_v<T>>>
+struct BoxedValueHelperDecl<T, std::enable_if_t<std::is_fundamental_v<T>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
+struct BoxedValueHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
 {
     using StorageType = T;
     using ConvertibleFrom = Tuple<
@@ -595,12 +583,12 @@ struct HypDataHelper<T, std::enable_if_t<std::is_fundamental_v<T>>>
 #ifndef HYP_WINDOWS
 
 template <>
-struct HypDataHelperDecl<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>>
+struct BoxedValueHelperDecl<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>>
 {
 };
 
 template <>
-struct HypDataHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>> : HypDataHelper<uint64>
+struct BoxedValueHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64>>> : BoxedValueHelper<uint64>
 {
     using StorageType = uint64;
     using ConvertibleFrom = Tuple<
@@ -670,12 +658,12 @@ struct HypDataHelper<SizeType, std::enable_if_t<!std::is_same_v<SizeType, uint64
 #endif
 
 template <>
-struct HypDataHelperDecl<Float16>
+struct BoxedValueHelperDecl<Float16>
 {
 };
 
 template <>
-struct HypDataHelper<Float16> : HypDataHelper<uint16>
+struct BoxedValueHelper<Float16> : BoxedValueHelper<uint16>
 {
     using StorageType = Float16;
     using ConvertibleFrom = Tuple<
@@ -733,12 +721,12 @@ struct HypDataHelper<Float16> : HypDataHelper<uint16>
 };
 
 template <class T>
-struct HypDataHelperDecl<T, std::enable_if_t<std::is_enum_v<T>>>
+struct BoxedValueHelperDecl<T, std::enable_if_t<std::is_enum_v<T>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std::underlying_type_t<T>>
+struct BoxedValueHelper<T, std::enable_if_t<std::is_enum_v<T>>> : BoxedValueHelper<std::underlying_type_t<T>>
 {
     HYP_FORCE_INLINE bool Is(T value) const
     {
@@ -763,7 +751,7 @@ struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, T value) const
     {
-        HypDataHelper<std::underlying_type_t<T>>::Set(boxed, static_cast<std::underlying_type_t<T>>(value));
+        BoxedValueHelper<std::underlying_type_t<T>>::Set(boxed, static_cast<std::underlying_type_t<T>>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(T value, FBOMData& out, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -789,12 +777,12 @@ struct HypDataHelper<T, std::enable_if_t<std::is_enum_v<T>>> : HypDataHelper<std
 };
 
 template <class T>
-struct HypDataHelperDecl<EnumFlags<T>>
+struct BoxedValueHelperDecl<EnumFlags<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<EnumFlags<T>> : HypDataHelper<T>
+struct BoxedValueHelper<EnumFlags<T>> : BoxedValueHelper<T>
 {
     HYP_FORCE_INLINE bool Is(EnumFlags<T> value) const
     {
@@ -819,18 +807,18 @@ struct HypDataHelper<EnumFlags<T>> : HypDataHelper<T>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, EnumFlags<T> value) const
     {
-        HypDataHelper<typename EnumFlags<T>::UnderlyingType>::Set(boxed, static_cast<typename EnumFlags<T>::UnderlyingType>(value));
+        BoxedValueHelper<typename EnumFlags<T>::UnderlyingType>::Set(boxed, static_cast<typename EnumFlags<T>::UnderlyingType>(value));
     }
 };
 
 /* void pointer specialization - only meant for runtime, non-serializable. */
 template <>
-struct HypDataHelperDecl<void*>
+struct BoxedValueHelperDecl<void*>
 {
 };
 
 template <>
-struct HypDataHelper<void*>
+struct BoxedValueHelper<void*>
 {
     using StorageType = void*;
     using ConvertibleFrom = Tuple<AnyRef, Handle<ObjectBase>, RC<void>>;
@@ -895,12 +883,12 @@ struct HypDataHelper<void*>
 /// ObjIdBase specialization - stores as ObjIdBase internally, ObjId<T> converts to/from this.
 
 template <>
-struct HypDataHelperDecl<ObjIdBase>
+struct BoxedValueHelperDecl<ObjIdBase>
 {
 };
 
 template <>
-struct HypDataHelper<ObjIdBase>
+struct BoxedValueHelper<ObjIdBase>
 {
     using StorageType = ObjIdBase;
     using ConvertibleFrom = Tuple<>;
@@ -951,12 +939,12 @@ struct HypDataHelper<ObjIdBase>
 /// ObjId<T> specialization - stores as ObjIdBase internally, converts to/from ObjIdBase and Handle<ObjectBase>.
 
 template <class T>
-struct HypDataHelperDecl<ObjId<T>>
+struct BoxedValueHelperDecl<ObjId<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
+struct BoxedValueHelper<ObjId<T>> : BoxedValueHelper<ObjIdBase>
 {
     using ConvertibleFrom = Tuple<Handle<ObjectBase>>;
 
@@ -983,19 +971,19 @@ struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const ObjId<T>& value) const
     {
-        HypDataHelper<ObjIdBase>::Set(boxed, static_cast<const ObjIdBase&>(value));
+        BoxedValueHelper<ObjIdBase>::Set(boxed, static_cast<const ObjIdBase&>(value));
     }
 };
 
 /// ClassRef specialization - stores as ClassRef internally, not serializable.
 
 template <>
-struct HypDataHelperDecl<ClassRef>
+struct BoxedValueHelperDecl<ClassRef>
 {
 };
 
 template <>
-struct HypDataHelper<ClassRef>
+struct BoxedValueHelper<ClassRef>
 {
     using StorageType = ClassRef;
     using ConvertibleFrom = Tuple<>;
@@ -1040,12 +1028,12 @@ struct HypDataHelper<ClassRef>
 /// Handle<ObjectBase> specialization - stores as Handle<ObjectBase> internally, serializable
 
 template <>
-struct HypDataHelperDecl<Handle<ObjectBase>>
+struct BoxedValueHelperDecl<Handle<ObjectBase>>
 {
 };
 
 template <>
-struct HypDataHelper<Handle<ObjectBase>>
+struct BoxedValueHelper<Handle<ObjectBase>>
 {
     using StorageType = Handle<ObjectBase>;
     using ConvertibleFrom = Tuple<>;
@@ -1144,12 +1132,12 @@ struct HypDataHelper<Handle<ObjectBase>>
 /// Handle<T> specialization - stores as Handle<ObjectBase> internally, converts to/from Handle<ObjectBase>
 
 template <class T>
-struct HypDataHelperDecl<Handle<T>, std::enable_if_t<!std::is_same_v<T, ObjectBase>>>
+struct BoxedValueHelperDecl<Handle<T>, std::enable_if_t<!std::is_same_v<T, ObjectBase>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<Handle<T>> : HypDataHelper<Handle<ObjectBase>, std::enable_if_t<!std::is_same_v<T, ObjectBase>>>
+struct BoxedValueHelper<Handle<T>> : BoxedValueHelper<Handle<ObjectBase>, std::enable_if_t<!std::is_same_v<T, ObjectBase>>>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1171,12 +1159,12 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<Handle<ObjectBase>, std::enable_
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Handle<T>& value) const
     {
-        HypDataHelper<Handle<ObjectBase>>::Set(boxed, reinterpret_cast<const Handle<ObjectBase>&>(value));
+        BoxedValueHelper<Handle<ObjectBase>>::Set(boxed, reinterpret_cast<const Handle<ObjectBase>&>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Handle<T>&& value) const
     {
-        HypDataHelper<Handle<ObjectBase>>::Set(boxed, reinterpret_cast<Handle<ObjectBase>&&>(std::move(value)));
+        BoxedValueHelper<Handle<ObjectBase>>::Set(boxed, reinterpret_cast<Handle<ObjectBase>&&>(std::move(value)));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
@@ -1213,26 +1201,28 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<Handle<ObjectBase>, std::enable_
     }
 };
 
+#if 1
+
 /// Objects can be stored inline via Handle<ObjectBase> like Handle<T>, and converted to/from Handle<T>
 
 template <class T>
-struct HypDataHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
+struct BoxedValueHelperDecl<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : HypDataHelper<Handle<T>>
+struct BoxedValueHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : BoxedValueHelper<Handle<T>>
 {
     using ConvertibleFrom = Tuple<AnyRef>;
 
     HYP_FORCE_INLINE bool Is(const Handle<ObjectBase>& value) const
     {
-        return value && HypDataHelper<Handle<T>>::Is(value);
+        return value && BoxedValueHelper<Handle<T>>::Is(value);
     }
 
     HYP_FORCE_INLINE T& Get(const Handle<ObjectBase>& value) const
     {
-        return *HypDataHelper<Handle<T>>::Get(value);
+        return *BoxedValueHelper<Handle<T>>::Get(value);
     }
 
     HYP_FORCE_INLINE bool Is(const AnyRef& value) const
@@ -1248,19 +1238,31 @@ struct HypDataHelper<T, std::enable_if_t<std::is_base_of_v<ObjectBase, T>>> : Hy
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const T& value) const
     {
-        HypDataHelper<Handle<T>>::Set(boxed, value.HandleFromThis());
+        BoxedValueHelper<Handle<T>>::Set(boxed, value.HandleFromThis());
+    }
+
+    static FBOMResult Serialize(const T& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
+    {
+        return BoxedValueHelper<Handle<T>>::Serialize(value.HandleFromThis(), outData, flags);
+    }
+
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
+    {
+        return BoxedValueHelper<Handle<T>>::Deserialize(context, data, out);
     }
 };
+
+#endif
 
 /// RefCountedPtr void type can be used to hold any other RefCountedPtr type
 
 template <>
-struct HypDataHelperDecl<RC<void>>
+struct BoxedValueHelperDecl<RC<void>>
 {
 };
 
 template <>
-struct HypDataHelper<RC<void>>
+struct BoxedValueHelper<RC<void>>
 {
     using StorageType = RC<void>;
     using ConvertibleFrom = Tuple<>;
@@ -1324,12 +1326,12 @@ struct HypDataHelper<RC<void>>
 };
 
 template <class T>
-struct HypDataHelperDecl<RC<T>, std::enable_if_t<!std::is_void_v<T>>>
+struct BoxedValueHelperDecl<RC<T>, std::enable_if_t<!std::is_void_v<T>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelper<RC<void>>
+struct BoxedValueHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : BoxedValueHelper<RC<void>>
 {
     HYP_FORCE_INLINE bool Is(const RC<void>& value) const
     {
@@ -1349,12 +1351,12 @@ struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelpe
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const RC<T>& value) const
     {
-        HypDataHelper<RC<void>>::Set(boxed, value);
+        BoxedValueHelper<RC<void>>::Set(boxed, value);
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, RC<T>&& value) const
     {
-        HypDataHelper<RC<void>>::Set(boxed, std::move(value));
+        BoxedValueHelper<RC<void>>::Set(boxed, std::move(value));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
@@ -1394,12 +1396,12 @@ struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelpe
 /// AnyRef - type erased reference - @TODO: Add ConstAnyRef support
 
 template <>
-struct HypDataHelperDecl<AnyRef>
+struct BoxedValueHelperDecl<AnyRef>
 {
 };
 
 template <>
-struct HypDataHelper<AnyRef>
+struct BoxedValueHelper<AnyRef>
 {
     using StorageType = AnyRef;
     using ConvertibleFrom = Tuple<>;
@@ -1465,12 +1467,12 @@ struct HypDataHelper<AnyRef>
 /// T* - raw pointer (non-owning, non-const) held as AnyRef
 
 template <class T>
-struct HypDataHelperDecl<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>>
+struct BoxedValueHelperDecl<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>> : HypDataHelper<AnyRef>
+struct BoxedValueHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_v<T*, void*>>> : BoxedValueHelper<AnyRef>
 {
     using ConvertibleFrom = Tuple<Handle<ObjectBase>, RC<void>>;
 
@@ -1526,7 +1528,7 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, T* value) const
     {
-        HypDataHelper<AnyRef>::Set(boxed, AnyRef(&TypeOf<T>(), value));
+        BoxedValueHelper<AnyRef>::Set(boxed, AnyRef(&TypeOf<T>(), value));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
@@ -1566,48 +1568,48 @@ struct HypDataHelper<T*, std::enable_if_t<!IsConstPointerV<T*> && !std::is_same_
 /// const T* - raw pointer (non-owning, const) held as AnyRef
 
 template <class T>
-struct HypDataHelperDecl<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>>
+struct BoxedValueHelperDecl<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>>
 {
 };
 
 template <class T>
-struct HypDataHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> : HypDataHelper<T*>
+struct BoxedValueHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> : BoxedValueHelper<T*>
 {
     HYP_FORCE_INLINE const T* Get(const ConstAnyRef& value) const
     {
-        return HypDataHelper<T*>::Get(AnyRef(value.GetTypeInfo(), const_cast<void*>(value.GetPointer())));
+        return BoxedValueHelper<T*>::Get(AnyRef(value.GetTypeInfo(), const_cast<void*>(value.GetPointer())));
     }
 
     HYP_FORCE_INLINE const T* Get(const AnyRef& value) const
     {
-        return HypDataHelper<T*>::Get(value);
+        return BoxedValueHelper<T*>::Get(value);
     }
 
     HYP_FORCE_INLINE const T* Get(const Handle<ObjectBase>& value) const
     {
-        return HypDataHelper<T*>::Get(value);
+        return BoxedValueHelper<T*>::Get(value);
     }
 
     HYP_FORCE_INLINE const T* Get(const RC<void>& value) const
     {
-        return HypDataHelper<T*>::Get(value);
+        return BoxedValueHelper<T*>::Get(value);
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const T* value) const
     {
-        HypDataHelper<T*>::Set(boxed, const_cast<T*>(value));
+        BoxedValueHelper<T*>::Set(boxed, const_cast<T*>(value));
     }
 };
 
 /// Any - type erased value, allocated on the heap
 
 template <>
-struct HypDataHelperDecl<Any>
+struct BoxedValueHelperDecl<Any>
 {
 };
 
 template <>
-struct HypDataHelper<Any>
+struct BoxedValueHelper<Any>
 {
     using StorageType = Any;
     using ConvertibleFrom = Tuple<>;
@@ -1665,15 +1667,13 @@ struct HypDataHelper<Any>
     }
 };
 
-/// GenericArrayWrapper - generic array / container type wrapper - @TODO Add HypDataMap for associative containers
-
 template <>
-struct HypDataHelperDecl<GenericArrayWrapper>
+struct BoxedValueHelperDecl<GenericArrayWrapper>
 {
 };
 
 template <>
-struct HypDataHelper<GenericArrayWrapper> : HypDataHelper<Any>
+struct BoxedValueHelper<GenericArrayWrapper> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1689,12 +1689,12 @@ struct HypDataHelper<GenericArrayWrapper> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const GenericArrayWrapper& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<GenericArrayWrapper>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<GenericArrayWrapper>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, GenericArrayWrapper&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<GenericArrayWrapper>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<GenericArrayWrapper>(std::move(value)));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const GenericArrayWrapper& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -1718,12 +1718,12 @@ struct HypDataHelper<GenericArrayWrapper> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<BoxedValue::InlineData>
+struct BoxedValueHelperDecl<BoxedValue::InlineData>
 {
 };
 
 template <>
-struct HypDataHelper<BoxedValue::InlineData>
+struct BoxedValueHelper<BoxedValue::InlineData>
 {
     using StorageType = BoxedValue::InlineData;
     using ConvertibleFrom = Tuple<>;
@@ -1763,12 +1763,12 @@ struct HypDataHelper<BoxedValue::InlineData>
 /// String types
 
 template <int StringType>
-struct HypDataHelperDecl<containers::String<StringType>>
+struct BoxedValueHelperDecl<containers::String<StringType>>
 {
 };
 
 template <int StringType>
-struct HypDataHelper<containers::String<StringType>> : HypDataHelper<Any>
+struct BoxedValueHelper<containers::String<StringType>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -1784,12 +1784,12 @@ struct HypDataHelper<containers::String<StringType>> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const containers::String<StringType>& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<containers::String<StringType>>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<containers::String<StringType>>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, containers::String<StringType>&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<containers::String<StringType>>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<containers::String<StringType>>(std::move(value)));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const containers::String<StringType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -1819,68 +1819,68 @@ struct HypDataHelper<containers::String<StringType>> : HypDataHelper<Any>
 /// StringView types - held as String, memory is owned
 
 template <int StringType>
-struct HypDataHelperDecl<utilities::StringView<StringType>>
+struct BoxedValueHelperDecl<utilities::StringView<StringType>>
 {
 };
 
 template <int StringType>
-struct HypDataHelper<utilities::StringView<StringType>> : HypDataHelper<containers::String<StringType>>
+struct BoxedValueHelper<utilities::StringView<StringType>> : BoxedValueHelper<containers::String<StringType>>
 {
     using ConvertibleFrom = Tuple<containers::String<StringType>>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return HypDataHelper<containers::String<StringType>>::Is(value);
+        return BoxedValueHelper<containers::String<StringType>>::Is(value);
     }
 
     HYP_FORCE_INLINE utilities::StringView<StringType> Get(const Any& value) const
     {
-        return HypDataHelper<containers::String<StringType>>::Get(value);
+        return BoxedValueHelper<containers::String<StringType>>::Get(value);
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const utilities::StringView<StringType>& value) const
     {
-        HypDataHelper<containers::String<StringType>>::Set(boxed, value);
+        BoxedValueHelper<containers::String<StringType>>::Set(boxed, value);
     }
 };
 
 /// C String - converted to String, memory is owned
 
 template <>
-struct HypDataHelperDecl<const char*>
+struct BoxedValueHelperDecl<const char*>
 {
 };
 
 template <>
-struct HypDataHelper<const char*> : HypDataHelper<String>
+struct BoxedValueHelper<const char*> : BoxedValueHelper<String>
 {
     using ConvertibleFrom = Tuple<String>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return HypDataHelper<String>::Is(value);
+        return BoxedValueHelper<String>::Is(value);
     }
 
     HYP_FORCE_INLINE const char* Get(const Any& value) const
     {
-        return HypDataHelper<String>::Get(value).Data();
+        return BoxedValueHelper<String>::Get(value).Data();
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const char* value) const
     {
-        HypDataHelper<String>::Set(boxed, String(value));
+        BoxedValueHelper<String>::Set(boxed, String(value));
     }
 };
 
 /// FilePath - stored as String (base class of FilePath)
 
 template <>
-struct HypDataHelperDecl<FilePath>
+struct BoxedValueHelperDecl<FilePath>
 {
 };
 
 template <>
-struct HypDataHelper<FilePath> : HypDataHelper<String>
+struct BoxedValueHelper<FilePath> : BoxedValueHelper<String>
 {
     HYP_FORCE_INLINE FilePath Get(const Any& value) const
     {
@@ -1889,24 +1889,24 @@ struct HypDataHelper<FilePath> : HypDataHelper<String>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const FilePath& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<String>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<String>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, FilePath&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<String>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<String>(std::move(value)));
     }
 };
 
 /// Name and StringHash - stored as String value
 
 template <>
-struct HypDataHelperDecl<Name>
+struct BoxedValueHelperDecl<Name>
 {
 };
 
 template <>
-struct HypDataHelper<Name>
+struct BoxedValueHelper<Name>
 {
     using StorageType = Name;
     using ConvertibleFrom = Tuple<>;
@@ -1959,12 +1959,12 @@ struct HypDataHelper<Name>
 };
 
 template <>
-struct HypDataHelperDecl<StringHash>
+struct BoxedValueHelperDecl<StringHash>
 {
 };
 
 template <>
-struct HypDataHelper<StringHash>
+struct BoxedValueHelper<StringHash>
 {
     using StorageType = Name;
     using ConvertibleFrom = Tuple<Name>;
@@ -2006,14 +2006,14 @@ struct HypDataHelper<StringHash>
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const StringHash& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
     {
-        return HypDataHelper<Name>::Serialize(*reinterpret_cast<const Name*>(&value), outData, flags);
+        return BoxedValueHelper<Name>::Serialize(*reinterpret_cast<const Name*>(&value), outData, flags);
     }
 
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
     {
         BoxedValue nameData;
 
-        if (FBOMResult err = HypDataHelper<Name>::Deserialize(context, data, nameData))
+        if (FBOMResult err = BoxedValueHelper<Name>::Deserialize(context, data, nameData))
         {
             return err;
         }
@@ -2027,12 +2027,12 @@ struct HypDataHelper<StringHash>
 /// Array types
 
 template <class T, class AllocatorType>
-struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
+struct BoxedValueHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
 {
 };
 
 template <class T, class AllocatorType>
-struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2069,12 +2069,12 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Array<T, AllocatorType>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Array<T, AllocatorType>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const Array<T, AllocatorType>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2105,7 +2105,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
             }
             else
             {
-                if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
+                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
                 {
                     return err;
                 }
@@ -2137,7 +2137,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2145,7 +2145,7 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
             result.PushBack(std::move(element.Get<T>()));
         }
 
-        HypDataHelper<Array<T, AllocatorType>> {}.Set(out, std::move(result));
+        BoxedValueHelper<Array<T, AllocatorType>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2154,12 +2154,12 @@ struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<
 /// FixedArray
 
 template <class T, SizeType Size>
-struct HypDataHelperDecl<FixedArray<T, Size>>
+struct BoxedValueHelperDecl<FixedArray<T, Size>>
 {
 };
 
 template <class T, SizeType Size>
-struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2202,12 +2202,12 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const FixedArray<T, Size>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, FixedArray<T, Size>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const FixedArray<T, Size>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2236,7 +2236,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
             }
             else
             {
-                if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
+                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
                 {
                     return err;
                 }
@@ -2270,7 +2270,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2278,7 +2278,7 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
             result[i] = std::move(element.Get<T>());
         }
 
-        HypDataHelper<FixedArray<T, Size>> {}.Set(out, std::move(result));
+        BoxedValueHelper<FixedArray<T, Size>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2286,23 +2286,23 @@ struct HypDataHelper<FixedArray<T, Size>, std::enable_if_t<!std::is_const_v<T>>>
 
 #if 0
 template <class T, SizeType Size>
-struct HypDataHelperDecl<T[Size]>
+struct BoxedValueHelperDecl<T[Size]>
 {
 };
 
 template <class T, SizeType Size>
-struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<FixedArray<T, Size>>
+struct BoxedValueHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : BoxedValueHelper<FixedArray<T, Size>>
 {
     using ConvertibleFrom = Tuple<FixedArray<T, Size>>;
 
     HYP_FORCE_INLINE bool Is(const Any& value) const
     {
-        return HypDataHelper<FixedArray<T, Size>>::Is(value);
+        return BoxedValueHelper<FixedArray<T, Size>>::Is(value);
     }
 
     HYP_FORCE_INLINE FixedArray<T, Size>& Get(const Any& value) const
     {
-        return HypDataHelper<FixedArray<T, Size>>::Get(value);
+        return BoxedValueHelper<FixedArray<T, Size>>::Get(value);
     }
 
     HYP_FORCE_INLINE bool Is(const GenericArrayWrapper& value) const
@@ -2317,7 +2317,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const T (&value)[Size]) const
     {
-        HypDataHelper<FixedArray<T, Size>>::Set(boxed, MakeFixedArray(value));
+        BoxedValueHelper<FixedArray<T, Size>>::Set(boxed, MakeFixedArray(value));
     }
 
     static FBOMResult Serialize(const T (&value)[Size], FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2346,7 +2346,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
             }
             else
             {
-                if (FBOMResult err = HypDataHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
+                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value[i], elements[i], FBOMDataFlags::NONE))
                 {
                     return err;
                 }
@@ -2380,7 +2380,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2388,7 +2388,7 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
             result[i] = std::move(element.Get<T>());
         }
 
-        HypDataHelper<FixedArray<T, Size>> {}.Set(out, std::move(result));
+        BoxedValueHelper<FixedArray<T, Size>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2398,12 +2398,12 @@ struct HypDataHelper<T[Size], std::enable_if_t<!std::is_const_v<T>>> : HypDataHe
 /// Pair
 
 template <class K, class V>
-struct HypDataHelperDecl<Pair<K, V>>
+struct BoxedValueHelperDecl<Pair<K, V>>
 {
 };
 
 template <class K, class V>
-struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
+struct BoxedValueHelper<Pair<K, V>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2419,12 +2419,12 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Pair<K, V>& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Pair<K, V>>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Pair<K, V>>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Pair<K, V>&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Pair<K, V>>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Pair<K, V>>(std::move(value)));
     }
 
     static FBOMResult Serialize(const Pair<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2434,12 +2434,12 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
         FBOMData firstData;
         FBOMData secondData;
 
-        if (FBOMResult err = HypDataHelper<K>::Serialize(value.first, firstData, FBOMDataFlags::NONE))
+        if (FBOMResult err = BoxedValueHelper<K>::Serialize(value.first, firstData, FBOMDataFlags::NONE))
         {
             return err;
         }
 
-        if (FBOMResult err = HypDataHelper<V>::Serialize(value.second, secondData, FBOMDataFlags::NONE))
+        if (FBOMResult err = BoxedValueHelper<V>::Serialize(value.second, secondData, FBOMDataFlags::NONE))
         {
             return err;
         }
@@ -2467,17 +2467,17 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
         BoxedValue first;
         BoxedValue second;
 
-        if (FBOMResult err = HypDataHelper<K>::Deserialize(context, object.GetProperty("Key"), first))
+        if (FBOMResult err = BoxedValueHelper<K>::Deserialize(context, object.GetProperty("Key"), first))
         {
             return err;
         }
 
-        if (FBOMResult err = HypDataHelper<V>::Deserialize(context, object.GetProperty("Value"), second))
+        if (FBOMResult err = BoxedValueHelper<V>::Deserialize(context, object.GetProperty("Value"), second))
         {
             return err;
         }
 
-        HypDataHelper<Pair<K, V>> {}.Set(out, Pair<K, V> { first.Get<K>(), second.Get<V>() });
+        BoxedValueHelper<Pair<K, V>> {}.Set(out, Pair<K, V> { first.Get<K>(), second.Get<V>() });
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2486,12 +2486,12 @@ struct HypDataHelper<Pair<K, V>> : HypDataHelper<Any>
 /// HashMap
 
 template <class K, class V>
-struct HypDataHelperDecl<HashMap<K, V>>
+struct BoxedValueHelperDecl<HashMap<K, V>>
 {
 };
 
 template <class K, class V>
-struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<HashMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2534,12 +2534,12 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HashMap<K, V>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, HashMap<K, V>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const HashMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2565,7 +2565,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if (FBOMResult err = HypDataHelper<Pair<K, V>>::Serialize(pair, element))
+            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Serialize(pair, element))
             {
                 return err;
             }
@@ -2595,7 +2595,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2603,7 +2603,7 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
             result.Insert(std::move(element.Get<Pair<K, V>>()));
         }
 
-        HypDataHelper<HashMap<K, V>> {}.Set(out, std::move(result));
+        BoxedValueHelper<HashMap<K, V>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2612,12 +2612,12 @@ struct HypDataHelper<HashMap<K, V>> : HypDataHelper<GenericArrayWrapper>
 /// FlatMap
 
 template <class K, class V>
-struct HypDataHelperDecl<FlatMap<K, V>>
+struct BoxedValueHelperDecl<FlatMap<K, V>>
 {
 };
 
 template <class K, class V>
-struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<FlatMap<K, V>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2660,12 +2660,12 @@ struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const FlatMap<K, V>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, FlatMap<K, V>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const FlatMap<K, V>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2691,7 +2691,7 @@ struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if (FBOMResult err = HypDataHelper<Pair<K, V>>::Serialize(pair, element))
+            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Serialize(pair, element))
             {
                 return err;
             }
@@ -2721,7 +2721,7 @@ struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<Pair<K, V>>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2729,7 +2729,7 @@ struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
             result.Insert(std::move(element.Get<Pair<K, V>>()));
         }
 
-        HypDataHelper<FlatMap<K, V>> {}.Set(out, std::move(result));
+        BoxedValueHelper<FlatMap<K, V>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2738,12 +2738,12 @@ struct HypDataHelper<FlatMap<K, V>> : HypDataHelper<GenericArrayWrapper>
 /// HashSet
 
 template <class ValueType, auto KeyByFunction>
-struct HypDataHelperDecl<HashSet<ValueType, KeyByFunction>>
+struct BoxedValueHelperDecl<HashSet<ValueType, KeyByFunction>>
 {
 };
 
 template <class ValueType, auto KeyByFunction>
-struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<HashSet<ValueType, KeyByFunction>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2786,12 +2786,12 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const HashSet<ValueType, KeyByFunction>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, HashSet<ValueType, KeyByFunction>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const HashSet<ValueType, KeyByFunction>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2817,7 +2817,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if (FBOMResult err = HypDataHelper<ValueType>::Serialize(value, element, FBOMDataFlags::NONE))
+            if (FBOMResult err = BoxedValueHelper<ValueType>::Serialize(value, element, FBOMDataFlags::NONE))
             {
                 return err;
             }
@@ -2847,7 +2847,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<ValueType>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<ValueType>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2855,7 +2855,7 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
             result.Insert(std::move(element.Get<ValueType>()));
         }
 
-        HypDataHelper<HashSet<ValueType, KeyByFunction>> {}.Set(out, std::move(result));
+        BoxedValueHelper<HashSet<ValueType, KeyByFunction>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2864,12 +2864,12 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<GenericA
 // FlatSet
 
 template <class T>
-struct HypDataHelperDecl<FlatSet<T>>
+struct BoxedValueHelperDecl<FlatSet<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<FlatSet<T>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2912,12 +2912,12 @@ struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const FlatSet<T>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, FlatSet<T>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const FlatSet<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -2943,7 +2943,7 @@ struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
         {
             FBOMData& element = elements.EmplaceBack();
 
-            if (FBOMResult err = HypDataHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
+            if (FBOMResult err = BoxedValueHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
             {
                 return err;
             }
@@ -2973,7 +2973,7 @@ struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -2981,7 +2981,7 @@ struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
             result.Insert(std::move(element.Get<T>()));
         }
 
-        HypDataHelper<FlatSet<T>> {}.Set(out, std::move(result));
+        BoxedValueHelper<FlatSet<T>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -2990,12 +2990,12 @@ struct HypDataHelper<FlatSet<T>> : HypDataHelper<GenericArrayWrapper>
 /// LinkedList
 
 template <class T>
-struct HypDataHelperDecl<LinkedList<T>>
+struct BoxedValueHelperDecl<LinkedList<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
+struct BoxedValueHelper<LinkedList<T>> : BoxedValueHelper<GenericArrayWrapper>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3038,12 +3038,12 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const LinkedList<T>& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, LinkedList<T>&& value) const
     {
-        HypDataHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
+        BoxedValueHelper<GenericArrayWrapper>::Set(boxed, GenericArrayWrapper(GenericArrayWrapper::AS_COPY, std::move(value)));
     }
 
     static FBOMResult Serialize(const LinkedList<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3078,7 +3078,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
             }
             else
             {
-                if (FBOMResult err = HypDataHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
+                if (FBOMResult err = BoxedValueHelper<T>::Serialize(value, element, FBOMDataFlags::NONE))
                 {
                     return err;
                 }
@@ -3109,7 +3109,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
         {
             BoxedValue element;
 
-            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, array.GetElement(i), element))
             {
                 return err;
             }
@@ -3117,7 +3117,7 @@ struct HypDataHelper<LinkedList<T>> : HypDataHelper<GenericArrayWrapper>
             result.PushBack(std::move(element.Get<T>()));
         }
 
-        HypDataHelper<LinkedList<T>> {}.Set(out, std::move(result));
+        BoxedValueHelper<LinkedList<T>> {}.Set(out, std::move(result));
 
         return { FBOMResult::FBOM_OK };
     }
@@ -3139,12 +3139,12 @@ struct Vec4;
 } // namespace math
 
 template <class T>
-struct HypDataHelperDecl<math::Vec2<T>>
+struct BoxedValueHelperDecl<math::Vec2<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<math::Vec2<T>> : HypDataHelper<Any>
+struct BoxedValueHelper<math::Vec2<T>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3160,7 +3160,7 @@ struct HypDataHelper<math::Vec2<T>> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec2<T>& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<math::Vec2<T>>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec2<T>>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const math::Vec2<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3188,12 +3188,12 @@ struct HypDataHelper<math::Vec2<T>> : HypDataHelper<Any>
 };
 
 template <class T>
-struct HypDataHelperDecl<math::Vec3<T>>
+struct BoxedValueHelperDecl<math::Vec3<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<math::Vec3<T>> : HypDataHelper<Any>
+struct BoxedValueHelper<math::Vec3<T>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3209,7 +3209,7 @@ struct HypDataHelper<math::Vec3<T>> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec3<T>& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<math::Vec3<T>>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec3<T>>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const math::Vec3<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3239,12 +3239,12 @@ struct HypDataHelper<math::Vec3<T>> : HypDataHelper<Any>
 };
 
 template <class T>
-struct HypDataHelperDecl<math::Vec4<T>>
+struct BoxedValueHelperDecl<math::Vec4<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<math::Vec4<T>> : HypDataHelper<Any>
+struct BoxedValueHelper<math::Vec4<T>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3260,7 +3260,7 @@ struct HypDataHelper<math::Vec4<T>> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const math::Vec4<T>& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<math::Vec4<T>>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<math::Vec4<T>>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const math::Vec4<T>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3290,12 +3290,12 @@ struct HypDataHelper<math::Vec4<T>> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<Mat3f>
+struct BoxedValueHelperDecl<Mat3f>
 {
 };
 
 template <>
-struct HypDataHelper<Mat3f> : HypDataHelper<Any>
+struct BoxedValueHelper<Mat3f> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3311,7 +3311,7 @@ struct HypDataHelper<Mat3f> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Mat3f& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Mat3f>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Mat3f>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const Mat3f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3341,12 +3341,12 @@ struct HypDataHelper<Mat3f> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<Mat4f>
+struct BoxedValueHelperDecl<Mat4f>
 {
 };
 
 template <>
-struct HypDataHelper<Mat4f> : HypDataHelper<Any>
+struct BoxedValueHelper<Mat4f> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3362,7 +3362,7 @@ struct HypDataHelper<Mat4f> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Mat4f& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Mat4f>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Mat4f>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const Mat4f& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3392,12 +3392,12 @@ struct HypDataHelper<Mat4f> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<Quaternion>
+struct BoxedValueHelperDecl<Quaternion>
 {
 };
 
 template <>
-struct HypDataHelper<Quaternion> : HypDataHelper<Any>
+struct BoxedValueHelper<Quaternion> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3413,7 +3413,7 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Quaternion& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Quaternion>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Quaternion>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const Quaternion& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3443,12 +3443,12 @@ struct HypDataHelper<Quaternion> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<UUID>
+struct BoxedValueHelperDecl<UUID>
 {
 };
 
 template <>
-struct HypDataHelper<UUID> : HypDataHelper<Any>
+struct BoxedValueHelper<UUID> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3464,7 +3464,7 @@ struct HypDataHelper<UUID> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const UUID& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<UUID>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<UUID>(value));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const UUID& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3494,12 +3494,12 @@ struct HypDataHelper<UUID> : HypDataHelper<Any>
 };
 
 template <>
-struct HypDataHelperDecl<ByteBuffer>
+struct BoxedValueHelperDecl<ByteBuffer>
 {
 };
 
 template <>
-struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
+struct BoxedValueHelper<ByteBuffer> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -3515,12 +3515,12 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const ByteBuffer& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, ByteBuffer&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<ByteBuffer>(std::move(value)));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const ByteBuffer& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3550,26 +3550,26 @@ struct HypDataHelper<ByteBuffer> : HypDataHelper<Any>
 };
 
 template <class... Types>
-struct HypDataHelperDecl<Variant<Types...>>
+struct BoxedValueHelperDecl<Variant<Types...>>
 {
 };
 
 template <class... Types>
-struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
+struct BoxedValueHelper<Variant<Types...>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
     template <class T>
     static FBOMResult VariantElementSerializeHelper(const Variant<Types...>& variant, FBOMData& outData)
     {
-        return HypDataHelper<T>::Serialize(variant.template Get<T>(), outData);
+        return BoxedValueHelper<T>::Serialize(variant.template Get<T>(), outData);
     }
 
     template <class T>
     static FBOMResult VariantElementDeserializeHelper(FBOMLoadContext& context, const FBOMData& data, BoxedValue& out)
     {
         BoxedValue tmp;
-        if (FBOMResult err = HypDataHelper<T>::Deserialize(context, data, tmp))
+        if (FBOMResult err = BoxedValueHelper<T>::Deserialize(context, data, tmp))
         {
             return err;
         }
@@ -3614,12 +3614,12 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const Variant<Types...>& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Variant<Types...>>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Variant<Types...>>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, Variant<Types...>&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<Variant<Types...>>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<Variant<Types...>>(std::move(value)));
     }
 
     HYP_FORCE_INLINE static FBOMResult Serialize(const Variant<Types...>& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3684,9 +3684,9 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
                         return;
                     }
 
-                    // check any types listed in HypDataHelper<T>::ConvertibleFrom
+                    // check any types listed in BoxedValueHelper<T>::ConvertibleFrom
                     bool matchedConvertible = false;
-                    StaticForEach<typename HypDataHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
+                    StaticForEach<typename BoxedValueHelper<T>::ConvertibleFrom>([&]<class FromT>(TypeWrapper<FromT>)
                         {
                             if (matchedConvertible || foundTypeIndex != Variant<Types...>::invalidTypeIndex)
                             {
@@ -3720,7 +3720,7 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
 
 #if 1
 template <class T>
-struct HypDataHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !ImplementationExistsV<HypDataHelperDecl<T>>>> : HypDataHelper<Any>
+struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !ImplementationExistsV<BoxedValueHelperDecl<T>>>> : BoxedValueHelper<Any>
 {
     using ConvertibleFrom = Tuple<T*, AnyRef, Handle<ObjectBase>, RC<void>>;
 
@@ -3792,12 +3792,12 @@ struct HypDataHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !Im
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, const T& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<T>(value));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<T>(value));
     }
 
     HYP_FORCE_INLINE void Set(BoxedValue& boxed, T&& value) const
     {
-        HypDataHelper<Any>::Set(boxed, Any::Construct<T>(std::move(value)));
+        BoxedValueHelper<Any>::Set(boxed, Any::Construct<T>(std::move(value)));
     }
 
     static FBOMResult Serialize(const T& value, FBOMData& outData, EnumFlags<FBOMDataFlags> flags = FBOMDataFlags::NONE)
@@ -3861,42 +3861,42 @@ struct HypDataHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && !Im
 
 #include <core/reflection/GenericArrayWrapper.inc>
 
-#pragma region HypData_Is implementation
+#pragma region BoxedValue_Is implementation
 
 template <class To, class From = To>
-static inline bool HypData_Is_Impl(const BoxedValue::VariantType& value)
+static inline bool BoxedValue_Is_Impl(const BoxedValue::VariantType& value)
 {
-    static_assert(BoxedValue::canStoreDirectly<typename HypDataHelper<From>::StorageType>, "StorageType must be a type that can be stored directly in the BoxedValue variant without allocating memory dynamically");
+    static_assert(BoxedValue::canStoreDirectly<typename BoxedValueHelper<From>::StorageType>, "StorageType must be a type that can be stored directly in the BoxedValue variant without allocating memory dynamically");
 
-    constexpr bool ShouldDoAdditionalCheck = !std::is_same_v<To, typename HypDataHelper<From>::StorageType>;
+    constexpr bool ShouldDoAdditionalCheck = !std::is_same_v<To, typename BoxedValueHelper<From>::StorageType>;
 
-    return value.Is<typename HypDataHelper<From>::StorageType>()
-        && (!ShouldDoAdditionalCheck || HypDataHelper<To> {}.Is(value.GetUnchecked<typename HypDataHelper<From>::StorageType>()));
+    return value.Is<typename BoxedValueHelper<From>::StorageType>()
+        && (!ShouldDoAdditionalCheck || BoxedValueHelper<To> {}.Is(value.GetUnchecked<typename BoxedValueHelper<From>::StorageType>()));
 }
 
 template <class T, class... ConvertibleFrom>
-struct HypData_Is<T, Tuple<ConvertibleFrom...>>
+struct BoxedValue_Is<T, Tuple<ConvertibleFrom...>>
 {
     bool operator()(const BoxedValue::VariantType& value, bool checkReference) const
     {
-        return (HypData_Is_Impl<T>(value) || (HypData_Is_Impl<T, ConvertibleFrom>(value) || ...))
+        return (BoxedValue_Is_Impl<T>(value) || (BoxedValue_Is_Impl<T, ConvertibleFrom>(value) || ...))
             || (checkReference && value.Is<AnyRef>() && value.GetUnchecked<AnyRef>().template Is<T>());
     }
 };
 
-#pragma endregion HypData_Is implementation
+#pragma endregion BoxedValue_Is implementation
 
-#pragma region HypData_Get implementation
+#pragma region BoxedValue_Get implementation
 
 template <class VariantType, class ReturnType, class... Types, SizeType... Indices>
-bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>& outValue, std::index_sequence<Indices...>)
+bool BoxedValue_Get_Impl(VariantType&& value, Optional<ReturnType>& outValue, std::index_sequence<Indices...>)
 {
     const auto getForTypeIndex = [&value]<SizeType SelectedTypeIndex>(Optional<ReturnType>& outValue, std::integral_constant<SizeType, SelectedTypeIndex>) -> bool
     {
         using SelectedType = typename TupleElement<SelectedTypeIndex, Types...>::Type;
-        using StorageType = typename HypDataHelper<SelectedType>::StorageType;
+        using StorageType = typename BoxedValueHelper<SelectedType>::StorageType;
 
-        static_assert(BoxedValue::canStoreDirectly<typename HypDataHelper<NormalizedType<ReturnType>>::StorageType>);
+        static_assert(BoxedValue::canStoreDirectly<typename BoxedValueHelper<NormalizedType<ReturnType>>::StorageType>);
 
         if (!value.template Is<StorageType>())
         {
@@ -3911,12 +3911,12 @@ bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>& outValue, std::
         {
             decltype(auto) internalValue = value.template Get<StorageType>();
 
-            if (!(HypDataHelper<NormalizedType<ReturnType>> {}.Is(internalValue)))
+            if (!(BoxedValueHelper<NormalizedType<ReturnType>> {}.Is(internalValue)))
             {
                 return false;
             }
 
-            outValue.Set(HypDataHelper<NormalizedType<ReturnType>> {}.Get(internalValue));
+            outValue.Set(BoxedValueHelper<NormalizedType<ReturnType>> {}.Get(internalValue));
         }
 
         return true;
@@ -3929,20 +3929,20 @@ bool HypData_Get_Impl(VariantType&& value, Optional<ReturnType>& outValue, std::
 }
 
 template <class ReturnType, class T, class... ConvertibleFrom>
-struct HypData_Get<ReturnType, T, Tuple<ConvertibleFrom...>>
+struct BoxedValue_Get<ReturnType, T, Tuple<ConvertibleFrom...>>
 {
     HYP_FORCE_INLINE bool operator()(BoxedValue::VariantType& value, Optional<ReturnType>& outValue) const
     {
-        return HypData_Get_Impl<BoxedValue::VariantType&, ReturnType, T, ConvertibleFrom...>(value, outValue, std::index_sequence_for<T, ConvertibleFrom...> {});
+        return BoxedValue_Get_Impl<BoxedValue::VariantType&, ReturnType, T, ConvertibleFrom...>(value, outValue, std::index_sequence_for<T, ConvertibleFrom...> {});
     }
 
     HYP_FORCE_INLINE bool operator()(const BoxedValue::VariantType& value, Optional<ReturnType>& outValue) const
     {
-        return HypData_Get_Impl<const BoxedValue::VariantType&, ReturnType, T, ConvertibleFrom...>(value, outValue, std::index_sequence_for<T, ConvertibleFrom...> {});
+        return BoxedValue_Get_Impl<const BoxedValue::VariantType&, ReturnType, T, ConvertibleFrom...>(value, outValue, std::index_sequence_for<T, ConvertibleFrom...> {});
     }
 };
 
-#pragma endregion HypData_Get implementation
+#pragma endregion BoxedValue_Get implementation
 
 static_assert(sizeof(BoxedValue) == 32, "sizeof(BoxedValue) != 32 bytes");
 

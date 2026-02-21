@@ -9,8 +9,10 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanShaderInstance.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
+
+#include <rendering/Shader.hpp>
 
 #include <core/debug/Debug.hpp>
 

@@ -8,7 +8,7 @@
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 #include <rendering/dx12/DX12Helpers.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <DX12GpuImageView.generated.inl>
 

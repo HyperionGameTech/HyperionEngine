@@ -7,7 +7,7 @@
 #include <rendering/dx12/DX12GpuImageView.hpp>
 #include <rendering/dx12/DX12RenderInterface.hpp>
 
-#include <rendering/util/SafeDeleter.hpp>
+#include <rendering/util/DeletionQueue.hpp>
 
 #include <DX12Attachment.generated.inl>
 
@@ -28,8 +28,8 @@ DX12Attachment::DX12Attachment(
 
 DX12Attachment::~DX12Attachment()
 {
-    SafeDelete(std::move(m_image));
-    SafeDelete(std::move(m_imageView));
+    EnqueueDeletion(std::move(m_image));
+    EnqueueDeletion(std::move(m_imageView));
 }
 
 bool DX12Attachment::IsCreated() const
