@@ -49,7 +49,7 @@ public:
         return m_surface;
     }
 
-    HYP_FORCE_INLINE const Array<VulkanSemaphoreRef>& GetPresentSemaphores() const
+    HYP_FORCE_INLINE const Array<VulkanSemaphoreRef, VulkanAllocator>& GetPresentSemaphores() const
     {
         return m_presentSemaphores;
     }

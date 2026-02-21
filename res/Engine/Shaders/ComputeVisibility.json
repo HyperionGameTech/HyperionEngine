@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/ComputeVisibilityPerms/ComputeVisibility_1829828941827249584"
+        "Value": "Engine/Shaders/ComputeVisibilityPerms/ComputeVisibility_9105219408815013447"
       }
     }],
   "Name": "ComputeVisibility",

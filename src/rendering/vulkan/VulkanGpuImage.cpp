@@ -52,7 +52,7 @@ VulkanGpuImage::~VulkanGpuImage()
         if (m_allocation != VK_NULL_HANDLE)
         {
             Assert(m_isHandleOwned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
-            
+
             EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_allocation]() -> void
                 {
                     vmaDestroyImage(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
@@ -133,7 +133,7 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
 
                 break;
             }
-            
+
             VkImageAspectFlags aspectFlagBits = 0;
 
             if (TextureUtils::IsDepthFormat(GetTextureFormat()))
@@ -156,15 +156,9 @@ RendererResult VulkanGpuImage::GenerateMipmaps(VulkanCommandBuffer* commandBuffe
                     .aspectMask = aspectFlagBits,
                     .mipLevel = src.baseMipLevel,
                     .baseArrayLayer = src.baseArrayLayer,
-                    .layerCount = src.numLayers
-                },
+                    .layerCount = src.numLayers },
                 .srcOffsets = { { 0, 0, 0 }, { int32(helpers::MipmapSize(m_textureDesc.extent.x, i - 1)), int32(helpers::MipmapSize(m_textureDesc.extent.y, i - 1)), int32(helpers::MipmapSize(m_textureDesc.extent.z, i - 1)) } },
-                .dstSubresource = {
-                    .aspectMask = aspectFlagBits,
-                    .mipLevel = dst.baseMipLevel,
-                    .baseArrayLayer = dst.baseArrayLayer,
-                    .layerCount = dst.numLayers
-                },
+                .dstSubresource = { .aspectMask = aspectFlagBits, .mipLevel = dst.baseMipLevel, .baseArrayLayer = dst.baseArrayLayer, .layerCount = dst.numLayers },
                 .dstOffsets = { { 0, 0, 0 }, { mipWidth, mipHeight, mipDepth } }
             };
 
@@ -487,7 +481,7 @@ auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
     getFdInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
 
     VmaAllocationInfo allocInfo;
-    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetAllocator(), m_allocation, &allocInfo);
+    vmaGetAllocationInfo(g_renderInterface->GetDevice()->GetVmaAllocator(), m_allocation, &allocInfo);
     getFdInfo.memory = allocInfo.deviceMemory;
 
     int fd;
@@ -555,7 +549,7 @@ void VulkanGpuImage::InsertBarrier(
 
     const uint16 maxArrayLayers = uint16(subResource.baseArrayLayer + MathUtil::Min(subResource.numLayers, NumArrayLayers()));
     const uint8 maxMipLevels = uint8(subResource.baseMipLevel + MathUtil::Min(subResource.numLevels, NumMips()));
-    
+
     ResourceState currResourceState = GetResourceState();
 
     if (HasSubResourceStates())
@@ -591,7 +585,7 @@ void VulkanGpuImage::InsertBarrier(
                 {
                     foundResourceState = GetResourceState();
                 }
-                
+
                 // needs to match expected state we're transitioning from. (currResourceState)
                 if (firstSubResource)
                 {
@@ -641,7 +635,7 @@ void VulkanGpuImage::InsertBarrier(
     barrier.subresourceRange = range;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    
+
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
         GetVkShaderStageMask(currResourceState, true, shaderModuleType),
@@ -654,13 +648,13 @@ void VulkanGpuImage::InsertBarrier(
     if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
     {
-        
+
         // If all subresources will be set, just set the whole resource state
         SetResourceState(newState);
 
         return;
     }
-    
+
     for (uint8 mipLevel = subResource.baseMipLevel; mipLevel < maxMipLevels; mipLevel++)
     {
         for (uint16 arrayLayer = subResource.baseArrayLayer; arrayLayer < maxArrayLayers; arrayLayer++)
@@ -710,12 +704,10 @@ RendererResult VulkanGpuImage::Blit(
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y },
         ImageSubResource {
             .numLevels = srcImage->m_textureDesc.NumMips(),
-            .numLayers = srcImage->m_textureDesc.NumArrayLayers()
-        },
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers() },
         ImageSubResource {
             .numLevels = m_textureDesc.NumMips(),
-            .numLayers = m_textureDesc.NumArrayLayers()
-        });
+            .numLayers = m_textureDesc.NumArrayLayers() });
 }
 
 RendererResult VulkanGpuImage::Blit(
@@ -731,12 +723,10 @@ RendererResult VulkanGpuImage::Blit(
         dstRect,
         ImageSubResource {
             .numLevels = srcImage->m_textureDesc.NumMips(),
-            .numLayers = srcImage->m_textureDesc.NumArrayLayers()
-        },
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers() },
         ImageSubResource {
             .numLevels = m_textureDesc.NumMips(),
-            .numLayers = m_textureDesc.NumArrayLayers()
-        });
+            .numLayers = m_textureDesc.NumArrayLayers() });
 }
 
 RendererResult VulkanGpuImage::Blit(
@@ -793,15 +783,9 @@ RendererResult VulkanGpuImage::Blit(
                 .aspectMask = srcAspectFlagBits,
                 .mipLevel = srcSubResource.baseMipLevel,
                 .baseArrayLayer = srcSubResource.baseArrayLayer,
-                .layerCount = srcSubResource.numLayers
-            },
+                .layerCount = srcSubResource.numLayers },
             .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
-            .dstSubresource = {
-                .aspectMask = dstAspectFlagBits,
-                .mipLevel = dstSubResource.baseMipLevel,
-                .baseArrayLayer = dstSubResource.baseArrayLayer,
-                .layerCount = dstSubResource.numLayers
-            },
+            .dstSubresource = { .aspectMask = dstAspectFlagBits, .mipLevel = dstSubResource.baseMipLevel, .baseArrayLayer = dstSubResource.baseArrayLayer, .layerCount = dstSubResource.numLayers },
             .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }
         };
 
@@ -826,15 +810,13 @@ RendererResult VulkanGpuImage::Blit(
                 .baseMipLevel = uint8(srcSubResource.baseMipLevel + mipLevel),
                 .numLevels = 1,
                 .baseArrayLayer = uint16(srcSubResource.baseArrayLayer + layerIndex),
-                .numLayers = 1
-            });
+                .numLayers = 1 });
 
             const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
                 .baseMipLevel = uint8(dstSubResource.baseMipLevel + mipLevel),
                 .numLevels = 1,
                 .baseArrayLayer = uint16(dstSubResource.baseArrayLayer + layerIndex),
-                .numLayers = 1
-            });
+                .numLayers = 1 });
 
             AssertDebug(srcResourceState == RS_COPY_SRC);
             AssertDebug(dstResourceState == RS_COPY_DST);
@@ -844,15 +826,9 @@ RendererResult VulkanGpuImage::Blit(
                     .aspectMask = srcAspectFlagBits,
                     .mipLevel = uint32(srcSubResource.baseMipLevel + mipLevel),
                     .baseArrayLayer = uint32(srcSubResource.baseArrayLayer + layerIndex),
-                    .layerCount = 1
-                },
+                    .layerCount = 1 },
                 .srcOffsets = { { (int32_t)srcRect.x0, (int32_t)srcRect.y0, 0 }, { (int32_t)srcRect.x1, (int32_t)srcRect.y1, 1 } },
-                .dstSubresource = {
-                    .aspectMask = dstAspectFlagBits,
-                    .mipLevel = uint32(dstSubResource.baseMipLevel + mipLevel),
-                    .baseArrayLayer = uint32(dstSubResource.baseArrayLayer + layerIndex),
-                    .layerCount = 1
-                },
+                .dstSubresource = { .aspectMask = dstAspectFlagBits, .mipLevel = uint32(dstSubResource.baseMipLevel + mipLevel), .baseArrayLayer = uint32(dstSubResource.baseArrayLayer + layerIndex), .layerCount = 1 },
                 .dstOffsets = { { (int32_t)dstRect.x0, (int32_t)dstRect.y0, 0 }, { (int32_t)dstRect.x1, (int32_t)dstRect.y1, 1 } }
             };
 
@@ -953,7 +929,7 @@ void VulkanGpuImage::CopyToBuffer(VulkanCommandBuffer* commandBuffer, VulkanGpuB
 {
     Assert(dstBuffer != nullptr && dstBuffer->IsCreated(), "Destination buffer is null or invalid !");
     Assert(dstBuffer->Size() >= m_size, "Destination buffer is too small to hold image data!");
-    
+
     VkImageAspectFlags aspectFlagBits = 0;
 
     if (m_textureDesc.IsDepthStencil())

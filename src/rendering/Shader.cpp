@@ -42,7 +42,7 @@ void Shader::AddShaderModule(
 
         moduleNames[index] = moduleName;
         entryPointNames[index] = entryPointName;
-        
+
         FreeBlobData(shaderBlobs[index]);
         AllocateBlobData(shaderBlobs[index], blobData.Data(), blobData.Size(), 1);
 

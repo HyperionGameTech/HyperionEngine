@@ -50,13 +50,13 @@ struct MemoryMappedFileImpl
 #pragma region MemoryMappedFileView
 
 MemoryMappedFileView::MemoryMappedFileView()
-        : m_mapOffset(0),
-            m_mapSize(0),
-            m_viewOffset(0),
-            m_viewSize(0),
-            m_fileOffset(0),
+    : m_mapOffset(0),
+      m_mapSize(0),
+      m_viewOffset(0),
+      m_viewSize(0),
+      m_fileOffset(0),
       m_address(nullptr),
-            m_isOpen(false)
+      m_isOpen(false)
 {
 }
 
@@ -241,7 +241,7 @@ bool MemoryMappedFile::Open()
     {
         DWORD errorCode = GetLastError();
 
-        HYP_LOG(Core, Error, "Failed to open file at path {}, Error code was: ({})",\
+        HYP_LOG(Core, Error, "Failed to open file at path {}, Error code was: ({})",
             m_impl->filepath, errorCode);
 
         return false;
@@ -287,11 +287,11 @@ bool MemoryMappedFile::Open()
 
     return true;
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    const int open_flags = m_impl->mode == Mode::READ_WRITE
-        ? O_RDWR
+    const int openFlags = m_impl->mode == Mode::READ_WRITE
+        ? O_RDWR | O_CREAT
         : O_RDONLY;
 
-    const int fd = open(m_impl->filepath.Data(), open_flags);
+    const int fd = open(m_impl->filepath.Data(), openFlags);
 
     if (fd < 0)
     {
@@ -306,7 +306,7 @@ bool MemoryMappedFile::Open()
         return false;
     }
 
-    m_impl->fileSize = static_cast<SizeType>(st.st_size);
+    m_impl->fileSize = st.st_size;
     m_impl->fd = fd;
 
     return true;
@@ -450,6 +450,7 @@ bool MemoryMappedFile::MapRange(SizeType offset, SizeType size, MemoryMappedFile
         outView.m_isOpen = false;
         outView.m_viewSize = 0;
         outView.m_address = nullptr;
+        HYP_BREAKPOINT;
         return false;
     }
 

@@ -15,8 +15,8 @@
 #include <windows.h>
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
 #include <dlfcn.h>
-#else
-using HMODULE = void*;
+// so HMODULE can be used as a type for the handle on both Windows and Linux/MacOS
+typedef void* HMODULE;
 #endif
 
 namespace Hyperion {
@@ -96,7 +96,7 @@ bool DynamicLibrary::Open()
 #else
     return false;
 #endif
-    
+
     return m_impl->handle != NULL;
 }
 

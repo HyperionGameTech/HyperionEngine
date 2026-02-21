@@ -449,6 +449,15 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
     }
 }
 
+void CocoaApplicationWindow::Close()
+{
+    if (m_hwnd)
+    {
+        NSWindow* window = (NSWindow*)m_hwnd;
+        [window performClose:nil];
+    }
+}
+
 bool CocoaApplicationWindow::HandleNSEvent(NSEvent* nsEvent, Event& event)
 {
     HYP_SCOPE;

@@ -555,7 +555,11 @@ Logger& Logger::GetInstance()
 
 Handle<Logger> Logger::MakeScriptLogger()
 {
+#ifdef HYP_TOOL
+    return Handle<Logger>::Null();
+#else
     return MakeHandle<Logger>();
+#endif
 }
 
 Logger::Logger()

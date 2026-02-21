@@ -28,8 +28,8 @@ static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
 const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
     VertexAttribute::Position | VertexAttribute::Normal
-        | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1
-        | VertexAttribute::Tangent | VertexAttribute::Bitangent;
+    | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1
+    | VertexAttribute::Tangent | VertexAttribute::Bitangent;
 
 const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
     StaticMeshVertexAttributes | VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
@@ -176,7 +176,7 @@ Mesh::~Mesh()
 void Mesh::Init()
 {
     HYP_SCOPE;
-    
+
     if (m_flags[MF_VIEW_INDEPENDENT])
     {
         SetPersistentRequested(true, /* setFlag */ true);
@@ -205,7 +205,7 @@ void Mesh::SetIndexData(Span<const ubyte> indexData)
 
     FreeBlobData(m_indexData);
     AllocateBlobData(m_indexData, indexData.Data(), indexData.Size(), alignof(uint32));
-    
+
     MarkDirty();
 }
 
@@ -220,28 +220,28 @@ void Mesh::PageBlobData()
         if (!blobStorage.GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {
             ([this]()
-            {
-#ifdef HYP_EDITOR
-                // check if failed; if so, try to import from raw data blob in project directory
-                Handle<AssetPackage> package = GetPackage();
-                Assert(package.IsValid());
-                Assert(package->IsSaved());
-
-                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".VB.raw.blob") };
-                if (!stream.Eof())
                 {
-                    ByteBuffer buffer = stream.Read(stream.Max());
+#ifdef HYP_EDITOR
+                    // check if failed; if so, try to import from raw data blob in project directory
+                    Handle<AssetPackage> package = GetPackage();
+                    Assert(package.IsValid());
+                    Assert(package->IsSaved());
 
-                    AllocateBlobData(m_vertexData, buffer.Data(), buffer.Size(), alignof(Vertex));
+                    FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".VB.raw.blob") };
+                    if (!stream.Eof())
+                    {
+                        ByteBuffer buffer = stream.Read(stream.Max());
 
-                    MarkDirty();
+                        AllocateBlobData(m_vertexData, buffer.Data(), buffer.Size(), alignof(Vertex));
 
-                    return;
-                }
+                        MarkDirty();
+
+                        return;
+                    }
 #endif
 
-                HYP_FAIL("Blob data missing! Data corruption detected.");
-            })();
+                    HYP_FAIL("Blob data missing! Data corruption detected.");
+                })();
         }
         else
         {
@@ -251,28 +251,28 @@ void Mesh::PageBlobData()
         if (!blobStorage.GetData(m_indexData.key, m_indexData.size, m_indexData.raw))
         {
             ([this]()
-            {
-#ifdef HYP_EDITOR
-                // check if failed; if so, try to import from raw data blob in project directory
-                Handle<AssetPackage> package = GetPackage();
-                Assert(package.IsValid());
-                Assert(package->IsSaved());
-
-                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".IB.raw.blob") };
-                if (!stream.Eof())
                 {
-                    ByteBuffer buffer = stream.Read(stream.Max());
+#ifdef HYP_EDITOR
+                    // check if failed; if so, try to import from raw data blob in project directory
+                    Handle<AssetPackage> package = GetPackage();
+                    Assert(package.IsValid());
+                    Assert(package->IsSaved());
 
-                    AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
+                    FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".IB.raw.blob") };
+                    if (!stream.Eof())
+                    {
+                        ByteBuffer buffer = stream.Read(stream.Max());
 
-                    MarkDirty();
+                        AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
 
-                    return;
-                }
+                        MarkDirty();
+
+                        return;
+                    }
 #endif
 
-                HYP_FAIL("Blob data missing! Data corruption detected.");
-            })();
+                    HYP_FAIL("Blob data missing! Data corruption detected.");
+                })();
         }
         else
         {
@@ -480,13 +480,13 @@ void Mesh::SetMeshData(
     AllocateBlobData(m_indexData, indices.Data(), indices.Size(), alignof(uint32));
 
     m_meshDesc = meshDesc;
-    
+
     AssertDebug(m_meshDesc.numVertices == vertices.Size());
     AssertDebug(m_meshDesc.numIndices == indices.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
 
     // recalc aabb
     m_aabb = CalculateAABB();
-    
+
     if (IsInitCalled())
     {
         // needs reupload!
@@ -512,7 +512,7 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
     const bool wasViewIndependent = m_flags[MF_VIEW_INDEPENDENT];
 
     m_flags = flags;
-    
+
     if (IsInitCalled() && m_flags[MF_VIEW_INDEPENDENT] != wasViewIndependent)
     {
         SetPersistentRequested(m_flags[MF_VIEW_INDEPENDENT], /* setFlag */ true, /* markDirty */ false);
@@ -522,7 +522,7 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
             UploadGpuData();
         }
     }
-    
+
     MarkDirty();
 }
 
@@ -594,12 +594,12 @@ BoundingBox Mesh::CalculateAABB() const
     return aabb;
 }
 
-#define PACKED_SET_ATTR(rawValues, argSize)                                                           \
-    do                                                                                                \
-    {                                                                                                 \
+#define PACKED_SET_ATTR(rawValues, argSize)                                                         \
+    do                                                                                              \
+    {                                                                                               \
         Memory::Copy((void*)(floatBuffer + currentOffset), (rawValues), (argSize) * sizeof(float)); \
-        currentOffset += (argSize);                                                                   \
-    }                                                                                                 \
+        currentOffset += (argSize);                                                                 \
+    }                                                                                               \
     while (0)
 
 Array<float> Mesh::BuildVertexBuffer(const VertexAttributeSet& vertexAttributes) const

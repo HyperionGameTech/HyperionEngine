@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SSRSampleGBufferPerms/SSRSampleGBuffer_389825393634412506"
+        "Value": "Engine/Shaders/SSRSampleGBufferPerms/SSRSampleGBuffer_8575954532216760554"
       }
     }],
   "Name": "SSRSampleGBuffer",

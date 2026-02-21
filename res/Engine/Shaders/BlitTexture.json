@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/BlitTexturePerms/BlitTexture_1829828941827249593"
+        "Value": "Engine/Shaders/BlitTexturePerms/BlitTexture_9105219408815013452"
       }
     }],
   "Name": "BlitTexture",

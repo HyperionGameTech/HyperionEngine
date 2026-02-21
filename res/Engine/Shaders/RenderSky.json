@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/RenderSkyPerms/RenderSky_11399982633662477572"
+        "Value": "Engine/Shaders/RenderSkyPerms/RenderSky_12161879155743935435"
       }
     }],
   "Name": "RenderSky",

@@ -330,7 +330,7 @@ Result AssetObject::Save(const FilePath& manifestPath)
     }
 
     HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
-    
+
     // need to set manifest path after saving the resource, because if we need to load the data first in order
     // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load
     // something that doesn't exist.
@@ -455,7 +455,12 @@ void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inD
 
     if (count != 0)
     {
-        reference.raw = HYP_ALLOC_ALIGNED(count, alignment);
+        if (alignment < alignof(std::max_align_t))
+            alignment = alignof(std::max_align_t);
+
+        const SizeType countAligned = ByteUtil::AlignAs(count, alignment);
+
+        reference.raw = HYP_ALLOC_ALIGNED(countAligned, alignment);
         Assert(reference.raw != nullptr);
 
         if (inData != nullptr)
@@ -534,7 +539,7 @@ void AssetObject::LockWriter(bool doInitialize)
     while (!AtomicCompareExchange(&m_rwState, expected, 1))
     {
         expected = 0;
-            
+
         // volatile read
         while (m_rwState != 0)
         {
@@ -624,7 +629,7 @@ void AssetObject::LockReader()
             }
         }
     };
-        
+
     // first pass: optimistic read
     if ((m_rwState & 0x1) == 0)
     {
