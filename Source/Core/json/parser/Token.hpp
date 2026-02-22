@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/json/parser/SourceLocation.hpp>
-#include <core/containers/String.hpp>
+#include <Core/json/parser/SourceLocation.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion::JSON {
 

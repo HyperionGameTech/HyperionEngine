@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/json/parser/SourceFile.hpp>
-#include <util/UTF8.hpp>
+#include <Core/json/parser/SourceFile.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion::JSON {
 

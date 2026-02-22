@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/Method.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/StaticField.hpp>
-#include <core/reflection/Member.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/StaticField.hpp>
+#include <Core/reflection/Member.hpp>
 
-#include <core/reflection/TypeId.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Variant.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Variant.hpp>
 
 namespace Hyperion {
 

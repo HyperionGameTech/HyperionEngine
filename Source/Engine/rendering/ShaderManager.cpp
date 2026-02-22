@@ -10,9 +10,9 @@
 
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/threading/SharedMutex.hpp>
+#include <Core/threading/SharedMutex.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorTask.hpp>

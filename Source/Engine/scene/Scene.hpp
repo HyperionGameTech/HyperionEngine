@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Name.hpp>
-#include <core/Types.hpp>
+#include <Core/Name.hpp>
+#include <Core/Types.hpp>
 
-#include <core/math/Color.hpp>
+#include <Core/math/Color.hpp>
 
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/DataMutationState.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/DataMutationState.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
 #include <scene/Node.hpp>
 #include <scene/Entity.hpp>

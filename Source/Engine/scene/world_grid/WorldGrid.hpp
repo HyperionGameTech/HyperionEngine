@@ -7,21 +7,21 @@
 
 #include <scene/Entity.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/FlatSet.hpp>
-#include <core/containers/Queue.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/FlatSet.hpp>
+#include <Core/containers/Queue.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/threading/Task.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

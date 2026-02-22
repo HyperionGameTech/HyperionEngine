@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/math/Transform.hpp>
-#include <core/containers/SortedArray.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/containers/SortedArray.hpp>
 
 namespace Hyperion {
 

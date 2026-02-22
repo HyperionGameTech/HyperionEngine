@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/Task.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Scheduler.hpp>
 
 namespace Hyperion {
 

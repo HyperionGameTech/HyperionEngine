@@ -2,24 +2,24 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/utilities/Span.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/functional/Proc.hpp>
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Proc.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/threading/Task.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace net {

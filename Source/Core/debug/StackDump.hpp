@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/FixedArray.hpp>
-#include <core/memory/Pimpl.hpp>
-#include <core/Defines.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/memory/Pimpl.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace debug {

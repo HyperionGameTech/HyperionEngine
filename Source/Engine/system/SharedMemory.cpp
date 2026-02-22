@@ -4,9 +4,9 @@
 
 #include <system/SharedMemory.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
 #ifdef HYP_UNIX
 #include <sys/mman.h>

@@ -3,7 +3,7 @@
 #include <ScenePch.hpp>
 
 #include <scene/camera/CameraTrack.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 namespace Hyperion {
 

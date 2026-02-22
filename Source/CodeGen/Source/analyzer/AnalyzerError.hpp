@@ -3,11 +3,11 @@
 #ifndef HYPERION_CODEGEN_ANALYZER_ERROR_HPP
 #define HYPERION_CODEGEN_ANALYZER_ERROR_HPP
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

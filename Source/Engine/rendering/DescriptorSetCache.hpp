@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/FlatMap.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>

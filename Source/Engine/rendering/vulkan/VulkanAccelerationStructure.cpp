@@ -18,9 +18,9 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/utilities/Range.hpp>
+#include <Core/utilities/Range.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <VulkanAccelerationStructure.generated.inl>
 

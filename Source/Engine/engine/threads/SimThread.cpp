@@ -9,9 +9,9 @@
 #include <engine/EngineStats.hpp>
 #include <rendering/DebugDrawer.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <engine/Game.hpp>
 

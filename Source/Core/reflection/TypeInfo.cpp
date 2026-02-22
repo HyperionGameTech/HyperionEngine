@@ -1,16 +1,16 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Class.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/pool/Pool.hpp>
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/pool/Pool.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
 namespace Hyperion {
 namespace utilities {

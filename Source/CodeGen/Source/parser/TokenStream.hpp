@@ -3,14 +3,14 @@
 #ifndef HYPERION_CODEGEN_TOKEN_STREAM_HPP
 #define HYPERION_CODEGEN_TOKEN_STREAM_HPP
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
 #include <parser/Token.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion::CodeGen {
 

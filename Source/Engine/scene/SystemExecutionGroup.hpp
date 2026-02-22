@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/containers/TypeMap.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/TypeMap.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjId.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
 #include <scene/System.hpp>
 

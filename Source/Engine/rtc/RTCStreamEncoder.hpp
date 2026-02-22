@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/utilities/Optional.hpp>
 
 namespace Hyperion {
 namespace threading {

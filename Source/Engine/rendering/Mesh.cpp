@@ -9,7 +9,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

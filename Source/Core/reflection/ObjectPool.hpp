@@ -2,25 +2,25 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/AtomicFlag.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicFlag.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/memory/Memory.hpp>
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/Memory.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 #include <type_traits>
 

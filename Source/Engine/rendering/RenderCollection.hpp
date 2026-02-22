@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/FlatMap.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjId.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>

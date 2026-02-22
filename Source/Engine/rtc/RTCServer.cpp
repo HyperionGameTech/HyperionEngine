@@ -6,7 +6,7 @@
 #include <rtc/RTCClient.hpp>
 #include <rtc/RTCServerThread.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
 #include <scene/Volume.hpp>
 

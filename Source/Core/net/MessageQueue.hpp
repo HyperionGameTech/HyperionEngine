@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/Queue.hpp>
+#include <Core/containers/Queue.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 namespace Hyperion {
 namespace net {

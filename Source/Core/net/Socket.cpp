@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/net/Socket.hpp>
+#include <Core/net/Socket.hpp>
 
-#include <core/containers/Queue.hpp>
+#include <Core/containers/Queue.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
 #ifdef HYP_UNIX
 

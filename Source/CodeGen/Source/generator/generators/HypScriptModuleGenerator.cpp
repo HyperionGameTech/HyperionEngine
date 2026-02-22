@@ -7,14 +7,14 @@
 
 #include <parser/Parser.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

@@ -62,20 +62,20 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/threading/Semaphore.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Semaphore.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 // for EnumToString
-#include <core/reflection/Enum.hpp>
+#include <Core/reflection/Enum.hpp>
 
 #include <util/BlueNoise.hpp>
 

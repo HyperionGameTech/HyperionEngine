@@ -11,7 +11,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
 

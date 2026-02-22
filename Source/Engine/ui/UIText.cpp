@@ -18,8 +18,8 @@
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Quaternion.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Quaternion.hpp>
 
 #include <system/AppContext.hpp>
 

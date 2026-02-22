@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/io/ByteReader.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
 #define HYP_LOADER_BUFFER_SIZE 2048
 

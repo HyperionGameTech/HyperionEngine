@@ -4,12 +4,12 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 

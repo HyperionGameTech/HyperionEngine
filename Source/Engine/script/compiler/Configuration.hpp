@@ -4,7 +4,7 @@
 #include <map>
 #include <fstream>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #define HYP_SCRIPT_ENABLE_LAZY_DECLARATIONS 0
 #define HYP_SCRIPT_ANY_ONLY_FUNCTION_PARAMATERS 0

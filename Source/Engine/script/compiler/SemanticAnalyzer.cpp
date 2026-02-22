@@ -6,14 +6,14 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/containers/Stack.hpp>
+#include <Core/containers/Stack.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 

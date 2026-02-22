@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/AccelerationStructure.hpp>

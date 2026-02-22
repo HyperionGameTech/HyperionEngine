@@ -22,12 +22,12 @@
 #include <rendering/RenderHelpers.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

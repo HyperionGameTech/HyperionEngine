@@ -52,12 +52,12 @@
 #include <scene/ParticleVolume.hpp>
 #include <scene/LightmapVolume.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/Float16.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/Float16.hpp>
 
 #include <system/AppContext.hpp>
 

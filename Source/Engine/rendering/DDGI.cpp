@@ -27,8 +27,8 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/ByteUtil.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #include <engine/EngineDriver.hpp>
 

@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/functional/FunctionWrapper.hpp>
+#include <Core/functional/FunctionWrapper.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Constants.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <algorithm>
 

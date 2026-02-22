@@ -5,11 +5,11 @@
 
 #include <parser/CompilerError.hpp>
 
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion::CodeGen {
 

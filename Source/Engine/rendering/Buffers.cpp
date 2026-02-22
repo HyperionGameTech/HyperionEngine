@@ -9,12 +9,12 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/utilities/ByteUtil.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

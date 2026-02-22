@@ -5,9 +5,9 @@
 #include <scene/Node.hpp>
 #include <scene/animation/Keyframe.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/math/Transform.hpp>
+#include <Core/math/Transform.hpp>
 
 namespace Hyperion {
 

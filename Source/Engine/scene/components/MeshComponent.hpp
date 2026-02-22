@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/UserData.hpp>
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/UserData.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
 #include <rendering/MeshInstanceData.hpp>
 

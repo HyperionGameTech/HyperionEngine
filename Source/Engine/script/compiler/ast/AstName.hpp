@@ -1,8 +1,8 @@
 #pragma once
 
 #include <script/compiler/ast/AstConstant.hpp>
-#include <core/containers/String.hpp>
-#include <core/Name.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/Name.hpp>
 
 namespace Hyperion {
 

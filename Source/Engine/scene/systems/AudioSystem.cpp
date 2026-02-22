@@ -11,7 +11,7 @@
 
 #include <audio/AudioManager.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <engine/GameState.hpp>
 

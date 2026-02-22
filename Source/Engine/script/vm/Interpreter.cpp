@@ -6,27 +6,27 @@
 #include <script/vm/GC.hpp>
 #include <script/vm/Exception.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/Class.hpp>
-#include <core/reflection/MemberVariant.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Method.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/MemberVariant.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMReader.hpp>
+#include <Core/serialization/fbom/FBOMLoadContext.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <script/Instructions.hpp>
 

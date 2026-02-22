@@ -5,7 +5,7 @@
 
 #include <parser/ErrorList.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
 namespace Hyperion::CodeGen {
 

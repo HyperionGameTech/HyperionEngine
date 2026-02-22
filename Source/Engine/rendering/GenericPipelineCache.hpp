@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>

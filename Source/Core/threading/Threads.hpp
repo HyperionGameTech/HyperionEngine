@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/threading/util/ThreadId.hpp>
+#include <Core/threading/util/ThreadId.hpp>
 
 namespace Hyperion {
 

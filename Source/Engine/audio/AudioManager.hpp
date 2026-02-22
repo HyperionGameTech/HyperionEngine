@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/ObjectBase.hpp>
+#include <Core/reflection/ObjectBase.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector3.hpp>
 
 #include <AL/al.h>
 #include <AL/alc.h>

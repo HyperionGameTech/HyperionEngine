@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Name.hpp>
+#include <Core/Types.hpp>
+#include <Core/Name.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
 namespace Hyperion {
 

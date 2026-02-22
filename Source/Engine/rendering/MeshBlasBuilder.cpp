@@ -16,9 +16,9 @@
 
 #include <asset/AssetRegistry.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
 namespace Hyperion {
 

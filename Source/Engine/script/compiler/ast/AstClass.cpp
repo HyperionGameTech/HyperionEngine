@@ -27,17 +27,17 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-#include <core/reflection/Object.hpp>
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Method.hpp>
+#include <Core/reflection/Object.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Method.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

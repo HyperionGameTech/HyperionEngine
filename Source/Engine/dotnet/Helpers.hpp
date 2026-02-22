@@ -1,15 +1,15 @@
 #pragma once
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjId.hpp>
 
 #include <type_traits>
 

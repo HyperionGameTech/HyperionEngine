@@ -5,16 +5,16 @@
 
 #include <analyzer/Definitions.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

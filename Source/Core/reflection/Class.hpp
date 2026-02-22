@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include <core/reflection/ObjectFwd.hpp>
-#include <core/reflection/ObjectEnums.hpp>
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/Member.hpp>
-#include <core/reflection/ClassAttribute.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectEnums.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Member.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/Any.hpp>
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/Any.hpp>
+#include <Core/memory/AnyRef.hpp>
 
 namespace Hyperion {
 

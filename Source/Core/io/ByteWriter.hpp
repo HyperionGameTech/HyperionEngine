@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/utilities/StringView.hpp>
-#include <core/filesystem/FilePath.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/Memory.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/io/MemoryMappedFile.hpp>
+#include <Core/io/MemoryMappedFile.hpp>
 
 #include <type_traits>
 

@@ -6,9 +6,9 @@
 #include <physics/PhysicsWorld.hpp>
 #include <physics/RigidBody.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Quaternion.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Quaternion.hpp>
 
 namespace Hyperion {
 

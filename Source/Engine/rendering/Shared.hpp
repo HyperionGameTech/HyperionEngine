@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/utilities/Float16.hpp>
+#include <Core/utilities/Float16.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
 #include <util/EnumOptions.hpp>
 
@@ -966,9 +966,9 @@ struct PushConstantData
 
 } // namespace Hyperion
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/Mat4f.hpp>
 
 namespace Hyperion {
 

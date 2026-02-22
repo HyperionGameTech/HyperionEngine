@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/containers/Bitset.hpp>
+#include <Core/containers/Bitset.hpp>
 
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
 #include <scene/Entity.hpp>
 

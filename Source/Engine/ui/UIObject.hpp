@@ -2,24 +2,24 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/math/Color.hpp>
-#include <core/math/BlendVar.hpp>
+#include <Core/math/Color.hpp>
+#include <Core/math/BlendVar.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/ForEach.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/ForEach.hpp>
 
 #include <scene/Entity.hpp>
 

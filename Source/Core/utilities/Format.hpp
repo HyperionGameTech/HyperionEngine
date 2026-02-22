@@ -1,12 +1,12 @@
 #pragma once
-#include <core/utilities/FormatFwd.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Tuple.hpp>
+#include <Core/utilities/FormatFwd.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Tuple.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/StaticString.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/StaticString.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
 namespace Hyperion {
 namespace utilities {

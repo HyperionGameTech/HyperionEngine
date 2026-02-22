@@ -21,7 +21,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 #include <dxgi1_6.h>
 

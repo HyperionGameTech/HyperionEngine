@@ -7,9 +7,9 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

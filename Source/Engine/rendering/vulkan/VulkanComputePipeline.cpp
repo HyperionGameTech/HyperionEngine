@@ -14,10 +14,10 @@
 
 #include <rendering/Shader.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/math/MathUtil.hpp>
-#include <core/math/Transform.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Transform.hpp>
 
 #include <cstring>
 

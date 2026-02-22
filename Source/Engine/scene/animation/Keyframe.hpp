@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/math/Transform.hpp>
-#include <core/Types.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

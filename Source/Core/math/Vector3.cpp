@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Quaternion.hpp>
-#include <core/math/Mat3f.hpp>
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Quaternion.hpp>
+#include <Core/math/Mat3f.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 #include <cmath>
 

@@ -2,32 +2,32 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/functional/Proc.hpp>
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Proc.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/Defines.hpp>
-#include <core/utilities/FunctionTraits.hpp>
+#include <Core/Defines.hpp>
+#include <Core/utilities/FunctionTraits.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/ThreadPool.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/TaskThread.hpp>
+#include <Core/threading/ThreadPool.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <atomic>
 

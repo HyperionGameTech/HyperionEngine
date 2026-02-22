@@ -9,9 +9,9 @@
 #include <engine/threads/RenderThread.hpp>
 #include <engine/threads/SimThread.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
 #include <input/InputManager.hpp>
 #include <input/Event.hpp>

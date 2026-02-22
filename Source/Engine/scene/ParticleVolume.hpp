@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Vector3.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Vector3.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <scene/Volume.hpp>
 

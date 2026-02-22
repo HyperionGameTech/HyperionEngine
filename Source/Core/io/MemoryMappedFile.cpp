@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/io/MemoryMappedFile.hpp>
+#include <Core/io/MemoryMappedFile.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/Defines.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN

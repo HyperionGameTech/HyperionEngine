@@ -1,21 +1,21 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
-#include <core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMReader.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/FBOMLoadContext.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/compression/Archive.hpp>
+#include <Core/compression/Archive.hpp>
 
 namespace Hyperion {
 namespace utilities {

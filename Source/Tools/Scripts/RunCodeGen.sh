@@ -14,7 +14,7 @@ WORKING_DIR=`pwd`
 
 # Version-based rebuild logic
 REBUILD=false
-INC_FILE="$WORKING_DIR/Generated/CodeGenOutput.inc"
+INC_FILE="$WORKING_DIR/Source/Generated/CodeGenOutput.inc"
 
 # Check if both the build tool and version file exist
 if [ ! -f ./build/hyperion-codegen ]; then
@@ -76,4 +76,4 @@ else
 fi
 
 # Run the build tool
-./Build/hyperion-codegen --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/Source --CXXOutputDirectory=$WORKING_DIR/Generated --CSharpOutputDirectory=$WORKING_DIR/Generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/Build/Binaries --ExcludeDirectories=$WORKING_DIR/Generated --ExcludeFiles=$WORKING_DIR/Source/Core/Defines.hpp
+./Build/hyperion-codegen --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/Source --CXXOutputDirectory=$WORKING_DIR/Source/Generated --CSharpOutputDirectory=$WORKING_DIR/Generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/Binaries --ExcludeDirectories=$WORKING_DIR/Generated --ExcludeFiles=$WORKING_DIR/Source/Core/Defines.hpp

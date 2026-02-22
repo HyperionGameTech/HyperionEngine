@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/serialization/fbom/FBOMObjectLibrary.hpp>
+#include <Core/serialization/fbom/FBOMObjectLibrary.hpp>
 
 namespace Hyperion {
 

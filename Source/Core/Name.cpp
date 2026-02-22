@@ -1,14 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/Format.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 namespace Hyperion {
 

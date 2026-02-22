@@ -15,10 +15,10 @@
 
 #include <rendering/CrashHandler.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/Pimpl.hpp>
 
 #include <vulkan/vulkan.h>
 #if defined(HYP_WINDOWS)

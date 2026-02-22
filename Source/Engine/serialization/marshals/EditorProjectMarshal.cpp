@@ -2,10 +2,10 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
+#include <Core/serialization/fbom/FBOMMarshaler.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <editor/EditorProject.hpp>
 

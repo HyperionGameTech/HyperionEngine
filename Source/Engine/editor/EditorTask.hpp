@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Name.hpp>
+#include <Core/Types.hpp>
+#include <Core/Name.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

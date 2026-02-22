@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 namespace Hyperion {
 

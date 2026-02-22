@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/json/parser/CompilerError.hpp>
+#include <Core/json/parser/CompilerError.hpp>
 
 namespace Hyperion::JSON {
 

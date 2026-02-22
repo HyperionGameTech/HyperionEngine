@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/HashCode.hpp>
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderResult.hpp>

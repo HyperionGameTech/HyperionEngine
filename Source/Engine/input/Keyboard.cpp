@@ -6,7 +6,7 @@
 #include <input/InputManager.hpp>
 #include <input/Event.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <Keyboard.generated.inl>
 

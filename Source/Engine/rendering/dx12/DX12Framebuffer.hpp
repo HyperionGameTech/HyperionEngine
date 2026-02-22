@@ -14,7 +14,7 @@
 #include <rendering/dx12/DX12Attachment.hpp>
 #include <rendering/dx12/DX12DescriptorHeaps.hpp>
 
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/FlatMap.hpp>
 
 namespace Hyperion {
 

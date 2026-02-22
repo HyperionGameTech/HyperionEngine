@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/ObjectPool.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ObjectPool.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
 namespace Hyperion {
 

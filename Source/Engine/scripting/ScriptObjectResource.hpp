@@ -4,20 +4,20 @@
 
 #include <scripting/ScriptFwd.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/memory/resource/Resource.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/resource/Resource.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Variant.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #ifdef HYP_SCRIPT
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 #endif
 
 namespace Hyperion {

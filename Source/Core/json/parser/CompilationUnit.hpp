@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/json/parser/ErrorList.hpp>
+#include <Core/json/parser/ErrorList.hpp>
 
 namespace Hyperion::JSON {
 

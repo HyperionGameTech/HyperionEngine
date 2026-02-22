@@ -2,9 +2,9 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <asset/AssetRegistry.hpp>
 

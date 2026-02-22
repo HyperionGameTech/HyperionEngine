@@ -62,15 +62,15 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIWindow.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/net/HTTPRequest.hpp>
+#include <Core/net/HTTPRequest.hpp>
 
 #include <scripting/ScriptingService.hpp>
 
-#include <core/profiling/Profile.hpp>
+#include <Core/profiling/Profile.hpp>
 
 #include <util/MeshBuilder.hpp>
 

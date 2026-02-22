@@ -6,11 +6,11 @@
 #include <parser/CompilationUnit.hpp>
 #include <parser/Operator.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/utilities/Result.hpp>
 
 namespace Hyperion::JSON {
 class Value;

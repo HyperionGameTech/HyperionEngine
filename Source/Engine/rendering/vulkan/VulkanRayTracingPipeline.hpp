@@ -12,10 +12,10 @@
 
 #include <rendering/vulkan/VulkanPipeline.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

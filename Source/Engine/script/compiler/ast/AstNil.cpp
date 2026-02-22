@@ -14,7 +14,7 @@
 
 #include <script/Instructions.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

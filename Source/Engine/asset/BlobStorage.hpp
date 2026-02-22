@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/Range.hpp>
+#include <Core/utilities/ValueStorage.hpp>
+#include <Core/utilities/Range.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/threading/SharedMutex.hpp>
+#include <Core/threading/SharedMutex.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
+#include <Core/reflection/ObjectBase.hpp>
 
-#include <core/io/MemoryMappedFile.hpp>
+#include <Core/io/MemoryMappedFile.hpp>
 
 #include <asset/BlobStorageStructs.hpp>
 

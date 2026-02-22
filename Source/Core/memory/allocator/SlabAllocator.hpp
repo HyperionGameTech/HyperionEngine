@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/memory/MemoryMetrics.hpp>
+#include <Core/memory/MemoryMetrics.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
-#include <core/memory/allocator/AllocatorFlags.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/AllocatorFlags.hpp>
 
-#include <core/threading/util/ThreadId.hpp>
-#include <core/threading/AtomicFlag.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/threading/util/ThreadId.hpp>
+#include <Core/threading/AtomicFlag.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 #include <new>
 #include <limits>

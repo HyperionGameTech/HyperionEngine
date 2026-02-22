@@ -6,13 +6,13 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

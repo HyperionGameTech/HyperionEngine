@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Color.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/Color.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 #ifndef HYP_TOOL
 #include <Color.generated.inl>

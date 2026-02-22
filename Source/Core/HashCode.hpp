@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
-#include <core/utilities/Traits.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/utilities/Traits.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
 #include <type_traits>
 #include <bit>

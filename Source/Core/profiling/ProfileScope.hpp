@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/utilities/Time.hpp>
+#include <Core/utilities/Time.hpp>
 
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Util.hpp> // For HYP_PRETTY_FUNCTION_NAME
+#include <Core/Defines.hpp>
+#include <Core/Util.hpp> // For HYP_PRETTY_FUNCTION_NAME
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace profiling {

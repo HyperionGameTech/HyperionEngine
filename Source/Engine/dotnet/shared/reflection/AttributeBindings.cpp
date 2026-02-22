@@ -2,9 +2,9 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/ClassAttribute.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 

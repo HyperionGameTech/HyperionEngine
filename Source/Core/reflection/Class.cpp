@@ -1,19 +1,19 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Enum.hpp>
-#include <core/reflection/MemberVariant.hpp>
-#include <core/reflection/Object.hpp>
-#include <core/reflection/StaticField.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Enum.hpp>
+#include <Core/reflection/MemberVariant.hpp>
+#include <Core/reflection/Object.hpp>
+#include <Core/reflection/StaticField.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/threading/ThreadLocalStorage.hpp>
+#include <Core/threading/ThreadLocalStorage.hpp>
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 
@@ -31,11 +31,11 @@
 
 #endif
 
-#include <core/containers/ArrayMap.hpp>
+#include <Core/containers/ArrayMap.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMMarshaler.hpp>
 
 namespace Hyperion {
 namespace Attributes {

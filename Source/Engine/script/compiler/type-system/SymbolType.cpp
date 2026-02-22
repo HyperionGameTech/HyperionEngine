@@ -8,14 +8,14 @@
 
 #include <script/compiler/CompilationUnit.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/debug/StackDump.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/debug/StackDump.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 

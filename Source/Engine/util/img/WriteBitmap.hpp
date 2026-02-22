@@ -1,5 +1,5 @@
 #pragma once
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 // just a quick BMP writer for testing
 // https://stackoverflow.com/a/47785639/8320593

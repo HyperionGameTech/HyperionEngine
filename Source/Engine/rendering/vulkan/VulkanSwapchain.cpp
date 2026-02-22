@@ -13,10 +13,10 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 // for EnumToString
-#include <core/reflection/Enum.hpp>
+#include <Core/reflection/Enum.hpp>
 
 #include <VulkanSwapchain.generated.inl>
 

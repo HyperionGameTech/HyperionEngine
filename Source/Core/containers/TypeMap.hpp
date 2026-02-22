@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/containers/ContainerBase.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/FlatSet.hpp>
-#include <core/reflection/TypeId.hpp>
-#include <core/Defines.hpp>
+#include <Core/containers/ContainerBase.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/FlatSet.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 namespace containers {

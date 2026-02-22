@@ -1,14 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/ThreadPool.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/ThreadPool.hpp>
 
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/Class.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
 namespace Hyperion {
 

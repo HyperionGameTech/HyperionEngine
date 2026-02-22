@@ -4,17 +4,17 @@
 
 #include <script/Instructions.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMReader.hpp>
+#include <Core/serialization/fbom/FBOMLoadContext.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/reflection/ClassAttribute.hpp>
-#include <core/reflection/Member.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
+#include <Core/reflection/Member.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/Types.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/Types.hpp>
 
 #include <sstream>
 #include <cstdio>

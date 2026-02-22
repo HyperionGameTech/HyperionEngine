@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/memory/Memory.hpp>
-#include <core/memory/Any.hpp>
+#include <Core/memory/Memory.hpp>
+#include <Core/memory/Any.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <cstdlib>
 

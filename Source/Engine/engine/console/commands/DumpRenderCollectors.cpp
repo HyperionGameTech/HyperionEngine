@@ -2,9 +2,9 @@
 
 #include <engine/console/ConsoleCommand.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassUtils.hpp>
 
-#include <core/threading/Task.hpp>
+#include <Core/threading/Task.hpp>
 
 #include <scene/View.hpp>
 

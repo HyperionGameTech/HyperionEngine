@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/containers/TypeMap.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/TypeMap.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <type_traits>
 #include <cstring>

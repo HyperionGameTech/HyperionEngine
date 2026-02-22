@@ -14,14 +14,14 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanMemoryAllocator.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/Span.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/Optional.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderResult.hpp>

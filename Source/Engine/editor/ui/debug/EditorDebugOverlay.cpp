@@ -4,7 +4,7 @@
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <rendering/Texture.hpp>
 

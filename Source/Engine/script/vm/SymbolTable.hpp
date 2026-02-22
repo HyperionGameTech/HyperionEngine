@@ -2,10 +2,10 @@
 
 #include <script/vm/Value.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

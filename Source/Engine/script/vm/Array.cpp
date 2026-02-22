@@ -1,6 +1,6 @@
 #include <script/vm/Array.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
 namespace Hyperion {
 

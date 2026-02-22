@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

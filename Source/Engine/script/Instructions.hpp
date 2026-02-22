@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 enum FunctionFlags : Hyperion::uint8
 {

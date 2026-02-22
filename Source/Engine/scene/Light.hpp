@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/utilities/DataMutationState.hpp>
+#include <Core/utilities/DataMutationState.hpp>
 
-#include <core/math/Color.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/MathUtil.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/BoundingSphere.hpp>
+#include <Core/math/Color.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/BoundingSphere.hpp>
 
 #include <scene/Entity.hpp>
 

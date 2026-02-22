@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/utilities/ValueStorage.hpp>
+#include <Core/utilities/ValueStorage.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <vector>
 #include <ostream>

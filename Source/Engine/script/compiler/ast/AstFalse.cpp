@@ -8,7 +8,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/containers/FixedArray.hpp>
-#include <core/Types.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

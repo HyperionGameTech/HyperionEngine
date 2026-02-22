@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/utilities/ValueStorage.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/utilities/ValueStorage.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 namespace utilities {

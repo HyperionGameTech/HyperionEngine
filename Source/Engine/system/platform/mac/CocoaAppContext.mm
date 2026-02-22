@@ -14,10 +14,10 @@
 #include <input/InputManager.hpp>
 #include <input/Event.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #if HYP_VULKAN
 #include <vulkan/vulkan.h>

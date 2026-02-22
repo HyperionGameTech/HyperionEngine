@@ -5,9 +5,9 @@
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/emit/BytecodeChunk.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <memory>
 

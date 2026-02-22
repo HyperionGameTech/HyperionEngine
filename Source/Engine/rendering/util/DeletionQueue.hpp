@@ -2,25 +2,25 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
-#include <core/Defines.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 #include <rendering/RenderResult.hpp>
 

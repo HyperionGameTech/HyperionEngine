@@ -4,10 +4,10 @@
 
 #include <rendering/RendererBase.hpp>
 
-#include <core/math/Mat4f.hpp>
-#include <core/math/Vector2.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

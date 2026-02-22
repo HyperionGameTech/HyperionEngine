@@ -6,16 +6,16 @@
 #include <util/random/WorleyNoise.hpp>
 #include <util/img/Bitmap.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
 
-#include <core/containers/SortedArray.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/utilities/Range.hpp>
+#include <Core/containers/SortedArray.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/utilities/Range.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <map>
 #include <utility>

@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/profiling/Profile.hpp>
+#include <Core/profiling/Profile.hpp>
 
 #include <chrono>
 

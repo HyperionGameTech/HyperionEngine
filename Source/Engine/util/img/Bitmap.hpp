@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/utilities/Span.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
-#include <core/math/Color.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/MathUtil.hpp>
-#include <core/math/Rect.hpp>
+#include <Core/math/Color.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Rect.hpp>
 
 #include <util/img/WriteBitmap.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <rendering/Shared.hpp>
 

@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/threading/util/ThreadId.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/util/ThreadId.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

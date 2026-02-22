@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/Defines.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace containers {

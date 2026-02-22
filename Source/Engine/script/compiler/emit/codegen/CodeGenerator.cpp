@@ -1,11 +1,11 @@
 #include <script/compiler/emit/codegen/CodeGenerator.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/Method.hpp>
-#include <core/reflection/StaticField.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/ClassAttribute.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/StaticField.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
 
 #include <iostream>
 

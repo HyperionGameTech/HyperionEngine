@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/compiler/ast/AstImport.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 #include <string>
 

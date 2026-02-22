@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/net/NetRequestThread.hpp>
+#include <Core/net/NetRequestThread.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
 namespace Hyperion::net {
 

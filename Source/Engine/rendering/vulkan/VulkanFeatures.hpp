@@ -6,11 +6,11 @@
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

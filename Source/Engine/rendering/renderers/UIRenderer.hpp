@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
 #include <rendering/RendererBase.hpp>
 #include <rendering/RenderCollection.hpp>

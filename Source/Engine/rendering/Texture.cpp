@@ -18,10 +18,10 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 // for EnumToString
-#include <core/reflection/Enum.hpp>
+#include <Core/reflection/Enum.hpp>
 
 #include <util/img/Bitmap.hpp>
 

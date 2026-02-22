@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <type_traits>
 

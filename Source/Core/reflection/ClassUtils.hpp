@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Struct.hpp>
-#include <core/reflection/Enum.hpp>
-#include <core/reflection/MemberVariant.hpp>
-#include <core/reflection/TypeInfo.hpp>
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Struct.hpp>
+#include <Core/reflection/Enum.hpp>
+#include <Core/reflection/MemberVariant.hpp>
+#include <Core/reflection/TypeInfo.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 #include <type_traits>
 

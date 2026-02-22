@@ -2,13 +2,13 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Object.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Object.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/reflection/ObjectPool.hpp>
+#include <Core/reflection/ObjectPool.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>

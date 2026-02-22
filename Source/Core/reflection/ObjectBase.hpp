@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjId.hpp>
 
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <type_traits>
 

@@ -1,14 +1,14 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/dll/DynamicLibrary.hpp>
+#include <Core/dll/DynamicLibrary.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN

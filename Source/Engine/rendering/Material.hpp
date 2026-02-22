@@ -4,20 +4,20 @@
 
 #include <rendering/RenderableAttributes.hpp>
 
-#include <core/utilities/DataMutationState.hpp>
+#include <Core/utilities/DataMutationState.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/math/Color.hpp>
+#include <Core/math/Color.hpp>
 
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <asset/AssetObject.hpp>
 

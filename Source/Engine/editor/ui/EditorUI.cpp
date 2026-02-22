@@ -6,7 +6,7 @@
 
 #include <ui/UIDataSource.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 

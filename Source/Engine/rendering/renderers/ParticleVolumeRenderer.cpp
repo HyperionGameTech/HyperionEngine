@@ -33,7 +33,7 @@
 #include <util/MeshBuilder.hpp>
 #include <util/NoiseFactory.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 // For IndirectDrawCommand
 #if HYP_VULKAN

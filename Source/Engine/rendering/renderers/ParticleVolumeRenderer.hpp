@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
 #include <rendering/RendererBase.hpp>
 #include <rendering/RenderableAttributes.hpp>

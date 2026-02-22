@@ -4,7 +4,7 @@
 
 #include <editor/ui/EditorPropertyPanel.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
 namespace Hyperion {
 

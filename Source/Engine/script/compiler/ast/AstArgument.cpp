@@ -5,7 +5,7 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
 #include <script/Instructions.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

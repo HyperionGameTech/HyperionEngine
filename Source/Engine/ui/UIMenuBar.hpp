@@ -4,9 +4,9 @@
 
 #include <ui/UIPanel.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
 namespace Hyperion {
 

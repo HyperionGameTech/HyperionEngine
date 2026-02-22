@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/ContainerBase.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/ContainerBase.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/functional/FunctionWrapper.hpp>
+#include <Core/functional/FunctionWrapper.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/utilities/Traits.hpp>
-#include <core/HashCode.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

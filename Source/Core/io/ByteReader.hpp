@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/math/MathUtil.hpp>
-#include <core/memory/ByteBuffer.hpp>
-#include <core/Types.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/Types.hpp>
 
-#include <core/filesystem/FilePath.hpp>
-#include <core/io/MemoryMappedFile.hpp>
+#include <Core/filesystem/FilePath.hpp>
+#include <Core/io/MemoryMappedFile.hpp>
 
 #include <cstdio>
 

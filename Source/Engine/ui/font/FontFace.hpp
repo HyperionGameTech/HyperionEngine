@@ -4,11 +4,11 @@
 
 #include <ui/font/FontEngine.hpp>
 
-#include <core/Defines.hpp>
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/Defines.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

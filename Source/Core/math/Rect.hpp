@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/math/Vector4.hpp>
+#include <Core/math/Vector4.hpp>
 
 namespace Hyperion {
 

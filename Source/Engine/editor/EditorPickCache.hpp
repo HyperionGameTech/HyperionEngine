@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
+#include <Core/Types.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/memory/Pimpl.hpp>
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/Pimpl.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector3.hpp>
 
 namespace Hyperion {
 

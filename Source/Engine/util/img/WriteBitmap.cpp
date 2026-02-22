@@ -2,7 +2,7 @@
 
 #include <util/img/WriteBitmap.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 #include <stdio.h>
 

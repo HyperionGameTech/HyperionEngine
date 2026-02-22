@@ -8,11 +8,11 @@
 
 #include <input/Event.hpp>
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/Device.hpp>

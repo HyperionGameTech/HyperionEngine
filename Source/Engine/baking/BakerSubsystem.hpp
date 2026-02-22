@@ -4,17 +4,17 @@
 
 #include <scene/Subsystem.hpp>
 
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/LinkedList.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/threading/Task.hpp>
+#include <Core/threading/Task.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/Defines.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

@@ -1,15 +1,15 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/Core.hpp>
+#include <Core/Core.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
-#include <core/utilities/Uuid.hpp>
+#include <Core/reflection/TypeInfo.hpp>
+#include <Core/utilities/Uuid.hpp>
 
 namespace Hyperion {
 

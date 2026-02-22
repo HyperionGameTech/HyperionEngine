@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/math/Transform.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/BoundingSphere.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/BoundingSphere.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
 
 #include <physics/PhysicsMaterial.hpp>
 

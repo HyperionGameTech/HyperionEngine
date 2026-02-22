@@ -5,7 +5,7 @@
 #include <script/SourceLocation.hpp>
 #include <script/compiler/CompilationUnit.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion {
 

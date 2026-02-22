@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #include <rendering/vulkan/VulkanDevice.hpp>
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

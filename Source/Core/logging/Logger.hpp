@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Format.hpp>
-#include <core/utilities/Time.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/Time.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/Bitset.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Bitset.hpp>
 
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
 #include <climits>
 #include <source_location>

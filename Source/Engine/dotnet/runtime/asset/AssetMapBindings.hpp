@@ -4,7 +4,7 @@
 
 #include <asset/AssetBatch.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 using namespace Hyperion;
 

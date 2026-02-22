@@ -1,10 +1,10 @@
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/ThreadLocalStorage.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/ThreadLocalStorage.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
 namespace Hyperion {
 namespace utilities {

@@ -1,6 +1,6 @@
 #include <script/vm/HashMap.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <cmath>
 #include <cstring>

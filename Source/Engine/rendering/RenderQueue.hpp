@@ -20,7 +20,7 @@
 // #define HYP_RHI_COMMAND_STACK_TRACE
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
-#include <core/debug/StackDump.hpp>
+#include <Core/debug/StackDump.hpp>
 #endif
 
 namespace Hyperion {

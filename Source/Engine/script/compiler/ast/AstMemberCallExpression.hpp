@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstMember.hpp>
 #include <script/compiler/ast/AstArgumentList.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 

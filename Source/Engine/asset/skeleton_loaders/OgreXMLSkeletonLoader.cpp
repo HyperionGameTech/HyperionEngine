@@ -11,7 +11,7 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Animation.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 #include <util/xml/SAXParser.hpp>
 

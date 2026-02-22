@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
-#include <core/containers/Queue.hpp>
-#include <core/math/MathUtil.hpp>
-#include <core/Defines.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
+#include <Core/containers/Queue.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace threading {

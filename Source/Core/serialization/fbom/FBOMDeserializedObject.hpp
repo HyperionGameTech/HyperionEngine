@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjId.hpp>
 
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
-#include <core/serialization/SerializationWrapper.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/SerializationWrapper.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <type_traits>
 

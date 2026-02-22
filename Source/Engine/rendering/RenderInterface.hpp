@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>

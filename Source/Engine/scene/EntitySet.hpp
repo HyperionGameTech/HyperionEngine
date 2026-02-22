@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/Tuple.hpp>
-#include <core/utilities/ValueStorage.hpp>
+#include <Core/utilities/Tuple.hpp>
+#include <Core/utilities/ValueStorage.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EntitySetHelpers.hpp>
 #include <scene/EntityContainer.hpp>
 #include <scene/ComponentContainer.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

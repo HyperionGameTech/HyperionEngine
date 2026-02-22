@@ -10,8 +10,8 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <core/containers/SparsePagedArray.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/containers/HashMap.hpp>
 
 namespace Hyperion {
 

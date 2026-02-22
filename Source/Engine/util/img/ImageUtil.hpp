@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/math/MathUtil.hpp>
-#include <core/Types.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

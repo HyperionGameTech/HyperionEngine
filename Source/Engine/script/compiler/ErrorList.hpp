@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
 #include <script/compiler/CompilerError.hpp>
-#include <util/UTF8.hpp>
-#include <core/Types.hpp>
+#include <Core/Unicode.hpp>
+#include <Core/Types.hpp>
 
 #include <algorithm>
 #include <ostream>

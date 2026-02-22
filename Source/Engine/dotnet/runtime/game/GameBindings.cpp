@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
 
 #include <engine/Game.hpp>
 

@@ -3,9 +3,9 @@
 #include <editor/ui/edit/EditBoundingBox.hpp>
 #include <editor/ui/EditorUI.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
 #include <ui/UIGrid.hpp>
 #include <ui/UIText.hpp>

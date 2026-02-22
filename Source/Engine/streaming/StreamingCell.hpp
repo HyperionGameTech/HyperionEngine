@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/threading/Task.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/math/Vector2.hpp>
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <streaming/Streamable.hpp>
 

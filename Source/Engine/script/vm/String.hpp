@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 

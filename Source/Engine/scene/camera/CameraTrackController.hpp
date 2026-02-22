@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
 #include <scene/camera/PerspectiveCamera.hpp>
 #include <scene/camera/CameraTrack.hpp>

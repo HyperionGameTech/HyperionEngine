@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
-#include <core/functional/FunctionWrapper.hpp>
+#include <Core/functional/FunctionWrapper.hpp>
 
-#include <core/utilities/Traits.hpp>
-#include <core/HashCode.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

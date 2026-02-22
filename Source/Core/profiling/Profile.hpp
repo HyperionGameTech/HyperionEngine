@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 

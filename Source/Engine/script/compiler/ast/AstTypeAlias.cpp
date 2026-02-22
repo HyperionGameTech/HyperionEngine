@@ -2,8 +2,8 @@
 #include <script/compiler/AstVisitor.hpp>
 #include <script/compiler/Module.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <util/UTF8.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion {
 

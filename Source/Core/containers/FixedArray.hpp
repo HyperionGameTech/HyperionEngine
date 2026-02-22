@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/ContainerBase.hpp>
+#include <Core/containers/ContainerBase.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <algorithm>
 #include <utility>

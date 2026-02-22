@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/filesystem/FilePath.hpp>
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/Types.hpp>
+#include <Core/filesystem/FilePath.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
 namespace Hyperion {
 

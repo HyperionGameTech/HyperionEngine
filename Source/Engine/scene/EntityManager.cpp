@@ -9,15 +9,15 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/TypeInfo.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/TypeInfo.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
 #include <EntityManager.generated.inl>
 

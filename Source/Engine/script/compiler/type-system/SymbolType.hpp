@@ -1,13 +1,13 @@
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

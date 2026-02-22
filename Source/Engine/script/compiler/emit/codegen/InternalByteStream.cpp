@@ -1,6 +1,6 @@
 #include <script/compiler/emit/codegen/InternalByteStream.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 #include <iostream>
 
 namespace Hyperion {

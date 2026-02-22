@@ -7,13 +7,13 @@
 
 #include <rendering/RenderQueue.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 // #define HYP_DEBUG_USED_DESCRIPTOR_SETS
 

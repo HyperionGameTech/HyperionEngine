@@ -15,11 +15,11 @@
 #include <rendering/vulkan/VulkanFence.hpp>
 #include <rendering/vulkan/VulkanSemaphore.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
 #include <vulkan/vulkan.h>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

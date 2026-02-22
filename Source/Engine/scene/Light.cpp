@@ -25,12 +25,12 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 // for EnumToString
-#include <core/reflection/Enum.hpp>
+#include <Core/reflection/Enum.hpp>
 
-#include <core/utilities/Float16.hpp>
+#include <Core/utilities/Float16.hpp>
 
 #include <engine/EngineDriver.hpp>
 

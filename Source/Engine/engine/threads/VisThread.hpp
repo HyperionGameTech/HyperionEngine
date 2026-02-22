@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskThread.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/ConditionVariable.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/ConditionVariable.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
 #include <scene/EntitySet.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 #include <engine/EngineMemory.hpp>
 

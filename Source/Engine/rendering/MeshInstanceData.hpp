@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/Memory.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/math/Transform.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
 namespace Hyperion {
 

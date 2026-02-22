@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Constants.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Constants.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderMemory.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

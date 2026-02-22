@@ -2,10 +2,10 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/debug/Debug.hpp>
 
 using namespace Hyperion;
 

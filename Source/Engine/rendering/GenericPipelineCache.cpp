@@ -15,7 +15,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 namespace Hyperion {
 

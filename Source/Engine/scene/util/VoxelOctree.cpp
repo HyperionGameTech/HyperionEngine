@@ -16,10 +16,10 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskThread.hpp>
 
 #include <limits>
 

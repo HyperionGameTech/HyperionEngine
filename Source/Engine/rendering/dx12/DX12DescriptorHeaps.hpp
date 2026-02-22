@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <rendering/dx12/DX12Shared.hpp>
 

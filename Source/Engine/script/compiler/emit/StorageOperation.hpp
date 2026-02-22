@@ -2,9 +2,9 @@
 
 #include <script/compiler/emit/Instruction.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

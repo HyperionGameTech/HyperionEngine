@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/BoundingSphere.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/BoundingSphere.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #ifndef HYP_TOOL
 #include <BoundingSphere.generated.inl>

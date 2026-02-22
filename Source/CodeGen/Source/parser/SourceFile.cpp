@@ -2,7 +2,7 @@
 
 #include <parser/SourceFile.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <cstring>
 

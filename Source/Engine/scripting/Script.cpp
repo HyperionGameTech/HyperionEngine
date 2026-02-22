@@ -2,7 +2,7 @@
 
 #include <scripting/Script.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <Script.generated.inl>
 

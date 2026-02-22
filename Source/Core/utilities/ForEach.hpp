@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <algorithm>
 #include <utility>

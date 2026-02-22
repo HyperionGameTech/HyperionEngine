@@ -4,11 +4,11 @@
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
-#include <core/math/Color.hpp>
+#include <Core/math/Color.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

@@ -4,7 +4,7 @@
 
 #include <scene/camera/PerspectiveCamera.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
 namespace Hyperion {
 

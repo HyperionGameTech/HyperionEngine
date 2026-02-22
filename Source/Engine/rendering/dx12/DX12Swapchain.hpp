@@ -10,7 +10,7 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
 

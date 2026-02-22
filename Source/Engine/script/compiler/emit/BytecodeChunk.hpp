@@ -2,15 +2,15 @@
 
 #include <script/compiler/emit/Instruction.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
 namespace Hyperion {
 

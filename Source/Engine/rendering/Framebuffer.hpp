@@ -7,7 +7,7 @@
 #include <rendering/GpuImageView.hpp>
 #include <rendering/Sampler.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

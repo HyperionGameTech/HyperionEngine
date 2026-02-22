@@ -2,9 +2,9 @@
 
 #include <engine/console/ConsoleCommand.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassUtils.hpp>
 
-#include <core/memory/MemoryPool.hpp>
+#include <Core/memory/MemoryPool.hpp>
 
 namespace Hyperion {
 

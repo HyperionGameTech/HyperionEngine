@@ -1,4 +1,4 @@
-#include <core/serialization/SerializationWrapper.hpp>
+#include <Core/serialization/SerializationWrapper.hpp>
 
 namespace Hyperion {
 } // namespace Hyperion

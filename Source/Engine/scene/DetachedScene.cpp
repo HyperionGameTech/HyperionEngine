@@ -5,9 +5,9 @@
 #include <scene/DetachedScene.hpp>
 #include <scene/Scene.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/Thread.hpp>
-#include <core/threading/util/ThreadId.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/util/ThreadId.hpp>
 
 #include <engine/EngineDriver.hpp>
 

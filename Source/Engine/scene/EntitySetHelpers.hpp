@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

@@ -3,10 +3,10 @@
 #include <scripting/ScriptObjectResource.hpp>
 #include <scripting/Script.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Object.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Object.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>

@@ -4,7 +4,7 @@
 
 #include <util/xml/SAXParser.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
 namespace Hyperion {
 namespace xml {

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/filesystem/FilePath.hpp>
-#include <core/cli/CommandLine.hpp>
-#include <core/config/Config.hpp>
+#include <Core/filesystem/FilePath.hpp>
+#include <Core/cli/CommandLine.hpp>
+#include <Core/config/Config.hpp>
 
 namespace Hyperion {
 namespace CoreApi {

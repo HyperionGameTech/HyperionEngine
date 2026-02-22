@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/utilities/ValueStorage.hpp>
+#include <Core/utilities/ValueStorage.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace utilities {

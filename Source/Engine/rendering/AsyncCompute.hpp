@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/ArrayMap.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/ArrayMap.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderMemory.hpp>
@@ -15,10 +15,10 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/GpuBuffer.hpp>
 
-#include <core/math/MathUtil.hpp>
-#include <core/math/Extent.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Extent.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

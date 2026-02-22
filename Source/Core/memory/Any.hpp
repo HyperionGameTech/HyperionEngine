@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/reflection/TypeInfoFwd.hpp>
-#include <core/reflection/TypeId.hpp>
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/memory/AnyRef.hpp>
-#include <core/memory/Memory.hpp>
+#include <Core/memory/AnyRef.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 #include <new>

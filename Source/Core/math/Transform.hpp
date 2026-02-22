@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Quaternion.hpp>
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Quaternion.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

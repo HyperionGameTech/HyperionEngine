@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/json/parser/SourceLocation.hpp>
+#include <Core/json/parser/SourceLocation.hpp>
 
 namespace Hyperion::JSON {
 

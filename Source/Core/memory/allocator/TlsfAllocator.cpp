@@ -1,9 +1,9 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/memory/allocator/TlsfAllocator.hpp>
-#include <core/memory/Memory.hpp>
+#include <Core/memory/allocator/TlsfAllocator.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
 #if defined(HYP_USE_THIRD_PARTY_TLSF) && HYP_USE_THIRD_PARTY_TLSF
 #include <tlsf/tlsf.h>

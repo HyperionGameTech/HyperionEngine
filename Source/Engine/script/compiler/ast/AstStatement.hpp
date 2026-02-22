@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 #include <script/SourceLocation.hpp>
 #include <script/compiler/emit/Buildable.hpp>

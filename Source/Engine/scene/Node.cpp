@@ -18,7 +18,7 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>

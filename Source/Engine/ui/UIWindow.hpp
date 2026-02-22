@@ -4,10 +4,10 @@
 
 #include <ui/UIPanel.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
 namespace Hyperion {
 

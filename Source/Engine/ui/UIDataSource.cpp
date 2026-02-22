@@ -5,7 +5,7 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIObject.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 #include <UIDataSource.generated.inl>
 

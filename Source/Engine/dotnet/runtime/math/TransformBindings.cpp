@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/math/Transform.hpp>
+#include <Core/math/Transform.hpp>
 
 using namespace Hyperion;
 

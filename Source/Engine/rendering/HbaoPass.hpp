@@ -6,7 +6,7 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 namespace Hyperion {
 

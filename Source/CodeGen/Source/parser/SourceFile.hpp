@@ -3,9 +3,9 @@
 #ifndef HYPERION_CODEGEN_SOURCE_FILE_HPP
 #define HYPERION_CODEGEN_SOURCE_FILE_HPP
 
-#include <core/Types.hpp>
-#include <core/containers/String.hpp>
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/Types.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
 namespace Hyperion::CodeGen {
 

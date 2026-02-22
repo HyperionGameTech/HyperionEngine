@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
 #include <dotnet/Helpers.hpp>
 

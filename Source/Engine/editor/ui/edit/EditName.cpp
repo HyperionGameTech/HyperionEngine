@@ -3,9 +3,9 @@
 #include <editor/ui/edit/EditName.hpp>
 #include <editor/ui/EditorUI.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 
 #include <scene/Node.hpp>
 

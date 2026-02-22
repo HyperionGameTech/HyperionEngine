@@ -3,7 +3,7 @@
 #include <editor/ui/edit/EditTransform.hpp>
 #include <editor/ui/EditorUI.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 #include <scene/Node.hpp>
 
 #include <ui/UIGrid.hpp>

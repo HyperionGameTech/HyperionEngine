@@ -2,15 +2,15 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Struct.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Struct.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/reflection/GenericArrayWrapper.hpp>
+#include <Core/reflection/GenericArrayWrapper.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>

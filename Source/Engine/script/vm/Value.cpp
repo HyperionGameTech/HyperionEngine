@@ -3,13 +3,13 @@
 #include <script/vm/String.hpp>
 #include <script/vm/HashMap.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Method.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Method.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
 #include <stdio.h>
 #include <cinttypes>

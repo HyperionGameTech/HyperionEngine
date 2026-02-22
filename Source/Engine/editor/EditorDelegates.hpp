@@ -2,25 +2,25 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <core/functional/Delegate.hpp>
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Delegate.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 
-#include <core/math/Transform.hpp>
+#include <Core/math/Transform.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

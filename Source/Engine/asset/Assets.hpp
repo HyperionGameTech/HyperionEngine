@@ -4,18 +4,18 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Defines.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Defines.hpp>
 
 #include <algorithm>
 #include <type_traits>

@@ -10,11 +10,11 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/math/Vector3.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

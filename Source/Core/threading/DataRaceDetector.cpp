@@ -1,16 +1,16 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/Bitset.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Bitset.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
 namespace Hyperion {
 namespace threading {

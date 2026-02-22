@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/FormatFwd.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace utilities {

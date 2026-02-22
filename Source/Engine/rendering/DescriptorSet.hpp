@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/ArrayMap.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/ArrayMap.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/utilities/Range.hpp>
+#include <Core/utilities/Range.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
@@ -25,8 +25,8 @@
 #include <rendering/util/DeletionQueue.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

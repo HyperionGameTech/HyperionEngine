@@ -23,9 +23,9 @@
 
 #include <scene/View.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 namespace Hyperion {
 

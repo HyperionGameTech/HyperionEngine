@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/Tuple.hpp>
+#include <Core/utilities/Tuple.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjId.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/Shared.hpp>

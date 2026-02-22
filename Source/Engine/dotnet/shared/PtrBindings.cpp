@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
 using namespace Hyperion;
 

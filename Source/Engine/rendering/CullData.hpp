@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/math/Extent.hpp>
+#include <Core/math/Extent.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
 

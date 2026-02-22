@@ -2,15 +2,15 @@
 #if 0
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/net/WebSocket.hpp>
+#include <Core/net/WebSocket.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
 #if defined(HYP_CURL) && HYP_CURL
 #include <curl/curl.h>

@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Semaphore.hpp>
-#include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/ConditionVariable.hpp>
-#include <core/threading/SharedMutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Semaphore.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/threading/ConditionVariable.hpp>
+#include <Core/threading/SharedMutex.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/memory/allocator/SlabAllocator.hpp>
-#include <core/memory/pool/Pool.hpp>
-#include <core/Name.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/pool/Pool.hpp>
+#include <Core/Name.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

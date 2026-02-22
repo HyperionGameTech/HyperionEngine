@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
+#include <Core/Types.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 

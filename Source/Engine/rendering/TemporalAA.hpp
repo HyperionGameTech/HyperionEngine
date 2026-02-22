@@ -4,9 +4,9 @@
 
 #include <scene/Scene.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
 #include <rendering/RenderObject.hpp>
 

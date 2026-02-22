@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/Name.hpp>
-#include <core/Defines.hpp>
+#include <Core/Name.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <thread>
 #include <type_traits>

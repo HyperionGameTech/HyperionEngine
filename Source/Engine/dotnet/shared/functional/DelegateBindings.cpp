@@ -5,7 +5,7 @@
 #include <dotnet/ManagedObject.hpp>
 #include <dotnet/ManagedClass.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
 using namespace Hyperion;
 

@@ -4,8 +4,8 @@
 
 #include <system/MessageBox.hpp>
 
-#include <core/threading/Task.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Threads.hpp>
 
 extern "C"
 {

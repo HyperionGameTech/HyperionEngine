@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

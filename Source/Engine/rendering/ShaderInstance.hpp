@@ -1,18 +1,18 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

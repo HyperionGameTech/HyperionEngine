@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 #include <rendering/GlobalBuffers.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/containers/StaticString.hpp>
+#include <Core/containers/StaticString.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

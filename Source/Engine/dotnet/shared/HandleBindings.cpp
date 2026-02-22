@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/Class.hpp>
 
 using namespace Hyperion;
 

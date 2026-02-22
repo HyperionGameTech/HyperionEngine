@@ -1,6 +1,6 @@
 #include <editor/HyperionEditor.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 #include <HyperionEngine.hpp>
 

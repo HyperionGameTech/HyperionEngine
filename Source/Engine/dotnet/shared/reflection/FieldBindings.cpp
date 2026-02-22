@@ -2,9 +2,9 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/Field.hpp>
+#include <Core/reflection/Field.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
 using namespace Hyperion;
 

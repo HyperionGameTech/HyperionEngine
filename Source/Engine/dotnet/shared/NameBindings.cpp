@@ -2,9 +2,9 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
 #include <type_traits>
 

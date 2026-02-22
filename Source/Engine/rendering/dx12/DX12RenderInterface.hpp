@@ -15,7 +15,7 @@
 
 #include <rendering/dx12/DX12Shared.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
 #include <D3D12MemAlloc.h>
 

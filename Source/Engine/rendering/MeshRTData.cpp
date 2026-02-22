@@ -8,8 +8,8 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/containers/HashMap.hpp>
 
 #include <scene/Entity.hpp>
 

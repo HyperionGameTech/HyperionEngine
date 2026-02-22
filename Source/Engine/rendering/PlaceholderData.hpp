@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/TypeMap.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <rendering/GpuImage.hpp>
 #include <rendering/GpuImageView.hpp>
@@ -14,13 +14,13 @@
 #include <rendering/Device.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/Semaphore.hpp>
 
 #include <asset/AssetPath.hpp>
 
-// #include <core/threading/Threads.hpp>
+// #include <Core/threading/Threads.hpp>
 
 namespace Hyperion {
 

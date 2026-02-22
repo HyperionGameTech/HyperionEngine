@@ -28,14 +28,14 @@
 
 #include <asset/ui_loaders/UILoader.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskThread.hpp>
 
 #include <system/DirectoryInitializer.hpp>
 
 #include <ui/UIObject.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
 

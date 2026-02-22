@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjectBase.hpp>
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>

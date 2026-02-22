@@ -1,15 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
 
-#include <core/threading/ThreadLocalStorage.hpp>
-#include <core/threading/Thread.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/util/ThreadId.hpp>
+#include <Core/threading/ThreadLocalStorage.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/util/ThreadId.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedClass.hpp>

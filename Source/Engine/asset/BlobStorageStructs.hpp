@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/io/ByteReader.hpp>
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 namespace Hyperion {
 

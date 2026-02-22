@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/Core.hpp>
+#include <Core/Core.hpp>
 
 struct Script_Trace
 {

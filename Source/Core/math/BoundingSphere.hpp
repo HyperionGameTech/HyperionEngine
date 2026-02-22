@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Ray.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Ray.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

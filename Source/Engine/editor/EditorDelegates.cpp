@@ -7,7 +7,7 @@
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 namespace Hyperion {
 

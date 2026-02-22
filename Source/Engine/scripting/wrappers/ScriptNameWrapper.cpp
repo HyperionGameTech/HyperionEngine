@@ -2,10 +2,10 @@
 #ifdef HYP_SCRIPT
 
 #include <script/vm/Value.hpp>
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 namespace Hyperion {
 

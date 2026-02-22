@@ -4,7 +4,7 @@
 
 #include <rendering/RenderHelpers.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 namespace Hyperion {
 namespace helpers {

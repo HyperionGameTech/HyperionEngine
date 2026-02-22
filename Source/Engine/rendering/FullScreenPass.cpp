@@ -28,7 +28,7 @@
 
 #include <scene/View.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <util/MeshBuilder.hpp>
 

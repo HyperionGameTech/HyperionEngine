@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/Array.hpp>
 
 #include <rendering/CullData.hpp>
 

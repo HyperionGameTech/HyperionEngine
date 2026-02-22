@@ -4,7 +4,7 @@
 #define HYPERION_CODEGEN_SOURCE_STREAM_HPP
 
 #include <parser/SourceFile.hpp>
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion::CodeGen {
 

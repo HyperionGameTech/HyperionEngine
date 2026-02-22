@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskThread.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 namespace net {

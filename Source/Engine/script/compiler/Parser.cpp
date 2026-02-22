@@ -6,8 +6,8 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <util/UTF8.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/Unicode.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 namespace Hyperion {
 

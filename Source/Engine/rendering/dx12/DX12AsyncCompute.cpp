@@ -10,7 +10,7 @@
 #include <rendering/dx12/DX12CommandBuffer.hpp>
 #include <rendering/dx12/DX12Fence.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 

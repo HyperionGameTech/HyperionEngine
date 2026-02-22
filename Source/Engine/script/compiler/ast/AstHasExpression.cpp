@@ -11,11 +11,11 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
 #include <script/Instructions.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 #include <iostream>
 

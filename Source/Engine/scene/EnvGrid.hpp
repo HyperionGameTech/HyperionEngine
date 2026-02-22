@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
 #include <scene/Entity.hpp>
 

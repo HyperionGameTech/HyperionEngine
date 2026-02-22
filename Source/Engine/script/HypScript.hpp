@@ -1,19 +1,19 @@
 #pragma once
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Defines.hpp>
 
 #include <script/SourceFile.hpp>
 #include <script/compiler/ErrorList.hpp>
 
 #include <script/vm/Value.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
 namespace Hyperion {
 

@@ -26,9 +26,9 @@
 
 #include <ui/UIStage.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
 

@@ -1,33 +1,33 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/SerializationUtils.hpp>
+#include <Core/serialization/SerializationUtils.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/StaticField.hpp>
-#include <core/reflection/Method.hpp>
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/StaticField.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/DeferredScope.hpp>
-#include <core/reflection/TypeInfo.hpp>
-#include <core/utilities/Float16.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/reflection/TypeInfo.hpp>
+#include <Core/utilities/Float16.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
 // temp
 #include <scene/Scene.hpp>

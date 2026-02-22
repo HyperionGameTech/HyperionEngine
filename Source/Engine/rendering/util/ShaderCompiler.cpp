@@ -15,25 +15,25 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
-#include <core/utilities/ForEach.hpp>
-#include <core/utilities/Time.hpp>
+#include <Core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ForEach.hpp>
+#include <Core/utilities/Time.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
 #include <util/ini/INIFile.hpp>
 
-#include <core/serialization/fbom/FBOMReader.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
+#include <Core/serialization/fbom/FBOMReader.hpp>
+#include <Core/serialization/fbom/FBOMWriter.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <system/DirectoryInitializer.hpp>
 

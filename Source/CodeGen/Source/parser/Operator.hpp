@@ -1,12 +1,12 @@
 #ifndef HYPERION_CODEGEN_OPERATOR_HPP
 #define HYPERION_CODEGEN_OPERATOR_HPP
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion::CodeGen {
 

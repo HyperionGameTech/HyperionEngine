@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
 #include <rendering/RenderObject.hpp>
 

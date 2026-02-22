@@ -2,7 +2,7 @@
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstVariable.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

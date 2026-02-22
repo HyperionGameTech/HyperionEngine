@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
 #include <rendering/RenderObject.hpp>
 

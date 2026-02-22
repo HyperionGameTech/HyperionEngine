@@ -9,7 +9,7 @@
 #include <parser/CompilationUnit.hpp>
 #include <parser/Operator.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

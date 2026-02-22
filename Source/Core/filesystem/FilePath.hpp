@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/Time.hpp>
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/Time.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
 #include <dotnet/Types.hpp>
 

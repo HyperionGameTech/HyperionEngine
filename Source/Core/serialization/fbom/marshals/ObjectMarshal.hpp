@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMMarshaler.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <asset/AssetReference.hpp>

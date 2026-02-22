@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/math/BoundingBox.hpp>
-#include <core/HashCode.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

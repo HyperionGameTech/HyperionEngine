@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
 
 #include <rendering/ShaderManager.hpp>
 

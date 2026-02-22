@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Mat4f.hpp>
-#include <core/math/Frustum.hpp>
-#include <core/math/Extent.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Frustum.hpp>
+#include <Core/math/Extent.hpp>
 
 #include <input/InputHandler.hpp>
 

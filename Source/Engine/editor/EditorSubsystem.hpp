@@ -9,7 +9,7 @@
 
 #include <scene/Subsystem.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
 namespace Hyperion {
 

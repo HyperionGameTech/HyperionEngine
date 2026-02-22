@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
-#include <core/serialization/fbom/FBOMType.hpp>
+#include <Core/serialization/fbom/FBOMType.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 class Class;

@@ -12,11 +12,11 @@
 
 #include <rendering/RenderQueue.hpp>
 
-#include <core/reflection/Enum.hpp>
+#include <Core/reflection/Enum.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 namespace Hyperion {
 

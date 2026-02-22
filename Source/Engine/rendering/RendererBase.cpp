@@ -10,9 +10,9 @@
 
 #include <scene/View.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
 #include <RendererBase.generated.inl>
 

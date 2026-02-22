@@ -9,7 +9,7 @@
 
 #include <rendering/Texture.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorState.hpp>

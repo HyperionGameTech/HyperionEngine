@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/Name.hpp>
+#include <Core/Types.hpp>
+#include <Core/Name.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/ByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/ByteReader.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <scene/animation/Keyframe.hpp>
 

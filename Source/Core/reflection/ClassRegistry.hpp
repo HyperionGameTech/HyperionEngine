@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
-#include <core/utilities/Span.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/ForEach.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/ForEach.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/TypeMap.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Name.hpp>
-#include <core/Util.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Name.hpp>
+#include <Core/Util.hpp>
 
 #include <type_traits>
 

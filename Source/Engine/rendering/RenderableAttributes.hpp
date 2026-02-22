@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderBucket.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
 namespace Hyperion {
 

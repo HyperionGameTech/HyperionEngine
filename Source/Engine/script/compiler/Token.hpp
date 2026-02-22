@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/SourceLocation.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 #include <string>
 

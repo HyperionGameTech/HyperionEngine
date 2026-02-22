@@ -12,10 +12,10 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

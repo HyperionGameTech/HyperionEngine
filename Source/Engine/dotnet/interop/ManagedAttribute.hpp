@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
 #include <dotnet/ManagedObject.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion::dotnet {
 

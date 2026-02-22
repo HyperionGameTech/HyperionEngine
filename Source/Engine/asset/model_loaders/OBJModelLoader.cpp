@@ -20,7 +20,7 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
 

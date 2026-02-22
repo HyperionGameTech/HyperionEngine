@@ -5,11 +5,11 @@
 #include <editor/EditorTask.hpp>
 #include <editor/EditorState.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <engine/threads/SimThread.hpp>
 

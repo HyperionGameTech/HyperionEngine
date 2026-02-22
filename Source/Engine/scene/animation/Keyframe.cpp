@@ -4,7 +4,7 @@
 
 #include <scene/animation/Keyframe.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <Keyframe.generated.inl>
 

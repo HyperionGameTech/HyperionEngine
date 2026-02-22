@@ -13,9 +13,9 @@
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>

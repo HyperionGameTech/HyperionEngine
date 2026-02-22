@@ -2,19 +2,19 @@
 
 #include <scripting/ScriptFwd.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

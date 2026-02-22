@@ -2,27 +2,27 @@
 
 #pragma once
 
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/LinkedList.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace memory {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/SourceFile.hpp>
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 #include <cstddef>
 

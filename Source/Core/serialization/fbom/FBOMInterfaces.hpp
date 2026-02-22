@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/FBOMEnums.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMEnums.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 class ByteWriter;

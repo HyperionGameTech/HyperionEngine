@@ -2,26 +2,26 @@
 
 #pragma once
 
-#include <core/containers/ContainerBase.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/ContainerBase.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/ValueStorage.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Types.hpp>
-#include <core/utilities/Traits.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/HashCode.hpp>
 
 #include <algorithm>
 #include <cstring>

@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 namespace rtc {

@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector4.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector4.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <algorithm>
 

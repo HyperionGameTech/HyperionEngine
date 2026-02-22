@@ -1,17 +1,17 @@
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/memory/Any.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/memory/Any.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 #include <script/vm/String.hpp>
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <sstream>
 

@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
 namespace Hyperion {
 

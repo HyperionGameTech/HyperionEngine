@@ -5,7 +5,7 @@
 #include <script/compiler/Enums.hpp>
 #include <script/compiler/ast/AstArgument.hpp>
 
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Optional.hpp>
 
 #include <memory>
 #include <utility>

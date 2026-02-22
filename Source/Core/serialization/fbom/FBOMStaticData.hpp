@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/FBOMType.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/FBOMInterfaces.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMType.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/FBOMInterfaces.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <type_traits>
 

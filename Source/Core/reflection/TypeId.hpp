@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Util.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Util.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
 namespace Hyperion {
 namespace utilities {

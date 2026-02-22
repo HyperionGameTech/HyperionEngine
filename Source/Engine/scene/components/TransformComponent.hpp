@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/math/Transform.hpp>
+#include <Core/math/Transform.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

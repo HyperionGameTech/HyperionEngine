@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Span.hpp>
-#include <core/Name.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/Name.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Util.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Util.hpp>
 
 namespace Hyperion {
 

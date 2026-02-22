@@ -5,20 +5,20 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderMemory.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/Util.hpp>
-#include <core/Types.hpp>
+#include <Core/Util.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 

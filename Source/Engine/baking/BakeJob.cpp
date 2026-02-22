@@ -28,10 +28,10 @@
 
 #include <scene/util/VoxelOctree.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskThread.hpp>
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>

@@ -3,8 +3,8 @@
 #include <script/vm/Stream.hpp>
 #include <script/compiler/emit/Instruction.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
-#include <core/containers/String.hpp>
-#include <util/UTF8.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/Unicode.hpp>
 
 #include <memory>
 

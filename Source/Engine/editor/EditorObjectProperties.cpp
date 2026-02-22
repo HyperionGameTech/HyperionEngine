@@ -10,7 +10,7 @@
 #include <ui/UIGrid.hpp>
 #include <ui/UITextbox.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 namespace Hyperion {
 

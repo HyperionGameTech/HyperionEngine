@@ -10,17 +10,17 @@
 #include <scene/world_grid/WorldGrid.hpp>
 #include <scene/world_grid/WorldGridLayer.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/TaskThread.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/memory/MemoryPool.hpp>
+#include <Core/memory/MemoryPool.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 #include <engine/EngineDriver.hpp>
 

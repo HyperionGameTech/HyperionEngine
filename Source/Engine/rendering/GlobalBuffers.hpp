@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/TypeMap.hpp>
 
 #include <rendering/GpuBuffer.hpp>
 

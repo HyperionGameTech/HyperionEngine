@@ -4,7 +4,7 @@
 
 #include <ui/UIObject.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 

@@ -5,12 +5,12 @@
 #include <rendering/util/ShaderPropertyDictionary.hpp>
 #include <rendering/util/ShaderCompiler.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/threading/SharedMutex.hpp>
+#include <Core/threading/SharedMutex.hpp>
 
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
 namespace Hyperion {
 

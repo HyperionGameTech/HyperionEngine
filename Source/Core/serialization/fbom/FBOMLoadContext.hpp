@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/serialization/fbom/FBOMObjectLibrary.hpp>
+#include <Core/serialization/fbom/FBOMObjectLibrary.hpp>
 
 namespace Hyperion {
 namespace serialization {

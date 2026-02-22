@@ -31,9 +31,9 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #include <HyperionEngine.hpp>
 

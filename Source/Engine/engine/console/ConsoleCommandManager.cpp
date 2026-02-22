@@ -5,15 +5,15 @@
 #include <engine/console/ConsoleCommandManager.hpp>
 #include <engine/console/ConsoleCommand.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Thread.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 namespace Hyperion {
 

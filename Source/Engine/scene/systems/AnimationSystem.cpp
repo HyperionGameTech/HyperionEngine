@@ -11,7 +11,7 @@
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <engine/GameState.hpp>
 

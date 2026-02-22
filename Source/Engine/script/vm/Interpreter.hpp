@@ -5,11 +5,11 @@
 #include <script/vm/Tracemap.hpp>
 #include <script/vm/SymbolTable.hpp>
 
-#include <core/containers/HeapArray.hpp>
+#include <Core/containers/HeapArray.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <limits>
 #include <cstdint>

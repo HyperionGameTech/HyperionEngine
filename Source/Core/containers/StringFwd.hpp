@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
-#include <core/utilities/Traits.hpp>
-#include <core/Types.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace containers {

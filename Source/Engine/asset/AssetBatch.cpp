@@ -5,10 +5,10 @@
 #include <asset/AssetBatch.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
 #include <engine/EngineDriver.hpp>
 

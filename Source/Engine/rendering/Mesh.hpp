@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/io/ByteReader.hpp>
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 #include <scene/BVH.hpp>
 

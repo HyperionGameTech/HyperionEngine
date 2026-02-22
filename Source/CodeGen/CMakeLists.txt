@@ -30,7 +30,7 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_SOURCE_DIR}/../lib /usr/local/lib)
+link_directories(${CMAKE_SOURCE_DIR}/../../Binaries/ThirdParty /usr/local/lib)
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DHYP_DEBUG_MODE=1)
@@ -54,8 +54,8 @@ file(GLOB_RECURSE CODEGEN_HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${CMAKE_SOURCE_DIR}/Source
-    ${CMAKE_SOURCE_DIR}/../thirdparty
-    ${CMAKE_SOURCE_DIR}../Core
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/../ThirdParty
 )
 
 

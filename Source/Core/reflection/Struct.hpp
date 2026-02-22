@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
 
 namespace Hyperion {
 
