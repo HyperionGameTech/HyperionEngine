@@ -32,7 +32,7 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_SOURCE_DIR}/../../Binaries/ThirdParty /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DHYP_DEBUG_MODE=1)
@@ -56,8 +56,8 @@ file(GLOB_RECURSE CODEGEN_HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${CMAKE_SOURCE_DIR}/Source
-    ${CMAKE_SOURCE_DIR}/../
-    ${CMAKE_SOURCE_DIR}/../ThirdParty
+    ${CMAKE_SOURCE_DIR}/../../Source
+    ${CMAKE_SOURCE_DIR}/../../Source/ThirdParty
 )
 
 
@@ -69,7 +69,7 @@ endif()
 
 
 # link with shared library hyperion
-add_subdirectory(${CMAKE_SOURCE_DIR}/../Core ${CMAKE_BINARY_DIR}/../Core)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../../Source/Core ${CMAKE_BINARY_DIR}/../Core)
 add_dependencies(${BUILD_NAME} hyperion-core)
 target_link_libraries(${BUILD_NAME} hyperion-core)
 

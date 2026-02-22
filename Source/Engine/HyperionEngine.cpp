@@ -194,6 +194,12 @@ HYP_EXPORT const FilePath& GetImportedDirectory()
     return s_importedDirectory.path;
 }
 
+HYP_EXPORT const FilePath& GetConfigDirectory()
+{
+    static DirectoryInitializer<HYP_STATIC_STRING("Config"), /* RelativeToExecutablePath */ false> s_configDirectory;
+    return s_configDirectory.path;
+}
+
 #if HYP_DOTNET
 static InitFromManagedCallback s_initFromManagedCallback = nullptr;
 #endif
@@ -271,6 +277,8 @@ extern "C"
         SetCurrentThreadId(g_mainThread);
         
         InitClassDecls();
+
+        CoreApi::SetConfigDirectory(GetConfigDirectory());
 
         if (!CoreApi::Initialize(argc, argv))
         {

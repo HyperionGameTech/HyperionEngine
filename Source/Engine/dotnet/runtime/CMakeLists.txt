@@ -7,7 +7,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building ${BUILD_NAME} module, base directory: ${CMAKE_SOURCE_DIR}")
 
-link_directories(${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
@@ -25,8 +25,8 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/ThirdParty
-    ${CMAKE_SOURCE_DIR}/Core
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/dotnet
 )
@@ -70,10 +70,14 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         endforeach()
 
         file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
-        file(APPEND ${CSPROJ_PATH} "        <HintPath>${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
+        file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
         file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
+        # copy dll
+        file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDLL\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${HYP_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
+        file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")
 
         # find dotnet executable
@@ -90,7 +94,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         if(NOT DEFINED MSVC)
             add_custom_target(Hyperion.NET.Runtime ALL
                 COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS Hyperion.NET.Shared hyperion-core
+                DEPENDS hyperion-dotnet-shared hyperion-core
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime
             )
         else()
@@ -102,7 +106,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             )
         endif()
 
-        add_dependencies(Hyperion.NET.Runtime Hyperion.NET.Shared)
-        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime Hyperion.NET.Shared hyperion-core hyperion-rendering)
+        add_dependencies(Hyperion.NET.Runtime hyperion-dotnet-shared)
+        add_dependencies(${BUILD_NAME} Hyperion.NET.Runtime hyperion-core hyperion-rendering)
     endif()
 endif()

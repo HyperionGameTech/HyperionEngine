@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 mkdir -p Build
 pushd Build
 
@@ -29,15 +31,17 @@ if [[ $RESP =~ ^[Yy] ]]; then
             exit 1
         fi
 
+        HYP_CMAKE_PARAMS="-DHYP_THIRD_PARTY_LIBRARY_DIRECTORY=$SCRIPT_DIR/../../Binaries/ThirdParty -DHYP_LIBRARY_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../Binaries/Engine -DHYP_RUNTIME_OUTPUT_DIRECTORY=$SCRIPT_DIR/../../Binaries/Engine"
+
         if [[ $IOS_SIMULATOR -eq 1 ]]; then
-            cmake -G Xcode ../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+            cmake -G Xcode ../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 $HYP_CMAKE_PARAMS
         else
-            cmake -G Xcode ../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+            cmake -G Xcode ../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 $HYP_CMAKE_PARAMS
         fi
     elif [[ $DARWIN -eq 1 ]]; then
-        cmake -G Xcode ../Source -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+        cmake -G Xcode ../Source -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 $HYP_CMAKE_PARAMS
     else
-        cmake ../Source
+        cmake ../Source $HYP_CMAKE_PARAMS
     fi
 fi
 

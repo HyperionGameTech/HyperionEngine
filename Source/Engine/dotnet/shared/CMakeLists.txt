@@ -7,7 +7,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building ${BUILD_NAME} module, base directory: ${CMAKE_SOURCE_DIR}")
 
-link_directories(${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty /usr/local/lib)
+link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
@@ -25,8 +25,8 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/ThirdParty
-    ${CMAKE_SOURCE_DIR}/Core
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/dotnet
 )
@@ -70,6 +70,10 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         endforeach()
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
+        # copy dll
+        file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDLL\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${HYP_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
+        file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")
 
         # find dotnet executable

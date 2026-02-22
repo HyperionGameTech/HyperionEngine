@@ -12,6 +12,9 @@ namespace CoreApi {
 FilePath GetExecutablePath();
 void SetExecutablePath(const FilePath& path);
 
+FilePath GetConfigDirectory();
+void SetConfigDirectory(const FilePath& configDirectory);
+
 HYP_NODISCARD FilePath CreateTempDirectory();
 
 bool Initialize(int argc, char** argv);

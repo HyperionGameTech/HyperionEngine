@@ -19,7 +19,7 @@ IF NOT DEFINED VCPKG_ROOT (
     exit /b 1
 )
 
-cmake ../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 18 2026" -A x64
+cmake ../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\Binaries\ThirdParty" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\Binaries\Engine" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\Binaries\Engine"
 
 :SKIP_CMAKE_GENERATION
 

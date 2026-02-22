@@ -308,3 +308,10 @@ res/projects/**/*
 res/*/BlobStorage/**/*
 
 Source/Generated/**/*
+
+Binaries/Engine/**/*
+!Binaries/ThirdParty/**/*
+
+Build/**/*
+
+Source/Generated/**/*
