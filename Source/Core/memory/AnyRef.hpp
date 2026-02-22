@@ -1,0 +1,491 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeId.hpp>
+
+#include <Core/Defines.hpp>
+
+#include <Core/Types.hpp>
+
+#include <type_traits>
+
+namespace Hyperion {
+
+class Class;
+
+HYP_API extern const Class* GetClass(const TypeId& typeId);
+HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId);
+
+namespace memory {
+
+class Any;
+class Copyable;
+
+class AnyBase;
+
+/*! \brief A non-owning reference to an object of any type.
+ *  Type enforcement is done at runtime. */
+class HYP_API AnyRefBase
+{
+    using PointerType = void*;
+
+protected:
+    AnyRefBase()
+        : m_typeInfo(&TypeInfo_Void()),
+          m_ptr(nullptr)
+    {
+    }
+
+    AnyRefBase(const TypeInfo* typeInfo, PointerType ptr)
+        : m_typeInfo(typeInfo),
+          m_ptr(ptr)
+    {
+    }
+
+public:
+    friend class AnyBase;
+    friend class Any;
+    friend class Any;
+
+    AnyRefBase(const AnyRefBase& other)
+        : m_typeInfo(other.m_typeInfo),
+          m_ptr(other.m_ptr)
+    {
+    }
+
+    AnyRefBase& operator=(const AnyRefBase& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        m_typeInfo = other.m_typeInfo;
+        m_ptr = other.m_ptr;
+
+        return *this;
+    }
+
+    AnyRefBase(AnyRefBase&& other) noexcept
+        : m_typeInfo(other.m_typeInfo),
+          m_ptr(other.m_ptr)
+    {
+        other.m_typeInfo = &TypeInfo_Void();
+        other.m_ptr = nullptr;
+    }
+
+    AnyRefBase& operator=(AnyRefBase&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        m_typeInfo = other.m_typeInfo;
+        m_ptr = other.m_ptr;
+
+        other.m_typeInfo = &TypeInfo_Void();
+        other.m_ptr = nullptr;
+
+        return *this;
+    }
+
+    ~AnyRefBase() = default;
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return m_ptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return !m_ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const AnyRefBase& other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
+
+    template <class OtherType>
+    HYP_FORCE_INLINE bool operator==(const OtherType* ptr) const
+    {
+        return m_ptr == ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+    {
+        return m_ptr == nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const AnyRefBase& other) const
+    {
+        return m_ptr != other.m_ptr;
+    }
+
+    template <class OtherType>
+    HYP_FORCE_INLINE bool operator!=(const OtherType* ptr) const
+    {
+        return m_ptr != ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+    {
+        return m_ptr != nullptr;
+    }
+
+    /*! \brief Returns true if the AnyRef has a value. */
+    HYP_FORCE_INLINE bool HasValue() const
+    {
+        return m_ptr != nullptr;
+    }
+
+    /*! \brief Returns the TypeId of the held object. */
+    TypeId GetTypeId() const;
+
+    HYP_FORCE_INLINE const TypeInfo* GetTypeInfo() const
+    {
+        return m_typeInfo;
+    }
+
+    /*! \brief Returns the Class of the held object, if one is registered. */
+    const Class* GetClass() const;
+
+    /*! \brief Returns true if the held object is of type T.
+     *  If T has a Class registered, this function will also return true if the held object is a subclass of T. */
+    template <class T>
+    HYP_FORCE_INLINE bool Is() const
+    {
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
+
+        return m_ptr && (thisTypeId == typeId || IsA(Hyperion::GetClass(typeId), m_ptr, thisTypeId));
+    }
+
+    /*! \brief Returns true if the held object is of type \p typeId.
+     *  If the type with the given Id has a Class registered, this function will also return true if the held object is a subclass of the type. */
+    HYP_FORCE_INLINE bool Is(TypeId typeId) const
+    {
+        const TypeId thisTypeId = GetTypeId();
+
+        return m_ptr && (thisTypeId == typeId || IsA(Hyperion::GetClass(typeId), m_ptr, thisTypeId));
+    }
+
+    /*! \brief Resets the current value held in the AnyRef. */
+    HYP_FORCE_INLINE void Reset()
+    {
+        m_typeInfo = &TypeInfo_Void();
+        m_ptr = nullptr;
+    }
+
+protected:
+    const TypeInfo* m_typeInfo;
+    PointerType m_ptr;
+};
+
+class AnyRef : public AnyRefBase
+{
+public:
+    friend class AnyBase;
+    friend class Any;
+    friend class Any;
+
+    AnyRef()
+        : AnyRefBase()
+    {
+    }
+
+    AnyRef(const TypeInfo* typeInfo, void* ptr)
+        : AnyRefBase(typeInfo, ptr)
+    {
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
+    explicit AnyRef(T& value)
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), &value)
+    {
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
+    AnyRef& operator=(T& value)
+    {
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
+        m_ptr = &value;
+
+        return *this;
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
+    AnyRef(T* value)
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), value)
+    {
+    }
+
+    template <class T>
+    AnyRef(const AnyRefBase* value) = delete;
+
+    AnyRef(const AnyRef& other)
+        : AnyRefBase(static_cast<const AnyRefBase&>(other))
+    {
+    }
+
+    AnyRef& operator=(const AnyRef& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        static_cast<AnyRefBase&>(*this) = static_cast<const AnyRefBase&>(other);
+
+        return *this;
+    }
+
+    AnyRef(AnyRef&& other) noexcept
+        : AnyRefBase(static_cast<AnyRefBase&&>(other))
+    {
+    }
+
+    AnyRef& operator=(AnyRef&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        static_cast<AnyRefBase&>(*this) = static_cast<AnyRefBase&&>(other);
+
+        return *this;
+    }
+
+    ~AnyRef() = default;
+
+    /*! \brief Get a raw pointer to the held object. */
+    HYP_FORCE_INLINE void* GetPointer() const
+    {
+        return m_ptr;
+    }
+
+    /*! \brief Returns the held object as a reference to type T. If the held object is not of type T, an assertion will fail. */
+    template <class T>
+    HYP_FORCE_INLINE T& Get() const
+    {
+        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
+
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
+
+        return *static_cast<NormalizedType<T>*>(m_ptr);
+    }
+
+    /*! \brief Returns the held object as a reference to type T. Ensure the held type is T, as no extra check is done before casting the internal pointer to T. */
+    template <class T>
+    HYP_FORCE_INLINE T& GetUnchecked() const
+    {
+        return *static_cast<NormalizedType<T>*>(m_ptr);
+    }
+
+    /*! \brief Attempts to get the held object as a pointer to type T. If the held object is not of type T, nullptr is returned. */
+    template <class T>
+    HYP_FORCE_INLINE T* TryGet() const
+    {
+        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
+
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
+        {
+            return static_cast<NormalizedType<T>*>(m_ptr);
+        }
+
+        return nullptr;
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_const_v<T> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
+    void Set(T& value)
+    {
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
+        m_ptr = &value;
+    }
+
+    static AnyRef Empty()
+    {
+        return AnyRef();
+    }
+
+    template <class T>
+    static AnyRef Empty()
+    {
+        return AnyRef(&TypeOf<NormalizedType<T>>(), nullptr);
+    }
+};
+
+class ConstAnyRef : public AnyRefBase
+{
+public:
+    friend class AnyBase;
+    friend class Any;
+    friend class Any;
+
+    ConstAnyRef()
+        : AnyRefBase()
+    {
+    }
+
+    ConstAnyRef(const TypeInfo* typeInfo, const void* ptr)
+        : AnyRefBase(typeInfo, const_cast<void*>(ptr))
+    {
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
+    explicit ConstAnyRef(T&& value)
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
+    {
+        static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
+    ConstAnyRef& operator=(T&& value)
+    {
+        static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
+
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
+        m_ptr = const_cast<T*>(&value);
+
+        return *this;
+    }
+
+    template <class T>
+    ConstAnyRef(const T* value)
+        : AnyRefBase(&TypeOf<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(value))
+    {
+    }
+
+    ConstAnyRef(const ConstAnyRef* value) = delete;
+
+    ConstAnyRef(const ConstAnyRef& other)
+        : AnyRefBase(static_cast<const AnyRefBase&>(other))
+    {
+    }
+
+    ConstAnyRef& operator=(const ConstAnyRef& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        static_cast<AnyRefBase&>(*this) = static_cast<const AnyRefBase&>(other);
+
+        return *this;
+    }
+
+    ConstAnyRef(ConstAnyRef&& other) noexcept
+        : AnyRefBase(static_cast<AnyRefBase&&>(other))
+    {
+    }
+
+    ConstAnyRef& operator=(ConstAnyRef&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        static_cast<AnyRefBase&>(*this) = static_cast<AnyRefBase&&>(other);
+
+        return *this;
+    }
+
+    ConstAnyRef(const AnyRef& other) noexcept
+        : AnyRefBase(static_cast<const AnyRefBase&>(other))
+    {
+    }
+
+    ConstAnyRef& operator=(const AnyRef& other) noexcept
+    {
+        static_cast<AnyRefBase&>(*this) = static_cast<const AnyRefBase&>(other);
+
+        return *this;
+    }
+
+    ConstAnyRef(AnyRef&& other) noexcept
+        : AnyRefBase(static_cast<AnyRefBase&&>(other))
+    {
+    }
+
+    ConstAnyRef& operator=(AnyRef&& other) noexcept
+    {
+        static_cast<AnyRefBase&>(*this) = static_cast<AnyRefBase&&>(other);
+
+        return *this;
+    }
+
+    ~ConstAnyRef() = default;
+
+    /*! \brief Get a raw pointer to the held object. */
+    HYP_FORCE_INLINE const void* GetPointer() const
+    {
+        return m_ptr;
+    }
+
+    /*! \brief Returns the held object as a const reference to type T. If the held object is not of type T, an assertion will fail. */
+    template <class T>
+    HYP_FORCE_INLINE const T& Get() const
+    {
+        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
+
+        HYP_CORE_ASSERT(m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)), "Held type not equal to requested type!");
+
+        return *static_cast<const NormalizedType<T>*>(m_ptr);
+    }
+
+    /*! \brief Returns the held object as a reference to type T. Ensure the held type is T, as no extra check is done before casting the internal pointer to T. */
+    template <class T>
+    HYP_FORCE_INLINE const T& GetUnchecked() const
+    {
+        return *static_cast<const NormalizedType<T>*>(m_ptr);
+    }
+
+    /*! \brief Attempts to get the held object as a const pointer to type T. If the held object is not of type T, nullptr is returned. */
+    template <class T>
+    HYP_FORCE_INLINE const T* TryGet() const
+    {
+        const TypeId requestedTypeId = TypeId::ForType<NormalizedType<T>>();
+        const TypeId thisTypeId = GetTypeId();
+
+        if (m_ptr && (thisTypeId == requestedTypeId || IsA(Hyperion::GetClass(requestedTypeId), m_ptr, thisTypeId)))
+        {
+            return static_cast<const NormalizedType<T>*>(m_ptr);
+        }
+
+        return nullptr;
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
+    void Set(const T& value)
+    {
+        m_typeInfo = &TypeOf<NormalizedType<T>>();
+        m_ptr = const_cast<T*>(&value);
+    }
+
+    static ConstAnyRef Empty()
+    {
+        return ConstAnyRef();
+    }
+
+    template <class T>
+    static ConstAnyRef Empty()
+    {
+        return ConstAnyRef(&TypeOf<NormalizedType<T>>(), nullptr);
+    }
+};
+
+} // namespace memory
+
+using memory::AnyRef;
+using memory::ConstAnyRef;
+
+} // namespace Hyperion

@@ -1,0 +1,148 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#pragma once
+
+#ifndef INCLUDE_FROM_RHI_BASE
+#define INCLUDE_FROM_RHI
+#include <rendering/Device.hpp>
+#endif
+
+#undef INCLUDE_FROM_RHI
+#undef INCLUDE_FROM_RHI_BASE
+
+#include <rendering/vulkan/VulkanDeviceQueue.hpp>
+#include <rendering/vulkan/VulkanStructs.hpp>
+#include <rendering/vulkan/VulkanMemoryAllocator.hpp>
+
+#include <Core/memory/UniquePtr.hpp>
+
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
+
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/Optional.hpp>
+
+#include <rendering/RenderObject.hpp>
+#include <rendering/RenderResult.hpp>
+#include <rendering/Shared.hpp>
+
+namespace Hyperion {
+
+class VulkanInstance;
+class VulkanFeatures;
+
+using ExtensionMap = HashMap<String, bool>;
+
+extern Pool* g_vulkanPool;
+
+struct QueueFamilyIndices
+{
+    Optional<uint32> graphicsFamily;
+    Optional<uint32> transferFamily;
+    Optional<uint32> presentFamily;
+    Optional<uint32> computeFamily;
+
+    bool IsComplete() const
+    {
+        return graphicsFamily.HasValue()
+            && transferFamily.HasValue()
+            && presentFamily.HasValue()
+            && computeFamily.HasValue();
+    }
+};
+
+HYP_CLASS(NoScriptBindings)
+class VulkanDevice final : public DeviceBase
+{
+    HYP_OBJECT_BODY(VulkanDevice);
+
+public:
+    explicit VulkanDevice(VkPhysicalDevice physical);
+
+    VulkanDevice(const VulkanDevice&) = delete;
+    VulkanDevice& operator=(const VulkanDevice&) = delete;
+
+    VulkanDevice(VulkanDevice&&) noexcept = delete;
+    VulkanDevice& operator=(VulkanDevice&&) noexcept = delete;
+
+    ~VulkanDevice() override;
+
+    void SetWantedExtensions(const ExtensionMap& extensions);
+
+    VkDevice GetDevice();
+    VkPhysicalDevice GetPhysicalDevice();
+
+    void DebugLogAllocatorStats() const;
+
+    RendererResult SetupAllocator(VulkanInstance* instance);
+    RendererResult DestroyAllocator();
+
+    VmaAllocator GetVmaAllocator() const
+    {
+        return m_allocator;
+    }
+
+    const QueueFamilyIndices& GetQueueFamilyIndices() const
+    {
+        return m_queueFamilyIndices;
+    }
+
+    const VulkanFeatures& GetFeatures() const
+    {
+        return *m_features;
+    }
+
+    VulkanDeviceQueue* GetGraphicsQueue() const
+    {
+        return m_queueGraphics;
+    }
+
+    VulkanDeviceQueue* GetTransferQueue() const
+    {
+        return m_queueTransfer;
+    }
+
+    VulkanDeviceQueue* GetPresentQueue() const
+    {
+        return m_queuePresent;
+    }
+
+    VulkanDeviceQueue* GetComputeQueue() const
+    {
+        return m_queueCompute;
+    }
+
+    VkQueue GetQueue(uint32 queueFamilyIndex, uint32 queueIndex = 0);
+
+    RendererResult Create(VkSurfaceKHR surface);
+    RendererResult CheckDeviceSuitable(const ExtensionMap& unsupportedExtensions);
+
+    /*! \brief Wait for the device to be idle */
+    RendererResult WaitIdle() const;
+
+    /*! \brief Check if the set required extensions extensions are supported. Any unsupported extensions are returned. */
+    ExtensionMap GetUnsupportedExtensions();
+
+    Array<VkExtensionProperties> GetSupportedExtensions();
+
+private:
+    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    void InitQueueFamilies(VkSurfaceKHR surface);
+
+    VkDevice m_device;
+    VkPhysicalDevice m_physical;
+    VmaAllocator m_allocator;
+
+    UniquePtr<VulkanFeatures> m_features;
+    QueueFamilyIndices m_queueFamilyIndices;
+
+    VulkanDeviceQueue* m_queueGraphics;
+    VulkanDeviceQueue* m_queueTransfer;
+    VulkanDeviceQueue* m_queuePresent;
+    VulkanDeviceQueue* m_queueCompute;
+
+    ExtensionMap m_wantedExtensions;
+};
+
+} // namespace Hyperion

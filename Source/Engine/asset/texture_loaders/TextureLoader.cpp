@@ -1,0 +1,160 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <AssetPch.hpp>
+
+#include <asset/texture_loaders/TextureLoader.hpp>
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
+#include <Core/utilities/StringUtil.hpp>
+
+#include <rendering/Texture.hpp>
+
+#include <util/img/ImageUtil.hpp>
+
+#include <stb_image.h>
+
+#include <TextureLoader.generated.inl>
+
+namespace Hyperion {
+
+struct LoadedTextureData
+{
+    int width;
+    int height;
+    int numComponents;
+    TextureFormat format;
+};
+
+static const stbi_io_callbacks s_callbacks {
+    .read = [](void* user, char* data, int size) -> int
+    {
+        LoaderState* state = static_cast<LoaderState*>(user);
+
+        return int(state->stream.Read(data, SizeType(size), [](void* ptr, const unsigned char* buffer, SizeType chunkSize)
+            {
+                Memory::Copy(ptr, buffer, chunkSize);
+            }));
+    },
+    .skip = [](void* user, int n)
+    {
+        LoaderState* state = static_cast<LoaderState*>(user);
+
+        if (n < 0)
+        {
+            state->stream.Rewind(-n);
+        }
+        else
+        {
+            state->stream.Skip(n);
+        }
+    },
+    .eof = [](void* user) -> int
+    {
+        const LoaderState* state = static_cast<LoaderState*>(user);
+
+        return int(state->stream.Eof());
+    }
+};
+
+AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
+{
+    LoadedTextureData data;
+
+    unsigned char* imageBytes = stbi_load_from_callbacks(
+        &s_callbacks,
+        (void*)&state,
+        &data.width,
+        &data.height,
+        &data.numComponents,
+        0);
+
+    switch (data.numComponents)
+    {
+    case STBI_rgb_alpha:
+        data.format = TextureFormat::RGBA8;
+        break;
+    case STBI_rgb:
+        data.format = TextureFormat::RGB8;
+        break;
+    case STBI_grey_alpha:
+        data.format = TextureFormat::RG8;
+        break;
+    case STBI_grey:
+        data.format = TextureFormat::R8;
+        break;
+    default:
+        return HYP_MAKE_ERROR(AssetLoadError, "Invalid format -- invalid number of components returned");
+    }
+
+    // data.width = 1;
+    // data.height = 1;
+
+    Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(state.filepath.Basename()));
+
+    const SizeType imageBytesCount = SizeType(data.width)
+        * SizeType(data.height)
+        * SizeType(data.numComponents);
+
+    TextureDesc textureDesc {
+        TextureType::Texture2D,
+        data.format,
+        Vec3u { uint32(data.width), uint32(data.height), 1 },
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR,
+        TWM_REPEAT
+    };
+
+    AssertDebug(TextureUtils::NumComponents(data.format) == data.numComponents);
+
+    ByteBuffer baseMipData = ByteBuffer(imageBytesCount, imageBytes);
+
+    if (data.numComponents == 3)
+    {
+        // convert to bytes per pixel = 4
+        const uint32 size = textureDesc.GetByteSize();
+        const uint32 faceOffsetStep = size / textureDesc.NumArrayLayers();
+
+        textureDesc.format = TextureUtils::FormatChangeNumComponents(data.format, 4);
+
+        const uint32 newSize = textureDesc.GetByteSize();
+        const uint32 newFaceOffsetStep = newSize / textureDesc.NumArrayLayers();
+
+        ByteBuffer newByteBuffer(textureDesc.GetByteSize());
+
+        for (uint32 i = 0; i < textureDesc.NumArrayLayers(); i++)
+        {
+            ImageUtil::ConvertBPP(
+                textureDesc.extent.x, textureDesc.extent.y, textureDesc.extent.z,
+                data.numComponents, 4,
+                &baseMipData.Data()[i * faceOffsetStep],
+                &newByteBuffer.Data()[i * newFaceOffsetStep]);
+        }
+
+        HYP_LOG(Texture, Debug, "Converted texture '{}' from 3 to 4 components", assetName);
+
+        baseMipData = std::move(newByteBuffer);
+    }
+
+    // debug
+    Assert(textureDesc.format != TextureFormat::RGB8_SRGB);
+
+    Texture::GenerateMipmaps(textureDesc, baseMipData);
+
+    Handle<Texture> texture = MakeHandle<Texture>(textureDesc, baseMipData.ToByteView());
+
+    stbi_image_free(imageBytes);
+
+    texture->SetName(assetName);
+    texture->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+    
+    state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Textures", texture);
+
+    InitObject(texture);
+
+    AssetLoadResult result = LoadedAsset { std::move(texture) };
+
+    return result;
+}
+
+} // namespace Hyperion

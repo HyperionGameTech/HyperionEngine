@@ -1,0 +1,482 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <AssetPch.hpp>
+
+#include <asset/model_loaders/OBJModelLoader.hpp>
+#include <asset/Assets.hpp>
+#include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
+
+#include <rendering/Material.hpp>
+#include <rendering/Mesh.hpp>
+
+#include <scene/World.hpp>
+#include <scene/Node.hpp>
+#include <scene/Scene.hpp>
+#include <scene/DetachedScene.hpp>
+
+#include <scene/EntityManager.hpp>
+#include <scene/components/MeshComponent.hpp>
+#include <scene/components/TransformComponent.hpp>
+#include <scene/components/VisibilityStateComponent.hpp>
+
+#include <Core/filesystem/FsUtil.hpp>
+
+#include <engine/EngineDriver.hpp>
+
+#include <OBJModelLoader.generated.inl>
+
+namespace Hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Assets);
+
+constexpr bool CreateObjIndices = true;
+constexpr bool MeshPerMaterial = true; // set true to create a new mesh on each instance of 'use <mtllib>'
+constexpr bool LoadMaterials = true;
+
+using Tokens = Array<String>;
+
+using OBJModel = OBJModelLoader::OBJModel;
+using OBJMesh = OBJModel::OBJMesh;
+using OBJIndex = OBJModel::OBJIndex;
+
+template <class Vector>
+static Vector ReadVector(const Tokens& tokens, SizeType offset = 1)
+{
+    Vector result { 0.0f };
+
+    int valueIndex = 0;
+
+    for (SizeType i = offset; i < tokens.Size(); i++)
+    {
+        const String& token = tokens[i];
+
+        if (token.Empty())
+        {
+            continue;
+        }
+
+        result.values[valueIndex++] = static_cast<typename Vector::Type>(std::atof(token.Data()));
+
+        if (valueIndex == std::size(result.values))
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+static void AddMesh(OBJModel& model, const String& name, const String& material)
+{
+    String uniqueName(name);
+    int counter = 0;
+
+    while (AnyOf(model.meshes, [&uniqueName](const OBJMesh& objMesh)
+        {
+            return objMesh.name == uniqueName;
+        }))
+    {
+        uniqueName = name + String::ToString(++counter);
+    }
+
+    model.meshes.PushBack(OBJMesh { uniqueName, material });
+}
+
+static OBJMesh& LastMesh(OBJModel& model)
+{
+    if (model.meshes.Empty())
+    {
+        AddMesh(model, "default", "default");
+    }
+
+    return model.meshes.Back();
+}
+
+static OBJIndex ParseOBJIndex(const String& token)
+{
+    OBJIndex objIndex { 0, 0, 0 };
+    SizeType tokenIndex = 0;
+
+    const Array<String> parts = token.Split('/');
+
+    for (const String& part : parts)
+    {
+        if (!part.Empty())
+        {
+            switch (tokenIndex)
+            {
+            case 0:
+                objIndex.vertex = StringUtil::Parse<int64>(part.Data()) - 1;
+                break;
+            case 1:
+                objIndex.texcoord = StringUtil::Parse<int64>(part.Data()) - 1;
+                break;
+            case 2:
+                objIndex.normal = StringUtil::Parse<int64>(part.Data()) - 1;
+                break;
+            default:
+                // ??
+                break;
+            }
+        }
+
+        ++tokenIndex;
+    }
+
+    return objIndex;
+}
+
+template <class Vector>
+Vector GetIndexedVertexProperty(int64 vertexIndex, const Array<Vector>& vectors)
+{
+    const int64 vertexAbsolute = vertexIndex >= 0
+        ? vertexIndex
+        : int64(vectors.Size()) + vertexIndex;
+
+    if (vertexAbsolute < 0 || vertexAbsolute >= int64(vectors.Size()))
+    {
+        HYP_LOG(Assets, Warning, "Vertex index of {} (absolute: {}) is out of bounds ({})",
+            vertexIndex, vertexAbsolute, vectors.Size());
+
+        return Vector();
+    }
+
+    return vectors[vertexAbsolute];
+}
+
+OBJModel OBJModelLoader::LoadModel(LoaderState& state)
+{
+    OBJModel model;
+    model.filepath = state.filepath;
+
+    Tokens tokens;
+    tokens.Reserve(5);
+
+    String activeMaterial;
+
+    state.stream.ReadLines([&](const String& line, bool*)
+        {
+            tokens.Clear();
+
+            const String trimmed = line.Trimmed();
+
+            if (trimmed.Empty() || trimmed.Front() == '#')
+            {
+                return;
+            }
+
+            tokens = trimmed.Split(' ');
+
+            if (tokens.Empty())
+            {
+                return;
+            }
+
+            if (tokens[0] == "v")
+            {
+                model.positions.PushBack(ReadVector<Vec3f>(tokens, 1));
+
+                return;
+            }
+
+            if (tokens[0] == "vn")
+            {
+                model.normals.PushBack(ReadVector<Vec3f>(tokens, 1));
+
+                return;
+            }
+
+            if (tokens[0] == "vt")
+            {
+                model.texcoords.PushBack(ReadVector<Vec2f>(tokens, 1));
+
+                return;
+            }
+
+            if (tokens[0] == "f")
+            {
+                OBJMesh& lastMesh = LastMesh(model);
+
+                /* we don't support per-face material so we compromise by setting the mesh's material
+                 * to the last 'usemtl' value when we hit the face command.
+                 */
+                if (!activeMaterial.Empty())
+                {
+                    lastMesh.material = activeMaterial;
+                }
+
+                if (tokens.Size() > 5)
+                {
+                    HYP_LOG(Assets, Warning, "Faces with more than 4 vertices are not supported by the OBJ model loader");
+                }
+
+                /* Performs simple triangulation on quad faces */
+                for (int64 i = 0; i < int64(tokens.Size()) - 3; i++)
+                {
+                    lastMesh.indices.PushBack(ParseOBJIndex(tokens[1]));
+                    lastMesh.indices.PushBack(ParseOBJIndex(tokens[2 + i]));
+                    lastMesh.indices.PushBack(ParseOBJIndex(tokens[3 + i]));
+                }
+
+                return;
+            }
+
+            if (tokens[0] == "o")
+            {
+                if (tokens.Size() != 1)
+                {
+                    model.name = tokens[1];
+                }
+
+                return;
+            }
+
+            if (tokens[0] == "s")
+            {
+                /* smooth shading; ignore */
+                return;
+            }
+
+            if (tokens[0] == "mtllib")
+            {
+                if (tokens.Size() != 1)
+                {
+                    String materialLibraryName;
+
+                    for (SizeType i = 1; i < tokens.Size(); i++)
+                    {
+                        if (i != 1)
+                        {
+                            materialLibraryName += ' ';
+                        }
+
+                        materialLibraryName += tokens[i];
+                    }
+
+                    model.materialLibrary = materialLibraryName;
+                }
+
+                return;
+            }
+
+            if (tokens[0] == "g")
+            {
+                String name = "default";
+
+                if (tokens.Size() != 1)
+                {
+                    name = tokens[1];
+                }
+
+                AddMesh(model, name, activeMaterial);
+
+                return;
+            }
+
+            if (tokens[0] == "usemtl")
+            {
+                if (tokens.Size() == 1)
+                {
+                    HYP_LOG(Assets, Warning, "Cannot set obj model material -- no material provided");
+
+                    return;
+                }
+
+                activeMaterial = tokens[1];
+
+                if constexpr (MeshPerMaterial)
+                {
+                    AddMesh(model, activeMaterial, activeMaterial);
+                }
+
+                return;
+            }
+
+            HYP_LOG(Assets, Warning, "Unable to parse obj model line: {}", trimmed);
+        });
+
+    if (model.name.Empty())
+    {
+        model.name = StringUtil::StripExtension(state.filepath.Basename());
+    }
+
+    return model;
+}
+
+LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
+{
+    Assert(state.assetManager != nullptr);
+
+    Handle<Node> top = MakeHandle<Node>(CreateNameFromDynamicString(model.name));
+
+    Handle<MaterialGroup> materialLibrary;
+
+    if (LoadMaterials && !model.materialLibrary.Empty())
+    {
+        FilePath materialLibraryPath = FilePath::Relative(
+            (StringUtil::BasePath(model.filepath) + "/" + model.materialLibrary),
+            FilePath::Current());
+
+        if (!materialLibraryPath.EndsWith(".mtl"))
+        {
+            materialLibraryPath += ".mtl";
+        }
+
+        auto materialLibraryAsset = state.assetManager->Load<MaterialGroup>(materialLibraryPath);
+
+        if (materialLibraryAsset.HasValue())
+        {
+            materialLibrary = materialLibraryAsset->Result();
+        }
+        else
+        {
+            HYP_LOG(Assets, Warning, "Obj model loader: Could not load material library at {}: {}", materialLibraryPath, materialLibraryAsset.GetError().GetMessage());
+        }
+    }
+
+    const bool hasVertices = !model.positions.Empty(),
+               hasNormals = !model.normals.Empty(),
+               hasTexcoords = !model.texcoords.Empty();
+
+    for (OBJMesh& objMesh : model.meshes)
+    {
+        Array<Vertex> vertices;
+        vertices.Reserve(model.positions.Size());
+
+        Array<uint32> indices;
+        indices.Reserve(objMesh.indices.Size());
+
+        HashMap<OBJIndex, uint32> indexMap;
+
+        const bool hasIndices = !objMesh.indices.Empty();
+
+        BoundingBox meshAabb = BoundingBox::Empty();
+
+        if (hasIndices)
+        {
+            for (const OBJIndex& objIndex : objMesh.indices)
+            {
+                const auto it = indexMap.Find(objIndex);
+
+                if (CreateObjIndices)
+                {
+                    if (it != indexMap.End())
+                    {
+                        indices.PushBack(it->second);
+
+                        continue;
+                    }
+                }
+
+                Vertex vertex;
+
+                if (hasVertices)
+                {
+                    vertex.SetPosition(GetIndexedVertexProperty(objIndex.vertex, model.positions));
+
+                    meshAabb = meshAabb.Union(vertex.GetPosition());
+                }
+
+                if (hasNormals)
+                {
+                    vertex.SetNormal(GetIndexedVertexProperty(objIndex.normal, model.normals));
+                }
+
+                if (hasTexcoords)
+                {
+                    vertex.SetTexCoord0(GetIndexedVertexProperty(objIndex.texcoord, model.texcoords));
+                }
+
+                const uint32 index = uint32(vertices.Size());
+
+                vertices.PushBack(vertex);
+                indices.PushBack(index);
+
+                indexMap[objIndex] = index;
+            }
+        }
+        else
+        {
+            /* mesh does not have faces defined */
+            continue;
+        }
+
+        const Vec3f meshAabbMin = meshAabb.GetMin();
+        const Vec3f meshAabbCenter = meshAabb.GetCenter();
+
+        // offset all vertices by the AABB's center,
+        // we will apply the transformation to the entity's transform component
+        for (Vertex& vertex : vertices)
+        {
+            vertex.SetPosition(vertex.GetPosition() - meshAabbCenter);
+        }
+
+        Name assetName = CreateNameFromDynamicString(StringUtil::StripExtension(objMesh.name.Split('/', '\\').Back()));
+
+        MeshDesc meshDesc;
+        meshDesc.numIndices = uint32(indices.Size());
+        meshDesc.numVertices = uint32(vertices.Size());
+
+        Handle<Mesh> mesh = MakeHandle<Mesh>();
+        mesh->SetName(assetName);
+        mesh->SetMeshData(meshDesc, vertices.ToSpan(), indices.ToByteView());
+
+        mesh->CalculateNormals();
+
+        mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
+
+        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
+
+        InitObject(mesh);
+
+        Handle<Material> material;
+
+        if (!objMesh.material.Empty() && materialLibrary)
+        {
+            if (materialLibrary->Has(objMesh.material))
+            {
+                material = materialLibrary->Get(objMesh.material);
+            }
+            else
+            {
+                HYP_LOG(Assets, Warning, "OBJ model loader: Material '{}' could not be found in material library", objMesh.material);
+            }
+        }
+
+        MaterialAttributes materialAttributes {};
+        materialAttributes.shaderName = NAME("GeometryPass");
+        materialAttributes.shaderProperties = {};
+        materialAttributes.bucket = RB_OPAQUE;
+
+        if (!material.IsValid())
+        {
+            material = MaterialCache::GetInstance()->GetOrCreate(
+                NAME("BasicOBJMaterial"),
+                materialAttributes,
+                { { MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { MATERIAL_KEY_ROUGHNESS, 0.65f }, { MATERIAL_KEY_METALNESS, 0.0f } });
+        }
+        else
+        {
+            materialAttributes = material->GetRenderAttributes();
+        }
+
+        InitObject(material);
+
+        Scene* scene = GetDetachedSceneForCurrentThread();
+
+        const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+        entity->SetLocalBounds(mesh->GetAABB());
+
+        scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
+
+        entity->SetName(CreateNameFromDynamicString(objMesh.name));
+        entity->SetLocalTranslation(meshAabbCenter);
+
+        top->AddChild(entity);
+    }
+
+    return LoadedAsset { top };
+}
+
+} // namespace Hyperion

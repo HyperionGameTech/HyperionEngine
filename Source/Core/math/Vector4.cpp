@@ -1,0 +1,214 @@
+/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
+#include <Core/math/Vector4.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Mat4f.hpp>
+
+#include <Core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+
+namespace Hyperion {
+
+HYP_API const Class* g_clsVec4f = nullptr;
+HYP_API const Class* g_clsVec4i = nullptr;
+HYP_API const Class* g_clsVec4u = nullptr;
+
+// clang-format off
+HYP_BEGIN_STRUCT(Vec4f, -1, 0, {})
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, HYP_OFFSET_OF(Type, z)),
+    Field(NAME(HYP_STR(w)), &Type::w, HYP_OFFSET_OF(Type, w))
+HYP_END_STRUCT
+
+HYP_REGISTER_STATIC_CLASS(Vec4f);
+
+HYP_BEGIN_STRUCT(Vec4i, -1, 0, {})
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, HYP_OFFSET_OF(Type, z)),
+    Field(NAME(HYP_STR(w)), &Type::w, HYP_OFFSET_OF(Type, w))
+HYP_END_STRUCT
+
+HYP_REGISTER_STATIC_CLASS(Vec4i);
+
+HYP_BEGIN_STRUCT(Vec4u, -1, 0, {})
+    Field(NAME(HYP_STR(x)), &Type::x, HYP_OFFSET_OF(Type, x)),
+    Field(NAME(HYP_STR(y)), &Type::y, HYP_OFFSET_OF(Type, y)),
+    Field(NAME(HYP_STR(z)), &Type::z, HYP_OFFSET_OF(Type, z)),
+    Field(NAME(HYP_STR(w)), &Type::w, HYP_OFFSET_OF(Type, w))
+HYP_END_STRUCT
+
+HYP_REGISTER_STATIC_CLASS(Vec4u);
+
+// clang-format on
+
+float math::Vec4<float>::DistanceSquared(const Vec4& other) const
+{
+    float dx = x - other.x;
+    float dy = y - other.y;
+    float dz = z - other.z;
+    float dw = w - other.w;
+    return dx * dx + dy * dy + dz * dz + dw * dw;
+}
+
+/* Euclidean distance */
+float math::Vec4<float>::Distance(const Vec4& other) const
+{
+    return MathUtil::Sqrt(DistanceSquared(other));
+}
+
+Vec4<float> math::Vec4<float>::Normalized() const
+{
+    return *this / MathUtil::Max(Length(), MathUtil::epsilonF);
+}
+
+Vec4<float>& math::Vec4<float>::Normalize()
+{
+    return *this /= MathUtil::Max(Length(), MathUtil::epsilonF);
+}
+
+Vec4<float>& math::Vec4<float>::Rotate(const Vec3<float>& axis, float radians)
+{
+    return (*this) = Mat4f::Rotation(axis, radians) * (*this);
+}
+
+Vec4<float>& math::Vec4<float>::Lerp(const Vec4<float>& to, float amt)
+{
+    x = MathUtil::Lerp(x, to.x, amt);
+    y = MathUtil::Lerp(y, to.y, amt);
+    z = MathUtil::Lerp(z, to.z, amt);
+    w = MathUtil::Lerp(w, to.w, amt);
+
+    return *this;
+}
+
+float math::Vec4<float>::Dot(const Vec4<float>& other) const
+{
+    return x * other.x + y * other.y + z * other.z + w * other.w;
+}
+
+template <>
+Vec4<int> math::Vec4<int>::Abs(const Vec4<int>& vec)
+{
+    return {
+        MathUtil::Abs(vec.x),
+        MathUtil::Abs(vec.y),
+        MathUtil::Abs(vec.z),
+        MathUtil::Abs(vec.w)
+    };
+}
+
+template <>
+Vec4<int> math::Vec4<int>::Min(const Vec4<int>& a, const Vec4<int>& b)
+{
+    return {
+        MathUtil::Min(a.x, b.x),
+        MathUtil::Min(a.y, b.y),
+        MathUtil::Min(a.z, b.z),
+        MathUtil::Min(a.w, b.w)
+    };
+}
+
+template <>
+Vec4<int> math::Vec4<int>::Max(const Vec4<int>& a, const Vec4<int>& b)
+{
+    return {
+        MathUtil::Max(a.x, b.x),
+        MathUtil::Max(a.y, b.y),
+        MathUtil::Max(a.z, b.z),
+        MathUtil::Max(a.w, b.w)
+    };
+}
+
+template <>
+Vec4<uint32> math::Vec4<uint32>::Abs(const Vec4<uint32>& vec)
+{
+    return {
+        MathUtil::Abs(vec.x),
+        MathUtil::Abs(vec.y),
+        MathUtil::Abs(vec.z),
+        MathUtil::Abs(vec.w)
+    };
+}
+
+template <>
+Vec4<uint32> math::Vec4<uint32>::Min(const Vec4<uint32>& a, const Vec4<uint32>& b)
+{
+    return {
+        MathUtil::Min(a.x, b.x),
+        MathUtil::Min(a.y, b.y),
+        MathUtil::Min(a.z, b.z),
+        MathUtil::Min(a.w, b.w)
+    };
+}
+
+template <>
+Vec4<uint32> math::Vec4<uint32>::Max(const Vec4<uint32>& a, const Vec4<uint32>& b)
+{
+    return {
+        MathUtil::Max(a.x, b.x),
+        MathUtil::Max(a.y, b.y),
+        MathUtil::Max(a.z, b.z),
+        MathUtil::Max(a.w, b.w)
+    };
+}
+
+Vec4<float> math::Vec4<float>::Abs(const Vec4<float>& vec)
+{
+    return {
+        MathUtil::Abs(vec.x),
+        MathUtil::Abs(vec.y),
+        MathUtil::Abs(vec.z),
+        MathUtil::Abs(vec.w)
+    };
+}
+
+Vec4<float> math::Vec4<float>::Round(const Vec4<float>& vec)
+{
+    return {
+        MathUtil::Round(vec.x),
+        MathUtil::Round(vec.y),
+        MathUtil::Round(vec.z),
+        MathUtil::Round(vec.w)
+    };
+}
+
+Vec4<float> math::Vec4<float>::Clamp(const Vec4<float>& vec, float minValue, float maxValue)
+{
+    return Max(minValue, Min(vec, maxValue));
+}
+
+Vec4<float> math::Vec4<float>::Min(const Vec4<float>& a, const Vec4<float>& b)
+{
+    return {
+        MathUtil::Min(a.x, b.x),
+        MathUtil::Min(a.y, b.y),
+        MathUtil::Min(a.z, b.z),
+        MathUtil::Min(a.w, b.w)
+    };
+}
+
+Vec4<float> math::Vec4<float>::Max(const Vec4<float>& a, const Vec4<float>& b)
+{
+    return {
+        MathUtil::Max(a.x, b.x),
+        MathUtil::Max(a.y, b.y),
+        MathUtil::Max(a.z, b.z),
+        MathUtil::Max(a.w, b.w)
+    };
+}
+
+Vec4<float> math::Vec4<float>::operator*(const Mat4f& mat) const
+{
+    return {
+        x * mat.values[0] + y * mat.values[4] + z * mat.values[8] + w * mat.values[12],
+        x * mat.values[1] + y * mat.values[5] + z * mat.values[9] + w * mat.values[13],
+        x * mat.values[2] + y * mat.values[6] + z * mat.values[10] + w * mat.values[14],
+        x * mat.values[3] + y * mat.values[7] + z * mat.values[11] + w * mat.values[15]
+    };
+}
+
+} // namespace Hyperion

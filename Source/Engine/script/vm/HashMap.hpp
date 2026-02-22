@@ -1,0 +1,80 @@
+#pragma once
+
+#include <script/vm/Value.hpp>
+
+#include <Core/containers/HashMap.hpp>
+
+#include <Core/math/MathUtil.hpp>
+
+#include <Core/reflection/BoxedValue.hpp>
+
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
+
+#include <Core/debug/Debug.hpp>
+
+namespace Hyperion {
+
+class Script_HashMap
+{
+public:
+    struct VMMapKey
+    {
+        BoxedValue key;
+        uint64 hash;
+
+        HYP_FORCE_INLINE bool operator==(const VMMapKey& other) const
+        {
+            return hash == other.hash; // && key == other.key;
+        }
+
+        HYP_FORCE_INLINE bool operator!=(const VMMapKey& other) const
+        {
+            return hash != other.hash; // || key != other.key;
+        }
+
+        HYP_FORCE_INLINE HashCode GetHashCode() const
+        {
+            return HashCode().Add(hash);
+        }
+    };
+
+    using InternalMapType = HashMap<VMMapKey, BoxedValue, DynamicNodeAllocator>;
+
+    Script_HashMap();
+    Script_HashMap(const Script_HashMap& other) = delete;
+    Script_HashMap& operator=(const Script_HashMap& other) = delete;
+    Script_HashMap(Script_HashMap&& other) noexcept;
+    Script_HashMap& operator=(Script_HashMap&& other) noexcept;
+    ~Script_HashMap();
+
+    SizeType GetSize() const
+    {
+        return m_map.Size();
+    }
+
+    InternalMapType& GetMap()
+    {
+        return m_map;
+    }
+
+    const InternalMapType& GetMap() const
+    {
+        return m_map;
+    }
+
+    bool operator==(const Script_HashMap& other) const
+    {
+        return this == &other;
+    }
+
+    void SetElement(VMMapKey&& key, BoxedValue&& value);
+
+    BoxedValue* GetElement(const VMMapKey& key);
+    const BoxedValue* GetElement(const VMMapKey& key) const;
+
+private:
+    InternalMapType m_map;
+};
+
+} // namespace Hyperion

@@ -1,0 +1,25 @@
+#pragma once
+
+#include <script/vm/Stream.hpp>
+#include <script/compiler/emit/Instruction.hpp>
+#include <script/compiler/emit/BytecodeUtil.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/Unicode.hpp>
+
+#include <memory>
+
+namespace Hyperion {
+
+class InstructionStream;
+
+class DecompilationUnit
+{
+public:
+    DecompilationUnit();
+    DecompilationUnit(const DecompilationUnit& other) = delete;
+
+    void DecodeNext(uint8 code, Script_Stream& bs, InstructionStream& is, std::ostream* os = nullptr);
+    InstructionStream* Decompile(Script_Stream& bs, std::ostream* os = nullptr);
+};
+
+} // namespace Hyperion

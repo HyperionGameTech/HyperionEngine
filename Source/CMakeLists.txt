@@ -1,0 +1,1037 @@
+cmake_minimum_required(VERSION 3.5)
+
+set(BUILD_NAME hyperion)
+
+if(POLICY CMP0114)
+  cmake_policy(SET CMP0114 NEW)
+endif()
+
+if(POLICY CMP0079)
+    cmake_policy(SET CMP0079 NEW)
+endif()
+
+if(NOT DEFINED CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type to use" FORCE)
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+
+# use params passed in
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${HYP_LIBRARY_OUTPUT_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+
+set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY ${HYP_THIRD_PARTY_LIBRARY_DIRECTORY})
+set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_RELEASE ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
+set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_DEBUG ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "Configurations to build" FORCE)
+set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
+
+project(${BUILD_NAME} CXX)
+
+# set HYP_PLATFORM_NAME
+if(NOT DEFINED HYP_PLATFORM_NAME)
+    if(WIN32)
+        set(HYP_PLATFORM_NAME "Win32")
+    elseif(APPLE)
+        set(HYP_PLATFORM_NAME "Mac")
+    elseif(UNIX)
+        set(HYP_PLATFORM_NAME "Linux")
+    elseif(IOS)
+        set(HYP_PLATFORM_NAME "iOS")
+    else()
+        message(FATAL_ERROR "Unsupported platform")
+    endif()
+endif()
+
+set(USE_MSBUILD_FOR_CSHARP_BUILD false)
+if (MSVC)
+    set(USE_MSBUILD_FOR_CSHARP_BUILD true)
+    message(STATUS "Using MSBuild for C# projects")
+endif()
+
+string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
+
+set(HYP_BUILD_TYPE "Release")
+
+set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
+set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ThirdParty)
+
+enable_language(CXX)
+enable_language(C)
+
+if(APPLE)
+    enable_language(OBJCXX)
+    enable_language(OBJC)
+endif()
+
+# Include ExternalProject for building submodules separately
+include(ExternalProject)
+
+function(RunCodeGen version_major version_minor)
+    if(WIN32)
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/RunCodeGen.bat")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/BuildCodeGen.bat")
+    else()
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/RunCodeGen.sh")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/BuildCodeGen.sh")
+    endif()
+
+    message(STATUS "Running CodeGen: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
+
+    if(NOT EXISTS ${HYP_CODEGEN_RUN_SCRIPT_PATH})
+        message(FATAL_ERROR "RunCodeGen script not found in ${CMAKE_SOURCE_DIR}/../Tools/Scripts! Expected path: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
+    endif()
+
+    execute_process(
+        COMMAND ${HYP_CODEGEN_RUN_SCRIPT_PATH} ${version_major} ${version_minor}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../
+        RESULT_VARIABLE HYP_CODEGEN_RESULT
+    )
+
+    if(NOT HYP_CODEGEN_RESULT EQUAL 0)
+        message(FATAL_ERROR "CodeGen failed with exit code: ${HYP_CODEGEN_RESULT}")
+    endif()
+endfunction()
+
+# Run CodeGen with version 0.9
+RunCodeGen(0 9)
+
+set(HYP_DEBUG_MODE 1)
+add_definitions(-DHYP_DEBUG_MODE=1)
+
+# set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
+add_definitions(-DHYPERION_ENGINE=1)
+set(HYPERION_ENGINE 1)
+
+set(HYP_TESTS 1)
+add_definitions(-DHYP_TESTS=1)
+
+if(HYP_DEBUG_MODE)
+    # enable TypeId generatation at compile time
+    # will increase compile times slightly but improve runtime performance
+    add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
+endif()
+
+# platform and compiler definitions
+if(MSVC)
+    add_definitions(-DHYP_MSVC=1)
+elseif(__clang__)
+    add_definitions(-DHYP_CLANG=1)
+    add_definitions(-DHYP_CLANG_OR_GCC=1)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_definitions(-DHYP_GCC=1)
+    add_definitions(-DHYP_CLANG_OR_GCC=1)
+endif()
+
+if(APPLE)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_APPLE=1)
+    if(IOS)
+        add_definitions(-DHYP_IOS=1)
+    else()
+        add_definitions(-DHYP_MACOS=1)
+    endif()
+elseif(UNIX)
+    add_definitions(-DHYP_UNIX=1)
+    add_definitions(-DHYP_LINUX=1)
+elseif(WIN32)
+    add_definitions(-DHYP_WINDOWS=1)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    set(NATIVE false CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
+else()
+    set(NATIVE true CACHE BOOL "Is the build occuring on a native platform? (Access to native libraries, filesystem etc.)")
+endif()
+
+if(MSVC)
+    message(STATUS "Building on MSVC, checking toolchain is set (should be set to `<vcpkg root path>/scripts/buildsystems/vcpkg.cmake`)")
+
+    if (DEFINED CMAKE_TOOLCHAIN_FILE)
+        message(STATUS "Using CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+    else()
+        message(STATUS "CMake toolchain file not specified -- should be set to vcpkg cmake file! \
+            If you don't have vcpkg set up, download vcpkg from Microsoft and set the `-DCMAKE_TOOLCHAIN_FILE` CMake argument to \
+            `<vcpkg root path>/scripts/buildsystems/vcpkg.cmake`.")
+    endif()
+
+    # disable specific warnings
+    add_definitions("/wd4251")
+    add_definitions("/wd4275")
+
+    # add _CRT_SECURE_NO_WARNINGS
+    add_definitions("/D_CRT_SECURE_NO_WARNINGS")
+
+    # no exceptions
+    add_definitions("/D_HAS_EXCEPTIONS=0")
+    add_definitions("/DNOMINMAX")
+
+    if(HYP_DEBUG_MODE)
+        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
+    else()
+        set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
+    endif()
+
+    # address sanitizer
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+else()
+    if(HYP_DEBUG_MODE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g -Werror=return-type -Werror=address") #-Werror=non-virtual-dtor 
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    endif()
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+    # no exceptions
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+
+    # for full template backtrace
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
+
+    # # address sanitizer and other debugging utilities
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
+endif()
+
+set(HYP_VERSION_MAJOR 1)
+set(HYP_VERSION_MINOR 4)
+set(HYP_VERSION_PATCH 0)
+
+link_directories(${THIRD_PARTY_LIBRARY_DIR})
+
+if(CMAKE_GENERATOR STREQUAL "Xcode")
+    set(CMAKE_XCODE_SCHEME_GENERATE ON)
+    set(CMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION FALSE)
+
+    # disable xcode code signing
+    set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED")
+    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
+
+# for VS solutions, we want to add some files as a custom solution item
+elseif(MSVC)
+    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/../.clang-format" "${CMAKE_SOURCE_DIR}/../.clang-tidy")
+    add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
+endif()
+
+# if(NOT IOS)
+#     link_directories(/usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
+
+#     find_package(PkgConfig)
+#     pkg_check_modules(GST gstreamer-1.0
+#                         gstreamer-video-1.0
+#                         gstreamer-app-1.0)
+# endif()
+
+find_package(Threads REQUIRED)
+find_package(Bullet)
+
+# PCHs
+set(HYP_PCH
+    "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"
+)
+
+# /PCHs
+
+# default definitions
+
+add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
+add_definitions(-DHYP_VERSION_MAJOR=${HYP_VERSION_MAJOR})
+add_definitions(-DHYP_VERSION_MINOR=${HYP_VERSION_MINOR})
+add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
+
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
+
+set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
+file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
+
+set(HYP_EDITOR 1)
+add_definitions(-DHYP_EDITOR=1)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHYP_ROOT_DIR=\\\"${CMAKE_CURRENT_LIST_DIR}\\\"")
+
+# enable HypScript
+add_definitions(-DHYP_SCRIPT=1)
+
+set(HYP_GENERATE_CSHARP_LIBRARIES true)
+
+# if dotnet headers exist, set HYP_DOTNET to 1
+if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dotnetcore/hostfxr.h")
+    message(STATUS ".NET headers found")
+    set(HYP_DOTNET 1)
+
+    if(HYP_DOTNET)
+        if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+            message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+
+            set(HYP_DOTNET 1)
+        elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
+            message(STATUS ".NET core found, setting HYP_DOTNET to 1")
+
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
+
+            # copy the dll to the build directory
+            file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+            set(HYP_DOTNET 1)
+        endif()
+
+        add_definitions(-DHYP_DOTNET=1)
+        set(HYP_GENERATE_CSHARP_LIBRARIES true)
+    endif()
+else()
+    message(STATUS ".NET headers not found, skipping .NET core runtime")
+    set(HYP_GENERATE_CSHARP_LIBRARIES false)
+endif()
+
+# C# constant properties shared across all C# projects
+if(${HYP_PLATFORM_NAME} STREQUAL "Win32")
+    set(CSHARP_CONSTANTS "HYP_WINDOWS")
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Mac")
+    set(CSHARP_CONSTANTS "HYP_MACOS;HYP_UNIX")
+elseif(${HYP_PLATFORM_NAME} STREQUAL "iOS")
+    set(CSHARP_CONSTANTS "HYP_IOS;HYP_UNIX")
+elseif(${HYP_PLATFORM_NAME} STREQUAL "Linux")
+    set(CSHARP_CONSTANTS "HYP_LINUX;HYP_UNIX")
+endif()
+
+set(RENDERING_BACKEND "Vulkan")
+
+# set(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND true) # TEMP - do not commit to dev branch with this set to true, only for testing the DX12 rendering backend before it's ready to be merged into dev
+
+if(ENABLE_EXPERIMENTAL_DX12_RENDERING_BACKEND AND WIN32)
+    set(RENDERING_BACKEND "DX12")
+endif()
+
+if (NOT DEFINED RENDERING_BACKEND)
+    if (WIN32)
+        set(RENDERING_BACKEND "DX12")
+    elseif((APPLE) OR (UNIX))
+        set(RENDERING_BACKEND "Vulkan")
+    else()
+        message(FATAL_ERROR "No rendering backend defined and unable to select default for platform!")
+    endif()
+endif()
+
+if (RENDERING_BACKEND STREQUAL "Vulkan")
+    find_package(Vulkan REQUIRED)
+
+    add_definitions(-DHYP_VULKAN=1)
+    set(HYP_VULKAN 1)
+
+    message(STATUS "Found Vulkan at: ${Vulkan_INCLUDE_DIRS} ${Vulkan_LIBRARIES}")
+
+    include_directories(BEFORE ${Vulkan_INCLUDE_DIRS})
+elseif(RENDERING_BACKEND STREQUAL "DX12")
+    add_definitions(-DHYP_DX12=1)
+    set(HYP_DX12 1)
+
+    message(STATUS "Using DirectX 12 as rendering backend")
+
+    # check for D3D12MemoryAllocator ThirdParty module
+    if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator/CMakeLists.txt")
+        add_subdirectory(${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/ThirdParty/D3D12MemoryAllocator_build)
+
+        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator/include)
+
+        set(RENDERER_LIBRARIES
+            ${RENDERER_LIBRARIES}
+            D3D12MemoryAllocator)
+    endif()
+else()
+    message(FATAL_ERROR "No rendering backend found!")
+endif()
+
+# link glslang if vulkan rendering backend:
+if (RENDERING_BACKEND STREQUAL "Vulkan")
+    if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
+        # if glslang folder exists, link with it.
+        if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
+            set(HYP_GLSLANG 1)
+
+            add_definitions(-DHYP_GLSLANG=1)
+            add_definitions(-DHYP_GLSLANG_MODIFICATIONS=1)
+
+            # Build glslang during CMake configuration time (not as part of the main build)
+            # This keeps glslang completely separate from the VS solution / main project
+            set(GLSLANG_BUILD_DIR "${CMAKE_BINARY_DIR}/glslang_build")
+            set(GLSLANG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/submodules/glslang")
+
+            # Check if glslang needs to be built (check for a marker file or key library)
+            if(WIN32)
+                set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib")
+            else()
+                set(GLSLANG_MARKER_LIB "${GLSLANG_BUILD_DIR}/glslang/libglslang.a")
+            endif()
+
+            if(NOT EXISTS "${GLSLANG_MARKER_LIB}")
+                message(STATUS "Building glslang...")
+
+                # Create the build directory if it doesn't exist
+                file(MAKE_DIRECTORY ${GLSLANG_BUILD_DIR})
+
+                # Configure glslang
+                execute_process(
+                    COMMAND ${CMAKE_COMMAND}
+                        -S ${GLSLANG_SOURCE_DIR}
+                        -B ${GLSLANG_BUILD_DIR}
+                        -DCMAKE_BUILD_TYPE=Release
+                        -DGLSLANG_ENABLE_INSTALL=OFF
+                        -DGLSLANG_ENABLE_INSTALL_DEFAULT=OFF
+                        -DGLSLANG_TESTS=OFF
+                        -DENABLE_GLSLANG_BINARIES=OFF
+                        -DENABLE_OPT=OFF
+                        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                        "-DCMAKE_CXX_FLAGS=-DHYP_GLSLANG_MODIFICATIONS=1"
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    RESULT_VARIABLE GLSLANG_CONFIGURE_RESULT
+                )
+
+                if(NOT GLSLANG_CONFIGURE_RESULT EQUAL 0)
+                    message(FATAL_ERROR "Failed to configure glslang (exit code: ${GLSLANG_CONFIGURE_RESULT})")
+                endif()
+
+                # Build glslang
+                execute_process(
+                    COMMAND ${CMAKE_COMMAND} --build ${GLSLANG_BUILD_DIR} --config Release --parallel
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    RESULT_VARIABLE GLSLANG_BUILD_RESULT
+                )
+
+                if(NOT GLSLANG_BUILD_RESULT EQUAL 0)
+                    message(FATAL_ERROR "Failed to build glslang (exit code: ${GLSLANG_BUILD_RESULT})")
+                endif()
+
+                message(STATUS "glslang build completed successfully")
+            else()
+                message(STATUS "glslang already built, skipping rebuild")
+            endif()
+
+            # Create imported targets for all the libraries we need
+            add_library(glslang STATIC IMPORTED)
+            add_library(SPIRV STATIC IMPORTED)
+            add_library(glslang-default-resource-limits STATIC IMPORTED)
+            # add_library(SPIRV-Tools STATIC IMPORTED)
+            # add_library(SPIRV-Tools-opt STATIC IMPORTED)
+            add_library(MachineIndependent STATIC IMPORTED)
+            add_library(GenericCodeGen STATIC IMPORTED)
+            add_library(OSDependent STATIC IMPORTED)
+
+            # Set the imported library locations
+            if(WIN32)
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang.lib
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/Release/SPIRV.lib
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/glslang-default-resource-limits.lib
+                )
+                # set_target_properties(SPIRV-Tools PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/Release/SPIRV-Tools.lib
+                # )
+                # set_target_properties(SPIRV-Tools-opt PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/Release/SPIRV-Tools-opt.lib
+                # )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/MachineIndependent.lib
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/Release/GenericCodeGen.lib
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Windows/Release/OSDependent.lib
+                )
+            else()
+                set_target_properties(glslang PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang.a
+                )
+                set_target_properties(SPIRV PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/SPIRV/libSPIRV.a
+                )
+                set_target_properties(glslang-default-resource-limits PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libglslang-default-resource-limits.a
+                )
+                # set_target_properties(SPIRV-Tools PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/libSPIRV-Tools.a
+                # )
+                # set_target_properties(SPIRV-Tools-opt PROPERTIES
+                #     IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/External/spirv-tools/source/opt/libSPIRV-Tools-opt.a
+                # )
+                set_target_properties(MachineIndependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libMachineIndependent.a
+                )
+                set_target_properties(GenericCodeGen PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/libGenericCodeGen.a
+                )
+                set_target_properties(OSDependent PROPERTIES
+                    IMPORTED_LOCATION ${GLSLANG_BUILD_DIR}/glslang/OSDependent/Unix/libOSDependent.a
+                )
+            endif()
+
+            include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+
+            set(RENDERER_LIBRARIES
+                ${RENDERER_LIBRARIES}
+                glslang
+                SPIRV
+                glslang-default-resource-limits
+                MachineIndependent
+                GenericCodeGen
+                OSDependent
+            )
+        endif()
+    endif()
+elseif(RENDERING_BACKEND STREQUAL "DX12")
+    # add DirectX-Headers include dir if DX12 rendering backend
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/DirectX-Headers)
+endif()
+
+# setup DXC if found
+if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dxc/dxcapi.h")
+    message(STATUS "DXC headers found, setting up DXC")
+
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/dxc)
+
+    if(WIN32)
+        set(DXC_LIB_PATH "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
+        set(DXC_DLL_PATH "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
+    elseif(APPLE)
+        set(DXC_LIB_PATH "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.dylib")
+    else()
+        set(DXC_LIB_PATH "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.so")
+    endif()
+
+    if(EXISTS "${DXC_LIB_PATH}")
+        message(STATUS "DXC library found at ${DXC_LIB_PATH}, linking to it")
+
+        set(RENDERER_LIBRARIES
+            ${RENDERER_LIBRARIES}
+            "${DXC_LIB_PATH}"
+        )
+
+        set(HYP_DXC 1)
+        add_definitions(-DHYP_DXC=1)
+
+        # copy the dll to the build directory if on Windows
+        if(WIN32)
+            file(COPY "${DXC_DLL_PATH}" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        endif()
+    else()
+        message(WARNING "DXC library not found at ${DXC_LIB_PATH}, skipping DXC setup")
+    endif()
+else()
+    message(STATUS "DXC headers not found, skipping DXC setup")
+endif()
+
+# setup SPIRV-Reflect
+if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect/spirv_reflect.h")
+    message(STATUS "SPIRV-Reflect found, setting up SPIRV-Reflect")
+
+    set(HYP_SPIRV_REFLECT 1)
+    add_definitions(-DHYP_SPIRV_REFLECT=1)
+
+    set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "" FORCE)
+    set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "" FORCE)
+    set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "" FORCE)
+
+    add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect ${CMAKE_BINARY_DIR}/SPIRV-Reflect EXCLUDE_FROM_ALL)
+
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect)
+
+    set(RENDERER_LIBRARIES
+        ${RENDERER_LIBRARIES}
+        spirv-reflect-static
+    )
+else()
+    message(STATUS "SPIRV-Reflect not found, skipping SPIRV-Reflect setup")
+endif()
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
+
+function(collect_sources_and_modules dir out_sources out_headers out_modules)
+
+    set(local_sources "")
+    set(local_headers "")
+    set(local_modules "")
+    set(local_pchs "${HYP_PCH}") # start with global PCHs
+
+    # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
+    if(${dir} MATCHES "Source/Engine/system/platform/.*" AND NOT ${dir} MATCHES "Source/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+        message(STATUS "Skipping platform directory: ${dir}")
+        return()
+    endif()
+
+    file(GLOB current_sources RELATIVE ${CMAKE_SOURCE_DIR}
+        "${dir}/*.cpp" "${dir}/*.cxx" "${dir}/*.cc" "${dir}/*.c" "${dir}/*.mm" "${dir}/*.m")
+    list(APPEND local_sources ${current_sources})
+    file(GLOB current_headers RELATIVE ${CMAKE_SOURCE_DIR}
+        "${dir}/*.hpp" "${dir}/*.hxx" "${dir}/*.hh" "${dir}/*.h" "${dir}/*.inl" "${dir}/*.inc")
+    list(APPEND local_headers ${current_headers})
+
+    # If this directory has a CMakeLists.txt, consider it a module
+    if(EXISTS "${dir}/CMakeLists.txt")
+        set(subdir_basename "")
+        set(sub_library_name "")
+        set(should_skip_module FALSE)
+        set(should_recurse TRUE)
+
+        string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
+
+        if(${dir} MATCHES "CodeGen" OR ${dir} MATCHES "Sample")
+            return()
+        endif()
+
+        # handle ThirdParty modules separately
+        if(dir MATCHES "ThirdParty")
+            # set(should_recurse FALSE) # do not recurse into ThirdParty, let them handle themselves
+            # set(should_skip_module TRUE)
+
+            # if (dir MATCHES "D3D12MemoryAllocator" AND NOT RENDERING_BACKEND STREQUAL "DX12")
+            #     # Skip it since we are not using DX12
+            #     return()
+            # endif()
+
+            # # just add the ThirdParty module as is and return
+            # add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/ThirdParty/${subdir_basename})
+            # include_directories(BEFORE ${dir}/include)
+
+            # message(STATUS "Added ThirdParty CMakeLists.txt from ${dir}, including headers from ${dir}/include")
+
+            return()
+        endif()
+
+        if(dir MATCHES "dotnet/runtime")
+            set(sub_library_name "hyperion-dotnet-runtime")
+        elseif(dir MATCHES "dotnet/shared")
+            set(sub_library_name "hyperion-dotnet-shared")
+        elseif(dir MATCHES "dotnet/interop")
+            set(sub_library_name "hyperion-dotnet-interop")
+        elseif(dir MATCHES "dotnet/scripting")
+            set(sub_library_name "hyperion-dotnet-scripting")
+        elseif(dir MATCHES "rendering/vulkan" AND NOT RENDERING_BACKEND STREQUAL "Vulkan")
+            # Skip it
+            message(STATUS "Skipping Vulkan rendering module since Vulkan is not the selected rendering backend")
+            set(should_skip_module TRUE)
+        elseif(dir MATCHES "rendering/dx12" AND NOT RENDERING_BACKEND STREQUAL "DX12")
+            # Skip it
+            message(STATUS "Skipping DirectX 12 rendering module since DX12 is not the selected rendering backend")
+            set(should_skip_module TRUE)
+        else()
+            # the subfolder must contain a library with the name hyperion-<subfolder>
+            string(TOLOWER "${subdir_basename}" subdir_basename_lower)
+            set(sub_library_name "hyperion-${subdir_basename_lower}")
+        endif()
+
+        # if should_skip_module was set, return early
+        if(should_skip_module)
+            return()
+        endif()
+
+        list(APPEND local_modules ${sub_library_name})
+
+        # Find files ending with Pch.hpp to add to PCHs for this module
+        file(GLOB pch_files RELATIVE ${CMAKE_SOURCE_DIR} "${dir}/*Pch.hpp")
+
+        if (pch_files)
+            message(STATUS "Found PCH files in ${dir}: ${pch_files}")
+            foreach(pch_file ${pch_files})
+                list(APPEND local_pchs "${CMAKE_SOURCE_DIR}/${pch_file}")
+            endforeach()
+        endif()
+
+        # Recurse into children so nested modules with their own CMakeLists.txt get added
+        file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+        foreach(child ${children})
+            if(NOT child MATCHES "CodeGen" AND NOT child MATCHES "Sample")
+                if(IS_DIRECTORY "${child}")
+                    collect_sources_and_modules("${child}" child_sources child_headers child_modules)
+                    list(APPEND local_modules ${child_modules})
+
+                    if(EXISTS "${child}/CMakeLists.txt")
+                        # Treat child as its own module; do not pull its sources into this target
+                    else()
+                        list(APPEND local_sources ${child_sources})
+                        list(APPEND local_headers ${child_headers})
+                    endif()
+                endif()
+            endif()
+        endforeach()
+
+        # Avoid double-adding targets if a nested CMakeLists already defined them
+        if(NOT TARGET ${sub_library_name})
+            set("${sub_library_name}_SOURCES" ${local_sources})
+            set("${sub_library_name}_HEADERS" ${local_headers})
+            set("${sub_library_name}_PCH" ${local_pchs})
+
+            message(STATUS "Adding subdirectory ${dir} as module ${sub_library_name}")
+
+            add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
+        else()
+            message(STATUS "Skipping add_subdirectory for ${dir} (target ${sub_library_name} already exists)")
+        endif()
+
+        set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_headers} "${local_headers}" PARENT_SCOPE)
+        set(${out_modules} "${local_modules}" PARENT_SCOPE)
+
+        source_group("${sub_library_name} Library Code" FILES ${local_sources} ${local_headers})
+    else()
+        file(GLOB children LIST_DIRECTORIES true "${dir}/*")
+        foreach(child ${children})
+            if(NOT child MATCHES "CodeGen" AND NOT child MATCHES "Sample")
+                if(IS_DIRECTORY "${child}")
+                    if(EXISTS "${child}/CMakeLists.txt")
+                        # Treat child as its own module; do not pull its sources into this target
+                        collect_sources_and_modules("${child}" child_sources child_headers child_modules)
+                        list(APPEND local_modules ${child_modules})
+
+                        # Remove any files from this module directory that were already added
+                        file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
+                            "${child}/*.cpp" "${child}/*.cxx" "${child}/*.cc" "${child}/*.c" "${child}/*.mm" "${child}/*.m")
+                        file(GLOB_RECURSE child_all_headers RELATIVE ${CMAKE_SOURCE_DIR}
+                            "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl" "${child}/*.inc")
+                        list(REMOVE_ITEM local_sources ${child_all_sources})
+                        list(REMOVE_ITEM local_headers ${child_all_headers})
+                    else()
+                        collect_sources_and_modules("${child}" child_sources child_headers child_modules)
+                        list(APPEND local_sources ${child_sources})
+                        list(APPEND local_headers ${child_headers})
+                        list(APPEND local_modules ${child_modules})
+                    endif()
+                endif()
+            endif()
+        endforeach()
+
+        set(${out_sources} "${local_sources}" PARENT_SCOPE)
+        set(${out_headers} "${local_headers}" PARENT_SCOPE)
+        set(${out_modules} "${local_modules}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+set(SUB_LIBRARIES "")
+
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Engine SOURCES HEADERS SUB_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/Engine PREFIX "Source Code" FILES ${SOURCES} ${HEADERS})
+
+set(THIRD_PARTY_SOURCES "")
+set(THIRD_PARTY_HEADERS "")
+set(THIRD_PARTY_LIBRARIES "")
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/ThirdParty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/ThirdParty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
+
+# platform specific stuff
+file(GLOB_RECURSE PLATFORM_FILES "Source/Engine/system/platform/**/*")
+foreach(PLATFORM_FILE ${PLATFORM_FILES})
+    if(NOT ${PLATFORM_FILE} MATCHES "Source/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+        list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
+        list(REMOVE_ITEM HEADERS ${PLATFORM_FILE})
+    endif()
+endforeach()
+
+# include shader files (under `res/shaders`) in the sln
+file(GLOB_RECURSE SHADER_FILES "res/shaders/*")
+if(SHADER_FILES)
+    if(MSVC)
+        # we don't want to build shader files to be compiled by fxc but we want them in the solution
+        foreach(SHADER_FILE ${SHADER_FILES})
+            source_group("Shader Code" FILES ${SHADER_FILE})
+
+            set_property(SOURCE ${SHADER_FILE} PROPERTY VS_TOOL_OVERRIDE "None")
+
+            # add to sources so they appear in the solution
+            list(APPEND SOURCES ${SHADER_FILE})
+        endforeach()
+    endif()
+endif()
+
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (${HYP_PLATFORM_NAME} STREQUAL "Mac")
+    # link with libraries to allow NSAlert and NSString
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        "-framework Cocoa"
+        "-framework Foundation"
+        "-framework AppKit"
+        "-framework QuartzCore"
+    )
+endif()
+
+if(Bullet_FOUND)
+    message(STATUS "Bullet found")
+
+    add_definitions(-DHYP_BULLET=1)
+
+    include_directories(${BULLET_INCLUDE_DIRS})
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        ${BULLET_LIBRARIES}
+    )
+endif()
+
+
+
+if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
+        add_definitions(-DHYP_LIBDATACHANNEL=1)
+
+        # Build libdatachannel as external project (only for VS and Xcode)
+        if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
+            ExternalProject_Add(libdatachannel_external
+                SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libdatachannel
+                CMAKE_ARGS
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
+                    -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                BUILD_ALWAYS FALSE
+                INSTALL_COMMAND ""
+                EXCLUDE_FROM_ALL TRUE
+            )
+
+            # Create imported target
+            ExternalProject_Get_Property(libdatachannel_external BINARY_DIR)
+
+            add_library(datachannel-static STATIC IMPORTED)
+            add_dependencies(datachannel-static libdatachannel_external)
+
+            if(WIN32)
+                set_target_properties(datachannel-static PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/${CMAKE_BUILD_TYPE}/datachannel-static.lib
+                )
+            else()
+                set_target_properties(datachannel-static PROPERTIES
+                    IMPORTED_LOCATION ${BINARY_DIR}/libdatachannel-static.a
+                )
+            endif()
+
+            include_directories(submodules/libdatachannel/include)
+
+            set(COMMON_LIBRARIES
+                ${COMMON_LIBRARIES}
+                datachannel-static
+            )
+        else()
+            # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
+            add_subdirectory(submodules/libdatachannel EXCLUDE_FROM_ALL)
+
+            include_directories(submodules/libdatachannel/include)
+
+            set(COMMON_LIBRARIES
+                ${COMMON_LIBRARIES}
+                datachannel-static
+            )
+        endif()
+    endif()
+endif()
+
+# # if submodule 'oidn' exists , link with it
+# if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/oidn/CMakeLists.txt")
+#     add_definitions(-DHYP_OIDN=1)
+#
+#     include_directories(submodules/oidn/include)
+#     add_subdirectory(submodules/oidn)
+#
+#     set(COMMON_LIBRARIES
+#         ${COMMON_LIBRARIES}
+#         OpenImageDenoise
+#     )
+# endif()
+
+# if Win32, link with DbgHelp
+if(WIN32)
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} DbgHelp)
+endif()
+
+# if aftermath lib exists on windows, link to it
+if(WIN32)
+    if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        add_definitions(-DHYP_AFTERMATH=1)
+
+        # copy the dll to the build directory
+        file(COPY "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+        message(STATUS "Aftermath found, linking to it")
+    else()
+        message(WARNING "Aftermath lib not found at ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+    endif()
+endif()
+
+if(NOT IOS)
+    # if(GST_FOUND)
+    #     add_definitions(-DHYP_GSTREAMER=1)
+    #     add_definitions(-DHYP_GSTREAMER_BIN_DIR="Z:/gstreamer/1.0/msvc_x86_64/bin")
+
+    #     include_directories(${GST_INCLUDE_DIRS})
+    #     link_directories(${GST_LIBRARY_DIRS})
+
+    #     # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
+
+    #     message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}\nInclude directories: ${GST_INCLUDE_DIRS}")
+
+    #     set(COMMON_LIBRARIES
+    #         ${COMMON_LIBRARIES}
+    #         ${GST_LIBRARIES}
+    #     )
+    # endif()
+endif()
+
+# set to empty list
+set(COMMON_INCLUDE_DIRS "")
+
+include_directories(
+    ${HYP_GENERATED_DIR}
+    ${COMMON_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/Engine
+    ${CMAKE_SOURCE_DIR}/ThirdParty
+)
+
+if(NOT WIN32)
+    include_directories(${SDL2_INCLUDE_DIRS})
+endif()
+
+# set HYP_BUILD_LIBRARY just for this library (so DLL exports are correct)
+add_definitions(-DHYP_BUILD_LIBRARY=1)
+
+file(GLOB_RECURSE REFLECTION_GENERATED_SOURCES "${HYP_GENERATED_DIR}/*.cpp")
+message(STATUS "Reflection generated sources directory: ${HYP_GENERATED_DIR}")
+source_group(TREE ${HYP_GENERATED_DIR} PREFIX "Generated Code" FILES ${REFLECTION_GENERATED_SOURCES})
+
+if(HYP_DEBUG_MODE)
+    # make sure generated sources are compiled without debug info - they are large and slow down debug builds
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        set_source_files_properties(${REFLECTION_GENERATED_SOURCES} PROPERTIES COMPILE_FLAGS "-g0")
+    endif()
+endif()
+
+set(SOURCES ${SOURCES} ${REFLECTION_GENERATED_SOURCES})
+set(SOURCES ${SOURCES} ${THIRD_PARTY_SOURCES})
+
+# disable precompiled headers for third-party sources
+set_source_files_properties(${THIRD_PARTY_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
+add_library(${BUILD_NAME} SHARED ${SOURCES} ${HEADERS})
+
+# PCHs
+target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
+
+# if XCode: set the PCH file for the target
+if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+    set_target_properties(${BUILD_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
+        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"
+    )
+endif()
+# /PCHs
+
+set(COMMON_LIBRARIES
+    ${COMMON_LIBRARIES}
+    ${CMAKE_THREADS_LIBS_INIT}
+)
+
+if(NOT DEFINED WIN32)
+    set(COMMON_LIBRARIES
+        ${COMMON_LIBRARIES}
+        ${SDL2_LIBRARIES}
+    )
+endif()
+
+set(SUB_LIBRARIES ${SUB_LIBRARIES} ${THIRD_PARTY_LIBRARIES})
+
+message(STATUS "Sub-libraries: ${SUB_LIBRARIES}")
+
+target_link_libraries(${BUILD_NAME} PUBLIC ${COMMON_LIBRARIES})
+target_link_libraries(${BUILD_NAME} PUBLIC ${RENDERER_LIBRARIES})
+
+
+# add sublibraries as dependencies so any changes get picked up.
+foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+    add_dependencies(${BUILD_NAME} ${SUB_LIBRARY})
+endforeach()
+
+if(APPLE)
+    # needs to use -force_load on macOS for static libraries to re-export symbols correctly
+    # for the Hyperion.NET assemblies, since we define functions for P/Invoke there.
+    foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
+            target_link_libraries(${BUILD_NAME} PRIVATE -force_load $<TARGET_FILE:${SUB_LIBRARY}>)
+        else()
+            target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+        endif()
+    endforeach()
+elseif(MSVC)
+    # needs to use /WHOLEARCHIVE on Windows for emulating the above behavior
+    foreach(SUB_LIBRARY ${SUB_LIBRARIES})
+        if (SUB_LIBRARY MATCHES "hyperion-dotnet-.*" OR SUB_LIBRARY MATCHES "hyperion-editor")
+            target_link_options(${BUILD_NAME} PRIVATE "/WHOLEARCHIVE:$<TARGET_FILE:${SUB_LIBRARY}>")
+        else()
+            target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARY})
+        endif()
+    endforeach()
+else()
+    target_link_libraries(${BUILD_NAME} PRIVATE ${SUB_LIBRARIES})
+endif()
+
+
+# Add dependencies on external projects to ensure they're built before the main library
+
+if(TARGET libdatachannel_external)
+    add_dependencies(${BUILD_NAME} libdatachannel_external)
+endif()
+if(TARGET webgpu_external)
+    add_dependencies(${BUILD_NAME} webgpu_external)
+endif()
+
+add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+
+remove_definitions(-DHYP_BUILD_LIBRARY)
+
+add_subdirectory(Sample)
+
+# # if .vscode/launch.json does not exist, create it
+# if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
+#     # copy the template files
+#     file(COPY "${CMAKE_SOURCE_DIR}/launch-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
+#     file(COPY "${CMAKE_SOURCE_DIR}/tasks-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/tasks.json")
+#     message(STATUS "Created launch and task json files in .vscode directory")
+# endif()
+
+# # for all <ConfigName>Template.json files in the root directory, copy them to the CMAKE_RUNTIME_OUTPUT_DIRECTORY directory (if they do not exist),
+# # and remove the "Template" part from the filename
+# # this is used for configuration files for the engine, like GlobalConfig.json, Hyperion
+# file(GLOB CONFIG_TEMPLATES "${CMAKE_SOURCE_DIR}/*ConfigTemplate.json")
+# foreach(CONFIG_TEMPLATE ${CONFIG_TEMPLATES})
+#     get_filename_component(CONFIG_NAME_WITH_TEMPLATE ${CONFIG_TEMPLATE} NAME_WE)
+#     string(REPLACE "ConfigTemplate" "Config" CONFIG_NAME ${CONFIG_NAME_WITH_TEMPLATE})
+#     set(OUTPUT_CONFIG_FILE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME}.json")
+
+#     if(NOT EXISTS ${OUTPUT_CONFIG_FILE})
+#         file(COPY ${CONFIG_TEMPLATE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+#         file(RENAME "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME_WITH_TEMPLATE}.json" "${OUTPUT_CONFIG_FILE}")
+#         message(STATUS "Copied configuration template: ${CONFIG_TEMPLATE} to ${OUTPUT_CONFIG_FILE}")
+#     else()
+#         message(STATUS "Configuration file already exists: ${OUTPUT_CONFIG_FILE}, skipping copy")
+#     endif()
+
+#     # If building with Visual Studio, add the generated config file into the
+#     # solution so it's visible in the IDE under the VSSolutionFiles target.
+#     if(MSVC)
+#         if(TARGET VSSolutionFiles)
+#             set_property(TARGET VSSolutionFiles APPEND PROPERTY SOURCES ${OUTPUT_CONFIG_FILE})
+#         endif()
+#     endif()
+# endforeach()
