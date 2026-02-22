@@ -34,7 +34,7 @@ class Game;
 
 HYP_API const FilePath& GetLibraryDirectory();
 HYP_API const FilePath& GetProjectsDirectory();
-HYP_API const FilePath& GetImportedDirectory();
+HYP_API const FilePath& GetDataDirectory();
 HYP_API const FilePath& GetConfigDirectory();
 HYP_API const FilePath& GetCacheDirectory();
 HYP_API const FilePath& GetTempDirectory();

@@ -157,7 +157,7 @@ if(DOTNET_EXECUTABLE)
         WORKING_DIRECTORY ${EDITOR_PROJECT_DIR}
     )
 
-    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+    if(USE_MSBUILD_FOR_CSHARP_BUILD)
         enable_language(CSharp)
         include_external_msproject(
             Hyperion.Editor
@@ -168,7 +168,7 @@ if(DOTNET_EXECUTABLE)
         add_custom_target(Hyperion.Editor ALL
             COMMAND ${DOTNET_EXECUTABLE} build "${EDITOR_CSPROJ_PATH}"  --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
             COMMENT "Building Hyperion.Editor"
-            DEPENDS Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop
+            DEPENDS hyperion-dotnet-shared hyperion-dotnet-runtime hyperion-dotnet-interop
         )
 
         # for Xcode, we want to allow running the editor from within Xcode
@@ -183,5 +183,5 @@ if(DOTNET_EXECUTABLE)
         endif()
     endif()
 
-    add_dependencies(Hyperion.Editor hyperion Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop)
+    add_dependencies(Hyperion.Editor hyperion hyperion-dotnet-shared hyperion-dotnet-runtime hyperion-dotnet-interop)
 endif()

@@ -73,7 +73,7 @@ void DynamicSkySystem::Init()
         InitObject(m_camera);
         m_renderScene->GetRoot()->AddChild(m_camera);
 
-        auto domeNodeAsset = g_assetManager->Load<Node>("models/inv_sphere.obj");
+        auto domeNodeAsset = g_assetManager->Load<Node>("Models/inv_sphere.obj");
 
         if (domeNodeAsset.HasValue())
         {

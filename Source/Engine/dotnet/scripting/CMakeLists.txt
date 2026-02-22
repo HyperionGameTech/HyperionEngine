@@ -96,12 +96,14 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             message(FATAL_ERROR "dotnet executable not found. Please install the .NET SDK to build C# projects.")
         endif()
 
-        execute_process(
-            COMMAND ${DOTNET_EXE} restore
-            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
-        )
+        if(NOT USE_MSBUILD_FOR_CSHARP_BUILD)
+            message(STATUS "Using dotnet CLI to build Hyperion.NET.Scripting")
+            
+            execute_process(
+                COMMAND ${DOTNET_EXE} restore
+                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
+            )
 
-        if(NOT DEFINED MSVC)
             add_custom_target(Hyperion.NET.Scripting ALL
                 COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
                 DEPENDS hyperion-dotnet-shared hyperion-dotnet-runtime hyperion-core

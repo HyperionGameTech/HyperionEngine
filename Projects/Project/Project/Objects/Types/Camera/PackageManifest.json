@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "Camera",
+  "FriendlyName": "Camera",
+  "Flags": 0,
+  "Path": "Project/Objects/Types/Camera"
+}

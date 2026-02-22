@@ -1879,7 +1879,7 @@ void AssetRegistry::Initialize()
     InitBlobStorage();
 
     Handle<AssetPackage> enginePackage = GetPackageFromPath("Engine", true);
-    enginePackage->Save(g_assetManager->GetBasePath());
+    enginePackage->Save(GetLibraryDirectory());
 
     LoadPackagesAsync(/* loadSubpackages */ false);
 
@@ -2127,15 +2127,15 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 {
     HYP_SCOPE;
 
-    FilePath rootDir = g_assetManager->GetBasePath();
+    FilePath baseDirectory = GetLibraryDirectory();
 
-    if (!rootDir.Exists() || !rootDir.IsDirectory())
+    if (!baseDirectory.Exists() || !baseDirectory.IsDirectory())
     {
         // nothing to load if it doesnt exist
         return;
     }
 
-    TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), rootDir, loadSubpackages]()
+    TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), baseDirectory, loadSubpackages]()
         {
             HYP_NAMED_SCOPE("AssetRegistry::LoadPackagesAsync");
 
@@ -2202,7 +2202,7 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
                 }
             };
 
-            IterateDirectory(rootDir);
+            IterateDirectory(baseDirectory);
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
 }
@@ -2698,7 +2698,7 @@ Handle<AssetPackage> AssetRegistry::GetPackage(
         else
         {
             // Try loading from manifest path, if it exists.
-            FilePath subpackageDir = g_assetManager->GetBasePath() / String(subpackageName);
+            FilePath subpackageDir = GetLibraryDirectory() / String(subpackageName);
             FilePath manifestPath = subpackageDir / "PackageManifest.json";
 
             if (manifestPath.Exists() && !manifestPath.IsDirectory())

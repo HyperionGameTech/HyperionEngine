@@ -49,6 +49,12 @@ if(NOT DEFINED HYP_PLATFORM_NAME)
     endif()
 endif()
 
+set(USE_MSBUILD_FOR_CSHARP_BUILD false)
+if (MSVC)
+    set(USE_MSBUILD_FOR_CSHARP_BUILD true)
+    message(STATUS "Using MSBuild for C# projects")
+endif()
+
 string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 
 set(HYP_BUILD_TYPE "Release")
@@ -236,12 +242,10 @@ set(HYP_PCH
 
 # default definitions
 
-add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
+add_definitions(-DHYP_ROOT_DIR="${HYP_ROOT_DIR}")
 add_definitions(-DHYP_VERSION_MAJOR=${HYP_VERSION_MAJOR})
 add_definitions(-DHYP_VERSION_MINOR=${HYP_VERSION_MINOR})
 add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
-
-message(STATUS "HYP_ROOT_DIR: ${CMAKE_CURRENT_LIST_DIR}")
 
 set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 

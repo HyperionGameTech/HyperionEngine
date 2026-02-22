@@ -149,7 +149,7 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     static const ConfigurationValue& s_cfgCacheDirectory = CoreApi::GetGlobalConfig().Get("App.Cache.BaseDirectory");
     static const ConfigurationValue& s_cfgCachePageSize = CoreApi::GetGlobalConfig().Get("App.Cache.PageSize");
 
-    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / FilePath(s_cfgCacheDirectory.AsString());
+    static const FilePath s_cacheDirectory = CoreApi::GetExecutablePath() / s_cfgCacheDirectory.AsString().ToUtf8();
 
     TSharedLock sharedLock(s_cacheDirectoryMutex);
 
@@ -181,17 +181,18 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
     return s_cacheDirectory;
 }
 
-// Directory for temporary data (intermediate compilation outputs, etc.) Will be not be used in production builds
+// Editor build only
 HYP_EXPORT const FilePath& GetTempDirectory()
 {
     static DirectoryInitializer<HYP_STATIC_STRING("Temp"), /* RelativeToExecutablePath */ true> s_tempDirectory;
     return s_tempDirectory.path;
 }
 
-HYP_EXPORT const FilePath& GetImportedDirectory()
+// Editor build only
+HYP_EXPORT const FilePath& GetDataDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Imported"), /* RelativeToExecutablePath */ false> s_importedDirectory;
-    return s_importedDirectory.path;
+    static DirectoryInitializer<HYP_STATIC_STRING("Data"), /* RelativeToExecutablePath */ false> s_dataDirectory;
+    return s_dataDirectory.path;
 }
 
 HYP_EXPORT const FilePath& GetConfigDirectory()

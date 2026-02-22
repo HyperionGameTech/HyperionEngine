@@ -1,5 +1,33 @@
 {
   "Rendering": {
+    "RayTracing": {
+      "PathTracing": {
+        "Enabled": false
+      },
+      "Reflections": {
+        "Enabled": false
+      },
+      "GI": {
+        "Enabled": true
+      },
+      "Enabled": true
+    },
+    "HBAO": {
+      "Radius": 2.500000,
+      "Power": 0.800000,
+      "UseTemporalBlending": false,
+      "Enabled": false
+    },
+    "HBIL": {
+      "Enabled": false
+    },
+    "SSGI": {
+      "Quality": 0,
+      "Enabled": false
+    },
+    "TAA": {
+      "Enabled": true
+    },
     "IndirectRendering": true,
     "ParallelCollection": true,
     "SSR": {
@@ -7,10 +35,11 @@
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
-      "RayStep": 1.5,
+      "RayStep": 1.500000,
       "NumIterations": 64,
-      "EyeFade": [0.99, 0.995],
-      "ScreenEdgeFade": [0.99, 0.995]
+      "EyeFade": [0.990000, 0.995000],
+      "ScreenEdgeFade": [0.990000, 0.995000],
+      "ResolutionScale": 1
     },
     "EnvGrid": {
       "Reflections": {
@@ -20,9 +49,6 @@
         "Enabled": true
       }
     },
-    "TAA": {
-      "Enabled": true
-    },
     "Debug": {
       "Reflections": false,
       "DebugDrawer": {
@@ -31,31 +57,6 @@
       },
       "Irradiance": false,
       "Normals": false
-    },
-    "HBIL": {
-      "Enabled": false
-    },
-    "RayTracing": {
-      "Reflections": {
-        "Enabled": false
-      },
-      "GI": {
-        "Enabled": true
-      },
-      "PathTracing": {
-        "Enabled": false
-      },
-      "Enabled": true
-    },
-    "HBAO": {
-      "Radius": 2.5,
-      "Power": 0.8,
-      "UseTemporalBlending": false,
-      "Enabled": false
-    },
-    "SSGI": {
-      "Quality": 0,
-      "Enabled": false
     },
     "Vulkan": {
       "DebugLayers": false
@@ -76,12 +77,17 @@
     }
   },
   "Lightmapper": {
-    "MaxTexelsPerFrame": 100000,
-    "TraceMode": 0,
-    "NumThreadsPerJob": 4,
     "Radiance": true,
-    "IdealTrianglesPerJob": 16000,
+    "Irradiance": true,
     "NumSamples": 8,
-    "Irradiance": true
+    "MaxTexelsPerFrame": 100000,
+    "IdealTrianglesPerJob": 16000,
+    "TraceMode": 0,
+    "NumThreadsPerJob": 4
+  },
+  "System": {
+    "SelectedGpu": {
+      "Index": 1
+    }
   }
 }

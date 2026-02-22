@@ -116,7 +116,7 @@
       }]
   },
   "ShaderModuleTypes": [4],
-  "ShaderModuleNames": ["shaders/env_probe/ComputeSH.hlsl"],
+  "ShaderModuleNames": ["ComputeSH.hlsl"],
   "EntryPointNames": ["CSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",

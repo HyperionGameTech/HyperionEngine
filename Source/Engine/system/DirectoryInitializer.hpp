@@ -9,7 +9,7 @@
 namespace Hyperion {
 
 namespace CoreApi {
-HYP_API const FilePath& GetExecutablePath();
+extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
 template <auto DirectoryStaticString, bool RelativeToExecutablePath = true>
