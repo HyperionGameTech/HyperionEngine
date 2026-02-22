@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_6262962084631960208"
+      }
+    }],
+  "Name": "ComputeSH",
+  "FriendlyName": "ComputeSH",
+  "OriginalFilepath": ""
+}

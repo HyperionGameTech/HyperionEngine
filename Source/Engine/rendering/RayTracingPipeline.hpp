@@ -18,7 +18,8 @@ public:
     static Pool* GetAllocator() { return g_rhiPool; }
     
     virtual ~RayTracingPipelineBase() override = default;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -28,6 +29,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     HYP_FORCE_INLINE const ShaderInstanceRef& GetShader() const
     {
@@ -65,8 +67,10 @@ protected:
     }
 
     ShaderInstanceRef m_shaderInstance;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

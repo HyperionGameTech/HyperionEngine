@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Hyperion (Editor)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/Binaries/Hyperion.Editor",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/Build",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "visualizerFile": "${workspaceRoot}/Source/Engine/Hyperion.natvis",
+            "showDisplayString": true,
+            "preLaunchTask": "Build Hyperion"
+        },
+        {
+            "name": "Debug Hyperion (sample)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/Binaries/hyperion-sample",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/Build",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "visualizerFile": "${workspaceRoot}/Source/Engine/Hyperion.natvis",
+            "showDisplayString": true,
+            "preLaunchTask": "Build Hyperion"
+        }
+    ]
+}

@@ -277,7 +277,9 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
     }
 
     out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * numShaders);
-    out.buffer->SetDebugName(NAME("SBTBuffer"));
+#ifdef HYP_DEBUG_MODE
+    out.buffer->SetDebugName(NAME("ShaderBindingTable"));
+#endif
 
     CheckResultOrReturn(out.buffer->Create());
 

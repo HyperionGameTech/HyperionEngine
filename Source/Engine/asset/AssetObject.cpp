@@ -411,7 +411,7 @@ Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
 
     if (m_manifestPath.Empty())
     {
-        HYP_BREAKPOINT_DEBUG_MODE;
+        HYP_BREAKPOINT;
 
         return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot open read stream");
     }

@@ -1,0 +1,21 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 4,
+    "Format": 3,
+    "Extent": [4, 4, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 2,
+    "NumLayers": 1,
+    "ImageUsage": 3,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "Engine/Textures/Placeholder_Texture_Cube_1x1_Array.TEX",
+    "Size": 384
+  },
+  "Name": "Placeholder_Texture_Cube_1x1_Array",
+  "FriendlyName": "PlaceholderTextureCube1x1Array",
+  "OriginalFilepath": ""
+}

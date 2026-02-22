@@ -19,7 +19,8 @@ public:
     static Pool* GetAllocator() { return g_rhiPool; }
     
     virtual ~GpuImageViewBase() override;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -29,6 +30,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     HYP_FORCE_INLINE const GpuImageRef& GetImage() const
     {
@@ -70,7 +72,10 @@ protected:
 
     GpuImageRef m_image;
     ImageSubResource m_subResource;
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

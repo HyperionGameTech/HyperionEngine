@@ -833,7 +833,9 @@ VulkanDescriptorSetRef VulkanRenderInterface::MakeDescriptorSet(const Descriptor
     newLayout.SetIsReference(false);
 
     VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(newLayout);
+#ifdef HYP_DEBUG_MODE
     descriptorSet->SetDebugName(layout.GetName());
+#endif
 
     return descriptorSet;
 }

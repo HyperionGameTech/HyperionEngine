@@ -37,7 +37,8 @@ public:
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create() = 0;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -47,13 +48,16 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
 protected:
     TextureFilterMode m_minFilterMode = TFM_NEAREST;
     TextureFilterMode m_magFilterMode = TFM_NEAREST;
     TextureWrapMode m_wrapMode = TWM_CLAMP_TO_EDGE;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

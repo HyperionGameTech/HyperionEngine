@@ -1290,7 +1290,9 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 
     CheckResult(framebuffer->Create());
 
+#ifdef HYP_DEBUG_MODE
     colorAttachment->GetImage()->SetDebugName(NAME("DeferredShadingTarget_Color"));
+#endif
 
     return framebuffer;
 }

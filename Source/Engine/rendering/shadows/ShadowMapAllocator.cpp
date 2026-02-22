@@ -77,12 +77,18 @@ void ShadowMapAllocator::Initialize()
         TWM_CLAMP_TO_EDGE,
         uint16(m_atlases.Size()),
         IU_SAMPLED | IU_STORAGE });
-
+    
+#ifdef HYP_DEBUG_MODE
     m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));
+#endif
+
     CheckResult(m_atlasImage->Create());
 
     m_atlasImageView = g_renderInterface->MakeImageView(m_atlasImage);
+#ifdef HYP_DEBUG_MODE
     m_atlasImageView->SetDebugName(NAME("ShadowMapAtlasImageView"));
+#endif
+
     CheckResult(m_atlasImageView->Create());
 
     m_pointLightShadowMapImage = g_renderInterface->MakeImage(TextureDesc {
@@ -94,12 +100,19 @@ void ShadowMapAllocator::Initialize()
         TWM_CLAMP_TO_EDGE,
         MaxBoundOmniShadowMaps * 6,
         IU_SAMPLED | IU_STORAGE });
-
+    
+#ifdef HYP_DEBUG_MODE
     m_pointLightShadowMapImage->SetDebugName(NAME("PointLightShadowMapImage"));
+#endif
+
     CheckResult(m_pointLightShadowMapImage->Create());
 
     m_pointLightShadowMapImageView = g_renderInterface->MakeImageView(m_pointLightShadowMapImage);
+    
+#ifdef HYP_DEBUG_MODE
     m_pointLightShadowMapImageView->SetDebugName(NAME("PointLightShadowMapImageView"));
+#endif
+
     CheckResult(m_pointLightShadowMapImageView->Create());
 }
 

@@ -178,46 +178,19 @@ void PlaceholderData::Initialize()
 
 #pragma region Image and ImageView
     // These will soon be deprecated (except the samplers) - we will instead use Texture instead of individual image/image view
-    m_image2d1x1R8->SetDebugName(NAME("Placeholder_2D_1x1_R8"));
     CheckResult(m_image2d1x1R8->Create());
-
-    m_imageView2d1x1R8->SetDebugName(NAME("Placeholder_2D_1x1_R8_View"));
     CheckResult(m_imageView2d1x1R8->Create());
-
-    m_image2d1x1R8Storage->SetDebugName(NAME("Placeholder_2D_1x1_R8_Storage"));
     CheckResult(m_image2d1x1R8Storage->Create());
-
-    m_imageView2d1x1R8Storage->SetDebugName(NAME("Placeholder_2D_1x1_R8_Storage_View"));
     CheckResult(m_imageView2d1x1R8Storage->Create());
-
-    m_image3d1x1x1R8->SetDebugName(NAME("Placeholder_3D_1x1x1_R8"));
     CheckResult(m_image3d1x1x1R8->Create());
-
-    m_imageView3d1x1x1R8->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_View"));
     CheckResult(m_imageView3d1x1x1R8->Create());
-
-    m_image3d1x1x1R8Storage->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_Storage"));
     CheckResult(m_image3d1x1x1R8Storage->Create());
-
-    m_imageView3d1x1x1R8Storage->SetDebugName(NAME("Placeholder_3D_1x1x1_R8_Storage_View"));
     CheckResult(m_imageView3d1x1x1R8Storage->Create());
-
-    m_imageCube1x1R8->SetDebugName(NAME("Placeholder_Cube_1x1_R8"));
     CheckResult(m_imageCube1x1R8->Create());
-
-    m_imageViewCube1x1R8->SetDebugName(NAME("Placeholder_Cube_1x1_R8_View"));
     CheckResult(m_imageViewCube1x1R8->Create());
-
-    m_image2d1x1R8Array->SetDebugName(NAME("Placeholder_2D_1x1_R8_Array"));
     CheckResult(m_image2d1x1R8Array->Create());
-
-    m_imageView2d1x1R8Array->SetDebugName(NAME("Placeholder_2D_1x1_R8_Array_View"));
     CheckResult(m_imageView2d1x1R8Array->Create());
-
-    m_imageCube1x1R8Array->SetDebugName(NAME("Placeholder_Cube_1x1_R8_Array"));
     CheckResult(m_imageCube1x1R8Array->Create());
-
-    m_imageViewCube1x1R8Array->SetDebugName(NAME("Placeholder_Cube_1x1_R8_Array_View"));
     CheckResult(m_imageViewCube1x1R8Array->Create());
 
 #pragma endregion Image and ImageView
@@ -345,14 +318,23 @@ void PlaceholderData::Initialize()
 #pragma endregion Textures
 
 #pragma region Samplers
-
+    
+#ifdef HYP_DEBUG_MODE
     m_samplerLinear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
+#endif
+
     CheckResult(m_samplerLinear->Create());
-
+    
+#ifdef HYP_DEBUG_MODE
     m_samplerLinearMipmap->SetDebugName(NAME("Placeholder_Sampler_Linear_Mipmap"));
-    CheckResult(m_samplerLinearMipmap->Create());
+#endif
 
+    CheckResult(m_samplerLinearMipmap->Create());
+    
+#ifdef HYP_DEBUG_MODE
     m_samplerNearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
+#endif
+
     CheckResult(m_samplerNearest->Create());
 
 #pragma endregion Samplers
@@ -392,7 +374,9 @@ void PlaceholderData::Shutdown()
 GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType size)
 {
     GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, size);
+#ifdef HYP_DEBUG_MODE
     gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
+#endif
     CheckResult(gpuBuffer->Create());
 
     return gpuBuffer;

@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "TemporalBlending",
+  "FriendlyName": "TemporalBlending",
+  "Flags": 0,
+  "Path": "Engine/Shaders/TemporalBlending"
+}

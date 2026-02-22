@@ -40,7 +40,7 @@ class AssetObject;
 static inline const Handle<AssetObject>& ResolveAssetImpl(const AssetReference& assetReference)
 {
     static const Handle<AssetObject> s_emptyHandle;
-    HYP_BREAKPOINT_DEBUG_MODE;
+    HYP_BREAKPOINT;
     return s_emptyHandle;
 }
 

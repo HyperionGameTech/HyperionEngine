@@ -263,7 +263,7 @@ static String BuildAttributesDefines(
                 "Shader property {} defined multiple times in shader properties! This may cause shader compilation errors.",
                 property.name);
 
-            HYP_BREAKPOINT_DEBUG_MODE;
+            HYP_BREAKPOINT;
 
             continue;
         }
@@ -3108,7 +3108,7 @@ bool ShaderCompiler::CompileBundle(
                     additionalProperty.name,
                     mergeResult.GetError().GetMessage());
 
-                HYP_BREAKPOINT_DEBUG_MODE;
+                HYP_BREAKPOINT;
             }
         }
     }
@@ -3414,7 +3414,7 @@ bool ShaderCompiler::CompileBundle(
             HYP_LOG(ShaderCompiler, Error, "\t{}", errorMessage);
         }
 
-        HYP_BREAKPOINT_DEBUG_MODE;
+        HYP_BREAKPOINT;
 
         return false;
     }

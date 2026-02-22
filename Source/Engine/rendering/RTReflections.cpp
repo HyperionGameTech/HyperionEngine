@@ -78,7 +78,9 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     if (!cBuffer)
     {
         cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(RayTracingConstants));
+#ifdef HYP_DEBUG_MODE
         cBuffer->SetDebugName(NAME("RayTracingCBuffer"));
+#endif
         Assert(cBuffer->Create());
     }
 
@@ -86,8 +88,11 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
     if (!lightsBuffer)
     {
         lightsBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(LightShaderData) * MaxLights);
-        lightsBuffer->SetRequireCpuAccessible(true);
+#ifdef HYP_DEBUG_MODE
         lightsBuffer->SetDebugName(NAME("RayTracingLightsBuffer"));
+#endif
+
+        lightsBuffer->SetRequireCpuAccessible(true);        
         Assert(lightsBuffer->Create());
     }
 

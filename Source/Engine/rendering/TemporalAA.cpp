@@ -106,7 +106,10 @@ void TemporalAA::Render(Frame* frame, const RenderSetup& renderSetup)
     if (!m_cBuffers[frameIndex])
     {
         m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TAAConstants));
+#ifdef HYP_DEBUG_MODE
         m_cBuffers[frameIndex]->SetDebugName(NAME("TAAConstants"));
+#endif
+
         CheckResult(m_cBuffers[frameIndex]->Create());
     }
 

@@ -165,8 +165,12 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
     const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
 
     m_gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, gpuBufferSize);
-    m_gpuBuffer->SetRequireCpuAccessible(m_cpuAccessible);
+
+#ifdef HYP_DEBUG_MODE
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
+#endif
+    
+    m_gpuBuffer->SetRequireCpuAccessible(m_cpuAccessible);
     CheckResult(m_gpuBuffer->Create());
 }
 

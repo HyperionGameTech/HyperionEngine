@@ -248,7 +248,10 @@ void TemporalBlending::Render(Frame* frame, const RenderSetup& renderSetup)
     if (!cBuffer)
     {
         cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(TemporalBlendingConstants));
+#ifdef HYP_DEBUG_MODE
         cBuffer->SetDebugName(NAME("TemporalBlendingConstants"));
+#endif
+
         cBuffer->Create();
     }
 

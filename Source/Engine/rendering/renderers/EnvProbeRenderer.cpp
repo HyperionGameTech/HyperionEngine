@@ -203,9 +203,11 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
 
     RenderCollector& renderCollector = GetRenderCollector(view);
 
+#ifdef HYP_DEBUG_MODE
     HYP_LOG(Rendering, Info, "Render EnvProbe {} with {} mesh entities (shared: {}), num total draw calls: {}", envProbe->Id(), rpl.GetMeshEntities().NumCurrent(),
         rpl.isShared,
         renderCollector.NumDrawCallsCollected());
+#endif
 
     renderCollector.ExecuteDrawCalls(frame, renderSetup, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 

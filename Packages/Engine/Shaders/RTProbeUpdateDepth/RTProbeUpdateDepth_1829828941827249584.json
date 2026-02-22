@@ -1,0 +1,88 @@
+{
+  "$Class": "Shader",
+  "RevisionNumber": 31459917,
+  "BaseName": "RTProbeUpdateDepth",
+  "PropertySet": {
+    "Chunks": [30, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "VertexAttributes": {
+    "FlagMask": 0
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "DescriptorSetDeclaration",
+        "SetIndex": 0,
+        "Name": "DDGI",
+        "Slots": [[], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 3,
+              "Name": "ProbeRayData",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputIrradianceImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputDepthImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 1,
+              "Name": "DDGIConstants",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [4],
+  "ShaderModuleNames": ["probe_update_depth.comp"],
+  "EntryPointNames": ["main"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/RTProbeUpdateDepth/RTProbeUpdateDepth_1829828941827249584.CS",
+      "Size": 10880
+    }],
+  "PropertySetHashCode": {},
+  "Name": "RTProbeUpdateDepth_1829828941827249584",
+  "FriendlyName": "RTProbeUpdateDepth_1829828941827249584",
+  "OriginalFilepath": ""
+}

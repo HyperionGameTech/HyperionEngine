@@ -192,7 +192,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
         GpuImageRef gpuImage = g_renderInterface->MakeImage(textureDesc);
+        
+#ifdef HYP_DEBUG_MODE
         gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
+#endif
 
         return framebuffer->AddAttachment(
             binding,

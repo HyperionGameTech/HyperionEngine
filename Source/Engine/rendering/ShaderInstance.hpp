@@ -41,7 +41,8 @@ public:
     virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create() = 0;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -51,6 +52,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
 protected:
     explicit ShaderInstanceBase(const Shader* shader)
@@ -59,7 +61,10 @@ protected:
     }
 
     const Shader* m_shader;
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

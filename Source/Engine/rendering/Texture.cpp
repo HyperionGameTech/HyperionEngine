@@ -193,7 +193,10 @@ struct CreateTextureGpuImage : RenderCommand
             }
 
             GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
+#ifdef HYP_DEBUG_MODE
             stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture->GetName().IsValid() ? texture->GetName() : NAME("Invalid")));
+#endif
+
             CheckResultOrReturn(stagingBuffer->Create());
             stagingBuffer->Copy(imageData.Size(), imageData.Data());
 
@@ -323,11 +326,11 @@ Texture::~Texture()
 void Texture::Init()
 {
     m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
-
+    
+#ifdef HYP_DEBUG_MODE
     if (m_name.IsValid())
-    {
         m_gpuImage->SetDebugName(m_name);
-    }
+#endif
 
     TSharedLock<AssetObject> resGuard(*this);
     const bool uploadTextureData = GetImageData().Size() > 0;
@@ -579,7 +582,10 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
     AssertReady();
 
     GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+#ifdef HYP_DEBUG_MODE
     gpuBuffer->SetDebugName(NAME_FMT("Texture_Readback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
+#endif
+
     CheckResult(gpuBuffer->Create());
     gpuBuffer->Map();
 
@@ -643,7 +649,10 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
     GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+#ifdef HYP_DEBUG_MODE
     stagingBuffer->SetDebugName(NAME_FMT("Texture_EnqueueReadback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
+#endif
+
     CheckResult(stagingBuffer->Create());
     stagingBuffer->Map();
 

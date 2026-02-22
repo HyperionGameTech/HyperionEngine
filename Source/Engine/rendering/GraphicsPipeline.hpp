@@ -166,7 +166,8 @@ public:
     }
 
     void SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc);
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -176,6 +177,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     HYP_FORCE_INLINE const PSOCacheKey& GetPSOCacheKey() const
     {

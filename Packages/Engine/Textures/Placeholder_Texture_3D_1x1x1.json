@@ -1,0 +1,21 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 1,
+    "Format": 3,
+    "Extent": [1, 1, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 3,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "Engine/Textures/Placeholder_Texture_3D_1x1x1.TEX",
+    "Size": 4
+  },
+  "Name": "Placeholder_Texture_3D_1x1x1",
+  "FriendlyName": "PlaceholderTexture3D1x1x1",
+  "OriginalFilepath": ""
+}

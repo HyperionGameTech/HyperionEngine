@@ -2057,7 +2057,10 @@ void RenderInterface::CreateBlueNoiseBuffer()
             + ((rankingTileOffset - (scramblingTileOffset + scramblingTileSize)) + rankingTileSize));
 
     blueNoiseBuffer = MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
+#ifdef HYP_DEBUG_MODE
     blueNoiseBuffer->SetDebugName(NAME("BlueNoiseBuffer"));
+#endif
+
     blueNoiseBuffer->SetRequireCpuAccessible(true);
     CheckResult(blueNoiseBuffer->Create());
 
@@ -2071,7 +2074,10 @@ void RenderInterface::CreateSphereSamplesBuffer()
     HYP_SCOPE;
 
     sphereSamplesBuffer = MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 4096);
+#ifdef HYP_DEBUG_MODE
     sphereSamplesBuffer->SetDebugName(NAME("SphereSamplesBuffer"));
+#endif
+
     sphereSamplesBuffer->SetRequireCpuAccessible(true);
     CheckResult(sphereSamplesBuffer->Create());
 

@@ -203,17 +203,25 @@ void IndirectDrawState::Create()
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_instanceBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
-        m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
         m_instanceBuffers[frameIndex]->SetRequireCpuAccessible(true);
-        DeferCreate(m_instanceBuffers[frameIndex]);
+#ifdef HYP_DEBUG_MODE
+        m_instanceBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_InstancesBuffer_Frame{}", frameIndex));
+#endif
+        CheckResult(m_instanceBuffers[frameIndex]->Create());
 
         m_indirectBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, drawCommandsBuffer.Size());
+#ifdef HYP_DEBUG_MODE
         m_indirectBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_IndirectBuffer_Frame{}", frameIndex));
-        DeferCreate(m_indirectBuffers[frameIndex]);
+#endif
+
+        CheckResult(m_indirectBuffers[frameIndex]->Create());
 
         m_stagingBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, drawCommandsBuffer.Size());
+#ifdef HYP_DEBUG_MODE
         m_stagingBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectDraw_StagingBuffer_Frame{}", frameIndex));
-        DeferCreate(m_stagingBuffers[frameIndex]);
+#endif
+
+        CheckResult(m_stagingBuffers[frameIndex]->Create());
     }
 }
 
@@ -363,7 +371,10 @@ void IndirectRenderer::Create(EntityBatchAllocatorBase* batchAllocator)
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_cBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(ComputeVisibilityConstants));
+#ifdef HYP_DEBUG_MODE
         m_cBuffers[frameIndex]->SetDebugName(NAME_FMT("IndirectRenderer_UniformBuffer_Frame{}", frameIndex));
+#endif
+
         CheckResult(m_cBuffers[frameIndex]->Create());
     }
 }

@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSRSampleGBuffer/SSRSampleGBuffer_389825393634412506"
+      }
+    }],
+  "Name": "SSRSampleGBuffer",
+  "FriendlyName": "SSRSampleGBuffer",
+  "OriginalFilepath": ""
+}

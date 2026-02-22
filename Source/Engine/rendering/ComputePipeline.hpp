@@ -33,6 +33,7 @@ public:
         m_shaderInstance = shaderInstance;
     }
 
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -42,6 +43,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     virtual bool IsCreated() const = 0;
 
@@ -71,8 +73,10 @@ protected:
     }
 
     ShaderInstanceRef m_shaderInstance;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

@@ -780,7 +780,10 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
 VulkanDescriptorSetRef VulkanDescriptorSet::Clone() const
 {
     VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(GetLayout());
+
+#ifdef HYP_DEBUG_MODE
     descriptorSet->SetDebugName(GetDebugName());
+#endif
 
     return descriptorSet;
 }

@@ -307,7 +307,8 @@ public:
     {
         return m_layout;
     }
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -328,7 +329,8 @@ public:
     {
         return m_currentFrames;
     }
-#endif
+#endif // DECLARE_SET_TRACK_FRAME_USAGE
+#endif // HYP_DEBUG_MODE
 
     virtual bool IsCreated() const = 0;
 
@@ -422,11 +424,13 @@ protected:
 
     DescriptorSetLayout m_layout;
     HashMap<Name, DescriptorSetElement> m_elements;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
     HashSet<FrameWeakRef> m_currentFrames; // frames that are currently using this descriptor set
+#endif
 #endif
 };
 
@@ -445,16 +449,18 @@ public:
             EnqueueDeletion(std::move(it));
         }
     }
+    
+#ifdef HYP_DEBUG_MODE
+    Name GetDebugName() const
+    {
+        return m_debugName;
+    }
 
     virtual void SetDebugName(Name name)
     {
         m_debugName = name;
     }
-
-    HYP_FORCE_INLINE Name GetDebugName() const
-    {
-        return m_debugName;
-    }
+#endif
 
     HYP_FORCE_INLINE bool IsValid() const
     {
@@ -579,7 +585,9 @@ protected:
     const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

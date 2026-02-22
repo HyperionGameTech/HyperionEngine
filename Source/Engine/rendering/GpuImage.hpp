@@ -39,7 +39,8 @@ public:
     static Pool* GetAllocator() { return g_rhiPool; }
 
     virtual ~GpuImageBase() override = default;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -49,6 +50,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
@@ -256,8 +258,10 @@ protected:
     HashMap<uint64, ResourceState> m_subResourceStates;
 
     EnumFlags<GpuImageFlags> m_flags;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion

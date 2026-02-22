@@ -400,10 +400,8 @@
 
 #pragma region Debug Preprocessor Definitions
 
-#if defined(HYPERION_BUILD_RELEASE_FINAL) && HYPERION_BUILD_RELEASE_FINAL
-#define HYP_ENABLE_BREAKPOINTS 0
-#else
-#define HYP_ENABLE_BREAKPOINTS 1
+#ifdef HYP_DEBUG_MODE
+#define HYP_ENABLE_BREAKPOINTS
 #endif
 
 #if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
@@ -412,10 +410,10 @@
 #define HYP_DEBUG_LINE (__LINE__)
 #define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
 
-#if HYP_ENABLE_BREAKPOINTS
+#ifdef HYP_ENABLE_BREAKPOINTS
 #if (defined(HYP_ARM) && HYP_ARM) || HYP_GCC
 #define HYP_BREAKPOINT __builtin_debugtrap()
-#else
+#else // for x86/x64
 #define HYP_BREAKPOINT __asm__ volatile("int $0x03")
 #endif
 
@@ -439,34 +437,27 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 
 #define HYP_BREAKPOINT_ONCE ::Hyperion::debug::ExecuteBreakpointOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_STATIC_STRING(HYP_FUNCTION_NAME_LIT)>()
 
-#endif
+#endif // HYP_ENABLE_BREAKPOINTS
 #elif defined(HYP_MSVC) && HYP_MSVC
 #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
 #define HYP_DEBUG_FUNC (__FUNCSIG__)
 #define HYP_DEBUG_LINE (__LINE__)
 #define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
 
-#if HYP_ENABLE_BREAKPOINTS
+#ifdef HYP_ENABLE_BREAKPOINTS
 #define HYP_BREAKPOINT (__debugbreak())
-#endif
-#else
+#endif // HYP_ENABLE_BREAKPOINTS
+
+#else // unknown compiler, define empty macros
+
 #define HYP_DEBUG_FUNC_SHORT ""
 #define HYP_DEBUG_FUNC ""
 #define HYP_DEBUG_LINE (0)
 #define HYP_FUNCTION_NAME_LIT ""
 
-#if HYP_ENABLE_BREAKPOINTS
-#define HYP_BREAKPOINT (void(0))
-#endif
 #endif
 
-#ifdef HYP_DEBUG_MODE
-#define HYP_BREAKPOINT_DEBUG_MODE HYP_BREAKPOINT
-#else
-#define HYP_BREAK_IF_DEBUG_MODE (void(0))
-#endif
-
-#if !defined(HYP_ENABLE_BREAKPOINTS) || !HYP_ENABLE_BREAKPOINTS
+#ifndef HYP_BREAKPOINT
 #define HYP_BREAKPOINT (void(0))
 #endif
 

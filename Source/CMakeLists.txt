@@ -29,7 +29,7 @@ set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY ${HYP_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_RELEASE ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 set(CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY_DEBUG ${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY})
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo" CACHE STRING "Configurations to build" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "Configurations to build" FORCE)
 set(CMAKE_TRY_COMPILE_CONFIGURATION "Release" CACHE STRING "Configuration to use for try_compile" FORCE)
 
 project(${BUILD_NAME} CXX)
@@ -103,8 +103,8 @@ endfunction()
 # Run CodeGen with version 0.9
 RunCodeGen(0 9)
 
-set(HYP_DEBUG_MODE 1)
-add_definitions(-DHYP_DEBUG_MODE=1)
+# add_definitions(-DHYP_DEBUG_MODE=1)
+# set(HYP_DEBUG_MODE 1)
 
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)
@@ -113,11 +113,9 @@ set(HYPERION_ENGINE 1)
 set(HYP_TESTS 1)
 add_definitions(-DHYP_TESTS=1)
 
-if(HYP_DEBUG_MODE)
-    # enable TypeId generatation at compile time
-    # will increase compile times slightly but improve runtime performance
-    add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
-endif()
+# enable TypeId generatation at compile time
+# will increase compile times slightly but improve runtime performance
+add_definitions(-DHYP_TYPE_ID_COMPILE_TIME=1)
 
 # platform and compiler definitions
 if(MSVC)

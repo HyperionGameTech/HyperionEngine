@@ -61,7 +61,8 @@ public:
     {
         EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
     }
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -71,6 +72,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     HYP_FORCE_INLINE AccelerationStructureType GetType() const
     {
@@ -94,8 +96,10 @@ public:
 
 protected:
     GpuBufferRef m_meshDescriptionsBuffer;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 HYP_CLASS(Abstract, NoScriptBindings)
@@ -113,7 +117,8 @@ public:
     static Pool* GetAllocator() { return g_rhiPool; }
     
     virtual ~GpuBlasBase() override = default;
-
+    
+#ifdef HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -123,6 +128,7 @@ public:
     {
         m_debugName = name;
     }
+#endif
 
     HYP_FORCE_INLINE AccelerationStructureType GetType() const
     {
@@ -154,7 +160,9 @@ protected:
     Handle<Material> m_material;
     uint32 m_materialBinding;
 
+#ifdef HYP_DEBUG_MODE
     Name m_debugName;
+#endif
 };
 
 } // namespace Hyperion
