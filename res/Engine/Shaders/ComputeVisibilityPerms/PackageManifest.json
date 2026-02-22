@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "ComputeVisibilityPerms",
-  "FriendlyName": "ComputeVisibilityPerms",
-  "Flags": 0,
-  "Path": "Engine/Shaders/ComputeVisibilityPerms"
-}

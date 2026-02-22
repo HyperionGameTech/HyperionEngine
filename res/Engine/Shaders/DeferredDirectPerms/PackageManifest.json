@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "DeferredDirectPerms",
-  "FriendlyName": "DeferredDirectPerms",
-  "Flags": 0,
-  "Path": "Engine/Shaders/DeferredDirectPerms"
-}

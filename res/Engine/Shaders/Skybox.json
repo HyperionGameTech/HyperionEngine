@@ -3,42 +3,42 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546649"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862843"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546681"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862835"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546665"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862827"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546657"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862819"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546825"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862811"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546817"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862803"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546673"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862795"
       }
     }, {
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SkyboxPerms/Skybox_6220568929959546833"
+        "Value": "Engine/Shaders/Skybox/Skybox_5300456253588862787"
       }
     }],
   "Name": "Skybox",

@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DeferredIndirectPerms/DeferredIndirect_9105219408815013452"
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_7346755348467537120"
       }
     }],
   "Name": "DeferredIndirect",

@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "TonemapPerms",
-  "FriendlyName": "TonemapPerms",
-  "Flags": 0,
-  "Path": "Engine/Shaders/TonemapPerms"
-}

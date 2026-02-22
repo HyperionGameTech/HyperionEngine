@@ -84,10 +84,6 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
-
-        file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDll\" AfterTargets=\"Build\">\n")
-        file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\\\" />\n")
-        file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")
 
         # find dotnet executable

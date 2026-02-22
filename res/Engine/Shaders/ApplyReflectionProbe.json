@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/ApplyReflectionProbePerms/ApplyReflectionProbe_9105219408815013452"
+        "Value": "Engine/Shaders/ApplyReflectionProbe/ApplyReflectionProbe_1829828941827249593"
       }
     }],
   "Name": "ApplyReflectionProbe",

@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/RTProbeUpdateDepth/RTProbeUpdateDepth_1829828941827249584"
+      }
+    }],
+  "Name": "RTProbeUpdateDepth",
+  "FriendlyName": "RTProbeUpdateDepth",
+  "OriginalFilepath": ""
+}

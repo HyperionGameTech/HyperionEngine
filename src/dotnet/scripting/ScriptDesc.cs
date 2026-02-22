@@ -19,8 +19,12 @@ namespace Hyperion
     [ClassBinding(Name = "ScriptLanguage")]
     public enum ScriptLanguage : uint
     {
-        HypScript = 0,
-        CSharp = 1
+        Invalid = ~0u,
+
+        Native = 0,
+
+        HypScript = 1,
+        CSharp = 2
     }
 
     [ClassBinding(Name = "ScriptDesc")]

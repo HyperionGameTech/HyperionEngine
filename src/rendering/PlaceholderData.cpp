@@ -264,7 +264,7 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture2d,
-        "Engine/Media/Textures",
+        "Engine/Textures",
         "Placeholder_Texture_2D_1x1",
         TextureDesc {
             TextureType::Texture2D,
@@ -280,7 +280,7 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture3d,
-        "Engine/Media/Textures",
+        "Engine/Textures",
         "Placeholder_Texture_3D_1x1x1",
         TextureDesc {
             TextureType::Texture3D,
@@ -296,7 +296,7 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultCubemap,
-        "Engine/Media/Textures",
+        "Engine/Textures",
         "Placeholder_Texture_Cube_1x1",
         TextureDesc {
             TextureType::Cubemap,
@@ -312,7 +312,7 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultTexture2dArray,
-        "Engine/Media/Textures",
+        "Engine/Textures",
         "Placeholder_Texture_2D_1x1_Array",
         TextureDesc {
             TextureType::Texture2DArray,
@@ -328,7 +328,7 @@ void PlaceholderData::Initialize()
 
     LoadOrInitTexture(
         defaultCubemapArray,
-        "Engine/Media/Textures",
+        "Engine/Textures",
         "Placeholder_Texture_Cube_1x1_Array",
         TextureDesc {
             TextureType::CubemapArray,

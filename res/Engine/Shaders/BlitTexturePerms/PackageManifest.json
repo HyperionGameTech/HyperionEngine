@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "BlitTexturePerms",
-  "FriendlyName": "BlitTexturePerms",
-  "Flags": 0,
-  "Path": "Engine/Shaders/BlitTexturePerms"
-}

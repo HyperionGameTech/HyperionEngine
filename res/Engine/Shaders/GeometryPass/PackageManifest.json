@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "GeometryPass",
+  "FriendlyName": "GeometryPass",
+  "Flags": 0,
+  "Path": "Engine/Shaders/GeometryPass"
+}

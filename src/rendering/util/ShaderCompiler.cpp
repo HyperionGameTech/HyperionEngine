@@ -3365,15 +3365,17 @@ bool ShaderCompiler::CompileBundle(
                     tempWriter.Close();
                 }
 
+                const String relativePath = FilePath(item.file).Basename();
+
                 if (item.language == ShaderLanguage::GLSL)
                 {
                     // for GLSL, we always have "main" as entry point
-                    shader->AddShaderModule(item.type, item.file, "main", byteBuffer.ToByteView());
+                    shader->AddShaderModule(item.type, relativePath, "main", byteBuffer.ToByteView());
                 }
                 else
                 {
                     // for HLSL, we use entry point name based on stage
-                    shader->AddShaderModule(item.type, item.file, byteBuffer.ToByteView());
+                    shader->AddShaderModule(item.type, relativePath, byteBuffer.ToByteView());
                 }
 
                 ++numCompiled;
@@ -3391,7 +3393,7 @@ bool ShaderCompiler::CompileBundle(
                 outBundle->compiledShaders.PushBack(std::move(shader));
             }
         },
-        false); // true);
+        false);
 
     if (outBundle->HasErrors())
     {
@@ -3418,14 +3420,18 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    // more attributes = higher pri, better fit found first
     std::sort(
         outBundle->compiledShaders.Begin(),
         outBundle->compiledShaders.End(),
         [](const Handle<Shader>& a, const Handle<Shader>& b) -> bool
         {
-            return ByteUtil::BitCount(a->vertexAttributes.flagMask)
-                > ByteUtil::BitCount(b->vertexAttributes.flagMask);
+            if (ByteUtil::BitCount(a->vertexAttributes.flagMask) < ByteUtil::BitCount(b->vertexAttributes.flagMask))
+                return false;
+
+            if (std::strcmp(a->GetName().LookupString(), b->GetName().LookupString()) < 0)
+                return false;
+
+            return true;
         });
 
     { // Save the shader property DB
@@ -3441,7 +3447,7 @@ bool ShaderCompiler::CompileBundle(
         for (const Handle<Shader>& shader : outBundle->compiledShaders)
         {
             Result registerResult = g_assetManager->GetAssetRegistry()->RegisterAsset(
-                HYP_FORMAT("Engine/Shaders/{}Perms", shader->baseName),
+                HYP_FORMAT("Engine/Shaders/{}", shader->baseName),
                 shader,
                 AddAssetConflictMode::ReplaceExisting);
 

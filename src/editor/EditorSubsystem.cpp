@@ -2738,7 +2738,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
         return HYP_MAKE_ERROR(Error, "Failed to load font face! Error: {}", 0, fontFaceAsset.GetError().GetMessage());
     }
 
-    Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Media/Fonts/Roboto", /* createIfNotExist */ true);
+    Handle<AssetPackage> package = g_assetManager->GetAssetRegistry()->GetPackageFromPath("Engine/Fonts/Roboto", /* createIfNotExist */ true);
     Assert(package.IsValid());
 
     Handle<FontAtlas> atlas = MakeHandle<FontAtlas>(std::move(fontFaceAsset->Result()));

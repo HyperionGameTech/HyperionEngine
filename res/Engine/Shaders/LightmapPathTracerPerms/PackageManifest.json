@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "LightmapPathTracerPerms",
-  "FriendlyName": "LightmapPathTracerPerms",
-  "Flags": 0,
-  "Path": "Engine/Shaders/LightmapPathTracerPerms"
-}
