@@ -26,7 +26,7 @@ include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/ThirdParty
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/dotnet
 )
@@ -85,7 +85,7 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
         # copy dll
-        file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDLL\" AfterTargets=\"Build\">\n")
+        file(APPEND ${CSPROJ_PATH} "  <Target Name=\"CopyDLL\" AfterTargets=\"AfterBuild\">\n")
         file(APPEND ${CSPROJ_PATH} "    <Copy SourceFiles=\"$(TargetPath)\" DestinationFolder=\"${HYP_LIBRARY_OUTPUT_DIRECTORY}/\" />\n")
         file(APPEND ${CSPROJ_PATH} "  </Target>\n")
         file(APPEND ${CSPROJ_PATH} "</Project>\n")

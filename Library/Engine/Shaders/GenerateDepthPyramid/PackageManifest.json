@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "GenerateDepthPyramid",
-  "FriendlyName": "GenerateDepthPyramid",
-  "Flags": 0,
-  "Path": "Engine/Shaders/GenerateDepthPyramid"
-}

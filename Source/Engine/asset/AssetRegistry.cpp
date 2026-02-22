@@ -1834,7 +1834,7 @@ void AssetPackage::SignalLoaded()
 #pragma region AssetRegistry
 
 AssetRegistry::AssetRegistry()
-    : AssetRegistry("Library")
+    : AssetRegistry("Packages")
 {
 }
 

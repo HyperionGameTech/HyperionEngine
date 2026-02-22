@@ -18,7 +18,7 @@ add_definitions(-DHYP_EDITOR=1)
 include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/ThirdParty
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/editor

@@ -22,7 +22,7 @@ IF NOT DEFINED VCPKG_ROOT (
 for %%i in ("%~dp0..\..") do set "HYP_ROOT_DIR_ABS=%%~fi"
 set "HYP_ROOT_DIR_ABS=%HYP_ROOT_DIR_ABS:\=/%"
 
-cmake ../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\Binaries\ThirdParty" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\Binaries\Engine" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\Binaries\Engine" -DHYP_ROOT_DIR="%HYP_ROOT_DIR_ABS%"
+cmake ../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 18 2026" -A x64 -DHYP_THIRD_PARTY_LIBRARY_DIRECTORY="%~dp0..\..\External\ThirdParty\Binaries" -DHYP_LIBRARY_OUTPUT_DIRECTORY="%~dp0..\..\Binaries\Engine" -DHYP_RUNTIME_OUTPUT_DIRECTORY="%~dp0..\..\Binaries\Engine" -DHYP_ROOT_DIR="%HYP_ROOT_DIR_ABS%"
 
 :SKIP_CMAKE_GENERATION
 

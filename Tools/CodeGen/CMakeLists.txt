@@ -32,6 +32,10 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
+if(NOT SUBMODULES_DIR)
+    set(SUBMODULES_DIR ${CMAKE_SOURCE_DIR}/../../External/ThirdParty/Source)
+endif()
+
 link_directories(${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY} /usr/local/lib)
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
@@ -57,7 +61,7 @@ set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${CMAKE_SOURCE_DIR}/Source
     ${CMAKE_SOURCE_DIR}/../../Source
-    ${CMAKE_SOURCE_DIR}/../../Source/ThirdParty
+    ${CMAKE_SOURCE_DIR}/../../External/ThirdParty/Source
 )
 
 

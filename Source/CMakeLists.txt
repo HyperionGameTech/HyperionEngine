@@ -60,7 +60,8 @@ string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 set(HYP_BUILD_TYPE "Release")
 
 set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
-set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ThirdParty)
+set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../External/ThirdParty/Source)
+set(SUBMODULES_DIR ${CMAKE_SOURCE_DIR}/../External/Submodules)
 
 enable_language(CXX)
 enable_language(C)
@@ -263,7 +264,7 @@ add_definitions(-DHYP_SCRIPT=1)
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # if dotnet headers exist, set HYP_DOTNET to 1
-if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dotnetcore/hostfxr.h")
+if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dotnetcore/hostfxr.h")
     message(STATUS ".NET headers found")
     set(HYP_DOTNET 1)
 
@@ -271,7 +272,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dotnetcore/hostfxr.h")
         if(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
             message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
 
             set(HYP_DOTNET 1)
         elseif(EXISTS "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
@@ -338,10 +339,10 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
     message(STATUS "Using DirectX 12 as rendering backend")
 
     # check for D3D12MemoryAllocator ThirdParty module
-    if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator/CMakeLists.txt")
-        add_subdirectory(${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/ThirdParty/D3D12MemoryAllocator_build)
+    if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/CMakeLists.txt")
+        add_subdirectory(${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/ThirdParty/D3D12MemoryAllocator_build)
 
-        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator/include)
+        include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/D3D12MemoryAllocator/include)
 
         set(RENDERER_LIBRARIES
             ${RENDERER_LIBRARIES}
@@ -355,7 +356,7 @@ endif()
 if (RENDERING_BACKEND STREQUAL "Vulkan")
     if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
         # if glslang folder exists, link with it.
-        if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/glslang/glslang/CMakeLists.txt")
+        if(EXISTS "${SUBMODULES_DIR}/glslang/glslang/CMakeLists.txt")
             set(HYP_GLSLANG 1)
 
             add_definitions(-DHYP_GLSLANG=1)
@@ -364,7 +365,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
             # Build glslang during CMake configuration time (not as part of the main build)
             # This keeps glslang completely separate from the VS solution / main project
             set(GLSLANG_BUILD_DIR "${CMAKE_BINARY_DIR}/glslang_build")
-            set(GLSLANG_SOURCE_DIR "${CMAKE_SOURCE_DIR}/submodules/glslang")
+            set(GLSLANG_SOURCE_DIR "${SUBMODULES_DIR}/glslang")
 
             # Check if glslang needs to be built (check for a marker file or key library)
             if(WIN32)
@@ -479,7 +480,7 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
                 )
             endif()
 
-            include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+            include_directories(BEFORE ${SUBMODULES_DIR}/glslang)
 
             set(RENDERER_LIBRARIES
                 ${RENDERER_LIBRARIES}
@@ -494,14 +495,14 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
     endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
     # add DirectX-Headers include dir if DX12 rendering backend
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/DirectX-Headers)
+    include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/DirectX-Headers)
 endif()
 
 # setup DXC if found
-if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dxc/dxcapi.h")
+if(EXISTS "${THIRD_PARTY_INCLUDE_DIR}/dxc/dxcapi.h")
     message(STATUS "DXC headers found, setting up DXC")
 
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/dxc)
+    include_directories(BEFORE ${THIRD_PARTY_INCLUDE_DIR}/dxc)
 
     if(WIN32)
         set(DXC_LIB_PATH "${CMAKE_THIRD_PARTY_LIBRARY_DIRECTORY}/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
@@ -535,7 +536,7 @@ else()
 endif()
 
 # setup SPIRV-Reflect
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect/spirv_reflect.h")
+if(EXISTS "${SUBMODULES_DIR}/SPIRV-Reflect/spirv_reflect.h")
     message(STATUS "SPIRV-Reflect found, setting up SPIRV-Reflect")
 
     set(HYP_SPIRV_REFLECT 1)
@@ -546,9 +547,9 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect/spirv_reflect.h")
     set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(SPIRV_REFLECT_ENABLE_ASSERTS OFF CACHE BOOL "" FORCE)
 
-    add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect ${CMAKE_BINARY_DIR}/SPIRV-Reflect EXCLUDE_FROM_ALL)
+    add_subdirectory(${SUBMODULES_DIR}/SPIRV-Reflect ${CMAKE_BINARY_DIR}/SPIRV-Reflect EXCLUDE_FROM_ALL)
 
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/SPIRV-Reflect)
+    include_directories(BEFORE ${SUBMODULES_DIR}/SPIRV-Reflect)
 
     set(RENDERER_LIBRARIES
         ${RENDERER_LIBRARIES}
@@ -595,20 +596,6 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
         # handle ThirdParty modules separately
         if(dir MATCHES "ThirdParty")
-            # set(should_recurse FALSE) # do not recurse into ThirdParty, let them handle themselves
-            # set(should_skip_module TRUE)
-
-            # if (dir MATCHES "D3D12MemoryAllocator" AND NOT RENDERING_BACKEND STREQUAL "DX12")
-            #     # Skip it since we are not using DX12
-            #     return()
-            # endif()
-
-            # # just add the ThirdParty module as is and return
-            # add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/ThirdParty/${subdir_basename})
-            # include_directories(BEFORE ${dir}/include)
-
-            # message(STATUS "Added ThirdParty CMakeLists.txt from ${dir}, including headers from ${dir}/include")
-
             return()
         endif()
 
@@ -728,8 +715,8 @@ source_group(TREE ${CMAKE_SOURCE_DIR}/Engine PREFIX "Source Code" FILES ${SOURCE
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_HEADERS "")
 set(THIRD_PARTY_LIBRARIES "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/ThirdParty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
-source_group(TREE ${CMAKE_SOURCE_DIR}/ThirdParty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
+collect_sources_and_modules(${THIRD_PARTY_INCLUDE_DIR} THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
+source_group(TREE ${THIRD_PARTY_INCLUDE_DIR} PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
 # platform specific stuff
 file(GLOB_RECURSE PLATFORM_FILES "Source/Engine/system/platform/**/*")
@@ -785,13 +772,13 @@ endif()
 
 
 if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
-    if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/libdatachannel/CMakeLists.txt")
+    if(EXISTS "${SUBMODULES_DIR}/libdatachannel/CMakeLists.txt")
         add_definitions(-DHYP_LIBDATACHANNEL=1)
 
         # Build libdatachannel as external project (only for VS and Xcode)
         if(MSVC) # OR CMAKE_GENERATOR STREQUAL "Xcode"
             ExternalProject_Add(libdatachannel_external
-                SOURCE_DIR ${CMAKE_SOURCE_DIR}/submodules/libdatachannel
+                SOURCE_DIR ${SUBMODULES_DIR}/libdatachannel
                 CMAKE_ARGS
                     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/libdatachannel_install
@@ -817,7 +804,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
                 )
             endif()
 
-            include_directories(submodules/libdatachannel/include)
+            include_directories(${SUBMODULES_DIR}/libdatachannel/include)
 
             set(COMMON_LIBRARIES
                 ${COMMON_LIBRARIES}
@@ -825,9 +812,9 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
             )
         else()
             # For other generators (Makefiles, Ninja, etc.), use add_subdirectory
-            add_subdirectory(submodules/libdatachannel EXCLUDE_FROM_ALL)
+            add_subdirectory(${SUBMODULES_DIR}/libdatachannel EXCLUDE_FROM_ALL)
 
-            include_directories(submodules/libdatachannel/include)
+            include_directories(${SUBMODULES_DIR}/libdatachannel/include)
 
             set(COMMON_LIBRARIES
                 ${COMMON_LIBRARIES}
@@ -838,7 +825,7 @@ if (${NATIVE} AND NOT ${HYP_PLATFORM_NAME} STREQUAL "iOS")
 endif()
 
 # # if submodule 'oidn' exists , link with it
-# if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/oidn/CMakeLists.txt")
+# if(EXISTS "${SUBMODULES_DIR}/oidn/CMakeLists.txt")
 #     add_definitions(-DHYP_OIDN=1)
 #
 #     include_directories(submodules/oidn/include)
@@ -893,11 +880,11 @@ endif()
 set(COMMON_INCLUDE_DIRS "")
 
 include_directories(
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/ThirdParty
 )
 
 if(NOT WIN32)

@@ -120,7 +120,7 @@ static void HandleFatalError(const char* message)
 HYP_EXPORT const FilePath& GetLibraryDirectory()
 {
 #if HYP_EDITOR
-    static DirectoryInitializer<HYP_STATIC_STRING("Library"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Packages"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
 #else
     // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
@@ -134,7 +134,7 @@ HYP_EXPORT const FilePath& GetLibraryDirectory()
 
 HYP_EXPORT const FilePath& GetProjectsDirectory()
 {
-    // @TODO Use configuration value for this path
+    // @TODO Use configuration value for this path. can be in Documents folder eg
 
     static DirectoryInitializer<HYP_STATIC_STRING("Projects"), /* RelativeToExecutablePath */ false> s_projectsDirectory;
     return s_projectsDirectory.path;

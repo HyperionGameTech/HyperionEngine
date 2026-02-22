@@ -16,8 +16,8 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
-    ${CMAKE_SOURCE_DIR}/ThirdParty
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/asset
 )

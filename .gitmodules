@@ -1,23 +1,14 @@
-[submodule "submodules/glslang"]
-	path = submodules/glslang
+[submodule "External/Submodules/glslang"]
+	path = External/Submodules/glslang
 	url = https://github.com/notomorrow/glslang
 	branch = hyp-modifications
-[submodule "submodules/libdatachannel"]
-	path = submodules/libdatachannel
+[submodule "External/Submodules/libdatachannel"]
+	path = External/Submodules/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel
 	commit = v0.19
-[submodule "submodules/zlib"]
-	path = submodules/zlib
+[submodule "External/Submodules/zlib"]
+	path = External/Submodules/zlib
 	url = https://github.com/madler/zlib
-[submodule "submodules/webgpu"]
-	path = submodules/webgpu
-	url = https://github.com/eliemichel/WebGPU-binaries
-[submodule "submodules/xatlas"]
-	path = submodules/xatlas
+[submodule "External/Submodules/xatlas"]
+	path = External/Submodules/xatlas
 	url = https://github.com/jpcy/xatlas
-[submodule "submodules/oidn"]
-	path = submodules/oidn
-	url = https://github.com/OpenImageDenoise/oidn
-[submodule "submodules/ios-cmake"]
-	path = submodules/ios-cmake
-	url = https://github.com/leetal/ios-cmake

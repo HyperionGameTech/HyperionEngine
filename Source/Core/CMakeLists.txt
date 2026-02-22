@@ -57,7 +57,7 @@ if(ZLIB_FOUND)
 
     include_directories(${ZLIB_INCLUDE_DIRS})
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${ZLIB_LIBRARIES})
-elseif(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
+elseif(EXISTS "${SUBMODULES_DIR}/zlib/CMakeLists.txt")
     message(STATUS "Zlib submodule found")
 
     add_definitions(-DHYP_ZLIB=1)
@@ -66,8 +66,8 @@ elseif(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
     set(ZLIB_BUILD_MINIZIP OFF CACHE BOOL "" FORCE)
     set(ZLIB_INSTALL OFF CACHE BOOL "" FORCE)
 
-    include_directories(${CMAKE_SOURCE_DIR}/submodules/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
-    add_subdirectory(${CMAKE_SOURCE_DIR}/submodules/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
+    include_directories(${SUBMODULES_DIR}/zlib PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/zlib")
+    add_subdirectory(${SUBMODULES_DIR}/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
 
     set(COMMON_LIBRARIES
         ${COMMON_LIBRARIES}
@@ -87,13 +87,13 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../
     ${CMAKE_CURRENT_SOURCE_DIR}/../Engine
-    ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty
     ${CMAKE_CURRENT_SOURCE_DIR}/../Generated
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source
 )
 
 message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/tlsf/tlsf.c)
+set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../External/ThirdParty/Source/tlsf/tlsf.c)
 
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

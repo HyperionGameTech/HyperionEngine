@@ -17,7 +17,7 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 include_directories(
     ${CMAKE_SOURCE_DIR}/
     ${CMAKE_SOURCE_DIR}/Generated
-    ${CMAKE_SOURCE_DIR}/ThirdParty
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/baking
 )
@@ -34,11 +34,11 @@ foreach(filepath ${hyperion-baking_HEADERS})
 endforeach()
 
 # if submodules/xatlas exists, add xatlas.cpp to sources and xatlas.h to headers
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.cpp" AND EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.h")
+if(EXISTS "${SUBMODULES_DIR}/xatlas/source/xatlas/xatlas.cpp" AND EXISTS "${SUBMODULES_DIR}/xatlas/source/xatlas/xatlas.h")
     add_definitions(-DHYP_XATLAS=1)
 
-    file(GLOB XATLAS_SOURCES "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/*.cpp")
-    file(GLOB XATLAS_HEADERS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/*.h")
+    file(GLOB XATLAS_SOURCES "${SUBMODULES_DIR}/xatlas/source/xatlas/*.cpp")
+    file(GLOB XATLAS_HEADERS "${SUBMODULES_DIR}/xatlas/source/xatlas/*.h")
 
     if(XATLAS_SOURCES)
         message(STATUS "Xatlas found, adding to sources")
@@ -51,7 +51,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas/xatlas.cpp" AND E
     set(CURRENT_SOURCES ${CURRENT_SOURCES} ${XATLAS_SOURCES})
     set(CURRENT_HEADERS ${CURRENT_HEADERS} ${XATLAS_HEADERS})
 
-    include_directories("${CMAKE_SOURCE_DIR}/submodules/xatlas/source/xatlas")
+    include_directories("${SUBMODULES_DIR}/xatlas/source/xatlas")
 endif()
 
 add_library(${BUILD_NAME} STATIC ${CURRENT_SOURCES} ${CURRENT_HEADERS})

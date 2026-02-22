@@ -27,7 +27,7 @@ include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/ThirdParty
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/script
 )

@@ -102,7 +102,7 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/ThirdParty
+    ${THIRD_PARTY_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/Generated
     ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/Engine/rendering
@@ -133,7 +133,7 @@ if(NOT "${${BUILD_NAME}_PCH}" STREQUAL "")
     target_precompile_headers(${BUILD_NAME} PRIVATE "${${BUILD_NAME}_PCH}")
 endif()
 
-include_directories(BEFORE ${CMAKE_SOURCE_DIR}/submodules/glslang)
+include_directories(BEFORE ${SUBMODULES_DIR}/glslang)
 
 if(TARGET glslang_build)
     add_dependencies(${BUILD_NAME} glslang_build)

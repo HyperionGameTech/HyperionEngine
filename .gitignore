@@ -310,7 +310,6 @@ res/*/BlobStorage/**/*
 Source/Generated/**/*
 
 Binaries/Engine/**/*
-!Binaries/ThirdParty/**/*
 
 Build/**/*
 
