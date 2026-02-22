@@ -323,7 +323,7 @@ void GraphicsPipelineCache::GetOrCreate(
             TUniqueLock guard(m_mutex);
 
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
-            HYP_LOG(Rendering, Debug, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
+            HYP_LOG(Rendering, Verbose, "Adding graphics pipeline {} (debug name: {}) to cache with hash: {}", graphicsPipeline->Id(), graphicsPipeline->GetDebugName(), attributes.GetHashCode().Value());
 #endif
             // cache it now that it's been created so it can be reused
             m_cachedPipelines->Add(key, slot);
@@ -429,7 +429,7 @@ GraphicsPipelineCacheHandle GraphicsPipelineCache::FindGraphicsPipeline(
         if ((*pPipeline)->MatchesSignature(attributes, renderTargetDesc))
         {
 #if HYP_GRAPHICS_PIPELINE_TIMING_DEBUG
-            HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
+            HYP_LOG(Rendering, Verbose, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 #endif
 
             return GraphicsPipelineCacheHandle(pPipeline);
@@ -496,7 +496,7 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
         if (frameDiff >= GraphicsPipelineDiscardFrames)
         {
 #ifdef HYP_DEBUG_MODE
-            HYP_LOG(Rendering, Debug, "Removing graphics pipeline {} (debug name: {}) from cache as it has not been used in {} frames",
+            HYP_LOG(Rendering, Verbose, "Removing graphics pipeline {} (debug name: {}) from cache as it has not been used in {} frames",
                 graphicsPipeline->Id(),
                 graphicsPipeline->GetDebugName(),
                 frameDiff);

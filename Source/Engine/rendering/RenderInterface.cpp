@@ -415,7 +415,7 @@ static ViewData* GetViewData(View* view)
 
     if (viewDataIt == s_viewData.End())
     {
-        HYP_LOG(Rendering, Debug, "Allocating new ViewData for View {}\t(Camera : {})", view->Id(),
+        HYP_LOG(Rendering, Verbose, "Allocating new ViewData for View {}\t(Camera : {})", view->Id(),
             view->GetCamera() ? *view->GetCamera()->GetName() : "null");
 
         ViewData* vd = PoolNew<ViewData>(*g_renderPool);
@@ -894,7 +894,7 @@ RenderInterface::~RenderInterface()
 
 RendererResult RenderInterface::Initialize()
 {
-    HYP_LOG(Rendering, Debug, "Initializing base render interface");
+    HYP_LOG(Rendering, Verbose, "Initializing base render interface");
 
     s_threadFrameIndex = &s_frameIndex[CONSUMER];
 
@@ -1343,7 +1343,7 @@ void RenderInterface::EndFrame()
 
                 if (vd.ReleaseRef() == 0)
                 {
-                    HYP_LOG(Rendering, Debug, "Discarding ViewData for view {}", view->Id());
+                    HYP_LOG(Rendering, Verbose, "Discarding ViewData for view {}", view->Id());
 
                     auto viewDataIt = s_viewData.Find(view);
                     AssertDebug(viewDataIt != s_viewData.End() && viewDataIt->second == &vd);

@@ -218,7 +218,7 @@ void ScriptObjectResource::Initialize()
         // In this case, the ref count will be decremented once the queued object is finalized
         const Class* cls = m_ptr->InstanceClass();
 
-        HYP_LOG(Object, Debug, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
+        HYP_LOG(Object, Verbose, "Thread: {}\tManaged object for object with Class {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
             CurrentThreadId().GetName(),
             cls->GetName(), (void*)m_ptr,
             (void*)dotNetData->objectPtr);

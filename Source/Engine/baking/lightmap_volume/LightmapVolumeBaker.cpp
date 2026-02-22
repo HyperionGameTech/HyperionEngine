@@ -186,7 +186,7 @@ static void UpdateAtlasTextures(
     uint16 atlasIndex,
     HashMap<LightmapElementId, FixedArray<Handle<Texture>, LTT_MAX>>&& elementTextures)
 {
-    HYP_LOG(Lightmap, Debug, "Updating atlas textures for LightmapVolume {}", lmv->Id());
+    HYP_LOG(Lightmap, Verbose, "Updating atlas textures for LightmapVolume {}", lmv->Id());
 
     for (auto& it : elementTextures)
     {
@@ -458,7 +458,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     const LightmapElement* lightmapElement = m_volume->GetElement(m_lightmapElementId);
     Assert(lightmapElement != nullptr);
 
-    HYP_LOG(Lightmap, Debug, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
+    HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
         lightmapElement->offsetUv, lightmapElement->scale);
 
     // Update meshes

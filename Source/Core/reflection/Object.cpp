@@ -104,7 +104,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             }
             else
             {
-                DebugLog(LogType::Warn, "Class '%s' has no .NET class associated with it\n", *cls->GetName());
+                HYP_LOG(Core, Debug, "Class '%s' has no .NET class associated with it\n", *cls->GetName());
             }
 #endif
 

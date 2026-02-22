@@ -179,7 +179,7 @@ public:
             return err;
         }
 
-        HYP_LOG(Serialization, Debug, "Deserializing Entity of type {} with Id: {}",
+        HYP_LOG(Serialization, Verbose, "Deserializing Entity of type {} with Id: {}",
             entity->InstanceClass()->GetName(),
             entity->Id());
 
@@ -274,7 +274,7 @@ public:
                 continue;
             }
 
-            HYP_LOG(Serialization, Debug, "Adding component '{}' (child type id: {}, name: {}) to entity of type {} with Id: {}",
+            HYP_LOG(Serialization, Verbose, "Adding component '{}' (child type id: {}, name: {}) to entity of type {} with Id: {}",
                 componentInterface->GetTypeInfo().name,
                 childTypeId.Value(),
                 child.GetType().name,

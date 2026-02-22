@@ -25,9 +25,10 @@
 
 namespace Hyperion {
 
-HYP_API extern ANSIStringView GetCurrentThreadName();
-
 namespace logging {
+
+HYP_API extern ANSIStringView GetCurrentThreadName();
+HYP_API extern bool IsVerboseLoggingEnabled();
 
 struct LogMessage
 {
@@ -301,7 +302,17 @@ inline void LogStatic(Logger& logger, Args&&... args)
 
     if (logger.IsChannelEnabled(s_channel))
     {
-        if constexpr (Level == LogLevel::Fatal)
+#ifndef HYP_DEBUG_MODE
+        if constexpr (Level == LogLevel::Debug)
+            return;
+#endif
+
+        if constexpr (Level == LogLevel::Verbose)
+        {
+            if (!IsVerboseLoggingEnabled())
+                return;
+        }
+        else if constexpr (Level == LogLevel::Fatal)
         {
             logger.LogFatal(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
 
@@ -321,7 +332,17 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
 
     if (logger.IsChannelEnabled(channel))
     {
-        if constexpr (Level == LogLevel::Fatal)
+#ifndef HYP_DEBUG_MODE
+        if constexpr (Level == LogLevel::Debug)
+            return;
+#endif
+
+        if constexpr (Level == LogLevel::Verbose)
+        {
+            if (!IsVerboseLoggingEnabled())
+                return;
+        }
+        else if constexpr (Level == LogLevel::Fatal)
         {
             logger.LogFatal(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
 
@@ -341,7 +362,17 @@ inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fi
 
     if (logger.IsChannelEnabled(channel))
     {
-        if constexpr (Level == LogLevel::Fatal)
+#ifndef HYP_DEBUG_MODE
+        if constexpr (Level == LogLevel::Debug)
+            return;
+#endif
+
+        if constexpr (Level == LogLevel::Verbose)
+        {
+            if (!IsVerboseLoggingEnabled())
+                return;
+        }
+        else if constexpr (Level == LogLevel::Fatal)
         {
             logger.LogFatal(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
 

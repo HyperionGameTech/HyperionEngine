@@ -160,7 +160,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
         const Class* nativeClass = scriptComponent.nativeObject->InstanceClass();
         AssertDebug(nativeClass != nullptr);
 
-        HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
+        HYP_LOG(Script, Verbose, "Created ScriptObjectResource for ScriptComponent, native class: {}", nativeClass->GetName());
 
         InitObject(scriptComponent.nativeObject);
 
@@ -256,14 +256,14 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                     sor = new ScriptObjectResource(object, classPtr);
                     sor->AddReader();
 
-                    HYP_LOG(Script, Debug, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
+                    HYP_LOG(Script, Verbose, "Created ScriptObjectResource for ScriptComponent, .NET class: {}", classPtr->GetName());
 
                     if (!(scriptComponent.flags & ScriptComponentFlags::BEFORE_ADDED_CALLED))
                     {
                         if (dotnet::ManagedMethod* beforeInitMethodPtr = classPtr->GetMethod("BeforeAdded"))
                         {
                             HYP_NAMED_SCOPE("Call BeforeAdded() on script component");
-                            HYP_LOG(Script, Debug, "Calling BeforeAdded() on script component");
+                            HYP_LOG(Script, Verbose, "Calling BeforeAdded() on script component");
 
                             object->InvokeMethod<void>(beforeInitMethodPtr, world, scene);
 

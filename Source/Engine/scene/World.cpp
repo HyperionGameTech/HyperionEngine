@@ -585,7 +585,7 @@ void World::EndUpdate()
 #ifdef HYP_SYSTEM_LOG_PERFORMANCE
         for (const auto& it : systemExecutionGroup.GetPerformanceClocks())
         {
-            HYP_LOG(Entity, Debug, "\tSystem {} performance: {}", it.first->GetName(), it.second.ElapsedMs());
+            HYP_LOG(Entity, Verbose, "\tSystem {} performance: {}", it.first->GetName(), it.second.ElapsedMs());
         }
 #endif
     }

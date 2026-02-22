@@ -306,7 +306,7 @@ static TResult<Handle<AssetPackage>> RelocateAsset(
         newPath = newPackageBasePath;
     }
 
-    HYP_LOG(Assets, Debug, "Relocating asset '{}' to: '{}'", assetObject->GetName(), newPath);
+    HYP_LOG(Assets, Verbose, "Relocating asset '{}' to: '{}'", assetObject->GetName(), newPath);
 
     if (Result registerAssetResult = registry.RegisterAsset(newPath, assetObject, AddAssetConflictMode::FailOnConflict); registerAssetResult.HasError())
     {
@@ -660,7 +660,7 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
 
         if (currentPackage)
         {
-            HYP_LOG(Assets, Info, "AssetObject '{}' belongs to package {} and will be removed from it before being added to package {}",
+            HYP_LOG(Assets, Verbose, "AssetObject '{}' belongs to package {} and will be removed from it before being added to package {}",
                 assetObject->GetName(),
                 currentPackage->BuildPackagePath(),
                 BuildPackagePath());
@@ -771,13 +771,13 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
             parentPackage = parentPackage->GetParentPackage().Lock();
         }
 
-        HYP_LOG(Assets, Debug, "Removed {} '{}' from package '{}'",
+        HYP_LOG(Assets, Verbose, "Removed {} '{}' from package '{}'",
             existingAssetObject->InstanceClass()->GetName(),
             existingAssetObject->GetName(),
             BuildPackagePath());
     }
 
-    HYP_LOG(Assets, Debug, "Added {} '{}' to package '{}' (thread: {})",
+    HYP_LOG(Assets, Verbose, "Added {} '{}' to package '{}' (thread: {})",
         assetObject->InstanceClass()->GetName(),
         assetObject->GetName(),
         BuildPackagePath(),
@@ -853,7 +853,7 @@ Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
         parentPackage = parentPackage->GetParentPackage().Lock();
     }
 
-    HYP_LOG(Assets, Debug, "Removed {} '{}' from package '{}'",
+    HYP_LOG(Assets, Verbose, "Removed {} '{}' from package '{}'",
         assetObject->InstanceClass()->GetName(),
         assetObject->GetName(),
         BuildPackagePath());
@@ -1554,7 +1554,7 @@ void AssetPackage::AddDependency(const AssetPath& dependency)
         {
             m_dependencies.PushBack(dependency);
 
-            HYP_LOG(Assets, Debug, "Added dependency to package '{}': {}", m_name, dependency.ToString());
+            HYP_LOG(Assets, Verbose, "Added dependency to package '{}': {}", m_name, dependency.ToString());
         }
     }
 
@@ -1651,7 +1651,7 @@ void AssetPackage::Prune(Array<Handle<AssetPackage>>& outRemovedPackages, bool* 
                 {
                     objectsToDelete.PushBack(assetObject);
 
-                    HYP_LOG(Assets, Debug, "Pruning asset object '{}' from package '{}'", assetObject->GetName(), m_name);
+                    HYP_LOG(Assets, Verbose, "Pruning asset object '{}' from package '{}'", assetObject->GetName(), m_name);
 
                     assetObject->SetIsTransientByProxy(false);
                     assetObject->m_package.Reset();
@@ -2914,7 +2914,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 {
     HYP_SCOPE;
 
-    HYP_LOG(Assets, Debug, "Loading package from manifest path: {}", manifestPath);
+    HYP_LOG(Assets, Verbose, "Loading package from manifest path: {}", manifestPath);
 
     Handle<AssetPackage> outPackage;
 
@@ -2989,7 +2989,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
                 // make filepath for parent package manifest
                 const FilePath parentManifestPath = dir / relativePath / "PackageManifest.json";
 
-                HYP_LOG(Assets, Debug, "Loading parent package '{}' for package at '{}' from manifest '{}'", parentPackagePathString, packagePath, parentManifestPath);
+                HYP_LOG(Assets, Verbose, "Loading parent package '{}' for package at '{}' from manifest '{}'", parentPackagePathString, packagePath, parentManifestPath);
 
                 // attempt to load parent package from manifest
                 if (TResult<Handle<AssetPackage>> parentPackageResult = LoadPackageFromManifest(parentManifestPath, /* loadSubpackages */ false, /* forceLoad */ true); parentPackageResult.HasError())
@@ -3058,13 +3058,13 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
             continue;
         }
 
-        HYP_LOG(Assets, Debug, "Loading dependency package '{}' for package '{}'", dependencyPath, outPackage->GetName());
+        HYP_LOG(Assets, Verbose, "Loading dependency package '{}' for package '{}'", dependencyPath, outPackage->GetName());
 
         Handle<AssetPackage> dependencyPackage = GetPackageFromPath(dependencyPath.ToString(), /* createIfNotExist */ false);
 
         if (dependencyPackage != nullptr)
         {
-            HYP_LOG(Assets, Debug, "Dependency package '{}' already loaded!", dependencyPath);
+            HYP_LOG(Assets, Verbose, "Dependency package '{}' already loaded!", dependencyPath);
             continue;
         }
 
@@ -3074,7 +3074,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
         if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
         {
-            HYP_LOG(Assets, Debug, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
+            HYP_LOG(Assets, Verbose, "Loading dependency package '{}' from manifest '{}'", dependencyPath, dependencyManifestPath);
 
             TResult<Handle<AssetPackage>> dependencyPackageResult = LoadPackageFromManifest(dependencyManifestPath, /* loadSubpackages */ false, /* forceLoad */ true);
 
@@ -3157,7 +3157,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
                 if (existingAssetIt != outPackage->m_assetObjects.End())
                 {
-                    HYP_LOG(Assets, Debug, "Asset {} in package {} already loaded by external forces, skipping",
+                    HYP_LOG(Assets, Verbose, "Asset {} in package {} already loaded by external forces, skipping",
                         assetName, outPackage->BuildPackagePath());
 
                     continue;
@@ -3385,7 +3385,7 @@ void AssetRegistry::RegisterAssetsRecursively(
             ObjectBase* object = current.TryGet<ObjectBase*>().GetOr(nullptr);
             if (object && !visited.Insert(object).second)
             {
-                HYP_LOG(Assets, Info, "Already visited {} with ID {}, skipping to avoid infinite recursion",
+                HYP_LOG(Assets, Verbose, "Already visited {} with ID {}, skipping to avoid infinite recursion",
                     object->InstanceClass() ? *object->InstanceClass()->GetName() : "<no class>", object->Id());
 
                 return;

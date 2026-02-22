@@ -121,7 +121,7 @@ void SimThread::SetGameInstance(Game* gameInstance)
     }
     else
     {
-        HYP_LOG(SimThread, Info, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
+        HYP_LOG(SimThread, Verbose, "Setting game instance from thread {} (async) ...", CurrentThreadId().GetName());
 
         GetScheduler().Enqueue(LaunchGameAsync(gameInstance), TaskEnqueueFlags::FIRE_AND_FORGET);
     }

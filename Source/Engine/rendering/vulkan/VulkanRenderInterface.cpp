@@ -423,7 +423,7 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorPool(VulkanDescriptor
         nullptr,
         &dp.pool));
 
-    HYP_LOG(RenderingBackend, Debug, "Created new Vulkan descriptor pool {} ({})", (void*)dp.pool, m_pools.Size());
+    HYP_LOG(RenderingBackend, Verbose, "Created new Vulkan descriptor pool {} ({})", (void*)dp.pool, m_pools.Size());
 
     outDescriptorPool = dp.pool;
 
@@ -611,7 +611,7 @@ RendererResult VulkanRenderInterface::Initialize()
 
     if (s_cfgDebugLayers.ToBool(false))
     {
-        HYP_LOG(RenderingBackend, Debug, "Vulkan debug layers enabled");
+        HYP_LOG(RenderingBackend, Verbose, "Vulkan debug layers enabled");
     }
 
     const bool enableDebugLayers = s_cfgDebugLayers.ToBool(false);

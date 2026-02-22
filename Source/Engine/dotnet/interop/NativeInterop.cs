@@ -89,8 +89,6 @@ namespace Hyperion
             {
                 AppDomain currentDomain = AppDomain.CurrentDomain;
 
-                Logger.Log(LogLevel.Info, "Initializing .NET runtime in AppDomain: {0}, ID: {1}", currentDomain.FriendlyName, currentDomain.Id);
-
                 currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));

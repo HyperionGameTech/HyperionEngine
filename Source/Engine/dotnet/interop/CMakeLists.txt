@@ -69,9 +69,11 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_INTEROP_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
-        file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
-        file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
+        # file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
+        # file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
+        # file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
+
+        file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" />\n")
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
         # copy dll
@@ -86,17 +88,17 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             message(FATAL_ERROR "dotnet executable not found. Please install the .NET SDK to build C# projects.")
         endif()
 
+        execute_process(
+            COMMAND ${DOTNET_EXE} restore
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
+        )
+        
         if(NOT USE_MSBUILD_FOR_CSHARP_BUILD)
             message(STATUS "Using dotnet CLI to build Hyperion.NET.Interop")
         
-            execute_process(
-                COMMAND ${DOTNET_EXE} restore
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
-            )
-            
             add_custom_target(Hyperion.NET.Interop ALL
                 COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS hyperion-dotnet-shared hyperion-core
+                DEPENDS hyperion-dotnet-shared
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Interop
             )
         else()
@@ -106,9 +108,10 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 ${CSPROJ_PATH}
                 TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
             )
+            
+            add_dependencies(Hyperion.NET.Interop hyperion-dotnet-shared)
         endif()
 
-        add_dependencies(Hyperion.NET.Interop hyperion-dotnet-shared)
         add_dependencies(${BUILD_NAME} Hyperion.NET.Interop hyperion-core)
     endif()
 endif()

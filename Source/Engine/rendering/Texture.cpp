@@ -676,7 +676,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
                                     stagingBuffer = MakeStrongRef(stagingBuffer),
                                     callback = std::move(callback)](...) mutable
                               {
-                                  HYP_LOG(Texture, Debug, "Finish readback for texture {}", name);
+                                  HYP_LOG(Texture, Verbose, "Finish readback for texture {}", name);
 
                                   ByteBuffer byteBuffer;
                                   byteBuffer.SetSize(stagingBuffer->Size());

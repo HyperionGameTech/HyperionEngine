@@ -287,7 +287,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
     {
         if (subMesh.indices.Empty())
         {
-            HYP_LOG(Assets, Info, "Ogre XML parser: Skipping submesh with empty indices");
+            HYP_LOG(Assets, Verbose, "Ogre XML parser: Skipping submesh with empty indices");
 
             continue;
         }

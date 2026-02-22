@@ -344,7 +344,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
         && m_texelIndex >= m_texelIndices.Size() * m_lightmapper->NumTexelSamples()
         && tracingComplete.Get(MemoryOrder::ACQUIRE))
     {
-        HYP_LOG(Lightmap, Debug, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_lightmapper->NumTexelSamples());
+        HYP_LOG(Lightmap, Verbose, "Lightmap job {}: All texels processed ({} / {}), stopping", m_uuid, m_texelIndex, m_texelIndices.Size() * m_lightmapper->NumTexelSamples());
 
         Stop();
 

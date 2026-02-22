@@ -29,7 +29,7 @@ const RenderSetup& NullRenderSetup()
 
 PassData::~PassData()
 {
-    HYP_LOG(Rendering, Debug, "Destroying PassData");
+    HYP_LOG(Rendering, Verbose, "Destroying PassData");
 
     if (next != nullptr)
     {
@@ -72,7 +72,7 @@ int PassData::CullUnusedGraphicsPipelines(int maxIter)
         // check refcount is zero without lock
         if (entry.renderGroup.GetUnsafe()->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
         {
-            HYP_LOG(Rendering, Debug, "Removing graphics pipeline for RenderGroup '{}' as it is no longer valid.", entry.renderGroup.Id());
+            HYP_LOG(Rendering, Verbose, "Removing graphics pipeline for RenderGroup '{}' as it is no longer valid.", entry.renderGroup.Id());
 
             renderGroupCacheIterator = renderGroupCache.Erase(renderGroupCacheIterator);
 
@@ -151,7 +151,7 @@ int RendererBase::RunCleanupCycle(PassDataMap& passData, int maxIter, typename P
 
         if (pd->view.Expired())
         {
-            HYP_LOG(Rendering, Debug, "Removing PassData for View {} as it is no longer valid.", pd->view.Id());
+            HYP_LOG(Rendering, Verbose, "Removing PassData for View {} as it is no longer valid.", pd->view.Id());
 
             delete pd;
 

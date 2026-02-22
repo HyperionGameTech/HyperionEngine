@@ -278,7 +278,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     switch (severity)
     {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        HYP_LOG(RenderingBackend, Debug, "Vulkan: [{}, {}]: {}",
+        HYP_LOG(RenderingBackend, Verbose, "Vulkan: [{}, {}]: {}",
             callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:

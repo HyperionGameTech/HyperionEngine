@@ -161,8 +161,6 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
     Array<Name> fromChain = from.GetChain();
     Array<Name> toChain = to.GetChain();
 
-    HYP_LOG(Assets, Debug, "MakeRelativePath: from='{}' to='{}'", from.ToString(), to.ToString());
-
     // Find common prefix length
     const SizeType minSize = MathUtil::Min(fromChain.Size(), toChain.Size());
 
@@ -229,16 +227,12 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
         result.Append(*toChain[i]);
     }
 
-    HYP_LOG(Assets, Debug, "MakeRelativePath result: '{}'", result);
-
     return result;
 }
 
 AssetPath AssetPath::FromRelativePath(const AssetPath& from, const String& relativePath)
 {
     HYP_SCOPE;
-
-    HYP_LOG(Assets, Debug, "FromRelativePath: from='{}' relativePath='{}'", from.ToString(), relativePath);
 
     if (!from.IsValid() || relativePath.Empty())
     {
@@ -302,11 +296,7 @@ AssetPath AssetPath::FromRelativePath(const AssetPath& from, const String& relat
         }
     }
 
-    AssetPath result(resultChain);
-
-    HYP_LOG(Assets, Debug, "FromRelativePath result: '{}'", result.ToString());
-
-    return result;
+    return AssetPath(resultChain);
 }
 
 String AssetPath::ToString() const

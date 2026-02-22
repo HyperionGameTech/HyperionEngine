@@ -206,7 +206,7 @@ public:
                 ManagedGuid { 0, 0 },
                 AssemblyFlags::CORE_ASSEMBLY);
 
-            HYP_LOG(DotNET, Info, "Loading core assembly: {}", entry.first);
+            HYP_LOG(DotNET, Verbose, "Loading core assembly: {}", entry.first);
 
             // Initialize all core assemblies
             result = m_managedDelegates.initializeAssembly(
@@ -276,7 +276,7 @@ public:
             return false;
         }
 
-        HYP_LOG(DotNET, Info, "Unloading assembly...");
+        HYP_LOG(DotNET, Verbose, "Unloading assembly...");
 
         int32 result;
 
@@ -335,7 +335,7 @@ public:
             return nullptr;
         }
 
-        HYP_LOG(DotNET, Info, "Loading .NET assembly: {}\tType Name: {}\tMethod Name: {}", assemblyPath, typeName, methodName);
+        HYP_LOG(DotNET, Verbose, "Loading .NET assembly: {}\tType Name: {}\tMethod Name: {}", assemblyPath, typeName, methodName);
 
         void* delegatePtr = nullptr;
 
@@ -423,7 +423,7 @@ private:
             return false;
         }
 
-        HYP_LOG(DotNET, Debug, "Loading hostfxr from: {}", wpath);
+        HYP_LOG(DotNET, Verbose, "Loading hostfxr from: {}", wpath);
 
         if (!FilePath(wpath).Exists())
         {
@@ -446,7 +446,7 @@ private:
 
         AssertDebug(m_initFptr && m_getDelegateFptr && m_closeFptr);
 
-        HYP_LOG(DotNET, Debug, "Loaded hostfxr functions");
+        HYP_LOG(DotNET, Verbose, "Loaded hostfxr functions");
 
         return m_initFptr && m_getDelegateFptr && m_closeFptr;
     }
@@ -455,7 +455,7 @@ private:
     {
         Assert(m_cxt == nullptr);
 
-        HYP_LOG(DotNET, Debug, "Initializing .NET runtime");
+        HYP_LOG(DotNET, Verbose, "Initializing .NET runtime");
 
         PlatformString runtimeConfigPath;
 
@@ -475,14 +475,14 @@ private:
         switch (res)
         {
         case /* Success */ 0:
-            HYP_LOG(DotNET, Debug, "Initialized .NET runtime");
+            HYP_LOG(DotNET, Verbose, "Initialized .NET runtime");
 
             m_shouldInitializeRuntime = true;
 
             return true;
         case /* Success_HostAlreadyInitialized */ 1: // fallthrough
         case /* Success_DifferentRuntimeProperties */ 2:
-            HYP_LOG(DotNET, Debug, "Initialized .NET runtime, hostfxr_initialize_for_runtime_config returned {}", res);
+            HYP_LOG(DotNET, Verbose, "Initialized .NET runtime, hostfxr_initialize_for_runtime_config returned {}", res);
 
             m_shouldInitializeRuntime = false;
 
@@ -502,7 +502,7 @@ private:
         // can be nullptr if init from managed
         if (m_cxt != nullptr)
         {
-            HYP_LOG(DotNET, Debug, "Shutting down .NET runtime");
+            HYP_LOG(DotNET, Verbose, "Shutting down .NET runtime");
 
             Assert(m_closeFptr != nullptr);
             m_closeFptr(m_cxt);
@@ -511,7 +511,7 @@ private:
 
             m_shouldInitializeRuntime = true;
 
-            HYP_LOG(DotNET, Debug, "Shut down .NET runtime");
+            HYP_LOG(DotNET, Verbose, "Shut down .NET runtime");
         }
 
         m_dll.Close();
@@ -684,7 +684,7 @@ void DotNETHost::Initialize(const FilePath& basePath, bool initFromManaged, Init
 
     Assert(m_impl == nullptr);
 
-    HYP_LOG(DotNET, Info, "Initializing .NET Host with base path: {}", basePath);
+    HYP_LOG(DotNET, Verbose, "Initializing .NET Host with base path: {}", basePath);
 
     m_impl = new DotNetImpl();
     m_impl->Initialize(basePath, initFromManaged, initFromManagedCb);

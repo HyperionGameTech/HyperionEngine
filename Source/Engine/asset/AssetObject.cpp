@@ -327,7 +327,7 @@ Result AssetObject::Save(const FilePath& manifestPath)
         manifestWriter.Close();
     }
 
-    HYP_LOG(Assets, Debug, "Saved asset manifest to '{}'", manifestPath);
+    HYP_LOG(Assets, Verbose, "Saved asset manifest to '{}'", manifestPath);
 
     // need to set manifest path after saving the resource, because if we need to load the data first in order
     // to save it somewhere else, we'll need the previous manifest path to still exist otherwise we'll try to load

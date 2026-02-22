@@ -171,7 +171,7 @@ namespace Hyperion.Editor.ViewModels
                 return;
             }
 
-            Logger.Log(LogLevel.Info, "Game instance not yet launched, setting up callback to be notified when ready");
+            Logger.Log(LogLevel.Verbose, "Game instance not yet launched, setting up callback to be notified when ready");
 
             _gameInstanceLaunchedHandler = editorGame.GetOnLaunchedDelegate().Bind(() =>
             {

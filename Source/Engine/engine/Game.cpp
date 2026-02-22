@@ -169,7 +169,7 @@ void Game::SetToEditMode()
 
     OnGameStateChange(this, previousGameStateMode, GameStateMode::EDIT_MODE);
 
-    HYP_LOG(Engine, Info, "Game set to Edit Mode");
+    HYP_LOG(Engine, Verbose, "Game set to Edit Mode");
 }
 
 #endif

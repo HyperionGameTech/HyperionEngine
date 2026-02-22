@@ -19,7 +19,7 @@ public:
     {
         const Node& inObject = in.Get<Node>();
 
-        HYP_LOG(Serialization, Debug, "Serializing Node with name '{}'...", inObject.GetName());
+        HYP_LOG(Serialization, Verbose, "Serializing Node with name '{}'...", inObject.GetName());
 
         if (inObject.GetNodeFlags() & NodeFlags::TRANSIENT)
         {
@@ -55,7 +55,7 @@ public:
             }
         }
 
-        HYP_LOG(Serialization, Debug, "Serialization completed for Node with name '{}'", inObject.GetName());
+        HYP_LOG(Serialization, Verbose, "Serialization completed for Node with name '{}'", inObject.GetName());
 
         return { FBOMResult::FBOM_OK };
     }

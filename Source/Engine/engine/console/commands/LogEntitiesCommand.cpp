@@ -35,8 +35,6 @@ HYP_DEFINE_LOG_SUBCHANNEL(LogEntities, Console);
 
 Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 {
-    HYP_LOG(LogEntities, Info, "LogEntitiesCommand test");
-
     if (DotNETHost::GetInstance().GetGlobalFunctions().triggerGcFunction)
     {
         // Trigger .NET garbage collector and wait for finalizers (there may be entities waiting to be collected)

@@ -506,7 +506,7 @@ RenderProxyList::~RenderProxyList()
         });
 
     if (numRenderProxies > 0)
-        HYP_LOG(Rendering, Debug, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
+        HYP_LOG(Rendering, Verbose, "RenderProxyList destroyed with {} render proxies still in it", numRenderProxies);
 #endif
 
     for (SizeType i = 0; i < resourceTrackers.Size(); i++)
@@ -526,7 +526,7 @@ void RenderProxyList::BeginWrite()
         uint64 rwMarkerState = AtomicBitOr(&rwMarker, WriteFlag);
         while (HYP_UNLIKELY(rwMarkerState & ReadMask))
         {
-            HYP_LOG(Rendering, Debug, "Busy-waiting for read marker to be released! "
+            HYP_LOG(Rendering, Verbose, "Busy-waiting for read marker to be released! "
                                       "If this is occuring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
             rwMarkerState = AtomicAdd(&rwMarker, 0);
@@ -577,7 +577,7 @@ void RenderProxyList::BeginRead(bool* pOutSuccess)
 
             if (HYP_UNLIKELY(rwMarkerState & WriteFlag))
             {
-                HYP_LOG(Rendering, Debug, "Waiting for write marker to be released. "
+                HYP_LOG(Rendering, Verbose, "Waiting for write marker to be released. "
                                           "If this is occurring frequently, the View that owns this RenderProxyList should have double / triple buffering enabled");
 
                 AtomicSub(&rwMarker, 2);

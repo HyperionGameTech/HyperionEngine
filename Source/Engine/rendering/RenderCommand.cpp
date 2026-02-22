@@ -70,7 +70,7 @@ void RenderCommands::Flush()
         RenderCommand* front = commands[index];
 
 #ifdef HYP_RENDER_COMMANDS_DEBUG_LOG_NAME
-        HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, bufferIndex);
+        HYP_LOG(RenderCommands, Verbose, "Executing render command {} on buffer {}", front->_debug_name, bufferIndex);
 #endif
 
         CheckResult(front->Call());
@@ -106,7 +106,7 @@ void RenderCommands::Flush()
 #endif
 
 #ifdef HYP_RENDER_COMMANDS_DEBUG_LOG_NAME
-        HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, bufferIndex);
+        HYP_LOG(RenderCommands, Verbose, "Executing render command {} on buffer {}", front->_debug_name, bufferIndex);
 #endif
 
         CheckResult(front->Call());

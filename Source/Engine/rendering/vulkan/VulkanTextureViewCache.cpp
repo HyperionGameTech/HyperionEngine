@@ -205,7 +205,7 @@ void VulkanTextureViewCache::CleanupUnusedTextures()
 
     if (numRemoved != 0)
     {
-        HYP_LOG(RenderingBackend, Debug, "VulkanTextureCache: Cleaned up {} unused textures", numRemoved);
+        HYP_LOG(RenderingBackend, Verbose, "VulkanTextureCache: Cleaned up {} unused textures", numRemoved);
     }
 }
 

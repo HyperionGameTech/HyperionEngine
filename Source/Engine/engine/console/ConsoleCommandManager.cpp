@@ -68,11 +68,11 @@ void ConsoleCommandManager::Initialize()
 
     if (numRegisteredCommands > 0)
     {
-        HYP_LOG(Console, Info, "Registered {} console command(s)", numRegisteredCommands);
+        HYP_LOG(Console, Verbose, "Registered {} console command(s)", numRegisteredCommands);
     }
     else
     {
-        HYP_LOG(Console, Info, "No console commands registered");
+        HYP_LOG(Console, Verbose, "No console commands registered");
     }
 }
 
@@ -95,7 +95,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
             {
                 if (cls->IsAbstract())
                 {
-                    HYP_LOG(Console, Debug, "Class '{}' is abstract, skipping console command registration", cls->GetName());
+                    HYP_LOG(Console, Verbose, "Class '{}' is abstract, skipping console command registration", cls->GetName());
 
                     return IterationResult::CONTINUE;
                 }
@@ -136,7 +136,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
 
         command->m_definitions = command->GetDefinitions_Internal();
 
-        HYP_LOG(Console, Info, "Registering command: {}\tClass: {}",
+        HYP_LOG(Console, Verbose, "Registering command: {}\tClass: {}",
             command->InstanceClass()->GetAttribute(Attributes::g_attrCommand).GetString(),
             command->InstanceClass()->GetName());
 

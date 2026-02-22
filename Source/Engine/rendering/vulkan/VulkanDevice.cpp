@@ -140,7 +140,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
     {
         if (families[i].queueCount == 0)
         {
-            HYP_LOG(RenderingBackend, Debug, "Queue family {} supports no queues, skipping", i);
+            HYP_LOG(RenderingBackend, Verbose, "Queue family {} supports no queues, skipping", i);
 
             continue;
         }
@@ -152,7 +152,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
 
             if (supportsPresentation)
             {
-                HYP_LOG(RenderingBackend, Debug, "Found presentation queue: {}", i);
+                HYP_LOG(RenderingBackend, Verbose, "Found presentation queue: {}", i);
                 indices.presentFamily = i;
             }
         }
@@ -161,7 +161,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         {
             if (Predicate(i, VK_QUEUE_GRAPHICS_BIT, true))
             {
-                HYP_LOG(RenderingBackend, Debug, "Found dedicated graphics presentation queue: {}", i);
+                HYP_LOG(RenderingBackend, Verbose, "Found dedicated graphics presentation queue: {}", i);
                 indices.graphicsFamily = i;
                 foundIndices.PushBack(i);
                 continue;
@@ -172,7 +172,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         {
             if (Predicate(i, VK_QUEUE_TRANSFER_BIT, true))
             {
-                HYP_LOG(RenderingBackend, Debug, "Found dedicated transfer queue: {}", i);
+                HYP_LOG(RenderingBackend, Verbose, "Found dedicated transfer queue: {}", i);
                 indices.transferFamily = i;
                 foundIndices.PushBack(i);
                 continue;
@@ -183,7 +183,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         {
             if (Predicate(i, VK_QUEUE_COMPUTE_BIT, true))
             {
-                HYP_LOG(RenderingBackend, Debug, "Found dedicated compute queue: {}", i);
+                HYP_LOG(RenderingBackend, Verbose, "Found dedicated compute queue: {}", i);
                 indices.computeFamily = i;
                 foundIndices.PushBack(i);
                 continue;
@@ -209,7 +209,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
     {
         if (families[i].queueCount == 0)
         {
-            HYP_LOG(RenderingBackend, Debug, "Queue family {} supports no queues, skipping", i);
+            HYP_LOG(RenderingBackend, Verbose, "Queue family {} supports no queues, skipping", i);
 
             continue;
         }
@@ -218,7 +218,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         {
             if (Predicate(i, VK_QUEUE_TRANSFER_BIT, false))
             {
-                HYP_LOG(RenderingBackend, Debug, "Found non-dedicated transfer queue {}", i);
+                HYP_LOG(RenderingBackend, Verbose, "Found non-dedicated transfer queue {}", i);
                 indices.transferFamily = i;
             }
         }
@@ -227,7 +227,7 @@ QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice physicalDevi
         {
             if (Predicate(i, VK_QUEUE_COMPUTE_BIT, false))
             {
-                HYP_LOG(RenderingBackend, Debug, "Found non-dedicated compute queue {}", i);
+                HYP_LOG(RenderingBackend, Verbose, "Found non-dedicated compute queue {}", i);
                 indices.computeFamily = i;
             }
         }
@@ -338,7 +338,7 @@ void VulkanDevice::DebugLogAllocatorStats() const
         char* statsString;
         vmaBuildStatsString(m_allocator, &statsString, true);
 
-        HYP_LOG(RenderingBackend, Info, "Pre-destruction VMA stats:\n{}\n", statsString);
+        HYP_LOG(RenderingBackend, Debug, "Pre-destruction VMA stats:\n{}\n", statsString);
 
         vmaFreeStatsString(m_allocator, statsString);
     }
@@ -388,7 +388,7 @@ RendererResult VulkanDevice::WaitIdle() const
 
 RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
 {
-    HYP_LOG(RenderingBackend, Debug, "Memory properties:\n");
+    HYP_LOG(RenderingBackend, Verbose, "Memory properties:\n");
     const auto& memoryProperties = m_features->GetPhysicalDeviceMemoryProperties();
 
     for (uint32 i = 0; i < memoryProperties.memoryTypeCount; i++)
@@ -396,11 +396,11 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         const auto& memoryType = memoryProperties.memoryTypes[i];
         const uint32 heapIndex = memoryType.heapIndex;
 
-        HYP_LOG(RenderingBackend, Debug, "Memory type %lu:\t(index: %lu, flags: %lu)\n", i, heapIndex, memoryType.propertyFlags);
+        HYP_LOG(RenderingBackend, Verbose, "Memory type {}:\t(index: {}, flags: {})\n", i, heapIndex, memoryType.propertyFlags);
 
         const VkMemoryHeap& heap = memoryProperties.memoryHeaps[heapIndex];
 
-        HYP_LOG(RenderingBackend, Debug, "\tHeap:\t\t(size: %llu, flags: %lu)\n", heap.size, heap.flags);
+        HYP_LOG(RenderingBackend, Verbose, "\tHeap:\t\t(size: {}, flags: {})\n", heap.size, heap.flags);
     }
 
     Array<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -462,15 +462,15 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         }
     }
 
-    HYP_LOG(RenderingBackend, Debug, "Required vulkan extensions:");
-    HYP_LOG(RenderingBackend, Debug, "-----");
+    HYP_LOG(RenderingBackend, Verbose, "Required vulkan extensions:");
+    HYP_LOG(RenderingBackend, Verbose, "-----");
 
     for (const char* str : extensionNames)
     {
-        HYP_LOG(RenderingBackend, Debug, "- {}", str);
+        HYP_LOG(RenderingBackend, Verbose, "- {}", str);
     }
 
-    HYP_LOG(RenderingBackend, Debug, "-----");
+    HYP_LOG(RenderingBackend, Verbose, "-----");
 
     VkDeviceCreateInfo createInfo { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
     createInfo.pQueueCreateInfos = queueCreateInfos.Data();
@@ -513,7 +513,7 @@ RendererResult VulkanDevice::Create(VkSurfaceKHR surface)
         }
     }
 
-    HYP_LOG(RenderingBackend, Debug, "Loading dynamic functions\n");
+    HYP_LOG(RenderingBackend, Verbose, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
 
     return {};

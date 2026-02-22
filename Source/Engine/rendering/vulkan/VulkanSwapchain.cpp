@@ -248,7 +248,7 @@ RendererResult VulkanSwapchain::Create()
     AssertDebug(m_images.Any());
     AssertDebug(m_framebuffers.Empty());
 
-    HYP_LOG(RenderingBackend, Info, "Creating {} swapchain framebuffers with extent and format: {}",
+    HYP_LOG(RenderingBackend, Verbose, "Creating {} swapchain framebuffers with extent and format: {}",
         m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
 
     for (const VulkanGpuImageRef& image : m_images)
@@ -300,7 +300,7 @@ void VulkanSwapchain::SetExtent(Vec2u newExtent)
 
 void VulkanSwapchain::Recreate()
 {
-    HYP_LOG(RenderingBackend, Info, "Recreating Vulkan swapchain {} with new extent: {}", Id(), m_extent);
+    HYP_LOG(RenderingBackend, Verbose, "Recreating Vulkan swapchain {} with new extent: {}", Id(), m_extent);
 
     Array<VulkanGpuImageRef> oldImages = std::move(m_images);
     Array<VulkanFramebufferRef> oldFramebuffers = std::move(m_framebuffers);

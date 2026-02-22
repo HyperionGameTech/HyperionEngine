@@ -58,7 +58,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
     //        visibilityStateComponent.visibilityState = &octant->GetVisibilityState();
     //    }
 
-    //    // HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.Id().Value(), visibilityStateComponent.octantId.GetIndex(), visibilityStateComponent.octantId.GetDepth());
+    //    // HYP_LOG(Octree, Verbose, "Inserted entity #{} into octree, inserted at {}, {}", entity.Id().Value(), visibilityStateComponent.octantId.GetIndex(), visibilityStateComponent.octantId.GetDepth());
 
     //    entityManager.RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     //}

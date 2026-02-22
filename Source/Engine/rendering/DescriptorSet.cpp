@@ -126,7 +126,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
                 continue;
             }
 
-            // HYP_LOG(RenderingBackend, Debug, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
+            // HYP_LOG(RenderingBackend, Verbose, "Set element {}.{}[{}] (slot: {}, count: {}, size: {}, is_dynamic: {})",
             //     declPtr->name, descriptor.name, descriptorIndex, int(descriptor.slot),
             //     descriptor.count, descriptor.size, descriptor.isDynamic);
 

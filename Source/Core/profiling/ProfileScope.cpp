@@ -124,7 +124,7 @@ public:
 
     void IterateRequests()
     {
-        HYP_LOG(Profile, Info, "Iterate requests ({})", m_requests.Size());
+        HYP_LOG(Profile, Verbose, "Iterate requests ({})", m_requests.Size());
 
         AssertOnThread(m_thread.Id());
 
@@ -183,7 +183,7 @@ public:
         Task<HTTPResponse> startRequest = HTTPRequest(m_params.endpointUrl + "/start", JSON::Value(std::move(object)), HTTPMethod::POST)
                                               .Send();
 
-        HYP_LOG(Profile, Info, "Waiting for profiler connection request to finish");
+        HYP_LOG(Profile, Verbose, "Waiting for profiler connection request to finish");
 
         HTTPResponse& response = startRequest.Await();
 
@@ -208,7 +208,7 @@ public:
             return;
         }
 
-        HYP_LOG(Profile, Info, "Submitting profiler results to trace server...");
+        HYP_LOG(Profile, Verbose, "Submitting profiler results to trace server...");
 
         JSON::Object object;
 

@@ -76,12 +76,15 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
             file(APPEND ${CSPROJ_PATH} "    <Compile Include=\"${CSHARP_SCRIPTING_SOURCE}\" />\n")
         endforeach()
 
-        file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Runtime\" >\n")
-        file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll</HintPath>\n")
-        file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
-        file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
-        file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
-        file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
+        # file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Runtime\" >\n")
+        # file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Runtime.dll</HintPath>\n")
+        # file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
+        # file(APPEND ${CSPROJ_PATH} "    <Reference Include=\"Hyperion.NET.Shared\" >\n")
+        # file(APPEND ${CSPROJ_PATH} "        <HintPath>${HYP_LIBRARY_OUTPUT_DIRECTORY}/Hyperion.NET.Shared.dll</HintPath>\n")
+        # file(APPEND ${CSPROJ_PATH} "    </Reference>\n")
+        
+        file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Runtime/Hyperion.NET.Runtime.csproj\" />\n")
+        file(APPEND ${CSPROJ_PATH} "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/Hyperion.NET.Shared/Hyperion.NET.Shared.csproj\" />\n")
 
         file(APPEND ${CSPROJ_PATH} "  </ItemGroup>\n")
         # copy dll
@@ -95,18 +98,18 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
         if(NOT DOTNET_EXE)
             message(FATAL_ERROR "dotnet executable not found. Please install the .NET SDK to build C# projects.")
         endif()
+        
+        execute_process(
+            COMMAND ${DOTNET_EXE} restore
+            WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
+        )
 
         if(NOT USE_MSBUILD_FOR_CSHARP_BUILD)
             message(STATUS "Using dotnet CLI to build Hyperion.NET.Scripting")
-            
-            execute_process(
-                COMMAND ${DOTNET_EXE} restore
-                WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
-            )
 
             add_custom_target(Hyperion.NET.Scripting ALL
                 COMMAND ${DOTNET_EXE} build --disable-build-servers --no-restore --configuration ${HYP_BUILD_TYPE}
-                DEPENDS hyperion-dotnet-shared hyperion-dotnet-runtime hyperion-core
+                DEPENDS hyperion-dotnet-shared hyperion-dotnet-runtime
                 WORKING_DIRECTORY ${CSHARP_PROJECTS_DIR}/Hyperion.NET.Scripting
             )
         else()
@@ -116,9 +119,10 @@ if(HYP_GENERATE_CSHARP_LIBRARIES)
                 ${CSPROJ_PATH}
                 TYPE FAE04EC0-301F-11D3-BF4B-00C04F79EFBC
             )
+
+            add_dependencies(Hyperion.NET.Scripting hyperion-dotnet-shared hyperion-dotnet-runtime)
         endif()
 
-        add_dependencies(Hyperion.NET.Scripting hyperion-dotnet-shared hyperion-dotnet-runtime)
         add_dependencies(${BUILD_NAME} Hyperion.NET.Scripting hyperion-core)
     endif()
 endif()

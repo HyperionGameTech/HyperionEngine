@@ -1345,7 +1345,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         AssertDebug(gbuffer->IsCreated());
 
-        HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
+        HYP_LOG(Rendering, Verbose, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
 
         const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
         const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
@@ -1488,7 +1488,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    HYP_LOG(Rendering, Debug, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
+    HYP_LOG(Rendering, Verbose, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
 
     Assert(viewport.extent.Volume() > 0);
 
@@ -1832,7 +1832,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         g_statEnvProbes += rpl.GetEnvProbes().NumCurrent();
 
 #if 0
-        HYP_LOG(Rendering, Debug, "View '{}' used {} textures, {} materials, {} lightmap volumes, {} lights, {} env grids and {} env probes.",
+        HYP_LOG(Rendering, Verbose, "View '{}' used {} textures, {} materials, {} lightmap volumes, {} lights, {} env grids and {} env probes.",
             view->Id(),
             rpl.GetTextures().NumCurrent(),
             rpl.GetMaterials().NumCurrent(),

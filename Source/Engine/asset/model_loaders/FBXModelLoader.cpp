@@ -1541,7 +1541,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
         {
             if (auto* rightSkin = rightIt->second.data.TryGet<FBXSkin>())
             {
-                HYP_LOG(Assets, Debug, "Attach cluster to Skin");
+                HYP_LOG(Assets, Verbose, "Attach cluster to Skin");
 
                 rightSkin->clusterIds.Insert(leftIt->first);
 

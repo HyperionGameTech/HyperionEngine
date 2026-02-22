@@ -108,7 +108,7 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
 #endif
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
-    HYP_LOG(Entity, Debug, "Starting SystemExecutionGroup processing with {} systems", m_systems.Size());
+    HYP_LOG(Entity, Verbose, "Starting SystemExecutionGroup processing with {} systems", m_systems.Size());
 #endif
 
     for (auto& it : m_systems)
@@ -116,7 +116,7 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
         SystemBase* system = it.second;
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEM_LOG_PERFORMANCE)
-        HYP_LOG(Entity, Debug, "\t\tSystem: {}", system->GetName());
+        HYP_LOG(Entity, Verbose, "\t\tSystem: {}", system->GetName());
 #endif
 
         m_taskBatch->AddTask([this, system, scenes, delta]

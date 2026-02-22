@@ -110,7 +110,7 @@ int ShadowRendererBase::RunCleanupCycle(int maxIter)
         // check if weak object is no longer alive
         if (!it->first || it->first.GetUnsafe()->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
         {
-            HYP_LOG(Rendering, Debug, "Removing cached shadow map for Light {} as it is no longer valid.", it->first.Id());
+            HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} as it is no longer valid.", it->first.Id());
 
             if (it->second.shadowMap != nullptr)
             {

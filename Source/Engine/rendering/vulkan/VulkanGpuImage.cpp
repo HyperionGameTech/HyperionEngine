@@ -283,14 +283,14 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
 
     if (isBlended)
     {
-        HYP_LOG(RenderingBackend, Debug, "Image requires blending, enabling format flag...");
+        HYP_LOG(RenderingBackend, Verbose, "Image requires blending, enabling format flag...");
 
         vkFormatFeatures |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
     }
 
     if (m_textureDesc.IsTextureCube() || m_textureDesc.IsTextureCubeArray())
     {
-        HYP_LOG(RenderingBackend, Debug, "Creating cubemap, enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.");
+        HYP_LOG(RenderingBackend, Verbose, "Creating cubemap, enabling VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT flag.");
 
         vkImageCreateFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }

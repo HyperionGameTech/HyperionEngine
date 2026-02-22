@@ -3,7 +3,7 @@
   "RevisionNumber": 31459917,
   "BaseName": "ComputeSH",
   "PropertySet": {
-    "Chunks": [30, 4194304, 0, 0, 0, 0, 0, 0]
+    "Chunks": [30, 1048576, 0, 0, 0, 0, 0, 0]
   },
   "VertexAttributes": {
     "FlagMask": 0

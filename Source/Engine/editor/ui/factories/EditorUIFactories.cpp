@@ -936,7 +936,7 @@ public:
 
                     FilePath scriptFilepath(scriptComponent->script.path);
 
-                    HYP_LOG(Editor, Debug, "Opening script file \"{}\" in editor", scriptFilepath);
+                    HYP_LOG(Editor, Verbose, "Opening script file \"{}\" in editor", scriptFilepath);
 
                     if (!scriptFilepath.Exists()) {
                         HYP_LOG(Editor, Error, "Script file \"{}\" does not exist", scriptFilepath);

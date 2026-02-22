@@ -62,7 +62,7 @@ void EditorMain::OnAdded(Entity* entity)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "EditorMain OnAdded()");
+    HYP_LOG(Editor, Verbose, "EditorMain OnAdded()");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (!editorSubsystem)
@@ -93,7 +93,7 @@ void EditorMain::HandleProjectOpened(const Handle<EditorProject>& project)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "HandleProjectOpened invoked with project: {}", project->GetName());
+    HYP_LOG(Editor, Verbose, "HandleProjectOpened invoked with project: {}", project->GetName());
 
     // Remove existing action stack state change delegate if any
     m_onActionStackStateChangeDelegate.Reset();
@@ -110,7 +110,7 @@ void EditorMain::HandleProjectClosing(const Handle<EditorProject>& project)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "HandleProjectClosing invoked with project: {}", project->GetName());
+    HYP_LOG(Editor, Verbose, "HandleProjectClosing invoked with project: {}", project->GetName());
 
     // Remove action stack state change delegate
     m_onActionStackStateChangeDelegate.Reset();
@@ -411,7 +411,7 @@ UIEventHandlerResult EditorMain::AddPointLight(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add Point Light clicked");
+    HYP_LOG(Editor, Verbose, "Add Point Light clicked");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (editorSubsystem == nullptr)
@@ -490,7 +490,7 @@ UIEventHandlerResult EditorMain::AddSpotLight(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add Spot Light clicked");
+    HYP_LOG(Editor, Verbose, "Add Spot Light clicked");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (editorSubsystem == nullptr)
@@ -571,8 +571,6 @@ UIEventHandlerResult EditorMain::AddAreaRectLight(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add AreaRect Light clicked");
-
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (editorSubsystem == nullptr)
     {
@@ -651,7 +649,7 @@ UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add Directional Light clicked");
+    HYP_LOG(Editor, Verbose, "Add Directional Light clicked");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (editorSubsystem == nullptr)
@@ -690,14 +688,14 @@ UIEventHandlerResult EditorMain::AddDirectionalLight(const MouseEvent& event)
             "Cancel",
             Proc<void()>([]()
                 {
-                    HYP_LOG(Editor, Info, "Add Directional Light cancelled by user");
+                    HYP_LOG(Editor, Verbose, "Add Directional Light cancelled by user");
                 }));
 
         confirmMsgBox.Button(
             "Add Light",
             Proc<void()>([&shouldContinue]()
                 {
-                    HYP_LOG(Editor, Info, "User confirmed adding another Directional Light");
+                    HYP_LOG(Editor, Verbose, "User confirmed adding another Directional Light");
                     shouldContinue = true;
                 }));
 
@@ -774,7 +772,7 @@ UIEventHandlerResult EditorMain::AddReflectionProbe(const MouseEvent& event)
                                             return;
                                         }
 
-                                        HYP_LOG(Editor, Info, "Add Reflection Probe clicked");
+                                        HYP_LOG(Editor, Verbose, "Add Reflection Probe clicked");
 
                                         EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
                                         if (editorSubsystem == nullptr)
@@ -955,7 +953,7 @@ UIEventHandlerResult EditorMain::AddParticleVolume(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add Particle Volume clicked");
+    HYP_LOG(Editor, Verbose, "Add Particle Volume clicked");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
 
@@ -1036,7 +1034,7 @@ UIEventHandlerResult EditorMain::AddNode(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add Node clicked");
+    HYP_LOG(Editor, Verbose, "Add Node clicked");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (editorSubsystem == nullptr)
@@ -1110,7 +1108,7 @@ UIEventHandlerResult EditorMain::AddEntity(const MouseEvent& event)
 {
     HYP_SCOPE;
 
-    HYP_LOG(Editor, Info, "Add Entity clicked");
+    HYP_LOG(Editor, Verbose, "Add Entity clicked");
 
     EditorSubsystem* editorSubsystem = m_world->GetSubsystem<EditorSubsystem>();
     if (editorSubsystem == nullptr)

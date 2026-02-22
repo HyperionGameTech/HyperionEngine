@@ -64,7 +64,7 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
     subpackageNames.Reverse();
 
     String newPath = projectPackage->BuildPackagePath() + '/' + String::Join(subpackageNames, '/', &Name::LookupString);
-    HYP_LOG(Editor, Debug, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
+    HYP_LOG(Editor, Verbose, "Adding imported asset '{}' to project package '{}'", *assetObject->GetName(), newPath);
 
     if (Result registerAssetResult = registry->RegisterAsset(newPath, assetObject); registerAssetResult.HasError())
     {
@@ -198,11 +198,11 @@ void EditorState::SetCurrentProject(const Handle<EditorProject>& project)
 
         if (project.IsValid())
         {
-            HYP_LOG(Editor, Info, "Current project set to '{}'", *project->GetName());
+            HYP_LOG(Editor, Verbose, "Current project set to '{}'", *project->GetName());
         }
         else
         {
-            HYP_LOG(Editor, Info, "Current project cleared");
+            HYP_LOG(Editor, Verbose, "Current project cleared");
         }
 
         ImportAssetsOrSetCallback(m_currentProject);

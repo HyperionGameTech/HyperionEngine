@@ -83,7 +83,7 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
     // Set the baked texture on the EnvProbe
     m_envProbe->SetBakedTexture(cubemap);
 
-    HYP_LOG(Lightmap, Info, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
+    HYP_LOG(Lightmap, Verbose, "EnvProbe {} lightmap baking complete! Radiance and irradiance textures created.", m_envProbe->Id());
 }
 
 } // namespace Baking

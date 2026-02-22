@@ -564,7 +564,7 @@ ClassMemberIterator::ClassMemberIterator(const Class* cls, EnumFlags<MemberType>
 
 void ClassMemberIterator::Advance()
 {
-    // HYP_LOG(Object, Debug, "Iterating class {} members: {}, parent = {}, index = {}", target->GetName(), m_phase,
+    // HYP_LOG(Object, Verbose, "Iterating class {} members: {}, parent = {}, index = {}", target->GetName(), m_phase,
     //     target->GetParent() ? target->GetParent()->GetName().LookupString() : "null", m_currentIndex);
 
     if (!m_target)

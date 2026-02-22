@@ -3,7 +3,7 @@
   "RevisionNumber": 31459917,
   "BaseName": "ConvolveProbe",
   "PropertySet": {
-    "Chunks": [30, 270336, 0, 0, 0, 0, 0, 0]
+    "Chunks": [30, 67584, 0, 0, 0, 0, 0, 0]
   },
   "VertexAttributes": {
     "FlagMask": 0

@@ -354,7 +354,7 @@ void TerrainStreamingCell::OnStreamStart_Impl()
 {
     HYP_SCOPE;
 
-    HYP_LOG(WorldGrid, Debug, "Generating terrain patch at coord {} with extent {} and scale {} on thread {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, CurrentThreadId().GetName());
+    HYP_LOG(WorldGrid, Verbose, "Generating terrain patch at coord {} with extent {} and scale {} on thread {}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, CurrentThreadId().GetName());
 
     terrain::TerrainMeshBuilder meshBuilder(m_cellInfo);
     meshBuilder.GenerateHeights(terrain::GetTerrainNoiseCombinator());
@@ -381,7 +381,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
     const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
     Assert(entityManager != nullptr);
 
-    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh Id: #{}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, m_cellInfo.bounds, m_mesh.Id().Value());
+    HYP_LOG(WorldGrid, Verbose, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh Id: #{}", m_cellInfo.coord, m_cellInfo.extent, m_cellInfo.scale, m_cellInfo.bounds, m_mesh.Id().Value());
 
     Transform transform;
     transform.SetTranslation(m_cellInfo.bounds.min);

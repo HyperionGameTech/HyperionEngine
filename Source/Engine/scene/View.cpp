@@ -291,7 +291,7 @@ void View::UpdateViewport()
 
             if (m_viewport.extent != newExtent)
             {
-                HYP_LOG(Scene, Debug, "Matching viewport extent to Camera dimensions: {} -> {}", m_viewport.extent, newExtent);
+                HYP_LOG(Scene, Verbose, "Matching viewport extent to Camera dimensions: {} -> {}", m_viewport.extent, newExtent);
             }
 
             m_viewport.extent = newExtent;
@@ -426,7 +426,7 @@ void View::SetViewport(const Viewport& viewport)
     {
         if (prevExtent != m_viewport.extent && (m_flags & ViewFlags::ENABLE_READBACK))
         {
-            HYP_LOG(Scene, Debug, "View viewport extent changed from {} to {}, recreating readback texture",
+            HYP_LOG(Scene, Verbose, "View viewport extent changed from {} to {}, recreating readback texture",
                 prevExtent, m_viewport.extent);
 
             m_readbackTexture.Reset();
@@ -845,7 +845,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         }
 
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
-        HYP_LOG(Scene, Debug, "Collected {} entities for View {}, {} skipped", numCollectedEntities, Id(), numSkippedEntities);
+        HYP_LOG(Scene, Verbose, "Collected {} entities for View {}, {} skipped", numCollectedEntities, Id(), numSkippedEntities);
 #endif
     }
 
@@ -1126,7 +1126,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 
             if (!m_camera->GetFrustum().ContainsAABB(worldBounds))
             {
-                HYP_LOG(Scene, Debug, "EnvGrid {} is not in frustum of View {}", envGrid->Id(), Id());
+                HYP_LOG(Scene, Verbose, "EnvGrid {} is not in frustum of View {}", envGrid->Id(), Id());
 
                 continue;
             }

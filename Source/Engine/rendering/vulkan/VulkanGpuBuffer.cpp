@@ -35,7 +35,7 @@ static uint32 FindMemoryType(uint32 vkTypeFilter, VkMemoryPropertyFlags vkMemory
     {
         if ((vkTypeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & vkMemoryPropertyFlags) == vkMemoryPropertyFlags)
         {
-            HYP_LOG(RenderingBackend, Debug, "Found Memory type {}", i);
+            HYP_LOG(RenderingBackend, Verbose, "Found Memory type {}", i);
             return i;
         }
     }

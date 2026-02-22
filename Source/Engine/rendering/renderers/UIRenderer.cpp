@@ -289,7 +289,7 @@ PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)
     pd->view = MakeWeakRef(view);
     pd->viewport = view->GetViewport();
 
-    HYP_LOG(UI, Debug, "Creating UI pass data with viewport size {}", pd->viewport.extent);
+    HYP_LOG(UI, Verbose, "Creating UI pass data with viewport size {}", pd->viewport.extent);
 
     return pd;
 }

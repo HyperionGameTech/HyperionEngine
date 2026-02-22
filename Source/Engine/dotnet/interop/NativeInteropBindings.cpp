@@ -170,7 +170,7 @@ extern "C"
         Assert(assemblyGuid != nullptr);
         Assert(pAssembly != nullptr);
 
-        HYP_LOG(DotNET, Debug, "Registering .NET managed class {} for Assembly {}", typeName, pAssembly->GetGuid());
+        HYP_LOG(DotNET, Verbose, "Registering .NET managed class {} for Assembly {}", typeName, pAssembly->GetGuid());
 
         RC<ManagedClass> classObject = pAssembly->NewClass(cls, typeHash, typeName, typeSize, typeId, parentClass, flags);
 
@@ -229,7 +229,7 @@ extern "C"
             return;
         }
 
-        HYP_LOG(DotNET, Debug, "Setting attributes for managed class '{}'", managedClass->GetName());
+        HYP_LOG(DotNET, Verbose, "Setting attributes for managed class '{}'", managedClass->GetName());
 
         ManagedAttributeSet attributes = InternManagedAttributeHolder(managedAttributeHolderPtr);
 

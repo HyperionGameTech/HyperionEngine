@@ -63,7 +63,7 @@ struct RecreateFullScreenPassFramebuffer : RenderCommand
         Handle<FullScreenPass> fullScreenPass = fullScreenPassWeak.Lock();
         if (!fullScreenPass)
         {
-            HYP_LOG(Rendering, Debug, "FullScreenPass {} is no longer alive, skipping recreate.", fullScreenPassWeak.Id());
+            HYP_LOG(Rendering, Verbose, "FullScreenPass {} is no longer alive, skipping recreate.", fullScreenPassWeak.Id());
 
             return {};
         }
@@ -253,7 +253,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
 
     newSize = MathUtil::Max(newSize, Vec2u::One());
 
-    HYP_LOG(Rendering, Debug, "Resizing FullScreenPass {} from {} to {}",
+    HYP_LOG(Rendering, Verbose, "Resizing FullScreenPass {} from {} to {}",
         Id().Value(),
         m_extent,
         newSize);

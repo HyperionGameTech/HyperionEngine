@@ -1,4 +1,15 @@
 {
+  "App": {
+    "Name": "DefaultGame",
+    "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace",
+    "Cache": {
+      "BaseDirectory": "Cache",
+      "PageSize": 268435456
+    }
+  },
+  "Logging": {
+    "Verbose": false
+  },
   "Rendering": {
     "RayTracing": {
       "PathTracing": {
@@ -66,14 +77,6 @@
     "Camera": {
       "MoveSensitivity": 1,
       "LookSensitivity": 1
-    }
-  },
-  "App": {
-    "Name": "DefaultGame",
-    "Args": "-ResX=1920 -ResY=1080 -Profile=false -TraceURL=http://localhost:8000/trace",
-    "Cache": {
-      "BaseDirectory": "Cache",
-      "PageSize": 268435456
     }
   },
   "Lightmapper": {

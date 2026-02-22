@@ -3,7 +3,7 @@
   "RevisionNumber": 31459917,
   "BaseName": "Tonemap",
   "PropertySet": {
-    "Chunks": [30, 1024, 0, 0, 0, 0, 0, 0]
+    "Chunks": [30, 4194304, 0, 0, 0, 0, 0, 0]
   },
   "VertexAttributes": {
     "FlagMask": 7

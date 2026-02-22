@@ -281,7 +281,7 @@ bool ClassRegistry::UnregisterClass(const Class* cls)
         return false;
     }
 
-    HYP_LOG(Object, Debug, "Unregister dynamic class {}", it->second->GetName());
+    HYP_LOG(Object, Verbose, "Unregister dynamic class {}", it->second->GetName());
 
     m_dynamicClasses.Erase(it);
 

@@ -59,7 +59,7 @@ Entity::~Entity()
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (sync)");
 
-        HYP_LOG(Entity, Debug, "Removing Entity {} from entity manager", Id());
+        HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", Id());
 
         if (!entityManager->RemoveEntity(this))
         {
@@ -81,7 +81,7 @@ Entity::~Entity()
 
                 HYP_NAMED_SCOPE("Remove Entity from EntityManager (async)");
 
-                HYP_LOG(Entity, Debug, "Removing Entity {} from entity manager", weakThis.Id());
+                HYP_LOG(Entity, Verbose, "Removing Entity {} from entity manager", weakThis.Id());
 
                 if (!entityManager->RemoveEntity(weakThis.GetUnsafe()))
                 {
@@ -615,7 +615,7 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
             continue;
         }
 
-        HYP_LOG(Serialization, Debug, "Adding component '{}' to entity of type {} with id: {}",
+        HYP_LOG(Serialization, Verbose, "Adding component '{}' to entity of type {} with id: {}",
             componentTypeInfo.name,
             InstanceClass()->GetName(),
             Id());

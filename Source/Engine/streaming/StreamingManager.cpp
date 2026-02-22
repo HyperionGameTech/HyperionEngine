@@ -598,7 +598,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
 
             deferredUpdates.EmplaceBack([this, &layerData, cell]()
                 {
-                    // HYP_LOG(Streaming, Debug, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
+                    // HYP_LOG(Streaming, Verbose, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
                     //     cell->GetPatchInfo().coord, CurrentThreadId().GetName(), layerData.layer->InstanceClass()->GetName());
 
                     bool isOk = true;
@@ -663,7 +663,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layerData)
             // Call OnStreamEnd on the cell and then Unload it
             deferredUpdates.EmplaceBack([this, cell = std::move(cell), &layerData]()
                 {
-                    // HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
+                    // HYP_LOG(Streaming, Verbose, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
                     //     cell->GetPatchInfo().coord, layerData.layer->InstanceClass()->GetName().LookupString(),
                     //     CurrentThreadId().GetName());
 
@@ -851,7 +851,7 @@ void StreamingManager::Update(float delta)
         return;
     }
 
-    HYP_LOG(Streaming, Debug, "Update StreamingManager, {} updates", updates.Size());
+    HYP_LOG(Streaming, Verbose, "Update StreamingManager, {} updates", updates.Size());
 
     for (Pair<Handle<StreamingCell>, StreamingCellState>& update : updates)
     {

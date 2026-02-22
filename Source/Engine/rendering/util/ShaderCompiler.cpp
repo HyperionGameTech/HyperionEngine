@@ -804,7 +804,7 @@ static bool PreprocessGLSL(
 
     outPreprocessedSource = glslang_shader_get_preprocessed_code(shader);
 
-    // HYP_LOG(ShaderCompiler, Debug, "Preprocessed source for {}: Before:
+    // HYP_LOG(ShaderCompiler, Verbose, "Preprocessed source for {}: Before:
     // \n{}\nAfter:\n{}", filename, source, outPreprocessedSource);
 
     glslang_shader_delete(shader);
@@ -1013,7 +1013,7 @@ static ByteBuffer CompileGLSL(
     if (filename.EndsWith(".hlsl"))
     {
         Assert(shaderModule.Size() > 0);
-        HYP_LOG(ShaderCompiler, Info, "Processed source for {}:\n\n{}\n\n",
+        HYP_LOG(ShaderCompiler, Verbose, "Processed source for {}:\n\n{}\n\n",
             filename, preprocessed);
     }
 
@@ -1421,7 +1421,7 @@ static void ForEachPermutation(
 
         for (const ShaderVariantPerms& perm : currentGroupPerms)
         {
-            HYP_LOG(ShaderCompiler, Debug, "\t\t{}", perm.ToString());
+            HYP_LOG(ShaderCompiler, Verbose, "\t\t{}", perm.ToString());
         }
 #endif
 
@@ -1822,9 +1822,7 @@ void ShaderCompiler::ParseDefinitionSection(
             continue;
         }
 
-        HYP_LOG(ShaderCompiler, Warning,
-            "Unknown property in shader definition file: {}\n",
-            sectionIt.first);
+        HYP_LOG(ShaderCompiler, Warning, "Unknown property in shader definition file: {}", sectionIt.first);
     }
 }
 
@@ -1849,7 +1847,7 @@ bool ShaderCompiler::HandleBundle(
 
     if (maxSourceFileLastModified > lastSavedTimestamp)
     {
-        HYP_LOG(ShaderCompiler, Info,
+        HYP_LOG(ShaderCompiler, Verbose,
             "Source file in bundle {} has been modified since the bundle was "
             "last compiled, recompiling...",
             *decl.name);
@@ -1978,8 +1976,7 @@ bool ShaderCompiler::LoadBundle(
     {
         if (CanCompileShaders())
         {
-            HYP_LOG(ShaderCompiler, Info, "Attempting to compile shader {}...",
-                path.ToString());
+            HYP_LOG(ShaderCompiler, Verbose, "Attempting to compile shader {}...", path.ToString());
         }
         else
         {
@@ -2065,7 +2062,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
         return true;
     }
 
-    HYP_LOG(ShaderCompiler, Info, "Precompiling shaders...");
+    HYP_LOG(ShaderCompiler, Verbose, "Precompiling shaders...");
 
     const bool supportsRtShaders = g_renderInterface->GetRenderConfig().rayTracing;
 
@@ -2787,7 +2784,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
     }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
-    HYP_LOG(ShaderCompiler, Info, "Processed source: {}", result.processedSource);
+    HYP_LOG(ShaderCompiler, Verbose, "Processed source: {}", result.processedSource);
 #endif
 
     return result;
@@ -3124,7 +3121,7 @@ bool ShaderCompiler::CompileBundle(
         permsToCompile,
         [&](const ShaderVariantPerms& perm)
         {
-            HYP_LOG(ShaderCompiler, Info, "Compiling shader {}\n\tProperties: {}\n\tAttributes: {}",
+            HYP_LOG(ShaderCompiler, Verbose, "Compiling shader {}\n\tProperties: {}\n\tAttributes: {}",
                 decl.name,
                 perm.ToString(),
                 perm.GetRequiredVertexAttributes().ToString());
@@ -3465,7 +3462,7 @@ bool ShaderCompiler::CompileBundle(
             }
             else
             {
-                HYP_LOG(ShaderCompiler, Debug, "Registered shader asset {}", shader->GetName());
+                HYP_LOG(ShaderCompiler, Verbose, "Registered shader asset {}", shader->GetName());
             }
         }
 
@@ -3550,7 +3547,7 @@ bool ShaderCompiler::RequestShader(
     outShader = it->Get();
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
-    HYP_LOG(ShaderCompiler, Debug,
+    HYP_LOG(ShaderCompiler, Verbose,
         "Selected shader {} with properties: {}, attributes: {}",
         name,
         finalProperties.ToString(),

@@ -303,7 +303,7 @@ void BakerBase::Build()
     Assert(m_numJobs == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
 
     // Build jobs
-    HYP_LOG(Lightmap, Info, "Building graph for lightmapper");
+    HYP_LOG(Lightmap, Verbose, "Building graph for lightmapper");
 
     EntityManager& mgr = *m_scene->GetEntityManager();
 
@@ -398,7 +398,7 @@ void BakerBase::DispatchJobs()
             tileBuckets[tileCoord].PushBack(i);
         }
 
-        HYP_LOG(Lightmap, Info, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), bakeData.texels.Size());
+        HYP_LOG(Lightmap, Verbose, "Dispatching {} tile jobs for {} valid texels", tileBuckets.Size(), bakeData.texels.Size());
 
         for (auto& it : tileBuckets)
         {

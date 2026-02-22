@@ -74,7 +74,7 @@ void StreamingCell::OnStreamStart_Impl()
 
         if (!assetReference.IsLoaded())
         {
-            HYP_LOG(Streaming, Debug, "OnStreamStart: Loading AssetReference {} for {} at {}",
+            HYP_LOG(Streaming, Verbose, "OnStreamStart: Loading AssetReference {} for {} at {}",
                 assetReference.GetAssetPath().ToString(),
                 InstanceClass()->GetName(),
                 m_cellInfo.coord);
@@ -95,7 +95,7 @@ void StreamingCell::OnStreamStart_Impl()
 
 void StreamingCell::OnLoaded_Impl()
 {
-    HYP_LOG(Streaming, Debug, "OnLoaded: {} loaded at {} with {} AssetReferences",
+    HYP_LOG(Streaming, Verbose, "OnLoaded: {} loaded at {} with {} AssetReferences",
         InstanceClass()->GetName(),
         m_cellInfo.coord,
         m_assetReferences.Size());
@@ -105,7 +105,7 @@ void StreamingCell::OnLoaded_Impl()
 
 void StreamingCell::OnRemoved_Impl()
 {
-    HYP_LOG(Streaming, Debug, "OnRemoved: {} removed at {} with {} AssetReferences",
+    HYP_LOG(Streaming, Verbose, "OnRemoved: {} removed at {} with {} AssetReferences",
         InstanceClass()->GetName(),
         m_cellInfo.coord,
         m_assetReferences.Size());

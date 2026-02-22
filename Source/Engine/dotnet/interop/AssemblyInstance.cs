@@ -26,7 +26,7 @@ namespace Hyperion
         public static Assembly LoadGlobalAssembly(string path)
         {
             Logger.Log(LogLevel.Debug, "Loading global assembly from path: " + path);
-
+            
             AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
             Assembly? assembly = FindGlobalAssembly(assemblyName);
 
@@ -48,7 +48,7 @@ namespace Hyperion
 
             return assembly;
         }
-
+        
         public static Assembly LoadGlobalAssembly(AssemblyName name)
         {
             Assembly? assembly = FindGlobalAssembly(name);

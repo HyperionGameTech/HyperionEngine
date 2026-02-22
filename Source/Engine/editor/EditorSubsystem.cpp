@@ -152,7 +152,7 @@ void GenerateLightmapsEditorTask::Start()
         return;
     }
 
-    HYP_LOG(Editor, Info, "Generating lightmaps");
+    HYP_LOG(Editor, Verbose, "Generating lightmaps");
 
     if (!m_world.IsValid() || !m_scene.IsValid())
     {
@@ -412,7 +412,7 @@ void TranslateEditorGizmo::OnDragStart(const Handle<Camera>& camera, const Mouse
         }
         else
         {
-            HYP_LOG(Editor, Debug, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
+            HYP_LOG(Editor, Verbose, "Ray plane test returned no hit. plane point : {}, plane normal {}", dragData.planePoint, dragData.planeNormal);
             return;
         }
     }
@@ -1238,7 +1238,7 @@ EditorSubsystem::EditorSubsystem()
     OnProjectOpened
         .Bind([this](const Handle<EditorProject>& project)
             {
-                HYP_LOG(Editor, Info, "Opening project: {}", *project->GetName());
+                HYP_LOG(Editor, Verbose, "Opening project: {}", *project->GetName());
                 
                 g_editorState->GetPickCache().Clear();
 
@@ -1253,7 +1253,7 @@ EditorSubsystem::EditorSubsystem()
                 {
                     Assert(scene != nullptr);
 
-                    HYP_LOG(Editor, Debug, "Found scene '{}' in project '{}' with flags: {}", *scene->GetName(), *project->GetName(),
+                    HYP_LOG(Editor, Verbose, "Found scene '{}' in project '{}' with flags: {}", *scene->GetName(), *project->GetName(),
                         EnumToString(scene->GetSceneFlags()));
 
                     if ((scene->GetSceneFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) != SceneFlags::FOREGROUND)
@@ -2105,7 +2105,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     //                return;
     //            }
     //
-    //            HYP_LOG(Editor, Debug, "Node {} property changed : {}", *node->GetName(), *property->GetName());
+    //            HYP_LOG(Editor, Verbose, "Node {} property changed : {}", *node->GetName(), *property->GetName());
     //
     //            Handle<UIListView> listView = listViewWeak.Lock();
     //
@@ -2556,7 +2556,7 @@ void EditorSubsystem::InitActiveSceneSelection()
     //                         if (uiObject->IsA<UIMenuItem>())
     //                         {
     //                             const NodeTag& tag = uiObject->GetNodeTag("Scene");
-    //                             HYP_LOG(Editor, Debug, "Checking scene menu item with tag: {}", tag.ToString());
+    //                             HYP_LOG(Editor, Verbose, "Checking scene menu item with tag: {}", tag.ToString());
 
     //                             if (tag.IsValid())
     //                             {
@@ -2746,7 +2746,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
         const Handle<Texture>& texture = it.second;
         Assert(texture != nullptr);
 
-        HYP_LOG(Font, Debug, "Adding texture {} to package", texture->GetName());
+        HYP_LOG(Font, Verbose, "Adding texture {} to package", texture->GetName());
 
         Result result = package->AddAssetObject(texture, /* replaceOnConflict */ true);
         
@@ -2927,7 +2927,7 @@ void EditorSubsystem::ShowImportContentDialog()
             batch->OnComplete
                 .Bind([](AssetMap& results)
                     {
-                        HYP_LOG(Editor, Info, "{} assets loaded.", results.Size());
+                        HYP_LOG(Editor, Verbose, "{} assets loaded.", results.Size());
 
                         /// \todo Open folder the assets ended up in
                     })
@@ -2973,7 +2973,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
             }
         }
 
-        HYP_LOG(Editor, Debug, "Set focused node: {}\t{}\t is static ? {}", focusedNode->GetName(), focusedNode->GetWorldTranslation(),
+        HYP_LOG(Editor, Verbose, "Set focused node: {}\t{}\t is static ? {}", focusedNode->GetName(), focusedNode->GetWorldTranslation(),
             focusedNode->IsStatic());
 
         /// \todo watch for transform changes and update the highlight node
@@ -2982,8 +2982,8 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
         // m_highlightNode->SetWorldScale(m_focusedNode->GetWorldBounds().GetExtent() * 0.5f);
         // m_highlightNode->SetWorldTranslation(m_focusedNode->GetWorldTranslation());
 
-        // HYP_LOG(Editor, Debug, "Set focused node: {}\t{}", m_focusedNode->GetName(), m_focusedNode->GetWorldTranslation());
-        // HYP_LOG(Editor, Debug, "Set highlight node translation: {}", m_highlightNode->GetWorldTranslation());
+        // HYP_LOG(Editor, Verbose, "Set focused node: {}\t{}", m_focusedNode->GetName(), m_focusedNode->GetWorldTranslation());
+        // HYP_LOG(Editor, Verbose, "Set highlight node translation: {}", m_highlightNode->GetWorldTranslation());
 
         if (GetSelectedManipulationMode() == EditorManipulationMode::NONE)
         {

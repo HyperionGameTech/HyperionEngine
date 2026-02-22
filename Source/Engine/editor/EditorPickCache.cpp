@@ -357,7 +357,7 @@ void EditorPickCache::Update(float delta)
             MaxMemoryUsageBytes - IdealHeadroom);
     }
 
-    HYP_LOG(Editor, Debug, "Memory usage after editor pick cache update: {} bytes",
+    HYP_LOG(Editor, Verbose, "Memory usage after editor pick cache update: {} bytes",
         g_editorPickCachePool->GetMemoryMetrics()[MemoryMetrics::MM_BYTES_USED]);
 }
 

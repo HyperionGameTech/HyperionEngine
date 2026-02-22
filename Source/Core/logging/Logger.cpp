@@ -17,6 +17,9 @@
 #include <Core/memory/ByteBuffer.hpp>
 #include <Core/memory/NotNullPtr.hpp>
 
+#include <Core/config/Config.hpp>
+#include <Core/Core.hpp>
+
 #include <Core/io/ByteWriter.hpp>
 
 #include <Core/utilities/ByteUtil.hpp>
@@ -32,15 +35,22 @@ HYP_DECLARE_LOG_CHANNEL(Misc);
 HYP_DECLARE_LOG_CHANNEL(Temp);
 HYP_DECLARE_LOG_CHANNEL(Script);
 
+namespace logging {
+
+static volatile int32 s_maxLogChannelId = -1;
+static bool s_registerAllCalled = false;
+
 HYP_API ANSIStringView GetCurrentThreadName()
 {
     return *CurrentThreadId().GetName();
 }
 
-namespace logging {
+HYP_API bool IsVerboseLoggingEnabled()
+{
+    static const ConfigurationValue& s_cfgVerboseLoggingEnabled = CoreApi::GetGlobalConfig().Get("Logging.Verbose");
 
-static volatile int32 s_maxLogChannelId = -1;
-static bool s_registerAllCalled = false;
+    return s_cfgVerboseLoggingEnabled.ToBool(false);
+}
 
 class LogChannelIdGenerator
 {

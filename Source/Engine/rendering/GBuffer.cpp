@@ -97,7 +97,7 @@ void GBuffer::Create()
         return;
     }
 
-    HYP_LOG(Rendering, Debug, "Creating GBuffer with resolution {}", m_extent);
+    HYP_LOG(Rendering, Verbose, "Creating GBuffer with resolution {}", m_extent);
 
     CreateBucketFramebuffers();
 
@@ -114,7 +114,7 @@ void GBuffer::Resize(Vec2u extent)
         return;
     }
 
-    HYP_LOG(Rendering, Debug, "Resizing GBuffer from {}x{} to {}x{}", m_extent.x, m_extent.y, extent.x, extent.y);
+    HYP_LOG(Rendering, Verbose, "Resizing GBuffer from {}x{} to {}x{}", m_extent.x, m_extent.y, extent.x, extent.y);
 
     m_extent = extent;
 

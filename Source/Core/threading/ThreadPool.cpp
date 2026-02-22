@@ -443,7 +443,7 @@ void BackgroundTaskThreadPool::CleanupIdleThreads()
                 thread->Join();
             }
 
-            HYP_LOG(Tasks, Debug, "BackgroundTaskThreadPool cleaned up idle thread: {}", thread->Id().GetName());
+            HYP_LOG(Tasks, Verbose, "BackgroundTaskThreadPool cleaned up idle thread: {}", thread->Id().GetName());
         }
 
         m_threads.EraseAt(index);

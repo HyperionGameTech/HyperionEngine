@@ -406,7 +406,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase* dataSource)
         {
             HYP_NAMED_SCOPE("Update element from data source in list view");
 
-            HYP_LOG(UI, Info, "Updating element {}", element->GetUUID().ToString());
+            HYP_LOG(UI, Verbose, "Updating element {}", element->GetUUID().ToString());
 
             if (const UIListViewItem* listViewItem = FindListViewItem(element->GetUUID()))
             {
