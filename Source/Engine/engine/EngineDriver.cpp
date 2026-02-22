@@ -100,6 +100,12 @@ void HandleSignal(int signum)
     exit(signum);
 }
 
+static const FilePath& GetScriptsSourceDirectory()
+{
+    static DirectoryInitializer<HYP_STATIC_STRING("Source/Scripts"), /* RelativeToExecutablePath */ false> s_directory;
+    return s_directory.path;
+}
+
 template <class AllocatorType>
 static void UpdateDirtyMeshEntities(Scene* scene, Array<Entity*, AllocatorType>& outUpdatedEntities)
 {
@@ -147,8 +153,8 @@ HYP_API void EngineDriver::Init()
 #ifdef HYP_EDITOR
     // Create script compilation service
     m_scriptingService = MakeUnique<ScriptingService>(
-        GetResourceDirectory() / "scripts" / "src",
-        GetResourceDirectory() / "scripts" / "projects",
+        GetScriptsSourceDirectory(),
+        GetTempDirectory() / "ScriptProjects",
         CoreApi::GetExecutablePath()); // copy script binaries into executable path
 
     m_scriptingService->Start();

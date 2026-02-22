@@ -29,8 +29,6 @@ namespace Hyperion {
 //! for debugging
 static constexpr bool DebugDisableUnload = false;
 
-HYP_API extern const FilePath& GetResourceDirectory();
-
 extern HYP_NODISCARD String SanitizeName(const UTF8StringView& nameStr);
 extern HYP_NODISCARD Name SanitizeName(Name name);
 extern HYP_NODISCARD Name CreateFriendlyName(Name name);

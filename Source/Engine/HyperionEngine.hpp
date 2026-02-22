@@ -32,7 +32,9 @@ struct WindowOptions;
 
 class Game;
 
-HYP_API const FilePath& GetResourceDirectory();
+HYP_API const FilePath& GetLibraryDirectory();
+HYP_API const FilePath& GetProjectsDirectory();
+HYP_API const FilePath& GetImportedDirectory();
 HYP_API const FilePath& GetCacheDirectory();
 HYP_API const FilePath& GetTempDirectory();
 

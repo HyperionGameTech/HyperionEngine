@@ -35,6 +35,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <system/DirectoryInitializer.hpp>
+
 #include <engine/EngineDriver.hpp>
 
 #if HYP_GLSLANG
@@ -85,6 +87,12 @@ static CComPtr<IDxcCompiler3> s_dxcCompiler;
 #endif
 
 #pragma region Helpers
+
+static const FilePath& GetShaderSourceDirectory()
+{
+    static DirectoryInitializer<HYP_STATIC_STRING("Source/Shaders"), /* RelativeToExecutablePath */ false> s_directory;
+    return s_directory.path;
+}
 
 #if HYP_DXC
 static LPCWSTR GetDXCTargetProfile(ShaderModuleType type)
@@ -730,7 +738,7 @@ static bool PreprocessGLSL(
 
         const FilePath dir = includeDepth > 1
             ? FilePath(includerName).BasePath()
-            : GetResourceDirectory() / FilePath::Relative(basePath, GetResourceDirectory());
+            : GetShaderSourceDirectory() / FilePath::Relative(basePath, GetShaderSourceDirectory());
 
         const FilePath path = dir / headerName;
 
@@ -1030,8 +1038,8 @@ static bool PreprocessHLSL(
 
     WideString includeDirs[] = {
         WideString(FilePath(filename).BasePath()),
-        WideString(GetResourceDirectory() / "shaders"),
-        WideString(GetResourceDirectory() / "shaders" / "include")
+        WideString(GetShaderSourceDirectory()),
+        WideString(GetShaderSourceDirectory() / "include")
     };
 
     Array<LPCWSTR> args;
@@ -1809,7 +1817,7 @@ void ShaderCompiler::ParseDefinitionSection(
 
         if (shaderTypeNameIt != s_shaderTypeNames.End())
         {
-            outShaderBundleDecl.sources[shaderTypeNameIt->second] = GetResourceDirectory() / "shaders" / sectionIt.second.GetValue().name;
+            outShaderBundleDecl.sources[shaderTypeNameIt->second] = GetShaderSourceDirectory() / sectionIt.second.GetValue().name;
 
             continue;
         }
@@ -2024,7 +2032,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompileShaders)
         delete m_definitions;
     }
 
-    m_definitions = new INIFile(GetResourceDirectory() / "Shaders.ini");
+    m_definitions = new INIFile(GetShaderSourceDirectory() / "Shaders.ini");
 
     if (!m_definitions->IsValid())
     {
@@ -3166,7 +3174,7 @@ bool ShaderCompiler::CompileBundle(
                 Array<String> errorMessages;
 
                 // set directory to the directory of the shader
-                const FilePath dir = GetResourceDirectory() / FilePath::Relative(FilePath(item.file).BasePath(), GetResourceDirectory());
+                const FilePath dir = GetShaderSourceDirectory() / FilePath::Relative(FilePath(item.file).BasePath(), GetShaderSourceDirectory());
 
                 String& processedSource = processedSources[index];
 

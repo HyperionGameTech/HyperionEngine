@@ -34,6 +34,7 @@
 
 #include <system/MessageBox.hpp>
 #include <system/AppContext.hpp>
+#include <system/DirectoryInitializer.hpp>
 
 #include <streaming/StreamingManager.hpp>
 
@@ -116,53 +117,27 @@ static void HandleFatalError(const char* message)
     debug::TerminateProgram();
 }
 
-template <auto DirectoryStaticString, bool RelativeToExecutablePath = true>
-struct DirectoryInitializer
-{
-    FilePath path;
-
-    DirectoryInitializer()
-    {
-#ifdef HYP_ROOT_DIR
-        // In non-debug modes, we always want resource directories to be relative to the executable path
-        if (!RelativeToExecutablePath)
-        {
-            path = FilePath(HYP_ROOT_DIR) / DirectoryStaticString.Data();
-        }
-        else
-#endif
-        {
-            path = CoreApi::GetExecutablePath() / DirectoryStaticString.Data();
-        }
-
-        if (!path.Exists())
-        {
-            if (!path.MkDir())
-            {
-                HYP_FAIL("Failed to create resource directory: {}", path.Data());
-            }
-        }
-
-        Assert(path.Exists() && path.IsDirectory(), "Resource directory does not exist or is not a directory: {}", path.Data());
-        Assert(path.CanRead(), "Resource directory is not readable: {}", path.Data());
-        Assert(path.CanWrite(), "Resource directory is not writable: {}", path.Data());
-    }
-};
-
-// Directory for data to be imported into editor builds
-HYP_EXPORT const FilePath& GetResourceDirectory()
+HYP_EXPORT const FilePath& GetLibraryDirectory()
 {
 #if HYP_EDITOR
-    static DirectoryInitializer<HYP_STATIC_STRING("res"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
+    static DirectoryInitializer<HYP_STATIC_STRING("Library"), /* RelativeToExecutablePath */ false> s_resourceDirectory;
     return s_resourceDirectory.path;
 #else
     // shouldn't be used in non-editor builds, so just return executable path to avoid issues with appending paths
-    HYP_LOG(Engine, Warning, "GetResourceDirectory() called in non-editor build; returning executable path instead");
+    HYP_LOG(Engine, Warning, "GetLibraryDirectory() called in non-editor build; returning executable path instead");
 
     static const FilePath s_emptyPath = CoreApi::GetExecutablePath();
     Assert(s_emptyPath.Length() != 0); // don't want to return empty path which will cause appending to give root-level paths.
     return s_emptyPath;
 #endif
+}
+
+HYP_EXPORT const FilePath& GetProjectsDirectory()
+{
+    // @TODO Use configuration value for this path
+
+    static DirectoryInitializer<HYP_STATIC_STRING("Projects"), /* RelativeToExecutablePath */ false> s_projectsDirectory;
+    return s_projectsDirectory.path;
 }
 
 // Directory for cached data (shader bundles, compiled scripts, etc.) Expected to be compiled into the asset registry in production builds
@@ -209,8 +184,14 @@ HYP_EXPORT const FilePath& GetCacheDirectory()
 // Directory for temporary data (intermediate compilation outputs, etc.) Will be not be used in production builds
 HYP_EXPORT const FilePath& GetTempDirectory()
 {
-    static DirectoryInitializer<HYP_STATIC_STRING("Temp")> s_resourceDirectory;
-    return s_resourceDirectory.path;
+    static DirectoryInitializer<HYP_STATIC_STRING("Temp"), /* RelativeToExecutablePath */ true> s_tempDirectory;
+    return s_tempDirectory.path;
+}
+
+HYP_EXPORT const FilePath& GetImportedDirectory()
+{
+    static DirectoryInitializer<HYP_STATIC_STRING("Imported"), /* RelativeToExecutablePath */ false> s_importedDirectory;
+    return s_importedDirectory.path;
 }
 
 #if HYP_DOTNET

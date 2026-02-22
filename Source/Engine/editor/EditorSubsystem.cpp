@@ -2723,14 +2723,6 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 {
     HYP_SCOPE;
 
-    const FilePath outputDirectory = GetResourceDirectory() / "data" / "fonts";
-    const FilePath outputFilePath = outputDirectory / "Roboto.hyp";
-
-    if (!outputDirectory.Exists())
-    {
-        outputDirectory.MkDir();
-    }
-
     auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
 
     if (fontFaceAsset.HasError())
@@ -2904,7 +2896,7 @@ void EditorSubsystem::ShowImportContentDialog()
 
     ShowOpenFileDialog(
         "Select the file(s) to import into the project",
-        GetResourceDirectory(),
+        GetImportedDirectory(),
         { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
         /* allowMultiple */ true, /* allowDirectories */ false,
         [](TResult<Array<FilePath>>&& result)

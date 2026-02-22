@@ -31,6 +31,8 @@
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
 
+#include <system/DirectoryInitializer.hpp>
+
 #include <ui/UIObject.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -270,7 +272,7 @@ AssetBatch* AssetManager::CreateBatch(const String& identifier)
 
 void AssetManager::RegisterDefaultLoaders()
 {
-    SetBasePath(GetResourceDirectory());
+    SetBasePath(GetImportedDirectory());
 
     Register<OBJModelLoader, Node>("obj");
     Register<OgreXMLModelLoader, Node>("mesh.xml");

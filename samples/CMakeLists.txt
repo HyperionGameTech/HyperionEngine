@@ -35,7 +35,8 @@ file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${HYP_GENERATED_DIR}
-    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 

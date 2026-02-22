@@ -206,7 +206,7 @@ void EditorProject::RemoveScene(Scene* scene)
 
 FilePath EditorProject::GetProjectsDirectory() const
 {
-    return GetResourceDirectory() / "projects";
+    return ::Hyperion::GetProjectsDirectory();
 }
 
 bool EditorProject::IsSaved() const

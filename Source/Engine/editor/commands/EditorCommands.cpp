@@ -31,7 +31,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-extern const FilePath& GetResourceDirectory();
+extern const FilePath& GetProjectsDirectory();
 
 #define DEFINE_EDITOR_COMMAND(name)                                        \
     HYP_API const Class* g_clsEditorCommand##name = nullptr;               \
@@ -119,7 +119,7 @@ public:
     {
         HYP_SCOPE;
 
-        const FilePath dir = GetResourceDirectory() / "Projects";
+        const FilePath dir = GetProjectsDirectory();
         dir.MkDir();
 
         ShowOpenFileDialog(
@@ -238,7 +238,7 @@ public:
             }
             else
             {
-                dir = GetResourceDirectory() / "Projects" / *project->GetName();
+                dir = GetProjectsDirectory() / *project->GetName();
             }
 
             dir.MkDir();

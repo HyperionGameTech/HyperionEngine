@@ -159,7 +159,7 @@ if(MSVC)
 
     if(HYP_DEBUG_MODE)
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/src/Hyperion.natvis")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Source/Engine/Hyperion.natvis")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
@@ -202,7 +202,7 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
 
 # for VS solutions, we want to add some files as a custom solution item
 elseif(MSVC)
-    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/src/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/.clang-format" "${CMAKE_SOURCE_DIR}/.clang-tidy")
+    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Source/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/.clang-format" "${CMAKE_SOURCE_DIR}/.clang-tidy")
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
@@ -220,7 +220,7 @@ find_package(Bullet)
 
 # PCHs
 set(HYP_PCH
-    "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/HyperionPch.hpp"
 )
 
 # /PCHs
@@ -552,7 +552,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
     set(local_pchs "${HYP_PCH}") # start with global PCHs
 
     # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
-    if(${dir} MATCHES "src/system/platform/.*" AND NOT ${dir} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+    if(${dir} MATCHES "Source/Engine/system/platform/.*" AND NOT ${dir} MATCHES "Source/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         message(STATUS "Skipping platform directory: ${dir}")
         return()
     endif()
@@ -697,10 +697,8 @@ endfunction()
 
 set(SUB_LIBRARIES "")
 
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/src SOURCES HEADERS SUB_LIBRARIES)
-
-# add top level sources and headers to main engine sources
-source_group(TREE ${CMAKE_SOURCE_DIR}/src PREFIX "Engine Code" FILES ${SOURCES} ${HEADERS})
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Source SOURCES HEADERS SUB_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/Source PREFIX "Source Code" FILES ${SOURCES} ${HEADERS})
 
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_HEADERS "")
@@ -709,9 +707,9 @@ collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES T
 source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
 # platform specific stuff
-file(GLOB_RECURSE PLATFORM_FILES "src/system/platform/**/*")
+file(GLOB_RECURSE PLATFORM_FILES "Source/Engine/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
-    if(NOT ${PLATFORM_FILE} MATCHES "src/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+    if(NOT ${PLATFORM_FILE} MATCHES "Source/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
         list(REMOVE_ITEM HEADERS ${PLATFORM_FILE})
     endif()
@@ -872,7 +870,8 @@ set(COMMON_INCLUDE_DIRS "")
 include_directories(
     ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
@@ -909,7 +908,7 @@ target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
 if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     set_target_properties(${BUILD_NAME} PROPERTIES
         XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
-        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/src/HyperionPch.hpp"
+        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/Source/Engine/HyperionPch.hpp"
     )
 endif()
 # /PCHs

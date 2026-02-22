@@ -68,7 +68,7 @@ static constexpr const StringHash RelocatablePackages[] = {
     "$Import"_sh
 };
 
-extern HYP_API const FilePath& GetResourceDirectory();
+extern HYP_API const FilePath& GetLibraryDirectory();
 
 StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
 {
@@ -1834,7 +1834,7 @@ void AssetPackage::SignalLoaded()
 #pragma region AssetRegistry
 
 AssetRegistry::AssetRegistry()
-    : AssetRegistry("res")
+    : AssetRegistry("Library")
 {
 }
 
@@ -3070,7 +3070,7 @@ TResult<Handle<AssetPackage>> AssetRegistry::LoadPackageFromManifest(
 
         // Dependency package doesn't exist yet, try to load it from filesystem
         const String relativePath = AssetPath::MakeRelativePath(AssetPath(outPackage->BuildPackagePath()), dependencyPath);
-        const FilePath dependencyManifestPath = GetResourceDirectory() / FilePath::Relative(dir / relativePath / "PackageManifest.json", GetResourceDirectory());
+        const FilePath dependencyManifestPath = GetLibraryDirectory() / FilePath::Relative(dir / relativePath / "PackageManifest.json", GetLibraryDirectory());
 
         if (dependencyManifestPath.Exists() && !dependencyManifestPath.IsDirectory())
         {
