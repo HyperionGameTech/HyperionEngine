@@ -314,4 +314,6 @@ Binaries/Engine/**/*
 
 Build/**/*
 
+Projects/**/*
+
 Source/Generated/**/*
