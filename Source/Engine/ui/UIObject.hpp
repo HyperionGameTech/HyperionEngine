@@ -14,7 +14,7 @@
 #include <Core/containers/Array.hpp>
 #include <Core/containers/String.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/Uuid.hpp>

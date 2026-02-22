@@ -5,7 +5,7 @@
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/memory/allocator/ArenaAllocator.hpp>
 

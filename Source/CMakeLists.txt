@@ -6,6 +6,10 @@ if(POLICY CMP0114)
   cmake_policy(SET CMP0114 NEW)
 endif()
 
+if(POLICY CMP0079)
+    cmake_policy(SET CMP0079 NEW)
+endif()
+
 if(NOT DEFINED CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type to use" FORCE)
 endif()
@@ -60,22 +64,22 @@ include(ExternalProject)
 
 function(RunCodeGen version_major version_minor)
     if(WIN32)
-        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/RunCodeGen.bat")
-        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/BuildCodeGen.bat")
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/RunCodeGen.bat")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/BuildCodeGen.bat")
     else()
-        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/RunCodeGen.sh")
-        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/BuildCodeGen.sh")
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/RunCodeGen.sh")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/../Tools/Scripts/BuildCodeGen.sh")
     endif()
 
     message(STATUS "Running CodeGen: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
 
     if(NOT EXISTS ${HYP_CODEGEN_RUN_SCRIPT_PATH})
-        message(FATAL_ERROR "RunCodeGen script not found in ${CMAKE_SOURCE_DIR}/Tools/Scripts! Expected path: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
+        message(FATAL_ERROR "RunCodeGen script not found in ${CMAKE_SOURCE_DIR}/../Tools/Scripts! Expected path: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
     endif()
 
     execute_process(
         COMMAND ${HYP_CODEGEN_RUN_SCRIPT_PATH} ${version_major} ${version_minor}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/../
         RESULT_VARIABLE HYP_CODEGEN_RESULT
     )
 
@@ -202,7 +206,7 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
 
 # for VS solutions, we want to add some files as a custom solution item
 elseif(MSVC)
-    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/.clang-format" "${CMAKE_SOURCE_DIR}/.clang-tidy")
+    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/../.clang-format" "${CMAKE_SOURCE_DIR}/../.clang-tidy")
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
@@ -236,7 +240,7 @@ message(STATUS "HYP_ROOT_DIR: ${CMAKE_CURRENT_LIST_DIR}")
 
 set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 
-set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/Build/CSharpProjects")
+set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
 set(HYP_EDITOR 1)
@@ -545,7 +549,10 @@ else()
     message(STATUS "SPIRV-Reflect not found, skipping SPIRV-Reflect setup")
 endif()
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/Core ${CMAKE_BINARY_DIR}/Core)
+
 function(collect_sources_and_modules dir out_sources out_headers out_modules)
+
     set(local_sources "")
     set(local_headers "")
     set(local_modules "")
@@ -572,6 +579,10 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         set(should_recurse TRUE)
 
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
+
+        if(${dir} MATCHES "CodeGen" OR ${dir} MATCHES "Sample")
+            return()
+        endif()
 
         # handle ThirdParty modules separately
         if(dir MATCHES "ThirdParty")
@@ -610,7 +621,8 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
             set(should_skip_module TRUE)
         else()
             # the subfolder must contain a library with the name hyperion-<subfolder>
-            set(sub_library_name "hyperion-${subdir_basename}")
+            string(TOLOWER "${subdir_basename}" subdir_basename_lower)
+            set(sub_library_name "hyperion-${subdir_basename_lower}")
         endif()
 
         # if should_skip_module was set, return early
@@ -633,15 +645,17 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
         # Recurse into children so nested modules with their own CMakeLists.txt get added
         file(GLOB children LIST_DIRECTORIES true "${dir}/*")
         foreach(child ${children})
-            if(IS_DIRECTORY "${child}")
-                collect_sources_and_modules("${child}" child_sources child_headers child_modules)
-                list(APPEND local_modules ${child_modules})
+            if(NOT child MATCHES "CodeGen" AND NOT child MATCHES "Sample")
+                if(IS_DIRECTORY "${child}")
+                    collect_sources_and_modules("${child}" child_sources child_headers child_modules)
+                    list(APPEND local_modules ${child_modules})
 
-                if(EXISTS "${child}/CMakeLists.txt")
-                    # Treat child as its own module; do not pull its sources into this target
-                else()
-                    list(APPEND local_sources ${child_sources})
-                    list(APPEND local_headers ${child_headers})
+                    if(EXISTS "${child}/CMakeLists.txt")
+                        # Treat child as its own module; do not pull its sources into this target
+                    else()
+                        list(APPEND local_sources ${child_sources})
+                        list(APPEND local_headers ${child_headers})
+                    endif()
                 endif()
             endif()
         endforeach()
@@ -652,7 +666,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
             set("${sub_library_name}_HEADERS" ${local_headers})
             set("${sub_library_name}_PCH" ${local_pchs})
 
-            message(STATUS "Sources for ${sub_library_name}: ${${sub_library_name}_SOURCES}")
+            message(STATUS "Adding subdirectory ${dir} as module ${sub_library_name}")
 
             add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/${subdir_basename})
         else()
@@ -667,24 +681,26 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
     else()
         file(GLOB children LIST_DIRECTORIES true "${dir}/*")
         foreach(child ${children})
-            if(IS_DIRECTORY "${child}")
-                if(EXISTS "${child}/CMakeLists.txt")
-                    # Treat child as its own module; do not pull its sources into this target
-                    collect_sources_and_modules("${child}" child_sources child_headers child_modules)
-                    list(APPEND local_modules ${child_modules})
+            if(NOT child MATCHES "CodeGen" AND NOT child MATCHES "Sample")
+                if(IS_DIRECTORY "${child}")
+                    if(EXISTS "${child}/CMakeLists.txt")
+                        # Treat child as its own module; do not pull its sources into this target
+                        collect_sources_and_modules("${child}" child_sources child_headers child_modules)
+                        list(APPEND local_modules ${child_modules})
 
-                    # Remove any files from this module directory that were already added
-                    file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
-                        "${child}/*.cpp" "${child}/*.cxx" "${child}/*.cc" "${child}/*.c" "${child}/*.mm" "${child}/*.m")
-                    file(GLOB_RECURSE child_all_headers RELATIVE ${CMAKE_SOURCE_DIR}
-                        "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl" "${child}/*.inc")
-                    list(REMOVE_ITEM local_sources ${child_all_sources})
-                    list(REMOVE_ITEM local_headers ${child_all_headers})
-                else()
-                    collect_sources_and_modules("${child}" child_sources child_headers child_modules)
-                    list(APPEND local_sources ${child_sources})
-                    list(APPEND local_headers ${child_headers})
-                    list(APPEND local_modules ${child_modules})
+                        # Remove any files from this module directory that were already added
+                        file(GLOB_RECURSE child_all_sources RELATIVE ${CMAKE_SOURCE_DIR}
+                            "${child}/*.cpp" "${child}/*.cxx" "${child}/*.cc" "${child}/*.c" "${child}/*.mm" "${child}/*.m")
+                        file(GLOB_RECURSE child_all_headers RELATIVE ${CMAKE_SOURCE_DIR}
+                            "${child}/*.hpp" "${child}/*.hxx" "${child}/*.hh" "${child}/*.h" "${child}/*.inl" "${child}/*.inc")
+                        list(REMOVE_ITEM local_sources ${child_all_sources})
+                        list(REMOVE_ITEM local_headers ${child_all_headers})
+                    else()
+                        collect_sources_and_modules("${child}" child_sources child_headers child_modules)
+                        list(APPEND local_sources ${child_sources})
+                        list(APPEND local_headers ${child_headers})
+                        list(APPEND local_modules ${child_modules})
+                    endif()
                 endif()
             endif()
         endforeach()
@@ -697,7 +713,7 @@ endfunction()
 
 set(SUB_LIBRARIES "")
 
-collect_sources_and_modules(${CMAKE_SOURCE_DIR} SOURCES HEADERS SUB_LIBRARIES)
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Engine SOURCES HEADERS SUB_LIBRARIES)
 source_group(TREE ${CMAKE_SOURCE_DIR}/Engine PREFIX "Source Code" FILES ${SOURCES} ${HEADERS})
 
 set(THIRD_PARTY_SOURCES "")
@@ -975,38 +991,38 @@ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
 remove_definitions(-DHYP_BUILD_LIBRARY)
 
-add_subdirectory(samples)
+add_subdirectory(Sample)
 
-# if .vscode/launch.json does not exist, create it
-if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
-    # copy the template files
-    file(COPY "${CMAKE_SOURCE_DIR}/launch-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
-    file(COPY "${CMAKE_SOURCE_DIR}/tasks-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/tasks.json")
-    message(STATUS "Created launch and task json files in .vscode directory")
-endif()
+# # if .vscode/launch.json does not exist, create it
+# if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
+#     # copy the template files
+#     file(COPY "${CMAKE_SOURCE_DIR}/launch-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
+#     file(COPY "${CMAKE_SOURCE_DIR}/tasks-template.json" DESTINATION "${CMAKE_SOURCE_DIR}/.vscode/tasks.json")
+#     message(STATUS "Created launch and task json files in .vscode directory")
+# endif()
 
-# for all <ConfigName>Template.json files in the root directory, copy them to the CMAKE_RUNTIME_OUTPUT_DIRECTORY directory (if they do not exist),
-# and remove the "Template" part from the filename
-# this is used for configuration files for the engine, like GlobalConfig.json, Hyperion
-file(GLOB CONFIG_TEMPLATES "${CMAKE_SOURCE_DIR}/*ConfigTemplate.json")
-foreach(CONFIG_TEMPLATE ${CONFIG_TEMPLATES})
-    get_filename_component(CONFIG_NAME_WITH_TEMPLATE ${CONFIG_TEMPLATE} NAME_WE)
-    string(REPLACE "ConfigTemplate" "Config" CONFIG_NAME ${CONFIG_NAME_WITH_TEMPLATE})
-    set(OUTPUT_CONFIG_FILE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME}.json")
+# # for all <ConfigName>Template.json files in the root directory, copy them to the CMAKE_RUNTIME_OUTPUT_DIRECTORY directory (if they do not exist),
+# # and remove the "Template" part from the filename
+# # this is used for configuration files for the engine, like GlobalConfig.json, Hyperion
+# file(GLOB CONFIG_TEMPLATES "${CMAKE_SOURCE_DIR}/*ConfigTemplate.json")
+# foreach(CONFIG_TEMPLATE ${CONFIG_TEMPLATES})
+#     get_filename_component(CONFIG_NAME_WITH_TEMPLATE ${CONFIG_TEMPLATE} NAME_WE)
+#     string(REPLACE "ConfigTemplate" "Config" CONFIG_NAME ${CONFIG_NAME_WITH_TEMPLATE})
+#     set(OUTPUT_CONFIG_FILE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME}.json")
 
-    if(NOT EXISTS ${OUTPUT_CONFIG_FILE})
-        file(COPY ${CONFIG_TEMPLATE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-        file(RENAME "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME_WITH_TEMPLATE}.json" "${OUTPUT_CONFIG_FILE}")
-        message(STATUS "Copied configuration template: ${CONFIG_TEMPLATE} to ${OUTPUT_CONFIG_FILE}")
-    else()
-        message(STATUS "Configuration file already exists: ${OUTPUT_CONFIG_FILE}, skipping copy")
-    endif()
+#     if(NOT EXISTS ${OUTPUT_CONFIG_FILE})
+#         file(COPY ${CONFIG_TEMPLATE} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+#         file(RENAME "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CONFIG_NAME_WITH_TEMPLATE}.json" "${OUTPUT_CONFIG_FILE}")
+#         message(STATUS "Copied configuration template: ${CONFIG_TEMPLATE} to ${OUTPUT_CONFIG_FILE}")
+#     else()
+#         message(STATUS "Configuration file already exists: ${OUTPUT_CONFIG_FILE}, skipping copy")
+#     endif()
 
-    # If building with Visual Studio, add the generated config file into the
-    # solution so it's visible in the IDE under the VSSolutionFiles target.
-    if(MSVC)
-        if(TARGET VSSolutionFiles)
-            set_property(TARGET VSSolutionFiles APPEND PROPERTY SOURCES ${OUTPUT_CONFIG_FILE})
-        endif()
-    endif()
-endforeach()
+#     # If building with Visual Studio, add the generated config file into the
+#     # solution so it's visible in the IDE under the VSSolutionFiles target.
+#     if(MSVC)
+#         if(TARGET VSSolutionFiles)
+#             set_property(TARGET VSSolutionFiles APPEND PROPERTY SOURCES ${OUTPUT_CONFIG_FILE})
+#         endif()
+#     endif()
+# endforeach()

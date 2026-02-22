@@ -4,7 +4,7 @@
 
 #include <Core/containers/Array.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/utilities/EnumFlags.hpp>
 #include <Core/utilities/DeferredScope.hpp>

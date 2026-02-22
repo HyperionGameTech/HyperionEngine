@@ -11,7 +11,7 @@
 #include <Core/threading/Task.hpp>
 #include <Core/threading/AtomicVar.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/memory/Pimpl.hpp>
 
