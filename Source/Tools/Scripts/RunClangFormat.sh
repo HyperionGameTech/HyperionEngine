@@ -1,6 +1,6 @@
 #!/bin/bash
 # Define the source directory (use current directory if not specified)
-SOURCE_DIR="./src/script"
+SOURCE_DIR="./Source"
 
 # Find and run clang-format on all .cpp and .hpp files recursively,
 # skipping files inside any src/third_party folder.

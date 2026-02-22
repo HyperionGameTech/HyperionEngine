@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir -p build
-pushd build
+mkdir -p Build
+pushd Build
 
 # Parse CLI args
 IOS=0
@@ -30,14 +30,14 @@ if [[ $RESP =~ ^[Yy] ]]; then
         fi
 
         if [[ $IOS_SIMULATOR -eq 1 ]]; then
-            cmake -G Xcode .. -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+            cmake -G Xcode ../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
         else
-            cmake -G Xcode .. -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+            cmake -G Xcode ../Source -DHYP_PLATFORM_NAME=iOS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
         fi
     elif [[ $DARWIN -eq 1 ]]; then
-        cmake -G Xcode .. -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+        cmake -G Xcode ../Source -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
     else
-        cmake ..
+        cmake ../Source
     fi
 fi
 

@@ -1,13 +1,12 @@
 #!/bin/bash
 
-mkdir -p build/codegen
-pushd build
-pushd codegen
+mkdir -p ../Build/CodeGen
+pushd ../Build/CodeGen
 
 read -t 3 -p "Regenerate CMake? (will continue without regenerating in 3s) " RESP
 
 if [[ $RESP =~ ^[Yy] ]]; then
-    cmake ../../codegen
+    cmake ../../Source/CodeGen
 fi
 
 # Build the codegen and move it to the build directory
@@ -28,7 +27,6 @@ else
     exit 1
 fi
 
-popd
 popd
 
 

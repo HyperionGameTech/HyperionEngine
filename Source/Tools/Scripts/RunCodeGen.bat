@@ -17,10 +17,10 @@ set "WORKING_DIR=%cd%"
 
 rem -- version‐based rebuild logic start --
 set "REBUILD=false"
-set "INC_FILE=%WORKING_DIR%\generated\CodeGenOutput.inc"
+set "INC_FILE=%WORKING_DIR%\Generated\CodeGenOutput.inc"
 
 rem -- Check if both the build tool and version file exist --
-if not exist "%WORKING_DIR%\build\hyperion-codegen.exe" (
+if not exist "%WORKING_DIR%\Build\hyperion-codegen.exe" (
     echo hyperion-codegen.exe not found. Running BuildCodeGen...
     set "REBUILD=true"
     goto do_rebuild
@@ -74,11 +74,11 @@ goto _skipBuild
 echo Running BuildCodeGen...
 echo y| call tools\scripts\BuildCodeGen.bat
 if errorlevel 1 (
-    echo Failed to build Hyperion build tool.
+    echo Failed to build Hyperion CodeGen tool.
     exit /b 1
 ) else (
     rem Check if build tool was created
-    if not exist "%WORKING_DIR%\build\hyperion-codegen.exe" (
+    if not exist "%WORKING_DIR%\Build\hyperion-codegen.exe" (
         echo Build tool returned success, but the executable could not be found!
         exit /b 1
     )
@@ -87,4 +87,4 @@ if errorlevel 1 (
 :_skipBuild
 rem -- version‐based rebuild logic end --
 
-build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\src --CXXOutputDirectory=%WORKING_DIR%\generated --CSharpOutputDirectory=%WORKING_DIR%\generated\csharp --HypScriptOutputDirectory=%WORKING_DIR%\build\bin --ExcludeDirectories=%WORKING_DIR%\generated --ExcludeFiles=%WORKING_DIR%\src\core\Defines.hpp
+Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Generated --CSharpOutputDirectory=%WORKING_DIR%\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Build\Binaries --ExcludeDirectories=%WORKING_DIR%\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp

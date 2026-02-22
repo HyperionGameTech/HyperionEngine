@@ -53,9 +53,9 @@ file(GLOB_RECURSE CODEGEN_HEADERS "*.h" "*.hpp")
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
-    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/Source
     ${CMAKE_SOURCE_DIR}/../thirdparty
-    ${CMAKE_SOURCE_DIR}/../Source/Core
+    ${CMAKE_SOURCE_DIR}../Core
 )
 
 
@@ -67,7 +67,7 @@ endif()
 
 
 # link with shared library hyperion
-add_subdirectory(${CMAKE_SOURCE_DIR}/../Source/Core ${CMAKE_BINARY_DIR}/../Source/Core)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../Core ${CMAKE_BINARY_DIR}/../Core)
 add_dependencies(${BUILD_NAME} hyperion-core)
 target_link_libraries(${BUILD_NAME} hyperion-core)
 

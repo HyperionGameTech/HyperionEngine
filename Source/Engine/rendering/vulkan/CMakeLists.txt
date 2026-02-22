@@ -20,11 +20,11 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 include_directories(
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/thirdparty
-    ${CMAKE_SOURCE_DIR}/generated
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/rendering
-    ${CMAKE_SOURCE_DIR}/src/rendering/vulkan
+    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
+    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering
+    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering/vulkan
 )
 
 # Normalize sources/headers to absolute paths under the root

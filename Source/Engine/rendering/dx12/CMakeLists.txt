@@ -16,11 +16,11 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 add_definitions(-DHYP_DX12=1)
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/generated
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/rendering
-    ${CMAKE_SOURCE_DIR}/src/rendering/dx12
+    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
+    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering
+    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering/dx12
 )
 
 # Normalize sources/headers to absolute paths under the root

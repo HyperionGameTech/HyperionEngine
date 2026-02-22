@@ -12,6 +12,7 @@
 cmake-build-debug/**/*
 cmake-build-release/**/*
 
+Build/**/*
 build/**/*
 build_old/**/*
 build.*/**/*
@@ -303,10 +304,7 @@ CMakeFiles/**/*
 
 **/*.pyc
 
-src/gen/**/*
-src/dotnet/runtime/gen/**/*
-
 res/projects/**/*
 res/*/BlobStorage/**/*
 
-generated/**/*
+Generated/**/*

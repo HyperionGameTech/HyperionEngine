@@ -86,7 +86,7 @@ include_directories(
     ${Vulkan_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/thirdparty
     ${CMAKE_SOURCE_DIR}/Source/Core
-    ${CMAKE_SOURCE_DIR}/generated
+    ${CMAKE_SOURCE_DIR}/Generated
 )
 
 set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/tlsf/tlsf.c)

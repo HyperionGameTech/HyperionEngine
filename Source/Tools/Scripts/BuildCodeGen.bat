@@ -1,13 +1,11 @@
 @echo off
 
-mkdir build\codegen
-
-pushd build
-pushd codegen
+mkdir ..\Build\CodeGen
+pushd ..\Build\CodeGen
 
 choice /C YN /T 3 /D N /M "Regenerate CMake? (will continue without regenerating in 3s)"
 if %errorlevel%==1 (
-    cmake ..\..\codegen
+    cmake ..\..\Source\CodeGen
 )
 
 cmake --build . --target hyperion-codegen --parallel 4
@@ -32,5 +30,4 @@ if exist hyperion-codegen.exe (
     )
 )
 
-popd
 popd
