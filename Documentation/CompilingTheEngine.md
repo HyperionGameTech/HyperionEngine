@@ -37,7 +37,7 @@ lib` exists in the `lib/Win32/{Debug|Release}` directory, Hyperion will link to 
 
 In the project's base directory, you'll find a folder named `codegen` containing source code and CMake files separated from the rest of the engine. This application reads through the engine's header files and parses them to generate code that is used by Hyperion's reflection, serialization, and scripting systems.
 
-codegen is set up to run whenever you reconfigure the engine's CMake files. To invoke it manually, there are two scripts located under Source/Tools/Scripts:
+codegen is set up to run whenever you reconfigure the engine's CMake files. To invoke it manually, there are two scripts located under Tools/Scripts:
 
 * `RunCodeGen.bat` (Windows only)
 * `RunCodeGen.sh` Linux/macOS/others
@@ -63,7 +63,7 @@ After CMake has been configured and the build tool has been run, you should be a
 
 ## Build Scripts
 
-To make compiling easier, we've also added a `build` script in the root directory of the project that compiles the code for you as well as runs the build tool. There are also more useful build scripts in the `Source/Tools/Scripts` directory for more fine-grained control over the build process.
+To make compiling easier, we've also added a `build` script in the root directory of the project that compiles the code for you as well as runs the build tool. There are also more useful build scripts in the `Tools/Scripts` directory for more fine-grained control over the build process.
 
 ## Visual Studio specifics
 
@@ -71,9 +71,9 @@ Note: If you're planning on using Visual Studio, be sure to compile the engine w
 
 ## macOS specifics
 
-On macOS, you will need to install the following dependencies via Homebrew using the `InstallDependenciesMac.sh` script located in the `Source/Tools/Scripts` directory:
+On macOS, you will need to install the following dependencies via Homebrew using the `InstallDependenciesMac.sh` script located in the `Tools/Scripts` directory:
 ```bash
-./Source/Tools/Scripts/InstallDependenciesMac.sh
+./Scripts/InstallDependenciesMac.sh
 ```
 To generate XCode projects for macOS, you can run the `build.sh` script in the root directory with `--xcode` passed in as a command line argument.
 

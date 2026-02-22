@@ -54,7 +54,7 @@ find_program(DOTNET_EXECUTABLE dotnet)
 
 if(DOTNET_EXECUTABLE)
     # Generate Hyperion.Editor.csproj
-    set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/Build/CSharpProjects/Hyperion.Editor")
+    set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../Build/CSharpProjects/Hyperion.Editor")
     file(MAKE_DIRECTORY ${EDITOR_PROJECT_DIR})
 
     # Generate launchSettings.json to enable native debugging

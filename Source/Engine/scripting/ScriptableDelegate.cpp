@@ -3,7 +3,7 @@
 #include <Core/reflection/BoxedValue.hpp>
 #include <Core/reflection/Method.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>

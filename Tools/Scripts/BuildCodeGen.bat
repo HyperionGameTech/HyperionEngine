@@ -1,7 +1,9 @@
 @echo off
 
-mkdir ..\Build\CodeGen
-pushd ..\Build\CodeGen
+echo "Running BuildCodeGen.bat from %CD%"
+
+mkdir .\Build\CodeGen
+pushd .\Build\CodeGen
 
 choice /C YN /T 3 /D N /M "Regenerate CMake? (will continue without regenerating in 3s)"
 if %errorlevel%==1 (

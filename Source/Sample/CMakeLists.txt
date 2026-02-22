@@ -20,7 +20,7 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-link_directories(${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty /usr/local/lib)
+link_directories(${CMAKE_SOURCE_DIR}/../../Binaries/ThirdParty /usr/local/lib)
 
 add_definitions(-DHYP_ROOT_DIR="${CMAKE_CURRENT_LIST_DIR}")
 add_definitions(-DSDL_MAIN_HANDLED=1)
@@ -35,8 +35,8 @@ file(GLOB_RECURSE HEADERS "*.h" "*.hpp")
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 include_directories(
     ${HYP_GENERATED_DIR}
-    ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/Core
+    ${CMAKE_SOURCE_DIR}/../
+    ${CMAKE_SOURCE_DIR}/../Engine
 )
 add_executable(${BUILD_NAME} ${SOURCES} ${HEADERS})
 

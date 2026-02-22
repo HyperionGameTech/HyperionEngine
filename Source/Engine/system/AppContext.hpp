@@ -10,7 +10,7 @@
 #include <Core/Defines.hpp>
 #include <Core/Types.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/utilities/EnumFlags.hpp>
 

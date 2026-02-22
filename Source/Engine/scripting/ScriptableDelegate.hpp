@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <Core/functional/ScriptableDelegateFwd.hpp>
+#include <scripting/ScriptableDelegateFwd.hpp>
+#include <scripting/ScriptObjectResource.hpp>
+
 #include <Core/functional/Delegate.hpp>
 
 #include <Core/memory/resource/Resource.hpp>
-
-#include <scripting/ScriptObjectResource.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
 

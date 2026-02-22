@@ -61,9 +61,9 @@ fi
 
 if [ "$REBUILD" = true ]; then
     echo "Running BuildCodeGen.sh ..."
-    if (printf "y" | ./Source/Tools/Scripts/BuildCodeGen.sh); then
+    if (printf "y" | ./Tools/Scripts/BuildCodeGen.sh); then
         # Check if build tool was created
-        if [ ! -f ./build/hyperion-codegen ]; then
+        if [ ! -f ./Build/hyperion-codegen ]; then
             echo "Build tool returned success, but the executable could not be found!"
             exit 1
         fi
@@ -76,4 +76,4 @@ else
 fi
 
 # Run the build tool
-./Build/hyperion-codegen --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/Source --CXXOutputDirectory=$WORKING_DIR/Source/Generated --CSharpOutputDirectory=$WORKING_DIR/Generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/Binaries --ExcludeDirectories=$WORKING_DIR/Generated --ExcludeFiles=$WORKING_DIR/Source/Core/Defines.hpp
+./Build/hyperion-codegen --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/Source --CXXOutputDirectory=$WORKING_DIR/Source/Generated --CSharpOutputDirectory=$WORKING_DIR/Source/Generated/CSharp --HypScriptOutputDirectory=$WORKING_DIR/Binaries --ExcludeDirectories=$WORKING_DIR/Generated --ExcludeFiles=$WORKING_DIR/Source/Core/Defines.hpp

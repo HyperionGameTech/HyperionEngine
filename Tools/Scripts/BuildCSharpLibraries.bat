@@ -5,7 +5,7 @@ IF NOT "%~1"=="" SET "CONFIG=%~1"
 
 SET "projects=Hyperion.NET.Shared Hyperion.NET.Runtime Hyperion.NET.Interop Hyperion.NET.Scripting"
 
-pushd build
+pushd Build
 SET "buildDir=%CD%"
 pushd CSharpProjects
 

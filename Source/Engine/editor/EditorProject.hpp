@@ -9,7 +9,7 @@
 #include <Core/reflection/ObjectBase.hpp>
 
 #include <Core/functional/Delegate.hpp>
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/utilities/Result.hpp>
 

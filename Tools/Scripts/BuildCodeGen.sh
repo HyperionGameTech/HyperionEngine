@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir -p ../Build/CodeGen
-pushd ../Build/CodeGen
+mkdir -p ./Build/CodeGen
+pushd ./Build/CodeGen
 
 read -t 3 -p "Regenerate CMake? (will continue without regenerating in 3s) " RESP
 

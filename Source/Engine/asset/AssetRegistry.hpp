@@ -15,8 +15,6 @@
 #include <Core/utilities/ForEach.hpp>
 #include <Core/utilities/Result.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
-
 #include <Core/threading/SharedMutex.hpp>
 #include <Core/threading/SchedulerFwd.hpp>
 
@@ -28,6 +26,8 @@
 #include <Core/Defines.hpp>
 
 #include <Core/utilities/ClockTimer.hpp>
+
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <algorithm>
 #include <type_traits>

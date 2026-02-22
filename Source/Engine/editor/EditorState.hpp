@@ -10,7 +10,7 @@
 
 #include <Core/threading/Mutex.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/Types.hpp>
 

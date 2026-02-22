@@ -15,6 +15,8 @@ set "HYP_CODEGEN_VERSION_MINOR=%~2"
 
 set "WORKING_DIR=%cd%"
 
+echo Working directory: %WORKING_DIR%
+
 rem -- version‐based rebuild logic start --
 set "REBUILD=false"
 set "INC_FILE=%WORKING_DIR%\Source\Generated\CodeGenOutput.inc"
@@ -72,7 +74,7 @@ goto _skipBuild
 
 :do_rebuild
 echo Running BuildCodeGen...
-echo y| call tools\scripts\BuildCodeGen.bat
+echo y| call "%WORKING_DIR%\Tools\Scripts\BuildCodeGen.bat"
 if errorlevel 1 (
     echo Failed to build Hyperion CodeGen tool.
     exit /b 1
@@ -87,4 +89,4 @@ if errorlevel 1 (
 :_skipBuild
 rem -- version‐based rebuild logic end --
 
-Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Source\Generated --CSharpOutputDirectory=%WORKING_DIR%\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Binaries --ExcludeDirectories=%WORKING_DIR%\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp
+Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Source\Generated --CSharpOutputDirectory=%WORKING_DIR%\Source\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Binaries --ExcludeDirectories=%WORKING_DIR%\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp

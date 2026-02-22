@@ -10,7 +10,7 @@
 #include <Core/utilities/Uuid.hpp>
 #include <Core/utilities/DataMutationState.hpp>
 
-#include <Core/functional/ScriptableDelegate.hpp>
+#include <scripting/ScriptableDelegate.hpp>
 
 #include <Core/logging/LoggerFwd.hpp>
 

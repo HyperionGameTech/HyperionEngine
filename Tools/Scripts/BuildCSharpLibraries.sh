@@ -10,7 +10,7 @@ fi
 
 projects=("Hyperion.NET.Shared" "Hyperion.NET.Runtime" "Hyperion.NET.Interop" "Hyperion.NET.Scripting")
 
-pushd build
+pushd Build
 buildDir="$(pwd)"
 pushd CSharpProjects
 
@@ -34,4 +34,4 @@ for project in "${projects[@]}"; do
 done
 
 popd # CSharpProjects
-popd # build
+popd # Build
