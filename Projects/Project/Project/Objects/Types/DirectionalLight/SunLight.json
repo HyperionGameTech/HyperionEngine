@@ -1,0 +1,46 @@
+{
+  "$Class": "DirectionalLight",
+  "Position": [-0.235702, 0.942809, 0.235702],
+  "Normal": [0, 0, 0],
+  "AreaSize": [0, 0],
+  "Color": {
+    "Red": 1,
+    "Green": 0.898039,
+    "Blue": 0.800000,
+    "Alpha": 1
+  },
+  "Intensity": 15,
+  "Radius": null,
+  "Falloff": 1,
+  "SpotAngles": [0, 0],
+  "Material": null,
+  "ShadowMapDimensions": [1024, 1024],
+  "LightFlags": 3,
+  "Type": 0,
+  "Components": [],
+  "NodeFlags": 8192,
+  "LocalBounds": {
+    "Min": [-9223372036854775808, -9223372036854775808, -9223372036854775808],
+    "Max": [-9223372036854775808, -9223372036854775808, -9223372036854775808]
+  },
+  "LocalTransform": {
+    "Translation": [0, 0, 0],
+    "Scale": [1, 1, 1],
+    "Rotation": {
+      "X": 0,
+      "Y": 0,
+      "Z": 0,
+      "W": 1
+    }
+  },
+  "Children": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Project/Objects/Types/Camera/ShadowMapCamera_SunLight"
+      }
+    }],
+  "NodeTags": {},
+  "Name": "SunLight",
+  "FriendlyName": "SunLight",
+  "OriginalFilepath": ""
+}

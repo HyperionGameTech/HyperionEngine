@@ -1,0 +1,37 @@
+{
+  "$Class": "EditorProject",
+  "GameInstance": {
+    "$Class": "Game",
+    "World": {
+      "$Class": "World",
+      "WorldFlags": 262,
+      "NonStreamingScenes": [],
+      "StreamingLayers": [{
+          "$Class": "WGLayerDesc",
+          "ClassName": "WorldGridLayer",
+          "LayerName": "Scenes_Layer",
+          "Info": {
+            "GridSize": [64, 64],
+            "CellSize": [32, 32, 32],
+            "Offset": [0, 0, 0],
+            "Scale": [1, 1, 1],
+            "MaxDistance": 5
+          },
+          "Objects": [{
+              "$Class": "WGObject",
+              "Coords": [0, 0],
+              "Path": {
+                "Value": "Project/Objects/Types/Scene/DefaultScene1"
+              }
+            }]
+        }],
+      "Systems": [{
+          "$Class": "PhysicsSystem"
+        }, {
+          "$Class": "DynamicSkySystem"
+        }],
+      "Name": "World"
+    }
+  },
+  "Name": "Project"
+}

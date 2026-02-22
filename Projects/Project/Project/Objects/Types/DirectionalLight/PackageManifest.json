@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "DirectionalLight",
+  "FriendlyName": "DirectionalLight",
+  "Flags": 0,
+  "Path": "Project/Objects/Types/DirectionalLight"
+}

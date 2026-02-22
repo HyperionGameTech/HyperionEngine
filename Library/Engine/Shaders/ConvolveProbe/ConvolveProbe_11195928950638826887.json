@@ -102,7 +102,7 @@
       }]
   },
   "ShaderModuleTypes": [4],
-  "ShaderModuleNames": ["shaders/env_probe/ConvolveProbe.hlsl"],
+  "ShaderModuleNames": ["ConvolveProbe.hlsl"],
   "EntryPointNames": ["CSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",

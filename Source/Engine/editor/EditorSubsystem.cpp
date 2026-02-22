@@ -712,7 +712,7 @@ bool TranslateEditorGizmo::OnKeyPress(const Handle<Camera>& camera, const Keyboa
 
 Handle<Node> TranslateEditorGizmo::Load_Internal() const
 {
-    auto result = AssetManager::GetInstance()->Load<Node>("models/editor/translate_gizmo.obj");
+    auto result = AssetManager::GetInstance()->Load<Node>("Editor/Models/translate_gizmo.obj");
 
     if (result.HasValue())
     {
@@ -803,7 +803,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
 
 Handle<Node> RotateEditorGizmo::Load_Internal() const
 {
-    auto result = AssetManager::GetInstance()->Load<Node>("models/editor/rotate_gizmo.obj");
+    auto result = AssetManager::GetInstance()->Load<Node>("Editor/Models/rotate_gizmo.obj");
 
     if (result.HasValue())
     {
@@ -1594,7 +1594,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 
     if (fontAtlasResult.HasError())
     {
-        HYP_FAIL("Failed to create font atlas for editor UI: {}", *fontAtlasResult.GetError().GetMessage());
+        HYP_FAIL("Failed to create font atlas for editor UI: {}", fontAtlasResult.GetError().GetMessage());
     }
 
     uiSubsystem->GetUIStage()->SetDefaultFontAtlas(*fontAtlasResult);
@@ -2723,7 +2723,7 @@ TResult<Handle<FontAtlas>> EditorSubsystem::CreateFontAtlas()
 {
     HYP_SCOPE;
 
-    auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("fonts/Roboto/Roboto-Regular.ttf");
+    auto fontFaceAsset = AssetManager::GetInstance()->Load<RC<FontFace>>("Fonts/Roboto/Roboto-Regular.ttf");
 
     if (fontFaceAsset.HasError())
     {
@@ -2896,7 +2896,7 @@ void EditorSubsystem::ShowImportContentDialog()
 
     ShowOpenFileDialog(
         "Select the file(s) to import into the project",
-        GetImportedDirectory(),
+        GetDataDirectory(),
         { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
         /* allowMultiple */ true, /* allowDirectories */ false,
         [](TResult<Array<FilePath>>&& result)

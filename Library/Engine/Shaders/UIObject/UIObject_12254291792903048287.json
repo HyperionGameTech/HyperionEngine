@@ -94,7 +94,7 @@
       }]
   },
   "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["shaders/ui/UIObject.hlsl", "shaders/ui/UIObject.hlsl"],
+  "ShaderModuleNames": ["UIObject.hlsl", "UIObject.hlsl"],
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",

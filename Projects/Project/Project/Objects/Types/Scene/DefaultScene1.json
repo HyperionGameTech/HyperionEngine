@@ -1,0 +1,15 @@
+{
+  "$Class": "Scene",
+  "Root": {
+    "$Class": "AssetReference",
+    "AssetPath": {
+      "Value": "Project/Objects/Types/Node/_ROOT_"
+    }
+  },
+  "SceneFlags": 97,
+  "IsAudioListener": false,
+  "StreamingCentroid": [0, 0],
+  "Name": "DefaultScene1",
+  "FriendlyName": "DefaultScene1",
+  "OriginalFilepath": ""
+}

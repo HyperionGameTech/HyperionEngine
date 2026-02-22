@@ -983,7 +983,7 @@ UIEventHandlerResult EditorMain::AddParticleVolume(const MouseEvent& event)
     }
 
     ParticleVolumeParams params {};
-    params.texture = g_assetManager->Load<Texture>("textures/spark.png").GetValue().ExtractAs<Handle<Texture>>();
+    params.texture = g_assetManager->Load<Texture>("Textures/spark.png").GetValue().ExtractAs<Handle<Texture>>();
     params.origin = Vec3f(0.0f, 10.0f, 0.0f); // temp
     params.maxParticles = 2048;
     params.hasPhysics = true;

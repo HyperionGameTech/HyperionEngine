@@ -228,7 +228,7 @@
       }]
   },
   "ShaderModuleTypes": [1, 2],
-  "ShaderModuleNames": ["C:\\Users\\andre\\hyperion-engine\\res\\shaders\\DeferredDirect.hlsl", "C:\\Users\\andre\\hyperion-engine\\res\\shaders\\DeferredDirect.hlsl"],
+  "ShaderModuleNames": ["DeferredDirect.hlsl", "DeferredDirect.hlsl"],
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",

@@ -272,7 +272,7 @@ AssetBatch* AssetManager::CreateBatch(const String& identifier)
 
 void AssetManager::RegisterDefaultLoaders()
 {
-    SetBasePath(GetImportedDirectory());
+    SetBasePath(GetDataDirectory());
 
     Register<OBJModelLoader, Node>("obj");
     Register<OgreXMLModelLoader, Node>("mesh.xml");

@@ -67,6 +67,7 @@
 #include <input/Event.hpp>
 
 #include <system/AppContext.hpp>
+#include <system/DirectoryInitializer.hpp>
 
 #include <scripting/ScriptingService.hpp>
 
