@@ -23,11 +23,11 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineGlobals.hpp>

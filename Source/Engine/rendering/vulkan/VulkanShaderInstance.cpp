@@ -12,9 +12,9 @@
 
 #include <rendering/Shader.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
 #include <engine/EngineDriver.hpp>
 

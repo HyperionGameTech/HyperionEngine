@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace utilities {

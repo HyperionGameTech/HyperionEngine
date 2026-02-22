@@ -4,9 +4,9 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <core/math/Quaternion.hpp>
+#include <Core/math/Quaternion.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

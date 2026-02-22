@@ -15,7 +15,7 @@ buildDir="$(pwd)"
 pushd CSharpProjects
 
 for project in "${projects[@]}"; do
-    mkdir -p "$buildDir/Binaries"
+    mkdir -p "$buildDir/../Binaries"
     
     echo "Building $project in $CONFIG configuration..."
 
@@ -25,10 +25,11 @@ for project in "${projects[@]}"; do
             echo "Failed to build $project"
             exit 1
         fi
-        #dstPath="$buildDir/bin/$project.dll"
-        #srcPath="bin/$CONFIG/net9.0/$project.dll"
-        #echo "copy $srcPath to $dstPath"
-        #cp "$srcPath" "$dstPath"
+        # # Copy the built DLL to the Binaries folder
+        # if [ ! -d "$buildDir/../Binaries" ]; then
+        #     mkdir -p "$buildDir/../Binaries"
+        # fi
+        # cp "bin/$CONFIG/net9.0/$project.dll" "$buildDir/../Binaries/$project.dll"
     popd # $project
 done
 

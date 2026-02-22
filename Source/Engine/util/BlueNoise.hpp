@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 // based on:
 // https://eheitzresearch.wordpress.com/762-2/

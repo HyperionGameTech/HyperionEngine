@@ -5,7 +5,7 @@
 
 #include <serialization/SerializationUtils.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 #include <io/ByteReader.hpp>
 #include <io/ByteWriter.hpp>

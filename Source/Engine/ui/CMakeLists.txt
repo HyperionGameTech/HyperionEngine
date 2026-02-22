@@ -7,7 +7,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building ${BUILD_NAME} module, base directory: ${CMAKE_SOURCE_DIR}")
 
-link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
+link_directories(${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty /usr/local/lib)
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
@@ -17,11 +17,11 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 set(UI_LIBRARIES "")
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/thirdparty
+    ${CMAKE_SOURCE_DIR}/ThirdParty
     ${CMAKE_SOURCE_DIR}/Generated
-    ${CMAKE_SOURCE_DIR}/Source/Engine
-    ${CMAKE_SOURCE_DIR}/Source/Core
-    ${CMAKE_SOURCE_DIR}/Source/Engine/ui
+    ${CMAKE_SOURCE_DIR}/Core
+    ${CMAKE_SOURCE_DIR}/Engine
+    ${CMAKE_SOURCE_DIR}/Engine/ui
 )
 
 if(NOT IOS)

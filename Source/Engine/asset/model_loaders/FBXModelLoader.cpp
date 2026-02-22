@@ -26,15 +26,15 @@
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/compression/Archive.hpp>
+#include <Core/compression/Archive.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/memory/Memory.hpp>
-#include <core/memory/allocator/ArenaAllocator.hpp>
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/Memory.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
 #include <engine/EngineDriver.hpp>
 

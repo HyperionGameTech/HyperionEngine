@@ -11,7 +11,7 @@
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/AsyncCompute.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <VulkanDevice.generated.inl>
 

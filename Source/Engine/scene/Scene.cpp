@@ -21,7 +21,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/math/Halton.hpp>
+#include <Core/math/Halton.hpp>
 
 #include <engine/EngineDriver.hpp>
 

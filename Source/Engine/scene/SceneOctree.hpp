@@ -4,25 +4,25 @@
 
 #include <util/octree/Octree.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/VisibilityState.hpp>
 #include <scene/EntityTag.hpp>
 
-#include <core/math/Vector3.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Ray.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Ray.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 // #define HYP_OCTREE_DEBUG
 

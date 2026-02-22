@@ -1,18 +1,18 @@
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/FlatSet.hpp>
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/FlatSet.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/reflection/TypeInfoFwd.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
 
 namespace Hyperion {
 

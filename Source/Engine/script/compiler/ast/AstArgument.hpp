@@ -2,9 +2,9 @@
 
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

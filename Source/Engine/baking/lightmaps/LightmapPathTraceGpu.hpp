@@ -6,7 +6,7 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 

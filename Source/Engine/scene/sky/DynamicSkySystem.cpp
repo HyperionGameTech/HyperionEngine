@@ -20,7 +20,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Scheduler.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

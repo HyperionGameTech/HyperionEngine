@@ -7,7 +7,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building ${BUILD_NAME} library, base directory: ${CMAKE_SOURCE_DIR}")
 
-link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
+link_directories(${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty /usr/local/lib)
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
@@ -17,11 +17,11 @@ add_definitions(-DHYP_EDITOR=1)
 
 include_directories(
     ${SDL2_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/thirdparty
+    ${CMAKE_SOURCE_DIR}/ThirdParty
     ${CMAKE_SOURCE_DIR}/Generated
-    ${CMAKE_SOURCE_DIR}/Source/Engine
-    ${CMAKE_SOURCE_DIR}/Source/Core
-    ${CMAKE_SOURCE_DIR}/Source/Engine/editor
+    ${CMAKE_SOURCE_DIR}/Core
+    ${CMAKE_SOURCE_DIR}/Engine
+    ${CMAKE_SOURCE_DIR}/Engine/editor
 )
 
 set(CURRENT_SOURCES "")

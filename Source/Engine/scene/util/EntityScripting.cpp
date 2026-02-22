@@ -19,10 +19,10 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/DotNETHost.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Method.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Method.hpp>
 
 #include <engine/Game.hpp>
 

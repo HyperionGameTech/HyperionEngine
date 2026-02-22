@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Result.hpp>
 
 #include <ui/font/FontFace.hpp>
 #include <ui/font/Glyph.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 #include <util/img/Bitmap.hpp>
 

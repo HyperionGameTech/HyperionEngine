@@ -1,6 +1,6 @@
 #include <script/vm/Tracemap.hpp>
-#include <core/debug/Debug.hpp>
-#include <core/utilities/Format.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/utilities/Format.hpp>
 
 namespace Hyperion {
 

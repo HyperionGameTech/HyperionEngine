@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 namespace memory {

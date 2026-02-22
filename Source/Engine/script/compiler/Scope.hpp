@@ -4,11 +4,11 @@
 #include <script/compiler/type-system/SymbolType.hpp>
 #include <script/SourceLocation.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <utility>
 

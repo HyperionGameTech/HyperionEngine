@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/functional/ScriptableDelegateFwd.hpp>
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/ScriptableDelegateFwd.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedObject.hpp>

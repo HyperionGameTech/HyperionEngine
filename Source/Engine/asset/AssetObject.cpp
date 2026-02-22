@@ -8,15 +8,15 @@
 #include <asset/Assets.hpp>
 #include <asset/BlobStorage.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/serialization/SerializationUtils.hpp>
+#include <Core/serialization/SerializationUtils.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 #include <system/MessageBox.hpp>
 

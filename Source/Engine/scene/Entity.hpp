@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
 #include <scene/Node.hpp>
 

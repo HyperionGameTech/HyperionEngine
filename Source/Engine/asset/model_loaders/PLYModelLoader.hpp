@@ -6,13 +6,13 @@
 
 #include <rendering/Vertex.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <cstdio>
 #include <cstdarg>

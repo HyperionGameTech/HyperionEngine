@@ -1,10 +1,10 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/containers/Bitset.hpp>
-#include <core/utilities/Span.hpp>
-#include <core/Util.hpp>
+#include <Core/containers/Bitset.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/Util.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
 namespace Hyperion {
 namespace containers {

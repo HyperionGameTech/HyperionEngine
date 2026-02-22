@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
 namespace Hyperion {
 

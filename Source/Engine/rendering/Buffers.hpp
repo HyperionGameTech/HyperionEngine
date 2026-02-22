@@ -2,27 +2,27 @@
 
 #pragma once
 
-#include <core/memory/MemoryPool.hpp>
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/MemoryPool.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/Range.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/utilities/Range.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 #include <rendering/GpuBuffer.hpp>
 #include <rendering/Frame.hpp>
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

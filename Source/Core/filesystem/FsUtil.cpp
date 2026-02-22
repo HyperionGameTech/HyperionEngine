@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/filesystem/FsUtil.hpp>
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/Defines.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/Defines.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <filesystem>
 #include <fstream>

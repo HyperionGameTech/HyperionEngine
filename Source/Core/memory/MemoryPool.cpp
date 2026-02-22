@@ -1,10 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/memory/MemoryPool.hpp>
+#include <Core/memory/MemoryPool.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
 namespace Hyperion {
 namespace memory {

@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
 namespace Hyperion {
 

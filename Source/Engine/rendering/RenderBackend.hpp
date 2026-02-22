@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
 #include <rendering/Shared.hpp>
 #include <rendering/RenderResult.hpp>
@@ -12,10 +12,10 @@
 #include <rendering/RenderConfig.hpp>
 #include <rendering/RenderMemory.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 

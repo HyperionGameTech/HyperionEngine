@@ -2,9 +2,9 @@
 
 #include <parser/ErrorList.hpp>
 
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 #include <fstream>
 

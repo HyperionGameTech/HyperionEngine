@@ -17,7 +17,7 @@
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #include <ShadowMapAllocator.generated.inl>
 

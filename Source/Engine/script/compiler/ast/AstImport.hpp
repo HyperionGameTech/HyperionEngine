@@ -4,7 +4,7 @@
 #include <script/compiler/AstIterator.hpp>
 #include <script/compiler/Module.hpp>
 #include <script/compiler/CompilationUnit.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 class BufferedReader;

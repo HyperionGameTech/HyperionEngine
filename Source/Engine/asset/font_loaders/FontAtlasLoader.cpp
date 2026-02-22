@@ -9,7 +9,7 @@
 
 #include <rendering/Texture.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 #include <FontAtlasLoader.generated.inl>
 

@@ -2,11 +2,11 @@
 
 #include <script/vm/Value.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
 namespace Hyperion {
 

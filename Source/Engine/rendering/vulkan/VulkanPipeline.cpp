@@ -6,9 +6,9 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/containers/StaticString.hpp>
+#include <Core/Defines.hpp>
+#include <Core/containers/StaticString.hpp>
 
-#include <core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

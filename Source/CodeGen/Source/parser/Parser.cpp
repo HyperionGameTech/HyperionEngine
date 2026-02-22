@@ -4,12 +4,12 @@
 #include <analyzer/Analyzer.hpp>
 #include <analyzer/Definitions.hpp>
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/json/JSON.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/json/JSON.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion::CodeGen {
 

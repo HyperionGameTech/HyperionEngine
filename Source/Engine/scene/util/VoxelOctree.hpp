@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/math/Vector3.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Triangle.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Triangle.hpp>
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
-// #include <core/logging/LoggerFwd.hpp>
+// #include <Core/logging/LoggerFwd.hpp>
 
 #include <util/octree/Octree.hpp>
 

@@ -16,9 +16,9 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <system/AppContext.hpp>
 

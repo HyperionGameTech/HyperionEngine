@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 #include <script/compiler/Token.hpp>
-#include <core/debug/Debug.hpp>
-#include <core/Types.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Types.hpp>
 
 #include <vector>
 

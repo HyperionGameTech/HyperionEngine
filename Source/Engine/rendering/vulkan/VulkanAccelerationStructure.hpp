@@ -13,15 +13,15 @@
 #include <rendering/vulkan/VulkanGpuBuffer.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

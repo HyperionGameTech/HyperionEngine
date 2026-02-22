@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOMConfig.hpp>
+#include <Core/serialization/fbom/FBOMConfig.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 namespace Hyperion::serialization {
 

@@ -4,9 +4,9 @@
 
 #include <engine/EngineStats.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/util/DeletionQueue.hpp>

@@ -2,31 +2,31 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/memory/NotNullPtr.hpp>
+#include <Core/memory/NotNullPtr.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

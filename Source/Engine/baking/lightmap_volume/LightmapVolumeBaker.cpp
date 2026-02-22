@@ -26,7 +26,7 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/LightmapElementComponent.hpp>
 
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskThread.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

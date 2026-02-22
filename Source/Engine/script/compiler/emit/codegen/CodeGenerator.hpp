@@ -2,9 +2,9 @@
 
 #include <script/compiler/emit/BuildableVisitor.hpp>
 #include <script/compiler/emit/codegen/InternalByteStream.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/FlatMap.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <map>
 #include <sstream>

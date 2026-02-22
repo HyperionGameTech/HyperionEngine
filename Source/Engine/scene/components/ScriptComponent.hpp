@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 #include <scripting/Script.hpp>
 #include <scripting/ScriptObjectResource.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <asset/AssetReference.hpp>
 

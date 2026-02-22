@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/json/parser/SourceStream.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/json/parser/SourceStream.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion::JSON {
 

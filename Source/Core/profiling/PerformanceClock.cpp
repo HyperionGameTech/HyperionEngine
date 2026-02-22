@@ -1,6 +1,6 @@
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
-#include <core/utilities/Time.hpp>
+#include <Core/utilities/Time.hpp>
 
 #ifdef HYP_UNIX
 #include <time.h>

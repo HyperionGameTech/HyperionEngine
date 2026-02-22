@@ -23,9 +23,9 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <engine/EngineDriver.hpp>
 

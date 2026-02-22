@@ -1,15 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/util/ThreadId.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/util/ThreadId.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/GlobalContext.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace threading {

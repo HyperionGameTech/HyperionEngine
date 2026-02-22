@@ -26,9 +26,9 @@
 #include <rendering/FinalPass.hpp>
 #include <rendering/Bindless.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <rendering/Texture.hpp>
 

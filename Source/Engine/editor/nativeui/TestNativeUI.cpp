@@ -1,7 +1,7 @@
 #include <editor/nativeui/TestNativeUI.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Scheduler.hpp>
 
 #ifdef HYP_LIBUI
 #include <ui.h>

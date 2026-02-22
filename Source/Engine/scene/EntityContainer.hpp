@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/containers/TypeMap.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/TypeMap.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <engine/EngineMemory.hpp>
 

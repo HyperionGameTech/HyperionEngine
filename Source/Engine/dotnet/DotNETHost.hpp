@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <dotnet/Assembly.hpp>
 

@@ -4,13 +4,13 @@
 
 #include <editor/EditorTask.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

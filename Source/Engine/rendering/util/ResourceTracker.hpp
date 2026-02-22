@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
-#include <core/Defines.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

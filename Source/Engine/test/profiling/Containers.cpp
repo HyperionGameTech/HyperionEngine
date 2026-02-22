@@ -2,19 +2,19 @@
 
 #ifdef HYP_TESTS
 
-#include <core/profiling/Profile.hpp>
+#include <Core/profiling/Profile.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/SparsePagedArray.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
 #include <algorithm>
 #include <cstdio>

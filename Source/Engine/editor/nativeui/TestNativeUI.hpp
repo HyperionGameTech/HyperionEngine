@@ -3,8 +3,8 @@
 
 #include <editor/EditorWindow.hpp>
 
-#include <core/functional/Delegate.hpp>
-#include <core/math/Vector3.hpp>
+#include <Core/functional/Delegate.hpp>
+#include <Core/math/Vector3.hpp>
 
 namespace Hyperion {
 

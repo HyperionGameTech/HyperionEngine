@@ -4,7 +4,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <core/math/Triangle.hpp>
+#include <Core/math/Triangle.hpp>
 
 #include <rendering/Mesh.hpp>
 

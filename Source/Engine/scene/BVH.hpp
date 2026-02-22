@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Triangle.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Triangle.hpp>
 #include <rendering/Vertex.hpp>
-#include <core/math/Ray.hpp>
+#include <Core/math/Ray.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

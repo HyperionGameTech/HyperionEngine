@@ -5,7 +5,7 @@
 
 #include <script/compiler/type-system/BuiltinTypes.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <iostream>
 

@@ -1,17 +1,17 @@
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/TypeMap.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/ProfileScope.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 

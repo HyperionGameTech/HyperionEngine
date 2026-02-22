@@ -37,9 +37,9 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>

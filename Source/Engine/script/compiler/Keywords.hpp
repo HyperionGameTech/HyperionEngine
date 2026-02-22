@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/utilities/Optional.hpp>
 
 #include <map>
 

@@ -12,11 +12,11 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <script/Instructions.hpp>
-#include <core/debug/Debug.hpp>
-#include <util/UTF8.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Unicode.hpp>
 
 #include <limits>
 #include <iostream>

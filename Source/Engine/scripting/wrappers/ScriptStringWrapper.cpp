@@ -5,10 +5,10 @@
 #include <script/vm/String.hpp>
 #include <script/vm/Array.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

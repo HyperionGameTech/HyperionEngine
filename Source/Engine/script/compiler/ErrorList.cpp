@@ -1,11 +1,11 @@
 #include <script/compiler/ErrorList.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/containers/FlatSet.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FlatSet.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
 #include <fstream>
 

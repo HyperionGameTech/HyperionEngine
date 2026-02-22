@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/ContainerBase.hpp>
+#include <Core/containers/ContainerBase.hpp>
 
-#include <core/utilities/ValueStorage.hpp>
+#include <Core/utilities/ValueStorage.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/utilities/Traits.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

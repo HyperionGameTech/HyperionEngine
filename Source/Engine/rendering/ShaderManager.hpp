@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
 #include <rendering/RenderObject.hpp>
 

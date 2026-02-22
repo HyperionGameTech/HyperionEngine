@@ -3,7 +3,7 @@
 #pragma once
 
 #include <rendering/RenderObject.hpp>
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

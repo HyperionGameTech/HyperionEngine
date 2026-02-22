@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/utilities/ValueStorage.hpp>
+#include <Core/utilities/ValueStorage.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace memory {

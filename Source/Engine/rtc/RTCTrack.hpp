@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/UniquePtr.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 

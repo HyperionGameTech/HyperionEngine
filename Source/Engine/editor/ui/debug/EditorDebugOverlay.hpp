@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/math/Color.hpp>
+#include <Core/math/Color.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/Defines.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/Defines.hpp>
 
 #include <ui/UIObject.hpp>
 

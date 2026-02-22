@@ -3,9 +3,9 @@
 #include <parser/Lexer.hpp>
 #include <parser/CompilerError.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
 #include <sstream>
 #include <cstdlib>

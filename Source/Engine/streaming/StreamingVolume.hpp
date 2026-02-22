@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/math/BoundingBox.hpp>
-#include <core/math/BoundingSphere.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/BoundingSphere.hpp>
 
-#include <core/threading/Semaphore.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Semaphore.hpp>
+#include <Core/threading/Mutex.hpp>
 
 namespace Hyperion {
 

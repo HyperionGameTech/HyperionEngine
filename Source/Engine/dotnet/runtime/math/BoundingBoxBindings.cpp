@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
 using namespace Hyperion;
 

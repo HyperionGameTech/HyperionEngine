@@ -4,7 +4,7 @@
 
 #include <asset/Assets.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
 namespace Hyperion {
 

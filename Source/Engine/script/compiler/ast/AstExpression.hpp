@@ -5,10 +5,10 @@
 #include <script/compiler/Enums.hpp>
 #include <script/Tribool.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Variant.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

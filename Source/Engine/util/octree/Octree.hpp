@@ -2,22 +2,22 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/math/Vector3.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/BoundingSphere.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/BoundingSphere.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 // #define HYP_OCTREE_DEBUG
 

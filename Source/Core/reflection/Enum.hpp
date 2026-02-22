@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/StaticField.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/StaticField.hpp>
 
 namespace Hyperion {
 

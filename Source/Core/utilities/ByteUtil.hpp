@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/math/MathUtil.hpp>
-#include <core/math/Vector4.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Vector4.hpp>
 
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
+#include <Core/Types.hpp>
+#include <Core/Defines.hpp>
 
 #include <climits>
 

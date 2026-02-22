@@ -1,12 +1,12 @@
-#include <core/utilities/Uuid.hpp>
-#include <core/containers/String.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/utilities/Time.hpp>
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/Time.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <random>
 

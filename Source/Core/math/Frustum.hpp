@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/math/Mat4f.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/BoundingSphere.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/BoundingSphere.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

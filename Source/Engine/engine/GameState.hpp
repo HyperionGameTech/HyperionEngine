@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
 namespace Hyperion {
 

@@ -11,7 +11,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

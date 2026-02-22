@@ -16,9 +16,9 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 #include <FontAtlas.generated.inl>
 

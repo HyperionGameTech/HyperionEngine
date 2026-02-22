@@ -2,33 +2,33 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/FlatSet.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/containers/FlatSet.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/TypeMap.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/Semaphore.hpp>
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Semaphore.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/utilities/Tuple.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/ForEach.hpp>
+#include <Core/utilities/Tuple.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/ForEach.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjId.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EntitySet.hpp>

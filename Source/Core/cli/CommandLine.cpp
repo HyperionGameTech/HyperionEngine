@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 #ifndef HYP_TOOL
 #include <CommandLine.generated.inl>

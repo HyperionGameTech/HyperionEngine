@@ -10,7 +10,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <VulkanSampler.generated.inl>
 

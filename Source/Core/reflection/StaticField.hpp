@@ -2,28 +2,28 @@
 
 #pragma once
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/ClassAttribute.hpp>
-#include <core/reflection/Member.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
+#include <Core/reflection/Member.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Name.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Name.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/reflection/TypeId.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Span.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/Any.hpp>
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/Any.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

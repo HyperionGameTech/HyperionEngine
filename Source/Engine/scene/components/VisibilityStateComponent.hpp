@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Defines.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 #include <scene/VisibilityState.hpp>
 #include <scene/SceneOctree.hpp>

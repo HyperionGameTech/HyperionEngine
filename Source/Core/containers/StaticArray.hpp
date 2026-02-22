@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <array>
 

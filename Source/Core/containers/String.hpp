@@ -2,25 +2,25 @@
 
 #pragma once
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/StringFwd.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/StringFwd.hpp>
 
-#include <core/utilities/Span.hpp>
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/functional/FunctionWrapper.hpp>
+#include <Core/functional/FunctionWrapper.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/Defines.hpp>
-#include <core/utilities/Traits.hpp>
+#include <Core/Defines.hpp>
+#include <Core/utilities/Traits.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/HashCode.hpp>
 
 #include <type_traits>
 #include <cctype>

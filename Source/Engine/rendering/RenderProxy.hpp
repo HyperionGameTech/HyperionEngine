@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Mat4f.hpp>
-#include <core/math/Frustum.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Frustum.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/MeshInstanceData.hpp>

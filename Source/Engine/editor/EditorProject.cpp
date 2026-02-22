@@ -20,14 +20,14 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/serialization/SerializationUtils.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/serialization/SerializationUtils.hpp>
 
-#include <core/io/ByteReader.hpp>
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 

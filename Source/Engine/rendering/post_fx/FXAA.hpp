@@ -3,7 +3,7 @@
 #pragma once
 
 #include <rendering/PostFX.hpp>
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

@@ -5,15 +5,15 @@
 #include <asset/AssetObject.hpp>
 #include <asset/AssetReference.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

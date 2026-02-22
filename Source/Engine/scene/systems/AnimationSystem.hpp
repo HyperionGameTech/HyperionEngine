@@ -6,9 +6,9 @@
 #include <scene/components/AnimationComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
 #include <asset/AssetReference.hpp>
 

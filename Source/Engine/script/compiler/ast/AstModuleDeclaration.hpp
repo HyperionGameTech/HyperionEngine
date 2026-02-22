@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstStatement.hpp>
 #include <script/compiler/ast/AstDeclaration.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 #include <vector>
 #include <memory>

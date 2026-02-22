@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/ObjectPool.hpp>
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/ObjectPool.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
 namespace Hyperion {
 

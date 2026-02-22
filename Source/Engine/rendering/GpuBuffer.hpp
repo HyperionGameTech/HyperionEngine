@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashSet.hpp>
 
 #include <rendering/RenderResult.hpp>
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

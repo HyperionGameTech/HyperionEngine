@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/containers/TypeMap.hpp>
-#include <core/threading/Threads.hpp>
+#include <Core/containers/TypeMap.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <rendering/FullScreenPass.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <climits>
 

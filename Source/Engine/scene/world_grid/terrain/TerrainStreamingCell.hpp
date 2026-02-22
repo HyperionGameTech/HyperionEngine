@@ -6,7 +6,7 @@
 
 #include <streaming/StreamingCell.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 namespace Hyperion {
 

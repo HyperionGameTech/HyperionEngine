@@ -1,10 +1,10 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 namespace memory {

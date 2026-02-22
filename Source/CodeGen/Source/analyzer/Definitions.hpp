@@ -3,21 +3,21 @@
 #ifndef HYPERION_CODEGEN_DEFINITIONs_HPP
 #define HYPERION_CODEGEN_DEFINITIONs_HPP
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/reflection/Member.hpp>
-#include <core/reflection/ClassAttribute.hpp>
+#include <Core/reflection/Member.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

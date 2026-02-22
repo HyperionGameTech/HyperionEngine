@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/TypeInfoFwd.hpp>
-#include <core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 

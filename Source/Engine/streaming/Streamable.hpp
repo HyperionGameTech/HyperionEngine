@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Name.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Name.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <asset/AssetReference.hpp>
 

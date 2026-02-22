@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Mat4f.hpp>
-#include <core/math/Mat3f.hpp>
-#include <core/math/Rect.hpp>
-#include <core/math/Halton.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Mat3f.hpp>
+#include <Core/math/Rect.hpp>
+#include <Core/math/Halton.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
 #ifndef HYP_TOOL
 #include <Mat4f.generated.inl>

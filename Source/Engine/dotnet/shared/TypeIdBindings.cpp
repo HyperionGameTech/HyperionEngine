@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 using namespace Hyperion;
 

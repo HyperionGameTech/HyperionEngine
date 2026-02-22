@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/memory/MemoryMetrics.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/memory/MemoryMetrics.hpp>
 
 #define HYP_USE_THIRD_PARTY_TLSF 1
 

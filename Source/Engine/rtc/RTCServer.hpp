@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/functional/Delegate.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/functional/Delegate.hpp>
 
 #include <rtc/RTCClientList.hpp>
 

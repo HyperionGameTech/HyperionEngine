@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
-#include <core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMWriter.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
 #include <sstream>
 

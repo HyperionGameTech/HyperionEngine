@@ -12,7 +12,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
 

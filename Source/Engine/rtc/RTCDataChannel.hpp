@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/containers/String.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/containers/String.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 

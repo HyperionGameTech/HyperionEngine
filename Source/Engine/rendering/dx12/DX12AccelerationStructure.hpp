@@ -10,7 +10,7 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
 namespace Hyperion {
 

@@ -4,9 +4,9 @@
 
 #include <scene/ComponentInterface.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 

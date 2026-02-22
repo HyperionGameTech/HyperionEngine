@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/containers/StringFwd.hpp>
+#include <Core/containers/StringFwd.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 

@@ -8,8 +8,8 @@
 #include <asset/Assets.hpp>
 #include <scripting/asset/ScriptAsset.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMLoadContext.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnet/DotNETHost.hpp>
@@ -34,17 +34,17 @@
 
 #include <util/xml/SAXParser.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/serialization/SerializationUtils.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/serialization/SerializationUtils.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
 #include <algorithm>
 

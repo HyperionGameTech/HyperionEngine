@@ -20,7 +20,7 @@
 #include <rendering/Texture.hpp>
 #include <rendering/Vertex.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>

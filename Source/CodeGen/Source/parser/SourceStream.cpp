@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <parser/SourceStream.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion::CodeGen {
 

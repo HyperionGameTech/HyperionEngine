@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/ArrayMap.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/ArrayMap.hpp>
 
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

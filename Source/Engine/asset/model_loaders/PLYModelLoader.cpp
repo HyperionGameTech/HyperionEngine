@@ -9,9 +9,9 @@
 
 #include <scene/Node.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #include <algorithm>
 

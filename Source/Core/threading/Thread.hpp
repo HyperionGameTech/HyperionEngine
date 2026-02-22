@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/threading/util/ThreadId.hpp>
+#include <Core/threading/util/ThreadId.hpp>
 
-#include <core/threading/AtomicFlag.hpp>
+#include <Core/threading/AtomicFlag.hpp>
 
-#include <core/utilities/Tuple.hpp>
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/Tuple.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <thread>
 #include <type_traits>

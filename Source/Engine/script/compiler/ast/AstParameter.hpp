@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstDeclaration.hpp>
 #include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstExpression.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 

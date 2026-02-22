@@ -2,12 +2,12 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/Serialization.hpp>
+#include <Core/serialization/Serialization.hpp>
 
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMLoadContext.hpp>
 
 using namespace Hyperion;
 using namespace serialization;

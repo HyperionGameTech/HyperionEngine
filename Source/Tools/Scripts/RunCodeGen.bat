@@ -17,7 +17,7 @@ set "WORKING_DIR=%cd%"
 
 rem -- version‐based rebuild logic start --
 set "REBUILD=false"
-set "INC_FILE=%WORKING_DIR%\Generated\CodeGenOutput.inc"
+set "INC_FILE=%WORKING_DIR%\Source\Generated\CodeGenOutput.inc"
 
 rem -- Check if both the build tool and version file exist --
 if not exist "%WORKING_DIR%\Build\hyperion-codegen.exe" (
@@ -87,4 +87,4 @@ if errorlevel 1 (
 :_skipBuild
 rem -- version‐based rebuild logic end --
 
-Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Generated --CSharpOutputDirectory=%WORKING_DIR%\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Build\Binaries --ExcludeDirectories=%WORKING_DIR%\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp
+Build\hyperion-codegen.exe --WorkingDirectory=%WORKING_DIR% --SourceDirectory=%WORKING_DIR%\Source --CXXOutputDirectory=%WORKING_DIR%\Source\Generated --CSharpOutputDirectory=%WORKING_DIR%\Generated\CSharp --HypScriptOutputDirectory=%WORKING_DIR%\Binaries --ExcludeDirectories=%WORKING_DIR%\Generated --ExcludeFiles=%WORKING_DIR%\Source\Core\Defines.hpp

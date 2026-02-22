@@ -5,7 +5,7 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/Instruction.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <script/compiler/ast/AstCallExpression.hpp>
 #include <script/compiler/ast/AstMember.hpp>

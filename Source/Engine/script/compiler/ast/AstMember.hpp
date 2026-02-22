@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/compiler/ast/AstIdentifier.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 

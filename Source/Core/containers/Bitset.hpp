@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/utilities/FormatFwd.hpp>
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/utilities/FormatFwd.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <climits>
 

@@ -15,8 +15,8 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <util/UTF8.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion {
 

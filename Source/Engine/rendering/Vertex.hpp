@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Transform.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Transform.hpp>
 
 namespace Hyperion {
 

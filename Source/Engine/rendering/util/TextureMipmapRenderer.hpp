@@ -4,13 +4,13 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

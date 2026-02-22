@@ -1,26 +1,26 @@
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskThread.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 #include <generator/generators/CXXModuleGenerator.hpp>
 #include <generator/generators/CSharpModuleGenerator.hpp>
@@ -738,7 +738,7 @@ private:
                 else
                 {
                     builtinsWriter.WriteString(GetGeneratedFilePreamble(String::empty));
-                    builtinsWriter.WriteString("#include <core/reflection/ClassUtils.hpp>\n");
+                    builtinsWriter.WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
                     if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, builtinsWriter); res.HasError())
                     {
                         m_analyzer.AddError(AnalyzerError(res.GetError(), FilePath("<builtins>")));
@@ -862,7 +862,7 @@ private:
             cxxModuleWriter->WriteString(GetGeneratedFilePreamble(String::empty));
 
             // add main required header that is shared across all generated modules.
-            cxxModuleWriter->WriteString("#include <core/reflection/ClassUtils.hpp>\n");
+            cxxModuleWriter->WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
 
             if (Result res = cxxModuleGenerator->Generate(m_analyzer, *builtinsModule, *cxxModuleWriter); res.HasError())
             {
@@ -892,7 +892,7 @@ private:
                 cxxModuleWriter->WriteString(GetGeneratedFilePreamble(FilePath::Relative(mod->GetPath(), m_analyzer.GetSourceDirectory())));
 
                 // add main required header that is shared across all generated modules.
-                cxxModuleWriter->WriteString("#include <core/reflection/ClassUtils.hpp>\n");
+                cxxModuleWriter->WriteString("#include <Core/reflection/ClassUtils.hpp>\n");
             }
 
             if (Result res = cxxModuleGenerator->Generate(m_analyzer, *mod, *cxxModuleWriter); res.HasError())

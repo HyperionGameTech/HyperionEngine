@@ -4,21 +4,21 @@
 
 #include <dotnet/DotNETHost.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
-#include <core/dll/DynamicLibrary.hpp>
+#include <Core/dll/DynamicLibrary.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
-#include <core/json/JSON.hpp>
+#include <Core/filesystem/FsUtil.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
 #include <system/AppContext.hpp>
 

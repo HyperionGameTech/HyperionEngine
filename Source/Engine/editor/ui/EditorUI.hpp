@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

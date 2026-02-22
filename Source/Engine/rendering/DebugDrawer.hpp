@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/math/Transform.hpp>
-#include <core/math/Frustum.hpp>
-#include <core/math/Color.hpp>
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/math/Frustum.hpp>
+#include <Core/math/Color.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
 
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>

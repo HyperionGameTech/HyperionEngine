@@ -49,15 +49,15 @@
 #include <scene/camera/Camera.hpp>
 #include <scene/camera/OrthoCamera.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskThread.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/utilities/Time.hpp>
-#include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/Float16.hpp>
+#include <Core/utilities/Time.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/Float16.hpp>
 
-#include <core/math/Triangle.hpp>
+#include <Core/math/Triangle.hpp>
 
 #include <util/MeshBuilder.hpp>
 

@@ -7,14 +7,14 @@
 #include <input/InputManager.hpp>
 #include <input/InputHandler.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <system/AppContext.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
 #include <engine/EngineDriver.hpp>
 

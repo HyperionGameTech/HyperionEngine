@@ -1,8 +1,8 @@
 #include <script/compiler/emit/StaticObject.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Types.hpp>
-#include <core/memory/Memory.hpp>
+#include <Core/Types.hpp>
+#include <Core/memory/Memory.hpp>
 
 namespace Hyperion {
 

@@ -5,17 +5,17 @@
 #include <rtc/RTCServer.hpp>
 #include <rtc/RTCTrack.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/TaskThread.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <mutex>
 
 #ifdef HYP_GSTREAMER
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #include <gst/gst.h>
 #include <gst/app/app.h>

@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/Variant.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <rendering/RenderBucket.hpp>
 #include <rendering/GpuImage.hpp>

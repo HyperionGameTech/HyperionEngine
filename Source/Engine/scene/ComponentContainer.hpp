@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/AnyRef.hpp>
-#include <core/memory/MemoryPool.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/AnyRef.hpp>
+#include <Core/memory/MemoryPool.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/reflection/ObjId.hpp>
-#include <core/Util.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/Util.hpp>
 
 namespace Hyperion {
 

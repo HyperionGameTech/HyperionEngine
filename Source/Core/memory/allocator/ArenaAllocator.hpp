@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Types.hpp>
-#include <core/Defines.hpp>
+#include <Core/Types.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace memory {

@@ -2,34 +2,34 @@
 
 #pragma once
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
-#include <core/serialization/fbom/FBOMInterfaces.hpp>
-#include <core/serialization/fbom/FBOMEnums.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/fbom/FBOMInterfaces.hpp>
+#include <Core/serialization/fbom/FBOMEnums.hpp>
 
-#include <core/math/MathUtil.hpp>
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Mat3f.hpp>
-#include <core/math/Mat4f.hpp>
-#include <core/math/Quaternion.hpp>
+#include <Core/math/MathUtil.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/Mat3f.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Quaternion.hpp>
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #define FBOM_ASSERT(cond, message)                                \
     do                                                            \

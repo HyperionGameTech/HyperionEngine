@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

@@ -5,7 +5,7 @@
 #include <script/compiler/ast/AstBlock.hpp>
 #include <script/compiler/ast/AstTypeSpecifier.hpp>
 #include <script/compiler/ast/AstVariableDeclaration.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 #include <memory>
 #include <vector>

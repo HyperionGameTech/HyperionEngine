@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace compression {

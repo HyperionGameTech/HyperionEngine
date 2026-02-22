@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/memory/Pimpl.hpp>
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/Pimpl.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/threading/util/ThreadId.hpp>
+#include <Core/threading/util/ThreadId.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 #include <cfloat>
 

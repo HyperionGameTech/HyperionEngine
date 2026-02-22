@@ -5,14 +5,14 @@
 #define NUM_KEYBOARD_KEYS 350
 #define NUM_MOUSE_BUTTONS 3
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/Semaphore.hpp>
 
 #include <input/Keyboard.hpp>
 #include <input/Mouse.hpp>

@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
 #include <dotnet/ManagedMethod.hpp>
 #include <dotnet/ManagedProperty.hpp>

@@ -6,7 +6,7 @@
 #include <ui/UIObject.hpp>
 
 // for EnumToString
-#include <core/reflection/Enum.hpp>
+#include <Core/reflection/Enum.hpp>
 
 namespace Hyperion {
 

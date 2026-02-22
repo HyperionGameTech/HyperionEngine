@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FlatMap.hpp>
 
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 namespace Hyperion {
 

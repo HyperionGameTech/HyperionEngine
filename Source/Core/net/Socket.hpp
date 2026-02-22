@@ -2,28 +2,28 @@
 
 #pragma once
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/Variant.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace net {

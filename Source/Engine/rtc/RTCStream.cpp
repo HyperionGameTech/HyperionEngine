@@ -6,7 +6,7 @@
 #include <rtc/RTCStreamEncoder.hpp>
 #include <rtc/RTCTrack.hpp>
 
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/TaskThread.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
 #include <rtc/rtcpsrreporter.hpp>

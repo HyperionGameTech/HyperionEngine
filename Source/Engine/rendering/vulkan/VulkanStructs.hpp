@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
-#include <core/utilities/Optional.hpp>
-#include <core/containers/Array.hpp>
-#include <core/Types.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/Types.hpp>
 
 #include <vulkan/vulkan.h>
 

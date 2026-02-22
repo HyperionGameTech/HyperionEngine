@@ -6,20 +6,20 @@
 #include <shobjidl.h>
 #include <winerror.h>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Result.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Result.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/Thread.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Thread.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

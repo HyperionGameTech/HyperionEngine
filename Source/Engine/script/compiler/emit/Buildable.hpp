@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/SortedArray.hpp>
-#include <core/Name.hpp>
-#include <core/Types.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/SortedArray.hpp>
+#include <Core/Name.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

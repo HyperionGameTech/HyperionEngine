@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <math.h>
 #include <cstdlib>

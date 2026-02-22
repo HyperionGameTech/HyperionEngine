@@ -6,7 +6,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

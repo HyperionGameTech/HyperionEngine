@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/FBOMWriter.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/FBOMWriter.hpp>
 
 #include <sstream>
 

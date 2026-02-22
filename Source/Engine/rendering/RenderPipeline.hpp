@@ -4,13 +4,13 @@
 
 #include <rendering/Shared.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/Defines.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/Vector4.hpp>
+#include <Core/math/Vector4.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

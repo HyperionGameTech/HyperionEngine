@@ -2,30 +2,30 @@
 
 #pragma once
 
-#include <core/memory/Any.hpp>
+#include <Core/memory/Any.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FlatMap.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMInterfaces.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMInterfaces.hpp>
+#include <Core/serialization/fbom/FBOMMarshaler.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <type_traits>
 

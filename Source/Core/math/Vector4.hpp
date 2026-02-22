@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/Defines.hpp>
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <cmath>
 #include <cstdio>

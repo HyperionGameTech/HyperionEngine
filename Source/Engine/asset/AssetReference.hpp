@@ -4,12 +4,12 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/Variant.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
 namespace Hyperion {
 

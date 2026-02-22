@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/Method.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 

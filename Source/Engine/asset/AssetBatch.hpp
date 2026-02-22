@@ -4,13 +4,13 @@
 
 #include <asset/AssetLoader.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <type_traits>
 

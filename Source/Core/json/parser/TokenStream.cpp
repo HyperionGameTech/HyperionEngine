@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/json/parser/TokenStream.hpp>
+#include <Core/json/parser/TokenStream.hpp>
 
 namespace Hyperion::JSON {
 

@@ -2,26 +2,26 @@
 
 #pragma once
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/SharedMutex.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/utilities/ForEach.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/ForEach.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

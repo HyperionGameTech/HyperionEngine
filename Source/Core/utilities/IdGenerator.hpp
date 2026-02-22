@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/Queue.hpp>
-#include <core/containers/TypeMap.hpp>
-#include <core/containers/Bitset.hpp>
+#include <Core/containers/Queue.hpp>
+#include <Core/containers/TypeMap.hpp>
+#include <Core/containers/Bitset.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
 #include <mutex>
 #include <atomic>

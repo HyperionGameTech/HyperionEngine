@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
 
-#include <core/reflection/TypeId.hpp>
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/reflection/Class.hpp>
 
 namespace Hyperion::serialization {
 

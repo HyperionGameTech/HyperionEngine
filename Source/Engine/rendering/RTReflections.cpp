@@ -32,7 +32,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #include <RTReflections.generated.inl>
 

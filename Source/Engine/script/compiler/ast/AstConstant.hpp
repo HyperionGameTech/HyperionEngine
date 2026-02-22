@@ -3,7 +3,7 @@
 #include <script/compiler/ast/AstExpression.hpp>
 #include <script/compiler/Operator.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

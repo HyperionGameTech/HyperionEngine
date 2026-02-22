@@ -1,8 +1,8 @@
 #pragma once
 
 #include <script/compiler/AstVisitor.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
 
 namespace Hyperion {
 

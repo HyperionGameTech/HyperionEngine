@@ -38,7 +38,7 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <util/MeshBuilder.hpp>
 

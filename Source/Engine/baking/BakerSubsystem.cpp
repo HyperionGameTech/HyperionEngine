@@ -15,9 +15,9 @@
 #include <scene/FogVolume.hpp>
 #include <scene/LightmapVolume.hpp>
 
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
 #include <system/AppContext.hpp>
 

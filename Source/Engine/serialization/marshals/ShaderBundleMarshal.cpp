@@ -2,8 +2,8 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Shader.hpp>

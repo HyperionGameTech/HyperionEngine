@@ -6,7 +6,7 @@
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 #include <rendering/Texture.hpp>
 

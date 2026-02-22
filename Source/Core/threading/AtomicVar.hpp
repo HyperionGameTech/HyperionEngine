@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
 #include <Windows.h>
 #endif
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <atomic>
 #include <algorithm>

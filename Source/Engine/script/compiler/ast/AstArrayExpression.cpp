@@ -21,13 +21,13 @@
 
 #include <script/Instructions.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
+#include <Core/reflection/BoxedValue.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

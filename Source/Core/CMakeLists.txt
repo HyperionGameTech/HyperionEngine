@@ -7,7 +7,7 @@ project(${BUILD_NAME} CXX C)
 
 message(STATUS "Building ${BUILD_NAME} library, base directory: ${CMAKE_SOURCE_DIR}")
 
-link_directories(${CMAKE_SOURCE_DIR}/lib /usr/local/lib)
+link_directories(${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty /usr/local/lib)
 
 set(CMAKE_BUILD_PARALLEL_LEVEL 8)
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
@@ -84,12 +84,15 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/thirdparty
-    ${CMAKE_SOURCE_DIR}/Source/Core
-    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
+    ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty
+    ${CMAKE_CURRENT_SOURCE_DIR}/../Generated
 )
 
-set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdparty/tlsf/tlsf.c)
+message(STATUS "Configuring hyperion-core in ${CMAKE_CURRENT_SOURCE_DIR}")
+
+set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/tlsf/tlsf.c)
 
 add_library(${BUILD_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${BUILD_NAME} PRIVATE ${COMMON_LIBRARIES})

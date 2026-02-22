@@ -4,7 +4,7 @@
 
 #include <scene/SystemExecutionGroup.hpp>
 
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
 namespace Hyperion {
 

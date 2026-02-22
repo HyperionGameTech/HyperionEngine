@@ -5,7 +5,7 @@
 #include <dotnet/Helpers.hpp>
 #include <dotnet/ManagedObject.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
 namespace Hyperion::dotnet {
 

@@ -1,7 +1,7 @@
 #pragma once
-#include <core/containers/Queue.hpp>
+#include <Core/containers/Queue.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 namespace Hyperion {
 namespace containers {

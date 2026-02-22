@@ -2,24 +2,24 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Util.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Util.hpp>
 
-#include <core/containers/Forest.hpp>
+#include <Core/containers/Forest.hpp>
 
-#include <core/functional/Delegate.hpp>
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Delegate.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/reflection/TypeInfoFwd.hpp>
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
 namespace Hyperion {
 

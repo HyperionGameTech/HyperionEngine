@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 #include <engine/EngineMemory.hpp>
 

@@ -4,10 +4,10 @@
 
 #include <streaming/StreamingVolume.hpp>
 
-#include <core/reflection/Handle.hpp>
-#include <core/Defines.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/Frustum.hpp>
+#include <Core/math/Frustum.hpp>
 
 namespace Hyperion {
 

@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
 #include <asset/AssetObject.hpp>
 

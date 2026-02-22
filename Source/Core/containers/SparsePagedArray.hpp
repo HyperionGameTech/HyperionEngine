@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/Bitset.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/Bitset.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace containers {

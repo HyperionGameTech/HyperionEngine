@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/TypeMap.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
 #include <scene/ComponentFactory.hpp>
 #include <scene/ComponentContainer.hpp>

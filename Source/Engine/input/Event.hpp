@@ -2,16 +2,16 @@
 #include <input/Mouse.hpp>
 #include <input/Keyboard.hpp>
 
-#include <core/utilities/Variant.hpp>
-#include <core/filesystem/FilePath.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
 #ifdef HYP_SDL
 #include <SDL2/SDL.h>
 #endif
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

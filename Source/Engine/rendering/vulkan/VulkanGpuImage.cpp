@@ -17,11 +17,11 @@
 
 #include <util/img/ImageUtil.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <vulkan/vulkan.h>
 

@@ -1,13 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
 #if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h>

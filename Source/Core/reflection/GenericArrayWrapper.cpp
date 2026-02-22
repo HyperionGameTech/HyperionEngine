@@ -1,7 +1,7 @@
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/GenericArrayWrapper.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/GenericArrayWrapper.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 namespace Hyperion {
 

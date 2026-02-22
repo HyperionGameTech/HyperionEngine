@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Quaternion.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/Quaternion.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <cstring>
 

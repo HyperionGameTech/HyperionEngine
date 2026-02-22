@@ -5,9 +5,9 @@
 #include <ui/UIPanel.hpp>
 #include <ui/UIText.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
 namespace Hyperion {
 

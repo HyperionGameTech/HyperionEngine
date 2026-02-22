@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

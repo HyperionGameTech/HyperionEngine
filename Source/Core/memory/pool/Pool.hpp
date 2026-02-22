@@ -2,22 +2,22 @@
 
 #pragma once
 
-#include <core/containers/LinkedList.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/threading/util/ThreadId.hpp>
-#include <core/threading/AtomicFlag.hpp>
+#include <Core/threading/util/ThreadId.hpp>
+#include <Core/threading/AtomicFlag.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/MemoryMetrics.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/MemoryMetrics.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
-#include <core/memory/allocator/AllocatorFlags.hpp>
-#include <core/memory/allocator/TlsfAllocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/AllocatorFlags.hpp>
+#include <Core/memory/allocator/TlsfAllocator.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

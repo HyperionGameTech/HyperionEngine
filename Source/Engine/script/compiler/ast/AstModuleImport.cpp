@@ -5,10 +5,10 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
 namespace Hyperion {
 

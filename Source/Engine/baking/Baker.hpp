@@ -2,28 +2,28 @@
 
 #pragma once
 
-#include <core/containers/Queue.hpp>
+#include <Core/containers/Queue.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/Span.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <scene/Scene.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

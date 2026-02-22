@@ -1,9 +1,9 @@
 #include <script/compiler/IdentifierTable.hpp>
 #include <script/compiler/Configuration.hpp>
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

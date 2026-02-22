@@ -4,11 +4,11 @@
 
 #include <engine/console/commands/LogEntitiesCommand.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/Node.hpp>

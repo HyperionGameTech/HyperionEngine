@@ -13,13 +13,13 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion {
 

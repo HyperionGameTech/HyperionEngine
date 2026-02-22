@@ -17,12 +17,12 @@
 
 #include <rendering/Shared.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 namespace Hyperion {
 

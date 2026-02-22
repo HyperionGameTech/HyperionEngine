@@ -1,17 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 namespace Hyperion::serialization {
 

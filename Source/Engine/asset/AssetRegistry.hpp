@@ -4,30 +4,30 @@
 
 #include <asset/AssetPath.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/ForEach.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/ForEach.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/threading/SharedMutex.hpp>
-#include <core/threading/SchedulerFwd.hpp>
+#include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/SchedulerFwd.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Defines.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 #include <algorithm>
 #include <type_traits>

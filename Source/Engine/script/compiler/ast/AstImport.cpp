@@ -7,11 +7,11 @@
 #include <script/compiler/Parser.hpp>
 #include <script/compiler/SemanticAnalyzer.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <fstream>
 #include <iostream>

@@ -5,7 +5,7 @@
 #include <input/InputHandler.hpp>
 #include <input/InputManager.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
 #include <InputHandler.generated.inl>
 

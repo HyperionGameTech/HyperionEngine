@@ -19,12 +19,12 @@
 #include <script/compiler/emit/StorageOperation.hpp>
 
 #include <script/Instructions.hpp>
-#include <core/HashCode.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

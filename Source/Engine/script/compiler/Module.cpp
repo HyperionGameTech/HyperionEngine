@@ -1,8 +1,8 @@
 #include <script/compiler/Module.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 

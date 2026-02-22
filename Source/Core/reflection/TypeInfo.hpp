@@ -2,22 +2,22 @@
 
 #pragma once
 
-#include <core/reflection/TypeId.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/memory/AnyRef.hpp>
-#include <core/memory/Any.hpp>
+#include <Core/memory/AnyRef.hpp>
+#include <Core/memory/Any.hpp>
 
-#include <core/Name.hpp>
-#include <core/Types.hpp>
-#include <core/utilities/Traits.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Name.hpp>
+#include <Core/Types.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/HashCode.hpp>
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
 #include <type_traits>
 

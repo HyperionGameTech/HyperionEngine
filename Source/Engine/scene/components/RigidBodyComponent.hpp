@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <physics/RigidBody.hpp>
 #include <physics/PhysicsMaterial.hpp>

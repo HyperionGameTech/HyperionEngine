@@ -1,7 +1,7 @@
 #pragma once
 
 #include <script/compiler/ast/AstExpression.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
 #include <string>
 

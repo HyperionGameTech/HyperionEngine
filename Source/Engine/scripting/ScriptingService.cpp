@@ -2,9 +2,9 @@
 
 #include <scripting/ScriptingService.hpp>
 
-#include <core/Core.hpp>
+#include <Core/Core.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <dotnet/Assembly.hpp>
 #include <dotnet/ManagedObject.hpp>

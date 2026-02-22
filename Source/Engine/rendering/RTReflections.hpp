@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 #include <rendering/TemporalBlending.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 namespace Hyperion {
 

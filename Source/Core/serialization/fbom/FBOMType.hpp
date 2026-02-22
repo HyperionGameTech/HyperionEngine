@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/serialization/fbom/FBOMInterfaces.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMInterfaces.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/reflection/TypeId.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/reflection/TypeId.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <cstddef>
 

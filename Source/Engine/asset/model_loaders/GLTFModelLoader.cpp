@@ -21,27 +21,27 @@
 #include <scene/EntityManager.hpp>
 #include <scene/components/MeshComponent.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/Types.hpp>
-#include <core/Name.hpp>
+#include <Core/Types.hpp>
+#include <Core/Name.hpp>
 
-#include <core/math/Mat4f.hpp>
-#include <core/math/Quaternion.hpp>
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Transform.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/Quaternion.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/Transform.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <engine/EngineDriver.hpp>
 

@@ -1,17 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/Object.hpp>
-#include <core/reflection/ObjectPool.hpp>
+#include <Core/reflection/Object.hpp>
+#include <Core/reflection/ObjectPool.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 
-#include <core/containers/Stack.hpp>
+#include <Core/containers/Stack.hpp>
 
 #if defined(HYP_DOTNET) || defined(HYP_SCRIPT)
 

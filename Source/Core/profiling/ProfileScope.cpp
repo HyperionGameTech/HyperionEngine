@@ -1,28 +1,28 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/profiling/ProfileScope.hpp>
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/ProfileScope.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
-#include <core/containers/LinkedList.hpp>
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/LinkedList.hpp>
+#include <Core/containers/FlatMap.hpp>
 
-#include <core/memory/NotNullPtr.hpp>
+#include <Core/memory/NotNullPtr.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/Thread.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/TaskThread.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/net/HTTPRequest.hpp>
+#include <Core/net/HTTPRequest.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 namespace Hyperion {
 namespace profiling {

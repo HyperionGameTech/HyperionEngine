@@ -3,13 +3,13 @@
 #include <script/compiler/emit/NamesPair.hpp>
 
 #include <script/Instructions.hpp>
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <script/compiler/emit/Buildable.hpp>
 
-#include <core/memory/Memory.hpp>
-#include <core/containers/String.hpp>
-#include <core/reflection/ClassAttribute.hpp>
+#include <Core/memory/Memory.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/reflection/ClassAttribute.hpp>
 
 namespace Hyperion {
 enum class MethodFlags : uint8;

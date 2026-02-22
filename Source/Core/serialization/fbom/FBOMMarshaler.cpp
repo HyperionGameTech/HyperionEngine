@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMMarshaler.hpp>
 
 namespace Hyperion::serialization {
 

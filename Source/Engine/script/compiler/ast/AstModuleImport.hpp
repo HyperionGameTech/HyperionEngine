@@ -2,9 +2,9 @@
 
 #include <script/compiler/ast/AstImport.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/Variant.hpp>
 
 namespace Hyperion {
 

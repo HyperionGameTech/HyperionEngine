@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/utilities/Uuid.hpp>
+#include <Core/utilities/Uuid.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <type_traits>
 

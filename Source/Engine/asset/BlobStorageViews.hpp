@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/threading/SharedMutex.hpp>
+#include <Core/threading/SharedMutex.hpp>
 
-#include <core/io/MemoryMappedFile.hpp>
+#include <Core/io/MemoryMappedFile.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
 namespace Hyperion {
 

@@ -2,39 +2,39 @@
 
 #pragma once
 
-#include <core/reflection/BoxedValueFwd.hpp>
+#include <Core/reflection/BoxedValueFwd.hpp>
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/Handle.hpp>
-#include <core/reflection/ObjectFwd.hpp>
-#include <core/reflection/GenericArrayWrapper.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/GenericArrayWrapper.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Float16.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Float16.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/memory/Any.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/memory/Any.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 
@@ -3859,7 +3859,7 @@ struct BoxedValueHelper<T, std::enable_if_t<!BoxedValue::canStoreDirectly<T> && 
 };
 #endif
 
-#include <core/reflection/GenericArrayWrapper.inc>
+#include <Core/reflection/GenericArrayWrapper.inc>
 
 #pragma region BoxedValue_Is implementation
 

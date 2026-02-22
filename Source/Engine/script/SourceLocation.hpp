@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/HashCode.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

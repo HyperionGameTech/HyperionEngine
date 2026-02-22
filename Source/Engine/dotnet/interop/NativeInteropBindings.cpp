@@ -2,16 +2,16 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 #include <dotnet/ManagedClass.hpp>
 #include <dotnet/ManagedObject.hpp>

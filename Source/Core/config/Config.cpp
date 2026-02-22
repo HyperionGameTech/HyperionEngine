@@ -1,23 +1,23 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/StaticField.hpp>
-#include <core/serialization/SerializationUtils.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/StaticField.hpp>
+#include <Core/serialization/SerializationUtils.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
 namespace Hyperion {
 

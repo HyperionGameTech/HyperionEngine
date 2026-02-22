@@ -24,15 +24,15 @@
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <script/compiler/emit/StorageOperation.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/reflection/Method.hpp>
+#include <Core/reflection/Method.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion {
 

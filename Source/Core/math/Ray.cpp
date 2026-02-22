@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#include <core/math/Ray.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Triangle.hpp>
-#include <core/math/Mat4f.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/Ray.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Triangle.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
 #ifndef HYP_TOOL
 #include <Ray.generated.inl>

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
 #include <cmath>
 #include <cstdio>

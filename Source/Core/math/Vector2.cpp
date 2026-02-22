@@ -1,11 +1,11 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 namespace Hyperion {
 

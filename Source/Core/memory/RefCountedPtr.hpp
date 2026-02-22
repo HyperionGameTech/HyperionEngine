@@ -2,23 +2,23 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/utilities/ValueStorage.hpp>
-#include <core/reflection/TypeId.hpp>
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/utilities/ValueStorage.hpp>
+#include <Core/reflection/TypeId.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/memory/Memory.hpp>
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/Memory.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <atomic>
 #include <cstdlib>

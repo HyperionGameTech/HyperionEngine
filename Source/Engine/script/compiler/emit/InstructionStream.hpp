@@ -5,9 +5,9 @@
 
 #include <script/compiler/Tree.hpp>
 
-#include <core/utilities/Optional.hpp>
+#include <Core/utilities/Optional.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

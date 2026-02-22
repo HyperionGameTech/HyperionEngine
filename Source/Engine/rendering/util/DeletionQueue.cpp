@@ -6,10 +6,10 @@
 
 #include <rendering/RenderInterface.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/memory/allocator/Allocator.hpp>
+#include <Core/memory/allocator/Allocator.hpp>
 
 #include <scripting/ScriptObjectResource.hpp>
 

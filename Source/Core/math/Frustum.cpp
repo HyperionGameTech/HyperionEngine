@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Frustum.hpp>
+#include <Core/math/Frustum.hpp>
 
 #ifndef HYP_TOOL
 #include <Frustum.generated.inl>

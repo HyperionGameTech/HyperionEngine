@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
-#include <core/serialization/fbom/FBOMData.hpp>
-#include <core/serialization/fbom/FBOMInterfaces.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/fbom/FBOMData.hpp>
+#include <Core/serialization/fbom/FBOMInterfaces.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <type_traits>
 

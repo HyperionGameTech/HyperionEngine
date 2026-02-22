@@ -23,11 +23,11 @@
 #include <ui/UIDataSource.hpp>
 #include <ui/UIListView.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/threading/Task.hpp>
+#include <Core/threading/Task.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 
 namespace Hyperion {
 

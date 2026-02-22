@@ -6,22 +6,22 @@
 #include <parser/Lexer.hpp>
 #include <parser/Parser.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/Forest.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Forest.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
 #include <util/Util.hpp>
 

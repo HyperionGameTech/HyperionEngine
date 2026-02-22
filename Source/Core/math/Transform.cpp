@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Transform.hpp>
+#include <Core/math/Transform.hpp>
 
 #ifndef HYP_TOOL
 #include <Transform.generated.inl>

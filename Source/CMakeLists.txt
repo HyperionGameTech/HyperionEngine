@@ -12,11 +12,11 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Binaries/)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../Binaries/)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Binaries/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../Binaries/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
@@ -44,8 +44,8 @@ string(TOLOWER ${HYP_PLATFORM_NAME} HYP_PLATFORM_NAME_LOWER)
 
 set(HYP_BUILD_TYPE "Release")
 
-set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
-set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/thirdparty)
+set(THIRD_PARTY_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/../lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE})
+set(THIRD_PARTY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/ThirdParty)
 
 enable_language(CXX)
 enable_language(C)
@@ -250,24 +250,24 @@ add_definitions(-DHYP_SCRIPT=1)
 set(HYP_GENERATE_CSHARP_LIBRARIES true)
 
 # if dotnet headers exist, set HYP_DOTNET to 1
-if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dotnetcore/hostfxr.h")
+if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dotnetcore/hostfxr.h")
     message(STATUS ".NET headers found")
     set(HYP_DOTNET 1)
 
     if(HYP_DOTNET)
-        if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+        if(EXISTS "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
             message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libnethost.a")
 
             set(HYP_DOTNET 1)
-        elseif(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
+        elseif(EXISTS "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
             message(STATUS ".NET core found, setting HYP_DOTNET to 1")
 
-            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
+            set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.lib")
 
             # copy the dll to the build directory
-            file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+            file(COPY "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/nethost.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
             set(HYP_DOTNET 1)
         endif()
@@ -324,11 +324,11 @@ elseif(RENDERING_BACKEND STREQUAL "DX12")
 
     message(STATUS "Using DirectX 12 as rendering backend")
 
-    # check for D3D12MemoryAllocator thirdparty module
-    if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator/CMakeLists.txt")
-        add_subdirectory(${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/thirdparty/D3D12MemoryAllocator_build)
+    # check for D3D12MemoryAllocator ThirdParty module
+    if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator/CMakeLists.txt")
+        add_subdirectory(${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator ${CMAKE_BINARY_DIR}/ThirdParty/D3D12MemoryAllocator_build)
 
-        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/D3D12MemoryAllocator/include)
+        include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/D3D12MemoryAllocator/include)
 
         set(RENDERER_LIBRARIES
             ${RENDERER_LIBRARIES}
@@ -481,22 +481,22 @@ if (RENDERING_BACKEND STREQUAL "Vulkan")
     endif()
 elseif(RENDERING_BACKEND STREQUAL "DX12")
     # add DirectX-Headers include dir if DX12 rendering backend
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/DirectX-Headers)
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/DirectX-Headers)
 endif()
 
 # setup DXC if found
-if(EXISTS "${CMAKE_SOURCE_DIR}/thirdparty/dxc/dxcapi.h")
+if(EXISTS "${CMAKE_SOURCE_DIR}/ThirdParty/dxc/dxcapi.h")
     message(STATUS "DXC headers found, setting up DXC")
 
-    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/thirdparty/dxc)
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/ThirdParty/dxc)
 
     if(WIN32)
-        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
-        set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.lib")
+        set(DXC_DLL_PATH "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/dxcompiler.dll")
     elseif(APPLE)
-        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.dylib")
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.dylib")
     else()
-        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.so")
+        set(DXC_LIB_PATH "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/libdxcompiler.so")
     endif()
 
     if(EXISTS "${DXC_LIB_PATH}")
@@ -573,9 +573,9 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
 
         string(REGEX MATCH "([^/]+)$" subdir_basename ${dir})
 
-        # handle thirdparty modules separately
-        if(dir MATCHES "thirdparty")
-            # set(should_recurse FALSE) # do not recurse into thirdparty, let them handle themselves
+        # handle ThirdParty modules separately
+        if(dir MATCHES "ThirdParty")
+            # set(should_recurse FALSE) # do not recurse into ThirdParty, let them handle themselves
             # set(should_skip_module TRUE)
 
             # if (dir MATCHES "D3D12MemoryAllocator" AND NOT RENDERING_BACKEND STREQUAL "DX12")
@@ -583,11 +583,11 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
             #     return()
             # endif()
 
-            # # just add the thirdparty module as is and return
-            # add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/thirdparty/${subdir_basename})
+            # # just add the ThirdParty module as is and return
+            # add_subdirectory(${dir} ${CMAKE_BINARY_DIR}/ThirdParty/${subdir_basename})
             # include_directories(BEFORE ${dir}/include)
 
-            # message(STATUS "Added thirdparty CMakeLists.txt from ${dir}, including headers from ${dir}/include")
+            # message(STATUS "Added ThirdParty CMakeLists.txt from ${dir}, including headers from ${dir}/include")
 
             return()
         endif()
@@ -703,8 +703,8 @@ source_group(TREE ${CMAKE_SOURCE_DIR}/Engine PREFIX "Source Code" FILES ${SOURCE
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_HEADERS "")
 set(THIRD_PARTY_LIBRARIES "")
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/thirdparty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
-source_group(TREE ${CMAKE_SOURCE_DIR}/thirdparty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
+collect_sources_and_modules(${CMAKE_SOURCE_DIR}/ThirdParty THIRD_PARTY_SOURCES THIRD_PARTY_HEADERS THIRD_PARTY_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/ThirdParty PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
 # platform specific stuff
 file(GLOB_RECURSE PLATFORM_FILES "Source/Engine/system/platform/**/*")
@@ -832,16 +832,16 @@ endif()
 
 # if aftermath lib exists on windows, link to it
 if(WIN32)
-    if(EXISTS "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
-        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        set(COMMON_LIBRARIES ${COMMON_LIBRARIES} "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
         add_definitions(-DHYP_AFTERMATH=1)
 
         # copy the dll to the build directory
-        file(COPY "${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+        file(COPY "${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.dll" DESTINATION ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
         message(STATUS "Aftermath found, linking to it")
     else()
-        message(WARNING "Aftermath lib not found at ${CMAKE_SOURCE_DIR}/lib/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
+        message(WARNING "Aftermath lib not found at ${CMAKE_SOURCE_DIR}/../Binaries/ThirdParty/${HYP_PLATFORM_NAME}/${HYP_BUILD_TYPE}/GFSDK_Aftermath_Lib.x64.lib")
     endif()
 endif()
 
@@ -872,7 +872,7 @@ include_directories(
     ${COMMON_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/Engine
-    ${CMAKE_SOURCE_DIR}/thirdparty
+    ${CMAKE_SOURCE_DIR}/ThirdParty
 )
 
 if(NOT WIN32)

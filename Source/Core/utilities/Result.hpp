@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/StaticMessage.hpp>
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/StaticMessage.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 

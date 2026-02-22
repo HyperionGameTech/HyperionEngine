@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/Defines.hpp>
-#include <core/Constants.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Constants.hpp>
 
 #include <type_traits>
 

@@ -58,9 +58,9 @@
 #include <system/AppContext.hpp>
 #include <system/OpenFileDialog.hpp>
 
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
@@ -78,10 +78,10 @@
 #include <baking/BakeData.hpp>
 
 // for EnumToString
-#include <core/reflection/Enum.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Enum.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <scripting/ScriptingService.hpp>
 

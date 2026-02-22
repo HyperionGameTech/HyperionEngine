@@ -2,9 +2,9 @@
 
 #include <script/compiler/emit/NamesPair.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <string>
 #include <vector>

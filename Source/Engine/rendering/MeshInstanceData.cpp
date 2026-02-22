@@ -2,7 +2,7 @@
 
 #include <rendering/MeshInstanceData.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <MeshInstanceData.generated.inl>
 

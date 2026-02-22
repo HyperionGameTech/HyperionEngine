@@ -6,11 +6,11 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/ManagedClass.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
 
 namespace Hyperion {
 

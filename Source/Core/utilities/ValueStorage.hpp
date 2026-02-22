@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
 #include <type_traits>
 

@@ -4,7 +4,7 @@
 #include <script/compiler/ast/AstModuleAccess.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 

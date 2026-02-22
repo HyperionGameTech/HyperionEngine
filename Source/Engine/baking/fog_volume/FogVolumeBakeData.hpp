@@ -4,7 +4,7 @@
 
 #include <baking/BakeData.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 namespace Hyperion {
 

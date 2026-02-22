@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
 namespace Hyperion {
 namespace xml {

@@ -4,7 +4,7 @@
 
 #include <scene/world_grid/WorldGridLayer.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 namespace Hyperion {
 

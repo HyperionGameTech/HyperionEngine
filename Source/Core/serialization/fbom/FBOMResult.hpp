@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/StringView.hpp>
 
 namespace Hyperion::serialization {
 

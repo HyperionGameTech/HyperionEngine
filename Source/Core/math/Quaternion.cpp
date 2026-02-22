@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/Quaternion.hpp>
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Quaternion.hpp>
+#include <Core/math/Mat4f.hpp>
 
 #include <float.h>
 

@@ -5,7 +5,7 @@
 #include <physics/Adapter.hpp>
 #include <physics/RigidBody.hpp>
 
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector3.hpp>
 
 namespace Hyperion {
 

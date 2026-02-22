@@ -4,13 +4,13 @@
 
 #include <editor/EditorPickCache.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/Mesh.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

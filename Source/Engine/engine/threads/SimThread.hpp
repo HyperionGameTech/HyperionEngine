@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

@@ -43,20 +43,20 @@
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/debug/StackDump.hpp>
+#include <Core/debug/StackDump.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/reflection/Enum.hpp> // For EnumValue()
+#include <Core/reflection/Enum.hpp> // For EnumValue()
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
-#include <core/net/NetRequestThread.hpp>
+#include <Core/net/NetRequestThread.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
 #include <asset/Assets.hpp>
 

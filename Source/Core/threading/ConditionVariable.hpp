@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/threading/Mutex.hpp>
-#include <core/debug/Debug.hpp>
-#include <core/Types.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Types.hpp>
 
 #if defined(HYP_UNIX)
 #include <pthread.h>

@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/utilities/Pair.hpp>
-#include <core/utilities/Tuple.hpp>
-#include <core/utilities/StringView.hpp>
+#include <Core/Defines.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/utilities/Tuple.hpp>
+#include <Core/utilities/StringView.hpp>
 
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <string_view>
 #include <array>

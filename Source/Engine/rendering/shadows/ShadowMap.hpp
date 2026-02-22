@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/math/Mat4f.hpp>
+#include <Core/math/Mat4f.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

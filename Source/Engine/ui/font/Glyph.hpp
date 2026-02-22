@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
 #include <util/img/Bitmap.hpp>
 

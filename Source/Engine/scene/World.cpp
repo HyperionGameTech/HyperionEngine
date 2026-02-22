@@ -23,12 +23,12 @@
 
 #include <scene/world_grid/WorldGrid.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/DataRaceDetector.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/TaskSystem.hpp>
+#include <Core/threading/DataRaceDetector.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <system/AppContext.hpp>
 

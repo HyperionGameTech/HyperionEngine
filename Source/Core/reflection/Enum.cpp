@@ -1,5 +1,5 @@
-#include <core/reflection/Enum.hpp>
-#include <core/reflection/StaticField.hpp>
+#include <Core/reflection/Enum.hpp>
+#include <Core/reflection/StaticField.hpp>
 
 namespace Hyperion {
 

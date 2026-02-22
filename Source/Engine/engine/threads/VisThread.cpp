@@ -16,9 +16,9 @@
 
 #include <scene/components/VisibilityStateComponent.hpp>
 
-#include <core/memory/allocator/SlabAllocator.hpp>
+#include <Core/memory/allocator/SlabAllocator.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 namespace Hyperion {
 

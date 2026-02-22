@@ -8,7 +8,7 @@
 
 #include <scene/camera/Camera.hpp>
 
-#include <core/utilities/ClockTimer.hpp>
+#include <Core/utilities/ClockTimer.hpp>
 
 namespace Hyperion {
 

@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/memory/Memory.hpp>
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/Memory.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/reflection/TypeInfoFwd.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/utilities/Traits.hpp>
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
-#include <core/Util.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Util.hpp>
 
 #include <type_traits>
 

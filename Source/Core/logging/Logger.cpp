@@ -1,27 +1,25 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <HyperionPch.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/Bitset.hpp>
+#include <Core/containers/LinkedList.hpp>
 
-#include <core/containers/HashMap.hpp>
-#include <core/containers/Bitset.hpp>
-#include <core/containers/LinkedList.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/NotNullPtr.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/NotNullPtr.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/io/ByteWriter.hpp>
-
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
 #ifndef HYP_TOOL
 #include <Logger.generated.inl>

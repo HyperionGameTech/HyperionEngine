@@ -5,12 +5,12 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/GpuImage.hpp>
 
-#include <core/functional/Proc.hpp>
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Proc.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 

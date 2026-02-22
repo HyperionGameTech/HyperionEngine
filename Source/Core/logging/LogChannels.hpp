@@ -1,5 +1,5 @@
 #pragma once
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
 namespace Hyperion {
 

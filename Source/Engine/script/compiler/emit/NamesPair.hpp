@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/Types.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/Types.hpp>
 
 #include <cstdint>
 #include <utility>

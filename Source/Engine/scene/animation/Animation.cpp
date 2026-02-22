@@ -9,7 +9,7 @@
 #include <scene/animation/Bone.hpp>
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <Animation.generated.inl>
 

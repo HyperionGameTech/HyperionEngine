@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 #include <type_traits>
 

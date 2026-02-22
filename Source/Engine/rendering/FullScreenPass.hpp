@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector3.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <cstring>
 

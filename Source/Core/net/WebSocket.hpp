@@ -4,16 +4,16 @@
 
 #if 0
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace net {

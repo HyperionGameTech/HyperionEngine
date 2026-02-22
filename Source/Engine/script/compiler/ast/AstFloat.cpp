@@ -9,7 +9,7 @@
 
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
 #include <limits>
 #include <cmath>

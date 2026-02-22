@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/Any.hpp>
-#include <core/memory/AnyRef.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/Any.hpp>
+#include <Core/memory/AnyRef.hpp>
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
-#include <core/serialization/fbom/FBOMType.hpp>
-#include <core/serialization/fbom/FBOMBaseTypes.hpp>
-#include <core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMType.hpp>
+#include <Core/serialization/fbom/FBOMBaseTypes.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 namespace Hyperion {
 struct BoxedValue;

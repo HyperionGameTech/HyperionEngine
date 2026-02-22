@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/Name.hpp>
-#include <core/Defines.hpp>
+#include <Core/Name.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/containers/HashSet.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/Variant.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 #include <asset/AssetObject.hpp>
 
@@ -20,8 +20,8 @@
 
 #include <util/ini/INIFile.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

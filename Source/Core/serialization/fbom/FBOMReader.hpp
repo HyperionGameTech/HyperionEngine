@@ -2,33 +2,33 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/ByteBuffer.hpp>
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/ByteBuffer.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/serialization/fbom/FBOMObject.hpp>
-#include <core/serialization/fbom/FBOMResult.hpp>
-#include <core/serialization/fbom/FBOMType.hpp>
-#include <core/serialization/fbom/FBOMStaticData.hpp>
-#include <core/serialization/fbom/FBOMObjectLibrary.hpp>
-#include <core/serialization/fbom/FBOMConfig.hpp>
-#include <core/serialization/fbom/FBOMEnums.hpp>
-#include <core/serialization/fbom/util/UniqueId.hpp>
+#include <Core/serialization/fbom/FBOMObject.hpp>
+#include <Core/serialization/fbom/FBOMResult.hpp>
+#include <Core/serialization/fbom/FBOMType.hpp>
+#include <Core/serialization/fbom/FBOMStaticData.hpp>
+#include <Core/serialization/fbom/FBOMObjectLibrary.hpp>
+#include <Core/serialization/fbom/FBOMConfig.hpp>
+#include <Core/serialization/fbom/FBOMEnums.hpp>
+#include <Core/serialization/fbom/util/UniqueId.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
-#include <core/utilities/ByteUtil.hpp>
+#include <Core/utilities/ByteUtil.hpp>
 
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/threading/AtomicVar.hpp>
+#include <Core/threading/AtomicVar.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace utilities {

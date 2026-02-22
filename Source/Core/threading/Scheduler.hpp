@@ -2,25 +2,25 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/StaticMessage.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StaticMessage.hpp>
 
-#include <core/threading/SchedulerFwd.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Thread.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/threading/ConditionVariable.hpp>
+#include <Core/threading/SchedulerFwd.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/ConditionVariable.hpp>
 
-#include <core/utilities/FunctionTraits.hpp>
-#include <core/Defines.hpp>
+#include <Core/utilities/FunctionTraits.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <utility>
 #include <type_traits>

@@ -9,9 +9,9 @@
 
 #include <asset/Assets.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #include <scene/World.hpp>
 

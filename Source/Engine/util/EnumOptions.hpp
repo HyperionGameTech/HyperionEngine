@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/Array.hpp>
-#include <core/utilities/Pair.hpp>
-#include <core/HashCode.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <initializer_list>
 #include <limits>

@@ -5,12 +5,12 @@
 #include <ui/UIObject.hpp>
 #include <ui/UIStage.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/math/Transform.hpp>
-#include <core/math/Vector2.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/math/Vector2.hpp>
 
 #include <rendering/Shared.hpp>
 
@@ -18,7 +18,7 @@
 
 #include <scene/Scene.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

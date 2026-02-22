@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/math/Extent.hpp>
+#include <Core/math/Extent.hpp>
 
 namespace Hyperion {
 

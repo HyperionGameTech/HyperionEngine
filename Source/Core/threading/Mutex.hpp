@@ -9,9 +9,9 @@
 #include <Windows.h>
 #endif
 
-#include <core/threading/LockGuard.hpp>
+#include <Core/threading/LockGuard.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 namespace threading {

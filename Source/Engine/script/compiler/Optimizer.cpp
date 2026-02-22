@@ -10,8 +10,8 @@
 #include <script/compiler/ast/AstTrue.hpp>
 #include <script/compiler/ast/AstFalse.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <cmath>
 

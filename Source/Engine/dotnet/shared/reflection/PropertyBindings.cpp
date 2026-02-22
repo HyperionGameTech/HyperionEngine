@@ -2,13 +2,13 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Object.hpp>
-#include <core/Name.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Object.hpp>
+#include <Core/Name.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 

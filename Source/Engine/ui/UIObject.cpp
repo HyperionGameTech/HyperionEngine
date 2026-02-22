@@ -9,7 +9,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
@@ -24,9 +24,9 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #include <engine/EngineDriver.hpp>
 

@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/Method.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/Method.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #include <dotnet/ManagedClass.hpp>
 

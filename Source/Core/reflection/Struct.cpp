@@ -1,9 +1,9 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/Struct.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Struct.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedClass.hpp>

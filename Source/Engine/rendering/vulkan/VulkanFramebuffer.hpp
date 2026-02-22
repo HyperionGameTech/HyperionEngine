@@ -17,7 +17,7 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/FlatMap.hpp>
 
 #include <vulkan/vulkan.h>
 

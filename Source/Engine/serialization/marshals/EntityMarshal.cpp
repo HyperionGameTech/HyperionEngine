@@ -2,13 +2,13 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/marshals/ObjectMarshal.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/World.hpp>

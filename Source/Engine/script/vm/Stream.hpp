@@ -1,10 +1,10 @@
 #pragma once
 
 #include <script/SourceFile.hpp>
-#include <core/debug/Debug.hpp>
-#include <core/memory/ByteBuffer.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/memory/ByteBuffer.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

@@ -20,19 +20,19 @@
 
 #include <script/vm/Interpreter.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Method.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/Member.hpp>
-#include <core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/Member.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
-#include <core/utilities/Format.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Format.hpp>
+#include <Core/utilities/Result.hpp>
 
 #include <iostream>
 

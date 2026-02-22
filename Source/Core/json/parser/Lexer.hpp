@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include <core/json/parser/SourceStream.hpp>
-#include <core/json/parser/TokenStream.hpp>
-#include <core/json/parser/SourceLocation.hpp>
-#include <core/json/parser/CompilationUnit.hpp>
+#include <Core/json/parser/SourceStream.hpp>
+#include <Core/json/parser/TokenStream.hpp>
+#include <Core/json/parser/SourceLocation.hpp>
+#include <Core/json/parser/CompilationUnit.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 namespace Hyperion::JSON {
 

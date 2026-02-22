@@ -10,22 +10,22 @@
 #include <asset/BlobStorage.hpp>
 #include <asset/BlobStorageViews.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
-#include <core/utilities/GlobalContext.hpp>
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/utilities/DeferredScope.hpp>
+#include <Core/utilities/GlobalContext.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/threading/Scheduler.hpp>
+#include <Core/threading/Scheduler.hpp>
 
-#include <core/serialization/SerializationUtils.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/Property.hpp>
+#include <Core/serialization/SerializationUtils.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/Property.hpp>
 
-#include <core/io/ByteWriter.hpp>
-#include <core/io/BufferedByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
 
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/EntityManager.hpp>

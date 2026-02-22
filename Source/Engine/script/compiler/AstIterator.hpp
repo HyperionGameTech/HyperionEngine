@@ -1,8 +1,8 @@
 #pragma once
 
 #include <script/compiler/ast/AstStatement.hpp>
-#include <core/debug/Debug.hpp>
-#include <core/Types.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Types.hpp>
 
 #include <memory>
 #include <vector>

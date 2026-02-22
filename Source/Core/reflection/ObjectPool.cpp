@@ -1,10 +1,10 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
-#include <core/reflection/ObjectPool.hpp>
-#include <core/reflection/Class.hpp>
+#include <Core/reflection/ObjectPool.hpp>
+#include <Core/reflection/Class.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <engine/EngineMemory.hpp>

@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Triangle.hpp>
-#include <core/math/MathUtil.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Triangle.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #ifndef HYP_TOOL
 #include <BoundingBox.generated.inl>

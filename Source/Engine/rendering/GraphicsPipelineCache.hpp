@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FixedArray.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/Task.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/Task.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 namespace Hyperion {
 

@@ -2,21 +2,21 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Transform.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Vector4.hpp>
+#include <Core/math/Transform.hpp>
 
-#include <core/containers/FlatSet.hpp>
+#include <Core/containers/FlatSet.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Tuple.hpp>
-#include <core/utilities/Span.hpp>
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Tuple.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

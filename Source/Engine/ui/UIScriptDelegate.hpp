@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/components/ScriptComponent.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #ifdef HYP_DOTNET
 #include <dotnet/ManagedClass.hpp>

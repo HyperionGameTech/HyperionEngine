@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/ContainerBase.hpp>
-#include <core/containers/SortedArray.hpp>
+#include <Core/containers/ContainerBase.hpp>
+#include <Core/containers/SortedArray.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
-#include <core/utilities/Traits.hpp>
-#include <core/Defines.hpp>
+#include <Core/utilities/Traits.hpp>
+#include <Core/Defines.hpp>
 
 namespace Hyperion {
 namespace containers {

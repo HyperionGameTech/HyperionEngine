@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <asset/AssetReference.hpp>
 #include <asset/AssetObject.hpp>
@@ -10,14 +10,14 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/Shared.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/Pair.hpp>
+#include <Core/utilities/Pair.hpp>
 
-#include <core/io/ByteReader.hpp>
-#include <core/io/ByteWriter.hpp>
+#include <Core/io/ByteReader.hpp>
+#include <Core/io/ByteWriter.hpp>
 
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector3.hpp>
 
 namespace Hyperion {
 

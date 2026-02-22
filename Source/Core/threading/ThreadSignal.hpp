@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/ConditionVariable.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/ConditionVariable.hpp>
 
 namespace Hyperion {
 namespace threading {

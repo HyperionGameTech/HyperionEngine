@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 namespace threading {

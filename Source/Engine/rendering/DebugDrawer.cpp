@@ -40,7 +40,7 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <core/memory/resource/Resource.hpp>
+#include <Core/memory/resource/Resource.hpp>
 
 #include <DebugDrawer.generated.inl>
 

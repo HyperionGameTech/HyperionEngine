@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/utilities/Pair.hpp>
-#include <core/containers/ContainerBase.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/utilities/Pair.hpp>
+#include <Core/containers/ContainerBase.hpp>
 
-#include <core/HashCode.hpp>
+#include <Core/HashCode.hpp>
 
 #include <algorithm>
 #include <utility>

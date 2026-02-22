@@ -17,11 +17,11 @@
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

@@ -7,19 +7,19 @@
 #include <SDL2/SDL.h>
 #endif
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
-#include <core/memory/Memory.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
 

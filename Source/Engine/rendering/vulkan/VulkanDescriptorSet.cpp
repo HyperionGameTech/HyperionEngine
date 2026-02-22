@@ -19,7 +19,7 @@
 #include <rendering/RenderInterface.hpp>
 #include <rendering/PlaceholderData.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
 #include <engine/EngineDriver.hpp>
 

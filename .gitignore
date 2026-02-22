@@ -307,4 +307,4 @@ CMakeFiles/**/*
 res/projects/**/*
 res/*/BlobStorage/**/*
 
-Generated/**/*
+Source/Generated/**/*

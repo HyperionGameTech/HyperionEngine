@@ -1,12 +1,12 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
-#include <core/math/Vector2.hpp>
-#include <core/math/Vector3.hpp>
+#include <Core/math/Vector2.hpp>
+#include <Core/math/Vector3.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

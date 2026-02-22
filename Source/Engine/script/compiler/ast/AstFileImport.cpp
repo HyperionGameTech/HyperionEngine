@@ -5,11 +5,11 @@
 #include <script/compiler/SemanticAnalyzer.hpp>
 #include <script/compiler/Optimizer.hpp>
 
-#include <core/utilities/StringUtil.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <fstream>
 #include <iostream>

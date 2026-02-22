@@ -11,7 +11,7 @@
 
 #include <audio/AudioSource.hpp>
 
-#include <core/containers/TypeMap.hpp>
+#include <Core/containers/TypeMap.hpp>
 
 extern "C"
 {

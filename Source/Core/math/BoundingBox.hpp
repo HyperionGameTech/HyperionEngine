@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Transform.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/Transform.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

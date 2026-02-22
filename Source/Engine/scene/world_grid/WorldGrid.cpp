@@ -16,9 +16,9 @@
 
 #include <streaming/StreamingManager.hpp>
 
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/utilities/ForEach.hpp>
+#include <Core/utilities/ForEach.hpp>
 
 #include <engine/EngineDriver.hpp>
 

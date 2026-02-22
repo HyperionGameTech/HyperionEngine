@@ -5,25 +5,25 @@
 #include <asset/AssetPath.hpp>
 #include <asset/Loader.hpp>
 
-#include <core/reflection/ObjId.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjId.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/reflection/BoxedValue.hpp>
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/BoxedValue.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/FormatFwd.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/FormatFwd.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/serialization/SerializationWrapper.hpp>
+#include <Core/serialization/SerializationWrapper.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
 namespace Hyperion {
 

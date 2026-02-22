@@ -17,14 +17,14 @@
 
 #include <rendering/util/DeletionQueue.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/Task.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/Task.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
+#include <Core/utilities/DeferredScope.hpp>
 
 namespace Hyperion {
 

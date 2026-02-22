@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Constants.hpp>
+#include <Core/Constants.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
 #include <rendering/RenderObject.hpp>
 

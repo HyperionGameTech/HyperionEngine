@@ -1,5 +1,5 @@
 #pragma once
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 namespace utilities {

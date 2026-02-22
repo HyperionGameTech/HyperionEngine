@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Name.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Name.hpp>
 
 /// We need to include containers for TypeInfo traits.
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/HashSet.hpp>
-#include <core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/Array.hpp>
 
-#include <core/utilities/StringView.hpp>
-#include <core/reflection/TypeInfoFwd.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/reflection/TypeInfoFwd.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Result.hpp>
 
 namespace Hyperion {
 

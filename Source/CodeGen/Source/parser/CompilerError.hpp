@@ -5,10 +5,10 @@
 
 #include <parser/SourceLocation.hpp>
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
 namespace Hyperion::CodeGen {
 

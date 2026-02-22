@@ -33,9 +33,9 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <core/utilities/ForEach.hpp>
+#include <Core/utilities/ForEach.hpp>
 
-#include <core/profiling/PerformanceClock.hpp>
+#include <Core/profiling/PerformanceClock.hpp>
 
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>

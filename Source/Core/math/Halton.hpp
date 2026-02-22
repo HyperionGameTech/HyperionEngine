@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/math/Vector2.hpp>
+#include <Core/math/Vector2.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/Types.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

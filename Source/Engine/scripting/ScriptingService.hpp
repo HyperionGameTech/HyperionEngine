@@ -1,15 +1,15 @@
 #pragma once
 #include <scripting/Script.hpp>
 
-#include <core/containers/FlatMap.hpp>
+#include <Core/containers/FlatMap.hpp>
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/TaskThread.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/TaskThread.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
 namespace Hyperion {
 

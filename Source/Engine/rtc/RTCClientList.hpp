@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/memory/RefCountedPtr.hpp>
-#include <core/utilities/Optional.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
+#include <Core/utilities/Optional.hpp>
 
 #include <mutex>
 

@@ -1,6 +1,6 @@
 #include <script/vm/Stream.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 namespace Hyperion {
 

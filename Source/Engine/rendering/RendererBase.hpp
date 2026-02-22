@@ -2,16 +2,16 @@
 
 #pragma once
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/containers/SparsePagedArray.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
 
 #include <rendering/CullData.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>

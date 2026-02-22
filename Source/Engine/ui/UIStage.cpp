@@ -27,7 +27,7 @@
 #include <system/AppContext.hpp>
 #include <input/Event.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <input/InputManager.hpp>
 

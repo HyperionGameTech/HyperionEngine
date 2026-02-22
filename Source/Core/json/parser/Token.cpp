@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/json/parser/Token.hpp>
+#include <Core/json/parser/Token.hpp>
 
 #include <cstring>
 

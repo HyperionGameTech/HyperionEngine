@@ -2,7 +2,7 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/utilities/Time.hpp>
+#include <Core/utilities/Time.hpp>
 
 using namespace Hyperion;
 

@@ -3,9 +3,9 @@
 #pragma once
 
 #include <asset/Assets.hpp>
-#include <core/json/JSON.hpp>
+#include <Core/json/JSON.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

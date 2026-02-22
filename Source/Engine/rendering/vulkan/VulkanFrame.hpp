@@ -15,7 +15,7 @@
 #include <rendering/vulkan/VulkanSemaphore.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
 
-#include <core/containers/HashSet.hpp>
+#include <Core/containers/HashSet.hpp>
 
 namespace Hyperion {
 

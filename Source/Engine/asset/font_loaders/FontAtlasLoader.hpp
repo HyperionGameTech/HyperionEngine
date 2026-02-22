@@ -7,7 +7,7 @@
 #include <ui/font/FontFace.hpp>
 #include <ui/font/FontAtlas.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

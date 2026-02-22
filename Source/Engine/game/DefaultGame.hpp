@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
 #include <engine/Game.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 namespace Hyperion {
 

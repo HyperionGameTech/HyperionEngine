@@ -13,7 +13,7 @@
 
 #include <system/AppContext.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
 #include <GBuffer.generated.inl>
 

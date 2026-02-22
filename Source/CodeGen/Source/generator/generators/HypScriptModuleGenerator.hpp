@@ -5,9 +5,9 @@
 
 #include <generator/Generator.hpp>
 
-#include <core/containers/Array.hpp>
-#include <core/containers/HashMap.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
 
 namespace Hyperion {
 namespace CodeGen {

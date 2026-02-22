@@ -1,28 +1,28 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/serialization/fbom/marshals/ObjectMarshal.hpp>
-#include <core/serialization/fbom/FBOMLoadContext.hpp>
+#include <Core/serialization/fbom/marshals/ObjectMarshal.hpp>
+#include <Core/serialization/fbom/FBOMLoadContext.hpp>
 
-#include <core/reflection/Class.hpp>
-#include <core/reflection/Struct.hpp>
-#include <core/reflection/Property.hpp>
-#include <core/reflection/Field.hpp>
-#include <core/reflection/Method.hpp>
-#include <core/reflection/Object.hpp>
-#include <core/reflection/TypeInfo.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/Struct.hpp>
+#include <Core/reflection/Property.hpp>
+#include <Core/reflection/Field.hpp>
+#include <Core/reflection/Method.hpp>
+#include <Core/reflection/Object.hpp>
+#include <Core/reflection/TypeInfo.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/logging/LogChannels.hpp>
-#include <core/logging/Logger.hpp>
+#include <Core/logging/LogChannels.hpp>
+#include <Core/logging/Logger.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
 #if defined(HYPERION_ENGINE) && HYPERION_ENGINE
 #include <asset/AssetRegistry.hpp>
 #include <asset/AssetObject.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
+#include <Core/utilities/GlobalContext.hpp>
 #endif
 
 namespace Hyperion::serialization {

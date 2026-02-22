@@ -2,18 +2,18 @@
 
 #pragma once
 
-#include <core/containers/String.hpp>
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/utilities/Span.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/Result.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/math/Transform.hpp>
-#include <core/math/Mat4f.hpp>
-#include <core/math/BoundingBox.hpp>
-#include <core/math/Ray.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/math/Mat4f.hpp>
+#include <Core/math/BoundingBox.hpp>
+#include <Core/math/Ray.hpp>
 
 #include <rendering/Vertex.hpp>
 

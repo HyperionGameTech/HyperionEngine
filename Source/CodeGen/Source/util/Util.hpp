@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Result.hpp>
 
 namespace Hyperion {
 

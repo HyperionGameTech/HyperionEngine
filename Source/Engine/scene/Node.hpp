@@ -2,29 +2,29 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <Core/memory/RefCountedPtr.hpp>
 
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/StringView.hpp>
-#include <core/utilities/Variant.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/StringView.hpp>
+#include <Core/utilities/Variant.hpp>
 
-#include <core/reflection/ObjectBase.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ObjectBase.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/functional/ScriptableDelegate.hpp>
+#include <Core/functional/ScriptableDelegate.hpp>
 
-#include <core/Name.hpp>
+#include <Core/Name.hpp>
 
-#include <core/math/Transform.hpp>
-#include <core/math/Ray.hpp>
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/Transform.hpp>
+#include <Core/math/Ray.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
 
 #include <scene/EntityTag.hpp>
 

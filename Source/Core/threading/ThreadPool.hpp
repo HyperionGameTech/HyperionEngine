@@ -2,25 +2,25 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/memory/UniquePtr.hpp>
+#include <Core/memory/UniquePtr.hpp>
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/TaskThread.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/threading/ConditionVariable.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/TaskThread.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/ConditionVariable.hpp>
 
-#include <core/utilities/Format.hpp>
+#include <Core/utilities/Format.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <core/Defines.hpp>
-#include <core/utilities/FunctionTraits.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/utilities/FunctionTraits.hpp>
+#include <Core/Types.hpp>
 
 #include <thread>
 

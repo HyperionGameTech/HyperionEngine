@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/math/Vector3.hpp>
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/Vector3.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/containers/FixedArray.hpp>
+#include <Core/containers/FixedArray.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
 namespace Hyperion {
 

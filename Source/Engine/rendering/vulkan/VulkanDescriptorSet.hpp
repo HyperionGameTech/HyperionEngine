@@ -10,16 +10,16 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <core/Name.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/containers/ArrayMap.hpp>
-#include <core/threading/Mutex.hpp>
-#include <core/Defines.hpp>
+#include <Core/Name.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/containers/ArrayMap.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/Defines.hpp>
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/Types.hpp>
-#include <core/Constants.hpp>
+#include <Core/Types.hpp>
+#include <Core/Constants.hpp>
 
 #include <vulkan/vulkan.h>
 

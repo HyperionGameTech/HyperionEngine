@@ -1,24 +1,24 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/threading/Thread.hpp>
-#include <core/threading/Threads.hpp>
-#include <core/threading/ThreadLocalStorage.hpp>
-#include <core/threading/Mutex.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/ThreadLocalStorage.hpp>
+#include <Core/threading/Mutex.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <Core/functional/Delegate.hpp>
 
-#include <core/containers/HashMap.hpp>
+#include <Core/containers/HashMap.hpp>
 
-#include <core/utilities/GlobalContext.hpp>
-#include <core/utilities/IdGenerator.hpp>
+#include <Core/utilities/GlobalContext.hpp>
+#include <Core/utilities/IdGenerator.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+#include <Core/profiling/ProfileScope.hpp>
 
-#include <core/Defines.hpp>
+#include <Core/Defines.hpp>
 
-#include <core/math/MathUtil.hpp>
+#include <Core/math/MathUtil.hpp>
 
-#include <util/UTF8.hpp>
+#include <Core/Unicode.hpp>
 
 #ifdef HYP_WINDOWS
 #define WIN32_LEAN_AND_MEAN

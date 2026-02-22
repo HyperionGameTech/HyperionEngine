@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/utilities/StringView.hpp>
+#include <Core/utilities/StringView.hpp>
 
 #include <dotnet/Helpers.hpp>
 #include <dotnet/ManagedAttribute.hpp>
 
 #include <dotnet/interop/ManagedGuid.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion::dotnet {
 

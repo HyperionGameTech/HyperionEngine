@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/Defines.hpp>
-#include <core/Types.hpp>
+#include <Core/Defines.hpp>
+#include <Core/Types.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/LockGuard.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/LockGuard.hpp>
 
 namespace Hyperion {
 namespace threading {

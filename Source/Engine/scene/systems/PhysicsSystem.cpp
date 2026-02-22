@@ -8,7 +8,7 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/Handle.hpp>
 
 #include <physics/PhysicsWorld.hpp>
 

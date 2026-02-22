@@ -5,13 +5,13 @@
 #include <script/compiler/Tree.hpp>
 #include <script/compiler/Configuration.hpp>
 #include <script/compiler/type-system/SymbolType.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/Array.hpp>
-#include <core/containers/FlatSet.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
-#include <core/functional/Proc.hpp>
-#include <core/Types.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/containers/FlatSet.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/Variant.hpp>
+#include <Core/functional/Proc.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

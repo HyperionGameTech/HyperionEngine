@@ -5,9 +5,9 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <core/math/BoundingBox.hpp>
+#include <Core/math/BoundingBox.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 #include <random>
 

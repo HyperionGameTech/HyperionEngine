@@ -7,10 +7,10 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMReader.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMReader.hpp>
 
-#include <core/filesystem/FsUtil.hpp>
+#include <Core/filesystem/FsUtil.hpp>
 
 #include <FBOMModelLoader.generated.inl>
 

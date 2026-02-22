@@ -4,9 +4,9 @@
 
 #include <rendering/util/ResourceTracker.hpp>
 
-#include <core/threading/Threads.hpp>
+#include <Core/threading/Threads.hpp>
 
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
 namespace Hyperion {
 

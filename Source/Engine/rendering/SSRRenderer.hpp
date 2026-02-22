@@ -7,11 +7,11 @@
 
 #include <rendering/RenderObject.hpp>
 
-#include <core/config/Config.hpp>
+#include <Core/config/Config.hpp>
 
-#include <core/reflection/ObjectMacros.hpp>
+#include <Core/reflection/ObjectMacros.hpp>
 
-#include <core/utilities/EnumFlags.hpp>
+#include <Core/utilities/EnumFlags.hpp>
 
 namespace Hyperion {
 

@@ -9,8 +9,8 @@
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 
-#include <core/debug/Debug.hpp>
-#include <core/utilities/StringUtil.hpp>
+#include <Core/debug/Debug.hpp>
+#include <Core/utilities/StringUtil.hpp>
 
 namespace Hyperion {
 

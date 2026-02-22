@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/Types.hpp>
-#include <core/containers/String.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/HashCode.hpp>
+#include <Core/Types.hpp>
+#include <Core/containers/String.hpp>
+#include <Core/containers/FlatMap.hpp>
+#include <Core/HashCode.hpp>
 
 namespace Hyperion {
 

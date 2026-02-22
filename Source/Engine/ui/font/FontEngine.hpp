@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include <core/filesystem/FilePath.hpp>
+#include <Core/filesystem/FilePath.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
 struct FT_LibraryRec_;
 struct FT_FaceRec_;

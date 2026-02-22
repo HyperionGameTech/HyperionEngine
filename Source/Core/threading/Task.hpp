@@ -2,27 +2,27 @@
 
 #pragma once
 
-#include <core/containers/Bitset.hpp>
+#include <Core/containers/Bitset.hpp>
 
-#include <core/utilities/Optional.hpp>
-#include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/Span.hpp>
+#include <Core/utilities/Optional.hpp>
+#include <Core/utilities/EnumFlags.hpp>
+#include <Core/utilities/Span.hpp>
 
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/SharedMutex.hpp>
-#include <core/threading/Thread.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/Thread.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/logging/LoggerFwd.hpp>
+#include <Core/logging/LoggerFwd.hpp>
 
-#include <core/functional/Proc.hpp>
+#include <Core/functional/Proc.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/UniquePtr.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/Util.hpp>
+#include <Core/Util.hpp>
 
-#include <core/Types.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 

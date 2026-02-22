@@ -2,11 +2,11 @@
 
 #include <HyperionPch.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
-#include <core/serialization/fbom/FBOMArray.hpp>
-#include <core/serialization/fbom/FBOMMarshaler.hpp>
+#include <Core/serialization/fbom/FBOM.hpp>
+#include <Core/serialization/fbom/FBOMArray.hpp>
+#include <Core/serialization/fbom/FBOMMarshaler.hpp>
 
-#include <core/reflection/Property.hpp>
+#include <Core/reflection/Property.hpp>
 
 #include <ui/font/FontAtlas.hpp>
 

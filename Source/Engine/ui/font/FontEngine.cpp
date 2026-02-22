@@ -5,7 +5,7 @@
 #include <ui/font/FontEngine.hpp>
 #include <ui/font/FontFace.hpp>
 
-#include <core/debug/Debug.hpp>
+#include <Core/debug/Debug.hpp>
 
 #ifdef HYP_FREETYPE
 

@@ -15,9 +15,9 @@
 
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#include <core/reflection/ClassUtils.hpp>
+#include <Core/reflection/ClassUtils.hpp>
 
-#include <core/logging/Logger.hpp>
+#include <Core/logging/Logger.hpp>
 
 #include <asset/Assets.hpp>
 

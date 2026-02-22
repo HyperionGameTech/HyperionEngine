@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include <core/memory/Pimpl.hpp>
+#include <Core/memory/Pimpl.hpp>
 
-#include <core/containers/String.hpp>
+#include <Core/containers/String.hpp>
 
-#include <core/reflection/ObjectFwd.hpp>
+#include <Core/reflection/ObjectFwd.hpp>
 
 namespace Hyperion {
 

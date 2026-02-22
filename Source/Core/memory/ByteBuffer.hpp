@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include <core/containers/Array.hpp>
-#include <core/utilities/Span.hpp>
-#include <core/memory/Memory.hpp>
+#include <Core/containers/Array.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/memory/Memory.hpp>
 
-#include <core/HashCode.hpp>
-#include <core/Constants.hpp>
-#include <core/Types.hpp>
+#include <Core/HashCode.hpp>
+#include <Core/Constants.hpp>
+#include <Core/Types.hpp>
 
 namespace Hyperion {
 namespace memory {

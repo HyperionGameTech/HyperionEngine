@@ -15,20 +15,20 @@
 
 #include <asset/Assets.hpp>
 
-#include <core/Core.hpp>
+#include <Core/Core.hpp>
 
-#include <core/reflection/ClassRegistry.hpp>
-#include <core/reflection/Class.hpp>
-#include <core/reflection/TypeInfo.hpp>
-#include <core/reflection/Handle.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
+#include <Core/reflection/Class.hpp>
+#include <Core/reflection/TypeInfo.hpp>
+#include <Core/reflection/Handle.hpp>
 
-#include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
+#include <Core/threading/Threads.hpp>
+#include <Core/threading/TaskSystem.hpp>
 
-#include <core/memory/allocator/ArenaAllocator.hpp>
-#include <core/memory/pool/Pool.hpp>
+#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/pool/Pool.hpp>
 
-#include <core/cli/CommandLine.hpp>
+#include <Core/cli/CommandLine.hpp>
 
 #include <engine/console/ConsoleCommandManager.hpp>
 

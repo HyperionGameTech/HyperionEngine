@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include <core/threading/Mutex.hpp>
-#include <core/threading/AtomicVar.hpp>
-#include <core/threading/Task.hpp>
-#include <core/threading/Semaphore.hpp>
+#include <Core/threading/Mutex.hpp>
+#include <Core/threading/AtomicVar.hpp>
+#include <Core/threading/Task.hpp>
+#include <Core/threading/Semaphore.hpp>
 
-#include <core/utilities/Span.hpp>
-#include <core/utilities/Uuid.hpp>
-#include <core/utilities/Result.hpp>
+#include <Core/utilities/Span.hpp>
+#include <Core/utilities/Uuid.hpp>
+#include <Core/utilities/Result.hpp>
 
 #include <baking/BakeData.hpp>
 #include <baking/LightmapTexel.hpp>
