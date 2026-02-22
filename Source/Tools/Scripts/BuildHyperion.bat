@@ -1,7 +1,7 @@
 @echo off
 
-if not exist build mkdir build
-pushd build
+if not exist Build mkdir Build
+pushd Build
 :PARSE_ARGS
 IF "%~1"=="" GOTO END_PARSE_ARGS
 SHIFT
@@ -19,7 +19,7 @@ IF NOT DEFINED VCPKG_ROOT (
     exit /b 1
 )
 
-cmake .. -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 18 2026" -A x64
+cmake ../Source -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" -DVCPKG_DEFAULT_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 18 2026" -A x64
 
 :SKIP_CMAKE_GENERATION
 

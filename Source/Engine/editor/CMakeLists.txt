@@ -18,10 +18,10 @@ add_definitions(-DHYP_EDITOR=1)
 include_directories(
     ${SDL2_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/thirdparty
-    ${CMAKE_SOURCE_DIR}/generated
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/editor
+    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
+    ${CMAKE_SOURCE_DIR}/Source/Engine/editor
 )
 
 set(CURRENT_SOURCES "")
@@ -54,7 +54,7 @@ find_program(DOTNET_EXECUTABLE dotnet)
 
 if(DOTNET_EXECUTABLE)
     # Generate Hyperion.Editor.csproj
-    set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects/Hyperion.Editor")
+    set(EDITOR_PROJECT_DIR "${CMAKE_SOURCE_DIR}/Build/CSharpProjects/Hyperion.Editor")
     file(MAKE_DIRECTORY ${EDITOR_PROJECT_DIR})
 
     # Generate launchSettings.json to enable native debugging

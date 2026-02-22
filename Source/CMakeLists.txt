@@ -12,11 +12,11 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Binaries/)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Binaries/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
@@ -60,17 +60,17 @@ include(ExternalProject)
 
 function(RunCodeGen version_major version_minor)
     if(WIN32)
-        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunCodeGen.bat")
-        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildCodeGen.bat")
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/RunCodeGen.bat")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/BuildCodeGen.bat")
     else()
-        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/RunCodeGen.sh")
-        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/tools/scripts/BuildCodeGen.sh")
+        set(HYP_CODEGEN_RUN_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/RunCodeGen.sh")
+        set(HYP_CODEGEN_BUILD_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/Tools/Scripts/BuildCodeGen.sh")
     endif()
 
     message(STATUS "Running CodeGen: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
 
     if(NOT EXISTS ${HYP_CODEGEN_RUN_SCRIPT_PATH})
-        message(FATAL_ERROR "RunCodeGen script not found in tools/scripts! Expected path: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
+        message(FATAL_ERROR "RunCodeGen script not found in ${CMAKE_SOURCE_DIR}/Tools/Scripts! Expected path: ${HYP_CODEGEN_RUN_SCRIPT_PATH}")
     endif()
 
     execute_process(
@@ -159,7 +159,7 @@ if(MSVC)
 
     if(HYP_DEBUG_MODE)
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /MD /Z7 /constexpr:depth1024 /bigobj /MP")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Source/Engine/Hyperion.natvis")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG /NATVIS:${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
     else()
         set(CMAKE_CXX_FLAGS "/Zc:preprocessor /O2 /Oy /MD /constexpr:depth1024 /bigobj /MP")
@@ -202,7 +202,7 @@ if(CMAKE_GENERATOR STREQUAL "Xcode")
 
 # for VS solutions, we want to add some files as a custom solution item
 elseif(MSVC)
-    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Source/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/.clang-format" "${CMAKE_SOURCE_DIR}/.clang-tidy")
+    set(SOLUTION_FILES "${CMAKE_SOURCE_DIR}/Engine/Hyperion.natvis" "${CMAKE_SOURCE_DIR}/.clang-format" "${CMAKE_SOURCE_DIR}/.clang-tidy")
     add_custom_target(VSSolutionFiles SOURCES ${SOLUTION_FILES})
 endif()
 
@@ -220,7 +220,7 @@ find_package(Bullet)
 
 # PCHs
 set(HYP_PCH
-    "${CMAKE_SOURCE_DIR}/Source/Engine/HyperionPch.hpp"
+    "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"
 )
 
 # /PCHs
@@ -234,9 +234,9 @@ add_definitions(-DHYP_VERSION_PATCH=${HYP_VERSION_PATCH})
 
 message(STATUS "HYP_ROOT_DIR: ${CMAKE_CURRENT_LIST_DIR}")
 
-set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/generated")
+set(HYP_GENERATED_DIR "${CMAKE_SOURCE_DIR}/Generated")
 
-set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/build/CSharpProjects")
+set(CSHARP_PROJECTS_DIR "${CMAKE_SOURCE_DIR}/Build/CSharpProjects")
 file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR})
 
 set(HYP_EDITOR 1)
@@ -697,8 +697,8 @@ endfunction()
 
 set(SUB_LIBRARIES "")
 
-collect_sources_and_modules(${CMAKE_SOURCE_DIR}/Source SOURCES HEADERS SUB_LIBRARIES)
-source_group(TREE ${CMAKE_SOURCE_DIR}/Source PREFIX "Source Code" FILES ${SOURCES} ${HEADERS})
+collect_sources_and_modules(${CMAKE_SOURCE_DIR} SOURCES HEADERS SUB_LIBRARIES)
+source_group(TREE ${CMAKE_SOURCE_DIR}/Engine PREFIX "Source Code" FILES ${SOURCES} ${HEADERS})
 
 set(THIRD_PARTY_SOURCES "")
 set(THIRD_PARTY_HEADERS "")
@@ -870,8 +870,8 @@ set(COMMON_INCLUDE_DIRS "")
 include_directories(
     ${HYP_GENERATED_DIR}
     ${COMMON_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/Source/Engine
-    ${CMAKE_SOURCE_DIR}/Source/Core
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/Engine
     ${CMAKE_SOURCE_DIR}/thirdparty
 )
 
@@ -908,7 +908,7 @@ target_precompile_headers(${BUILD_NAME} PRIVATE ${HYP_PCH})
 if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
     set_target_properties(${BUILD_NAME} PROPERTIES
         XCODE_ATTRIBUTE_GCC_PRECOMPILE_PREFIX_HEADER "YES"
-        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/Source/Engine/HyperionPch.hpp"
+        XCODE_ATTRIBUTE_GCC_PREFIX_HEADER "${CMAKE_SOURCE_DIR}/Engine/HyperionPch.hpp"
     )
 endif()
 # /PCHs

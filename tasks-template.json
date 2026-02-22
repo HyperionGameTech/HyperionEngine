@@ -3,7 +3,7 @@
         {
             "type": "cppbuild",
             "label": "Build Hyperion",
-            "command": "./tools/scripts/BuildHyperion.sh",
+            "command": "./Source/Tools/Scripts/BuildHyperion.sh",
             "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"

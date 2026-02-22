@@ -102,10 +102,10 @@ add_definitions(-DVMA_DYNAMIC_VULKAN_FUNCTIONS=1)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/thirdparty
-    ${CMAKE_SOURCE_DIR}/generated
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/rendering
+    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
+    ${CMAKE_SOURCE_DIR}/Source/Engine/rendering
 )
 
 if(HYP_VULKAN)

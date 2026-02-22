@@ -16,10 +16,10 @@ add_definitions(-DHYP_BUILD_LIBRARY=1)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/thirdparty
-    ${CMAKE_SOURCE_DIR}/generated
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/system
+    ${CMAKE_SOURCE_DIR}/Generated
+    ${CMAKE_SOURCE_DIR}/Source/Engine
+    ${CMAKE_SOURCE_DIR}/Source/Core
+    ${CMAKE_SOURCE_DIR}/Source/Engine/system
 )
 
 # Normalize sources/headers to absolute paths under the root

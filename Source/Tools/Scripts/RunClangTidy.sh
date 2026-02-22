@@ -3,7 +3,7 @@
 fix_flag=""
 convert=0
 files=()
-search_dir="src"
+search_dir="Source"
 
 while (( $# )); do
     case "$1" in
