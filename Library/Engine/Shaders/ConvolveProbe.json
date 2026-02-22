@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_7611912206049323394"
+      }
+    }],
+  "Name": "ConvolveProbe",
+  "FriendlyName": "ConvolveProbe",
+  "OriginalFilepath": ""
+}

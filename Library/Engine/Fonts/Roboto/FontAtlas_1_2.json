@@ -1,0 +1,21 @@
+{
+  "$Class": "Texture",
+  "TextureDesc": {
+    "Type": 0,
+    "Format": 0,
+    "Extent": [1320, 405, 1],
+    "MinFilterMode": 0,
+    "MagFilterMode": 0,
+    "TextureWrapMode": 0,
+    "NumLayers": 1,
+    "ImageUsage": 1,
+    "MipOffsets": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "ImageData": {
+    "Key": "Engine/Fonts/Roboto/FontAtlas_1_2.TEX",
+    "Size": 534600
+  },
+  "Name": "FontAtlas_1_2",
+  "FriendlyName": "FontAtlas12",
+  "OriginalFilepath": ""
+}

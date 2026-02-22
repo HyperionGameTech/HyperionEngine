@@ -1,0 +1,54 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_nonuniform_qualifier : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "../include/defines.inc"
+#include "../include/shared.inc"
+
+DECLARE_SAMPLER(BlurShadowMap, SamplerLinear) uniform sampler src_sampler;
+
+DECLARE_SRV(BlurShadowMap, InputTexture) uniform texture2D src;
+DECLARE_UAV(BlurShadowMap, OutputTexture, format = rg16f) uniform writeonly image2D dst;
+
+DECLARE_BUFFER(BlurShadowMap, BlurShadowMapUniforms) uniform BlurShadowMapUniforms
+{
+    uvec2 image_dimensions;
+    uvec2 dimensions;
+    uvec2 offset;
+};
+
+void main(void)
+{
+    const ivec2 local_coord = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 absolute_coord = ivec2(offset) + local_coord;
+
+    vec2 texcoord = vec2(absolute_coord) / vec2(image_dimensions);
+
+    const float radius = 2.5;
+    vec2 result = vec2(0.0);
+
+    const vec2 slice_min = vec2(offset);
+    const vec2 slice_max = vec2(offset + dimensions) - vec2(1.0);
+
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            vec2 offset_coord = vec2(x, y) * radius;
+
+            vec2 sample_abs = vec2(absolute_coord) + offset_coord;
+            sample_abs = clamp(sample_abs, slice_min, slice_max);
+
+            vec2 sample_texcoord = sample_abs / vec2(image_dimensions);
+            vec2 sample_value = SAMPLE_TEXTURE_2D(src_sampler, src, saturate(sample_texcoord)).rg;
+            result += sample_value;
+        }
+    }
+
+    result /= 9.0;
+    imageStore(dst, absolute_coord, vec4(result, 0.0, 0.0));
+}

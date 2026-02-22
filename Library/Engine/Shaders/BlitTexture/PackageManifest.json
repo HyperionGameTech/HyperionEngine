@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "BlitTexture",
+  "FriendlyName": "BlitTexture",
+  "Flags": 0,
+  "Path": "Engine/Shaders/BlitTexture"
+}

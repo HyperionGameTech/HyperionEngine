@@ -207,7 +207,7 @@ private:
         const FilePath& workingDirectory = m_analyzer.GetWorkingDirectory();
 
         return {
-            workingDirectory / "src",
+            workingDirectory / "Source/Engine",
             workingDirectory / "include"
         };
     }

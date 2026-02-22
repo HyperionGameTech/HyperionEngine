@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "ComputeSH",
+  "FriendlyName": "ComputeSH",
+  "Flags": 0,
+  "Path": "Engine/Shaders/ComputeSH"
+}

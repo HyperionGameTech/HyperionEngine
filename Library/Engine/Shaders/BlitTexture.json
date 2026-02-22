@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/BlitTexture/BlitTexture_1829828941827249593"
+      }
+    }],
+  "Name": "BlitTexture",
+  "FriendlyName": "BlitTexture",
+  "OriginalFilepath": ""
+}
