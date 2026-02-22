@@ -18,9 +18,9 @@ FOR %%p IN (%projects%) DO (
         exit /b 1
     )
 
-    IF NOT EXIST "%buildDir%\..\Binaries" mkdir "%buildDir%\..\Binaries"
+    IF NOT EXIST "%buildDir%\..\Binaries\Engine" mkdir "%buildDir%\..\Binaries\Engine"
 
-    SET "DSTPATH=%buildDir%\..\Binaries\%%p.dll"
+    SET "DSTPATH=%buildDir%\..\Binaries\Engine\%%p.dll"
     SET "SRCPATH=Binaries\%CONFIG%\net9.0\%%p.dll"
 
     echo Copying %%p.dll to "!DSTPATH!"

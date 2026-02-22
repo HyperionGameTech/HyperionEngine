@@ -7,7 +7,7 @@ pushd .\Build\CodeGen
 
 choice /C YN /T 3 /D N /M "Regenerate CMake? (will continue without regenerating in 3s)"
 if %errorlevel%==1 (
-    cmake ..\..\Source\CodeGen
+    cmake ..\..\Tools\CodeGen
 )
 
 cmake --build . --target hyperion-codegen --parallel 4

@@ -15,7 +15,7 @@ buildDir="$(pwd)"
 pushd CSharpProjects
 
 for project in "${projects[@]}"; do
-    mkdir -p "$buildDir/../Binaries"
+    mkdir -p "$buildDir/../Binaries/Engine"
     
     echo "Building $project in $CONFIG configuration..."
 

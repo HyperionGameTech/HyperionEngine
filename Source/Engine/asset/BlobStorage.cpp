@@ -3,12 +3,12 @@
 #include <asset/BlobStorage.hpp>
 #include <asset/BlobStorageViews.hpp>
 
-#include <serialization/SerializationUtils.hpp>
+#include <core/serialization/SerializationUtils.hpp>
 
 #include <Core/json/JSON.hpp>
 
-#include <io/ByteReader.hpp>
-#include <io/ByteWriter.hpp>
+#include <core/io/ByteReader.hpp>
+#include <core/io/ByteWriter.hpp>
 
 #include <BlobStorage.generated.inl>
 

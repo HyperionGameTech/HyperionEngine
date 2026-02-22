@@ -6,7 +6,7 @@ pushd ./Build/CodeGen
 read -t 3 -p "Regenerate CMake? (will continue without regenerating in 3s) " RESP
 
 if [[ $RESP =~ ^[Yy] ]]; then
-    cmake ../../Source/CodeGen
+    cmake ../../Tools/CodeGen
 fi
 
 # Build the codegen and move it to the build directory

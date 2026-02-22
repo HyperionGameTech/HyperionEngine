@@ -23,6 +23,7 @@ namespace CoreApi {
 
 static Mutex s_globalsMutex;
 static FilePath s_executablePath;
+static FilePath s_configDirectory;
 static Array<void (*)()> s_onShutdownFuncs;
 
 FilePath GetExecutablePath()
@@ -35,6 +36,19 @@ void SetExecutablePath(const FilePath& path)
 {
     Mutex::Guard guard(s_globalsMutex);
     s_executablePath = path;
+}
+
+
+FilePath GetConfigDirectory()
+{
+    Mutex::Guard guard(s_globalsMutex);
+    return s_configDirectory;
+}
+
+void SetConfigDirectory(const FilePath& configDirectory)
+{
+    Mutex::Guard guard(s_globalsMutex);
+    s_configDirectory = configDirectory;
 }
 
 HYP_NODISCARD FilePath CreateTempDirectory()
