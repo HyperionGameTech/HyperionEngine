@@ -391,6 +391,7 @@ Result AssetObject::Load(
     }
 
     AssetObject* targetAssetObject = &targetData.Get<AssetObject>();
+    Assert(targetAssetObject != nullptr);
 
     // remove class property
     manifestData.Erase("$Class");
@@ -399,48 +400,10 @@ Result AssetObject::Load(
     {
         return HYP_MAKE_ERROR(Error, "Failed to deserialize asset object from manifest JSON");
     }
+    
+    targetAssetObject->OnLoaded();
 
     outAssetObject = MakeStrongRef(targetAssetObject);
-
-    return {};
-}
-
-Result AssetObject::OpenBinaryReadStream(BufferedReader& stream) const
-{
-    HYP_SCOPE;
-
-    if (m_manifestPath.Empty())
-    {
-        HYP_BREAKPOINT;
-
-        return HYP_MAKE_ERROR(Error, "Asset manifest path is empty, cannot open read stream");
-    }
-
-    // get bin path from manifest path by removing .json extension
-    if (m_manifestPath.GetExtension() != "json")
-    {
-        return HYP_MAKE_ERROR(Error, "Asset manifest path must have .json extension");
-    }
-
-    const FilePath binPath = m_manifestPath.StripExtension();
-
-    if (!binPath.Exists() || binPath.IsDirectory())
-    {
-        return HYP_MAKE_ERROR(Error, "Path '{}' is not a valid file, cannot open read stream", binPath);
-    }
-
-    FileBufferedReaderSource* source = new FileBufferedReaderSource(binPath);
-
-    stream = BufferedReader { source };
-
-    if (!stream.IsOpen())
-    {
-        stream.Close();
-
-        delete source;
-
-        return HYP_MAKE_ERROR(Error, "Failed to open binary read stream for asset '{}'", m_name);
-    }
 
     return {};
 }

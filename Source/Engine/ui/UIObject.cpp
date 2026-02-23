@@ -2178,7 +2178,7 @@ void UIObject::ComputeActualSize(const UIObjectSize& inSize, Vec2i& actualSize, 
         // If the inner AABB is not valid, we can't calculate the size
         actualSize = Vec2i { 0, 0 };
 
-        HYP_LOG_ONCE(UI, Warning, "UIObject '{}' has an invalid inner AABB. Cannot compute size.", GetName());
+        HYP_LOG_ONCE(UI, Debug, "UIObject '{}' has an invalid inner AABB; cannot compute size yet", GetName());
 
         return;
     }
@@ -2510,7 +2510,7 @@ void UIObject::UpdateMaterial_Internal()
     {
         if (!currentMaterial->GetIsDynamic())
         {
-            HYP_LOG(UI, Warning,
+            HYP_LOG(UI, Debug,
                 "UIObject '{}' material is not dynamic, but parameters or textures have changed. Fetching a new material.\n"
                 "Consider setting the material to dynamic if you want to update it at runtime.",
                 GetName());

@@ -379,6 +379,14 @@ AssetPackage::AssetPackage(Name name, EnumFlags<AssetPackageFlags> flags)
 
 AssetPackage::~AssetPackage()
 {
+    TUniqueLock lock(m_mutex);
+    for (const Handle<AssetObject>& assetObject : m_assetObjects)
+    {
+        if (!assetObject.IsValid())
+            continue;
+
+        assetObject->OnUnloaded();
+    }
 }
 
 void AssetPackage::Init()
@@ -727,17 +735,19 @@ Result AssetPackage::AddAssetObject(const Handle<AssetObject>& assetObject, bool
             // remove existing
             existingAssetObject = *existingAssetObjectIt;
 
-            assetObject->m_manifestPath = existingAssetObject->m_manifestPath;
+            existingAssetObject->OnUnloaded();
 
             existingAssetObject->m_package.Reset();
             existingAssetObject->m_assetPath = {};
+
+            assetObject->m_manifestPath = existingAssetObject->m_manifestPath;
             existingAssetObject->m_manifestPath = FilePath();
 
             existingAssetObject->MarkDirty();
 
             m_assetObjects.Erase(existingAssetObjectIt);
 
-            HYP_LOG(Assets, Warning, "AssetObject with name '{}' already exists in package '{}'. Replacing it with the new one.",
+            HYP_LOG(Assets, Verbose, "AssetObject with name '{}' already exists in package '{}'. Replacing it with the new one.",
                 assetObject->GetName(), BuildPackagePath());
 
             // continue with adding the new one below
@@ -834,10 +844,12 @@ Result AssetPackage::RemoveAssetObject(const Handle<AssetObject>& assetObject)
             return HYP_MAKE_ERROR(Error, "AssetObject '{}' not found in package '{}'", assetObject->GetName(), m_name);
         }
 
-        m_assetObjects.Erase(it);
+        assetObject->OnUnloaded();
 
         assetObject->m_package.Reset();
         assetObject->m_assetPath = {};
+
+        m_assetObjects.Erase(it);
 
         MarkDirty();
         assetObject->MarkDirty();
@@ -1652,6 +1664,8 @@ void AssetPackage::Prune(Array<Handle<AssetPackage>>& outRemovedPackages, bool* 
                     objectsToDelete.PushBack(assetObject);
 
                     HYP_LOG(Assets, Verbose, "Pruning asset object '{}' from package '{}'", assetObject->GetName(), m_name);
+
+                    assetObject->OnUnloaded();
 
                     assetObject->SetIsTransientByProxy(false);
                     assetObject->m_package.Reset();
@@ -2903,7 +2917,7 @@ void AssetRegistry::LoadSubpackages(const Handle<AssetPackage>& package, bool re
 
         if (existingSubpackage != subpackage)
         {
-            HYP_LOG(Assets, Warning, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'",
+            HYP_LOG(Assets, Verbose, "Subpackage with name '{}' already exists in package '{}', skipping loaded subpackage from '{}'",
                 subpackage->GetName(), package->BuildPackagePath(), manifestPath);
         }
     }

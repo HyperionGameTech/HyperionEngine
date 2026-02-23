@@ -187,11 +187,6 @@ public:
     HYP_METHOD()
     Result Save(const FilePath& manifestPath);
 
-    /*! \brief Opens a read stream for the binary data of this asset.
-     *  \param stream The stream to open.
-     *  \return Result indicating success or failure of the operation. */
-    Result OpenBinaryReadStream(BufferedReader& stream) const;
-
     TUniqueLock<AssetObject> GetWriteScope() const;
     TSharedLock<AssetObject> GetReadScope() const;
     
@@ -215,12 +210,24 @@ protected:
         // do nothing by default
     }
 
+    virtual void OnLoaded()
+    {
+        // do nothing
+    }
+
+    virtual void OnUnloaded()
+    {
+        // do nothing
+    }
+
     virtual void PageBlobData()
     {
+        // do nothing
     }
 
     virtual void UnpageBlobData()
     {
+        // do nothing
     }
 
     void AllocateBlobData(BlobDataReference& reference, const void* inData, SizeType count, SizeType alignment = 16);

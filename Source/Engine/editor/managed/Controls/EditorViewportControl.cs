@@ -112,7 +112,7 @@ namespace Hyperion.Editor
 
         protected override void OnSizeChanged(Avalonia.Controls.SizeChangedEventArgs e)
         {
-            Logger.Log(LogLevel.Info, $"EditorViewportControl OnSizeChanged: New Size = {e.NewSize.Width} x {e.NewSize.Height}");
+            Logger.Log(LogLevel.Verbose, $"EditorViewportControl OnSizeChanged: New Size = {e.NewSize.Width} x {e.NewSize.Height}");
 
             base.OnSizeChanged(e);
 
