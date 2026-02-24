@@ -4,6 +4,8 @@
 
 #include <rendering/Shader.hpp>
 
+#include <rendering/util/ShaderPropertyDictionary.hpp>
+
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
 
@@ -114,6 +116,33 @@ void Shader::UnpageBlobData()
         {
             ref.raw = nullptr;
         }
+    }
+}
+
+Array<ShaderProperty> Shader::SerializeProperties() const
+{
+    Array<ShaderProperty> result;
+    for (ShaderPropertyId propertyId : properties.ToArray())
+    {
+        ShaderProperty& property = result.EmplaceBack();
+        if (!GetShaderPropertyById(propertyId, property))
+        {
+            HYP_LOG(Shader, Error, "Failed to find ShaderProperty with ID {} in reverse lookup map!", uint32(propertyId));
+
+            continue;
+        }
+    }
+
+    return result;
+}
+
+void Shader::DeserializeProperties(const Array<ShaderProperty>& properties)
+{
+    this->properties = {};
+
+    for (const ShaderProperty& property : properties)
+    {
+        this->properties.Add(InternShaderProperty(property));
     }
 }
 

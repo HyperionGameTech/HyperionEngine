@@ -134,7 +134,7 @@ void DefaultGame::OnLaunch_Impl()
     ScriptDesc& scriptDesc = scriptAsset->GetScriptDesc();
 
     scriptDesc.language = ScriptLanguage::HypScript;
-    Memory::StrCpy(scriptDesc.path.Data(), "tmp.hyp", ArraySize(scriptDesc.path));
+    Memory::StrCpy(scriptDesc.path.Data(), "FPSCounter.hyp", ArraySize(scriptDesc.path));
     Memory::StrCpy(scriptDesc.className.Data(), "MyClass", ArraySize(scriptDesc.className));
 
     ScriptComponent& scriptComponent = sunEntity->AddComponent<ScriptComponent>(ScriptComponent {

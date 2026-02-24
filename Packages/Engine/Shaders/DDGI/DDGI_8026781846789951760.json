@@ -1,22 +1,56 @@
 {
   "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_WINDOWS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HAS_ENV_PROBE",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }],
   "RevisionNumber": 31459917,
   "BaseName": "DDGI",
-  "PropertySet": {
-    "Chunks": [30, 8388608, 2, 0, 0, 0, 0, 0]
-  },
   "VertexAttributes": {
     "FlagMask": 0
   },
   "ShaderInputGroup": {
     "Elements": [{
-        "$Class": "DescriptorSetDeclaration",
+        "$Class": "ShaderInputSet",
         "SetIndex": 0,
         "Name": "BindlessResources1",
         "Slots": [[], [], [], [], []],
         "Flags": 1
       }, {
-        "$Class": "DescriptorSetDeclaration",
+        "$Class": "ShaderInputSet",
         "SetIndex": 1,
         "Name": "",
         "Slots": [[{
@@ -218,7 +252,7 @@
             }], []],
         "Flags": 0
       }, {
-        "$Class": "DescriptorSetDeclaration",
+        "$Class": "ShaderInputSet",
         "SetIndex": 2,
         "Name": "BindlessResources0",
         "Slots": [[], [], [], [], []],

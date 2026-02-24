@@ -987,6 +987,12 @@ remove_definitions(-DHYP_BUILD_LIBRARY)
 
 add_subdirectory(Sample)
 
+# copy sample scripts to the output directory
+file(GLOB SAMPLE_SCRIPTS "${CMAKE_SOURCE_DIR}/../Data/Scripts/*.hyp")
+foreach(SAMPLE_SCRIPT ${SAMPLE_SCRIPTS})
+    file(COPY ${SAMPLE_SCRIPT} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+endforeach()
+
 # # if .vscode/launch.json does not exist, create it
 # if(NOT EXISTS "${CMAKE_SOURCE_DIR}/.vscode/launch.json")
 #     # copy the template files

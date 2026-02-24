@@ -59,9 +59,6 @@ public:
     HYP_FIELD(Property = "BaseName")
     Name baseName;
 
-    HYP_FIELD(Property = "PropertySet")
-    ShaderPropertySet properties;
-
     HYP_FIELD(Property = "VertexAttributes")
     VertexAttributeSet vertexAttributes;
 
@@ -83,7 +80,16 @@ public:
     HYP_FIELD(Property = "PropertySetHashCode")
     HashCode propertySetHashCode;
 
+    HYP_FIELD(Transient = true)
+    ShaderPropertySet properties; // dependent on cache; so we serialize the actual properties (below)
+
     /// ===== Serialization only =====
+    HYP_METHOD(Property = "PropertySet")
+    Array<ShaderProperty> SerializeProperties() const;
+
+    HYP_METHOD(Property = "PropertySet")
+    void DeserializeProperties(const Array<ShaderProperty>& properties);
+
     HYP_METHOD(Property = "RevisionNumber", NoScriptBindings)
     int GetRevisionNumber() const;
     /// ==============================

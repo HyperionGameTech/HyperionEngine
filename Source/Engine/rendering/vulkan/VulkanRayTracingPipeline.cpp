@@ -37,7 +37,7 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanRa
     const ShaderInputGroup* decl = shaderInstance->GetShader()->GetDescriptorTableDeclaration();
     Assert(decl != nullptr);
 
-    for (const DescriptorSetDeclaration& setDecl : decl->elements)
+    for (const ShaderInputSet& setDecl : decl->elements)
     {
         VkDescriptorSetLayout layout = VK_NULL_HANDLE;
         Assert(g_renderInterface->GetOrCreateVkDescriptorSetLayout(DescriptorSetLayout(&setDecl), layout));

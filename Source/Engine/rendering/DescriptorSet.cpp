@@ -14,9 +14,9 @@
 #include <DescriptorSet.generated.inl>
 
 namespace Hyperion {
-#pragma region DescriptorSetDeclaration
+#pragma region ShaderInputSet
 
-ShaderInput* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name) const
+ShaderInput* ShaderInputSet::FindDescriptorDeclaration(StringHash name) const
 {
     for (uint32 slotIndex = 0; slotIndex < uint8(ShaderRegister::MAX); slotIndex++)
     {
@@ -32,7 +32,7 @@ ShaderInput* DescriptorSetDeclaration::FindDescriptorDeclaration(StringHash name
     return nullptr;
 }
 
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(ShaderRegister slot, StringHash name) const
+uint32 ShaderInputSet::CalculateFlatIndex(ShaderRegister slot, StringHash name) const
 {
     Assert(slot != ShaderRegister::NONE && uint8(slot) < uint8(ShaderRegister::MAX));
 
@@ -61,22 +61,22 @@ uint32 DescriptorSetDeclaration::CalculateFlatIndex(ShaderRegister slot, StringH
     return ~0u;
 }
 
-DescriptorSetDeclaration* ShaderInputGroup::FindDescriptorSetDeclaration(StringHash name) const
+ShaderInputSet* ShaderInputGroup::FindDescriptorSetDeclaration(StringHash name) const
 {
-    for (const DescriptorSetDeclaration& decl : elements)
+    for (const ShaderInputSet& decl : elements)
     {
         if (decl.name == name)
         {
-            return const_cast<DescriptorSetDeclaration*>(&decl);
+            return const_cast<ShaderInputSet*>(&decl);
         }
     }
 
     return nullptr;
 }
 
-DescriptorSetDeclaration* ShaderInputGroup::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
+ShaderInputSet* ShaderInputGroup::AddDescriptorSetDeclaration(ShaderInputSet&& inputSet)
 {
-    return &elements.PushBack(std::move(descriptorSetDeclaration));
+    return &elements.PushBack(std::move(inputSet));
 }
 
 ShaderInputGroup& GetStaticDescriptorTableDeclaration()
@@ -88,11 +88,11 @@ ShaderInputGroup& GetStaticDescriptorTableDeclaration()
     return s_decl;
 }
 
-#pragma endregion DescriptorSetDeclaration
+#pragma endregion ShaderInputSet
 
 #pragma region DescriptorSetLayout
 
-DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
+DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
     : m_decl(decl),
       m_isTemplate(false),
       m_isReference(false),
@@ -103,8 +103,8 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
         return;
     }
 
-    m_isTemplate = decl->flags[DescriptorSetDeclarationFlags::TEMPLATE];
-    m_isReference = decl->flags[DescriptorSetDeclarationFlags::REFERENCE];
+    m_isTemplate = decl->flags[ShaderInputSetFlags::Template];
+    m_isReference = decl->flags[ShaderInputSetFlags::Reference];
 
     if (m_isReference)
     {
@@ -362,12 +362,12 @@ DescriptorTableBase::DescriptorTableBase(const ShaderInputGroup* decl)
         m_sets[frameIndex].Reserve(m_decl->elements.Size());
     }
 
-    for (const DescriptorSetDeclaration& descriptorSetDeclaration : m_decl->elements)
+    for (const ShaderInputSet& inputSet : m_decl->elements)
     {
-        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
+        if (inputSet.flags[ShaderInputSetFlags::Reference])
         {
-            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
-            Assert(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: {}", descriptorSetDeclaration.name);
+            const ShaderInputSet* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(inputSet.name);
+            Assert(referencedDescriptorSetDeclaration != nullptr, "Invalid global descriptor set reference: {}", inputSet.name);
 
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
@@ -380,7 +380,7 @@ DescriptorTableBase::DescriptorTableBase(const ShaderInputGroup* decl)
             continue;
         }
 
-        DescriptorSetLayout layout { &descriptorSetDeclaration };
+        DescriptorSetLayout layout { &inputSet };
 
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
@@ -411,10 +411,10 @@ RendererResult DescriptorTableBase::Create()
 
             // use FindDescriptorSetDeclaration rather than `set->GetLayout().GetDeclaration()`, since we need to know
             // if the descriptor set is a reference to a global set
-            DescriptorSetDeclaration* decl = m_decl->FindDescriptorSetDeclaration(descriptorSetName);
+            ShaderInputSet* decl = m_decl->FindDescriptorSetDeclaration(descriptorSetName);
             AssertDebug(decl != nullptr);
 
-            if ((decl->flags & DescriptorSetDeclarationFlags::REFERENCE))
+            if ((decl->flags & ShaderInputSetFlags::Reference))
             {
                 // should be created elsewhere
                 continue;

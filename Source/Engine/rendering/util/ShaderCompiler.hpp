@@ -98,14 +98,14 @@ enum class ShaderRegister : uint8
 static constexpr uint8 NumDescriptorSlots = uint8(ShaderRegister::MAX);
 
 HYP_ENUM()
-enum class DescriptorSetDeclarationFlags : uint8
+enum class ShaderInputSetFlags : uint8
 {
-    NONE = 0x0,
-    REFERENCE = 0x1, // is this a reference to a global descriptor set declaration?
-    TEMPLATE = 0x2   // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
+    None = 0x0,
+    Reference = 0x1, // is this a reference to a global (shared) set?
+    Template = 0x2   // is this set intended to be used as a template for other sets? (e.g material textures)
 };
 
-HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
+HYP_MAKE_ENUM_FLAGS(ShaderInputSetFlags)
 
 HYP_STRUCT()
 struct ShaderStruct
@@ -302,9 +302,9 @@ struct ShaderInput
 };
 
 HYP_STRUCT()
-struct DescriptorSetDeclaration
+struct ShaderInputSet
 {
-    HYP_STRUCT_BODY(DescriptorSetDeclaration);
+    HYP_STRUCT_BODY(ShaderInputSet);
 
     HYP_FIELD(Property = "SetIndex", Serialize = true)
     uint32 setIndex = ~0u;
@@ -316,23 +316,23 @@ struct DescriptorSetDeclaration
     FixedArray<Array<ShaderInput, DynamicAllocator>, NumDescriptorSlots> slots = {};
 
     HYP_FIELD(Property = "Flags", Serialize = true)
-    EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
+    EnumFlags<ShaderInputSetFlags> flags = ShaderInputSetFlags::None;
 
-    DescriptorSetDeclaration() = default;
+    ShaderInputSet() = default;
 
-    DescriptorSetDeclaration(uint32 setIndex, Name name)
+    ShaderInputSet(uint32 setIndex, Name name)
         : setIndex(setIndex),
           name(name)
     {
     }
 
-    DescriptorSetDeclaration(const DescriptorSetDeclaration& other) = default;
-    DescriptorSetDeclaration& operator=(const DescriptorSetDeclaration& other) = default;
+    ShaderInputSet(const ShaderInputSet& other) = default;
+    ShaderInputSet& operator=(const ShaderInputSet& other) = default;
 
-    DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
-    DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
+    ShaderInputSet(ShaderInputSet&& other) noexcept = default;
+    ShaderInputSet& operator=(ShaderInputSet&& other) noexcept = default;
 
-    ~DescriptorSetDeclaration() = default;
+    ~ShaderInputSet() = default;
 
     HYP_FORCE_INLINE void AddDescriptorDeclaration(ShaderInput decl)
     {
@@ -374,10 +374,10 @@ struct ShaderInputGroup
     HYP_STRUCT_BODY(ShaderInputGroup);
 
     HYP_FIELD(Property = "Elements", Serialize = true)
-    Array<DescriptorSetDeclaration> elements;
+    Array<ShaderInputSet> elements;
 
-    DescriptorSetDeclaration* FindDescriptorSetDeclaration(StringHash name) const;
-    DescriptorSetDeclaration* AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration);
+    ShaderInputSet* FindDescriptorSetDeclaration(StringHash name) const;
+    ShaderInputSet* AddDescriptorSetDeclaration(ShaderInputSet&& inputSet);
 
     /*! \brief Get the index of a descriptor set in the table
         \param name The name of the descriptor set
@@ -399,7 +399,7 @@ struct ShaderInputGroup
     {
         HashCode hc;
 
-        for (const DescriptorSetDeclaration& decl : elements)
+        for (const ShaderInputSet& decl : elements)
         {
             hc.Add(decl.GetHashCode());
         }
@@ -418,13 +418,13 @@ struct ShaderInputGroup
                 table->elements.Resize(setIndex + 1);
             }
 
-            DescriptorSetDeclaration& decl = table->elements[setIndex];
+            ShaderInputSet& decl = table->elements[setIndex];
             decl.setIndex = setIndex;
             decl.name = name;
 
             if (isTemplate)
             {
-                decl.flags |= DescriptorSetDeclarationFlags::TEMPLATE;
+                decl.flags |= ShaderInputSetFlags::Template;
             }
         }
     };
@@ -448,15 +448,15 @@ struct ShaderInputGroup
 
             AssertDebug(setIndex != ~0u, "Descriptor set {} not found", setName);
 
-            DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
-            AssertDebug(descriptorSetDecl.setIndex == setIndex);
+            ShaderInputSet& inputSet = table->elements[setIndex];
+            AssertDebug(inputSet.setIndex == setIndex);
 
             const uint32 slotTypeIndex = uint8(slotType) - 1;
-            AssertDebug(slotTypeIndex < descriptorSetDecl.slots.Size());
+            AssertDebug(slotTypeIndex < inputSet.slots.Size());
 
-            const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
+            const uint32 slotIndex = uint32(inputSet.slots[slotTypeIndex].Size());
 
-            ShaderInput& shaderInput = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
+            ShaderInput& shaderInput = inputSet.slots[slotTypeIndex].EmplaceBack();
             shaderInput.index = slotIndex;
             shaderInput.type = type;
             shaderInput.slot = slotType;

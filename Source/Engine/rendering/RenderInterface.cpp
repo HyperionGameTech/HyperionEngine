@@ -1609,14 +1609,14 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         DSS_GlobalReference = 0x4
     };
 
-    const auto FetchDescriptorSet = [frameIndex = GetCurrentFrame()->GetFrameIndex()](const DescriptorSetDeclaration& dsDecl, uint8& outStateFlags) -> DescriptorSet*
+    const auto FetchDescriptorSet = [frameIndex = GetCurrentFrame()->GetFrameIndex()](const ShaderInputSet& inputSet, uint8& outStateFlags) -> DescriptorSet*
     {
         // reference to globally shared set
-        if (dsDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
+        if (inputSet.flags & ShaderInputSetFlags::Reference)
         {
-            if (dsDecl.flags & DescriptorSetDeclarationFlags::TEMPLATE)
+            if (inputSet.flags & ShaderInputSetFlags::Template)
             {
-                const DescriptorSetDeclaration* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(dsDecl.name);
+                const ShaderInputSet* refDsDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(inputSet.name);
                 AssertDebug(refDsDecl != nullptr);
 
                 DescriptorSetLayout layout { refDsDecl };
@@ -1625,11 +1625,11 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             outStateFlags |= DSS_GlobalReference;
 
-            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(dsDecl.name, frameIndex);
+            return g_renderInterface->globalDescriptorTable->GetDescriptorSet(inputSet.name, frameIndex);
         }
         else
         {
-            DescriptorSetLayout layout { &dsDecl };
+            DescriptorSetLayout layout { &inputSet };
             return g_renderInterface->descriptorSetCache->GetOrCreate(layout);
         }
     };
@@ -1663,13 +1663,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
         const ShaderInput* decl = nullptr;
 
-        const DescriptorSetDeclaration* foundSetDecl = nullptr;
+        const ShaderInputSet* foundSetDecl = nullptr;
 
-        for (const DescriptorSetDeclaration& setDecl : tableDecl->elements)
+        for (const ShaderInputSet& setDecl : tableDecl->elements)
         {
-            const DescriptorSetDeclaration* pSetDecl = &setDecl;
+            const ShaderInputSet* pSetDecl = &setDecl;
 
-            if (setDecl.flags & DescriptorSetDeclarationFlags::REFERENCE)
+            if (setDecl.flags & ShaderInputSetFlags::Reference)
             {
                 pSetDecl = g_renderInterface->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(setDecl.name);
                 AssertDebug(pSetDecl != nullptr);

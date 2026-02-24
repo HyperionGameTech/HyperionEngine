@@ -143,25 +143,25 @@ static String BuildDescriptorTableDefines(ShaderLanguage language, const ShaderI
     String descriptorTableDefines;
 
     // Generate descriptor table defines
-    for (const DescriptorSetDeclaration& descriptorSetDeclaration : inputGroup.elements)
+    for (const ShaderInputSet& inputSet : inputGroup.elements)
     {
-        const DescriptorSetDeclaration* descriptorSetDeclarationPtr = &descriptorSetDeclaration;
+        const ShaderInputSet* descriptorSetDeclarationPtr = &inputSet;
 
-        const uint32 setIndex = inputGroup.GetDescriptorSetIndex(descriptorSetDeclaration.name);
+        const uint32 setIndex = inputGroup.GetDescriptorSetIndex(inputSet.name);
         Assert(setIndex != -1);
 
         if (language == ShaderLanguage::GLSL)
         {
-            descriptorTableDefines += "#define _" + String(*descriptorSetDeclaration.name) + "_SET" + " " + String::ToString(setIndex) + "\n";
+            descriptorTableDefines += "#define _" + String(*inputSet.name) + "_SET" + " " + String::ToString(setIndex) + "\n";
         }
         else if (language == ShaderLanguage::HLSL)
         {
-            descriptorTableDefines += "#define _" + String(*descriptorSetDeclaration.name) + "_SPACE" + " " + ("space" + String::ToString(setIndex)) + "\n";
+            descriptorTableDefines += "#define _" + String(*inputSet.name) + "_SPACE" + " " + ("space" + String::ToString(setIndex)) + "\n";
         }
 
-        if (descriptorSetDeclaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
+        if (inputSet.flags[ShaderInputSetFlags::Reference])
         {
-            const DescriptorSetDeclaration* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorSetDeclaration.name);
+            const ShaderInputSet* referencedDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(inputSet.name);
             Assert(referencedDescriptorSetDeclaration != nullptr);
 
             descriptorSetDeclarationPtr = referencedDescriptorSetDeclaration;
@@ -409,12 +409,12 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
             "Descriptor usage {} has invalid slot {}",
             descriptorUsage.descriptorName.LookupString(), descriptorUsage.slot);
 
-        DescriptorSetDeclaration* descriptorSetDeclaration = table.FindDescriptorSetDeclaration(descriptorUsage.setName);
+        ShaderInputSet* inputSet = table.FindDescriptorSetDeclaration(descriptorUsage.setName);
 
         // check if this descriptor set is defined in the static descriptor table
         // if it is, we can use those definitions
         // otherwise, it is a 'custom' descriptor set
-        DescriptorSetDeclaration* staticDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorUsage.setName);
+        ShaderInputSet* staticDescriptorSetDeclaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptorUsage.setName);
 
         if (staticDescriptorSetDeclaration != nullptr)
         {
@@ -423,12 +423,12 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
                 "the descriptor {} is not",
                 descriptorUsage.setName, descriptorUsage.descriptorName);
 
-            if (!descriptorSetDeclaration)
+            if (!inputSet)
             {
                 const uint32 setIndex = uint32(table.elements.Size());
 
-                DescriptorSetDeclaration newDescriptorSetDeclaration(setIndex, staticDescriptorSetDeclaration->name);
-                newDescriptorSetDeclaration.flags = staticDescriptorSetDeclaration->flags | DescriptorSetDeclarationFlags::REFERENCE;
+                ShaderInputSet newDescriptorSetDeclaration(setIndex, staticDescriptorSetDeclaration->name);
+                newDescriptorSetDeclaration.flags = staticDescriptorSetDeclaration->flags | ShaderInputSetFlags::Reference;
 
                 table.AddDescriptorSetDeclaration(std::move(newDescriptorSetDeclaration));
             }
@@ -436,11 +436,11 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
             continue;
         }
 
-        if (!descriptorSetDeclaration)
+        if (!inputSet)
         {
             const uint32 setIndex = uint32(table.elements.Size());
 
-            descriptorSetDeclaration = table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(setIndex, descriptorUsage.setName));
+            inputSet = table.AddDescriptorSetDeclaration(ShaderInputSet(setIndex, descriptorUsage.setName));
         }
 
         ShaderInput desc {};
@@ -451,14 +451,14 @@ void DescriptorUsageSet::BuildDescriptorTableDeclaration(ShaderInputGroup& table
         desc.size = descriptorUsage.GetSize();
         desc.isDynamic = bool(descriptorUsage.flags & DescriptorUsageFlags::DYNAMIC);
 
-        if (auto* existingDecl = descriptorSetDeclaration->FindDescriptorDeclaration(descriptorUsage.descriptorName))
+        if (auto* existingDecl = inputSet->FindDescriptorDeclaration(descriptorUsage.descriptorName))
         {
             // Already exists, just update the slot
             *existingDecl = std::move(desc);
         }
         else
         {
-            descriptorSetDeclaration->AddDescriptorDeclaration(std::move(desc));
+            inputSet->AddDescriptorDeclaration(std::move(desc));
         }
     }
 }

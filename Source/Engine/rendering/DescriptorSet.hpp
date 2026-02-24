@@ -137,7 +137,7 @@ extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 class DescriptorSetLayout
 {
 public:
-    DescriptorSetLayout(const DescriptorSetDeclaration* decl);
+    DescriptorSetLayout(const ShaderInputSet* decl);
 
     DescriptorSetLayout(const DescriptorSetLayout& other)
         : m_decl(other.m_decl),
@@ -214,7 +214,7 @@ public:
         return m_decl ? m_decl->name : Name::Invalid();
     }
 
-    HYP_FORCE_INLINE const DescriptorSetDeclaration* GetDeclaration() const
+    HYP_FORCE_INLINE const ShaderInputSet* GetDeclaration() const
     {
         return m_decl;
     }
@@ -272,7 +272,7 @@ public:
     }
 
 private:
-    const DescriptorSetDeclaration* m_decl;
+    const ShaderInputSet* m_decl;
     bool m_isTemplate : 1 = false;  // is this descriptor set a template for other sets? (e.g material textures)
     bool m_isReference : 1 = false; // is this descriptor set a reference to a global set? (e.g global material textures)
     HashMap<Name, DescriptorSetLayoutElement> m_elements;

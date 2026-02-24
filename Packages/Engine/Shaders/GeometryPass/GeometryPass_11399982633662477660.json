@@ -1,16 +1,44 @@
 {
   "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_WINDOWS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "DEFERRED",
+      "EnumValues": []
+    }],
   "RevisionNumber": 31459917,
   "BaseName": "GeometryPass",
-  "PropertySet": {
-    "Chunks": [1048606, 0, 0, 0, 0, 0, 0, 0]
-  },
   "VertexAttributes": {
     "FlagMask": 103
   },
   "ShaderInputGroup": {
     "Elements": [{
-        "$Class": "DescriptorSetDeclaration",
+        "$Class": "ShaderInputSet",
         "SetIndex": 0,
         "Name": "Default",
         "Slots": [[{
@@ -100,7 +128,7 @@
             }], []],
         "Flags": 0
       }, {
-        "$Class": "DescriptorSetDeclaration",
+        "$Class": "ShaderInputSet",
         "SetIndex": 1,
         "Name": "BindlessResources0",
         "Slots": [[], [], [], [], []],
