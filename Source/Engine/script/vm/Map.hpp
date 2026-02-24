@@ -15,7 +15,7 @@
 
 namespace Hyperion {
 
-class Script_HashMap
+class ScriptMap
 {
 public:
     struct VMMapKey
@@ -41,12 +41,12 @@ public:
 
     using InternalMapType = HashMap<VMMapKey, BoxedValue, DynamicNodeAllocator>;
 
-    Script_HashMap();
-    Script_HashMap(const Script_HashMap& other) = delete;
-    Script_HashMap& operator=(const Script_HashMap& other) = delete;
-    Script_HashMap(Script_HashMap&& other) noexcept;
-    Script_HashMap& operator=(Script_HashMap&& other) noexcept;
-    ~Script_HashMap();
+    ScriptMap();
+    ScriptMap(const ScriptMap& other) = delete;
+    ScriptMap& operator=(const ScriptMap& other) = delete;
+    ScriptMap(ScriptMap&& other) noexcept;
+    ScriptMap& operator=(ScriptMap&& other) noexcept;
+    ~ScriptMap();
 
     SizeType GetSize() const
     {
@@ -63,7 +63,7 @@ public:
         return m_map;
     }
 
-    bool operator==(const Script_HashMap& other) const
+    bool operator==(const ScriptMap& other) const
     {
         return this == &other;
     }

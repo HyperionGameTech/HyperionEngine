@@ -1,6 +1,6 @@
 #pragma once
 
-#include <script/vm/Stream.hpp>
+#include <script/vm/BytecodeStream.hpp>
 #include <script/compiler/emit/Instruction.hpp>
 #include <script/compiler/emit/BytecodeUtil.hpp>
 #include <Core/containers/String.hpp>

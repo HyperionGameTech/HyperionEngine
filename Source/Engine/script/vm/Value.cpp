@@ -1,7 +1,6 @@
 #include <script/vm/Value.hpp>
-#include <script/vm/Array.hpp>
 #include <script/vm/String.hpp>
-#include <script/vm/HashMap.hpp>
+#include <script/vm/Map.hpp>
 
 #include <Core/reflection/BoxedValue.hpp>
 #include <Core/reflection/Class.hpp>

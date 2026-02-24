@@ -1,9 +1,8 @@
-#include <script/vm/Interpreter.hpp>
+#include <script/vm/VirtualMachine.hpp>
 #include <script/vm/Value.hpp>
-#include <script/vm/Array.hpp>
 #include <script/vm/String.hpp>
-#include <script/vm/HashMap.hpp>
-#include <script/vm/GC.hpp>
+#include <script/vm/Map.hpp>
+#include <script/vm/GarbageCollector.hpp>
 #include <script/vm/Exception.hpp>
 
 #include <Core/reflection/BoxedValue.hpp>
@@ -226,7 +225,7 @@ BoxedValue MakeRef(BoxedValue* pValue)
     return MakeValue(data);
 }
 
-BoxedValue MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
+BoxedValue MakeTrackedRef(BoxedValue* pValue, GarbageCollector* gc)
 {
     Assert(gc != nullptr);
     Assert(pValue != nullptr);
@@ -245,7 +244,7 @@ BoxedValue MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
 #define PASS_AS_REF(value) ((value).Is<Any>())
 
 // Performs a shallow copy of the value. Numeric and primitive types are copied as-is.
-BoxedValue ShallowCopy(BoxedValue& refValue, Script_GC* gc)
+BoxedValue ShallowCopy(BoxedValue& refValue, GarbageCollector* gc)
 {
     if (IsRef(refValue))
     {
@@ -373,7 +372,7 @@ bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDept
     }
 
 #if 0
-    if (const Script_HashMap* pMap = value.TryGet<Script_HashMap>().TryGet())
+    if (const ScriptMap* pMap = value.TryGet<ScriptMap>().TryGet())
     {
         auto& map = pMap->GetMap();
 
@@ -716,7 +715,7 @@ public:
 
         if (!GetSignedOrUnsigned(instance->thread.m_regs[indexReg], &key))
         {
-            vm->ThrowException(instance, Script_Exception("Array index must be an integral type"));
+            vm->ThrowException(instance, Exception("Array index must be an integral type"));
 
             return;
         }
@@ -738,7 +737,7 @@ public:
 
             if (key.u >= array->Size())
             {
-                vm->ThrowException(instance, Script_Exception::OutOfBoundsException(key.u, array->Size()));
+                vm->ThrowException(instance, Exception::OutOfBoundsException(key.u, array->Size()));
 
                 return;
             }
@@ -764,7 +763,7 @@ public:
         }
 
         // throw an exception
-        vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
+        vm->ThrowException(instance, Exception::InvalidOperationException("Indexing", GetTypeString(src)));
     }
 
     SCRIPT_INLINE void OpLoadOffsetRef(RegisterIndex reg, uint16 offset)
@@ -821,7 +820,7 @@ public:
         const Class* cls = ClassRegistry::GetInstance().GetClass(name);
         if (!cls)
         {
-            vm->ThrowException(instance, Script_Exception::ClassNotFoundException(name.LookupString()));
+            vm->ThrowException(instance, Exception::ClassNotFoundException(name.LookupString()));
 
             return;
         }
@@ -866,7 +865,7 @@ public:
 
         if (!src.Is<GenericArrayWrapper>())
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("Indexing", GetTypeString(src)));
             return;
         }
 
@@ -874,7 +873,7 @@ public:
 
         if (index >= array.Size())
         {
-            vm->ThrowException(instance, Script_Exception::OutOfBoundsException(SizeType(index), array.Size()));
+            vm->ThrowException(instance, Exception::OutOfBoundsException(SizeType(index), array.Size()));
 
             return;
         }
@@ -897,7 +896,7 @@ public:
 
         if (!src.Is<GenericArrayWrapper>())
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("Indexing", GetTypeString(src)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("Indexing", GetTypeString(src)));
             return;
         }
 
@@ -908,7 +907,7 @@ public:
 
         if (!GetSignedOrUnsigned(indexRegisterValue, &index))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidArgsException("integer"));
+            vm->ThrowException(instance, Exception::InvalidArgsException("integer"));
 
             return;
         }
@@ -936,7 +935,7 @@ public:
 
         if (indexValue >= array.Size())
         {
-            vm->ThrowException(instance, Script_Exception::OutOfBoundsException(indexValue, array.Size()));
+            vm->ThrowException(instance, Exception::OutOfBoundsException(indexValue, array.Size()));
 
             return;
         }
@@ -1002,7 +1001,7 @@ public:
 
         if (!cls)
         {
-            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(pValue));
+            vm->ThrowException(instance, Exception::InvalidMemberAccessException(pValue));
 
             return;
         }
@@ -1011,7 +1010,7 @@ public:
 
         if (!field)
         {
-            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(pValue, hash));
+            vm->ThrowException(instance, Exception::MemberNotFoundException(pValue, hash));
 
             return;
         }
@@ -1047,7 +1046,7 @@ public:
 
         if (!cls)
         {
-            vm->ThrowException(instance, Script_Exception::InvalidMemberAccessException(&src));
+            vm->ThrowException(instance, Exception::InvalidMemberAccessException(&src));
 
             return;
         }
@@ -1055,7 +1054,7 @@ public:
         IMember* member = cls->GetMember(StringHash(NameID(hash)));
         if (!member)
         {
-            vm->ThrowException(instance, Script_Exception::MemberNotFoundException(&src, hash));
+            vm->ThrowException(instance, Exception::MemberNotFoundException(&src, hash));
 
             return;
         }
@@ -1097,7 +1096,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception("Member is not a field or method"));
+            vm->ThrowException(instance, Exception("Member is not a field or method"));
         }
     }
 
@@ -1122,7 +1121,7 @@ public:
 
         if (!arrayWrapper)
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("PUSH_ARRAY", GetTypeString(dst)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("PUSH_ARRAY", GetTypeString(dst)));
             return;
         }
 
@@ -1246,7 +1245,7 @@ public:
         {
             vm->ThrowException(
                 instance,
-                Script_Exception::InvalidNewException(classRef->GetName().LookupString()));
+                Exception::InvalidNewException(classRef->GetName().LookupString()));
 
             return;
         }
@@ -1579,7 +1578,7 @@ public:
                 }
                 else
                 {
-                    vm->ThrowException(instance, Script_Exception::InvalidComparisonException(GetTypeString(*lhs), GetTypeString(*rhs)));
+                    vm->ThrowException(instance, Exception::InvalidComparisonException(GetTypeString(*lhs), GetTypeString(*rhs)));
                 }
             }
         }
@@ -1639,7 +1638,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("ADD", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("ADD", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1666,7 +1665,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("SUB", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("SUB", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1693,7 +1692,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("MUL", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("MUL", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1714,13 +1713,13 @@ public:
 
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
-                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Exception::DivisionByZeroException());
 
                 return;
             }
             else if ((b.flags & Number::FLAG_UNSIGNED) && b.u == 0)
             {
-                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Exception::DivisionByZeroException());
 
                 return;
             }
@@ -1733,7 +1732,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("DIV", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("DIV", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1755,13 +1754,13 @@ public:
             // custom handling for mod to allow floats to work
             if ((b.flags & Number::FLAG_SIGNED) && b.i == 0)
             {
-                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Exception::DivisionByZeroException());
 
                 return;
             }
             else if ((b.flags & Number::FLAG_UNSIGNED) && b.u == 0)
             {
-                vm->ThrowException(instance, Script_Exception::DivisionByZeroException());
+                vm->ThrowException(instance, Exception::DivisionByZeroException());
 
                 return;
             }
@@ -1804,7 +1803,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("MOD", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("MOD", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1831,7 +1830,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("AND", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("AND", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1858,7 +1857,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("OR", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("OR", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1885,7 +1884,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("XOR", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("XOR", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1911,7 +1910,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("SHL", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("SHL", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1937,7 +1936,7 @@ public:
         }
         else
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("SHR", GetTypeString(*lhs), GetTypeString(*rhs)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("SHR", GetTypeString(*lhs), GetTypeString(*rhs)));
         }
     }
 
@@ -1951,7 +1950,7 @@ public:
         // we only allow bitwise NOT on integers
         if (!GetNumber(value, &num) || !(num.flags & (Number::FLAG_SIGNED | Number::FLAG_UNSIGNED)))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidBitwiseArgument());
+            vm->ThrowException(instance, Exception::InvalidBitwiseArgument());
 
             return;
         }
@@ -1971,7 +1970,7 @@ public:
 
         /// \todo Allow throwing the arugment
 
-        vm->ThrowException(instance, Script_Exception("User exception"));
+        vm->ThrowException(instance, Exception("User exception"));
     }
 
     SCRIPT_INLINE void OpExportSymbol(RegisterIndex reg, uint64 hash)
@@ -1984,7 +1983,7 @@ public:
 
         if (!instance->exportedSymbols.Store(hash, std::move(newValue)).second)
         {
-            vm->ThrowException(instance, Script_Exception::DuplicateExportException());
+            vm->ThrowException(instance, Exception::DuplicateExportException());
         }
     }
 
@@ -1997,7 +1996,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidOperationException("NEG", GetTypeString(value)));
+            vm->ThrowException(instance, Exception::InvalidOperationException("NEG", GetTypeString(value)));
 
             return;
         }
@@ -2049,7 +2048,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "uint8"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "uint8"));
 
             return;
         }
@@ -2082,7 +2081,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "uint16"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "uint16"));
 
             return;
         }
@@ -2114,7 +2113,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "uint32"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "uint32"));
 
             return;
         }
@@ -2146,7 +2145,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "uint64"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "uint64"));
 
             return;
         }
@@ -2177,7 +2176,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "int8"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "int8"));
 
             return;
         }
@@ -2208,7 +2207,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "int16"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "int16"));
 
             return;
         }
@@ -2239,7 +2238,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "int32"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "int32"));
 
             return;
         }
@@ -2270,7 +2269,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "int64"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "int64"));
 
             return;
         }
@@ -2302,7 +2301,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "float32"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "float32"));
 
             return;
         }
@@ -2334,7 +2333,7 @@ public:
 
         if (!GetNumber(value, &num))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "float64"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "float64"));
 
             return;
         }
@@ -2397,7 +2396,7 @@ public:
 
         if (!GetString(value, &pString))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), "string"));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), "string"));
 
             return;
         }
@@ -2429,7 +2428,7 @@ public:
 
         if (!cls || !cls->IsDerivedFrom(classRef))
         {
-            vm->ThrowException(instance, Script_Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
+            vm->ThrowException(instance, Exception::InvalidCastException(GetTypeString(value), classRef->GetName().LookupString()));
 
             return;
         }
@@ -3359,11 +3358,11 @@ SCRIPT_INLINE static void HandleInstruction(
         uint32 stringmapCount;
         bs->Read(&stringmapCount);
 
-        Script_Tracemap::StringmapEntry* stringmap = nullptr;
+        Tracemap::StringmapEntry* stringmap = nullptr;
 
         if (stringmapCount != 0)
         {
-            stringmap = new Script_Tracemap::StringmapEntry[stringmapCount];
+            stringmap = new Tracemap::StringmapEntry[stringmapCount];
 
             for (uint32 i = 0; i < stringmapCount; i++)
             {
@@ -3375,12 +3374,12 @@ SCRIPT_INLINE static void HandleInstruction(
         uint32 linemapCount;
         bs->Read(&linemapCount);
 
-        Script_Tracemap::LinemapEntry* linemap = nullptr;
+        Tracemap::LinemapEntry* linemap = nullptr;
 
         if (linemapCount != 0)
         {
-            linemap = new Script_Tracemap::LinemapEntry[linemapCount];
-            bs->Read(linemap, sizeof(Script_Tracemap::LinemapEntry) * linemapCount);
+            linemap = new Tracemap::LinemapEntry[linemapCount];
+            bs->Read(linemap, sizeof(Tracemap::LinemapEntry) * linemapCount);
         }
 
         handler->vm->m_tracemap.Set(stringmap, linemap);
@@ -3408,7 +3407,7 @@ SCRIPT_INLINE static void HandleInstruction(
         if (FBOMResult err = reader.Deserialize(ctx, bufferedReader, result))
         {
             // throw exception for invalid data:
-            handler->vm->ThrowException(instance, Script_Exception(err.message.Data()));
+            handler->vm->ThrowException(instance, Exception(err.message.Data()));
 
             break;
         }
@@ -3456,26 +3455,26 @@ SCRIPT_INLINE static void HandleInstruction(
 VirtualMachine::VirtualMachine()
     : m_unhandledException(nullptr)
 {
-    m_gc = (Script_GC*)ScriptAlloc(sizeof(Script_GC), alignof(Script_GC));
-    new (m_gc) Script_GC;
+    m_gc = (GarbageCollector*)ScriptAlloc(sizeof(GarbageCollector), alignof(GarbageCollector));
+    new (m_gc) GarbageCollector;
 }
 
 VirtualMachine::~VirtualMachine()
 {
     if (m_gc)
     {
-        m_gc->~Script_GC();
+        m_gc->~GarbageCollector();
         ScriptFree(m_gc);
     }
 
     if (m_unhandledException)
     {
-        m_unhandledException->~Script_Exception();
+        m_unhandledException->~Exception();
         ScriptFree(m_unhandledException);
     }
 }
 
-void VirtualMachine::ThrowException(ScriptInstance* instance, const Script_Exception& exception)
+void VirtualMachine::ThrowException(ScriptInstance* instance, const Exception& exception)
 {
     ++instance->thread.m_exceptionState.m_exceptionDepth;
 
@@ -3500,14 +3499,14 @@ void VirtualMachine::ThrowException(ScriptInstance* instance, const Script_Excep
 
     if (!m_unhandledException)
     {
-        m_unhandledException = (Script_Exception*)ScriptAlloc(sizeof(Script_Exception), alignof(Script_Exception));
+        m_unhandledException = (Exception*)ScriptAlloc(sizeof(Exception), alignof(Exception));
     }
     else
     {
-        m_unhandledException->~Script_Exception();
+        m_unhandledException->~Exception();
     }
 
-    new (m_unhandledException) Script_Exception(exception);
+    new (m_unhandledException) Exception(exception);
 }
 
 void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 nargs)
@@ -3545,7 +3544,7 @@ void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 
                 if (argsBoxed[0]->IsNull())
                 {
                     // throw exception if target is null
-                    ThrowException(instance, Script_Exception::NullReferenceException());
+                    ThrowException(instance, Exception::NullReferenceException());
                     return;
                 }
             }
@@ -3568,11 +3567,11 @@ void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 
         if ((data->func.m_flags & (uint8)MethodFlags::VARIADIC) && nargs < data->func.m_nargs - 1)
         {
             // if variadic, make sure the arg count is /at least/ what is required
-            ThrowException(instance, Script_Exception::InvalidArgsException(data->func.m_nargs, nargs, true));
+            ThrowException(instance, Exception::InvalidArgsException(data->func.m_nargs, nargs, true));
         }
         else if (!(data->func.m_flags & (uint8)MethodFlags::VARIADIC) && data->func.m_nargs != nargs)
         {
-            ThrowException(instance, Script_Exception::InvalidArgsException(data->func.m_nargs, nargs));
+            ThrowException(instance, Exception::InvalidArgsException(data->func.m_nargs, nargs));
         }
         else
         {
@@ -3629,7 +3628,7 @@ void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 
         "cannot invoke type '%s' as a function",
         GetTypeString(value));
 
-    ThrowException(instance, Script_Exception(buffer));
+    ThrowException(instance, Exception(buffer));
 }
 
 void VirtualMachine::InvokeNow(ScriptInstance* instance, BoxedValue&& value, uint8 nargs)

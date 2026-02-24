@@ -1,4 +1,4 @@
-#include <script/vm/Stream.hpp>
+#include <script/vm/BytecodeStream.hpp>
 
 #include <Core/debug/Debug.hpp>
 

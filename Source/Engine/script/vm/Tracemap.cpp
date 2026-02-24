@@ -4,13 +4,13 @@
 
 namespace Hyperion {
 
-Script_Tracemap::Script_Tracemap()
+Tracemap::Tracemap()
     : m_stringmap(nullptr),
       m_linemap(nullptr)
 {
 }
 
-Script_Tracemap::~Script_Tracemap()
+Tracemap::~Tracemap()
 {
     if (m_stringmap)
     {
@@ -23,7 +23,7 @@ Script_Tracemap::~Script_Tracemap()
     }
 }
 
-void Script_Tracemap::Set(StringmapEntry* stringmap, LinemapEntry* linemap)
+void Tracemap::Set(StringmapEntry* stringmap, LinemapEntry* linemap)
 {
     Assert(m_stringmap == nullptr);
     Assert(m_linemap == nullptr);

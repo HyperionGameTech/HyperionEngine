@@ -9,17 +9,17 @@
 
 namespace Hyperion {
 
-class Script_SymbolTable
+class SymbolTable
 {
     using SymbolMap = HashMap<HashCode::ValueType, BoxedValue*>;
 
 public:
-    Script_SymbolTable();
-    Script_SymbolTable(const Script_SymbolTable& other) = delete;
-    Script_SymbolTable& operator=(const Script_SymbolTable& other) = delete;
-    Script_SymbolTable(Script_SymbolTable&& other) noexcept = delete;
-    Script_SymbolTable& operator=(Script_SymbolTable&& other) noexcept = delete;
-    ~Script_SymbolTable();
+    SymbolTable();
+    SymbolTable(const SymbolTable& other) = delete;
+    SymbolTable& operator=(const SymbolTable& other) = delete;
+    SymbolTable(SymbolTable&& other) noexcept = delete;
+    SymbolTable& operator=(SymbolTable&& other) noexcept = delete;
+    ~SymbolTable();
 
     void MarkAll();
 

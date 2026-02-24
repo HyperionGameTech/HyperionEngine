@@ -28,8 +28,8 @@ enum class BytecodeAddress : uint32;
 
 struct Script_ExecutionThread;
 class VirtualMachine;
-class Script_GC;
-class Script_Exception;
+class GarbageCollector;
+class Exception;
 
 enum NumericType : uint8
 {

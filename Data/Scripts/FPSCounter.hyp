@@ -13,9 +13,6 @@ Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg class = " + string(GlobalCfg
 Global := CfgLoader.Load(GlobalCfg) as GlobalCfg
 Logger.LogScript(Channel, LogLevel.Info, "Global config = " + string(Global))
 
-tmpArray := [1, 2, 3]
-Logger.LogScript(Channel, LogLevel.Info, "tmpArray size: " + string(tmpArray.Size()))
-
 Global.App = new AppCfg()
 Global.App.Name = "TestApp"
 

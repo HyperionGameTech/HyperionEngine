@@ -3,7 +3,6 @@
 #ifdef HYP_SCRIPT
 
 #include <script/vm/Value.hpp>
-#include <script/vm/Array.hpp>
 
 #include <Core/reflection/ClassUtils.hpp>
 #include <Core/reflection/ClassRegistry.hpp>

@@ -81,8 +81,7 @@ const SymbolType* BuiltinTypes::s_arrayBaseType = SymbolType::Primitive(
 const SymbolType* BuiltinTypes::s_varArgsBaseType = SymbolType::Extend(
     "VarArgsBase",
     BuiltinTypes::s_arrayBaseType,
-    {},
-    {});
+    {}, {});
 
 const SymbolType* BuiltinTypes::s_mapBaseType = SymbolType::Primitive(
     "MapBase",
@@ -160,7 +159,10 @@ const SymbolType* BuiltinTypes::s_varArgsType = SymbolType::Generic(
     Array<SymbolTypeMember> {},
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo {
-        { { "type", SymbolType::GenericParameter("T") } } });
+        {
+            { "type", SymbolType::GenericParameter("T") }
+        }
+    });
 
 const SymbolType* BuiltinTypes::s_functionType = SymbolType::Generic(
     "Function",
@@ -168,8 +170,11 @@ const SymbolType* BuiltinTypes::s_functionType = SymbolType::Generic(
     Array<SymbolTypeMember> {},
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo {
-        { { "@return", SymbolType::GenericParameter("ReturnType") },
-            { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) } } });
+        {
+            { "@return", SymbolType::GenericParameter("ReturnType") },
+            { "@args", SymbolType::GenericInstance(BuiltinTypes::s_varArgsType, {}, {}, GenericInstanceTypeInfo {}) }
+        }
+    });
 
 // See ScriptArrayWrapper.cpp in Hyperion Engine for implementation of array methods
 const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
@@ -182,137 +187,202 @@ const SymbolType* BuiltinTypes::s_arrayType = SymbolType::Generic(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "index", BuiltinTypes::s_uint64Type } } }) },
+                        { "index", BuiltinTypes::s_uint64Type }
+                    }
+                })
+            },
         SymbolTypeMember {
             "operator[]=",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
                         { "index", BuiltinTypes::s_uint64Type },
-                        { "value", SymbolType::GenericParameter("T") } } }) },
+                        { "value", SymbolType::GenericParameter("T") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "PushBack",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") } } }) },
+                        { "value", SymbolType::GenericParameter("T") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "PopBack",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "PushFront",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") } } }) },
+                        { "value", SymbolType::GenericParameter("T") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "PopFront",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Add",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") } } }) },
+                        { "value", SymbolType::GenericParameter("T") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Remove",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_boolType },
+                    {
+                        { "@return", BuiltinTypes::s_boolType },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "value", SymbolType::GenericParameter("T") } } }) },
+                        { "value", SymbolType::GenericParameter("T") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Clear",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_voidType },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", BuiltinTypes::s_voidType },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Resize",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_voidType },
+                    {
+                        { "@return", BuiltinTypes::s_voidType },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "newSize", BuiltinTypes::s_uint64Type } } }) },
+                        { "newSize", BuiltinTypes::s_uint64Type }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Reserve",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_voidType },
+                    {
+                        { "@return", BuiltinTypes::s_voidType },
                         { "self", SymbolType::Placeholder("SelfType") },
-                        { "capacity", BuiltinTypes::s_uint64Type } } }) },
+                        { "capacity", BuiltinTypes::s_uint64Type }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Empty",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_boolType },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", BuiltinTypes::s_boolType },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Any",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_boolType },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", BuiltinTypes::s_boolType },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Front",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Back",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("T") },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) },
+                    {
+                        { "@return", SymbolType::GenericParameter("T") },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "Size",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", BuiltinTypes::s_uint64Type },
-                        { "self", SymbolType::Placeholder("SelfType") } } }) } },
+                    {
+                        { "@return", BuiltinTypes::s_uint64Type },
+                        { "self", SymbolType::Placeholder("SelfType") }
+                    }
+                })
+            }
+        },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo { { { "type", SymbolType::GenericParameter("T") } } });
 
@@ -326,27 +396,40 @@ const SymbolType* BuiltinTypes::s_mapType = SymbolType::Generic(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("V") },
+                    {
+                        { "@return", SymbolType::GenericParameter("V") },
                         { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
-                        { "key", SymbolType::GenericParameter("K") } } }) },
+                        { "key", SymbolType::GenericParameter("K") }
+                    }
+                })
+            },
         SymbolTypeMember {
             "operator[]=",
             SymbolType::GenericInstance(
                 BuiltinTypes::s_functionType,
                 {}, {},
                 GenericInstanceTypeInfo {
-                    { { "@return", SymbolType::GenericParameter("V") },
+                    {
+                        { "@return", SymbolType::GenericParameter("V") },
                         { "self", /*SymbolType::Placeholder("SelfType")*/ BuiltinTypes::s_anyType },
                         { "key", SymbolType::GenericParameter("K") },
-                        { "value", SymbolType::GenericParameter("V") } } }) } },
+                        { "value", SymbolType::GenericParameter("V") }
+                    }
+                })
+            }
+        },
     Array<SymbolTypeMember> {},
     GenericInstanceTypeInfo {
-        { { "key", SymbolType::GenericParameter("K") },
-            { "value", SymbolType::GenericParameter("V") } } });
+        {
+            { "key", SymbolType::GenericParameter("K") },
+            { "value", SymbolType::GenericParameter("V") }
+        }
+    });
 
 void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
 {
     Assert(globalCompilationUnit != nullptr);
+
 #pragma region String
     // HAX - we need to cast away const-ness here because we want to add members to the string type
     SymbolType* stringTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_stringType);
@@ -357,9 +440,13 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_stringType },
+                {
+                    { "@return", BuiltinTypes::s_stringType },
                     { "self", BuiltinTypes::s_stringType },
-                    { "other", BuiltinTypes::s_stringType } } }) });
+                    { "other", BuiltinTypes::s_stringType }
+                }
+            })
+        });
 
     stringTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "Length",
@@ -367,8 +454,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_uint64Type },
-                    { "self", BuiltinTypes::s_stringType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_uint64Type },
+                    { "self", BuiltinTypes::s_stringType }
+                }
+            })
+        });
 
     stringTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
         "Join",
@@ -376,9 +467,13 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_stringType },
+                {
+                    { "@return", BuiltinTypes::s_stringType },
                     { "elems", SymbolType::GenericInstance(BuiltinTypes::s_arrayType, {}, {}, GenericInstanceTypeInfo { { { "type", BuiltinTypes::s_anyType } } }) },
-                    { "sep", BuiltinTypes::s_stringType } } }) });
+                    { "sep", BuiltinTypes::s_stringType }
+                }
+            })
+        });
 
     stringTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
         "$invoke",
@@ -386,8 +481,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_stringType },
-                    { "val", BuiltinTypes::s_anyType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_stringType },
+                    { "val", BuiltinTypes::s_anyType }
+                }
+            })
+        });
 #pragma endregion String
 
 #pragma region Name
@@ -400,8 +499,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_stringType },
-                    { "self", BuiltinTypes::s_nameType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_stringType },
+                    { "self", BuiltinTypes::s_nameType }
+                }
+            })
+        });
     
     nameTypeNonConst->GetStaticMembers().PushBack(SymbolTypeMember {
         "FromString",
@@ -409,8 +512,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_nameType },
-                    { "val", BuiltinTypes::s_stringType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_nameType },
+                    { "val", BuiltinTypes::s_stringType }
+                }
+            })
+        });
 #pragma endregion Name
 
 #pragma region Class
@@ -422,8 +529,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "GetName",
@@ -431,8 +542,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_nameType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_nameType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "GetSize",
@@ -440,8 +555,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_uint64Type },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_uint64Type },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "GetAlignment",
@@ -449,8 +568,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_uint64Type },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_uint64Type },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "GetParent",
@@ -458,8 +581,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_classType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_classType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsClassType",
@@ -467,8 +594,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsStructType",
@@ -476,8 +607,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsEnumType",
@@ -485,8 +620,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsPodType",
@@ -494,8 +633,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsAbstract",
@@ -503,8 +646,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsDynamic",
@@ -512,8 +659,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsDerivedFrom",
@@ -521,9 +672,13 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
+                {
+                    { "@return", BuiltinTypes::s_boolType },
                     { "self", BuiltinTypes::s_classType },
-                    { "other", BuiltinTypes::s_classType } } }) });
+                    { "other", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "IsBaseOf",
@@ -531,9 +686,13 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
+                {
+                    { "@return", BuiltinTypes::s_boolType },
                     { "self", BuiltinTypes::s_classType },
-                    { "other", BuiltinTypes::s_classType } } }) });
+                    { "other", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "CanCreateInstance",
@@ -541,8 +700,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_boolType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 
     classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
         "CreateInstance",
@@ -550,8 +713,12 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
             BuiltinTypes::s_functionType,
             {}, {},
             GenericInstanceTypeInfo {
-                { { "@return", BuiltinTypes::s_anyType },
-                    { "self", BuiltinTypes::s_classType } } }) });
+                {
+                    { "@return", BuiltinTypes::s_anyType },
+                    { "self", BuiltinTypes::s_classType }
+                }
+            })
+        });
 #pragma endregion Class
 
 #define REGISTER_GLOBAL_TYPE(type)                                      \
@@ -617,81 +784,99 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     SymbolType* vec2iType = SymbolType::Struct(
         "Vec2i",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
-            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) }
+        },
         {});
 
     vec2iType->Register(compilationUnit);
 
     SymbolType* vec2uType = SymbolType::Struct(
         "Vec2u",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
-            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) }
+        },
         {});
 
     vec2uType->Register(compilationUnit);
 
     SymbolType* vec2fType = SymbolType::Struct(
         "Vec2f",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
-            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+            SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) }
+        },
         {});
 
     vec2fType->Register(compilationUnit);
 
     SymbolType* vec3iType = SymbolType::Struct(
         "Vec3i",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
-            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) }
+        },
         {});
 
     vec3iType->Register(compilationUnit);
 
     SymbolType* vec3uType = SymbolType::Struct(
         "Vec3u",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
-            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) }
+        },
         {});
 
     vec3uType->Register(compilationUnit);
 
     SymbolType* vec3fType = SymbolType::Struct(
         "Vec3f",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
-            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
+            SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) }
+        },
         {});
 
     vec3fType->Register(compilationUnit);
 
     SymbolType* vec4iType = SymbolType::Struct(
         "Vec4i",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) },
-            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) } },
+            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_int32Type) }
+        },
         {});
 
     vec4iType->Register(compilationUnit);
 
     SymbolType* vec4uType = SymbolType::Struct(
         "Vec4u",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) },
-            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) } },
+            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_uint32Type) }
+        },
         {});
 
     vec4uType->Register(compilationUnit);
 
     SymbolType* vec4fType = SymbolType::Struct(
         "Vec4f",
-        { SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
+        {
+            SymbolTypeMember { "x", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "y", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
             SymbolTypeMember { "z", const_cast<SymbolType*>(BuiltinTypes::s_floatType) },
-            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_floatType) } },
+            SymbolTypeMember { "w", const_cast<SymbolType*>(BuiltinTypes::s_floatType) }
+        },
         {});
 
     vec4fType->Register(compilationUnit);

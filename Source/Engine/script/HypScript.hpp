@@ -19,7 +19,7 @@ namespace Hyperion {
 
 class HypScript;
 class VirtualMachine;
-class Script_SymbolTable;
+class SymbolTable;
 class InstructionStream;
 
 struct ScriptInstance;
@@ -65,7 +65,7 @@ public:
     bool GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& outValue);
     bool GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& outValue, bool getReference);
 
-    Script_SymbolTable& GetExportedSymbols(ScriptInstance* instance) const;
+    SymbolTable& GetExportedSymbols(ScriptInstance* instance) const;
 
     /*! \brief Implements OpGetMember in the virtual machine.
      *  Gets a field or method by name and sets `outValue` to the value.

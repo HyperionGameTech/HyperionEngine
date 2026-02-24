@@ -1,4 +1,4 @@
-#include <script/vm/HashMap.hpp>
+#include <script/vm/Map.hpp>
 
 #include <Core/debug/Debug.hpp>
 
@@ -8,16 +8,16 @@
 
 namespace Hyperion {
 
-Script_HashMap::Script_HashMap()
+ScriptMap::ScriptMap()
 {
 }
 
-Script_HashMap::Script_HashMap(Script_HashMap&& other) noexcept
+ScriptMap::ScriptMap(ScriptMap&& other) noexcept
     : m_map(std::move(other.m_map))
 {
 }
 
-Script_HashMap& Script_HashMap::operator=(Script_HashMap&& other) noexcept
+ScriptMap& ScriptMap::operator=(ScriptMap&& other) noexcept
 {
     if (&other == this)
     {
@@ -29,16 +29,16 @@ Script_HashMap& Script_HashMap::operator=(Script_HashMap&& other) noexcept
     return *this;
 }
 
-Script_HashMap::~Script_HashMap()
+ScriptMap::~ScriptMap()
 {
 }
 
-void Script_HashMap::SetElement(VMMapKey&& key, BoxedValue&& value)
+void ScriptMap::SetElement(VMMapKey&& key, BoxedValue&& value)
 {
     m_map.Set(std::move(key), std::move(value));
 }
 
-BoxedValue* Script_HashMap::GetElement(const VMMapKey& key)
+BoxedValue* ScriptMap::GetElement(const VMMapKey& key)
 {
     auto it = m_map.Find(key);
 
@@ -50,7 +50,7 @@ BoxedValue* Script_HashMap::GetElement(const VMMapKey& key)
     return &it->second;
 }
 
-const BoxedValue* Script_HashMap::GetElement(const VMMapKey& key) const
+const BoxedValue* ScriptMap::GetElement(const VMMapKey& key) const
 {
     auto it = m_map.Find(key);
 

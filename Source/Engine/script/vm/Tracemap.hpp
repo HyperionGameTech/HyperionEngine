@@ -4,7 +4,7 @@
 
 namespace Hyperion {
 
-class Script_Tracemap
+class Tracemap
 {
 public:
     // read stringmap into memory.
@@ -29,10 +29,10 @@ public:
         int64 stringmapIndex;
     };
 
-    Script_Tracemap();
-    Script_Tracemap(const Script_Tracemap& other) = delete;
-    Script_Tracemap& operator=(const Script_Tracemap& other) = delete;
-    ~Script_Tracemap();
+    Tracemap();
+    Tracemap(const Tracemap& other) = delete;
+    Tracemap& operator=(const Tracemap& other) = delete;
+    ~Tracemap();
 
     void Set(StringmapEntry* stringmap, LinemapEntry* linemap);
 

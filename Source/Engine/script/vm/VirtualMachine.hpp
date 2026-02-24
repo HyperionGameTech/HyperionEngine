@@ -1,6 +1,6 @@
 #pragma once
 
-#include <script/vm/Stream.hpp>
+#include <script/vm/BytecodeStream.hpp>
 #include <script/vm/Trace.hpp>
 #include <script/vm/Tracemap.hpp>
 #include <script/vm/SymbolTable.hpp>
@@ -38,13 +38,13 @@ extern BoxedValue MakeValue(const ScriptObjectData& data);
 extern BoxedValue MakeValue(const Number& number);
 extern BoxedValue MakeValue(BoxedValue&& value);
 extern BoxedValue MakeRef(BoxedValue* refValue);
-extern BoxedValue MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
-extern BoxedValue ShallowCopy(BoxedValue& value, Script_GC* gc);
+extern BoxedValue MakeTrackedRef(BoxedValue* refValue, GarbageCollector* gc);
+extern BoxedValue ShallowCopy(BoxedValue& value, GarbageCollector* gc);
 extern bool ShouldValuePassByRef(const BoxedValue& value);
 extern const char* GetTypeString(const BoxedValue& value);
 extern String ValueToString(const BoxedValue& value, int currDepth = 0);
 
-class Script_GC;
+class GarbageCollector;
 
 struct Script_RegisterMemory
 {
@@ -216,7 +216,7 @@ struct ScriptInstance
 {
     BytecodeStream stream;
     Script_ExecutionThread thread;
-    Script_SymbolTable exportedSymbols;
+    SymbolTable exportedSymbols;
 };
 
 class VirtualMachine
@@ -246,17 +246,17 @@ public:
      */
     void Reset();
 
-    void ThrowException(ScriptInstance* instance, const Script_Exception& exception);
+    void ThrowException(ScriptInstance* instance, const Exception& exception);
 
-    Script_GC* GetGC() const
+    GarbageCollector* GetGC() const
     {
         return m_gc;
     }
 
     Script_StaticMemory m_staticMemory;
-    Script_GC* m_gc = nullptr;
-    Script_Tracemap m_tracemap;
-    Script_Exception* m_unhandledException = nullptr;
+    GarbageCollector* m_gc = nullptr;
+    Tracemap m_tracemap;
+    Exception* m_unhandledException = nullptr;
 
 private:
     bool HandleException(ScriptInstance* instance);

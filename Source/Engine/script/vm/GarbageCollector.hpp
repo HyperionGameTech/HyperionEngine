@@ -10,18 +10,18 @@
 
 namespace Hyperion {
 
-class Script_GC
+class GarbageCollector
 {
 public:
-    Script_GC();
+    GarbageCollector();
 
-    Script_GC(const Script_GC& other) = delete;
-    Script_GC& operator=(const Script_GC& other) = delete;
+    GarbageCollector(const GarbageCollector& other) = delete;
+    GarbageCollector& operator=(const GarbageCollector& other) = delete;
 
-    Script_GC(Script_GC&& other) = delete;
-    Script_GC& operator=(Script_GC&& other) = delete;
+    GarbageCollector(GarbageCollector&& other) = delete;
+    GarbageCollector& operator=(GarbageCollector&& other) = delete;
 
-    ~Script_GC();
+    ~GarbageCollector();
 
     void MoveToTrackedMemory(BoxedValue& inOutRefValue);
 

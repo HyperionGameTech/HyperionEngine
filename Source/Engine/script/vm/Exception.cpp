@@ -4,7 +4,7 @@
 namespace Hyperion {
 
 template <class FormatStringType, class... Args>
-static inline Script_Exception FormattedException(FormatStringType formatString, Args&&... args)
+static inline Exception FormattedException(FormatStringType formatString, Args&&... args)
 {
     char buffer[256];
     int n = std::snprintf(buffer, HYP_ARRAY_SIZE(buffer), formatString.Data(), std::forward<Args>(args)...);
@@ -17,37 +17,37 @@ static inline Script_Exception FormattedException(FormatStringType formatString,
         char* dynamicBuffer = (char*)std::malloc(size);
         std::snprintf(dynamicBuffer, size, formatString.Data(), std::forward<Args>(args)...);
 
-        Script_Exception exc(dynamicBuffer);
+        Exception exc(dynamicBuffer);
 
         std::free(dynamicBuffer);
 
         return exc;
     }
 
-    return Script_Exception(buffer);
+    return Exception(buffer);
 }
 
-Script_Exception::Script_Exception(const char* str)
+Exception::Exception(const char* str)
 {
     const SizeType len = std::strlen(str);
     m_str = new char[len + 1];
     std::strcpy(m_str, str);
 }
 
-Script_Exception::Script_Exception(const Script_Exception& other)
+Exception::Exception(const Exception& other)
 {
     const SizeType len = std::strlen(other.m_str);
     m_str = new char[len + 1];
     std::strcpy(m_str, other.m_str);
 }
 
-Script_Exception::Script_Exception(Script_Exception&& other) noexcept
+Exception::Exception(Exception&& other) noexcept
     : m_str(other.m_str)
 {
     other.m_str = nullptr;
 }
 
-Script_Exception& Script_Exception::operator=(const Script_Exception& other)
+Exception& Exception::operator=(const Exception& other)
 {
     if (this != &other)
     {
@@ -60,7 +60,7 @@ Script_Exception& Script_Exception::operator=(const Script_Exception& other)
     return *this;
 }
 
-Script_Exception& Script_Exception::operator=(Script_Exception&& other) noexcept
+Exception& Exception::operator=(Exception&& other) noexcept
 {
     if (this != &other)
     {
@@ -72,12 +72,12 @@ Script_Exception& Script_Exception::operator=(Script_Exception&& other) noexcept
     return *this;
 }
 
-Script_Exception::~Script_Exception()
+Exception::~Exception()
 {
     delete[] m_str;
 }
 
-Script_Exception Script_Exception::InvalidComparisonException(
+Exception Exception::InvalidComparisonException(
     const char* leftTypeStr,
     const char* rightTypeStr)
 {
@@ -87,7 +87,7 @@ Script_Exception Script_Exception::InvalidComparisonException(
         rightTypeStr);
 }
 
-Script_Exception Script_Exception::InvalidOperationException(
+Exception Exception::InvalidOperationException(
     const char* opName,
     const char* leftTypeStr,
     const char* rightTypeStr)
@@ -99,7 +99,7 @@ Script_Exception Script_Exception::InvalidOperationException(
         rightTypeStr);
 }
 
-Script_Exception Script_Exception::InvalidOperationException(const char* opName, const char* typeStr)
+Exception Exception::InvalidOperationException(const char* opName, const char* typeStr)
 {
     return FormattedException(
         HYP_STATIC_STRING("Invalid operation (%s) on type %s"),
@@ -107,14 +107,14 @@ Script_Exception Script_Exception::InvalidOperationException(const char* opName,
         typeStr);
 }
 
-Script_Exception Script_Exception::InvalidNewException(const char* typeStr)
+Exception Exception::InvalidNewException(const char* typeStr)
 {
     return FormattedException(
         HYP_STATIC_STRING("Could not create an instance of %s"),
         typeStr);
 }
 
-Script_Exception Script_Exception::InvalidCastException(const char* fromTypeStr, const char* toTypeStr)
+Exception Exception::InvalidCastException(const char* fromTypeStr, const char* toTypeStr)
 {
     return FormattedException(
         HYP_STATIC_STRING("Invalid cast: cannot cast from %s to %s"),
@@ -122,12 +122,12 @@ Script_Exception Script_Exception::InvalidCastException(const char* fromTypeStr,
         toTypeStr);
 }
 
-Script_Exception Script_Exception::InvalidBitwiseArgument()
+Exception Exception::InvalidBitwiseArgument()
 {
-    return Script_Exception("Invalid argument to bitwise operation");
+    return Exception("Invalid argument to bitwise operation");
 }
 
-Script_Exception Script_Exception::InvalidArgsException(int expected, int received, bool variadic)
+Exception Exception::InvalidArgsException(int expected, int received, bool variadic)
 {
     char buffer[256];
     if (variadic)
@@ -138,47 +138,47 @@ Script_Exception Script_Exception::InvalidArgsException(int expected, int receiv
     {
         std::sprintf(buffer, "Invalid arguments: expected %d, received %d", expected, received);
     }
-    return Script_Exception(buffer);
+    return Exception(buffer);
 }
 
-Script_Exception Script_Exception::InvalidArgsException(const char* expectedStr, int received)
+Exception Exception::InvalidArgsException(const char* expectedStr, int received)
 {
     char buffer[256];
     std::sprintf(buffer, "Invalid arguments: expected %s, received %d", expectedStr, received);
-    return Script_Exception(buffer);
+    return Exception(buffer);
 }
 
-Script_Exception Script_Exception::InvalidArgsException(const char* expectedStr)
+Exception Exception::InvalidArgsException(const char* expectedStr)
 {
     char buffer[256];
     std::sprintf(buffer, "Invalid arguments: expected %s", expectedStr);
-    return Script_Exception(buffer);
+    return Exception(buffer);
 }
 
-Script_Exception Script_Exception::InvalidConstructorException()
+Exception Exception::InvalidConstructorException()
 {
-    return Script_Exception("Invalid constructor");
+    return Exception("Invalid constructor");
 }
 
-Script_Exception Script_Exception::NullReferenceException()
+Exception Exception::NullReferenceException()
 {
-    return Script_Exception("Null object dereferenced");
+    return Exception("Null object dereferenced");
 }
 
-Script_Exception Script_Exception::DivisionByZeroException()
+Exception Exception::DivisionByZeroException()
 {
-    return Script_Exception("Division by zero");
+    return Exception("Division by zero");
 }
 
-Script_Exception Script_Exception::OutOfBoundsException(SizeType index, SizeType size)
+Exception Exception::OutOfBoundsException(SizeType index, SizeType size)
 {
     char buffer[256];
     std::snprintf(buffer, 256, "Index out of array bounds! Index: %llu, size: %llu", index, size);
 
-    return Script_Exception(buffer);
+    return Exception(buffer);
 }
 
-Script_Exception Script_Exception::MemberNotFoundException(BoxedValue* pValue, HashCode::ValueType hashCode)
+Exception Exception::MemberNotFoundException(BoxedValue* pValue, HashCode::ValueType hashCode)
 {
     return FormattedException(
         HYP_STATIC_STRING("Member with hash code %llu not found on type: `%s`"),
@@ -186,62 +186,62 @@ Script_Exception Script_Exception::MemberNotFoundException(BoxedValue* pValue, H
         pValue ? GetTypeString(*pValue) : "<null>");
 }
 
-Script_Exception Script_Exception::InvalidMemberAccessException(BoxedValue* pValue)
+Exception Exception::InvalidMemberAccessException(BoxedValue* pValue)
 {
     return FormattedException(
         HYP_STATIC_STRING("Invalid member access on type `%s`!"),
         pValue ? GetTypeString(*pValue) : "<null>");
 }
 
-Script_Exception Script_Exception::FileOpenException(const char* fileName)
+Exception Exception::FileOpenException(const char* fileName)
 {
     return FormattedException(
         HYP_STATIC_STRING("Failed to open file `%s`"),
         fileName);
 }
 
-Script_Exception Script_Exception::UnopenedFileWriteException()
+Exception Exception::UnopenedFileWriteException()
 {
-    return Script_Exception("Attempted to write to an unopened file");
+    return Exception("Attempted to write to an unopened file");
 }
 
-Script_Exception Script_Exception::UnopenedFileReadException()
+Exception Exception::UnopenedFileReadException()
 {
-    return Script_Exception("Attempted to read from an unopened file");
+    return Exception("Attempted to read from an unopened file");
 }
 
-Script_Exception Script_Exception::UnopenedFileCloseException()
+Exception Exception::UnopenedFileCloseException()
 {
-    return Script_Exception("Attempted to close an unopened file");
+    return Exception("Attempted to close an unopened file");
 }
 
-Script_Exception Script_Exception::LibraryLoadException(const char* libName)
+Exception Exception::LibraryLoadException(const char* libName)
 {
     return FormattedException(
         HYP_STATIC_STRING("Failed to open library `%s`"),
         libName);
 }
 
-Script_Exception Script_Exception::LibraryFunctionLoadException(const char* funcName)
+Exception Exception::LibraryFunctionLoadException(const char* funcName)
 {
     return FormattedException(
         HYP_STATIC_STRING("Failed to load function `%s` from library"),
         funcName);
 }
 
-Script_Exception Script_Exception::DuplicateExportException()
+Exception Exception::DuplicateExportException()
 {
-    return Script_Exception("Duplicate export");
+    return Exception("Duplicate export");
 }
 
-Script_Exception Script_Exception::KeyNotFoundException(const char* key)
+Exception Exception::KeyNotFoundException(const char* key)
 {
     return FormattedException(
         HYP_STATIC_STRING("Key `%s` not found"),
         key ? key : "<null>");
 }
 
-Script_Exception Script_Exception::ClassNotFoundException(const char* className)
+Exception Exception::ClassNotFoundException(const char* className)
 {
     return FormattedException(
         HYP_STATIC_STRING("Class `%s` not found"),

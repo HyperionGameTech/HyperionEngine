@@ -8,16 +8,6 @@ class CfgBase
     CfgBase()
     {
     }
-
-    Load() -> bool
-    {
-        return false
-    }
-
-    Save() -> bool
-    {
-        return false
-    }
 }
 
 class CfgLoader

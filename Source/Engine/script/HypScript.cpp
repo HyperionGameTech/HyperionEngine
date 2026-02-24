@@ -1,6 +1,6 @@
 #include <script/HypScript.hpp>
 
-#include <script/vm/Stream.hpp>
+#include <script/vm/BytecodeStream.hpp>
 
 #include <script/compiler/emit/BytecodeChunk.hpp>
 #include <script/compiler/emit/InstructionStream.hpp>
@@ -18,7 +18,7 @@
 
 #include <script/compiler/AstPrintVisitor.hpp>
 
-#include <script/vm/Interpreter.hpp>
+#include <script/vm/VirtualMachine.hpp>
 
 #include <Core/reflection/Class.hpp>
 #include <Core/reflection/Method.hpp>
@@ -443,7 +443,7 @@ bool HypScript::GetExportedValue(ScriptInstance* instance, const char* name, Box
     return true;
 }
 
-Script_SymbolTable& HypScript::GetExportedSymbols(ScriptInstance* instance) const
+SymbolTable& HypScript::GetExportedSymbols(ScriptInstance* instance) const
 {
     return instance->exportedSymbols;
 }

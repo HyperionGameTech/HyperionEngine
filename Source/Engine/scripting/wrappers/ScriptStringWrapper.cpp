@@ -4,7 +4,6 @@
 
 #include <script/vm/Value.hpp>
 #include <script/vm/String.hpp>
-#include <script/vm/Array.hpp>
 
 #include <Core/reflection/ClassUtils.hpp>
 #include <Core/reflection/ClassRegistry.hpp>
@@ -25,15 +24,17 @@ HYP_BEGIN_STRUCT(String, -1, 0, {})
         {
             return str.Length();
         }),
-    Method(NAME("Join"), +[](const Array<BoxedValue>& elems, const String& sep) -> String
+    Method(NAME("Join"), +[](const GenericArrayWrapper& elems, const String& sep) -> String
         {
             String result;
 
-            for (SizeType i = 0; i < elems.Size(); ++i)
-            {
-                result += ToString(elems[i]);
+            const SizeType size = elems.Size();
 
-                if (i != elems.Size() - 1)
+            for (SizeType i = 0; i < size; ++i)
+            {
+                result += ToString(elems.GetElementAt(i));
+
+                if (i != size - 1)
                 {
                     result += sep;
                 }

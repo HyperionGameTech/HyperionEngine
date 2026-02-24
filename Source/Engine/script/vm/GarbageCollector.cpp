@@ -1,4 +1,4 @@
-#include <script/vm/GC.hpp>
+#include <script/vm/GarbageCollector.hpp>
 
 #include <Core/reflection/BoxedValue.hpp>
 
@@ -6,18 +6,18 @@ namespace Hyperion {
 
 extern BoxedValue MakeValue(const ScriptObjectData& data);
 
-Script_GC::Script_GC()
+GarbageCollector::GarbageCollector()
     : m_allocator(sizeof(BoxedValue), alignof(BoxedValue))
 {
 }
 
-Script_GC::~Script_GC()
+GarbageCollector::~GarbageCollector()
 {
     // clear all allocated memory
-    //// \todo : Need to set Script_GC index of all Values to INVALID_GC_INDEX then destruct
+    //// \todo : Need to set GarbageCollector index of all Values to INVALID_GC_INDEX then destruct
 }
 
-void Script_GC::MoveToTrackedMemory(BoxedValue& inOutRefValue)
+void GarbageCollector::MoveToTrackedMemory(BoxedValue& inOutRefValue)
 {
     AssertDebug(inOutRefValue.extData.gcIndex == INVALID_GC_INDEX);
     AssertDebug(!IsRef(inOutRefValue));

@@ -432,7 +432,7 @@
             }                                                                         \
             break;                                                                    \
         default:                                                                      \
-            vm->ThrowException(instance, Script_Exception::InvalidBitwiseArgument()); \
+            vm->ThrowException(instance, Exception::InvalidBitwiseArgument()); \
             break;                                                                    \
         }                                                                             \
     }                                                                                 \
