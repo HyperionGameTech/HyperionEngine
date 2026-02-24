@@ -1038,7 +1038,7 @@ public:
             // static member access on class reference
             cls = *classRef;
         }
-        // special case for arrays (TEMP HAX!)
+        // special case for arrays
         else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
             cls = GetClass(TypeId::ForType<ScriptArray>());

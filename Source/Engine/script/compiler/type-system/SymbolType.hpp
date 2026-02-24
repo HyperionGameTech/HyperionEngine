@@ -631,6 +631,8 @@ public:
     }
 
     bool IsVoidType() const;
+    bool IsClassType() const;
+    bool IsFieldType() const;
     bool IsNumber() const;
     bool IsIntegral() const;
     bool IsSignedIntegral() const;

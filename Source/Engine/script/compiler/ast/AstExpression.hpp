@@ -248,6 +248,17 @@ public:
         return nullptr;
     }
 
+    virtual const SymbolType* GetTargetType() const
+    {
+        const AstExpression* target = GetTarget();
+        if (target == nullptr)
+        {
+            return nullptr;
+        }
+
+        return target->GetHeldType();
+    }
+
     virtual HashCode GetHashCode() const override
     {
         return HashCode().Add(TypeName<AstExpression>());

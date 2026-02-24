@@ -19,7 +19,12 @@ class CfgLoader
 {
     static Load(configClass : Class) -> CfgBase
     {
-        return null
+        cfg := configClass.CreateInstance() as CfgBase
+
+        // @TODO read file and populate cfg
+
+
+        return cfg
     }
 }
 

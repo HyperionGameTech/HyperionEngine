@@ -264,22 +264,28 @@ protected:
 
     virtual bool CreateInstanceArray_Internal(Span<BoxedValue> elements, BoxedValue& out) const override
     {
-        Array<T> array;
-        array.Reserve(elements.Size());
-
-        for (SizeType i = 0; i < elements.Size(); i++)
+        if constexpr (std::is_copy_constructible_v<T>)
         {
-            if (!elements[i].Is<T>())
+            // ok, we need copy constructible for GenericArrayWrapper
+            Array<T> array;
+            array.Reserve(elements.Size());
+
+            for (SizeType i = 0; i < elements.Size(); i++)
             {
-                return false;
+                if (!elements[i].Is<T>())
+                {
+                    return false;
+                }
+
+                array.PushBack(std::move(elements[i].Get<T>()));
             }
 
-            array.PushBack(std::move(elements[i].Get<T>()));
+            out = BoxedValue(std::move(array));
+
+            return true;
         }
 
-        out = BoxedValue(std::move(array));
-
-        return true;
+        return false;
     }
 };
 

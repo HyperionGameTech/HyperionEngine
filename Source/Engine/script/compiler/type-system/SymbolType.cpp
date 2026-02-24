@@ -1002,6 +1002,16 @@ bool SymbolType::IsVoidType() const
     return TypeEqual(*BuiltinTypes::s_voidType);
 }
 
+bool SymbolType::IsClassType() const
+{
+    return TypeEqual(*BuiltinTypes::s_classType);
+}
+
+bool SymbolType::IsFieldType() const
+{
+    return TypeEqual(*BuiltinTypes::s_fieldType);
+}
+
 bool SymbolType::IsNumber() const
 {
     return IsIntegral() || IsFloat();

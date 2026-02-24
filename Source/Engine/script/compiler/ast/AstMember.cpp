@@ -136,7 +136,17 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
             if (isStaticMemberAccess)
             {
-                findMemberResult = m_targetType->FindStaticMember(m_fieldName, member, fieldIndex);
+                if (m_targetType == BuiltinTypes::s_classType)
+                {
+                    if ((findMemberResult = m_targetType->FindMember(m_fieldName, member, fieldIndex)))
+                    {
+                        isStaticMemberAccess = false;
+                    }
+                }
+                else
+                {
+                    findMemberResult = m_targetType->FindStaticMember(m_fieldName, member, fieldIndex);
+                }
             }
             else
             {
@@ -171,18 +181,20 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
             }
         }
 
-        if (!isStaticMemberAccess)
+        if (const SymbolType* base = m_targetType->GetBaseType())
         {
-            // continue up the base type chain for non-static member access
-            if (const SymbolType* base = m_targetType->GetBaseType())
-            {
-                m_targetType = base->GetUnaliased();
-
-                continue;
-            }
+            // continue up the base type chain.
+            m_targetType = base->GetUnaliased();
         }
-
-        break;
+        else if (m_targetType->IsObject() && m_targetType != BuiltinTypes::s_classType)
+        {
+            // Finally, allow for member calls to the base Class type. Used for stuff like (GetName(), CreateInstance(), etc.)
+            m_targetType = BuiltinTypes::s_classType;
+        }
+        else
+        {
+            break;
+        }
     }
 
     Assert(m_targetType != nullptr);
@@ -216,6 +228,8 @@ void AstMember::Visit(AstVisitor* visitor, Module* mod)
 
 UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
 {
+    Assert(m_targetType != nullptr);
+
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     if (m_typeSpec != nullptr)
@@ -225,10 +239,8 @@ UniquePtr<Buildable> AstMember::Build(AstVisitor* visitor, Module* mod)
 
     const bool isStaticMember = m_isStaticField || m_isStaticMethod;
 
-    if (isStaticMember)
+    if (isStaticMember || m_targetType->IsClassType())
     {
-        Assert(m_targetType != nullptr);
-
         const uint8 rp = visitor->GetCompilationUnit()->GetInstructionStream().GetCurrentRegister();
 
         const String& className = BuiltinTypes::GetNativeClassNameForType(m_targetType);
@@ -314,6 +326,11 @@ const SymbolType* AstMember::GetHeldType() const
 const AstExpression* AstMember::GetValueOf() const
 {
     return AstExpression::GetValueOf();
+}
+
+const SymbolType* AstMember::GetTargetType() const
+{
+    return m_targetType;
 }
 
 const AstExpression* AstMember::GetDeepValueOf() const

@@ -8,13 +8,21 @@ Fps : double = 0.0
 Accum : double = 0.0
 Counter : int = 0
 
-//Global := CfgLoader.Load(GlobalCfg) as GlobalCfg
-//Logger.LogScript(Channel, LogLevel.Info, "Global config = " + string(Global))
+Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg class = " + string(GlobalCfg.GetName()) + " GlobalCfg IsDerivedFrom CfgBase = " + string(GlobalCfg.IsDerivedFrom(CfgBase)))
 
-Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg class = " + string(GlobalCfg))
+Global := CfgLoader.Load(GlobalCfg) as GlobalCfg
+Logger.LogScript(Channel, LogLevel.Info, "Global config = " + string(Global))
 
 tmpArray := [1, 2, 3]
 Logger.LogScript(Channel, LogLevel.Info, "tmpArray size: " + string(tmpArray.Size()))
+
+Global.App = new AppCfg()
+Global.App.Name = "TestApp"
+
+f := GlobalCfg.GetField(#App)
+Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field = " + string(f))
+appValue := f.GetValue(Global) as AppCfg
+Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field value = " + string(appValue))
 
 EngineDriver.Breakpoint()
 

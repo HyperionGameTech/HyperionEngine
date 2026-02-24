@@ -37,6 +37,7 @@ public:
 
     virtual const SymbolType* GetExprType() const override;
     virtual const SymbolType* GetHeldType() const override;
+    virtual const SymbolType* GetTargetType() const override;
 
     virtual const AstExpression* GetValueOf() const override;
     virtual const AstExpression* GetDeepValueOf() const override;

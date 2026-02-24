@@ -19,8 +19,11 @@
 namespace Hyperion {
 
 // Class names to use for overrides for built in types.
+// (see: GetNativeClassNameForType() below)
 static const String s_stringClassName = "String";
 static const String s_nameClassName = "Name";
+static const String s_classRefClassName = "ClassRef";
+static const String s_fieldRefClassName = "FieldRef";
 
 const SymbolType* BuiltinTypes::s_primitiveType = new SymbolType(
     "<primitive>",
@@ -46,6 +49,13 @@ const SymbolType* BuiltinTypes::s_anyType = new SymbolType(
 const SymbolType* BuiltinTypes::s_classType = new SymbolType(
     "Class",
     TYPE_BUILTIN,
+    nullptr,
+    nullptr,
+    {}, {});
+
+const SymbolType* BuiltinTypes::s_fieldType = new SymbolType(
+    "Field",
+    TYPE_STRUCT,
     nullptr,
     nullptr,
     {}, {});
@@ -402,6 +412,174 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
                     { "val", BuiltinTypes::s_stringType } } }) });
 #pragma endregion Name
 
+#pragma region Field
+    SymbolType* fieldTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_fieldType);
+
+    fieldTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "GetName",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_nameType },
+                    { "self", BuiltinTypes::s_fieldType } } }) });
+
+    fieldTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "GetValue",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_anyType },
+                    { "self", BuiltinTypes::s_fieldType },
+                    { "target", BuiltinTypes::s_objectType } } }) });
+
+    fieldTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "SetValue",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_voidType },
+                    { "self", BuiltinTypes::s_fieldType },
+                    { "target", BuiltinTypes::s_objectType },
+                    { "value", BuiltinTypes::s_anyType } } }) });
+
+#pragma endregion Field
+
+#pragma region Class
+    SymbolType* classTypeNonConst = const_cast<SymbolType*>(BuiltinTypes::s_classType);
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsValid",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "GetName",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_nameType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "GetSize",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_uint64Type },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "GetField",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_fieldType },
+                    { "self", BuiltinTypes::s_classType },
+                    { "name", BuiltinTypes::s_nameType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsClassType",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsStructType",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsEnumType",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsPodType",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsAbstract",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsDynamic",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsDerivedFrom",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType },
+                    { "other", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "IsBaseOf",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType },
+                    { "other", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "CanCreateInstance",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_boolType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+
+    classTypeNonConst->GetMembers().PushBack(SymbolTypeMember {
+        "CreateInstance",
+        SymbolType::GenericInstance(
+            BuiltinTypes::s_functionType,
+            {}, {},
+            GenericInstanceTypeInfo {
+                { { "@return", BuiltinTypes::s_anyType },
+                    { "self", BuiltinTypes::s_classType } } }) });
+#pragma endregion Class
+
 #define REGISTER_GLOBAL_TYPE(type)                                      \
     do                                                                  \
     {                                                                   \
@@ -413,7 +591,6 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_primitiveType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_errorType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_anyType);
-    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_classType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_placeholderType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_voidType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_objectType);
@@ -439,6 +616,8 @@ void BuiltinTypes::Initialize(CompilationUnit* globalCompilationUnit)
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_functionType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_arrayType);
     REGISTER_GLOBAL_TYPE(BuiltinTypes::s_mapType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_fieldType);
+    REGISTER_GLOBAL_TYPE(BuiltinTypes::s_classType);
 
 #undef REGISTER_GLOBAL_TYPE
 }
@@ -549,7 +728,6 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     const SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
-        BuiltinTypes::s_classType,
         BuiltinTypes::s_objectType,
         BuiltinTypes::s_voidType,
         BuiltinTypes::s_int8Type,
@@ -568,6 +746,8 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
         BuiltinTypes::s_functionType,
         BuiltinTypes::s_arrayType,
         BuiltinTypes::s_mapType,
+        BuiltinTypes::s_fieldType,
+        BuiltinTypes::s_classType,
         intType,
         uintType,
         uintptrType,
@@ -606,6 +786,16 @@ const String& BuiltinTypes::GetNativeClassNameForType(const SymbolType* type)
     if (type->IsName())
     {
         return s_nameClassName;
+    }
+
+    if (type->IsClassType())
+    {
+        return s_classRefClassName;
+    }
+
+    if (type->IsFieldType())
+    {
+        return s_fieldRefClassName;
     }
 
     return type->GetName();

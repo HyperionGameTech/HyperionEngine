@@ -18,6 +18,7 @@ struct BuiltinTypes
     static const SymbolType* s_mapBaseType; // non-generic map type
     static const SymbolType* s_anyType;
     static const SymbolType* s_classType;
+    static const SymbolType* s_fieldType;
     static const SymbolType* s_placeholderType;
     static const SymbolType* s_voidType;
     static const SymbolType* s_int8Type;

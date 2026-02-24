@@ -55,17 +55,22 @@ void AstCallExpression::Visit(AstVisitor* visitor, Module* mod)
         const AstExpression* valueOf = m_expr->GetValueOf();
         Assert(valueOf != nullptr);
 
-        if (const AstExpression* leftTarget = m_expr->GetTarget())
+        const AstExpression* target = m_expr->GetTarget();
+
+        if (target != nullptr)
         {
-            if (leftTarget->GetHeldType() != nullptr)
+            const SymbolType* targetType = m_expr->GetTargetType();
+            Assert(targetType != nullptr);
+
+            if (!targetType->IsClassType() && target->GetHeldType() != nullptr)
             {
                 // static call, don't insert self
                 m_insertSelf = false;
             }
             else
             {
-                //// \todo : Store self in a temporary variable instead of cloning so we don't evaluate it multiple times
-                RC<AstExpression> selfTarget = CloneAstNode(leftTarget);
+                /// \todo : Store self in a temporary variable instead of cloning so we don't evaluate it multiple times
+                RC<AstExpression> selfTarget = CloneAstNode(target);
                 Assert(selfTarget != nullptr);
 
                 RC<AstArgument> selfArg(new AstArgument(
