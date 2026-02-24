@@ -601,6 +601,7 @@ public:
         bool strictAny,
         bool strictEnum,
         bool strictNull,
+        bool strictDownCasting,
         SymbolTypeIncompatibilities* outIncompatibilities = nullptr) const;
 
     const SymbolType* FindMember(UTF8StringView name) const;

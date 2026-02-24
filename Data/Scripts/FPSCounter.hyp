@@ -1,22 +1,33 @@
-import Lib::{Logger,LogChannel,LogLevel, EngineDriver};
+import Lib::{Logger,LogChannel,LogLevel, EngineDriver}
+import CfgLoader::{*}
 
-Logger := Logger.MakeScriptLogger();
-Channel := new LogChannel();
+Logger := Logger.MakeScriptLogger()
+Channel := new LogChannel()
 
-Fps : double = 0.0;
-Accum : double = 0.0;
-Counter : int = 0;
+Fps : double = 0.0
+Accum : double = 0.0
+Counter : int = 0
+
+//Global := CfgLoader.Load(GlobalCfg) as GlobalCfg
+//Logger.LogScript(Channel, LogLevel.Info, "Global config = " + string(Global))
+
+Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg class = " + string(GlobalCfg))
+
+tmpArray := [1, 2, 3]
+Logger.LogScript(Channel, LogLevel.Info, "tmpArray size: " + string(tmpArray.Size()))
+
+EngineDriver.Breakpoint()
 
 export func Update(DeltaTime : float)
 {
-    Accum += DeltaTime;
-    Counter++;
+    Accum += DeltaTime
+    Counter++
     if (Accum >= 1.0)
     {
-        Fps = (Counter as double) / Accum;
-        Accum = 0.0;
-        Counter = 0;
+        Fps = (Counter as double) / Accum
+        Accum = 0.0
+        Counter = 0
     }
 
-    Logger.LogScript(Channel, LogLevel.Info, "fps: " + string(Fps)); //string(EngineDriver.GetInstance().GetDefaultWorld().GetGameState().GameTime));
-};
+    // Logger.LogScript(Channel, LogLevel.Info, "fps: " + string(Fps))
+}

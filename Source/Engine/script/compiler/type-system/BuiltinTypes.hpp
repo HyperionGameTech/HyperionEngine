@@ -45,6 +45,8 @@ struct BuiltinTypes
      */
     static void Initialize(CompilationUnit* globalCompilationUnit);
     static void RegisterTypes(CompilationUnit* compilationUnit);
+
+    static const String& GetNativeClassNameForType(const SymbolType* type);
 };
 
 } // namespace Hyperion

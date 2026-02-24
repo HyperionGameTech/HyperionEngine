@@ -207,7 +207,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                                  /* strictNumbers */ true,
                                  /* strictAny */ false,
                                  /* strictEnum */ true,
-                                 /* strictNull */ true))
+                                 /* strictNull */ true,
+                                 /* strictDownCasting */ true))
                     {
                         needsCast = true;
                     }
@@ -239,7 +240,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                                  /* strictNumbers */ false,
                                  /* strictAny */ false,
                                  /* strictEnum */ false,
-                                 /* strictNull */ true))
+                                 /* strictNull */ true,
+                                 /* strictDownCasting */ true))
                     {
                         m_returnType = SymbolType::TypePromotion(m_returnType, symbolType);
                         needsCast = true;
@@ -278,7 +280,8 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
                                     /* strictNumbers */ true,
                                     /* strictAny */ false,
                                     /* strictEnum */ true,
-                                    /* strictNull */ true))
+                                    /* strictNull */ true,
+                                    /* strictDownCasting */ true))
                             {
                                 needsCast = true;
                             }

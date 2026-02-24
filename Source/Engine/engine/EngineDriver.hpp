@@ -124,6 +124,9 @@ public:
     void RequestStop();
     void FinalizeStop();
 
+    HYP_METHOD(Description = "Triggers a breakpoint if a debugger is attached. Does nothing if no debugger is attached.")
+    static void Breakpoint();
+
     Delegate<void, World*> OnCurrentWorldChanged;
 
 private:

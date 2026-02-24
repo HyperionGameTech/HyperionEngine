@@ -32,17 +32,11 @@
 
 #include <iostream>
 
-// Enable to disable optimizations in script operations.
-// Makes it easier to debug scripts, but slower.
+#if defined(HYP_DEBUG_MODE) && !defined(HYP_SCRIPT_NOOPT)
 #define HYP_SCRIPT_NOOPT 1
-
-#ifndef HYP_DEBUG_MODE
-#ifdef HYP_SCRIPT_NOOPT
-#undef HYP_SCRIPT_NOOPT // disable noopt in release builds
-#endif
 #endif
 
-#if HYP_SCRIPT_NOOPT
+#if defined(HYP_SCRIPT_NOOPT) && HYP_SCRIPT_NOOPT
 #define SCRIPT_INLINE
 #else
 #define SCRIPT_INLINE HYP_FORCE_INLINE
@@ -87,7 +81,7 @@ static constexpr TypeId s_typeIdU64 { CONSTEXPR_TYPE_ID(uint64) };
 static constexpr TypeId s_typeIdF32 { CONSTEXPR_TYPE_ID(float32) };
 static constexpr TypeId s_typeIdF64 { CONSTEXPR_TYPE_ID(float64) };
 static constexpr TypeId s_typeIdBool { CONSTEXPR_TYPE_ID(bool) };
-static constexpr TypeId s_typeIdString { CONSTEXPR_TYPE_ID(Script_String) };
+static constexpr TypeId s_typeIdString { CONSTEXPR_TYPE_ID(ScriptString) };
 static constexpr TypeId s_typeIdArray { CONSTEXPR_TYPE_ID(ScriptArray) };
 
 // clang-format off
@@ -104,7 +98,7 @@ static const HashMap<TypeId, String (*)(const void*)> s_builtinToStringFunctions
     { s_typeIdF32, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const float*>(p)); } },
     { s_typeIdF64, [](const void* p) -> String { return HYP_FORMAT("{}", *reinterpret_cast<const double*>(p)); } },
     { s_typeIdBool, [](const void* p) -> String { return s_boolStrings[*reinterpret_cast<const bool*>(p) ? 1 : 0]; } },
-    { s_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const Script_String*>(p); } }
+    { s_typeIdString, [](const void* p) -> String { return *reinterpret_cast<const ScriptString*>(p); } }
 };
 
 static const HashMap<TypeId, const char*> s_builtinTypeNames = {
@@ -307,11 +301,11 @@ const char* GetTypeString(const BoxedValue& data)
     return GetTypeString(*data.GetTypeInfo());
 }
 
-bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDepth, int currDepth)
+bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth, int currDepth)
 {
     if (currDepth >= maxDepth && maxDepth >= 0)
     {
-        outString = Script_String("...");
+        outString = ScriptString("...");
         return true;
     }
 
@@ -321,7 +315,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
 
     if (!data.IsValid())
     {
-        outString = Script_String(s_nullString);
+        outString = ScriptString(s_nullString);
 
         return true;
     }
@@ -329,7 +323,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
     auto formatIt = s_builtinToStringFunctions.Find(data.GetTypeId());
     if (formatIt != s_builtinToStringFunctions.End())
     {
-        outString = Script_String(formatIt->second(data.ToRef().GetPointer()));
+        outString = ScriptString(formatIt->second(data.ToRef().GetPointer()));
 
         return true;
     }
@@ -347,7 +341,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
             {
                 if (i > 0)
                 {
-                    outString += Script_String(", ");
+                    outString += ScriptString(", ");
                 }
 
                 AnyRef elementRef = arrayWrapper->GetElementAt(i);
@@ -367,7 +361,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
                 }
                 else
                 {
-                    outString += Script_String("<Error accessing element>");
+                    outString += ScriptString("<Error accessing element>");
                 }
             }
 
@@ -375,7 +369,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
         }
         else
         {
-            outString = Script_String("Array" + HYP_FORMAT(" (size = {})", arraySize));
+            outString = ScriptString("Array" + HYP_FORMAT(" (size = {})", arraySize));
         }
 
         return true;
@@ -394,7 +388,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
         {
             if (i > 0)
             {
-                outString += Script_String(", ");
+                outString += ScriptString(", ");
             }
             outString += ValueToString(*kv.first.key.GetHypData(), currDepth + 1);
             outString += " => ";
@@ -414,7 +408,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
         {
             BoxedValue result = toStringMethod->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&data), 1 });
 
-            if (const Script_String* str = result.TryGet<Script_String>().TryGet())
+            if (const ScriptString* str = result.TryGet<ScriptString>().TryGet())
             {
                 outString = *str;
 
@@ -423,7 +417,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
 
             if (const String* str = result.TryGet<String>().TryGet())
             {
-                outString = Script_String(*str);
+                outString = ScriptString(*str);
 
                 return true;
             }
@@ -447,7 +441,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
         // if the class name is too long, dynamically allocate a larger buffer
         if (n < 0)
         {
-            outString = Script_String("<Error formatting object>");
+            outString = ScriptString("<Error formatting object>");
 
             return true;
         }
@@ -470,12 +464,12 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
             {
                 ScriptFree(newBuf);
 
-                outString = Script_String("<Error formatting object>");
+                outString = ScriptString("<Error formatting object>");
 
                 return true;
             }
 
-            Script_String result(newBuf);
+            ScriptString result(newBuf);
             ScriptFree(newBuf);
 
             outString = result;
@@ -483,7 +477,7 @@ bool StringifyData(const BoxedValue& data, Script_String& outString, int maxDept
             return true;
         }
 
-        outString = Script_String(buf);
+        outString = ScriptString(buf);
 
         return true;
     }
@@ -495,7 +489,7 @@ String ValueToString(const BoxedValue& data, int currDepth)
 {
     static constexpr int maxDepth = 3;
 
-    Script_String result("<error>");
+    ScriptString result("<error>");
     if (StringifyData(data, result, maxDepth, currDepth))
     {
         return result;
@@ -510,26 +504,26 @@ String ValueToString(const BoxedValue& data, int currDepth)
         switch (vmData->type)
         {
         case Script_VMData::VALUE_REF:
-            return Script_String("<Reference>");
+            return ScriptString("<Reference>");
         case Script_VMData::FUNCTION:
-            return Script_String("<Function>");
+            return ScriptString("<Function>");
         case Script_VMData::NATIVE_FUNCTION:
-            return Script_String("<Native Function>");
+            return ScriptString("<Native Function>");
         case Script_VMData::ADDRESS:
             std::snprintf(buf, bufSize, "<Function address @ %p>", (void*)vmData->func.m_addr);
-            return Script_String(buf);
+            return ScriptString(buf);
         case Script_VMData::FUNCTION_CALL:
-            return Script_String("<Stack frame>");
+            return ScriptString("<Stack frame>");
         case Script_VMData::TRY_CATCH_INFO:
-            return Script_String("<Try catch info>");
+            return ScriptString("<Try catch info>");
         case Script_VMData::INVALID_STATE_OBJECT:
-            return Script_String("<Invalid>");
+            return ScriptString("<Invalid>");
         default:
             HYP_UNREACHABLE();
         }
     }
 
-    return Script_String(HYP_FORMAT("<{} @ {}>", GetTypeString(data), data.ToRef().GetPointer()));
+    return ScriptString(HYP_FORMAT("<{} @ {}>", GetTypeString(data), data.ToRef().GetPointer()));
 }
 
 #pragma endregion ScriptApi
@@ -694,7 +688,7 @@ public:
 
     SCRIPT_INLINE void OpLoadConstantString(RegisterIndex reg, uint32 len, const char* str)
     {
-        instance->thread.m_regs[reg] = MakeValue(str != nullptr ? Script_String(str, str + len) : Script_String());
+        instance->thread.m_regs[reg] = MakeValue(str != nullptr ? ScriptString(str, str + len) : ScriptString());
     }
 
     SCRIPT_INLINE void OpLoadAddr(RegisterIndex reg, Script_FunctionAddress addr)
@@ -2402,7 +2396,7 @@ public:
         // load value from register
         BoxedValue& value = *Deref(instance->thread.m_regs[src]);
 
-        const Script_String* pString = nullptr;
+        const ScriptString* pString = nullptr;
 
         if (!GetString(value, &pString))
         {

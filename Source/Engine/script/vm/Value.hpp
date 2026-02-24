@@ -209,7 +209,7 @@ extern NumericType GetNumericType(const BoxedValue& data);
 
 extern bool GetBoolean(const BoxedValue& data, bool* out);
 
-extern bool GetString(const BoxedValue& data, const Script_String** out);
+extern bool GetString(const BoxedValue& data, const ScriptString** out);
 
 extern const Handle<ObjectBase>& GetObject(const BoxedValue& data);
 

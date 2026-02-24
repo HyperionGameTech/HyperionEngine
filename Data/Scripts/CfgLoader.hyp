@@ -1,0 +1,42 @@
+class CfgBase
+{
+    CfgBase()
+    {
+    }
+
+    Load() -> bool
+    {
+        return false
+    }
+
+    Save() -> bool
+    {
+        return false
+    }
+}
+
+class CfgLoader
+{
+    static Load(configClass : Class) -> CfgBase
+    {
+        return null
+    }
+}
+
+class GlobalCfg : CfgBase
+{
+    App = new AppCfg()
+}
+
+class CacheCfg : CfgBase
+{
+    BaseDirectory : string
+    PageSize : uint64
+}
+
+class AppCfg : CfgBase
+{
+    Name : string
+    Args : string
+    Cache = new CacheCfg()
+}

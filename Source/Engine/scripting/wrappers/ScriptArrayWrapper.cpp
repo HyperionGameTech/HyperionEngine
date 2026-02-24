@@ -18,8 +18,6 @@ using ScriptArray = Array<BoxedValue, ScriptAllocator>;
 
 HYP_API const Class* g_clsScriptArray = nullptr;
 
-/// FIXME: Should Wrap GenericArrayWrapper
-
 // clang-format off
 HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
     Method(NAME("Size"), &Type::Size),

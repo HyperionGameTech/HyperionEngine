@@ -242,7 +242,8 @@ void AstBinaryExpression::Visit(AstVisitor* visitor, Module* mod)
                 /* strictNumbers */ false,
                 /* strictAny */ false,
                 /* strictEnum */ false,
-                /* strictNull */ true))
+                /* strictNull */ true,
+                /* strictDownCasting */ true))
         {
             visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                 LEVEL_ERROR,

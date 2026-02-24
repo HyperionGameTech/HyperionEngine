@@ -45,7 +45,8 @@ void AstIsExpression::Visit(AstVisitor* visitor, Module* mod)
                     /* strictNumbers */ true,
                     /* strictAny */ false,
                     /* strictEnum */ true,
-                    /* strictNull */ true))
+                    /* strictNull */ true,
+                    /* strictDownCasting */ true))
             {
                 m_isType = TRI_TRUE;
             }

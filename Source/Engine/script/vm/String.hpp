@@ -4,6 +4,6 @@
 
 namespace Hyperion {
 
-using Script_String = String;
+using ScriptString = String;
 
 } // namespace Hyperion

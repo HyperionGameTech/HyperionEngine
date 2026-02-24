@@ -18,6 +18,10 @@
 
 namespace Hyperion {
 
+// Class names to use for overrides for built in types.
+static const String s_stringClassName = "String";
+static const String s_nameClassName = "Name";
+
 const SymbolType* BuiltinTypes::s_primitiveType = new SymbolType(
     "<primitive>",
     TYPE_BUILTIN,
@@ -40,7 +44,7 @@ const SymbolType* BuiltinTypes::s_anyType = new SymbolType(
     {}, {});
 
 const SymbolType* BuiltinTypes::s_classType = new SymbolType(
-    "<class>",
+    "Class",
     TYPE_BUILTIN,
     nullptr,
     nullptr,
@@ -545,6 +549,7 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
 
     const SymbolType* const s_globalVisibleTypes[] {
         BuiltinTypes::s_anyType,
+        BuiltinTypes::s_classType,
         BuiltinTypes::s_objectType,
         BuiltinTypes::s_voidType,
         BuiltinTypes::s_int8Type,
@@ -583,6 +588,27 @@ void BuiltinTypes::RegisterTypes(CompilationUnit* compilationUnit)
     {
         table.AddSymbolType(const_cast<SymbolType*>(type));
     }
+}
+
+const String& BuiltinTypes::GetNativeClassNameForType(const SymbolType* type)
+{
+    if (!type)
+    {
+        return String::empty;
+    }
+
+    // Handle builtin types
+    if (type->IsString())
+    {
+        return s_stringClassName;
+    }
+
+    if (type->IsName())
+    {
+        return s_nameClassName;
+    }
+
+    return type->GetName();
 }
 
 } // namespace Hyperion

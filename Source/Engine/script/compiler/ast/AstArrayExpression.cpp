@@ -86,7 +86,8 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
                      /* strictNumbers */ false,
                      /* strictAny */ false,
                      /* strictEnum */ false,
-                     /* strictNull */ true))
+                     /* strictNull */ true,
+                     /* strictDownCasting */ true))
         { // allow non-strict numbers because we can do a cast
             m_heldType = SymbolType::TypePromotion(m_heldType, it);
         }

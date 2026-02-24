@@ -83,7 +83,8 @@ void AstParameter::Visit(AstVisitor* visitor, Module* mod)
                     /* strictNumbers */ true,
                     /* strictAny */ true,
                     /* strictEnum */ true,
-                    /* strictNull */ true))
+                    /* strictNull */ true,
+                    /* strictDownCasting */ true))
             {
                 visitor->GetCompilationUnit()->GetErrorList().AddError(CompilerError(
                     LEVEL_ERROR,

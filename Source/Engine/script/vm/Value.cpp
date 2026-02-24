@@ -33,7 +33,7 @@ static const TypeId g_typeIdU64 = TypeId::ForType<uint64>();
 static const TypeId g_typeIdF32 = TypeId::ForType<float32>();
 static const TypeId g_typeIdF64 = TypeId::ForType<float64>();
 static const TypeId g_typeIdBool = TypeId::ForType<bool>();
-static const TypeId g_typeIdString = TypeId::ForType<Script_String>();
+static const TypeId g_typeIdString = TypeId::ForType<ScriptString>();
 
 static inline ValueStorage<BoxedValue> MakeGarbageValue()
 {
@@ -427,16 +427,16 @@ bool GetBoolean(const BoxedValue& data, bool* out)
     return true;
 }
 
-bool GetString(const BoxedValue& data, const Script_String** out)
+bool GetString(const BoxedValue& data, const ScriptString** out)
 {
     AssertDebug(out != nullptr);
 
-    if (!data.Is<Script_String>(true))
+    if (!data.Is<ScriptString>(true))
     {
         return false;
     }
 
-    *out = &data.Get<Script_String>();
+    *out = &data.Get<ScriptString>();
 
     return true;
 }
@@ -509,13 +509,13 @@ String ToString(const BoxedValue& data)
         {
             if (IsRef(*ref))
             {
-                return Script_String(g_referenceString);
+                return ScriptString(g_referenceString);
             }
 
             return ToString(*ref);
         }
 
-        return Script_String(g_nullString);
+        return ScriptString(g_nullString);
     }
 
     return ValueToString(data);

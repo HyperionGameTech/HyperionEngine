@@ -448,6 +448,7 @@ bool SymbolType::TypeCompatible(
     bool strictAny,
     bool strictEnum,
     bool strictNull,
+    bool strictDownCasting,
     SymbolTypeIncompatibilities* outIncompatibilities) const
 {
     if (m_typeClass == TYPE_ALIAS)
@@ -467,6 +468,7 @@ bool SymbolType::TypeCompatible(
             strictAny,
             strictEnum,
             strictNull,
+            strictDownCasting,
             outIncompatibilities);
     }
 
@@ -487,6 +489,7 @@ bool SymbolType::TypeCompatible(
             strictAny,
             strictEnum,
             strictNull,
+            strictDownCasting,
             outIncompatibilities);
     }
 
@@ -505,6 +508,11 @@ bool SymbolType::TypeCompatible(
     // check object inheritance (left is base of right)
     if (IsObject() && right.IsObject())
     {
+        if (!strictDownCasting && IsOrHasBase(right))
+        {
+            return true;
+        }
+
         if (right.IsOrHasBase(*this))
         {
             return true;
@@ -553,7 +561,14 @@ bool SymbolType::TypeCompatible(
 
                 if (arrayElemType && varArgsElemType)
                 {
-                    return arrayElemType->TypeCompatible(*varArgsElemType, strictNumbers, strictAny, strictEnum, strictNull, outIncompatibilities);
+                    return arrayElemType->TypeCompatible(
+                        *varArgsElemType,
+                        strictNumbers,
+                        strictAny,
+                        strictEnum,
+                        strictNull,
+                        strictDownCasting,
+                        outIncompatibilities);
                 }
             }
         }
@@ -614,6 +629,7 @@ bool SymbolType::TypeCompatible(
             strictAny,
             strictEnum,
             strictNull,
+            strictDownCasting,
             outIncompatibilities);
     }
 
@@ -636,6 +652,7 @@ bool SymbolType::TypeCompatible(
             strictAny,
             strictEnum,
             strictNull,
+            strictDownCasting,
             outIncompatibilities);
     }
 

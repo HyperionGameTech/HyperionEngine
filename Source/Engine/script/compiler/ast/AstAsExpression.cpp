@@ -88,6 +88,7 @@ void AstAsExpression::Visit(AstVisitor* visitor, Module* mod)
             /* strictAny */ false,
             /* strictEnum */ false,
             /* strictNull */ true,
+            /* strictDownCasting */ false,
             &incompatibilities))
     {
         if (incompatibilities.Any())

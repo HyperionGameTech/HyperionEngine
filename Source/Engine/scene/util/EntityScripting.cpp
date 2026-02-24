@@ -38,6 +38,8 @@ namespace CoreApi {
 extern FilePath GetExecutablePath();
 } // namespace CoreApi
 
+extern const FilePath& GetDataDirectory();
+
 template <class ReturnType, class... ArgTypes>
 static void InvokeScriptMethodT(ReturnType* outReturnValue, ScriptObjectResource* sor, const char* methodName, ArgTypes&&... args)
 {
@@ -323,7 +325,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                 auto resGuard = scriptAsset->GetReadScope();
 
                 // @FIXME: Use proper path resolution. Should use asset system instead of filesystem directly.
-                FilePath path = FilePath::Join(CoreApi::GetExecutablePath(), scriptDesc.path.Data());
+                FilePath path = GetDataDirectory() / "Scripts" / String(scriptDesc.path.Data());
 
                 if (!path.Exists() || !path.CanRead())
                 {

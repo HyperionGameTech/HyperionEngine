@@ -930,7 +930,7 @@ bool AstClass::MayHaveSideEffects() const
 
 const SymbolType* AstClass::GetExprType() const
 {
-    return BuiltinTypes::s_voidType;
+    return BuiltinTypes::s_classType;
 }
 
 const SymbolType* AstClass::GetHeldType() const
