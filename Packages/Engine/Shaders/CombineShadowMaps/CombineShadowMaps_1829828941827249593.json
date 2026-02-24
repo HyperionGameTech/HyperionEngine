@@ -87,11 +87,11 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/CombineShadowMaps/CombineShadowMaps_1829828941827249593.VS",
-      "Size": 1284
+      "Size": 1596
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/CombineShadowMaps/CombineShadowMaps_1829828941827249593.PS",
-      "Size": 2520
+      "Size": 2980
     }],
   "PropertySetHashCode": {},
   "Name": "CombineShadowMaps_1829828941827249593",

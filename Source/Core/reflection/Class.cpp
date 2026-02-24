@@ -38,6 +38,11 @@
 #include <Core/serialization/fbom/FBOMMarshaler.hpp>
 
 namespace Hyperion {
+
+#ifdef HYP_SCRIPT
+extern Pool* g_scriptPool;
+#endif
+
 namespace Attributes {
 
 const Name g_attrSerialize = NAME("serialize");
@@ -1346,7 +1351,6 @@ DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class
     }
 
     m_parent = parentClass;
-    m_parentName = parentClass->GetName();
 
     if (m_parent)
     {
@@ -1433,8 +1437,16 @@ DynamicClassInstance::DynamicClassInstance(
 
     m_objectContainer = &GetObjectContainerMap().GetOrCreate(m_typeId, this, [](const Class* thisClass) -> ObjectContainerBase*
         {
-            return new ObjectContainer<ObjectBase>(thisClass);
+            ObjectContainer<ObjectBase>* container = new ObjectContainer<ObjectBase>(thisClass);
+
+            // we use the Script pool for allocating instances of dynamic classes when HYP_SCRIPT is enabled
+            Assert(g_scriptPool != nullptr);
+            container->SetPool(g_scriptPool);
+
+            return container;
         });
+
+    Assert(m_objectContainer != nullptr);
 }
 #endif
 
@@ -1618,7 +1630,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     }
 #endif
 
-#if 0 // def HYP_SCRIPT
+#ifdef HYP_SCRIPT
     if (IsEnumType())
     {
         HYP_NOT_IMPLEMENTED(); // enum instance creation not yet implemented for scripts
@@ -1652,7 +1664,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
     PushGlobalContext(ObjectInitializerContext { .cls = this, .flags = ObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
-    ObjectHeader* header = container->Allocate(m_size);
+    ObjectHeader* header = reinterpret_cast<ObjectHeader*>(reinterpret_cast<UIntPtr>(container->Allocate(m_size)) - sizeof(ObjectHeader));
     header->cls = this;
 
     ObjectBase* target = ObjectHeader::GetObjectPointer(header);

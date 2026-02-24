@@ -27,6 +27,7 @@ public:
     static Script_Exception InvalidOperationException(const char* opName,
         const char* leftTypeStr, const char* rightTypeStr);
     static Script_Exception InvalidOperationException(const char* opName, const char* typeStr);
+    static Script_Exception InvalidNewException(const char* typeStr);
     static Script_Exception InvalidCastException(const char* fromTypeStr, const char* toTypeStr);
     static Script_Exception InvalidBitwiseArgument();
     static Script_Exception InvalidArgsException(int expected, int received, bool variadic = false);

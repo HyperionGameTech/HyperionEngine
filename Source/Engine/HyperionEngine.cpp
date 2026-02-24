@@ -510,7 +510,6 @@ extern "C"
         GetObjectContainerMap().Shutdown();
 
         // Pools / arenas
-
         delete g_sceneArena;
         g_sceneArena = nullptr;
 

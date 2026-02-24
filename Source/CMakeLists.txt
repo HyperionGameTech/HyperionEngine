@@ -103,8 +103,8 @@ endfunction()
 # Run CodeGen with version 0.9
 RunCodeGen(0 9)
 
-# add_definitions(-DHYP_DEBUG_MODE=1)
-# set(HYP_DEBUG_MODE 1)
+add_definitions(-DHYP_DEBUG_MODE=1)
+set(HYP_DEBUG_MODE 1)
 
 # set HYPERION_ENGINE to 1 (used to differentiate between engine and build tool or other executables using core lib)
 add_definitions(-DHYPERION_ENGINE=1)

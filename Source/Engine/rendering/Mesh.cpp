@@ -408,27 +408,24 @@ void Mesh::UploadGpuData()
                 return {};
             }
 
-            const SizeType packedBufferSize = vertices.ByteSize();
+            constexpr SizeType StagingBufferAlignment = 16;
+
+            const SizeType packedVerticesSize = vertices.ByteSize();
             const SizeType packedIndicesSize = indices.ByteSize();
 
-            GpuBufferRef stagingBufferVertices = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedBufferSize);
-            CheckResult(stagingBufferVertices->Create());
-            stagingBufferVertices->Copy(packedBufferSize, vertices.Data());
-
-            GpuBufferRef stagingBufferIndices = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-            CheckResult(stagingBufferIndices->Create());
-            stagingBufferIndices->Copy(packedIndicesSize, indices.Data());
+            const SizeType bufferSizeCombined = ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment) + packedIndicesSize;
 
             Frame* frame = g_renderInterface->GetCurrentFrame();
+
+            GpuBuffer* stagingBuffer = g_renderInterface->stagingBufferPool->AcquireStagingBuffer(frame->GetFrameIndex(), 0, bufferSizeCombined);
+            stagingBuffer->Copy(packedVerticesSize, vertices.Data());
+            stagingBuffer->Copy(ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), packedIndicesSize, indices.Data());
 
             // use prerender queue to copy from staging buffers to gpu buffers
             RenderQueue& renderQueue = frame->preRenderQueue;
 
-            renderQueue << CopyBuffer(stagingBufferVertices, vertexBuffer, packedBufferSize);
-            renderQueue << CopyBuffer(stagingBufferIndices, indexBuffer, packedIndicesSize);
-
-            EnqueueDeletion(std::move(stagingBufferVertices));
-            EnqueueDeletion(std::move(stagingBufferIndices));
+            renderQueue << CopyBuffer(stagingBuffer, vertexBuffer, packedVerticesSize);
+            renderQueue << CopyBuffer(stagingBuffer, indexBuffer, ByteUtil::AlignAs(packedVerticesSize, StagingBufferAlignment), 0, packedIndicesSize);
 
             if (mesh->m_vertexBuffer != vertexBuffer)
             {
@@ -454,8 +451,8 @@ void Mesh::ReleaseGpuData()
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    EnqueueDeletion(std::move(m_vertexBuffer));
-    EnqueueDeletion(std::move(m_indexBuffer));
+    m_vertexBuffer.Reset();
+    m_indexBuffer.Reset();
 
     gpuUploadSemaphore.Reset();
 }

@@ -59,6 +59,16 @@ public:
         return m_class;
     }
 
+    HYP_FORCE_INLINE Pool* GetPool() const
+    {
+        return m_pool;
+    }
+
+    HYP_FORCE_INLINE void SetPool(Pool* pool)
+    {
+        m_pool = pool;
+    }
+
     virtual void Initialize() = 0;
 
     virtual ObjectHeader* GetObjectHeader(uint32 index, TLockGuard<AtomicFlag>& outGuard) = 0;
@@ -242,7 +252,10 @@ public:
     
     void Initialize() override
     {
-        m_pool = T::GetAllocator();
+        if (!m_pool)
+        {
+            m_pool = T::GetAllocator();
+        }
 
         HYP_CORE_ASSERT(m_pool != nullptr);
     }

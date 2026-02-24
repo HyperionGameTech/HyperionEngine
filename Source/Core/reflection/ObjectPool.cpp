@@ -2,6 +2,7 @@
 
 #include <Core/reflection/ObjectPool.hpp>
 #include <Core/reflection/Class.hpp>
+#include <Core/reflection/ClassRegistry.hpp>
 
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>
@@ -83,6 +84,12 @@ ObjectContainerBase& ObjectContainerMap::GetOrCreate(TypeId typeId, const Class*
 
     container->m_typeId = typeId;
     container->m_class = cls;
+
+    if (ClassRegistry::GetInstance().IsInitialized())
+    {
+        // ClassRegistry already initialized; need to call Initialize() ourselves
+        container->Initialize();
+    }
 
     return *m_map.EmplaceBack(typeId, container).second;
 }

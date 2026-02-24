@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10953337689885423504"
+      }
+    }],
+  "Name": "LightmapPathTracer",
+  "FriendlyName": "LightmapPathTracer",
+  "OriginalFilepath": ""
+}

@@ -107,6 +107,13 @@ Script_Exception Script_Exception::InvalidOperationException(const char* opName,
         typeStr);
 }
 
+Script_Exception Script_Exception::InvalidNewException(const char* typeStr)
+{
+    return FormattedException(
+        HYP_STATIC_STRING("Could not create an instance of %s"),
+        typeStr);
+}
+
 Script_Exception Script_Exception::InvalidCastException(const char* fromTypeStr, const char* toTypeStr)
 {
     return FormattedException(

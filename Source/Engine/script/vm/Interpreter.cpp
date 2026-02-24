@@ -34,7 +34,7 @@
 
 // Enable to disable optimizations in script operations.
 // Makes it easier to debug scripts, but slower.
-#define HYP_SCRIPT_NOOPT 0
+#define HYP_SCRIPT_NOOPT 1
 
 #ifndef HYP_DEBUG_MODE
 #ifdef HYP_SCRIPT_NOOPT
@@ -1255,10 +1255,7 @@ public:
         {
             vm->ThrowException(
                 instance,
-                Script_Exception::InvalidOperationException(
-                    "NEW",
-                    "Could not create instance of type",
-                    classRef->GetName().LookupString()));
+                Script_Exception::InvalidNewException(classRef->GetName().LookupString()));
 
             return;
         }
