@@ -34,15 +34,15 @@ static constexpr int typePromoTable[10][10] = {
 
 #define MATCH_TYPES(leftType, rightType) ((NumericType)typePromoTable[(leftType)][(rightType)])
 
-extern BoxedValue MakeValue(const Script_VMData& data);
+extern BoxedValue MakeValue(const ScriptObjectData& data);
 extern BoxedValue MakeValue(const Number& number);
-extern BoxedValue MakeValue(BoxedValue&& data);
+extern BoxedValue MakeValue(BoxedValue&& value);
 extern BoxedValue MakeRef(BoxedValue* refValue);
 extern BoxedValue MakeTrackedRef(BoxedValue* refValue, Script_GC* gc);
 extern BoxedValue ShallowCopy(BoxedValue& value, Script_GC* gc);
 extern bool ShouldValuePassByRef(const BoxedValue& value);
-extern const char* GetTypeString(const BoxedValue& data);
-extern String ValueToString(const BoxedValue& data, int currDepth = 0);
+extern const char* GetTypeString(const BoxedValue& value);
+extern String ValueToString(const BoxedValue& value, int currDepth = 0);
 
 class Script_GC;
 
@@ -212,41 +212,41 @@ struct Script_ExecutionThread
     }
 };
 
-struct Script_Instance
+struct ScriptInstance
 {
-    Script_Stream stream;
+    BytecodeStream stream;
     Script_ExecutionThread thread;
     Script_SymbolTable exportedSymbols;
 };
 
-class Script_Interpreter
+class VirtualMachine
 {
 public:
-    Script_Interpreter();
-    Script_Interpreter(const Script_Interpreter& other) = delete;
-    Script_Interpreter& operator=(const Script_Interpreter& other) = delete;
-    Script_Interpreter(Script_Interpreter&& other) noexcept = delete;
-    Script_Interpreter& operator=(Script_Interpreter&& other) noexcept = delete;
-    ~Script_Interpreter();
+    VirtualMachine();
+    VirtualMachine(const VirtualMachine& other) = delete;
+    VirtualMachine& operator=(const VirtualMachine& other) = delete;
+    VirtualMachine(VirtualMachine&& other) noexcept = delete;
+    VirtualMachine& operator=(VirtualMachine&& other) noexcept = delete;
+    ~VirtualMachine();
 
     void Invoke(
-        Script_Instance* instance,
+        ScriptInstance* instance,
         BoxedValue&& value,
         uint8 nargs);
 
     void InvokeNow(
-        Script_Instance* instance,
+        ScriptInstance* instance,
         BoxedValue&& value,
         uint8 nargs);
 
-    void Execute(Script_Instance* instance);
+    void Execute(ScriptInstance* instance);
 
-    /** Reset the state of the Script_Interpreter, destroying all heap objects,
+    /** Reset the state of the VirtualMachine, destroying all heap objects,
         stack objects and exception flags, etc.
      */
     void Reset();
 
-    void ThrowException(Script_Instance* instance, const Script_Exception& exception);
+    void ThrowException(ScriptInstance* instance, const Script_Exception& exception);
 
     Script_GC* GetGC() const
     {
@@ -259,8 +259,8 @@ public:
     Script_Exception* m_unhandledException = nullptr;
 
 private:
-    bool HandleException(Script_Instance* instance);
-    void CreateTrace(Script_Instance* instance, Script_Trace* outTrace);
+    bool HandleException(ScriptInstance* instance);
+    void CreateTrace(ScriptInstance* instance, Script_Trace* outTrace);
 };
 
 } // namespace Hyperion

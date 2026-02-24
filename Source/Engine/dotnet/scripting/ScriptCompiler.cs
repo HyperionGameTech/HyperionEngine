@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.Emit;
+using System.Diagnostics;
 
 namespace Hyperion
 {
@@ -418,6 +419,8 @@ namespace Hyperion
                     .Text("Failed to compile script. Check the output log for more information.")
                     .Button("OK", () => { Logger.Log(logChannel, LogLevel.Info, "OK clicked"); })
                     .Show();
+
+                Debugger.Break();
 
                 return false;
             }

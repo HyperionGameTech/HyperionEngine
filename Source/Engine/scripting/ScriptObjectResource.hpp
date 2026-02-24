@@ -48,7 +48,7 @@ struct ScriptObjectData_HypScript final
 {
     static constexpr ScriptLanguage Language = ScriptLanguage::HypScript;
 
-    Script_Instance* instance = nullptr;
+    ScriptInstance* instance = nullptr;
     BoxedValue obj;
 };
 #endif
@@ -73,7 +73,7 @@ public:
     ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::ManagedClass>& managedClass, const dotnet::ObjectReference& objectReference, EnumFlags<ObjectFlags> objectFlags);
 
 #ifdef HYP_SCRIPT
-    ScriptObjectResource(Script_Instance* hypScriptInstance, BoxedValue&& hypScriptValue);
+    ScriptObjectResource(ScriptInstance* hypScriptInstance, BoxedValue&& hypScriptValue);
 #endif
 
     ScriptObjectResource(const ScriptObjectResource& other) = delete;

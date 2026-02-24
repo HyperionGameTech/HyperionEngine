@@ -82,7 +82,6 @@ static constexpr TypeId s_typeIdF32 { CONSTEXPR_TYPE_ID(float32) };
 static constexpr TypeId s_typeIdF64 { CONSTEXPR_TYPE_ID(float64) };
 static constexpr TypeId s_typeIdBool { CONSTEXPR_TYPE_ID(bool) };
 static constexpr TypeId s_typeIdString { CONSTEXPR_TYPE_ID(ScriptString) };
-static constexpr TypeId s_typeIdArray { CONSTEXPR_TYPE_ID(ScriptArray) };
 
 // clang-format off
 
@@ -113,40 +112,39 @@ static const HashMap<TypeId, const char*> s_builtinTypeNames = {
     { s_typeIdF32, "float" },
     { s_typeIdF64, "double" },
     { s_typeIdBool, "bool" },
-    { s_typeIdString, "string" },
-    { s_typeIdArray, "array" },
+    { s_typeIdString, "string" }
 };
 
 // clang-format on
 
-static inline Script_VMData* GetVMData(BoxedValue& data)
+static inline ScriptObjectData* GetVMData(BoxedValue& value)
 {
-    return reinterpret_cast<Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
+    return reinterpret_cast<ScriptObjectData*>(value.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
-static inline const Script_VMData* GetVMData(const BoxedValue& data)
+static inline const ScriptObjectData* GetVMData(const BoxedValue& value)
 {
-    return reinterpret_cast<const Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
+    return reinterpret_cast<const ScriptObjectData*>(value.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
-template <class T, typename = std::enable_if_t<!std::is_same_v<Script_VMData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<BoxedValue, NormalizedType<T>>>>
-static inline BoxedValue MakeValue(T&& data)
+template <class T, typename = std::enable_if_t<!std::is_same_v<ScriptObjectData, NormalizedType<T>> && !std::is_same_v<Number, NormalizedType<T>> && !std::is_same_v<BoxedValue, NormalizedType<T>>>>
+static inline BoxedValue MakeValue(T&& value)
 {
-    return BoxedValue(std::forward<T>(data));
+    return BoxedValue(std::forward<T>(value));
 }
 
-BoxedValue MakeValue(BoxedValue&& data)
+BoxedValue MakeValue(BoxedValue&& value)
 {
-    return BoxedValue(std::move(data));
+    return BoxedValue(std::move(value));
 }
 
-BoxedValue MakeValue(const Script_VMData& data)
+BoxedValue MakeValue(const ScriptObjectData& value)
 {
-    static_assert(sizeof(Script_VMData) <= sizeof(BoxedValue::InlineData), "Script_VMData must fit inside BoxedValue::InlineData");
-    static_assert(alignof(Script_VMData) <= alignof(BoxedValue::InlineData), "Script_VMData must have alignment less than or equal to BoxedValue::InlineData");
+    static_assert(sizeof(ScriptObjectData) <= sizeof(BoxedValue::InlineData), "ScriptObjectData must fit inside BoxedValue::InlineData");
+    static_assert(alignof(ScriptObjectData) <= alignof(BoxedValue::InlineData), "ScriptObjectData must have alignment less than or equal to BoxedValue::InlineData");
 
     BoxedValue::InlineData resultData {};
-    Memory::Copy(&resultData, &data, sizeof(Script_VMData));
+    Memory::Copy(&resultData, &value, sizeof(ScriptObjectData));
 
     return BoxedValue(resultData);
 }
@@ -218,14 +216,14 @@ BoxedValue MakeRef(BoxedValue* pValue)
 {
     Assert(pValue != nullptr);
 
-    Script_VMData vmData;
-    vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = pValue;
+    ScriptObjectData data;
+    data.type = ScriptObjectData::Type::Reference;
+    data.valueRef = pValue;
 
-    Assert(vmData.valueRef != nullptr);
-    Assert(!IsGarbage(*vmData.valueRef), "Creating a reference to garbage value");
+    Assert(data.valueRef != nullptr);
+    Assert(!IsGarbage(*data.valueRef), "Creating a reference to garbage value");
 
-    return MakeValue(vmData);
+    return MakeValue(data);
 }
 
 BoxedValue MakeTrackedRef(BoxedValue* pValue, Script_GC* gc)
@@ -291,17 +289,17 @@ static const char* GetTypeString(const TypeInfo& typeInfo)
     return typeInfo.name.LookupString();
 }
 
-const char* GetTypeString(const BoxedValue& data)
+const char* GetTypeString(const BoxedValue& value)
 {
-    if (!data.IsValid())
+    if (!value.IsValid())
     {
         return "<Uninitialized Data>";
     }
 
-    return GetTypeString(*data.GetTypeInfo());
+    return GetTypeString(*value.GetTypeInfo());
 }
 
-bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth, int currDepth)
+bool StringifyData(const BoxedValue& value, ScriptString& outString, int maxDepth, int currDepth)
 {
     if (currDepth >= maxDepth && maxDepth >= 0)
     {
@@ -313,24 +311,23 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
 
     char buf[StringBufferSize] = { 0 };
 
-    if (!data.IsValid())
+    if (!value.IsValid())
     {
         outString = ScriptString(s_nullString);
 
         return true;
     }
 
-    auto formatIt = s_builtinToStringFunctions.Find(data.GetTypeId());
+    auto formatIt = s_builtinToStringFunctions.Find(value.GetTypeId());
     if (formatIt != s_builtinToStringFunctions.End())
     {
-        outString = ScriptString(formatIt->second(data.ToRef().GetPointer()));
+        outString = ScriptString(formatIt->second(value.ToRef().GetPointer()));
 
         return true;
     }
 
-    if (GenericArrayWrapper* arrayWrapper = data.TryGet<GenericArrayWrapper>().TryGet())
+    if (GenericArrayWrapper* arrayWrapper = value.TryGet<GenericArrayWrapper>().TryGet())
     {
-        const bool isScriptArray = arrayWrapper->typeInfo->id == s_typeIdArray;
         const SizeType arraySize = arrayWrapper->Size();
 
         if (arrayWrapper->CanGetElementByIndex())
@@ -349,7 +346,7 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
                 if (elementRef.HasValue())
                 {
                     // get the existing reference for ScriptArray instances
-                    if (isScriptArray)
+                    if (elementRef.GetTypeId() == TypeId::ForType<BoxedValue>())
                     {
                         outString += ValueToString(elementRef.Get<BoxedValue>(), currDepth + 1);
                     }
@@ -376,7 +373,7 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
     }
 
 #if 0
-    if (const Script_HashMap* pMap = data.TryGet<Script_HashMap>().TryGet())
+    if (const Script_HashMap* pMap = value.TryGet<Script_HashMap>().TryGet())
     {
         auto& map = pMap->GetMap();
 
@@ -400,13 +397,13 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
     }
 #endif
 
-    if (const Class* cls = GetClass(data.GetTypeId()))
+    if (const Class* cls = GetClass(value.GetTypeId()))
     {
         const Method* toStringMethod = cls->GetMethod(s_nameToString);
 
         if (toStringMethod != nullptr)
         {
-            BoxedValue result = toStringMethod->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&data), 1 });
+            BoxedValue result = toStringMethod->Invoke(Span<BoxedValue> { const_cast<BoxedValue*>(&value), 1 });
 
             if (const ScriptString* str = result.TryGet<ScriptString>().TryGet())
             {
@@ -436,7 +433,7 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
             StringBufferSize,
             ObjectFormatString,
             cls->GetName().LookupString(),
-            data.ToRef().GetPointer());
+            value.ToRef().GetPointer());
 
         // if the class name is too long, dynamically allocate a larger buffer
         if (n < 0)
@@ -458,7 +455,7 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
                 newBufSize,
                 ObjectFormatString,
                 cls->GetName().LookupString(),
-                data.ToRef().GetPointer());
+                value.ToRef().GetPointer());
 
             if (n < 0 || SizeType(n) >= newBufSize)
             {
@@ -485,45 +482,45 @@ bool StringifyData(const BoxedValue& data, ScriptString& outString, int maxDepth
     return false;
 }
 
-String ValueToString(const BoxedValue& data, int currDepth)
+String ValueToString(const BoxedValue& value, int currDepth)
 {
     static constexpr int maxDepth = 3;
 
     ScriptString result("<error>");
-    if (StringifyData(data, result, maxDepth, currDepth))
+    if (StringifyData(value, result, maxDepth, currDepth))
     {
         return result;
     }
 
     // internal data
-    if (const Script_VMData* vmData = reinterpret_cast<const Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet()))
+    if (const ScriptObjectData* data = reinterpret_cast<const ScriptObjectData*>(value.TryGet<BoxedValue::InlineData>().TryGet()))
     {
         constexpr SizeType bufSize = 256;
         char buf[bufSize] = { 0 };
 
-        switch (vmData->type)
+        switch (data->type)
         {
-        case Script_VMData::VALUE_REF:
+        case ScriptObjectData::Type::Reference:
             return ScriptString("<Reference>");
-        case Script_VMData::FUNCTION:
+        case ScriptObjectData::Type::ScriptFunction:
             return ScriptString("<Function>");
-        case Script_VMData::NATIVE_FUNCTION:
+        case ScriptObjectData::Type::NativeFunction:
             return ScriptString("<Native Function>");
-        case Script_VMData::ADDRESS:
-            std::snprintf(buf, bufSize, "<Function address @ %p>", (void*)vmData->func.m_addr);
+        case ScriptObjectData::Type::BytecodeAddress:
+            std::snprintf(buf, bufSize, "<Function address @ %p>", (void*)data->func.m_addr);
             return ScriptString(buf);
-        case Script_VMData::FUNCTION_CALL:
+        case ScriptObjectData::Type::StackFrame:
             return ScriptString("<Stack frame>");
-        case Script_VMData::TRY_CATCH_INFO:
+        case ScriptObjectData::Type::ExceptionState:
             return ScriptString("<Try catch info>");
-        case Script_VMData::INVALID_STATE_OBJECT:
+        case ScriptObjectData::Type::InvalidState:
             return ScriptString("<Invalid>");
         default:
             HYP_UNREACHABLE();
         }
     }
 
-    return ScriptString(HYP_FORMAT("<{} @ {}>", GetTypeString(data), data.ToRef().GetPointer()));
+    return ScriptString(HYP_FORMAT("<{} @ {}>", GetTypeString(value), value.ToRef().GetPointer()));
 }
 
 #pragma endregion ScriptApi
@@ -596,12 +593,12 @@ void Script_StackMemory::Purge()
 class InstructionHandler
 {
 public:
-    Script_Interpreter* vm;
-    Script_Instance* instance;
+    VirtualMachine* vm;
+    ScriptInstance* instance;
 
     InstructionHandler(
-        Script_Interpreter* vm,
-        Script_Instance* instance)
+        VirtualMachine* vm,
+        ScriptInstance* instance)
         : vm(vm),
           instance(instance)
     {
@@ -691,24 +688,24 @@ public:
         instance->thread.m_regs[reg] = MakeValue(str != nullptr ? ScriptString(str, str + len) : ScriptString());
     }
 
-    SCRIPT_INLINE void OpLoadAddr(RegisterIndex reg, Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpLoadAddr(RegisterIndex reg, BytecodeAddress addr)
     {
-        Script_VMData vmData;
-        vmData.type = Script_VMData::ADDRESS;
-        vmData.addr = addr;
+        ScriptObjectData data;
+        data.type = ScriptObjectData::Type::BytecodeAddress;
+        data.addr = addr;
 
-        instance->thread.m_regs[reg] = MakeValue(vmData);
+        instance->thread.m_regs[reg] = MakeValue(data);
     }
 
-    SCRIPT_INLINE void OpLoadFunc(RegisterIndex reg, Script_FunctionAddress addr, uint8 nargs, uint8 flags)
+    SCRIPT_INLINE void OpLoadFunc(RegisterIndex reg, BytecodeAddress addr, uint8 nargs, uint8 flags)
     {
-        Script_VMData vmData;
-        vmData.type = Script_VMData::FUNCTION;
-        vmData.func.m_addr = addr;
-        vmData.func.m_nargs = nargs;
-        vmData.func.m_flags = flags;
+        ScriptObjectData data;
+        data.type = ScriptObjectData::Type::ScriptFunction;
+        data.func.m_addr = addr;
+        data.func.m_nargs = nargs;
+        data.func.m_flags = flags;
 
-        instance->thread.m_regs[reg] = MakeValue(vmData);
+        instance->thread.m_regs[reg] = MakeValue(data);
     }
 
     SCRIPT_INLINE void OpLoadArrayIdx(RegisterIndex dstReg, RegisterIndex srcReg, RegisterIndex indexReg)
@@ -750,7 +747,7 @@ public:
 
             // For ScriptArray we want to get the BoxedValue and work off that rather than
             // double boxing it.
-            if (array->typeInfo->id == s_typeIdArray)
+            if (elementRef.GetTypeId() == TypeId::ForType<BoxedValue>())
             {
                 BoxedValue& srcValue = elementRef.Get<BoxedValue>();
 
@@ -1041,7 +1038,7 @@ public:
         // special case for arrays
         else if (GenericArrayWrapper* array = src.TryGet<GenericArrayWrapper>().TryGet())
         {
-            cls = GetClass(TypeId::ForType<ScriptArray>());
+            cls = GetClass(TypeId::ForType<GenericArrayWrapper>());
         }
         else
         {
@@ -1079,24 +1076,24 @@ public:
         {
             Method* method = static_cast<Method*>(member);
 
-            Script_VMData vmData;
+            ScriptObjectData data;
 
             if (method->IsScriptFunction())
             {
                 Assert(method->GetParameters().Size() <= UINT8_MAX);
 
-                vmData.type = Script_VMData::FUNCTION;
-                vmData.func.m_addr = method->GetScriptAddress();
-                vmData.func.m_nargs = (uint8)method->GetParameters().Size();
-                vmData.func.m_flags = (uint8)method->GetFlags();
+                data.type = ScriptObjectData::Type::ScriptFunction;
+                data.func.m_addr = method->GetScriptAddress();
+                data.func.m_nargs = (uint8)method->GetParameters().Size();
+                data.func.m_flags = (uint8)method->GetFlags();
             }
             else
             {
-                vmData.type = Script_VMData::NATIVE_FUNCTION;
-                vmData.nativeFunc = method;
+                data.type = ScriptObjectData::Type::NativeFunction;
+                data.nativeFunc = method;
             }
 
-            instance->thread.m_regs[dstReg] = MakeValue(vmData);
+            instance->thread.m_regs[dstReg] = MakeValue(data);
         }
         else
         {
@@ -1142,12 +1139,12 @@ public:
         instance->thread.m_stack.Pop(n);
     }
 
-    SCRIPT_INLINE void OpJmp(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJmp(BytecodeAddress addr)
     {
         instance->stream.Seek((uint32)addr);
     }
 
-    SCRIPT_INLINE void OpJe(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJe(BytecodeAddress addr)
     {
         if (instance->thread.m_regs.flags & CF_EQUAL)
         {
@@ -1155,7 +1152,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpJne(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJne(BytecodeAddress addr)
     {
         if (!(instance->thread.m_regs.flags & CF_EQUAL))
         {
@@ -1163,7 +1160,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpJg(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJg(BytecodeAddress addr)
     {
         if (instance->thread.m_regs.flags & CF_GREATER)
         {
@@ -1171,7 +1168,7 @@ public:
         }
     }
 
-    SCRIPT_INLINE void OpJge(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpJge(BytecodeAddress addr)
     {
         if (instance->thread.m_regs.flags & (CF_GREATER | CF_EQUAL))
         {
@@ -1189,35 +1186,35 @@ public:
         // get top of stack (should be the address before jumping)
         BoxedValue& top = instance->thread.GetStack().Top();
 
-        Script_VMData* vmData = GetVMData(top);
-        Assert(vmData != nullptr);
-        Assert(vmData->type == Script_VMData::FUNCTION_CALL);
+        ScriptObjectData* data = GetVMData(top);
+        Assert(data != nullptr);
+        Assert(data->type == ScriptObjectData::Type::StackFrame);
 
-        auto& callInfo = vmData->call;
+        auto& callInfo = data->call;
 
         // leave function and return to previous position
         instance->stream.Seek((uint32)callInfo.returnAddress);
 
         // increase stack size by the amount required by the call
         instance->thread.GetStack().m_sp += callInfo.varargsPush - 1;
-        // NOTE: the -1 is because we will be popping the FUNCTION_CALL
+        // NOTE: the -1 is because we will be popping the StackFrame
         // object from the stack anyway...
 
         // decrease function depth
         instance->thread.m_funcDepth--;
     }
 
-    SCRIPT_INLINE void OpBeginTry(Script_FunctionAddress addr)
+    SCRIPT_INLINE void OpBeginTry(BytecodeAddress addr)
     {
         ++instance->thread.m_exceptionState.m_tryCounter;
 
         // increase stack size to store data about this try block
-        Script_VMData vmData;
-        vmData.type = Script_VMData::TRY_CATCH_INFO;
-        vmData.tryCatchInfo.catchAddress = addr;
+        ScriptObjectData data;
+        data.type = ScriptObjectData::Type::ExceptionState;
+        data.exceptionState.catchAddress = addr;
 
         // store the info
-        instance->thread.m_stack.Push(MakeValue(vmData));
+        instance->thread.m_stack.Push(MakeValue(data));
     }
 
     SCRIPT_INLINE void OpEndTry()
@@ -1225,9 +1222,9 @@ public:
         // pop the try catch info from the stack
         BoxedValue& top = instance->thread.m_stack.Top();
 
-        Script_VMData* vmData = GetVMData(top);
-        Assert(vmData != nullptr);
-        Assert(vmData->type == Script_VMData::TRY_CATCH_INFO);
+        ScriptObjectData* data = GetVMData(top);
+        Assert(data != nullptr);
+        Assert(data->type == ScriptObjectData::Type::ExceptionState);
 
         Assert(instance->thread.m_exceptionState.m_tryCounter != 0);
 
@@ -1265,7 +1262,7 @@ public:
 
     SCRIPT_INLINE void OpBeginClass(RegisterIndex reg)
     {
-        Script_Stream* bs = &instance->stream;
+        BytecodeStream* bs = &instance->stream;
 
         // Read class name length and name
         uint16 nameLen;
@@ -1449,11 +1446,11 @@ public:
                     Assert(stackOffset <= instance->thread.GetStack().GetStackPointer(), "Stack offset out of bounds!");
                     BoxedValue& funcValue = instance->thread.GetStack()[instance->thread.GetStack().GetStackPointer() - stackOffset];
 
-                    Script_VMData* funcVmData = GetVMData(funcValue);
+                    ScriptObjectData* funcVmData = GetVMData(funcValue);
                     Assert(funcVmData != nullptr);
-                    Assert(funcVmData->type == Script_VMData::FUNCTION);
+                    Assert(funcVmData->type == ScriptObjectData::Type::ScriptFunction);
 
-                    Script_FunctionAddress functionAddress = funcVmData->func.m_addr;
+                    BytecodeAddress functionAddress = funcVmData->func.m_addr;
                     Assert(functionAddress != INVALID_FUNCTION_ADDRESS);
 
                     Method method(
@@ -2444,11 +2441,11 @@ public:
 /// \todo : Make all instructions that have args emit aligned up to 1 word (or at least 32 bits)
 
 SCRIPT_INLINE static void HandleInstruction(
-    Script_Instance* instance,
+    ScriptInstance* instance,
     InstructionHandler* handler,
     ubyte code)
 {
-    Script_Stream* bs = &instance->stream;
+    BytecodeStream* bs = &instance->stream;
 
     switch (code)
     {
@@ -2615,7 +2612,7 @@ SCRIPT_INLINE static void HandleInstruction(
         } // LSRC_REGISTER
         case LSRC_ADDRESS:
         {
-            Script_FunctionAddress addr;
+            BytecodeAddress addr;
             bs->Read(&addr);
 
             handler->OpLoadAddr(reg, addr);
@@ -2859,7 +2856,7 @@ SCRIPT_INLINE static void HandleInstruction(
         RegisterIndex reg;
         bs->Read(&reg);
 
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
         bs->Read(&addr);
 
         uint8 nargs;
@@ -3047,7 +3044,7 @@ SCRIPT_INLINE static void HandleInstruction(
     } // SUB_SP
     case JMP:
     {
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
         bs->Read(&addr);
 
         handler->OpJmp(addr);
@@ -3056,7 +3053,7 @@ SCRIPT_INLINE static void HandleInstruction(
     } // JMP
     case JE:
     {
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
         bs->Read(&addr);
 
         handler->OpJe(addr);
@@ -3065,7 +3062,7 @@ SCRIPT_INLINE static void HandleInstruction(
     } // JE
     case JNE:
     {
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
         bs->Read(&addr);
 
         handler->OpJne(addr);
@@ -3074,7 +3071,7 @@ SCRIPT_INLINE static void HandleInstruction(
     } // JNE
     case JG:
     {
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
         bs->Read(&addr);
 
         handler->OpJg(addr);
@@ -3083,7 +3080,7 @@ SCRIPT_INLINE static void HandleInstruction(
     } // JG
     case JGE:
     {
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
         bs->Read(&addr);
 
         handler->OpJge(addr);
@@ -3110,7 +3107,7 @@ SCRIPT_INLINE static void HandleInstruction(
     } // RET
     case BEGIN_TRY:
     {
-        Script_FunctionAddress catchAddress;
+        BytecodeAddress catchAddress;
         bs->Read(&catchAddress);
 
         handler->OpBeginTry(catchAddress);
@@ -3454,16 +3451,16 @@ SCRIPT_INLINE static void HandleInstruction(
 
 #pragma endregion InstructionHandler
 
-#pragma region Script_Interpreter
+#pragma region VirtualMachine
 
-Script_Interpreter::Script_Interpreter()
+VirtualMachine::VirtualMachine()
     : m_unhandledException(nullptr)
 {
     m_gc = (Script_GC*)ScriptAlloc(sizeof(Script_GC), alignof(Script_GC));
     new (m_gc) Script_GC;
 }
 
-Script_Interpreter::~Script_Interpreter()
+VirtualMachine::~VirtualMachine()
 {
     if (m_gc)
     {
@@ -3478,7 +3475,7 @@ Script_Interpreter::~Script_Interpreter()
     }
 }
 
-void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_Exception& exception)
+void VirtualMachine::ThrowException(ScriptInstance* instance, const Script_Exception& exception)
 {
     ++instance->thread.m_exceptionState.m_exceptionDepth;
 
@@ -3513,10 +3510,10 @@ void Script_Interpreter::ThrowException(Script_Instance* instance, const Script_
     new (m_unhandledException) Script_Exception(exception);
 }
 
-void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, uint8 nargs)
+void VirtualMachine::Invoke(ScriptInstance* instance, BoxedValue&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
-    Script_Stream* bs = &instance->stream;
+    BytecodeStream* bs = &instance->stream;
 
     BoxedValue& deref = *Deref(value);
 
@@ -3538,10 +3535,10 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
             //            enableAutoGc = false;
 
             // call the native function
-            Script_VMData* vmData = GetVMData(deref);
-            Assert(vmData != nullptr && vmData->nativeFunc != nullptr);
+            ScriptObjectData* data = GetVMData(deref);
+            Assert(data != nullptr && data->nativeFunc != nullptr);
 
-            if (vmData->nativeFunc->GetFlags() & MethodFlags::MEMBER)
+            if (data->nativeFunc->GetFlags() & MethodFlags::MEMBER)
             {
                 AssertDebug(nargs >= 1);
 
@@ -3553,7 +3550,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
                 }
             }
 
-            BoxedValue result = vmData->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
+            BoxedValue result = data->nativeFunc->Invoke(Span<BoxedValue*>(argsBoxed, nargs));
 
             // set register 0 to the result
             instance->thread.GetRegisters()[0] = MakeValue(std::move(result));
@@ -3565,30 +3562,30 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
         }
 
         // non-native function here
-        Script_VMData* vmData = GetVMData(deref);
-        Assert(vmData != nullptr && vmData->type == Script_VMData::FUNCTION);
+        ScriptObjectData* data = GetVMData(deref);
+        Assert(data != nullptr && data->type == ScriptObjectData::Type::ScriptFunction);
 
-        if ((vmData->func.m_flags & (uint8)MethodFlags::VARIADIC) && nargs < vmData->func.m_nargs - 1)
+        if ((data->func.m_flags & (uint8)MethodFlags::VARIADIC) && nargs < data->func.m_nargs - 1)
         {
             // if variadic, make sure the arg count is /at least/ what is required
-            ThrowException(instance, Script_Exception::InvalidArgsException(vmData->func.m_nargs, nargs, true));
+            ThrowException(instance, Script_Exception::InvalidArgsException(data->func.m_nargs, nargs, true));
         }
-        else if (!(vmData->func.m_flags & (uint8)MethodFlags::VARIADIC) && vmData->func.m_nargs != nargs)
+        else if (!(data->func.m_flags & (uint8)MethodFlags::VARIADIC) && data->func.m_nargs != nargs)
         {
-            ThrowException(instance, Script_Exception::InvalidArgsException(vmData->func.m_nargs, nargs));
+            ThrowException(instance, Script_Exception::InvalidArgsException(data->func.m_nargs, nargs));
         }
         else
         {
-            Script_VMData previousAddr;
-            previousAddr.type = Script_VMData::FUNCTION_CALL;
+            ScriptObjectData previousAddr;
+            previousAddr.type = ScriptObjectData::Type::StackFrame;
             previousAddr.call.varargsPush = 0;
-            previousAddr.call.returnAddress = (Script_FunctionAddress)bs->Position();
+            previousAddr.call.returnAddress = (BytecodeAddress)bs->Position();
 
-            if (vmData->func.m_flags & (uint8)MethodFlags::VARIADIC)
+            if (data->func.m_flags & (uint8)MethodFlags::VARIADIC)
             {
                 // for each argument that is over the expected size, we must pop it from
                 // the stack and add it to a new array.
-                int varargsAmt = nargs - vmData->func.m_nargs + 1;
+                int varargsAmt = nargs - data->func.m_nargs + 1;
                 if (varargsAmt < 0)
                 {
                     varargsAmt = 0;
@@ -3616,7 +3613,7 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
             instance->thread.GetStack().Push(MakeValue(previousAddr));
 
             // seek to the new address
-            instance->stream.Seek((uint32)vmData->func.m_addr);
+            instance->stream.Seek((uint32)data->func.m_addr);
 
             // increase function depth
             instance->thread.m_funcDepth++;
@@ -3635,10 +3632,10 @@ void Script_Interpreter::Invoke(Script_Instance* instance, BoxedValue&& value, u
     ThrowException(instance, Script_Exception(buffer));
 }
 
-void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value, uint8 nargs)
+void VirtualMachine::InvokeNow(ScriptInstance* instance, BoxedValue&& value, uint8 nargs)
 {
     Script_ExecutionThread* thread = &instance->thread;
-    Script_Stream* bs = &instance->stream;
+    BytecodeStream* bs = &instance->stream;
 
     const SizeType positionBefore = bs->Position();
     const uint32 originalFunctionDepth = instance->thread.m_funcDepth;
@@ -3649,15 +3646,15 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value
     BoxedValue* deref = Deref(value);
     Assert(deref != nullptr);
 
-    Script_VMData* pVmData = GetVMData(*deref);
-    Assert(pVmData != nullptr);
-    Assert(pVmData->type == Script_VMData::FUNCTION || pVmData->type == Script_VMData::NATIVE_FUNCTION);
+    ScriptObjectData* pData = GetVMData(*deref);
+    Assert(pData != nullptr);
+    Assert(pData->type == ScriptObjectData::Type::ScriptFunction || pData->type == ScriptObjectData::Type::NativeFunction);
 
-    Script_VMData vmData = *pVmData;
+    ScriptObjectData data = *pData;
 
     Invoke(instance, std::move(value), nargs);
 
-    if (vmData.type == Script_VMData::FUNCTION && !handler.instance->thread.GetExceptionState().HasExceptionOccurred())
+    if (data.type == ScriptObjectData::Type::ScriptFunction && !handler.instance->thread.GetExceptionState().HasExceptionOccurred())
     { // don't do this for native function calls
         ubyte code;
 
@@ -3689,7 +3686,7 @@ void Script_Interpreter::InvokeNow(Script_Instance* instance, BoxedValue&& value
     bs->SetPosition(positionBefore);
 }
 
-void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* outTrace)
+void VirtualMachine::CreateTrace(ScriptInstance* instance, Script_Trace* outTrace)
 {
     const SizeType maxStackTraceSize = std::size(outTrace->callAddresses);
 
@@ -3709,19 +3706,19 @@ void Script_Interpreter::CreateTrace(Script_Instance* instance, Script_Trace* ou
 
         const BoxedValue& top = instance->thread.m_stack[sp - 1];
 
-        const Script_VMData* topVmData = GetVMData(top);
+        const ScriptObjectData* topVmData = GetVMData(top);
 
-        if (topVmData && topVmData->type == Script_VMData::FUNCTION_CALL)
+        if (topVmData && topVmData->type == ScriptObjectData::Type::StackFrame)
         {
             outTrace->callAddresses[numRecordedCallAddresses++] = int(topVmData->call.returnAddress);
         }
     }
 }
 
-bool Script_Interpreter::HandleException(Script_Instance* instance)
+bool VirtualMachine::HandleException(ScriptInstance* instance)
 {
     Script_ExecutionThread* thread = &instance->thread;
-    Script_Stream* bs = &instance->stream;
+    BytecodeStream* bs = &instance->stream;
 
     if (instance->thread.m_exceptionState.m_tryCounter != 0)
     {
@@ -3732,9 +3729,9 @@ bool Script_Interpreter::HandleException(Script_Instance* instance)
         --instance->thread.m_exceptionState.m_exceptionDepth;
 
         BoxedValue* top = &instance->thread.m_stack.Top();
-        Script_VMData* topVmData = GetVMData(*top);
+        ScriptObjectData* topVmData = GetVMData(*top);
 
-        while (topVmData && topVmData->type != Script_VMData::TRY_CATCH_INFO)
+        while (topVmData && topVmData->type != ScriptObjectData::Type::ExceptionState)
         {
             instance->thread.m_stack.Pop();
 
@@ -3743,10 +3740,10 @@ bool Script_Interpreter::HandleException(Script_Instance* instance)
         }
 
         // top should be exception data
-        Assert(topVmData && topVmData->type == Script_VMData::TRY_CATCH_INFO);
+        Assert(topVmData && topVmData->type == ScriptObjectData::Type::ExceptionState);
 
         // jump to the catch block
-        instance->stream.Seek((uint32)topVmData->tryCatchInfo.catchAddress);
+        instance->stream.Seek((uint32)topVmData->exceptionState.catchAddress);
 
         // pop exception data from stack
         instance->thread.m_stack.Pop();
@@ -3779,13 +3776,13 @@ bool Script_Interpreter::HandleException(Script_Instance* instance)
     return false;
 }
 
-void Script_Interpreter::Execute(Script_Instance* instance)
+void VirtualMachine::Execute(ScriptInstance* instance)
 {
     Assert(instance != nullptr);
 
     InstructionHandler handler(this, instance);
 
-    Script_Stream* bs = &instance->stream;
+    BytecodeStream* bs = &instance->stream;
 
     ubyte code;
 
@@ -3809,7 +3806,7 @@ void Script_Interpreter::Execute(Script_Instance* instance)
     }
 }
 
-#pragma endregion Script_Interpreter
+#pragma endregion VirtualMachine
 
 } // namespace Hyperion
 

@@ -55,7 +55,8 @@ ObjectInitializerGuardBase::ObjectInitializerGuardBase(TypedObjPtr ptr)
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
     PushGlobalContext(ObjectInitializerContext {
         .cls = ptr.GetClass(),
-        .flags = ObjectInitializerFlags::NONE });
+        .flags = ObjectInitializerFlags::NONE
+    });
 }
 
 ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
@@ -104,7 +105,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
             }
             else
             {
-                HYP_LOG(Core, Debug, "Class '%s' has no .NET class associated with it\n", *cls->GetName());
+                HYP_LOG(Core, Debug, "Class '{}' has no .NET class associated with it", cls->GetName());
             }
 #endif
 
@@ -113,7 +114,7 @@ ObjectInitializerGuardBase::~ObjectInitializerGuardBase()
 
             if (!scriptObjectResource)
             {
-                scriptObjectResource = new ScriptObjectResource((Script_Instance*)nullptr, std::move(obj));
+                scriptObjectResource = new ScriptObjectResource((ScriptInstance*)nullptr, std::move(obj));
 
                 target->SetScriptObjectResource(scriptObjectResource);
             }

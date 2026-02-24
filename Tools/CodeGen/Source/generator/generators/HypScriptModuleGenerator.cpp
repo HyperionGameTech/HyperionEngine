@@ -7,6 +7,8 @@
 
 #include <parser/Parser.hpp>
 
+#include <util/Util.hpp>
+
 #include <Core/Name.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
@@ -136,6 +138,14 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             continue;
         }
 
+        if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+        {
+            if (!CheckAttrCSV(attr, "hypscript"))
+            {
+                continue;
+            }
+        }
+
         const SizeType index = classesToGenerate.Size();
         classNameToIndex[cls.name] = index;
         classesToGenerate.PushBack(&cls);
@@ -200,6 +210,14 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                 {
                     // skip generating script bindings for this
                     continue;
+                }
+
+                if (const ClassAttributeValue& attr = member.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+                {
+                    if (!CheckAttrCSV(attr, "hypscript"))
+                    {
+                        continue;
+                    }
                 }
 
                 String managedName = member.friendlyName;
@@ -325,6 +343,14 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                 {
                     // skip generating script bindings for this
                     continue;
+                }
+
+                if (const ClassAttributeValue& attr = member.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+                {
+                    if (!CheckAttrCSV(attr, "hypscript"))
+                    {
+                        continue;
+                    }
                 }
 
                 String managedName = member.friendlyName;

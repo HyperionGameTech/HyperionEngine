@@ -39,14 +39,29 @@ HYP_BEGIN_STRUCT(ClassRef, -1, 0, {})
 
             return uint64(classRef->GetSize());
         }),
-    Method(NAME("GetField"), +[](const ClassRef& classRef, Name name) -> Field*
+    Method(NAME("GetAlignment"), +[](const ClassRef& classRef) -> uint64
         {
             if (!classRef.IsValid())
             {
-                return nullptr;
+                return 0;
             }
 
-            return const_cast<Field*>(classRef->GetField(name));
+            return uint64(classRef->GetAlignment());
+        }),
+    Method(NAME("GetParent"), +[](const ClassRef& classRef) -> BoxedValue
+        {
+            if (!classRef.IsValid())
+            {
+                return BoxedValue();
+            }
+            
+            const Class* parent = classRef->GetParent();
+            if (!parent)
+            {
+                return BoxedValue();
+            }
+
+            return BoxedValue(ClassRef(parent));
         }),
     Method(NAME("IsClassType"), +[](const ClassRef& classRef) -> bool
         {

@@ -43,6 +43,12 @@ namespace Hyperion {
 extern Pool* g_scriptPool;
 #endif
 
+#ifdef HYP_TOOL
+const Class* g_clsObjectBase = nullptr;
+#else
+HYP_API extern const Class* g_clsObjectBase;
+#endif
+
 namespace Attributes {
 
 const Name g_attrSerialize = NAME("serialize");
@@ -51,6 +57,7 @@ const Name g_attrTransient = NAME("transient");
 const Name g_attrComponent = NAME("component");
 const Name g_attrSize = NAME("size");
 const Name g_attrNoScriptBindings = NAME("noscriptbindings");
+const Name g_attrOnlyLanguages = NAME("onlylanguages");
 const Name g_attrCommand = NAME("command");
 const Name g_attrAbstract = NAME("abstract");
 const Name g_attrCompressed = NAME("compressed");
@@ -1339,7 +1346,7 @@ bool Class::GetManagedObject(const void* objectPtr, dotnet::ObjectReference& out
 
 #ifdef HYP_DOTNET
 DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class* parentClass, dotnet::ManagedClass* pManagedClass, Span<const ClassAttribute> attributes, EnumFlags<ClassFlags> flags, Span<MemberVariant> members)
-    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
+    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : g_clsObjectBase->GetName(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
@@ -1350,7 +1357,7 @@ DynamicClassInstance::DynamicClassInstance(TypeId typeId, Name name, const Class
         SetManagedClass(pManagedClass->RefCountedPtrFromThis());
     }
 
-    m_parent = parentClass;
+    m_parent = parentClass != nullptr ? parentClass : g_clsObjectBase;
 
     if (m_parent)
     {
@@ -1369,11 +1376,11 @@ DynamicClassInstance::DynamicClassInstance(
     Span<const ClassAttribute> attributes,
     EnumFlags<ClassFlags> flags,
     Span<MemberVariant> members)
-    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : Name::Invalid(), attributes, flags | ClassFlags::DYNAMIC, members)
+    : Class(typeId, name, -1, 0, parentClass ? parentClass->GetName() : g_clsObjectBase->GetName(), attributes, flags | ClassFlags::DYNAMIC, members)
 {
     m_refCount = 0;
 
-    m_parent = parentClass;
+    m_parent = parentClass != nullptr ? parentClass : g_clsObjectBase;
 
     SizeType dynamicSize = sizeof(ObjectBase);
     SizeType dynamicAlignment = alignof(ObjectBase);
@@ -1404,7 +1411,7 @@ DynamicClassInstance::DynamicClassInstance(
     const Class* currentParent = m_parent;
     Array<const Class*> dynamicParents;
 
-    while (currentParent != nullptr && currentParent->IsDynamic())
+    while (currentParent != nullptr && currentParent->IsDynamic() && currentParent != g_clsObjectBase)
     {
         dynamicParents.PushBack(currentParent);
 
@@ -1412,7 +1419,7 @@ DynamicClassInstance::DynamicClassInstance(
     }
 
     // add size of first non-dynamic parent class (ensuring proper alignment)
-    if (currentParent && !currentParent->IsDynamic())
+    if (currentParent && !currentParent->IsDynamic() && currentParent != g_clsObjectBase)
     {
         dynamicSize = ByteUtil::AlignAs(dynamicSize, currentParent->GetAlignment());
         dynamicSize += currentParent->GetSize();
@@ -1523,8 +1530,7 @@ bool DynamicClassInstance::CanCreateInstance() const
     {
         Assert(m_parent != nullptr);
 
-        if (m_parent->CanCreateInstance()
-            && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
+        if (m_parent->CanCreateInstance() && !(managedClass->GetFlags() & ManagedClassFlags::ABSTRACT))
         {
             return true;
         }
@@ -1645,7 +1651,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
     if (m_parent != nullptr)
     {
-        while (topParent != nullptr)
+        while (topParent != nullptr && topParent != g_clsObjectBase)
         {
             if (!topParent->IsDynamic())
             {
@@ -1671,7 +1677,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     new (target) ObjectBase();
 
     // where to start writing fields
-    SizeType fieldOffset = (topParent != nullptr && !topParent->IsDynamic() ? topParent->GetSize() : 0)
+    SizeType fieldOffset = (topParent != nullptr && !topParent->IsDynamic() && topParent != g_clsObjectBase ? topParent->GetSize() : 0)
         + sizeof(ObjectBase);
 
     // add 'class' field
@@ -1721,7 +1727,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     }
 
     Handle<ObjectBase> handle;
-    handle.ptr = static_cast<ObjectBase*>(target);
+    handle.ptr = target;
 
     BoxedValue obj(std::move(handle));
     out = obj;
@@ -1736,7 +1742,7 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
 
     if (!scriptObjectResource)
     {
-        scriptObjectResource = new ScriptObjectResource((Script_Instance*)nullptr, std::move(obj));
+        scriptObjectResource = new ScriptObjectResource((ScriptInstance*)nullptr, std::move(obj));
         Assert(scriptObjectResource != nullptr);
 
         target->SetScriptObjectResource(scriptObjectResource);
@@ -1745,7 +1751,8 @@ bool DynamicClassInstance::CreateInstance_Internal(BoxedValue& out) const
     {
         scriptObjectResource->SetScriptObjectData_HypScript(ScriptObjectData_HypScript {
             .instance = nullptr,
-            .obj = std::move(obj) });
+            .obj = std::move(obj)
+        });
     }
     // }
 

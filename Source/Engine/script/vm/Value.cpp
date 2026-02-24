@@ -17,7 +17,7 @@
 
 namespace Hyperion {
 
-extern String ValueToString(const BoxedValue& data, int currDepth = 0);
+extern String ValueToString(const BoxedValue& value, int currDepth = 0);
 
 static const String g_nullString = "null";
 static const String g_referenceString = "<reference>";
@@ -45,72 +45,72 @@ static inline ValueStorage<BoxedValue> MakeGarbageValue()
 
 static const ValueStorage<BoxedValue> s_uninitializedValue = MakeGarbageValue();
 
-static inline Script_VMData* GetVMData(BoxedValue& data)
+static inline ScriptObjectData* GetVMData(BoxedValue& data)
 {
-    return reinterpret_cast<Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
+    return reinterpret_cast<ScriptObjectData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
-static inline const Script_VMData* GetVMData(const BoxedValue& data)
+static inline const ScriptObjectData* GetVMData(const BoxedValue& value)
 {
-    return reinterpret_cast<const Script_VMData*>(data.TryGet<BoxedValue::InlineData>().TryGet());
+    return reinterpret_cast<const ScriptObjectData*>(value.TryGet<BoxedValue::InlineData>().TryGet());
 }
 
-bool IsGarbage(const BoxedValue& data)
+bool IsGarbage(const BoxedValue& value)
 {
-    return data.extData.gcIndex == GARBAGE_GC_INDEX;
+    return value.extData.gcIndex == GARBAGE_GC_INDEX;
 }
 
-bool IsFunction(const BoxedValue& data)
+bool IsFunction(const BoxedValue& value)
 {
-    const Script_VMData* vmData = GetVMData(data);
+    const ScriptObjectData* data = GetVMData(value);
 
-    if (!vmData)
+    if (!data)
     {
         return false;
     }
 
-    return vmData->type == Script_VMData::FUNCTION || vmData->type == Script_VMData::NATIVE_FUNCTION;
+    return data->type == ScriptObjectData::Type::ScriptFunction || data->type == ScriptObjectData::Type::NativeFunction;
 }
 
-bool IsNativeFunction(const BoxedValue& data)
+bool IsNativeFunction(const BoxedValue& value)
 {
-    const Script_VMData* vmData = GetVMData(data);
+    const ScriptObjectData* data = GetVMData(value);
 
-    if (!vmData)
+    if (!data)
     {
         return false;
     }
 
-    return vmData->type == Script_VMData::NATIVE_FUNCTION;
+    return data->type == ScriptObjectData::Type::NativeFunction;
 }
 
-bool IsRef(const BoxedValue& data)
+bool IsRef(const BoxedValue& value)
 {
-    const Script_VMData* vmData = GetVMData(data);
+    const ScriptObjectData* data = GetVMData(value);
 
-    if (!vmData)
+    if (!data)
     {
         return false;
     }
 
-    return vmData->type == Script_VMData::VALUE_REF;
+    return data->type == ScriptObjectData::Type::Reference;
 }
 
-BoxedValue* GetRef(const BoxedValue& data)
+BoxedValue* GetRef(const BoxedValue& value)
 {
-    const Script_VMData* vmData = GetVMData(data);
+    const ScriptObjectData* data = GetVMData(value);
 
-    if (!vmData || vmData->type != Script_VMData::VALUE_REF)
+    if (!data || data->type != ScriptObjectData::Type::Reference)
     {
         return nullptr;
     }
 
-    return vmData->valueRef;
+    return data->valueRef;
 }
 
-BoxedValue* Deref(BoxedValue& data)
+BoxedValue* Deref(BoxedValue& value)
 {
-    BoxedValue* deref = GetRef(data);
+    BoxedValue* deref = GetRef(value);
 
     if (deref != nullptr)
     {
@@ -119,12 +119,12 @@ BoxedValue* Deref(BoxedValue& data)
         return deref;
     }
 
-    return &data;
+    return &value;
 }
 
-const BoxedValue* Deref(const BoxedValue& data)
+const BoxedValue* Deref(const BoxedValue& value)
 {
-    BoxedValue* deref = GetRef(data);
+    BoxedValue* deref = GetRef(value);
 
     if (deref != nullptr)
     {
@@ -133,16 +133,16 @@ const BoxedValue* Deref(const BoxedValue& data)
         return deref;
     }
 
-    return &data;
+    return &value;
 }
 
-void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
+void AssignValue(BoxedValue& value, BoxedValue&& other, bool assignRef)
 {
     BoxedValue* ref;
 
     AssertDebug(other.extData.gcIndex == INVALID_GC_INDEX);
 
-    if (assignRef && (ref = Deref(data)) != nullptr)
+    if (assignRef && (ref = Deref(value)) != nullptr)
     {
         GCIndex prevGCIndex = ref->extData.gcIndex;
         ref->extData.gcIndex = INVALID_GC_INDEX;
@@ -154,92 +154,92 @@ void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef)
     }
     else
     {
-        data.~BoxedValue();
+        value.~BoxedValue();
 
-        new (&data) BoxedValue(std::move(other));
+        new (&value) BoxedValue(std::move(other));
     }
 }
 
-bool GetUnsigned(const BoxedValue& data, uint64* out)
+bool GetUnsigned(const BoxedValue& value, uint64* out)
 {
-    if (!data.Is<uint64>(/* strict */ false))
+    if (!value.Is<uint64>(/* strict */ false))
     {
         return false;
     }
 
-    *out = data.Get<uint64>();
+    *out = value.Get<uint64>();
 
     return true;
 }
 
-bool GetInteger(const BoxedValue& data, int64* out)
+bool GetInteger(const BoxedValue& value, int64* out)
 {
-    if (!data.Is<int64>(/* strict */ false))
+    if (!value.Is<int64>(/* strict */ false))
     {
         return false;
     }
 
-    *out = data.Get<int64>();
+    *out = value.Get<int64>();
 
     return true;
 }
 
-bool GetSignedOrUnsigned(const BoxedValue& data, Number* out)
+bool GetSignedOrUnsigned(const BoxedValue& value, Number* out)
 {
-    const TypeId typeId = data.GetTypeId();
+    const TypeId typeId = value.GetTypeId();
 
     if (typeId == g_typeIdI8)
     {
-        out->i = static_cast<int64>(data.Get<int8>());
+        out->i = static_cast<int64>(value.Get<int8>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU8)
     {
-        out->u = static_cast<uint64>(data.Get<uint8>());
+        out->u = static_cast<uint64>(value.Get<uint8>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI16)
     {
-        out->i = static_cast<int64>(data.Get<int16>());
+        out->i = static_cast<int64>(value.Get<int16>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU16)
     {
-        out->u = static_cast<uint64>(data.Get<uint16>());
+        out->u = static_cast<uint64>(value.Get<uint16>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI32)
     {
-        out->i = static_cast<int64>(data.Get<int32>());
+        out->i = static_cast<int64>(value.Get<int32>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU32)
     {
-        out->u = static_cast<uint64>(data.Get<uint32>());
+        out->u = static_cast<uint64>(value.Get<uint32>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI64)
     {
-        out->i = data.Get<int64>();
+        out->i = value.Get<int64>();
         out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU64)
     {
-        out->u = data.Get<uint64>();
+        out->u = value.Get<uint64>();
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;
         return true;
     }
@@ -247,22 +247,22 @@ bool GetSignedOrUnsigned(const BoxedValue& data, Number* out)
     return false;
 }
 
-bool GetFloatingPoint(const BoxedValue& data, double* out)
+bool GetFloatingPoint(const BoxedValue& value, double* out)
 {
-    if (!data.Is<double>(/* strict */ true) && !data.Is<float>(/* strict */ true))
+    if (!value.Is<double>(/* strict */ true) && !value.Is<float>(/* strict */ true))
     {
         return false;
     }
 
-    *out = data.Get<double>();
+    *out = value.Get<double>();
 
     return true;
 }
 
-bool GetNumber(const BoxedValue& data, double* out)
+bool GetNumber(const BoxedValue& value, double* out)
 {
     Number number;
-    if (!GetNumber(data, &number))
+    if (!GetNumber(value, &number))
     {
         return false;
     }
@@ -291,76 +291,76 @@ bool GetNumber(const BoxedValue& data, double* out)
     return false;
 }
 
-bool GetNumber(const BoxedValue& data, Number* out)
+bool GetNumber(const BoxedValue& value, Number* out)
 {
-    const TypeId typeId = data.GetTypeId();
+    const TypeId typeId = value.GetTypeId();
 
     if (typeId == g_typeIdF32)
     {
-        out->f = static_cast<double>(data.Get<float>());
+        out->f = static_cast<double>(value.Get<float>());
         out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdF64)
     {
-        out->f = data.Get<double>();
+        out->f = value.Get<double>();
         out->flags = Number::FLAG_FLOATING_POINT | Number::FLAG_64_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI8)
     {
-        out->i = static_cast<int64>(data.Get<int8>());
+        out->i = static_cast<int64>(value.Get<int8>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU8)
     {
-        out->u = static_cast<uint64>(data.Get<uint8>());
+        out->u = static_cast<uint64>(value.Get<uint8>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_8_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI16)
     {
-        out->i = static_cast<int64>(data.Get<int16>());
+        out->i = static_cast<int64>(value.Get<int16>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU16)
     {
-        out->u = static_cast<uint64>(data.Get<uint16>());
+        out->u = static_cast<uint64>(value.Get<uint16>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_16_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI32)
     {
-        out->i = static_cast<int64>(data.Get<int32>());
+        out->i = static_cast<int64>(value.Get<int32>());
         out->flags = Number::FLAG_SIGNED | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU32)
     {
-        out->u = static_cast<uint64>(data.Get<uint32>());
+        out->u = static_cast<uint64>(value.Get<uint32>());
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_32_BIT;
         return true;
     }
 
     if (typeId == g_typeIdI64)
     {
-        out->i = data.Get<int64>();
+        out->i = value.Get<int64>();
         out->flags = Number::FLAG_SIGNED | Number::FLAG_64_BIT;
         return true;
     }
 
     if (typeId == g_typeIdU64)
     {
-        out->u = data.Get<uint64>();
+        out->u = value.Get<uint64>();
         out->flags = Number::FLAG_UNSIGNED | Number::FLAG_64_BIT;
         return true;
     }
@@ -368,9 +368,9 @@ bool GetNumber(const BoxedValue& data, Number* out)
     return false;
 }
 
-NumericType GetNumericType(const BoxedValue& data)
+NumericType GetNumericType(const BoxedValue& value)
 {
-    const TypeId typeId = data.GetTypeId();
+    const TypeId typeId = value.GetTypeId();
 
     if (typeId == g_typeIdI8)
     {
@@ -416,39 +416,39 @@ NumericType GetNumericType(const BoxedValue& data)
     return NT_INVALID;
 }
 
-bool GetBoolean(const BoxedValue& data, bool* out)
+bool GetBoolean(const BoxedValue& value, bool* out)
 {
-    if (!data.Is<bool>())
+    if (!value.Is<bool>())
     {
         return false;
     }
 
-    *out = data.Get<bool>();
+    *out = value.Get<bool>();
     return true;
 }
 
-bool GetString(const BoxedValue& data, const ScriptString** out)
+bool GetString(const BoxedValue& value, const ScriptString** out)
 {
     AssertDebug(out != nullptr);
 
-    if (!data.Is<ScriptString>(true))
+    if (!value.Is<ScriptString>(true))
     {
         return false;
     }
 
-    *out = &data.Get<ScriptString>();
+    *out = &value.Get<ScriptString>();
 
     return true;
 }
 
-const Handle<ObjectBase>& GetObject(const BoxedValue& data)
+const Handle<ObjectBase>& GetObject(const BoxedValue& value)
 {
-    if (!data.Is<Handle<ObjectBase>>())
+    if (!value.Is<Handle<ObjectBase>>())
     {
         return Handle<ObjectBase>::empty;
     }
 
-    return data.Get<Handle<ObjectBase>>();
+    return value.Get<Handle<ObjectBase>>();
 }
 
 int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs)
@@ -473,8 +473,8 @@ int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs)
 
 int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 {
-    const Script_VMData* lhsVmData = GetVMData(lhs);
-    const Script_VMData* rhsVmData = GetVMData(rhs);
+    const ScriptObjectData* lhsVmData = GetVMData(lhs);
+    const ScriptObjectData* rhsVmData = GetVMData(rhs);
 
     if (lhsVmData == nullptr || rhsVmData == nullptr)
     {
@@ -488,8 +488,8 @@ int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 
 int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
 {
-    const Script_VMData* lhsVmData = GetVMData(lhs);
-    const Script_VMData* rhsVmData = GetVMData(rhs);
+    const ScriptObjectData* lhsVmData = GetVMData(lhs);
+    const ScriptObjectData* rhsVmData = GetVMData(rhs);
 
     if (lhsVmData == nullptr || rhsVmData == nullptr)
     {
@@ -501,11 +501,11 @@ int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs)
         : CF_NONE;
 }
 
-String ToString(const BoxedValue& data)
+String ToString(const BoxedValue& value)
 {
-    if (IsRef(data))
+    if (IsRef(value))
     {
-        if (BoxedValue* ref = GetRef(data))
+        if (BoxedValue* ref = GetRef(value))
         {
             if (IsRef(*ref))
             {
@@ -518,7 +518,7 @@ String ToString(const BoxedValue& data)
         return ScriptString(g_nullString);
     }
 
-    return ValueToString(data);
+    return ValueToString(value);
 }
 
 } // namespace Hyperion

@@ -979,6 +979,7 @@ HYP_API extern const Name g_attrTransient;
 HYP_API extern const Name g_attrComponent;
 HYP_API extern const Name g_attrSize;
 HYP_API extern const Name g_attrNoScriptBindings;
+HYP_API extern const Name g_attrOnlyLanguages;
 HYP_API extern const Name g_attrCommand;
 HYP_API extern const Name g_attrAbstract;
 HYP_API extern const Name g_attrCompressed;

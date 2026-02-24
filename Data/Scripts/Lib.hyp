@@ -443,6 +443,34 @@ extern struct ScriptDesc {
     HotReloadVersion : int32;
     LastModifiedTimestamp : uint64;
 }
+extern struct PropertyHandle {
+}
+extern struct FieldHandle {
+}
+extern struct MethodHandle {
+}
+extern class Reflection {
+    static GetClassByName(name : Name) -> Class;
+    static GetFields(classRef : Class) -> Array<FieldHandle>;
+    static GetFieldHandle(classRef : Class, fieldName : Name) -> FieldHandle;
+    static GetFieldValue(field : FieldHandle, target : any) -> any;
+    static SetFieldValue(field : FieldHandle, target : any, value : any) -> void;
+    static GetFieldName(field : FieldHandle) -> Name;
+    static GetMethods(classRef : Class) -> Array<MethodHandle>;
+    static GetMethodHandle(classRef : Class, methodName : Name) -> MethodHandle;
+    static InvokeMethod(method : MethodHandle, args : Array<any>) -> any;
+    static GetMethodName(method : MethodHandle) -> Name;
+    static GetProperties(classRef : Class) -> Array<PropertyHandle>;
+    static GetPropertyHandle(classRef : Class, propertyName : Name) -> PropertyHandle;
+    static GetPropertyValue(property : PropertyHandle, target : any) -> any;
+    static SetPropertyValue(property : PropertyHandle, target : any, value : any) -> void;
+    static GetPropertyName(property : PropertyHandle) -> Name;
+}
+extern class Debugger {
+    static Breakpoint() -> void;
+    static AssertTrue(condition : bool) -> void;
+    static AssertFalse(condition : bool) -> void;
+}
 extern class WorldGridLayer {
     GetName() -> Name;
     SetName(name : Name) -> void;
@@ -602,7 +630,7 @@ extern class World {
     SetWorldFlags(flags : WorldFlags) -> void;
     GetPhysicsWorld() -> PhysicsWorldBase;
     TryAddSubsystem(subsystem : Subsystem) -> bool;
-    GetSubsystemByName(name : StringHash) -> Subsystem;
+    GetSubsystemByName(name : any) -> Subsystem;
     RemoveSubsystem(subsystem : Subsystem) -> bool;
     GetWorldGrid() -> WorldGrid;
     GetGameState() -> GameState;
@@ -716,7 +744,7 @@ extern class EntityManager {
     GetWorld() -> World;
     GetScene() -> Scene;
     AddExistingEntity(entity : Entity) -> void;
-    AddTypedEntity(cls : any) -> Entity;
+    AddTypedEntity(cls : Class) -> Entity;
     AddBasicEntity() -> Entity;
 }
 extern struct ComponentInfo {
@@ -1430,7 +1458,6 @@ extern class EngineDriver {
     SetDefaultWorld(defaultWorld : World) -> void;
     SetGameInstance(gameInstance : Game) -> void;
     GetGameInstance() -> Game;
-    static Breakpoint() -> void;
 }
 extern class EditorDebugOverlayBase {
     GetUIObject() -> UIObject;
@@ -1744,7 +1771,7 @@ extern class AssetPackage {
     BuildPackagePath() -> string;
     GetSavedDirectory() -> string;
     BuildAssetPath(assetName : Name) -> AssetPath;
-    HasAssetWithName(assetName : StringHash) -> bool;
+    HasAssetWithName(assetName : any) -> bool;
     GetUniqueAssetName(baseName : Name) -> Name;
     Save(outputDirectory : string, saveEvenIfNotDirty : bool) -> Result;
     GetDependencies() -> Array<AssetPath>;
@@ -1859,7 +1886,7 @@ extern class Scene : AssetObject {
     GetPrimaryCamera() -> Camera;
     GetSceneFlags() -> SceneFlags;
     SetSceneFlags(flags : SceneFlags) -> void;
-    FindNodeByName(name : StringHash) -> Node;
+    FindNodeByName(name : any) -> Node;
     GetRoot() -> Node;
     SetRoot(root : Node) -> void;
     GetEntityManager() -> EntityManager;
@@ -1929,7 +1956,7 @@ extern class Node : AssetObject {
     UpdateWorldTransform(updateChildTransforms : bool) -> void;
     CalculateDepth() -> uint32;
     FindSelfIndex() -> uint32;
-    FindChildByName(name : StringHash) -> Node;
+    FindChildByName(name : any) -> Node;
     OnChildAdded : any;
     OnChildRemoved : any;
     NodeFlags : NodeFlags;
@@ -2488,11 +2515,6 @@ extern enum CommandLineArgumentType : uint8 {
 extern struct CommandLineArguments {
 }
 extern struct CommandLineArgumentDefinitions {
-}
-extern struct StringHash {
-}
-extern struct Name {
-    static FromString(str : string) -> Name;
 }
 extern struct HashCode {
 }

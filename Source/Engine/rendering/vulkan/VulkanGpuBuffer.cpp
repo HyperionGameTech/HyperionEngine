@@ -445,7 +445,6 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 
         EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, allocation = m_vmaAllocation]() -> void
             {
-                HYP_LOG_TEMP("Destory vulkan buffer {}", (void*)handle);
                 vmaDestroyBuffer(g_renderInterface->GetDevice()->GetVmaAllocator(), handle, allocation);
             }));
 

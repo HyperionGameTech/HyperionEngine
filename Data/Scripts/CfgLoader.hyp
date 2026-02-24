@@ -1,3 +1,8 @@
+import Lib::{Logger, LogChannel, LogLevel, Reflection}
+
+Logger := Logger.MakeScriptLogger()
+Channel := new LogChannel()
+
 class CfgBase
 {
     CfgBase()
@@ -20,9 +25,25 @@ class CfgLoader
     static Load(configClass : Class) -> CfgBase
     {
         cfg := configClass.CreateInstance() as CfgBase
-
+        cfg.$construct()
+        
         // @TODO read file and populate cfg
+        currClass := configClass
 
+        while (currClass != null)
+        {
+            fields := Reflection.GetFields(currClass)
+
+            for (i := 0; i < fields.Size(); i++)
+            {
+                field := fields[i]
+
+                Logger.LogScript(Channel, LogLevel.Info, "Field: " + string(Reflection.GetFieldName(field)))
+            }
+
+            Logger.LogScript(Channel, LogLevel.Info, "Class: " + string(currClass.GetName()) + " Size: " + string(currClass.GetSize()))
+            currClass = currClass.GetParent()
+        }
 
         return cfg
     }

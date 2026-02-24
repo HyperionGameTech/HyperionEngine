@@ -7,8 +7,6 @@
 
 #include <Core/reflection/TypeId.hpp>
 
-#include <Core/reflection/ObjectMacros.hpp>
-
 #include <Core/HashCode.hpp>
 
 namespace Hyperion {
@@ -42,12 +40,8 @@ extern HYP_API Name CreateNameFromDynamicString(const ANSIString& str);
  *  Name name = CreateNameFromDynamicString("MyName");
  *  \endcode
  */
-
-HYP_STRUCT()
 struct Name
 {
-    HYP_STRUCT_BODY(Name);
-
     friend constexpr bool operator==(const Name& lhs, const Name& rhs);
     friend constexpr bool operator==(const Name& lhs, const StringHash& rhs);
     friend constexpr bool operator!=(const Name& lhs, const Name& rhs);
@@ -133,11 +127,8 @@ struct Name
     HYP_API String ToString() const;
 };
 
-HYP_STRUCT()
 struct StringHash
 {
-    HYP_STRUCT_BODY(StringHash);
-
     friend constexpr bool operator==(const StringHash& lhs, const StringHash& rhs);
     friend constexpr bool operator==(const StringHash& lhs, const Name& rhs);
     friend constexpr bool operator!=(const StringHash& lhs, const StringHash& rhs);

@@ -52,11 +52,11 @@ Pool* g_scriptPool = &s_scriptPoolInstance;
 struct HypScriptImpl
 {
     CompilationUnit globalCompilationUnit;
-    Script_Interpreter* vm;
-    Script_Instance* globalInstance;
+    VirtualMachine* vm;
+    ScriptInstance* globalInstance;
 
     HypScriptImpl()
-        : vm(new Script_Interpreter()),
+        : vm(new VirtualMachine()),
           globalInstance(nullptr)
     {
     }
@@ -99,7 +99,7 @@ static Result InitializeHypScriptLib(HypScript& hs)
 
     ErrorList errorList;
 
-    Script_Instance* instance = hs.Compile(sourceFile, errorList);
+    ScriptInstance* instance = hs.Compile(sourceFile, errorList);
 
     if (errorList.HasFatalErrors())
     {
@@ -128,12 +128,12 @@ HypScript::HypScript()
 
 HypScript::~HypScript() = default;
 
-Script_Interpreter* HypScript::GetVM() const
+VirtualMachine* HypScript::GetVM() const
 {
     return m_impl->vm;
 }
 
-Script_Instance* HypScript::GetGlobalInstance() const
+ScriptInstance* HypScript::GetGlobalInstance() const
 {
     return m_impl->globalInstance;
 }
@@ -150,7 +150,7 @@ void HypScript::Initialize()
     HYP_BREAKPOINT;*/
 }
 
-void HypScript::DestroyScript(Script_Instance* instance)
+void HypScript::DestroyScript(ScriptInstance* instance)
 {
     if (!instance)
     {
@@ -160,7 +160,7 @@ void HypScript::DestroyScript(Script_Instance* instance)
     delete instance;
 }
 
-Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorList)
+ScriptInstance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorList)
 {
     if (!sourceFile.IsValid())
     {
@@ -237,8 +237,8 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
         codeGenerator.Visit(&bytecodeChunk);
         codeGenerator.Bake();
 
-        Script_Instance* scriptInstance = new Script_Instance {
-            Script_Stream(codeGenerator.GetInternalByteStream().GetData())
+        ScriptInstance* scriptInstance = new ScriptInstance {
+            BytecodeStream(codeGenerator.GetInternalByteStream().GetData())
         };
 
         return scriptInstance;
@@ -247,7 +247,7 @@ Script_Instance* HypScript::Compile(SourceFile& sourceFile, ErrorList& outErrorL
     return nullptr;
 }
 
-InstructionStream* HypScript::Decompile(Script_Instance* instance, std::ostream* os) const
+InstructionStream* HypScript::Decompile(ScriptInstance* instance, std::ostream* os) const
 {
     if (!instance)
     {
@@ -257,7 +257,7 @@ InstructionStream* HypScript::Decompile(Script_Instance* instance, std::ostream*
     return DecompilationUnit().Decompile(instance->stream, os);
 }
 
-void HypScript::Run(Script_Instance* instance)
+void HypScript::Run(ScriptInstance* instance)
 {
     if (!instance)
     {
@@ -267,7 +267,7 @@ void HypScript::Run(Script_Instance* instance)
     m_impl->vm->Execute(instance);
 }
 
-BoxedValue HypScript::CallFunctionArgV(Script_Instance* instance, const BoxedValue& value, BoxedValue* args, ArgCount numArgs)
+BoxedValue HypScript::CallFunctionArgV(ScriptInstance* instance, const BoxedValue& value, BoxedValue* args, ArgCount numArgs)
 {
     Assert(instance != nullptr);
     Assert(IsFunction(value));
@@ -284,11 +284,11 @@ BoxedValue HypScript::CallFunctionArgV(Script_Instance* instance, const BoxedVal
 
     // Create a reference since we know the lifetime of the function handle will exist longer than the call
     // and we don't want to move the underlying value
-    Script_VMData vmData;
-    vmData.type = Script_VMData::VALUE_REF;
-    vmData.valueRef = const_cast<BoxedValue*>(&value);
+    ScriptObjectData data;
+    data.type = ScriptObjectData::Type::Reference;
+    data.valueRef = const_cast<BoxedValue*>(&value);
 
-    m_impl->vm->InvokeNow(instance, MakeValue(vmData), numArgs);
+    m_impl->vm->InvokeNow(instance, MakeValue(data), numArgs);
 
     if (numArgs != 0)
     {
@@ -298,14 +298,14 @@ BoxedValue HypScript::CallFunctionArgV(Script_Instance* instance, const BoxedVal
     return std::move(instance->thread.GetRegisters()[0]);
 }
 
-void HypScript::ReadLastReturnValue(Script_Instance* instance, BoxedValue& outValue)
+void HypScript::ReadLastReturnValue(ScriptInstance* instance, BoxedValue& outValue)
 {
     Assert(instance != nullptr);
 
     outValue = ShallowCopy(instance->thread.m_regs[0], m_impl->vm->GetGC());
 }
 
-bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue)
+bool HypScript::GetMember(ScriptInstance* instance, const BoxedValue& targetValue, const char* memberName, BoxedValue& outValue)
 {
     outValue = BoxedValue();
 
@@ -344,24 +344,24 @@ bool HypScript::GetMember(Script_Instance* instance, const BoxedValue& targetVal
     {
         Method* method = static_cast<Method*>(member);
 
-        Script_VMData vmData;
+        ScriptObjectData data;
 
         if (method->IsScriptFunction())
         {
             Assert(method->GetParameters().Size() <= UINT8_MAX);
 
-            vmData.type = Script_VMData::FUNCTION;
-            vmData.func.m_addr = method->GetScriptAddress();
-            vmData.func.m_nargs = (uint8)method->GetParameters().Size();
-            vmData.func.m_flags = (uint8)method->GetFlags();
+            data.type = ScriptObjectData::Type::ScriptFunction;
+            data.func.m_addr = method->GetScriptAddress();
+            data.func.m_nargs = (uint8)method->GetParameters().Size();
+            data.func.m_flags = (uint8)method->GetFlags();
         }
         else
         {
-            vmData.type = Script_VMData::NATIVE_FUNCTION;
-            vmData.nativeFunc = method;
+            data.type = ScriptObjectData::Type::NativeFunction;
+            data.nativeFunc = method;
         }
 
-        outValue = MakeValue(vmData);
+        outValue = MakeValue(data);
 
         return true;
     }
@@ -398,7 +398,7 @@ bool HypScript::SetField(BoxedValue& targetValue, const char* memberName, BoxedV
     return true;
 }
 
-bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, BoxedValue& outValue)
+bool HypScript::GetFunctionHandle(ScriptInstance* instance, const char* name, BoxedValue& outValue)
 {
     outValue = BoxedValue();
 
@@ -418,7 +418,7 @@ bool HypScript::GetFunctionHandle(Script_Instance* instance, const char* name, B
     return true;
 }
 
-bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, BoxedValue& outValue, bool getReference)
+bool HypScript::GetExportedValue(ScriptInstance* instance, const char* name, BoxedValue& outValue, bool getReference)
 {
     outValue = BoxedValue();
 
@@ -443,7 +443,7 @@ bool HypScript::GetExportedValue(Script_Instance* instance, const char* name, Bo
     return true;
 }
 
-Script_SymbolTable& HypScript::GetExportedSymbols(Script_Instance* instance) const
+Script_SymbolTable& HypScript::GetExportedSymbols(ScriptInstance* instance) const
 {
     return instance->exportedSymbols;
 }

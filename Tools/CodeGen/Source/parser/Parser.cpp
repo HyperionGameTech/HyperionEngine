@@ -263,7 +263,9 @@ TResult<HypScriptTypeMapping> MapToHypScriptType(const Analyzer& analyzer, const
             { "ObjectBase", { "object" } },
             { "AnyHandle", g_hypscriptAnyTypeMapping },
             { "AnyRef", g_hypscriptAnyTypeMapping },
-            { "ConstAnyRef", g_hypscriptAnyTypeMapping }
+            { "ConstAnyRef", g_hypscriptAnyTypeMapping },
+            { "Class", { "Class" } },
+            { "ClassRef", { "Class" } }
 
             /* more to be filled in later */
         };

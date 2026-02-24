@@ -13,6 +13,9 @@
 namespace Hyperion {
 
 static constexpr const char* BaseNamespace = "Hyperion";
+
+struct ClassAttributeValue; 
+
 namespace CodeGen {
 
 Optional<String> ExtractCXXClassName(const String& line);
@@ -34,6 +37,8 @@ String GetDateTimeString();
 String GetGeneratedFilePreamble(const String& srcPath);
 
 Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFilePath);
+
+bool CheckAttrCSV(const ClassAttributeValue& attrValue, const String& expected);
 
 } // namespace CodeGen
 } // namespace Hyperion

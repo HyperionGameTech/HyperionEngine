@@ -669,13 +669,6 @@ void EngineDriver::UpdateSim(float delta)
     }
 }
 
-void EngineDriver::Breakpoint()
-{
-#ifdef HYP_DEBUG_MODE
-    HYP_BREAKPOINT;
-#endif
-}
-
 #pragma endregion EngineDriver
 
 } // namespace Hyperion

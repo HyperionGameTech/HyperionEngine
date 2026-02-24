@@ -27,9 +27,9 @@ class Class;
 HYP_API extern const char* LookupTypeName(const TypeId& typeId);
 
 #ifdef HYP_SCRIPT
-enum class Script_FunctionAddress : uint32;
+enum class BytecodeAddress : uint32;
 #ifndef INVALID_FUNCTION_ADDRESS
-#define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
+#define INVALID_FUNCTION_ADDRESS BytecodeAddress(~0u)
 #endif
 
 #endif
@@ -171,7 +171,7 @@ public:
     }
 
 #ifdef HYP_SCRIPT
-    Method(Name name, const TypeInfo* returnTypeInfo, const TypeInfo* targetTypeInfo, Script_FunctionAddress scriptAddress, EnumFlags<MethodFlags> flags, Span<const ClassAttribute> attributes = {})
+    Method(Name name, const TypeInfo* returnTypeInfo, const TypeInfo* targetTypeInfo, BytecodeAddress scriptAddress, EnumFlags<MethodFlags> flags, Span<const ClassAttribute> attributes = {})
         : m_name(name),
           m_returnTypeInfo(returnTypeInfo),
           m_targetTypeInfo(targetTypeInfo),
@@ -528,7 +528,7 @@ public:
     }
 
 #ifdef HYP_SCRIPT
-    HYP_FORCE_INLINE Script_FunctionAddress GetScriptAddress() const
+    HYP_FORCE_INLINE BytecodeAddress GetScriptAddress() const
     {
         return m_scriptAddress;
     }
@@ -553,7 +553,7 @@ private:
     Proc<Result(FBOMLoadContext&, Span<BoxedValue>, const FBOMData&)> m_deserializeProc;
 
 #ifdef HYP_SCRIPT
-    Script_FunctionAddress m_scriptAddress;
+    BytecodeAddress m_scriptAddress;
 #endif
 };
 

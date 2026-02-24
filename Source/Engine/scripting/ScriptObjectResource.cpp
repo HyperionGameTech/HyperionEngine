@@ -105,7 +105,7 @@ ScriptObjectResource::ScriptObjectResource(ObjectBase* ptr, const RC<dotnet::Man
 
 #ifdef HYP_SCRIPT
 
-ScriptObjectResource::ScriptObjectResource(Script_Instance* hypScriptInstance, BoxedValue&& hypScriptValue)
+ScriptObjectResource::ScriptObjectResource(ScriptInstance* hypScriptInstance, BoxedValue&& hypScriptValue)
     : m_ptr(nullptr)
 {
     if (!hypScriptData)

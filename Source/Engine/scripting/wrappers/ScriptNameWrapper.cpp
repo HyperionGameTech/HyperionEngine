@@ -10,6 +10,23 @@
 
 namespace Hyperion {
 
+HYP_API const Class* g_clsName = nullptr;
+
+// clang-format off
+HYP_BEGIN_STRUCT(Name, -1, 0, {})
+    Method(NAME("ToString"), +[](const Name& name) -> String
+        {
+            return name.ToString();
+        }),
+    Method(NAME("FromString"), +[](const String& str) -> Name
+        {
+            return CreateNameFromDynamicString(str);
+        })
+HYP_END_STRUCT
+// clang-format on
+
+HYP_REGISTER_STATIC_CLASS(Name);
+
 } // namespace Hyperion
 
 #endif

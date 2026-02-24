@@ -1007,11 +1007,6 @@ bool SymbolType::IsClassType() const
     return TypeEqual(*BuiltinTypes::s_classType);
 }
 
-bool SymbolType::IsFieldType() const
-{
-    return TypeEqual(*BuiltinTypes::s_fieldType);
-}
-
 bool SymbolType::IsNumber() const
 {
     return IsIntegral() || IsFloat();
@@ -1071,7 +1066,8 @@ bool SymbolType::IsNullType() const
 
 bool SymbolType::IsNullableType() const
 {
-    return IsOrHasBase(*BuiltinTypes::s_objectType)
+    return IsClassType()
+        || IsOrHasBase(*BuiltinTypes::s_objectType)
         || IsOrHasBase(*BuiltinTypes::s_functionBaseType)
         || IsOrHasBase(*BuiltinTypes::s_arrayBaseType)
         || IsOrHasBase(*BuiltinTypes::s_mapBaseType)

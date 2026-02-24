@@ -1,5 +1,5 @@
-import Lib::{Logger,LogChannel,LogLevel, EngineDriver}
-import CfgLoader::{*}
+import Lib::{Logger,LogChannel,LogLevel, EngineDriver, Reflection, Debugger}
+import CfgLoader::{CfgLoader, GlobalCfg, CacheCfg, AppCfg, CfgBase}
 
 Logger := Logger.MakeScriptLogger()
 Channel := new LogChannel()
@@ -19,12 +19,13 @@ Logger.LogScript(Channel, LogLevel.Info, "tmpArray size: " + string(tmpArray.Siz
 Global.App = new AppCfg()
 Global.App.Name = "TestApp"
 
-f := GlobalCfg.GetField(#App)
-Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field = " + string(f))
-appValue := f.GetValue(Global) as AppCfg
+fieldHandle := Reflection.GetFieldHandle(GlobalCfg, #App)
+Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field = " + string(fieldHandle))
+
+appValue := Reflection.GetFieldValue(fieldHandle, Global) as AppCfg
 Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field value = " + string(appValue))
 
-EngineDriver.Breakpoint()
+Debugger.Breakpoint()
 
 export func Update(DeltaTime : float)
 {

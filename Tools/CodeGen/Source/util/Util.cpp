@@ -8,6 +8,8 @@
 
 #include <Core/io/BufferedByteReader.hpp>
 
+#include <Core/reflection/ClassAttribute.hpp>
+
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>
 
@@ -478,6 +480,33 @@ Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFile
     tempFilePath = targetFilePath;
 
     return {};
+}
+
+bool CheckAttrCSV(const ClassAttributeValue& attrValue, const String& expected)
+{
+    if (!attrValue.IsValid() || !attrValue.IsString())
+    {
+        return false;
+    }
+
+    String expectedLower = expected.ToLower();
+
+    String value = attrValue.GetString();
+    Array<String> parts = value.Split(',');
+
+    for (String& part : parts)
+    {
+        part = part.Trimmed();
+        part = part.ToLower();
+
+        if (part == expectedLower)
+        {
+            return true;
+        }
+    }
+
+    return false;
+
 }
 
 } // namespace CodeGen

@@ -349,7 +349,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
 
                 ErrorList errorList;
 
-                Script_Instance* instance = hs.Compile(sourceFile, errorList);
+                ScriptInstance* instance = hs.Compile(sourceFile, errorList);
 
                 if (errorList.HasFatalErrors())
                 {
@@ -360,6 +360,8 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                             {
                             })
                         .Show(/* showBlocking */ false);
+
+                    HYP_BREAKPOINT;
 
                     return;
                 }

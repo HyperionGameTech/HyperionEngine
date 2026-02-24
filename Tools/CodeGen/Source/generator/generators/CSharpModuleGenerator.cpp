@@ -67,6 +67,14 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             {
                 continue;
             }
+            
+            if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+            {
+                if (!CheckAttrCSV(attr, "csharp"))
+                {
+                    continue;
+                }
+            }
 
             if (cls.members.Any())
             {
@@ -119,6 +127,14 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             continue;
         }
 
+        if (const ClassAttributeValue& attr = cls.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+        {
+            if (!CheckAttrCSV(attr, "csharp"))
+            {
+                continue;
+            }
+        }
+
         // skip generation if no members to serialize
         if (cls.members.Empty())
         {
@@ -135,6 +151,14 @@ Result CSharpModuleGenerator::Generate(const Analyzer& analyzer, const Module& m
             if (noScriptBindingsPredicate(member))
             {
                 continue;
+            }
+
+            if (const ClassAttributeValue& attr = member.GetAttribute("OnlyLanguages"); attr.IsValid() && attr.IsString())
+            {
+                if (!CheckAttrCSV(attr, "csharp"))
+                {
+                    continue;
+                }
             }
 
             String managedName = member.friendlyName;

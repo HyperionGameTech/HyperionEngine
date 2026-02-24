@@ -84,7 +84,7 @@ public:
             ScriptObjectData_HypScript* hypScriptData = scriptObjectResource->GetScriptObjectData_HypScript();
             HYP_CORE_ASSERT(hypScriptData != nullptr, "HypScript script object data is null!");
 
-            Script_Instance* instance = hypScriptData->instance;
+            ScriptInstance* instance = hypScriptData->instance;
             HYP_CORE_ASSERT(instance != nullptr, "HypScript instance is null!");
 
             HYP_NOT_IMPLEMENTED(); // see EntityScripting.cpp

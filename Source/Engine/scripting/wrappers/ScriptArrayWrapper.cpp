@@ -14,87 +14,19 @@ namespace Hyperion {
 
 extern Pool* g_scriptPool;
 
-using ScriptAllocator = AllocatorInstance<Pool, &g_scriptPool>;
-using ScriptArray = Array<BoxedValue, ScriptAllocator>;
-
-HYP_API const Class* g_clsScriptArray = nullptr;
+HYP_API const Class* g_clsGenericArrayWrapper = nullptr;
 
 // clang-format off
-HYP_BEGIN_STRUCT(ScriptArray, -1, 0, {})
+HYP_BEGIN_STRUCT(GenericArrayWrapper, -1, 0, {})
     Method(NAME("Size"), &Type::Size),
-    Method(NAME("PushBack"), +[](ScriptArray& array, const BoxedValue& arg) -> AnyRef
+    Method(NAME("PushBack"), +[](GenericArrayWrapper& array, const BoxedValue& arg) -> AnyRef
         {
-            return AnyRef(&array.PushBack(arg));
-        }),
-    Method(NAME("PopBack"), +[](ScriptArray& array) -> BoxedValue
-        {
-            if (array.Empty())
-            {
-                return BoxedValue();
-            }
-
-            return array.PopBack();
-        }),
-    Method(NAME("PushFront"), +[](ScriptArray& array, const BoxedValue& arg) -> AnyRef
-        {
-            return AnyRef(array.PushFront(arg));
-        }),
-    Method(NAME("PopFront"), +[](ScriptArray& array) -> BoxedValue
-        {
-            if (array.Empty())
-            {
-                return BoxedValue();
-            }
-
-            return array.PopFront();
-        }),
-    Method(NAME("Add"), +[](ScriptArray& array, const BoxedValue& arg) -> AnyRef
-        {
-            return AnyRef(array.Add(arg));
-        }),
-    Method(NAME("Remove"), +[](ScriptArray& array, const BoxedValue& arg) -> bool
-        {
-            auto it = std::find_if(array.begin(), array.end(), [&arg](const BoxedValue& other)
-                {
-                    return arg.value == other.value;
-                });
-
-            if (it == array.end())
-            {
-                return false;
-            }
-
-            array.Erase(it);
-
-            return true;
-        }),
-    Method(NAME("Clear"), &ScriptArray::Clear),
-    Method(NAME("Resize"), &ScriptArray::Resize),
-    Method(NAME("Reserve"), &ScriptArray::Reserve),
-    Method(NAME("Empty"), &ScriptArray::Empty),
-    Method(NAME("Any"), &ScriptArray::Any),
-    Method(NAME("Front"), +[](ScriptArray& array) -> AnyRef
-        {
-            if (array.Empty())
-            {
-                return AnyRef::Empty();
-            }
-
-            return AnyRef(array.Front());
-        }),
-    Method(NAME("Back"), +[](ScriptArray& array) -> AnyRef
-        {
-            if (array.Empty())
-            {
-                return AnyRef::Empty();
-            }
-
-            return AnyRef(array.Back());
+            return array.PushBack(BoxedValue(arg));
         })
 HYP_END_STRUCT
 // clang-format on
 
-HYP_REGISTER_STATIC_CLASS(ScriptArray);
+HYP_REGISTER_STATIC_CLASS(GenericArrayWrapper);
 
 } // namespace Hyperion
 

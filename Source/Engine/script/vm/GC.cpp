@@ -4,7 +4,7 @@
 
 namespace Hyperion {
 
-extern BoxedValue MakeValue(const Script_VMData& data);
+extern BoxedValue MakeValue(const ScriptObjectData& data);
 
 Script_GC::Script_GC()
     : m_allocator(sizeof(BoxedValue), alignof(BoxedValue))
@@ -32,11 +32,11 @@ void Script_GC::MoveToTrackedMemory(BoxedValue& inOutRefValue)
     ptr->extData.gcIndex = GCIndex(gcIndex);
 
     // set `inOutRefValue` to be a reference to the tracked value
-    Script_VMData newRefVmData;
-    newRefVmData.type = Script_VMData::VALUE_REF;
-    newRefVmData.valueRef = ptr;
+    ScriptObjectData newRefData;
+    newRefData.type = ScriptObjectData::Type::Reference;
+    newRefData.valueRef = ptr;
 
-    inOutRefValue = MakeValue(newRefVmData);
+    inOutRefValue = MakeValue(newRefData);
 }
 
 } // namespace Hyperion

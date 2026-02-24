@@ -20,14 +20,14 @@ namespace Hyperion {
 struct BoxedValue;
 struct Method;
 
-enum class Script_FunctionAddress : uint32;
+enum class BytecodeAddress : uint32;
 
 #ifndef INVALID_FUNCTION_ADDRESS
-#define INVALID_FUNCTION_ADDRESS Script_FunctionAddress(~0u)
+#define INVALID_FUNCTION_ADDRESS BytecodeAddress(~0u)
 #endif
 
 struct Script_ExecutionThread;
-class Script_Interpreter;
+class VirtualMachine;
 class Script_GC;
 class Script_Exception;
 
@@ -133,7 +133,7 @@ enum CompareFlags : uint8
 
 class VMObject;
 
-struct alignas(8) Script_VMData
+struct alignas(8) ScriptObjectData
 {
     union
     {
@@ -141,7 +141,7 @@ struct alignas(8) Script_VMData
 
         struct
         {
-            Script_FunctionAddress m_addr;
+            BytecodeAddress m_addr;
             uint8 m_nargs;
             uint8 m_flags;
         } func;
@@ -150,16 +150,16 @@ struct alignas(8) Script_VMData
 
         struct
         {
-            Script_FunctionAddress returnAddress;
+            BytecodeAddress returnAddress;
             int32 varargsPush;
         } call;
 
-        Script_FunctionAddress addr;
+        BytecodeAddress addr;
 
         struct
         {
-            Script_FunctionAddress catchAddress;
-        } tryCatchInfo;
+            BytecodeAddress catchAddress;
+        } exceptionState;
 
         struct
         {
@@ -167,57 +167,55 @@ struct alignas(8) Script_VMData
         } invalidStateObject;
     };
 
-    enum
+    enum class Type
     {
-        VALUE_REF,
-        HEAP_POINTER,
-        FUNCTION,
-        NATIVE_FUNCTION,
-        USER_DATA,
-        ADDRESS,
-        FUNCTION_CALL,
-        TRY_CATCH_INFO,
-        INVALID_STATE_OBJECT // used for error handling in native functions
+        Reference,
+        ScriptFunction,
+        NativeFunction,
+        BytecodeAddress,
+        StackFrame,
+        ExceptionState,
+        InvalidState // used for error handling in native functions
     } type;
 };
 
 enum class GCIndex : uint32;
 
-extern bool IsGarbage(const BoxedValue& data);
+extern bool IsGarbage(const BoxedValue& value);
 
-extern bool IsFunction(const BoxedValue& data);
-extern bool IsNativeFunction(const BoxedValue& data);
+extern bool IsFunction(const BoxedValue& value);
+extern bool IsNativeFunction(const BoxedValue& value);
 
-extern bool IsRef(const BoxedValue& data);
-extern BoxedValue* GetRef(const BoxedValue& data);
+extern bool IsRef(const BoxedValue& value);
+extern BoxedValue* GetRef(const BoxedValue& value);
 
-extern BoxedValue* Deref(BoxedValue& data);
-extern const BoxedValue* Deref(const BoxedValue& data);
+extern BoxedValue* Deref(BoxedValue& value);
+extern const BoxedValue* Deref(const BoxedValue& value);
 
-extern void AssignValue(BoxedValue& data, BoxedValue&& other, bool assignRef);
+extern void AssignValue(BoxedValue& value, BoxedValue&& other, bool assignRef);
 
-extern bool GetUnsigned(const BoxedValue& data, uint64* out);
-extern bool GetInteger(const BoxedValue& data, int64* out);
-extern bool GetSignedOrUnsigned(const BoxedValue& data, Number* out);
+extern bool GetUnsigned(const BoxedValue& value, uint64* out);
+extern bool GetInteger(const BoxedValue& value, int64* out);
+extern bool GetSignedOrUnsigned(const BoxedValue& value, Number* out);
 
-extern bool GetFloatingPoint(const BoxedValue& data, double* out);
+extern bool GetFloatingPoint(const BoxedValue& value, double* out);
 
-extern bool GetNumber(const BoxedValue& data, double* out);
-extern bool GetNumber(const BoxedValue& data, Number* out);
+extern bool GetNumber(const BoxedValue& value, double* out);
+extern bool GetNumber(const BoxedValue& value, Number* out);
 
-extern NumericType GetNumericType(const BoxedValue& data);
+extern NumericType GetNumericType(const BoxedValue& value);
 
-extern bool GetBoolean(const BoxedValue& data, bool* out);
+extern bool GetBoolean(const BoxedValue& value, bool* out);
 
-extern bool GetString(const BoxedValue& data, const ScriptString** out);
+extern bool GetString(const BoxedValue& value, const ScriptString** out);
 
-extern const Handle<ObjectBase>& GetObject(const BoxedValue& data);
+extern const Handle<ObjectBase>& GetObject(const BoxedValue& value);
 
 extern int CompareAsPointers(const BoxedValue& lhs, const BoxedValue& rhs);
 extern int CompareAsFunctions(const BoxedValue& lhs, const BoxedValue& rhs);
 extern int CompareAsNativeFunctions(const BoxedValue& lhs, const BoxedValue& rhs);
 
-extern const char* GetTypeString(const BoxedValue& data);
-extern String ToString(const BoxedValue& data);
+extern const char* GetTypeString(const BoxedValue& value);
+extern String ToString(const BoxedValue& value);
 
 } // namespace Hyperion

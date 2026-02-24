@@ -27,7 +27,7 @@ DecompilationUnit::DecompilationUnit()
 
 void DecompilationUnit::DecodeNext(
     uint8 code,
-    Hyperion::Script_Stream& bs,
+    Hyperion::BytecodeStream& bs,
     InstructionStream& is,
     std::ostream* os)
 {
@@ -1678,7 +1678,7 @@ void DecompilationUnit::DecodeNext(
     }
 }
 
-InstructionStream* DecompilationUnit::Decompile(Hyperion::Script_Stream& bs, std::ostream* os)
+InstructionStream* DecompilationUnit::Decompile(Hyperion::BytecodeStream& bs, std::ostream* os)
 {
     const SizeType prevPosition = bs.Position();
 
