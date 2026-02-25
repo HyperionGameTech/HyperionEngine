@@ -1,4 +1,4 @@
-/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
 #include <Core/reflection/ObjectPool.hpp>
 #include <Core/reflection/Class.hpp>

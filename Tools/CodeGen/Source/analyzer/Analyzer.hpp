@@ -1,4 +1,4 @@
-/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
 #ifndef HYPERION_CODEGEN_ANALYZER_HPP
 #define HYPERION_CODEGEN_ANALYZER_HPP

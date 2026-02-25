@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import inspect
 
-license_text = """Copyright (c) 2026 Andrew J. MacDonald. All rights reserved."""
+license_text = """Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved."""
 
 def apply_license(base_path, exclude=[]):
     global license_text

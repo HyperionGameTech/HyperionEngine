@@ -1,4 +1,4 @@
-/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
 #include <Core/math/Vector2.hpp>
 #include <Core/math/Vector4.hpp>
