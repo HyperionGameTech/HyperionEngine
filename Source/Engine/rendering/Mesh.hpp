@@ -34,10 +34,10 @@ class RenderMesh;
 class Material;
 
 HYP_ENUM()
-enum MeshFlags : uint32
+enum class MeshFlags : uint32
 {
-    MF_NONE = 0x0,
-    MF_VIEW_INDEPENDENT = 0x1 //!< keep GPU data around even if mesh is not used by any View
+    None = 0x0,
+    ViewIndependent = 0x1 //!< keep GPU data around even if mesh is not used by any View
 };
 
 HYP_MAKE_ENUM_FLAGS(MeshFlags)

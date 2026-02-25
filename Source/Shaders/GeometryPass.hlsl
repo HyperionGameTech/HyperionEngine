@@ -125,8 +125,8 @@ PSOutput PSMain(PSInput input)
     texcoord = parallax_texcoord;
 #endif
 
-#if HAS_ALBEDO_MAP
-    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, texcoord);
+#if HAS_DIFFUSE_MAP
+    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, texcoord);
 
 #ifdef ALPHA_DISCARD
     if (albedo_texture.a < alpha_threshold)

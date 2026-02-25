@@ -92,7 +92,7 @@ static const FixedArray<ShaderPropertySet, LT_MAX> s_deferredLightTypeProperties
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("AREA_RECT"))) } }
 };
 
-static const ShaderPropertyId s_propHasAlbedoMap = InternShaderProperty(ShaderProperty(NAME("HAS_ALBEDO_MAP")));
+static const ShaderPropertyId s_propHasDiffuseMap = InternShaderProperty(ShaderProperty(NAME("HAS_DIFFUSE_MAP")));
 
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
@@ -430,7 +430,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                     RenderProxyMaterial* materialProxy = static_cast<RenderProxyMaterial*>(GetRenderProxy(lightProxy->lightMaterial));
                     AssertDebug(materialProxy != nullptr);
 
-                    if (materialProxy->attributes.textureMask & uint32(MaterialTextureKey::ALBEDO_MAP))
+                    if (materialProxy->attributes.textureMask & uint32(MaterialTextureKey::Diffuse))
                     {
                         const uint32 materialBoundIndex = RetrieveResourceBinding(lightProxy->lightMaterial);
                         AssertDebug(materialBoundIndex != ~0u);
@@ -438,7 +438,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
                         Span<const GpuImageViewRef> imageViews = g_renderInterface->materialTextureCache->imageViews.Get(materialBoundIndex);
                         AssertDebug(imageViews.Size() >= materialProxy->boundTextures.Size());
 
-                        rq << SetShaderUniform(localNumShaderUniforms++, "AlbedoMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
+                        rq << SetShaderUniform(localNumShaderUniforms++, "DiffuseMap"_sh, imageViews[materialProxy->boundTextureIndices[0]]);
                     }
 
                     rq << SetShaderUniform(localNumShaderUniforms++, "CurrentMaterial"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex), TShaderDataOffset<MaterialShaderData>(lightProxy->lightMaterial));
@@ -813,7 +813,7 @@ void FogVolumePass::Create()
     AssertOnThread(g_renderThread);
 
     m_volumeMesh = MeshBuilder::Cube(true);
-    m_volumeMesh->SetFlags(MF_VIEW_INDEPENDENT);
+    m_volumeMesh->SetFlags(MeshFlags::ViewIndependent);
     m_volumeMesh->SetName(NAME("FogVolumeMesh"));
     InitObject(m_volumeMesh);
 
@@ -1309,7 +1309,7 @@ DeferredRenderer::~DeferredRenderer()
 void DeferredRenderer::Initialize()
 {
     m_quadMesh = MeshBuilder::Quad();
-    m_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
+    m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
     InitObject(m_quadMesh);
 }
 
@@ -1466,7 +1466,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
 
     // Hack to fix driver crash when building TLAS with no meshes
     Handle<Mesh> defaultMesh = MeshBuilder::Cube(true);
-    defaultMesh->SetFlags(MF_VIEW_INDEPENDENT);
+    defaultMesh->SetFlags(MeshFlags::ViewIndependent);
     InitObject(defaultMesh);
 
     GpuBlasRef blas = MeshBlasBuilder::Build(defaultMesh);

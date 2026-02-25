@@ -30,12 +30,7 @@
 
 namespace Hyperion {
 
-#ifdef HYP_TOOL
-const Class* g_clsObjectBase = nullptr;
-#else
 HYP_API extern const Class* g_clsObjectBase;
-#endif
-
 HYP_API extern Pool* g_objectPool;
 
 #pragma region ObjectInitializerGuardBase

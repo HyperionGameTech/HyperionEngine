@@ -4,16 +4,12 @@ Logger := Logger.MakeScriptLogger()
 Channel := new LogChannel()
 
 class CfgBase
-{
     CfgBase()
-    {
-    }
-}
+    end
+end
 
 class CfgLoader
-{
     static Load(configClass : Class) -> CfgBase
-    {
         cfg := configClass.CreateInstance() as CfgBase
         cfg.$construct()
         
@@ -21,38 +17,33 @@ class CfgLoader
         currClass := configClass
 
         while (currClass != null)
-        {
             fields := Reflection.GetFields(currClass)
 
             for (i := 0; i < fields.Size(); i++)
-            {
                 field := fields[i]
 
                 Logger.LogScript(Channel, LogLevel.Info, "Field: " + string(Reflection.GetFieldName(field)))
-            }
+            end
 
             Logger.LogScript(Channel, LogLevel.Info, "Class: " + string(currClass.GetName()) + " Size: " + string(currClass.GetSize()))
             currClass = currClass.GetParent()
-        }
+        end
 
         return cfg
-    }
-}
+    end
+end
 
 class GlobalCfg : CfgBase
-{
     App = new AppCfg()
-}
+end
 
 class CacheCfg : CfgBase
-{
     BaseDirectory : string
     PageSize : uint64
-}
+end
 
 class AppCfg : CfgBase
-{
     Name : string
     Args : string
     Cache = new CacheCfg()
-}
+end

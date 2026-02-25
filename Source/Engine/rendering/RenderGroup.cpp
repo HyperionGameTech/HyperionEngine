@@ -268,7 +268,7 @@ static void RenderAll(
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(drawCalls.materials[i] != nullptr && drawCalls.materials[i]->IsReady());
-            if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+            if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::Diffuse))
             {
                 HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", drawCalls.materials[i]->GetName());
             }
@@ -353,7 +353,7 @@ static void RenderAll(
 
 #if HYP_MATERIAL_DEBUG
             AssertDebug(instancedDrawCalls.materials[i] != nullptr && instancedDrawCalls.materials[i]->IsReady());
-            if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+            if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::Diffuse))
             {
                 HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", instancedDrawCalls.materials[i]->GetName());
             }
@@ -521,7 +521,7 @@ static void RenderAll_Parallel(
 
 #if HYP_MATERIAL_DEBUG
                         AssertDebug(drawCalls.materials[i] != nullptr && drawCalls.materials[i]->IsReady());
-                        if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+                        if (!drawCalls.materials[i]->GetTexture(MaterialTextureKey::Diffuse))
                         {
                             HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", drawCalls.materials[i]->GetName());
                         }
@@ -629,7 +629,7 @@ static void RenderAll_Parallel(
 
 #if HYP_MATERIAL_DEBUG
                         AssertDebug(instancedDrawCalls.materials[i] != nullptr && instancedDrawCalls.materials[i]->IsReady());
-                        if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::ALBEDO_MAP))
+                        if (!instancedDrawCalls.materials[i]->GetTexture(MaterialTextureKey::Diffuse))
                         {
                             HYP_LOG(Rendering, Warning, "Rendering instanced draw call with material '{}' that has no albedo map bound!", instancedDrawCalls.materials[i]->GetName());
                         }

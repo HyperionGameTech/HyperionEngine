@@ -62,14 +62,14 @@ void OnBindingChanged_Mesh(Mesh* mesh, uint32 prev, uint32 next)
 
     if (next != ~0u)
     {
-        if ((mesh->GetFlags() & MF_VIEW_INDEPENDENT) || !mesh->gpuUploadSemaphore.IsSignaled())
+        if ((mesh->GetFlags() & MeshFlags::ViewIndependent) || !mesh->gpuUploadSemaphore.IsSignaled())
         {
             mesh->UploadGpuData();
         }
     }
     else if (prev != ~0u)
     {
-        if (mesh->gpuUploadSemaphore.IsSignaled() && !(mesh->GetFlags() & MF_VIEW_INDEPENDENT))
+        if (mesh->gpuUploadSemaphore.IsSignaled() && !(mesh->GetFlags() & MeshFlags::ViewIndependent))
         {
             mesh->ReleaseGpuData();
         }

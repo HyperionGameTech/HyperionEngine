@@ -11,8 +11,8 @@
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
     DECLARE_SRV(BindlessResources0, Textures) uniform texture2D textures[];
 #else
-    #if HAS_ALBEDO_MAP
-        DECLARE_SRV(Material, AlbedoMap) uniform texture2D AlbedoMap;
+    #if HAS_DIFFUSE_MAP
+        DECLARE_SRV(Material, DiffuseMap) uniform texture2D DiffuseMap;
     #endif
     #if HAS_NORMAL_MAP
         DECLARE_SRV(Material, NormalMap) uniform texture2D NormalMap;
@@ -57,7 +57,7 @@ struct Material
 #define GET_MATERIAL_PARAM(mat, index) \
     UINT_TO_VEC4(mat.packed_params[(index) / 4])[(index) % 4]
 
-#define MATERIAL_TEXTURE_AlbedoMap 0
+#define MATERIAL_TEXTURE_DiffuseMap 0
 #define MATERIAL_TEXTURE_NormalMap 1
 #define MATERIAL_TEXTURE_ParallaxMap 2
 #define MATERIAL_TEXTURE_MetalnessMap 3
@@ -68,7 +68,7 @@ struct Material
 
 #define HAS_TEXTURE(mat, name) bool(((mat).textureUsage & (1u << MATERIAL_TEXTURE_##name)))
 
-#if defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT) // area rect light uses AlbedoMap in any case
+#if defined(HYP_FEATURES_BINDLESS_TEXTURES) && !defined(LIGHT_TYPE_AREA_RECT) // area rect light uses DiffuseMap in any case
 #define GET_TEXTURE(mat, name) textures[(mat).texture_indices[(MATERIAL_TEXTURE_##name) / 4][(MATERIAL_TEXTURE_##name) % 4]]
 #else
 #define GET_TEXTURE(mat, name) name

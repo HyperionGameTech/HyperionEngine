@@ -119,8 +119,8 @@ void main()
 
     vec2 texcoord = v_texcoord0 * CURRENT_MATERIAL.uv_scale;
 
-#if HAS_ALBEDO_MA
-    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, AlbedoMap, v_position, normal);
+#if HAS_DIFFUSE_MAP
+    vec4 albedo_texture = SAMPLE_MATERIAL_TEXTURE_TRIPLANAR(CURRENT_MATERIAL, DiffuseMap, v_position, normal);
 
     // if (albedo_texture.a < MATERIAL_ALPHA_DISCARD) {
     //     discard;

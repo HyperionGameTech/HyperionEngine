@@ -56,12 +56,12 @@ void TerrainWorldGridLayer::Init()
     //     textureDesc.format = TextureFormat::RGBA8_SRGB;
     //     albedoTexture->SetTextureDesc(textureDesc);
 
-    //     m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedoTexture);
+    //     m_material->SetTexture(MaterialTextureKey::Diffuse, albedoTexture);
     // }
 
     // if (auto groundTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"))
     // {
-    //     m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, groundTextureAsset->Result());
+    //     m_material->SetTexture(MaterialTextureKey::Normals, groundTextureAsset->Result());
     // }
 
     InitObject(m_material);

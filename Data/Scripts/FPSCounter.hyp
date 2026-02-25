@@ -22,18 +22,29 @@ Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field = " + string(field
 appValue := Reflection.GetFieldValue(fieldHandle, Global) as AppCfg
 Logger.LogScript(Channel, LogLevel.Info, "GlobalCfg App field value = " + string(appValue))
 
+f := 123.456
+
+testfunc := (x : float)
+    return func (y : float)
+        x *= 2.0
+        return x + y
+    end
+end
+
+closure := testfunc(f)
+Logger.LogScript(Channel, LogLevel.Info, "closure(10.0) = " + string(closure(10.0)))
+Logger.LogScript(Channel, LogLevel.Info, "closure(10.0) = " + string(closure(10.0)))
+
 Debugger.Breakpoint()
 
 export func Update(DeltaTime : float)
-{
     Accum += DeltaTime
     Counter++
     if (Accum >= 1.0)
-    {
         Fps = (Counter as double) / Accum
         Accum = 0.0
         Counter = 0
-    }
+    end
 
     // Logger.LogScript(Channel, LogLevel.Info, "fps: " + string(Fps))
-}
+end

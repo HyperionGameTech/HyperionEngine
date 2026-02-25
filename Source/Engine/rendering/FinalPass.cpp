@@ -62,7 +62,7 @@ void FinalPass::Create()
     AssertOnThread(g_renderThread);
 
     m_quadMesh = MeshBuilder::Quad();
-    m_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
+    m_quadMesh->SetFlags(MeshFlags::ViewIndependent);
     InitObject(m_quadMesh);
 }
 

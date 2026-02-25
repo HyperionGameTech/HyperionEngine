@@ -149,7 +149,7 @@ static const Name s_nameDeferred = NAME("DEFERRED");
 static const Name s_nameForward = NAME("FORWARD");
 static const Name s_nameLightmapped = NAME("LIGHTMAPPED");
 
-static const Name s_nameHasAlbedoMap = NAME("HAS_ALBEDO_MAP");
+static const Name s_nameHasDiffuseMap = NAME("HAS_DIFFUSE_MAP");
 static const Name s_nameHasNormalMap = NAME("HAS_NORMAL_MAP");
 static const Name s_nameHasParallaxMap = NAME("HAS_PARALLAX_MAP");
 static const Name s_nameHasMetalnessMap = NAME("HAS_METALNESS_MAP");
@@ -168,7 +168,7 @@ static const ShaderPropertyId s_propShadingTypeForward = InternShaderProperty(Sh
 static const ShaderPropertyId s_propShadingTypeLightmapped = InternShaderProperty(ShaderProperty(s_nameShadingType, Name(s_nameLightmapped)));
 
 // textures
-static const ShaderPropertyId s_propHasAlbedoMap = InternShaderProperty(ShaderProperty(s_nameHasAlbedoMap));
+static const ShaderPropertyId s_propHasDiffuseMap = InternShaderProperty(ShaderProperty(s_nameHasDiffuseMap));
 static const ShaderPropertyId s_propHasNormalMap = InternShaderProperty(ShaderProperty(s_nameHasNormalMap));
 static const ShaderPropertyId s_propHasParallaxMap = InternShaderProperty(ShaderProperty(s_nameHasParallaxMap));
 static const ShaderPropertyId s_propHasMetalnessMap = InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap));
@@ -176,12 +176,12 @@ static const ShaderPropertyId s_propHasRoughnessMap = InternShaderProperty(Shade
 static const ShaderPropertyId s_propHasAoMap = InternShaderProperty(ShaderProperty(s_nameHasAoMap));
 
 static const Pair<MaterialTextureKey, ShaderPropertyId> s_textureProperties[] = {
-    { MaterialTextureKey::ALBEDO_MAP, InternShaderProperty(ShaderProperty(s_nameHasAlbedoMap)) },
-    { MaterialTextureKey::NORMAL_MAP, InternShaderProperty(ShaderProperty(s_nameHasNormalMap)) },
-    { MaterialTextureKey::PARALLAX_MAP, InternShaderProperty(ShaderProperty(s_nameHasParallaxMap)) },
-    { MaterialTextureKey::METALNESS_MAP, InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap)) },
-    { MaterialTextureKey::ROUGHNESS_MAP, InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap)) },
-    { MaterialTextureKey::AO_MAP, InternShaderProperty(ShaderProperty(s_nameHasAoMap)) }
+    { MaterialTextureKey::Diffuse, InternShaderProperty(ShaderProperty(s_nameHasDiffuseMap)) },
+    { MaterialTextureKey::Normals, InternShaderProperty(ShaderProperty(s_nameHasNormalMap)) },
+    { MaterialTextureKey::Parallax, InternShaderProperty(ShaderProperty(s_nameHasParallaxMap)) },
+    { MaterialTextureKey::Metalness, InternShaderProperty(ShaderProperty(s_nameHasMetalnessMap)) },
+    { MaterialTextureKey::Roughness, InternShaderProperty(ShaderProperty(s_nameHasRoughnessMap)) },
+    { MaterialTextureKey::AmbientOcclusion, InternShaderProperty(ShaderProperty(s_nameHasAoMap)) }
 };
 
 } // namespace Props

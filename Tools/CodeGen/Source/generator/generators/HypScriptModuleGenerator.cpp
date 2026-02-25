@@ -193,14 +193,14 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             if (baseClassDefinitions.Any())
             {
-                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(cls->type)], cls->name, baseClassDefinitions.Front()->name) + " {\n");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(cls->type)], cls->name, baseClassDefinitions.Front()->name) + "\n");
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(cls->type)], cls->name) + " {\n");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(cls->type)], cls->name) + "\n");
             }
 
-            HYP_DEFER({ writer.WriteString("}\n"); });
+            HYP_DEFER({ writer.WriteString("end\n"); });
 
             for (SizeType i = 0; i < cls->members.Size(); ++i)
             {
@@ -282,7 +282,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                         writer.WriteString("static ");
                     }
 
-                    writer.WriteString(HYP_FORMAT("{}({}) -> {};\n", managedName, methodArgDecls.Any() ? String::Join(methodArgDecls, ", ") : "", returnTypeMapping.typeName));
+                    writer.WriteString(HYP_FORMAT("{}({}) -> {}\n", managedName, methodArgDecls.Any() ? String::Join(methodArgDecls, ", ") : "", returnTypeMapping.typeName));
 
                     continue;
                 }
@@ -307,7 +307,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                         writer.WriteString("static ");
                     }
 
-                    writer.WriteString(HYP_FORMAT("{} : {};\n", managedName, fieldTypeMapping.typeName));
+                    writer.WriteString(HYP_FORMAT("{} : {}\n", managedName, fieldTypeMapping.typeName));
 
                     continue;
                 }
@@ -324,14 +324,14 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     return HYP_MAKE_ERROR(Error, "Enum types may only have one underlying type");
                 }
 
-                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(ClassDefinitionType::Enum)], cls->name, cls->baseClassNames[0]) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {} : {}", s_typeDescriptors[int(ClassDefinitionType::Enum)], cls->name, cls->baseClassNames[0]));
             }
             else
             {
-                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(ClassDefinitionType::Enum)], cls->name) + " {");
+                writer.WriteString(HYP_FORMAT("extern {} {}", s_typeDescriptors[int(ClassDefinitionType::Enum)], cls->name));
             }
 
-            HYP_DEFER({ writer.WriteString("\n}\n"); });
+            HYP_DEFER({ writer.WriteString("\nend\n"); });
 
             uint32 enumMemberIndex = 0;
 

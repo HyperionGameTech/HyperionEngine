@@ -458,7 +458,7 @@ void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
     if (HYP_UNLIKELY(!g_quadMesh))
     {
         g_quadMesh = MeshBuilder::Quad();
-        g_quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
+        g_quadMesh->SetFlags(MeshFlags::ViewIndependent);
         InitObject(g_quadMesh);
 
         CurrentThreadObject()->AddOnExitCallback([]()

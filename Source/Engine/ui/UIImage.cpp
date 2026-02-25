@@ -44,7 +44,7 @@ MaterialAttributes UIImage::GetMaterialAttributes() const
 MaterialTextures UIImage::GetMaterialTextures() const
 {
     return MaterialTextures {
-        { MaterialTextureKey::ALBEDO_MAP, m_texture }
+        { MaterialTextureKey::Diffuse, m_texture }
     };
 }
 

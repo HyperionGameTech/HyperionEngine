@@ -464,7 +464,7 @@ MaterialTextures UIText::GetMaterialTextures() const
     }
 
     return {
-        { MaterialTextureKey::ALBEDO_MAP, m_currentFontAtlasTexture }
+        { MaterialTextureKey::Diffuse, m_currentFontAtlasTexture }
     };
 }
 

@@ -126,9 +126,9 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
     
     material_color = material.albedo;
 
-    if (HAS_TEXTURE(material, AlbedoMap))
+    if (HAS_TEXTURE(material, DiffuseMap))
     {
-        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, AlbedoMap, float2(texcoord.x, 1.0 - texcoord.y));
+        float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(material, DiffuseMap, float2(texcoord.x, 1.0 - texcoord.y));
         
         material_color *= albedo_texture;
     }

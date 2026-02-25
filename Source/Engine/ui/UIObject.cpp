@@ -67,7 +67,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
         QuadMeshInitializer()
         {
             quad = MeshBuilder::Quad();
-            quad->SetFlags(MF_VIEW_INDEPENDENT);
+            quad->SetFlags(MeshFlags::ViewIndependent);
 
             // Hack to make vertices be from 0..1 rather than -1..1
 

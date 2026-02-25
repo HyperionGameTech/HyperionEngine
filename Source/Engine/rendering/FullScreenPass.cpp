@@ -291,7 +291,7 @@ void FullScreenPass::CreateFullScreenQuad()
     HYP_SCOPE;
 
     m_fullScreenQuad = MeshBuilder::Quad();
-    m_fullScreenQuad->SetFlags(MF_VIEW_INDEPENDENT);
+    m_fullScreenQuad->SetFlags(MeshFlags::ViewIndependent);
     InitObject(m_fullScreenQuad);
 }
 

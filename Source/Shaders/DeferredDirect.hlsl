@@ -85,7 +85,7 @@ DECLARE_SRV_DYNAMIC(DeferredPass, CurrentLight) StructuredBuffer<Light> current_
 DECLARE_SRV_DYNAMIC(DeferredPass, CurrentMaterial) StructuredBuffer<Material> light_material_buffer;
 #define lightMaterial light_material_buffer[0]
 
-DECLARE_SRV(Material, AlbedoMap) Texture2D AlbedoMap;
+DECLARE_SRV(Material, DiffuseMap) Texture2D DiffuseMap;
 
 DECLARE_SRV(DeferredPass, LTCMatrixTexture) Texture2D ltc_matrix_texture;
 DECLARE_SRV(DeferredPass, LTCBRDFTexture) Texture2D ltc_brdf_texture;

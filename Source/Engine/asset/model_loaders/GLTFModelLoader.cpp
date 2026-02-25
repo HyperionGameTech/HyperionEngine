@@ -527,14 +527,14 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
 
         if (Handle<Texture> baseColorTexture = AcquireTexture(ctx, pbr.base_color_texture, true))
         {
-            textures[MaterialTextureKey::ALBEDO_MAP] = baseColorTexture;
+            textures[MaterialTextureKey::Diffuse] = baseColorTexture;
         }
 
         ///// \todo implement handling both metallic and roughness in the same texture
         // if (Handle<Texture> metallicRoughnessTexture = AcquireTexture(ctx, pbr.metallic_roughness_texture, false))
         //{
-        //     textures[MaterialTextureKey::METALNESS_MAP] = metallicRoughnessTexture;
-        //     textures[MaterialTextureKey::ROUGHNESS_MAP] = metallicRoughnessTexture;
+        //     textures[MaterialTextureKey::Metalness] = metallicRoughnessTexture;
+        //     textures[MaterialTextureKey::Roughness] = metallicRoughnessTexture;
         // }
     }
 
@@ -579,12 +579,12 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
 
     if (Handle<Texture> normalTexture = AcquireTexture(ctx, material->normal_texture, false))
     {
-        textures[MaterialTextureKey::NORMAL_MAP] = normalTexture;
+        textures[MaterialTextureKey::Normals] = normalTexture;
     }
 
     if (Handle<Texture> occlusionTexture = AcquireTexture(ctx, material->occlusion_texture, false))
     {
-        textures[MaterialTextureKey::AO_MAP] = occlusionTexture;
+        textures[MaterialTextureKey::AmbientOcclusion] = occlusionTexture;
     }
 
     Handle<Material> materialHandle = MaterialCache::GetInstance()->CreateMaterial(materialName, materialAttributes, parameters, textures);

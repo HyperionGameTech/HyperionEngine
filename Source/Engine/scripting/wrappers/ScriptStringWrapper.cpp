@@ -32,7 +32,20 @@ HYP_BEGIN_STRUCT(String, -1, 0, {})
 
             for (SizeType i = 0; i < size; ++i)
             {
-                result += ToString(elems.GetElementAt(i));
+                AnyRef elem = const_cast<GenericArrayWrapper&>(elems).GetElementAt(i);
+
+                if (elem.Is<BoxedValue>())
+                {
+                    BoxedValue& boxed = elem.Get<BoxedValue>();
+
+                    result += ToString(boxed);
+                }
+                else
+                {
+                    BoxedValue boxed = BoxedValue(elem);
+
+                    result += ToString(boxed);
+                }
 
                 if (i != size - 1)
                 {

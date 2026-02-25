@@ -96,7 +96,7 @@ DECLARE_SAMPLER(Default, SamplerLinear) SamplerState texture_sampler;
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(BindlessResources0, Textures) TextureCube textures[]; // aliasing texture2D as textureCube
 #else
-DECLARE_SRV(Default, AlbedoMap) TextureCube AlbedoMap;
+DECLARE_SRV(Default, DiffuseMap) TextureCube DiffuseMap;
 #endif
 
 PSOutput PSMain(PSInput input)
@@ -105,7 +105,7 @@ PSOutput PSMain(PSInput input)
 
     float3 normal = normalize(input.normal);
 
-    output.gbuffer_albedo = float4(SAMPLE_MATERIAL_TEXTURE_CUBE(material, AlbedoMap, input.position).rgb, 1.0);
+    output.gbuffer_albedo = float4(SAMPLE_MATERIAL_TEXTURE_CUBE(material, DiffuseMap, input.position).rgb, 1.0);
 
     output.gbuffer_normals = GBufferPackNormal(normal);
 

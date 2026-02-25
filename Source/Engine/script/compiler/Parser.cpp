@@ -1608,8 +1608,10 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             }
         }
 
+        bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
         RC<AstBlock> block;
-        if (!(block = ParseBlock(true, true)))
+        if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ true)))
         {
             return nullptr;
         }
@@ -1631,18 +1633,23 @@ RC<AstIfStatement> Parser::ParseIfStatement()
             }
             else
             {
-                // parse block after "else keyword
-                if (!(elseBlock = ParseBlock(true, true)))
+                const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
+                // parse block after "else" keyword
+                if (!(elseBlock = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ true)))
                 {
                     return nullptr;
                 }
             }
         }
 
-        // // expect "end" keyword
-        // if (!ExpectKeyword(Keyword_end, true)) {
-        //     return nullptr;
-        // }
+        if (!useBraces)
+        {
+            if (!ExpectKeyword(Keyword_end, true))
+            {
+                return nullptr;
+            }
+        }
 
         return RC<AstIfStatement>(new AstIfStatement(
             conditional,
@@ -1674,8 +1681,10 @@ RC<AstWhileLoop> Parser::ParseWhileLoop()
             return nullptr;
         }
 
+        const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
         RC<AstBlock> block;
-        if (!(block = ParseBlock(true)))
+        if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false)))
         {
             return nullptr;
         }
@@ -1745,8 +1754,10 @@ RC<AstStatement> Parser::ParseForLoop()
 
         SkipStatementTerminators();
 
+        const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
         RC<AstBlock> block;
-        if (!(block = ParseBlock(true)))
+        if (!(block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false)))
         {
             return nullptr;
         }
@@ -1788,7 +1799,9 @@ RC<AstTryCatch> Parser::ParseTryCatchStatement()
 {
     if (Token token = ExpectKeyword(Keyword_try, true))
     {
-        RC<AstBlock> tryBlock = ParseBlock(true, true);
+        bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
+        RC<AstBlock> tryBlock = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ true);
         RC<AstBlock> catchBlock;
 
         SkipStatementTerminators();
@@ -1796,14 +1809,20 @@ RC<AstTryCatch> Parser::ParseTryCatchStatement()
         if (ExpectKeyword(Keyword_catch, true))
         {
             // TODO: Add exception argument
-            catchBlock = ParseBlock(true);
+
+            useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+
+            catchBlock = ParseBlock(useBraces, /* skipEnd */ true);
         }
         else
         {
-            // // No catch keyword, expect 'end'
-            // if (!ExpectKeyword(Keyword_end, true)) {
-            //     return nullptr;
-            // }
+        }
+        
+        if (!useBraces)
+        {
+            if (!ExpectKeyword(Keyword_end, true)) {
+                return nullptr;
+            }
         }
 
         if (tryBlock != nullptr && catchBlock != nullptr)
@@ -2307,9 +2326,9 @@ RC<AstFunctionExpression> Parser::ParseFunctionExpression(
         {
             SkipStatementTerminators();
 
-            // bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
+            const bool useBraces = !Match(TK_OPEN_BRACE, false).Empty();
 
-            block = ParseBlock(true);
+            block = ParseBlock(/* requireBraces */ useBraces, /* skipEnd */ false);
         }
 
         if (block != nullptr)
@@ -2635,12 +2654,9 @@ RC<AstClass> Parser::ParseClass(
 
     SkipStatementTerminators();
 
-    if (!Expect(TK_OPEN_BRACE, true))
-    {
-        return nullptr;
-    }
+    const bool useBraces = !Match(TK_OPEN_BRACE, true).Empty();
 
-    while (!Match(TK_CLOSE_BRACE, true))
+    while (useBraces ? !Match(TK_CLOSE_BRACE, true) : !MatchKeyword(Keyword_end, true))
     {
         const SourceLocation location = CurrentLocation();
         Token specifierToken = Token::EMPTY;
@@ -2887,12 +2903,9 @@ RC<AstStatement> Parser::ParseEnumDefinition()
 
     Array<RC<AstVariableDeclaration>> entries;
 
-    if (!Expect(TK_OPEN_BRACE, true))
-    {
-        return nullptr;
-    }
+    const bool useBraces = !Match(TK_OPEN_BRACE, true).Empty();
 
-    while (!Match(TK_CLOSE_BRACE, true))
+    while (useBraces ? !Match(TK_CLOSE_BRACE, true) : !MatchKeyword(Keyword_end, true))
     {
         if (const Token ident = Expect(TK_IDENT, true))
         {
@@ -2930,7 +2943,7 @@ RC<AstStatement> Parser::ParseEnumDefinition()
         while (Match(TK_NEWLINE, true))
             ;
 
-        if (!Match(TK_CLOSE_BRACE, false))
+        if (useBraces ? !Match(TK_CLOSE_BRACE, false) : !MatchKeyword(Keyword_end, false))
         {
             Expect(TK_COMMA, true);
         }

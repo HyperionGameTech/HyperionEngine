@@ -120,7 +120,7 @@ DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materia
 #ifdef HYP_FEATURES_BINDLESS_TEXTURES
 DECLARE_SRV(BindlessResources0, Textures) Texture2D textures[];
 #else
-DECLARE_SRV(Default, AlbedoMap) Texture2D AlbedoMap;
+DECLARE_SRV(Default, DiffuseMap) Texture2D DiffuseMap;
 #endif
 #endif
 
@@ -138,7 +138,7 @@ PSOutput PSMain(PSInput input)
     float4 ui_color = (float4)1.0;
 
 #ifdef TEXTURED
-    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, AlbedoMap, input.texcoord0);
+    float4 albedo_texture = SAMPLE_MATERIAL_TEXTURE(CURRENT_MATERIAL, DiffuseMap, input.texcoord0);
 
     ui_color *= albedo_texture;
 #endif

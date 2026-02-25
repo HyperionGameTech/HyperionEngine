@@ -138,7 +138,7 @@ namespace Hyperion
     public enum TextureKey : ulong
     {
         None = 0x0,
-        AlbedoMap = 0x1,
+        DiffuseMap = 0x1,
         NormalMap = 0x2,
         ParallaxMap = 0x4,
         MetalnessMap = 0x8,

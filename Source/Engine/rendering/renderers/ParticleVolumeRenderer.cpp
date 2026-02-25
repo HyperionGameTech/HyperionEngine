@@ -91,7 +91,7 @@ void ParticleVolumeRenderer::EnsureStaging()
     if (!m_staging.quadMesh.IsValid())
     {
         m_staging.quadMesh = MeshBuilder::Quad();
-        m_staging.quadMesh->SetFlags(MF_VIEW_INDEPENDENT);
+        m_staging.quadMesh->SetFlags(MeshFlags::ViewIndependent);
         InitObject(m_staging.quadMesh);
     }
 

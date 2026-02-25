@@ -135,7 +135,7 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& v
 Mesh::Mesh()
     : AssetObject(),
       m_aabb(BoundingBox::Empty()),
-      m_flags(MF_NONE)
+      m_flags(MeshFlags::None)
 {
 }
 
@@ -151,10 +151,11 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes)
     : AssetObject(),
       m_aabb(BoundingBox::Empty()),
-      m_flags(MF_NONE)
+      m_flags(MeshFlags::None)
 {
     m_meshDesc = MeshDesc {};
-    m_meshDesc.meshAttributes = { .vertexAttributes = vertexAttributes, .topology = topology };
+    m_meshDesc.meshAttributes.vertexAttributes = vertexAttributes;
+    m_meshDesc.meshAttributes.topology = topology;
     m_meshDesc.numVertices = uint32(vertexData.Size());
     m_meshDesc.numIndices = uint32(indexData.Size() / GpuElemTypeSize(m_meshDesc.meshAttributes.indexBufferElemType));
 
@@ -177,7 +178,7 @@ void Mesh::Init()
 {
     HYP_SCOPE;
 
-    if (m_flags[MF_VIEW_INDEPENDENT])
+    if (m_flags[MeshFlags::ViewIndependent])
     {
         SetPersistentRequested(true, /* setFlag */ true);
 
@@ -487,7 +488,7 @@ void Mesh::SetMeshData(
     if (IsInitCalled())
     {
         // needs reupload!
-        if (m_flags[MF_VIEW_INDEPENDENT] || gpuUploadSemaphore.IsSignaled())
+        if (m_flags[MeshFlags::ViewIndependent] || gpuUploadSemaphore.IsSignaled())
         {
             UploadGpuData();
         }
@@ -506,15 +507,15 @@ void Mesh::SetFlags(EnumFlags<MeshFlags> flags)
         return;
     }
 
-    const bool wasViewIndependent = m_flags[MF_VIEW_INDEPENDENT];
+    const bool wasViewIndependent = m_flags[MeshFlags::ViewIndependent];
 
     m_flags = flags;
 
-    if (IsInitCalled() && m_flags[MF_VIEW_INDEPENDENT] != wasViewIndependent)
+    if (IsInitCalled() && m_flags[MeshFlags::ViewIndependent] != wasViewIndependent)
     {
-        SetPersistentRequested(m_flags[MF_VIEW_INDEPENDENT], /* setFlag */ true, /* markDirty */ false);
+        SetPersistentRequested(m_flags[MeshFlags::ViewIndependent], /* setFlag */ true, /* markDirty */ false);
 
-        if (m_flags[MF_VIEW_INDEPENDENT])
+        if (m_flags[MeshFlags::ViewIndependent])
         {
             UploadGpuData();
         }

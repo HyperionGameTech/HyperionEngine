@@ -101,7 +101,7 @@ void DynamicSkySystem::Init()
         }
 
         Handle<Mesh> mesh = MeshBuilder::Cube();
-        mesh->SetFlags(MF_VIEW_INDEPENDENT);
+        mesh->SetFlags(MeshFlags::ViewIndependent);
         mesh->SetName(NAME("SkyboxMesh"));
         InitObject(mesh);
 
@@ -127,7 +127,7 @@ void DynamicSkySystem::Init()
         m_envProbe->GetView()->AddScene(m_renderScene);
 
         Handle<Material> material = MakeHandle<Material>(NAME("SkyboxMaterial"), materialAttributes);
-        material->SetTexture(MaterialTextureKey::ALBEDO_MAP, m_envProbe->GetPrefilteredEnvMap());
+        material->SetTexture(MaterialTextureKey::Diffuse, m_envProbe->GetPrefilteredEnvMap());
         InitObject(material);
 
         // add MeshComponent to skybox entity

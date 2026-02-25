@@ -104,7 +104,7 @@ static void BuildRenderGroupsOrdered(
             RenderableAttributeSet { mesh->GetMeshAttributes(), material->GetRenderAttributes() },
             overrideAttributes);
 
-        if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::ALBEDO_MAP); albedoTexture.IsValid())
+        if (const Handle<Texture>& albedoTexture = material->GetTexture(MaterialTextureKey::Diffuse); albedoTexture.IsValid())
         {
             if (albedoTexture != g_renderInterface->placeholderData->defaultTexture2d)
             {

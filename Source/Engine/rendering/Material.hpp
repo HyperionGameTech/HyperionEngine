@@ -33,14 +33,12 @@ enum class MaterialTextureKey : uint64
 {
     NONE = 0,
 
-    ALBEDO_MAP = 0x1,
-    NORMAL_MAP = 0x2,
-    PARALLAX_MAP = 0x4,
-    METALNESS_MAP = 0x8,
-    ROUGHNESS_MAP = 0x10,
-    AO_MAP = 0x20,
-    RADIANCE_MAP = 0x40,  // to be removed
-    IRRADIANCE_MAP = 0x80 // to be removed
+    Diffuse = 0x1,
+    Normals = 0x2,
+    Parallax = 0x4,
+    Metalness = 0x8,
+    Roughness = 0x10,
+    AmbientOcclusion = 0x20
 };
 
 HYP_ENUM()

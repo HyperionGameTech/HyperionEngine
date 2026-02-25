@@ -118,7 +118,7 @@ void MaterialParameter::DeserializeData(const SerializedValueType& data)
 #pragma region Material
 
 const Array<Name> Material::s_textureNames = {
-    NAME("AlbedoMap"),
+    NAME("DiffuseMap"),
     NAME("NormalMap"),
     NAME("ParallaxMap"),
     NAME("MetalnessMap"),
