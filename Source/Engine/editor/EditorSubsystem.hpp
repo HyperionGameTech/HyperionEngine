@@ -463,7 +463,6 @@ private:
 
     void InitViewport();
     void InitSceneOutline();
-    void InitContentBrowser();
     void InitDetailView();
     void InitDebugOverlays();
     void InitGizmoSelection();

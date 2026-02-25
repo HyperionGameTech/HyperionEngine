@@ -5,8 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Avalonia.Threading;
 using Hyperion;
+using Hyperion.Editor.Commands;
 
 namespace Hyperion.Editor.ViewModels
 {
@@ -31,9 +33,13 @@ namespace Hyperion.Editor.ViewModels
         private DelegateHandler _onPackageAddedHandler;
         private DelegateHandler _onPackageRemovedHandler;
 
+        public ICommand ImportCommand { get; }
+
         public ContentBrowserViewModel(EditorSubsystem editorSubsystem)
         {
             _editorSubsystem = editorSubsystem ?? throw new ArgumentNullException(nameof(editorSubsystem));
+
+            ImportCommand = new EditorCommand("ImportContent");
         }
 
         public void LoadPackages()

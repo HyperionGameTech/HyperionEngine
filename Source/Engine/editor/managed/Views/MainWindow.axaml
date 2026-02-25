@@ -94,588 +94,599 @@
 
     <Grid>
         <DockPanel Background="{DynamicResource Brush.Background}">
-        <!--  Fallback in-window menu for non-macOS platforms  -->
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Command="{Binding NewProject}" Header="_New Project..." />
-                <MenuItem Command="{Binding OpenProject}" Header="_Open Project..." />
-                <MenuItem Command="{Binding SaveProject}" Header="_Save Project" />
-                <MenuItem Command="{Binding SaveProjectAs}" Header="Save Project _As..." />
-                <Separator />
-                <MenuItem Header="_Scene">
-                    <MenuItem Header="_New Scene" />
+            <!--  Fallback in-window menu for non-macOS platforms  -->
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="_File">
+                    <MenuItem Command="{Binding NewProject}" Header="_New Project..." />
+                    <MenuItem Command="{Binding OpenProject}" Header="_Open Project..." />
+                    <MenuItem Command="{Binding SaveProject}" Header="_Save Project" />
+                    <MenuItem Command="{Binding SaveProjectAs}" Header="Save Project _As..." />
+                    <Separator />
+                    <MenuItem Header="_Scene">
+                        <MenuItem Header="_New Scene" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Command="{Binding Exit}" Header="_Exit" />
                 </MenuItem>
-                <Separator />
-                <MenuItem Command="{Binding Exit}" Header="_Exit" />
-            </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Command="{Binding Undo}" Header="_Undo" />
-                <MenuItem Command="{Binding Redo}" Header="_Redo" />
-                <Separator />
-                <MenuItem Command="{Binding Copy}" Header="_Copy" />
-                <MenuItem Command="{Binding Paste}" Header="_Paste" />
-                <Separator />
-                <MenuItem Header="Select _All" />
-                <MenuItem Header="Select All in Viewport" />
-                <MenuItem Header="Select None" />
-            </MenuItem>
-        </Menu>
+                <MenuItem Header="_Edit">
+                    <MenuItem Command="{Binding Undo}" Header="_Undo" />
+                    <MenuItem Command="{Binding Redo}" Header="_Redo" />
+                    <Separator />
+                    <MenuItem Command="{Binding Copy}" Header="_Copy" />
+                    <MenuItem Command="{Binding Paste}" Header="_Paste" />
+                    <Separator />
+                    <MenuItem Header="Select _All" />
+                    <MenuItem Header="Select All in Viewport" />
+                    <MenuItem Header="Select None" />
+                </MenuItem>
+            </Menu>
 
-        <Border Classes="panel-header" DockPanel.Dock="Top">
-            <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,*,Auto">
-                <StackPanel
-                    Grid.Column="0"
-                    Orientation="Horizontal"
-                    Spacing="6">
-                    <Button Content="Save" />
-                </StackPanel>
+            <Border Classes="panel-header" DockPanel.Dock="Top">
+                <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel
+                        Grid.Column="0"
+                        Orientation="Horizontal"
+                        Spacing="6">
+                        <Button Content="Save" />
+                    </StackPanel>
 
-                <StackPanel
-                    Grid.Column="1"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal"
-                    Spacing="6">
-                    <RadioButton
-                        x:Name="TransformModeTranslate"
-                        Classes="gizmo"
-                        Command="{Binding SelectTransformModeTranslate}"
-                        Content="Translate"
-                        GroupName="GizmoMode"
-                        IsChecked="False"
-                        ToolTip.Tip="Set the active transform mode to translate mode, allowing for objects to be positioned in the scene." />
-                    <RadioButton
-                        x:Name="TransformModeRotate"
-                        Classes="gizmo"
-                        Command="{Binding SelectTransformModeRotate}"
-                        Content="Rotate"
-                        GroupName="GizmoMode"
-                        ToolTip.Tip="Set the active transform mode to rotate mode, allowing for objects to have their orientations adjusted." />
-                    <RadioButton
-                        x:Name="TransformModeScale"
-                        Classes="gizmo"
-                        Command="{Binding SelectTransformModeScale}"
-                        Content="Scale"
-                        GroupName="GizmoMode"
-                        ToolTip.Tip="Set the active transform mode to scale mode, allowing for objects to be sized." />
-                </StackPanel>
-
-                <StackPanel
-                    Grid.Column="2"
-                    Orientation="Horizontal"
-                    Spacing="6">
-                    <Button
-                        Command="{Binding SetGameModePlaying}"
-                        Content="Play"
-                        IsEnabled="{Binding CanSetGameModePlaying}" />
-                    <Button
-                        Command="{Binding SetGameModePaused}"
-                        Content="Pause"
-                        IsEnabled="{Binding CanSetGameModePaused}" />
-                    <Button
-                        Command="{Binding SetGameModeStopped}"
-                        Content="Stop"
-                        IsEnabled="{Binding CanSetGameModeStopped}" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Grid RowDefinitions="Auto, Auto, *, Auto">
-            <!--  Main Content Area  -->
-            <Grid Grid.Row="2" ColumnDefinitions="280, 2, *">
-
-                <!--  Left Panel: Scene Hierarchy + Actions (cond) + Inspector  -->
-                <Grid Grid.Column="0" RowDefinitions="*, Auto, *">
-                    <!--  Scene Hierarchy  -->
-                    <Grid Grid.Row="0" RowDefinitions="Auto, *">
-                        <Border Grid.Row="0" Classes="panel-header">
-                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                <DropDownButton
-                                    Grid.Column="0"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Center"
-                                    Background="Transparent"
-                                    BorderThickness="0">
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                        <TextBlock
-                                            VerticalAlignment="Center"
-                                            Classes="header"
-                                            Text="{Binding ActiveScene.Name, FallbackValue='No Active Scene'}" />
-                                    </StackPanel>
-                                    <DropDownButton.Flyout>
-                                        <MenuFlyout ItemsSource="{Binding Scenes}">
-                                            <MenuFlyout.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:SceneViewModel">
-                                                    <MenuItem
-                                                        Command="{Binding DataContext.SetActiveSceneCommand, ElementName=Root}"
-                                                        CommandParameter="{Binding}"
-                                                        Header="{Binding Name}" />
-                                                </DataTemplate>
-                                            </MenuFlyout.ItemTemplate>
-                                        </MenuFlyout>
-                                    </DropDownButton.Flyout>
-                                </DropDownButton>
-                                <Button
-                                    Grid.Column="1"
-                                    Margin="0,0,4,0"
-                                    Padding="8,2"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Content="Add New...">
-                                    <Button.Flyout>
-                                        <MenuFlyout>
-                                            <MenuItem
-                                                Margin="0,2"
-                                                Padding="8,4"
-                                                HorizontalAlignment="Center"
-                                                FontSize="12"
-                                                Foreground="#808080"
-                                                Header="Node"
-                                                IsEnabled="False" />
-                                            <MenuItem Command="{Binding AddEntity}" Header="Entity" />
-                                            <MenuItem Command="{Binding AddEmptyNode}" Header="Group" />
-                                            <MenuItem Command="{Binding AddCamera}" Header="Camera" />
-                                            <Separator />
-                                            <MenuItem
-                                                Margin="0,2"
-                                                Padding="8,4"
-                                                HorizontalAlignment="Center"
-                                                FontSize="12"
-                                                Foreground="#808080"
-                                                Header="Light"
-                                                IsEnabled="False" />
-                                            <MenuItem Command="{Binding AddDirectionalLight}" Header="Directional Light" />
-                                            <MenuItem Command="{Binding AddPointLight}" Header="Point Light" />
-                                            <MenuItem Command="{Binding AddSpotLight}" Header="Spot Light" />
-                                            <MenuItem Command="{Binding AddAreaRectLight}" Header="Rectangular Area Light" />
-                                            <Separator />
-                                            <MenuItem
-                                                Margin="0,2"
-                                                Padding="8,4"
-                                                HorizontalAlignment="Center"
-                                                FontSize="12"
-                                                Foreground="#808080"
-                                                Header="Baking"
-                                                IsEnabled="False" />
-                                            <MenuItem Command="{Binding AddReflectionProbe}" Header="Reflection Probe" />
-                                            <MenuItem Command="{Binding AddLightmapVolume}" Header="Lightmap Volume" />
-                                            <Separator />
-                                            <MenuItem
-                                                Margin="0,2"
-                                                Padding="8,4"
-                                                HorizontalAlignment="Center"
-                                                FontSize="12"
-                                                Foreground="#808080"
-                                                Header="FX"
-                                                IsEnabled="False" />
-                                            <MenuItem Command="{Binding AddParticleVolume}" Header="Particle Volume" />
-                                            <MenuItem Command="{Binding AddFogVolume}" Header="Fog Volume" />
-                                        </MenuFlyout>
-                                    </Button.Flyout>
-                                </Button>
-                            </Grid>
-                        </Border>
-                        <TreeView
-                            Grid.Row="1"
-                            ItemsSource="{Binding SceneHierarchy.RootNodes}"
-                            SelectedItem="{Binding SceneHierarchy.SelectedNode}">
-                            <TreeView.ItemContainerTheme>
-                                <ControlTheme
-                                    x:DataType="vm:NodeViewModel"
-                                    BasedOn="{StaticResource {x:Type TreeViewItem}}"
-                                    TargetType="TreeViewItem">
-                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                                </ControlTheme>
-                            </TreeView.ItemContainerTheme>
-                            <TreeView.ItemTemplate>
-                                <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
-                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                        <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
-                                        <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </TreeDataTemplate>
-                            </TreeView.ItemTemplate>
-                        </TreeView>
-                    </Grid>
-
-                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
-
-                    <Grid Grid.Row="2" RowDefinitions="Auto, *">
-                        <!--  Inspector  -->
-                        <Grid Grid.Row="1" RowDefinitions="Auto, *">
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                <StackPanel Spacing="8">
-                                    <Grid
-                                        Margin="0"
-                                        DataContext="{Binding Inspector}"
-                                        IsVisible="{Binding IsEntity}"
-                                        RowDefinitions="Auto, Auto, Auto">
-
-                                        <Border Grid.Row="0" Classes="panel-header">
-                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                                <TextBlock
-                                                    Grid.Column="0"
-                                                    VerticalAlignment="Center"
-                                                    Classes="header"
-                                                    Text="Components" />
-
-                                                <Button
-                                                    Grid.Column="1"
-                                                    Margin="0,0,4,0"
-                                                    Padding="8,2"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Center"
-                                                    Content="Add"
-                                                    IsEnabled="{Binding HasAddableComponents}">
-                                                    <Button.Flyout>
-                                                        <MenuFlyout ItemsSource="{Binding AddableComponents}">
-                                                            <MenuFlyout.ItemTemplate>
-                                                                <DataTemplate x:DataType="vm:AddComponentOptionViewModel">
-                                                                    <MenuItem
-                                                                        Command="{Binding DataContext.Inspector.AddComponentCommand, ElementName=Root}"
-                                                                        CommandParameter="{Binding}"
-                                                                        Header="{Binding Label}"
-                                                                        IsEnabled="{Binding IsEnabled}" />
-                                                                </DataTemplate>
-                                                            </MenuFlyout.ItemTemplate>
-                                                        </MenuFlyout>
-                                                    </Button.Flyout>
-                                                </Button>
-                                            </Grid>
-                                        </Border>
-
-                                        <ItemsControl
-                                            Grid.Row="1"
-                                            Margin="12,6"
-                                            IsVisible="{Binding HasComponents}"
-                                            ItemsSource="{Binding Components}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:InspectorComponentViewModelBase">
-                                                    <Border
-                                                        Margin="0,0,0,6"
-                                                        Padding="8"
-                                                        Background="{DynamicResource Brush.Panel}"
-                                                        BorderBrush="{DynamicResource Brush.Border}"
-                                                        BorderThickness="1">
-                                                        <TextBlock Text="{Binding Label}" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Grid>
-
-                                    <Grid
-                                        Margin="0"
-                                        IsVisible="{Binding Inspector.HasActions}"
-                                        RowDefinitions="Auto, Auto">
-                                        <Border Grid.Row="0" Classes="panel-header">
-                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                                <TextBlock
-                                                    VerticalAlignment="Center"
-                                                    Classes="header"
-                                                    Text="Actions" />
-                                            </Grid>
-                                        </Border>
-
-                                        <ItemsControl
-                                            Grid.Row="1"
-                                            VerticalAlignment="Top"
-                                            ItemsSource="{Binding Inspector.Actions}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:InspectorActionViewModel">
-                                                    <Button
-                                                        Padding="10,4"
-                                                        HorizontalAlignment="Stretch"
-                                                        VerticalAlignment="Center"
-                                                        Command="{Binding ExecuteActionCommand}"
-                                                        Content="{Binding Label}"
-                                                        IsEnabled="{Binding IsEnabled}" />
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Grid>
-
-                                    <!--  Scene Properties (shown when root node is selected)  -->
-                                    <Grid
-                                        Margin="0"
-                                        IsVisible="{Binding Inspector.HasSceneProperties}"
-                                        RowDefinitions="Auto, Auto">
-                                        <Border Grid.Row="0" Classes="panel-header">
-                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                                <TextBlock Classes="header" Text="Scene Properties" />
-                                            </Grid>
-                                        </Border>
-                                        <ItemsControl
-                                            Grid.Row="1"
-                                            HorizontalAlignment="Stretch"
-                                            Grid.IsSharedSizeScope="True"
-                                            ItemsSource="{Binding Inspector.SceneProperties}">
-                                            <ItemsControl.DataTemplates>
-                                                <DataTemplate x:DataType="vm:TextPropertyViewModel">
-                                                    <inspector:StringNamePropertyEditor DataContext="{Binding}" />
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:EnumPropertyViewModel">
-                                                    <inspector:EnumPropertyEditor DataContext="{Binding}" />
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
-                                                    <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
-                                                    <TextBlock
-                                                        VerticalAlignment="Center"
-                                                        Text="{Binding Value}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                </DataTemplate>
-                                            </ItemsControl.DataTemplates>
-
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
-                                                    <Grid Margin="6,2">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
-                                                            <ColumnDefinition Width="*" />
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <TextBlock
-                                                            Grid.Column="0"
-                                                            MaxWidth="80"
-                                                            Margin="0,0,8,0"
-                                                            Classes="inspector-name"
-                                                            Text="{Binding Label}" />
-
-                                                        <ContentControl
-                                                            Grid.Column="1"
-                                                            VerticalAlignment="Center"
-                                                            Content="{Binding}" />
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Grid>
-
-                                    <!--  Properties  -->
-                                    <Grid Margin="0" RowDefinitions="Auto, Auto, Auto">
-                                        <Border Grid.Row="0" Classes="panel-header">
-                                            <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
-                                                <TextBlock Classes="header" Text="Properties" />
-                                            </Grid>
-                                        </Border>
-                                        <ItemsControl
-                                            Grid.Row="1"
-                                            HorizontalAlignment="Stretch"
-                                            Grid.IsSharedSizeScope="True"
-                                            ItemsSource="{Binding Inspector.Properties}">
-                                            <ItemsControl.DataTemplates>
-                                                <DataTemplate x:DataType="vm:TextPropertyViewModel">
-                                                    <inspector:StringNamePropertyEditor DataContext="{Binding}" />
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:EnumPropertyViewModel">
-                                                    <inspector:EnumPropertyEditor DataContext="{Binding}" />
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
-                                                    <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:Vec2fViewModel">
-                                                    <Grid ColumnDefinitions="*,*">
-                                                        <TextBox
-                                                            Grid.Column="0"
-                                                            Margin="0,0,4,0"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox
-                                                            Grid.Column="1"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    </Grid>
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:Vec3fViewModel">
-                                                    <Grid ColumnDefinitions="*,*,*">
-                                                        <TextBox
-                                                            Grid.Column="0"
-                                                            Margin="0,0,4,0"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox
-                                                            Grid.Column="1"
-                                                            Margin="0,0,4,0"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox
-                                                            Grid.Column="2"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    </Grid>
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:Vec4fViewModel">
-                                                    <Grid ColumnDefinitions="*,*,*,*">
-                                                        <TextBox
-                                                            Grid.Column="0"
-                                                            Margin="0,0,4,0"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox
-                                                            Grid.Column="1"
-                                                            Margin="0,0,4,0"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox
-                                                            Grid.Column="2"
-                                                            Margin="0,0,4,0"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox
-                                                            Grid.Column="3"
-                                                            HorizontalAlignment="Stretch"
-                                                            Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                    </Grid>
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:TransformViewModel">
-                                                    <StackPanel Spacing="4">
-                                                        <StackPanel Spacing="4">
-                                                            <StackPanel Orientation="Vertical" Spacing="2">
-                                                                <TextBlock Text="Translation" />
-                                                                <ContentControl Content="{Binding Translation}" />
-                                                            </StackPanel>
-                                                            <StackPanel Orientation="Vertical" Spacing="2">
-                                                                <TextBlock Text="Rotation" />
-                                                                <ContentControl Content="{Binding Rotation}" />
-                                                            </StackPanel>
-                                                            <StackPanel Orientation="Vertical" Spacing="2">
-                                                                <TextBlock Text="Scale" />
-                                                                <ContentControl Content="{Binding Scale}" />
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </DataTemplate>
-
-                                                <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
-                                                    <TextBlock
-                                                        VerticalAlignment="Center"
-                                                        Text="{Binding Value}"
-                                                        TextTrimming="CharacterEllipsis" />
-                                                </DataTemplate>
-                                            </ItemsControl.DataTemplates>
-
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
-                                                    <Grid Margin="6,2">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
-                                                            <ColumnDefinition Width="*" />
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <TextBlock
-                                                            Grid.Column="0"
-                                                            MaxWidth="80"
-                                                            Margin="0,0,8,0"
-                                                            Classes="inspector-name"
-                                                            Text="{Binding Label}" />
-
-                                                        <ContentControl
-                                                            Grid.Column="1"
-                                                            VerticalAlignment="Center"
-                                                            Content="{Binding}" />
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Grid>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Grid>
-                    </Grid>
-                </Grid>
-
-                <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
-
-                <!--  Center Panel: Viewport & Content Browser  -->
-                <Grid Grid.Column="2" RowDefinitions="*, 2, 240">
-                    <Border
-                        Grid.Row="0"
-                        Background="{DynamicResource Brush.Panel}"
-                        BorderBrush="{DynamicResource Brush.Border}"
-                        BorderThickness="1">
-                        <Grid>
-                            <local:EditorViewportControl
-                                Name="EditorViewportControl"
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch" />
-                        </Grid>
-                    </Border>
-
-                    <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
-
-                    <!--  Bottom Panel: Content Browser / Console  -->
-                    <TabControl Grid.Row="2">
-                        <TabItem Header="Content Browser">
-                            <Grid ColumnDefinitions="220, *">
-                                <TreeView
-                                    Grid.Column="0"
-                                    ItemsSource="{Binding ContentBrowser.Packages}"
-                                    SelectedItem="{Binding ContentBrowser.CurrentPackage, Mode=TwoWay}">
-                                    <TreeView.ItemTemplate>
-                                        <TreeDataTemplate x:DataType="vm:AssetPackageViewModel" ItemsSource="{Binding Subpackages}">
-                                            <TextBlock Text="{Binding Name}" />
-                                        </TreeDataTemplate>
-                                    </TreeView.ItemTemplate>
-                                </TreeView>
-                                <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Assets}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:AssetObjectViewModel">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <TextBlock Text="{Binding DisplayName}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Grid>
-                        </TabItem>
-                        <TabItem Header="Console">
-                            <local:ConsoleView />
-                        </TabItem>
-                    </TabControl>
-                </Grid>
-
-            </Grid>
-
-            <!--  Status Bar  -->
-            <Border Grid.Row="3" Classes="status-bar">
-                <Grid ColumnDefinitions="*, Auto">
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        FontSize="12"
-                        Text="Ready" />
-                    <ItemsControl
+                    <StackPanel
                         Grid.Column="1"
-                        ItemsSource="{Binding Tasks}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="8" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:TaskItemViewModel">
-                                <Border Classes="task-box">
-                                    <TextBlock
-                                        Classes="task-title"
-                                        Text="{Binding TaskName}" />
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="6">
+                        <RadioButton
+                            x:Name="TransformModeTranslate"
+                            Classes="gizmo"
+                            Command="{Binding SelectTransformModeTranslate}"
+                            Content="Translate"
+                            GroupName="GizmoMode"
+                            IsChecked="False"
+                            ToolTip.Tip="Set the active transform mode to translate mode, allowing for objects to be positioned in the scene." />
+                        <RadioButton
+                            x:Name="TransformModeRotate"
+                            Classes="gizmo"
+                            Command="{Binding SelectTransformModeRotate}"
+                            Content="Rotate"
+                            GroupName="GizmoMode"
+                            ToolTip.Tip="Set the active transform mode to rotate mode, allowing for objects to have their orientations adjusted." />
+                        <RadioButton
+                            x:Name="TransformModeScale"
+                            Classes="gizmo"
+                            Command="{Binding SelectTransformModeScale}"
+                            Content="Scale"
+                            GroupName="GizmoMode"
+                            ToolTip.Tip="Set the active transform mode to scale mode, allowing for objects to be sized." />
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Column="2"
+                        Orientation="Horizontal"
+                        Spacing="6">
+                        <Button
+                            Command="{Binding SetGameModePlaying}"
+                            Content="Play"
+                            IsEnabled="{Binding CanSetGameModePlaying}" />
+                        <Button
+                            Command="{Binding SetGameModePaused}"
+                            Content="Pause"
+                            IsEnabled="{Binding CanSetGameModePaused}" />
+                        <Button
+                            Command="{Binding SetGameModeStopped}"
+                            Content="Stop"
+                            IsEnabled="{Binding CanSetGameModeStopped}" />
+                    </StackPanel>
                 </Grid>
             </Border>
-        </Grid>
-    </DockPanel>
+
+            <Grid RowDefinitions="Auto, Auto, *, Auto">
+                <!--  Main Content Area  -->
+                <Grid Grid.Row="2" ColumnDefinitions="280, 2, *">
+
+                    <!--  Left Panel: Scene Hierarchy + Actions (cond) + Inspector  -->
+                    <Grid Grid.Column="0" RowDefinitions="*, Auto, *">
+                        <!--  Scene Hierarchy  -->
+                        <Grid Grid.Row="0" RowDefinitions="Auto, *">
+                            <Border Grid.Row="0" Classes="panel-header">
+                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                    <DropDownButton
+                                        Grid.Column="0"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Background="Transparent"
+                                        BorderThickness="0">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                Classes="header"
+                                                Text="{Binding ActiveScene.Name, FallbackValue='No Active Scene'}" />
+                                        </StackPanel>
+                                        <DropDownButton.Flyout>
+                                            <MenuFlyout ItemsSource="{Binding Scenes}">
+                                                <MenuFlyout.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:SceneViewModel">
+                                                        <MenuItem
+                                                            Command="{Binding DataContext.SetActiveSceneCommand, ElementName=Root}"
+                                                            CommandParameter="{Binding}"
+                                                            Header="{Binding Name}" />
+                                                    </DataTemplate>
+                                                </MenuFlyout.ItemTemplate>
+                                            </MenuFlyout>
+                                        </DropDownButton.Flyout>
+                                    </DropDownButton>
+                                    <Button
+                                        Grid.Column="1"
+                                        Margin="0,0,4,0"
+                                        Padding="8,2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Content="Add New...">
+                                        <Button.Flyout>
+                                            <MenuFlyout>
+                                                <MenuItem
+                                                    Margin="0,2"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#808080"
+                                                    Header="Node"
+                                                    IsEnabled="False" />
+                                                <MenuItem Command="{Binding AddEntity}" Header="Entity" />
+                                                <MenuItem Command="{Binding AddEmptyNode}" Header="Group" />
+                                                <MenuItem Command="{Binding AddCamera}" Header="Camera" />
+                                                <Separator />
+                                                <MenuItem
+                                                    Margin="0,2"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#808080"
+                                                    Header="Light"
+                                                    IsEnabled="False" />
+                                                <MenuItem Command="{Binding AddDirectionalLight}" Header="Directional Light" />
+                                                <MenuItem Command="{Binding AddPointLight}" Header="Point Light" />
+                                                <MenuItem Command="{Binding AddSpotLight}" Header="Spot Light" />
+                                                <MenuItem Command="{Binding AddAreaRectLight}" Header="Rectangular Area Light" />
+                                                <Separator />
+                                                <MenuItem
+                                                    Margin="0,2"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#808080"
+                                                    Header="Baking"
+                                                    IsEnabled="False" />
+                                                <MenuItem Command="{Binding AddReflectionProbe}" Header="Reflection Probe" />
+                                                <MenuItem Command="{Binding AddLightmapVolume}" Header="Lightmap Volume" />
+                                                <Separator />
+                                                <MenuItem
+                                                    Margin="0,2"
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#808080"
+                                                    Header="FX"
+                                                    IsEnabled="False" />
+                                                <MenuItem Command="{Binding AddParticleVolume}" Header="Particle Volume" />
+                                                <MenuItem Command="{Binding AddFogVolume}" Header="Fog Volume" />
+                                            </MenuFlyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                            <TreeView
+                                Grid.Row="1"
+                                ItemsSource="{Binding SceneHierarchy.RootNodes}"
+                                SelectedItem="{Binding SceneHierarchy.SelectedNode}">
+                                <TreeView.ItemContainerTheme>
+                                    <ControlTheme
+                                        x:DataType="vm:NodeViewModel"
+                                        BasedOn="{StaticResource {x:Type TreeViewItem}}"
+                                        TargetType="TreeViewItem">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                    </ControlTheme>
+                                </TreeView.ItemContainerTheme>
+                                <TreeView.ItemTemplate>
+                                    <TreeDataTemplate x:DataType="vm:NodeViewModel" ItemsSource="{Binding Children}">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Ellipse Width="6" Height="6" Fill="White" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" />
+                                            <TextBlock FontStyle="{Binding NameFontStyle}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </TreeDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </Grid>
+
+                        <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
+
+                        <Grid Grid.Row="2" RowDefinitions="Auto, *">
+                            <!--  Inspector  -->
+                            <Grid Grid.Row="1" RowDefinitions="Auto, *">
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Spacing="8">
+                                        <Grid
+                                            Margin="0"
+                                            DataContext="{Binding Inspector}"
+                                            IsVisible="{Binding IsEntity}"
+                                            RowDefinitions="Auto, Auto, Auto">
+
+                                            <Border Grid.Row="0" Classes="panel-header">
+                                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                                    <TextBlock
+                                                        Grid.Column="0"
+                                                        VerticalAlignment="Center"
+                                                        Classes="header"
+                                                        Text="Components" />
+
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Margin="0,0,4,0"
+                                                        Padding="8,2"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center"
+                                                        Content="Add"
+                                                        IsEnabled="{Binding HasAddableComponents}">
+                                                        <Button.Flyout>
+                                                            <MenuFlyout ItemsSource="{Binding AddableComponents}">
+                                                                <MenuFlyout.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:AddComponentOptionViewModel">
+                                                                        <MenuItem
+                                                                            Command="{Binding DataContext.Inspector.AddComponentCommand, ElementName=Root}"
+                                                                            CommandParameter="{Binding}"
+                                                                            Header="{Binding Label}"
+                                                                            IsEnabled="{Binding IsEnabled}" />
+                                                                    </DataTemplate>
+                                                                </MenuFlyout.ItemTemplate>
+                                                            </MenuFlyout>
+                                                        </Button.Flyout>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+
+                                            <ItemsControl
+                                                Grid.Row="1"
+                                                Margin="12,6"
+                                                IsVisible="{Binding HasComponents}"
+                                                ItemsSource="{Binding Components}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:InspectorComponentViewModelBase">
+                                                        <Border
+                                                            Margin="0,0,0,6"
+                                                            Padding="8"
+                                                            Background="{DynamicResource Brush.Panel}"
+                                                            BorderBrush="{DynamicResource Brush.Border}"
+                                                            BorderThickness="1">
+                                                            <TextBlock Text="{Binding Label}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+
+                                        <Grid
+                                            Margin="0"
+                                            IsVisible="{Binding Inspector.HasActions}"
+                                            RowDefinitions="Auto, Auto">
+                                            <Border Grid.Row="0" Classes="panel-header">
+                                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        Classes="header"
+                                                        Text="Actions" />
+                                                </Grid>
+                                            </Border>
+
+                                            <ItemsControl
+                                                Grid.Row="1"
+                                                VerticalAlignment="Top"
+                                                ItemsSource="{Binding Inspector.Actions}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:InspectorActionViewModel">
+                                                        <Button
+                                                            Padding="10,4"
+                                                            HorizontalAlignment="Stretch"
+                                                            VerticalAlignment="Center"
+                                                            Command="{Binding ExecuteActionCommand}"
+                                                            Content="{Binding Label}"
+                                                            IsEnabled="{Binding IsEnabled}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+
+                                        <!--  Scene Properties (shown when root node is selected)  -->
+                                        <Grid
+                                            Margin="0"
+                                            IsVisible="{Binding Inspector.HasSceneProperties}"
+                                            RowDefinitions="Auto, Auto">
+                                            <Border Grid.Row="0" Classes="panel-header">
+                                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                                    <TextBlock Classes="header" Text="Scene Properties" />
+                                                </Grid>
+                                            </Border>
+                                            <ItemsControl
+                                                Grid.Row="1"
+                                                HorizontalAlignment="Stretch"
+                                                Grid.IsSharedSizeScope="True"
+                                                ItemsSource="{Binding Inspector.SceneProperties}">
+                                                <ItemsControl.DataTemplates>
+                                                    <DataTemplate x:DataType="vm:TextPropertyViewModel">
+                                                        <inspector:StringNamePropertyEditor DataContext="{Binding}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:EnumPropertyViewModel">
+                                                        <inspector:EnumPropertyEditor DataContext="{Binding}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
+                                                        <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
+                                                        <TextBlock
+                                                            VerticalAlignment="Center"
+                                                            Text="{Binding Value}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </DataTemplate>
+                                                </ItemsControl.DataTemplates>
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                        <Grid Margin="6,2">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <TextBlock
+                                                                Grid.Column="0"
+                                                                MaxWidth="80"
+                                                                Margin="0,0,8,0"
+                                                                Classes="inspector-name"
+                                                                Text="{Binding Label}" />
+
+                                                            <ContentControl
+                                                                Grid.Column="1"
+                                                                VerticalAlignment="Center"
+                                                                Content="{Binding}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+
+                                        <!--  Properties  -->
+                                        <Grid Margin="0" RowDefinitions="Auto, Auto, Auto">
+                                            <Border Grid.Row="0" Classes="panel-header">
+                                                <Grid VerticalAlignment="Center" ColumnDefinitions="*,Auto">
+                                                    <TextBlock Classes="header" Text="Properties" />
+                                                </Grid>
+                                            </Border>
+                                            <ItemsControl
+                                                Grid.Row="1"
+                                                HorizontalAlignment="Stretch"
+                                                Grid.IsSharedSizeScope="True"
+                                                ItemsSource="{Binding Inspector.Properties}">
+                                                <ItemsControl.DataTemplates>
+                                                    <DataTemplate x:DataType="vm:TextPropertyViewModel">
+                                                        <inspector:StringNamePropertyEditor DataContext="{Binding}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:EnumPropertyViewModel">
+                                                        <inspector:EnumPropertyEditor DataContext="{Binding}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:FlagsPropertyViewModel">
+                                                        <inspector:EnumFlagsPropertyEditor DataContext="{Binding}" />
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:Vec2fViewModel">
+                                                        <Grid ColumnDefinitions="*,*">
+                                                            <TextBox
+                                                                Grid.Column="0"
+                                                                Margin="0,0,4,0"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBox
+                                                                Grid.Column="1"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:Vec3fViewModel">
+                                                        <Grid ColumnDefinitions="*,*,*">
+                                                            <TextBox
+                                                                Grid.Column="0"
+                                                                Margin="0,0,4,0"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBox
+                                                                Grid.Column="1"
+                                                                Margin="0,0,4,0"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBox
+                                                                Grid.Column="2"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:Vec4fViewModel">
+                                                        <Grid ColumnDefinitions="*,*,*,*">
+                                                            <TextBox
+                                                                Grid.Column="0"
+                                                                Margin="0,0,4,0"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBox
+                                                                Grid.Column="1"
+                                                                Margin="0,0,4,0"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBox
+                                                                Grid.Column="2"
+                                                                Margin="0,0,4,0"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBox
+                                                                Grid.Column="3"
+                                                                HorizontalAlignment="Stretch"
+                                                                Text="{Binding W, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:TransformViewModel">
+                                                        <StackPanel Spacing="4">
+                                                            <StackPanel Spacing="4">
+                                                                <StackPanel Orientation="Vertical" Spacing="2">
+                                                                    <TextBlock Text="Translation" />
+                                                                    <ContentControl Content="{Binding Translation}" />
+                                                                </StackPanel>
+                                                                <StackPanel Orientation="Vertical" Spacing="2">
+                                                                    <TextBlock Text="Rotation" />
+                                                                    <ContentControl Content="{Binding Rotation}" />
+                                                                </StackPanel>
+                                                                <StackPanel Orientation="Vertical" Spacing="2">
+                                                                    <TextBlock Text="Scale" />
+                                                                    <ContentControl Content="{Binding Scale}" />
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+
+                                                    <DataTemplate x:DataType="vm:ReadOnlyPropertyViewModel">
+                                                        <TextBlock
+                                                            VerticalAlignment="Center"
+                                                            Text="{Binding Value}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </DataTemplate>
+                                                </ItemsControl.DataTemplates>
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:InspectorPropertyViewModelBase">
+                                                        <Grid Margin="6,2">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="InspectorPropertyName" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <TextBlock
+                                                                Grid.Column="0"
+                                                                MaxWidth="80"
+                                                                Margin="0,0,8,0"
+                                                                Classes="inspector-name"
+                                                                Text="{Binding Label}" />
+
+                                                            <ContentControl
+                                                                Grid.Column="1"
+                                                                VerticalAlignment="Center"
+                                                                Content="{Binding}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+
+                    <Grid Grid.Column="2" RowDefinitions="*, 2, 240">
+                        <Border
+                            Grid.Row="0"
+                            Background="{DynamicResource Brush.Panel}"
+                            BorderBrush="{DynamicResource Brush.Border}"
+                            BorderThickness="1">
+                            <Grid>
+                                <local:EditorViewportControl
+                                    Name="EditorViewportControl"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch" />
+                            </Grid>
+                        </Border>
+
+                        <GridSplitter Grid.Row="1" ResizeDirection="Rows" />
+
+                        <TabControl Grid.Row="2">
+                            <TabItem Header="Content Browser">
+                                <DockPanel>
+                                    <StackPanel
+                                        DockPanel.Dock="Top"
+                                        Orientation="Horizontal"
+                                        Spacing="4"
+                                        Margin="4,2">
+                                        <Button
+                                            Command="{Binding ContentBrowser.ImportCommand}"
+                                            Content="Import"
+                                            ToolTip.Tip="Import assets into the current package" />
+                                    </StackPanel>
+
+                                    <Grid ColumnDefinitions="220, *">
+                                        <TreeView
+                                            Grid.Column="0"
+                                            ItemsSource="{Binding ContentBrowser.Packages}"
+                                            SelectedItem="{Binding ContentBrowser.CurrentPackage, Mode=TwoWay}">
+                                            <TreeView.ItemTemplate>
+                                                <TreeDataTemplate x:DataType="vm:AssetPackageViewModel" ItemsSource="{Binding Subpackages}">
+                                                    <TextBlock Text="{Binding Name}" />
+                                                </TreeDataTemplate>
+                                            </TreeView.ItemTemplate>
+                                        </TreeView>
+                                        <ListBox Grid.Column="1" ItemsSource="{Binding ContentBrowser.Assets}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:AssetObjectViewModel">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{Binding DisplayName}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem Header="Console">
+                                <local:ConsoleView />
+                            </TabItem>
+                        </TabControl>
+                    </Grid>
+
+                </Grid>
+
+                <!--  Status Bar  -->
+                <Border Grid.Row="3" Classes="status-bar">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Text="Ready" />
+                        <ItemsControl
+                            Grid.Column="1"
+                            ItemsSource="{Binding Tasks}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:TaskItemViewModel">
+                                    <Border Classes="task-box">
+                                        <TextBlock
+                                            Classes="task-title"
+                                            Text="{Binding TaskName}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+            </Grid>
+        </DockPanel>
 
         <!--  Foreground task overlay  -->
         <views:ForegroundTaskOverlay DataContext="{Binding ForegroundTask}" />
