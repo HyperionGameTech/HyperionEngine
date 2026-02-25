@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
 
 #ifndef HYPERION_CODEGEN_CXX_MODULE_GENERATOR_HPP
 #define HYPERION_CODEGEN_CXX_MODULE_GENERATOR_HPP

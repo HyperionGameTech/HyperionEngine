@@ -1,4 +1,4 @@
-/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
 
 #include <Core/Core.hpp>
 

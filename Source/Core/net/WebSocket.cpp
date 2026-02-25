@@ -1,6 +1,6 @@
 
 #if 0
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
 
 #include <Core/net/WebSocket.hpp>
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2026 Andrew J. MacDonald. All rights reserved. */
 #include <Core/math/Ray.hpp>
 #include <Core/math/BoundingBox.hpp>
 #include <Core/math/Triangle.hpp>
