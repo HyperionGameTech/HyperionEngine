@@ -145,7 +145,8 @@ public:
         return m_registry;
     }
 
-    HYP_FORCE_INLINE const WeakHandle<AssetPackage>& GetParentPackage() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE AssetPackage* GetParentPackage() const
     {
         return m_parentPackage;
     }
@@ -335,7 +336,7 @@ private:
     mutable volatile int32 m_stateFlags;
 
     WeakHandle<AssetRegistry> m_registry;
-    WeakHandle<AssetPackage> m_parentPackage;
+    AssetPackage* m_parentPackage;
     AssetPackageSet m_subpackages;
     AssetObjectSet m_assetObjects;
     FilePath m_packageDir;

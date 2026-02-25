@@ -1767,6 +1767,7 @@ extern class AssetPackage
     IsTransient() -> bool
     IsHidden() -> bool
     IsLoading() -> bool
+    GetParentPackage() -> AssetPackage
     IsSubpackageOf(other : AssetPackage) -> bool
     BuildPackagePath() -> string
     GetSavedDirectory() -> string

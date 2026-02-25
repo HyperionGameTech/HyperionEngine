@@ -1190,8 +1190,6 @@ static LRESULT CALLBACK EngineWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     Win32ApplicationWindow* window = reinterpret_cast<Win32ApplicationWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
     AssertDebug(window != nullptr);
 
-    HYP_LOG_TEMP("Handle window event {}", msg);
-
     Event event;
     if (HandleWindowEvent(window, event, hWnd, msg, wParam, lParam))
     {

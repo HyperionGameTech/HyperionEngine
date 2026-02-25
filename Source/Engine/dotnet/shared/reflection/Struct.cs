@@ -74,7 +74,7 @@ namespace Hyperion
             DestructDynamicStructDelegate destructFunction = GetDestructFunction(type);
             destructFunctionHandle = GCHandle.Alloc(destructFunction);
 
-            Logger.Log(LogLevel.Debug, "Creating dynamic Struct for type: " + type.Name);
+            Logger.Log(LogLevel.Verbose, "Creating dynamic Struct for type: " + type.Name);
 
             IntPtr classPtr = Struct_CreateDynamicStruct(
                 ref typeId,

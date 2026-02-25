@@ -40,7 +40,7 @@ namespace Hyperion.Editor.ViewModels
         {
             Dispatcher.UIThread.VerifyAccess();
 
-            Logger.Log(LogLevel.Debug, "Loading content browser packages...");
+            Logger.Log(LogLevel.Verbose, "Loading content browser packages...");
 
             Packages.Clear();
             Assets.Clear();
@@ -50,7 +50,7 @@ namespace Hyperion.Editor.ViewModels
 
             foreach (AssetPackage pkg in registry.Packages)
             {
-                Logger.Log(LogLevel.Debug, "Found package: {0}", pkg.Name);
+                Logger.Log(LogLevel.Verbose, "Found package: {0}", pkg.Name);
 
                 if (pkg.Hidden)
                     continue;
@@ -62,7 +62,7 @@ namespace Hyperion.Editor.ViewModels
 
             _onSelectedPackageChangedHandler = _editorSubsystem.GetOnSelectedPackageChangedDelegate().Bind((AssetPackage? package) =>
             {
-                Logger.Log(LogLevel.Debug, "Selected package changed: {0}", package?.Name ?? "null");
+                Logger.Log(LogLevel.Verbose, "Selected package changed: {0}", package?.Name ?? "null");
                 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -89,10 +89,10 @@ namespace Hyperion.Editor.ViewModels
 
             _onPackageAddedHandler = registry.GetOnPackageAddedDelegate().Bind((AssetPackage package) =>
             {
-                Logger.Log(LogLevel.Debug, "Package added: {0}", package.Name);
+                Logger.Log(LogLevel.Verbose, "Package added: {0}", package.Name);
 
-            if (!package.Hidden)
-            {
+                if (!package.Hidden && package.GetParentPackage() == null)
+                {
                     WeakReference<AssetPackage> weakPackage = new(package);
 
                     Dispatcher.UIThread.Post(() =>
@@ -100,17 +100,22 @@ namespace Hyperion.Editor.ViewModels
                         AssetPackage? package = null;
                         if (weakPackage.TryGetTarget(out package))
                         {
+                            AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package.Id == package.Id);
+
+                            if (packageViewModel != null)
+                                return; // already exists
+
                             Packages.Add(new AssetPackageViewModel(package));
+
+                            OnPropertyChanged(nameof(Packages));
                         }
                     });
-
-                    OnPropertyChanged(nameof(Packages));
                 }
             });
 
             _onPackageRemovedHandler = registry.GetOnPackageRemovedDelegate().Bind((AssetPackage package) =>
             {
-                Logger.Log(LogLevel.Debug, "Package removed: {0}", package.Name);
+                Logger.Log(LogLevel.Verbose, "Package removed: {0}", package.Name);
 
                 ObjIdBase removedPackageId = package.Id;
 
@@ -118,20 +123,25 @@ namespace Hyperion.Editor.ViewModels
                 {
                     AssetPackageViewModel? packageViewModel = Packages.FirstOrDefault(pvm => pvm.Package.Id == removedPackageId);
 
-                    if (packageViewModel != null)
-                    {
-                        Packages.Remove(packageViewModel);
+                    if (packageViewModel == null)
+                        return;
 
-                        OnPropertyChanged(nameof(Packages));
-                    }
+                    Packages.Remove(packageViewModel);
+
+                    OnPropertyChanged(nameof(Packages));
                 });
             });
         }
 
         public void Dispose()
         {
+            _onSelectedPackageChangedHandler?.Remove();
             _onSelectedPackageChangedHandler?.Dispose();
+
+            _onSelectedPackageChangedHandler?.Remove();
             _onPackageAddedHandler?.Dispose();
+
+            _onPackageRemovedHandler?.Remove();
             _onPackageRemovedHandler?.Dispose();
         }
     }

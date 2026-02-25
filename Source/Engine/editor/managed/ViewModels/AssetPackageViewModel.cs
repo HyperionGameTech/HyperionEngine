@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -29,50 +30,121 @@ namespace Hyperion.Editor.ViewModels
                 Assets.Add(new AssetObjectViewModel(asset, this));
             }
 
+            foreach (AssetPackage subpackage in package.Subpackages)
+            {
+                if (subpackage.Hidden)
+                    continue;
+
+                Subpackages.Add(new AssetPackageViewModel(subpackage));
+            }
+
+            OnPropertyChanged(nameof(Assets));
+            OnPropertyChanged(nameof(Subpackages));
+
             _onAssetAddedHandler = package.GetOnAssetObjectAddedDelegate().Bind((AssetObject asset, bool isDirect) =>
             {
                 if (isDirect)
-                    Assets.Add(new AssetObjectViewModel(asset, this));
+                {
+                    WeakReference<AssetObject> weakAsset = new(asset);
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        AssetObject? asset = null;
+                        if (weakAsset.TryGetTarget(out asset))
+                        {
+                            AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset.Id == asset.Id);
+
+                            if (assetViewModel != null)
+                                return; // already exists
+
+                            Assets.Add(new AssetObjectViewModel(asset, this));
+
+                            OnPropertyChanged(nameof(Assets));
+                        }
+                    });
+                }
             });
 
             _onAssetRemovedHandler = package.GetOnAssetObjectRemovedDelegate().Bind((AssetObject asset, bool isDirect) =>
             {
                 if (isDirect)
                 {
-                    AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset == asset);
-                    if (assetViewModel != null)
+                    ObjIdBase removedAssetId = asset.Id;
+
+                    Dispatcher.UIThread.Post(() =>
                     {
+                        AssetObjectViewModel? assetViewModel = Assets.FirstOrDefault(avm => avm.Asset.Id == removedAssetId);
+
+                        if (assetViewModel == null)
+                            return;
+
                         Assets.Remove(assetViewModel);
-                    }
+
+                        OnPropertyChanged(nameof(Assets));
+                    });
                 }
             });
 
             _onSubpackageAddedHandler = package.GetOnSubpackageAddedDelegate().Bind((AssetPackage subpackage) =>
             {
-                Subpackages.Add(new AssetPackageViewModel(subpackage));
+                if (!subpackage.Hidden)
+                {
+                    WeakReference<AssetPackage> weakPackage = new(subpackage);
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        AssetPackage? subpackage = null;
+                        if (weakPackage.TryGetTarget(out subpackage))
+                        {
+                            AssetPackageViewModel? packageViewModel = Subpackages.FirstOrDefault(pvm => pvm.Package.Id == subpackage.Id);
+
+                            if (packageViewModel != null)
+                                return; // already exists
+
+                            Subpackages.Add(new AssetPackageViewModel(subpackage));
+
+                            OnPropertyChanged(nameof(Subpackages));
+                        }
+                    });
+                }
             });
 
             _onSubpackageRemovedHandler = package.GetOnSubpackageRemovedDelegate().Bind((AssetPackage subpackage) =>
             {
-                AssetPackageViewModel? subpackageViewModel = Subpackages.FirstOrDefault(spvm => spvm.Package == subpackage);
-                if (subpackageViewModel != null)
-                {
-                    Subpackages.Remove(subpackageViewModel);
-                }
-            });
+                ObjIdBase removedPackageId = subpackage.Id;
 
-            foreach (AssetPackage subpackage in package.Subpackages)
-            {
-                if (subpackage.Hidden)
-                    continue;
-                    
-                Subpackages.Add(new AssetPackageViewModel(subpackage));
-            }
+                Dispatcher.UIThread.Post(() =>
+                {
+                    AssetPackageViewModel? packageViewModel = Subpackages.FirstOrDefault(pvm => pvm.Package.Id == removedPackageId);
+
+                    if (packageViewModel == null)
+                        return;
+
+                    Subpackages.Remove(packageViewModel);
+
+                    OnPropertyChanged(nameof(Subpackages));
+                });
+            });
         }
 
         public IReadOnlyList<AssetPackageViewModel> GetOrderedSubpackages()
         {
             return Subpackages.OrderBy(child => child.Name.ToString(), StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        public void Dispose()
+        {
+            _onAssetAddedHandler?.Remove();
+            _onAssetAddedHandler?.Dispose();
+
+            _onAssetRemovedHandler?.Remove();
+            _onAssetRemovedHandler?.Dispose();
+
+            _onSubpackageAddedHandler?.Remove();
+            _onSubpackageAddedHandler?.Dispose();
+
+            _onSubpackageRemovedHandler?.Remove();
+            _onSubpackageRemovedHandler?.Dispose();
         }
     }
 }

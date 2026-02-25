@@ -53,12 +53,12 @@ static void RegisterImportedAsset(const Handle<EditorProject>& project, const Ha
         HYP_LOG(Editor, Error, "Failed to remove asset object '{}' from package '{}': {}", assetObject->GetName(), previousPackage->GetName(), removeResult.GetError().GetMessage());
     }
 
-    Handle<AssetPackage> currentPackage = previousPackage;
+    AssetPackage* currentPackage = previousPackage;
 
-    while (currentPackage.IsValid() && currentPackage->GetName() != "$Import"_sh)
+    while (currentPackage != nullptr && currentPackage->GetName() != "$Import"_sh)
     {
         subpackageNames.PushBack(currentPackage->GetName());
-        currentPackage = currentPackage->GetParentPackage().Lock();
+        currentPackage = currentPackage->GetParentPackage();
     }
 
     subpackageNames.Reverse();

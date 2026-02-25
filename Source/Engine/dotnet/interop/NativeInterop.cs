@@ -51,7 +51,7 @@ namespace Hyperion
 
         private static void InitializeHyperionAssembly(Assembly assembly, bool isCoreAssembly)
         {
-            Logger.Log(LogLevel.Debug, "Initializing Hyperion assembly: {0}", assembly.FullName);
+            Logger.Log(LogLevel.Verbose, "Initializing Hyperion assembly: {0}", assembly.FullName);
 
             if (!IsHyperionAssembly(assembly))
             {
@@ -68,7 +68,7 @@ namespace Hyperion
                     continue;
                 }
 
-                Logger.Log(LogLevel.Debug, "Processing type: {0} for assembly: {1}", type.FullName, assembly.FullName);
+                Logger.Log(LogLevel.Verbose, "Processing type: {0} for assembly: {1}", type.FullName, assembly.FullName);
 
                 if (type.IsClass || type.IsValueType || type.IsEnum)
                 {
@@ -359,7 +359,7 @@ namespace Hyperion
             // Skip classes with the NoNativeClass attribute
             if (TryGetAttributeByName(type, "NoNativeClass") != null)
             {
-                Logger.Log(LogLevel.Debug, "Skipping managed class for type: {0} due to NoNativeClass attribute", type.Name);
+                Logger.Log(LogLevel.Verbose, "Skipping managed class for type: {0} due to NoNativeClass attribute", type.Name);
 
                 return IntPtr.Zero;
             }

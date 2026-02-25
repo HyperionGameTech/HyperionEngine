@@ -26,7 +26,7 @@ namespace Hyperion
 
         public void StartWatching()
         {
-            Logger.Log(_logChannel, LogLevel.Debug, "Start watching: {0}", this.GetBasePath());
+            Logger.Log(_logChannel, LogLevel.Verbose, "Start watching: {0}", this.GetBasePath());
 
             _watcher = new FileSystemWatcher();
             _watcher.Path = this.GetBasePath();
