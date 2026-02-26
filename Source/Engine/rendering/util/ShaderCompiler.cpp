@@ -235,9 +235,14 @@ static String BuildAttributesDefines(
 {
     String preamble;
 
-    for (const VertexAttribute* attr : perm.GetRequiredVertexAttributes().BuildAttributes())
+    Array<const VertexAttribute*> attributesArray = perm.GetRequiredVertexAttributes().BuildAttributes();
+
+    for (SizeType attrIndex = 0; attrIndex < attributesArray.Size(); attrIndex++)
     {
-        preamble += String("#define HYP_ATTRIBUTE_") + attr->name + "\n";
+        const VertexAttribute* attr = attributesArray[attrIndex];
+
+        preamble += String("#define HYP_ATTRIBUTE_") + *attr->name + "\n";
+        preamble += String("#define _") + *attr->name + "_LOCATION " + String::ToString(attrIndex) + "\n\n";
     }
 
     // We do not do the same for Optional attributes, as they have not been
@@ -372,26 +377,27 @@ void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
 
 static bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties, const VertexAttributeSet& requestedVertexAttributes,
-    const Shader& candidate)
+    const Shader& candidate,
+    bool primary)
 {
     if (candidate.properties != requestedProperties)
     {
         return false;
     }
 
-    /*if ((requestedVertexAttributes & candidate.vertexAttributes) == candidate.vertexAttributes)
+    if (primary)
     {
-        return true;
-    }*/
-
-    if (requestedVertexAttributes == 0)
-    {
-        return true;
+        if (requestedVertexAttributes == candidate.vertexAttributes)
+        {
+            return true;
+        }
     }
-
-    if (requestedVertexAttributes == candidate.vertexAttributes)
+    else
     {
-        return true;
+        if ((requestedVertexAttributes & candidate.vertexAttributes) == candidate.vertexAttributes)
+        {
+            return true;
+        }
     }
 
     return false;
@@ -1890,7 +1896,11 @@ bool ShaderCompiler::HandleBundle(
     const bool requestedFound = shaderRequest.HasValue() && inOutBundle->compiledShaders.FindIf(
         [&shaderRequest](const Handle<Shader>& shader)
         {
-            return SatisfiesRequested(shaderRequest->properties, shaderRequest->vertexAttributes, *shader);
+            return SatisfiesRequested(
+                shaderRequest->properties,
+                shaderRequest->vertexAttributes,
+                *shader,
+                /* primary */ true);
         }) != inOutBundle->compiledShaders.End();
 
     if (anyMissing || (shaderRequest.HasValue() && !requestedFound))
@@ -2489,7 +2499,6 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 char ch;
 
                 String attributeKeyword;
-                String attributeLocation;
 
                 Optional<String> attributeCondition;
 
@@ -2516,51 +2525,6 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                         break;
                     }
-
-                    if (attrStringIndex != parts.Front().Size() && ((ch = parts.Front()[attrStringIndex]) == '('))
-                    {
-                        ++attrStringIndex;
-
-                        // read integer string
-                        while (attrStringIndex != parts.Front().Size() && std::isdigit(ch = parts.Front()[attrStringIndex]))
-                        {
-                            attributeLocation.Append(ch);
-                            ++attrStringIndex;
-                        }
-
-                        // if there is a comma, read the conditional define that we will use
-                        if (attrStringIndex != parts.Front().Size() && ((ch = parts.Front()[attrStringIndex]) == ','))
-                        {
-                            ++attrStringIndex;
-
-                            String condition;
-                            while (attrStringIndex != parts.Front().Size() && (std::isalpha(ch = parts.Front()[attrStringIndex]) || ch == '_'))
-                            {
-                                condition.Append(ch);
-                                ++attrStringIndex;
-                            }
-
-                            attributeCondition = condition;
-                        }
-
-                        if (attrStringIndex != parts.Front().Size() && ((ch = parts.Front()[attrStringIndex]) == ')'))
-                        {
-                            ++attrStringIndex;
-                        }
-                        else
-                        {
-                            result.errors.PushBack(ProcessError { "Invalid attribute, missing closing parenthesis" });
-
-                            break;
-                        }
-
-                        if (attributeLocation.Empty())
-                        {
-                            result.errors.PushBack(ProcessError { "Invalid attribute location" });
-
-                            break;
-                        }
-                    }
                 }
 
                 const String remaining = line.Substr(attrStringIndex);
@@ -2573,11 +2537,6 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 VertexAttributeDefinition attributeDefinition {};
                 attributeDefinition.name = StringUtil::TakeWhile(parts[2], IsIdentiferChar);
                 attributeDefinition.typeClass = StringUtil::TakeWhile(parts[1], IsIdentiferChar);
-                attributeDefinition.location = attributeLocation.Any()
-                    ? std::atoi(attributeLocation.Data())
-                    : lastAttributeLocation + 1;
-
-                lastAttributeLocation = attributeDefinition.location;
 
                 if (optional)
                 {
@@ -2601,12 +2560,12 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 if (language == ShaderLanguage::GLSL)
                 {
-                    result.processedSource += "layout(location=" + String::ToString(attributeDefinition.location) + ") in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
+                    result.processedSource += "layout(location=_" + attributeDefinition.name + "_LOCATION) in " + attributeDefinition.typeClass + " " + attributeDefinition.name + ";\n";
                 }
                 else if (language == ShaderLanguage::HLSL)
                 {
                     // For hlsl we just paste have the rest of the line after the macro invocation, e.g:
-                    // HYP_ATTRIBUTE(5) float3 bitangent : BINORMAL;
+                    // HYP_ATTRIBUTE float3 bitangent : BINORMAL;
                     result.processedSource += remaining + '\n';
                 }
 
@@ -3517,12 +3476,24 @@ bool ShaderCompiler::RequestShader(
         return false;
     }
 
-    // make sure we properly created it
+    // primary search.
+    // this will check for best fit (vertex attributes == requested vertex attributes)
     auto it = bundle->compiledShaders.FindIf(
         [&mergedProperties, &vertexAttributes](const Handle<Shader>& shader) -> bool
         {
-            return SatisfiesRequested(mergedProperties, vertexAttributes, *shader);
+            return SatisfiesRequested(mergedProperties, vertexAttributes, *shader, /* primary */ true);
         });
+
+    // do fallback search if primary not found.
+    // this will search for a shader where we can provide all the req'd vertex attributes to a given shader.
+    if (it == bundle->compiledShaders.End())
+    {
+        it = bundle->compiledShaders.FindIf(
+            [&mergedProperties, &vertexAttributes](const Handle<Shader>& shader) -> bool
+            {
+                return SatisfiesRequested(mergedProperties, vertexAttributes, *shader, /* primary */ false);
+            });
+    }
 
     if (it == bundle->compiledShaders.End())
     {

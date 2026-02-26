@@ -837,7 +837,6 @@ end
 extern struct VertexAttributeDefinition
     Name : string
     TypeClass : string
-    Location : int
     Condition : string
 end
 extern enum RenderTargetType : uint8

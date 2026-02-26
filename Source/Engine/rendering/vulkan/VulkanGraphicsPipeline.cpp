@@ -474,20 +474,22 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
     const Array<const VertexAttribute*> attributeTypes = attributeSet.BuildAttributes();
     outVkVertexAttributes.Resize(attributeTypes.Size());
 
-    for (SizeType i = 0; i < attributeTypes.Size(); i++)
+    for (uint32 attrIndex = 0; attrIndex < uint32(attributeTypes.Size()); attrIndex++)
     {
-        AssertDebug(attributeTypes[i] != nullptr);
+        AssertDebug(attributeTypes[attrIndex] != nullptr);
 
-        const VertexAttribute& attribute = *attributeTypes[i];
+        const VertexAttribute& attribute = *attributeTypes[attrIndex];
 
-        outVkVertexAttributes[i] = VkVertexInputAttributeDescription {
-            .location = attribute.location,
-            .binding = attribute.binding,
+        const uint32 binding = 0;
+
+        outVkVertexAttributes[attrIndex] = VkVertexInputAttributeDescription {
+            .location = attrIndex,
+            .binding = binding,
             .format = sizeToFormat[attribute.size / sizeof(float)],
-            .offset = bindingSizes[attribute.binding]
+            .offset = bindingSizes[binding]
         };
 
-        bindingSizes[attribute.binding] += attribute.size;
+        bindingSizes[binding] += attribute.size;
     }
 
     outVkVertexBindingDescriptions.Clear();

@@ -17,9 +17,9 @@ struct ParticleShaderData
 
 struct VSInput
 {
-    HYP_ATTRIBUTE(0) float3 a_position : POSITION;
-    HYP_ATTRIBUTE(1) float3 a_normal : NORMAL;
-    HYP_ATTRIBUTE(2) float2 a_texcoord0 : TEXCOORD0;
+    HYP_ATTRIBUTE float3 a_position : POSITION;
+    HYP_ATTRIBUTE float3 a_normal : NORMAL;
+    HYP_ATTRIBUTE float2 a_texcoord0 : TEXCOORD0;
 };
 
 struct VSOutput

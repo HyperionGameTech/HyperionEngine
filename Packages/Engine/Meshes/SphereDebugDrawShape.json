@@ -7,7 +7,7 @@
   "MeshDesc": {
     "MeshAttributes": {
       "VertexAttributes": {
-        "FlagMask": 63
+        "FlagMask": 15
       },
       "Topology": 0,
       "IndexBufferElemType": 4

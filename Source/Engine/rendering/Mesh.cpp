@@ -28,8 +28,7 @@ static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
 const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
     VertexAttribute::Position | VertexAttribute::Normal
-    | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1
-    | VertexAttribute::Tangent | VertexAttribute::Bitangent;
+    | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1;
 
 const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
     StaticMeshVertexAttributes | VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
@@ -85,7 +84,7 @@ String VertexAttributeSet::ToString() const
             result += ", ";
         }
 
-        result += VertexAttribute::Attrs[i]->name;
+        result += *VertexAttribute::Attrs[i]->name;
         first = false;
     }
 
