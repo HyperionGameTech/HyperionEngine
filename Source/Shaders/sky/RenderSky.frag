@@ -9,8 +9,6 @@
 layout(location = 0) in vec3 v_position;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec2 v_texcoord0;
-layout(location = 4) in vec3 v_tangent;
-layout(location = 5) in vec3 v_bitangent;
 layout(location = 7) in flat vec3 v_camera_position;
 layout(location = 11) in flat uint v_object_index;
 layout(location = 13) in flat uint v_cube_face_index;

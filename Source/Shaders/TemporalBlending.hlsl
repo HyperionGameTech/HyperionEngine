@@ -95,8 +95,8 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 #ifdef PASSTHROUGH
     color = SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv);
 #elif TEMPORAL_BLEND_TECHNIQUE == 0
-    color = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv)));
-    float4 previous_color = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, prev_input_texture, uv - velocity)));
+    color = SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv);//RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_nearest, input_texture, uv)));
+    float4 previous_color = SAMPLE_TEXTURE_2D(sampler_linear, prev_input_texture, uv - velocity);//RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, prev_input_texture, uv - velocity)));
 
     const float _SubpixelThreshold = 0.5;
     const float _GatherBase = 0.5;
@@ -121,7 +121,7 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     for (int i = 0; i < 4; i++)
     {
-        float4 c = RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv + offsets[i])));
+        float4 c = SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv + offsets[i]);  //RGBToYCoCg(ADJUST_COLOR_GAMMA_IN(SAMPLE_TEXTURE_2D(sampler_linear, input_texture, uv + offsets[i])));
 
         mean += c;
         stddev += c * c;
@@ -134,9 +134,9 @@ void CSMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     const float variance_gamma = 1.0;
     float4 clipped = ClipToAABB(color, previous_color, mean, stddev * variance_gamma);
 
-    color = TemporalLuminanceResolveYCoCg(color, clipped);
-    color = YCoCgToRGB(color);
-    color = ADJUST_COLOR_GAMMA_OUT(color);
+    //color = TemporalLuminanceResolveYCoCg(color, clipped);
+    //color = YCoCgToRGB(color);
+    //color = ADJUST_COLOR_GAMMA_OUT(color);
 
     color = any(isnan(color)) ? float4(0.0, 0.0, 1.0, 1.0) : color;
 

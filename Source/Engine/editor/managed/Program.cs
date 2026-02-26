@@ -22,7 +22,7 @@ namespace Hyperion.Editor
                 .With(new MacOSPlatformOptions { ShowInDock = true })
                 .With(new Win32PlatformOptions
                 {
-                    OverlayPopups = true
+                    //OverlayPopups = true
                 })
                 .With(new VulkanOptions
                 {

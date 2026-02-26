@@ -121,6 +121,8 @@ const HashMap<ErrorMessage, String> CompilerError::errorMessageStrings {
     { Msg_could_not_find_nested_module, "Could not find nested module or identifier '%' in module '%'" },
     { Msg_import_outside_global, "Import statement must be in module or global scope" },
     { Msg_import_current_file, "Attempt to import current file" },
+    { Msg_wildcard_import_not_allowed_here, "Nested wildcard imports are not allowed" },
+    { Msg_expected_module_name_or_wildcard, "Expected module name or wildcard '*' after 'import'" },
     { Msg_export_outside_global, "Export statement must be in module or global scope" },
     { Msg_export_invalid_name, "Export is not valid, statement does not have a name" },
     { Msg_export_duplicate, "Export is not valid, identifier '%' has already been exported" },

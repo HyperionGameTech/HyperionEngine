@@ -314,6 +314,26 @@ float sphericalCapsIntersection(float cosCap1, float cosCap2, float cosDistance)
     return area * (1.0 - max(cosCap1, cosCap2));
 }
 
+/// Compute perceptual roughness a la filament
+float ComputePerceptualRoughness(float roughness, float3 normal)
+{
+    float perceptualRoughness = roughness;
+
+    float3 dndx = ddx(normal);
+    float3 dndy = ddy(normal);
+    
+    float variance = max(dot(dndx, dndx), dot(dndy, dndy));
+    
+    float geometricRoughness = pow(saturate(variance), 0.333f);
+    
+    perceptualRoughness = max(perceptualRoughness, geometricRoughness);
+
+    const float minPerceptualRoughness = 0.089f;
+    perceptualRoughness = clamp(perceptualRoughness, minPerceptualRoughness, 1.0f);
+
+    return perceptualRoughness;
+}
+
 float SpecularAO_Cones(vec3 bentNormal, float visibility, float roughness, vec3 shading_reflected)
 {
     // Jimenez et al. 2016, "Practical Realtime Strategies for Accurate Indirect Occlusion"

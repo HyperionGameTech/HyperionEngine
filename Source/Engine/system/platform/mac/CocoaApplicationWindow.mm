@@ -306,9 +306,14 @@ CocoaApplicationWindow::~CocoaApplicationWindow()
 void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
 {
     AssertOnThread(g_mainThread);
+
+    TUniqueLock lock(m_mtx);
   
     m_title = windowOptions.title;
     m_size = windowOptions.dimensions;
+
+    lock.Reset(); // done using shared members
+
     m_useCocoaEvents = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
 
     // If parentHwnd is provided, create an embedded view instead of a standalone window
@@ -341,7 +346,7 @@ void CocoaApplicationWindow::Initialize(WindowOptions windowOptions)
         AssertDebug(parentView != nil, "Parent NSWindow contentView is null in CocoaApplicationWindow embedded view creation");
         
         // Create the metal view
-        NSRect frame = NSMakeRect(0, 0, m_size.x, m_size.y);
+        NSRect frame = NSMakeRect(0, 0, windowOptions.dimensions.x, windowOptions.dimensions.y);
         
         HyperionMetalView* metalView = [[HyperionMetalView alloc] initWithFrame:frame];
         metalView.hyperionWindow = this;

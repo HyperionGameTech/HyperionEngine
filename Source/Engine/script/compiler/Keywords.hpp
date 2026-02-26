@@ -12,6 +12,7 @@ enum Keywords
     Keyword_module,
     Keyword_import,
     Keyword_export,
+    Keyword_from,
     Keyword_const,
     Keyword_static,
     Keyword_public,

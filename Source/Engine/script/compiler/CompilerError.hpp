@@ -145,6 +145,8 @@ enum ErrorMessage
     Msg_identifier_is_module,
     Msg_import_outside_global,
     Msg_import_current_file,
+    Msg_wildcard_import_not_allowed_here,
+    Msg_expected_module_name_or_wildcard,
     Msg_export_outside_global,
     Msg_export_invalid_name,
     Msg_export_duplicate,

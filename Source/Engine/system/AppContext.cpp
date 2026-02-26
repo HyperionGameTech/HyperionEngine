@@ -103,18 +103,18 @@ ApplicationWindow::~ApplicationWindow() = default;
 
 void ApplicationWindow::HandleResize(Vec2i newSize)
 {
+    TUniqueLock lock(m_mtx);
+
+    if (m_size == newSize)
     {
-        TUniqueLock lock(m_mtx);
-
-        if (m_size == newSize)
-        {
-            return;
-        }
-
-        m_size = newSize;
+        return;
     }
 
-    if (Swapchain* swapchain = GetSwapchain())
+    m_size = newSize;
+
+    Swapchain* swapchain = m_swapchain;
+
+    if (swapchain != nullptr)
     {
         if (IsOnThread(g_renderThread))
         {
@@ -123,9 +123,27 @@ void ApplicationWindow::HandleResize(Vec2i newSize)
         else
         {
             // if we have a dedicated rendering thread we need to tell the render thread to resize the swapchain
-            GetThreadById(g_renderThread)->GetScheduler().Enqueue([swapchainWeak = MakeWeakRef(swapchain), newSize]()
+            GetThreadById(g_renderThread)->GetScheduler().Enqueue([this, weakThis = MakeWeakRef(this), weakSwapchain = MakeWeakRef(swapchain), newSize]()
                 {
-                    SwapchainRef swapchain = swapchainWeak.Lock();
+                    Handle<ApplicationWindow> strongThis = weakThis.Lock();
+                    if (strongThis.IsValid())
+                    {
+                        if (GetSize() != newSize)
+                        {
+                            HYP_LOG(Core, Verbose,
+                                "ApplicationWindow size changed on another thread before swapchain new size could be set - "
+                                "aborting swapchain resize for dimensions {}",
+                                newSize);
+
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        HYP_LOG(Core, Warning, "ApplicationWindow expired before swapchain size could be set");
+                    }
+
+                    SwapchainRef swapchain = weakSwapchain.Lock();
                     if (!swapchain.IsValid())
                     {
                         HYP_LOG(Core, Warning, "Attempted to resize invalid swapchain on render thread!");
@@ -162,6 +180,9 @@ void ApplicationWindow::CreateSwapchain()
 
     if (IsOnThread(g_renderThread)) // if -RenderOnMainThread is set this will be the case
     {
+        if (m_swapchain.IsValid())
+            EnqueueDeletion(std::move(m_swapchain));
+
         SwapchainRef swapchain = g_renderInterface->CreateSwapchain(this);
         Assert(swapchain.IsValid());
 
@@ -187,6 +208,13 @@ void ApplicationWindow::CreateSwapchain()
                     EnqueueDeletion(std::move(m_swapchain));
 
                 m_swapchain = swapchain;
+
+                // it's possible that window size has changed on another thread.
+                // this causes the editor viewport to render at a lower resolution than expected.
+                if (Vec2u(m_size) != m_swapchain->GetExtent())
+                {
+                    m_swapchain->SetExtent(Vec2u(m_size));
+                }
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
@@ -974,11 +1002,17 @@ void Win32ApplicationWindow::ProcessRawInput(void* rawInput)
 
 void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
 {
+    AssertOnThread(g_mainThread);
+
+    TUniqueLock lock(m_mtx);
+
     m_title = windowOptions.title;
     m_size = windowOptions.dimensions;
-    m_useWndProc = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
-
     WideString wTitle = m_title.ToWide();
+
+    lock.Reset(); // done using members that are read from other threads after this.
+    
+    m_useWndProc = (windowOptions.flags & uint32(WindowFlags::EVENTS_POLLING)) == 0;
 
     WNDCLASSEXW wc {};
     wc.cbSize = sizeof(WNDCLASSEXW);
@@ -1010,7 +1044,7 @@ void Win32ApplicationWindow::Initialize(WindowOptions windowOptions)
         style &= ~WS_OVERLAPPEDWINDOW;
     }
 
-    RECT r { 0, 0, (LONG)m_size.x, (LONG)m_size.y };
+    RECT r { 0, 0, (LONG)windowOptions.dimensions.x, (LONG)windowOptions.dimensions.y };
     AdjustWindowRect(&r, style, FALSE);
 
     m_hwnd = CreateWindowW(

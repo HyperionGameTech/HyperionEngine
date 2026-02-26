@@ -65,7 +65,7 @@ namespace Hyperion.Editor
             // tmp debug
             AssetBatch ab = new AssetBatch();
             ab.Add("test_model", "Models/Sponza/sponza.obj");
-            //ab.Add("monkey", "models/ogrexml/dragger_Body.mesh.xml");
+            ab.Add("guy", "models/ZombieGuy/guy.mesh.xml");
             _assetBatchTask = ab.Load();
         }
 
@@ -75,13 +75,13 @@ namespace Hyperion.Editor
             {
                 AssetMap assetMap = _assetBatchTask.Result;
 
-                var monkeyAsset = assetMap["monkey"];
+                var guy = assetMap["guy"];
 
-                if (monkeyAsset != null && monkeyAsset.IsValid)
+                if (guy != null && guy.IsValid)
                 {
-                    Assert.Throw(monkeyAsset.Value != null);
+                    Assert.Throw(guy.Value != null);
 
-                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)monkeyAsset.Value);
+                    Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)guy.Value);
                     n.SetLocalScale(new Vec3f(0.5f));
                 }
 

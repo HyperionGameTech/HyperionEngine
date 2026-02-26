@@ -5,69 +5,37 @@
 
 #define HDR 1
 //#define HDR_TONEMAP_UNCHARTED 1
-#define HDR_TONEMAP_FILMIC 1
+//#define HDR_TONEMAP_FILMIC 1
+//#define HDR_TONEMAP_LOTTES 1
 // #define HDR_TONEMAP_UNREAL 1
 //#define HDR_TONEMAP_REINHARD 1
+#define HDR_TONEMAP_ACES 1
 
 #ifndef HDR_EXPOSURE
 #define HDR_EXPOSURE 9.0
 #endif
 
-static const float A = 0.15;
-static const float B = 0.50;
-static const float C = 0.10;
-static const float D = 0.20;
-static const float E = 0.02;
-static const float F = 0.30;
-static const float W = 11.2;
+// Source for some of these: https://dmnsgn.github.io/glsl-tone-map
 
 float3 _TonemapUncharted(float3 x)
 {
+    float A = 0.15;
+    float B = 0.50;
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02;
+    float F = 0.30;
+    float W = 11.2;
     return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
 }
 
-float3 TonemapUncharted(float3 x)
+float3 TonemapUncharted(float3 color)
 {
-    x *= HDR_EXPOSURE; // Hardcoded Exposure Adjustment
-
-    const float ExposureBias = 2.0;
-    float3 curr = _TonemapUncharted(x * ExposureBias);
-
-    float3 whiteScale = 1.0 / _TonemapUncharted(W.xxx);
+    const float W = 11.2;
+    float exposureBias = 2.0;
+    float3 curr = _TonemapUncharted(exposureBias * color);
+    float3 whiteScale = 1.0 / _TonemapUncharted((float3)W);
     return curr * whiteScale;
-}
-// sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
-static const float3x3 ACESInputMat = float3x3(
-    0.59719, 0.35458, 0.04823,
-    0.07600, 0.90834, 0.01566,
-    0.02840, 0.13383, 0.83777);
-
-// ODT_SAT => XYZ => D60_2_D65 => sRGB
-static const float3x3 ACESOutputMat = float3x3(
-    1.60475, -0.53108, -0.07367,
-    -0.10208, 1.10813, -0.00605,
-    -0.00327, -0.07276, 1.07602);
-
-float3 RRTAndODTFit(float3 v)
-{
-    float3 a = v * (v + 0.0245786f) - 0.000090537f;
-    float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
-    return a / b;
-}
-
-float3 TonemapACESFilmic(float3 color)
-{
-    color = mul(color, ACESInputMat);
-
-    // Apply RRT and ODT
-    color = RRTAndODTFit(color);
-
-    color = mul(color, ACESOutputMat);
-
-    // Clamp to [0, 1]
-    color = saturate(color);
-
-    return color;
 }
 
 float3 _TonemapFilmic(float3 x)
@@ -89,6 +57,24 @@ float3 TonemapFilmic(float3 x)
     // return x * whiteScale;
 
     return _TonemapFilmic(x);
+}
+
+// Lottes 2016, "Advanced Techniques and Optimization of HDR Color Pipelines"
+float3 TonemapLottes(float3 x)
+{
+    const float3 a = (float3)1.6;
+    const float3 d = (float3)0.977;
+    const float3 hdrMax = (float3)8.0;
+    const float3 midIn = (float3)0.18;
+    const float3 midOut = (float3)0.267;
+
+    const float3 b = (-pow(midIn, a) + pow(hdrMax, a) * midOut) /
+      ((pow(hdrMax, a * d) - pow(midIn, a * d)) * midOut);
+
+    const float3 c = (pow(hdrMax, a * d) * pow(midIn, a) - pow(hdrMax, a) * pow(midIn, a * d) * midOut) /
+      ((pow(hdrMax, a * d) - pow(midIn, a * d)) * midOut);
+
+    return pow(x, a) / (pow(x, a * d) * b + c);
 }
 
 float3 TonemapUnreal(float3 x)
@@ -117,6 +103,17 @@ float3 TonemapReinhard(float3 x)
     return ChangeLuminance(x, l_new);
 }
 
+// Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
+float3 TonemapACES(float3 x)
+{
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
 float3 TonemapReinhardSimple(float3 x)
 {
     return x / (1.0 + x);
@@ -131,13 +128,17 @@ float3 Tonemap(float3 x)
 {
 #if defined(HDR) && HDR
 #if HDR_TONEMAP_FILMIC
-    return TonemapFilmic(x); // TonemapACESFilmic(x);
+    return TonemapFilmic(x);
+#elif HDR_TONEMAP_LOTTES
+    return TonemapLottes(x);
 #elif HDR_TONEMAP_UNREAL
     return TonemapUnreal(x);
 #elif HDR_TONEMAP_UNCHARTED
     return TonemapUncharted(x);
 #elif HDR_TONEMAP_REINHARD
     return TonemapReinhard(x);
+#elif HDR_TONEMAP_ACES
+    return TonemapACES(x);
 #else
     return TonemapReinhard(x);
 #endif

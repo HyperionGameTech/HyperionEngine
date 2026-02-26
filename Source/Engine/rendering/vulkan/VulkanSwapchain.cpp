@@ -177,15 +177,42 @@ RendererResult VulkanSwapchain::Create()
     CheckResultOrReturn(ChooseSurfaceFormat());
 
     m_presentMode = VulkanSwapchainUseFIFO ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
-    m_extent = {
+
+    HYP_LOG(RenderingBackend, Verbose, "Vulkan swapchain m_extent = {}", m_extent);
+
+    const Vec2u nativeExtent {
         m_supportDetails.capabilities.currentExtent.width,
         m_supportDetails.capabilities.currentExtent.height
     };
 
-    if (m_extent.x * m_extent.y == 0)
+    if (nativeExtent.Volume() == 0)
     {
-        return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
+        return HYP_MAKE_ERROR(RendererError, "Failed to retrieve native surface resolution!");
     }
+
+    HYP_LOG(RenderingBackend, Verbose, "Vulkan native swapchain resolution: {}", nativeExtent);
+
+    if (m_extent.Volume() == 0)
+    {
+        m_extent = nativeExtent;
+    }
+
+    const Vec2u maxExtent {
+        m_supportDetails.capabilities.maxImageExtent.width,
+        m_supportDetails.capabilities.maxImageExtent.height
+    };
+    
+    const Vec2u minExtent {
+        m_supportDetails.capabilities.minImageExtent.width,
+        m_supportDetails.capabilities.minImageExtent.height
+    };
+
+    m_extent = MathUtil::Min(maxExtent, m_extent);
+    m_extent = MathUtil::Max(minExtent, m_extent);
+
+    Assert(m_extent.Volume() != 0);
+
+    HYP_LOG(RenderingBackend, Verbose, "Using Vulkan swapchain resolution {}", m_extent);
 
     uint32 imageCount = m_supportDetails.capabilities.minImageCount + 1;
 
@@ -281,9 +308,7 @@ RendererResult VulkanSwapchain::Create()
 
 void VulkanSwapchain::SetExtent(Vec2u newExtent)
 {
-    AssertDebug(newExtent.Volume() > 0);
-
-    if (m_extent == newExtent)
+    if (m_extent == newExtent || newExtent == Vec2u::Zero())
     {
         return;
     }

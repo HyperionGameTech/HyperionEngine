@@ -498,7 +498,9 @@ public:
         params.origin = Vec3f(0.0f, 10.0f, 0.0f); // temp
         params.maxParticles = 2048;
         params.hasPhysics = true;
-        params.lifespan = 10.0f;
+        params.lifespan = 3.5f;
+        params.startSize = 0.05f;
+        params.randomness = 0.8f;
 
         Handle<ParticleVolume> particleVolume = MakeHandle<ParticleVolume>(BoundingBox(Vec3f(-20.0f, 0.0f, -20.0f), Vec3f(20.0f, 20.0f, 20.0f)), params);
         InitObject(particleVolume);

@@ -203,7 +203,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/TemporalBlending/TemporalBlending_4861578501041289757.CS",
-      "Size": 9328
+      "Size": 2072
     }],
   "PropertySetHashCode": {},
   "Name": "TemporalBlending_4861578501041289757",

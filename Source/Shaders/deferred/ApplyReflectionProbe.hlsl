@@ -123,8 +123,9 @@ PSOutput PSMain(PSInput input)
     GBufferUnpackMaterialParams(normalSample.x, materialData.x, materialParams);
 
     float roughness = materialParams.roughness;
+    float perceptualRoughness = ComputePerceptualRoughness(roughness, N);
 
-    const float lod = HYP_FMATH_SQR(sqrt(roughness)) * 12.0;
+    const float lod = perceptualRoughness * 7.0; // log2(128) = 7, where 128 is the maximum mip level of the environment map
 
     float4 ibl = float4(0.0, 0.0, 0.0, 0.0);
 

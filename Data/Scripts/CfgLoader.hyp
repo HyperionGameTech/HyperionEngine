@@ -1,4 +1,4 @@
-import Lib::{Logger, LogChannel, LogLevel, Reflection}
+import Lib.{Logger, LogChannel, LogLevel, Reflection}
 
 Logger := Logger.MakeScriptLogger()
 Channel := new LogChannel()

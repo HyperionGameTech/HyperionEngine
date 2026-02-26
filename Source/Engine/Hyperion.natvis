@@ -429,10 +429,10 @@
               <Break Condition="found == true || currentHead == nullptr" />
               <If Condition="(unsigned __int64)hashCode == (unsigned __int64)currentHead-&gt;value.first">
                 <If Condition="currentHead-&gt;value.second.first.m_allocation.allocationType == 2 &amp;&amp; currentHead-&gt;value.second.first.m_allocation.isDynamic == false">
-                  <Item Name="StringValue">(char*)&amp;(currentHead-&gt;value.second.first.m_allocation.storage.dataBuffer + currentHead-&gt;value.second.first.m_startOffset)[0],sb</Item>
+                  <Item Name="StringValue">(char*)&amp;(currentHead-&gt;value.second.first.m_allocation.storage.dataBuffer + currentHead-&gt;value.second.first.m_startOffset)[0],s</Item>
                 </If>
                 <If Condition="currentHead-&gt;value.second.first.m_allocation.allocationType == 1 || currentHead-&gt;value.second.first.m_allocation.isDynamic == true">
-                  <Item Name="StringValue">&amp;((char*)currentHead-&gt;value.second.first.m_allocation.buffer + currentHead-&gt;value.second.first.m_startOffset)[0],sb</Item>
+                  <Item Name="StringValue">&amp;((char*)currentHead-&gt;value.second.first.m_allocation.buffer + currentHead-&gt;value.second.first.m_startOffset)[0],s</Item>
                 </If>
                 <Exec>found = true</Exec>
               </If>

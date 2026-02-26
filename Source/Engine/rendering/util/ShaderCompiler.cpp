@@ -379,14 +379,17 @@ static bool SatisfiesRequested(
         return false;
     }
 
+    /*if ((requestedVertexAttributes & candidate.vertexAttributes) == candidate.vertexAttributes)
+    {
+        return true;
+    }*/
+
     if (requestedVertexAttributes == 0)
     {
         return true;
     }
 
-    // Satisfies if:
-    //  candidate can has the attributes we requested for (AND) candidate does not require any attributes that we don't have.
-    if (candidate.vertexAttributes == requestedVertexAttributes)
+    if (requestedVertexAttributes == candidate.vertexAttributes)
     {
         return true;
     }
@@ -1352,18 +1355,6 @@ static void ForEachPermutation(
     const SizeType numPermutations = 1ull << variableProperties.Size();
 
     Array<ShaderVariantPerms> propertiesBeforeValueGroups;
-
-    {
-        SizeType initialCount = numPermutations;
-
-        for (const ShaderProperty& valueGroup : valueGroups)
-        {
-            initialCount += valueGroup.enumValues.Size() * initialCount;
-        }
-
-        propertiesBeforeValueGroups.Reserve(initialCount);
-    }
-
     Array<ShaderVariantPerms>* currentCombinations = &propertiesBeforeValueGroups;
 
     for (SizeType i = 0; i < numPermutations; i++)
@@ -1384,45 +1375,54 @@ static void ForEachPermutation(
 
         currentCombinations->EmplaceBack(std::move(currentProperties));
     }
+    
+    Array<ShaderVariantPerms> propertiesWithValueGroupsApplied;
 
-    Array<ShaderVariantPerms> propertiesWithValueGroupsApplied = propertiesBeforeValueGroups;
-    currentCombinations = &propertiesWithValueGroupsApplied;
-
-    // now apply the value groups onto it
-    for (const ShaderProperty& valueGroup : valueGroups)
+    if (valueGroups.Any())
     {
-        Array<ShaderVariantPerms> currentGroupPerms;
-        currentGroupPerms.Resize(valueGroup.enumValues.Size() * currentCombinations->Size());
+        propertiesWithValueGroupsApplied = propertiesBeforeValueGroups;
 
-        for (SizeType existingCombinationIndex = 0; existingCombinationIndex < currentCombinations->Size(); existingCombinationIndex++)
+        // the index where value groups begin.
+        const SizeType valueGroupsStart = propertiesBeforeValueGroups.Size();
+
+        currentCombinations = &propertiesWithValueGroupsApplied;
+
+        // now apply the value groups onto it
+        for (const ShaderProperty& valueGroup : valueGroups)
         {
-            for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size(); valueIndex++)
+            Array<ShaderVariantPerms> currentGroupPerms;
+            currentGroupPerms.Resize(valueGroup.enumValues.Size() * currentCombinations->Size());
+
+            for (SizeType existingCombinationIndex = 0; existingCombinationIndex < currentCombinations->Size(); existingCombinationIndex++)
             {
-                // copy the current version of the array
-                ShaderVariantPerms merged = (*currentCombinations)[existingCombinationIndex];
+                for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size(); valueIndex++)
+                {
+                    // copy the current version of the array
+                    ShaderVariantPerms merged = (*currentCombinations)[existingCombinationIndex];
 
-                AssertDebug(!merged.Has(valueGroup.name), "Duplicate shader property name detected for {}! This will cause shader compilation errors", valueGroup.name);
+                    AssertDebug(!merged.Has(valueGroup.name), "Duplicate shader property name detected for {}! This will cause shader compilation errors", valueGroup.name);
 
-                const ShaderProperty::Value& shaderVal = valueGroup.enumValues[valueIndex];
+                    const ShaderProperty::Value& shaderVal = valueGroup.enumValues[valueIndex];
 
-                merged.Set(ShaderProperty(valueGroup.name, shaderVal));
+                    merged.Set(ShaderProperty(valueGroup.name, shaderVal));
 
-                currentGroupPerms[existingCombinationIndex + (valueIndex * currentCombinations->Size())] = std::move(merged);
+                    currentGroupPerms[existingCombinationIndex + (valueIndex * currentCombinations->Size())] = std::move(merged);
+                }
             }
-        }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
-        HYP_LOG(ShaderCompiler, Info,
-            "\tShader value group {} has {} permutations:", valueGroup.name,
-            currentGroupPerms.Size());
+            HYP_LOG(ShaderCompiler, Info,
+                "\tShader value group {} has {} permutations:", valueGroup.name,
+                currentGroupPerms.Size());
 
-        for (const ShaderVariantPerms& perm : currentGroupPerms)
-        {
-            HYP_LOG(ShaderCompiler, Verbose, "\t\t{}", perm.ToString());
-        }
+            for (const ShaderVariantPerms& perm : currentGroupPerms)
+            {
+                HYP_LOG(ShaderCompiler, Verbose, "\t\t{}", perm.ToString());
+            }
 #endif
 
-        *currentCombinations = std::move(currentGroupPerms);
+            *currentCombinations = std::move(currentGroupPerms);
+        }
     }
 
 #ifdef HYP_SHADER_COMPILER_LOGGING
@@ -1470,7 +1470,10 @@ HashCode ShaderProperty::GetHashCode() const
 
     if (HasValue())
     {
-        hc.Add(GetValueString().GetHashCode());
+        const HashCode valueHashCode = GetValueString().GetHashCode();
+        AssertDebug(valueHashCode.Value() != 0);
+
+        hc.Add(valueHashCode);
     }
 
     // @NOTE: enum values aren't part of the hash code in order to allow
@@ -3258,15 +3261,14 @@ bool ShaderCompiler::CompileBundle(
                         }
                     }
 
-                    // HYP_LOG(
-                    //     ShaderCompiler,
-                    //     Info,
-                    //     "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic
-                    //     properties: [{}]\n\tProperties hash: {}", outputFilepath,
-                    //     variablePropertiesString,
-                    //     staticPropertiesString,
-                    //     properties.GetHashCode().Value()
-                    // );
+                    HYP_LOG(
+                        ShaderCompiler,
+                        Verbose,
+                        "Compiling shader {}\n\tVariable properties: [{}]\n\tStatic properties: [{}]",
+                        outputFilepath,
+                        variablePropertiesString,
+                        staticPropertiesString
+                    );
                 }
 
                 ByteBuffer byteBuffer;

@@ -3028,7 +3028,7 @@ RC<AstModuleImportPart> Parser::ParseModuleImportPart(bool allowBraces)
 
     if (ident)
     {
-        if (Match(TK_DOUBLE_COLON, true))
+        if (Match(TK_DOT, true))
         {
             if (ident.GetValue() == s_wildcardImportToken)
             {

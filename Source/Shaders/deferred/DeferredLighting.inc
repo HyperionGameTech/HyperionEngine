@@ -139,7 +139,7 @@ vec4 CalculateReflectionProbe(in EnvProbe probe, vec3 P, vec3 N, vec3 R, vec3 ca
 {
     vec4 ibl = vec4(0.0, 0.0, 0.0, 0.0);
 
-    const float lod = HYP_FMATH_SQR(roughness) * 12.0;
+    const float lod = HYP_FMATH_SQR(roughness) * 7.0;
 
 #ifndef ENV_PROBE_PARALLAX_CORRECTED
     // ENV_PROBE_PARALLAX_CORRECTED is not statically defined, we need to use flags on the EnvProbe struct

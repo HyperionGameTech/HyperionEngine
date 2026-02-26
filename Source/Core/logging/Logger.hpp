@@ -318,10 +318,8 @@ inline void LogStatic(Logger& logger, Args&&... args)
 
             HYP_UNREACHABLE();
         }
-        else
-        {
-            logger.Log(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
-        }
+
+        logger.Log(s_channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
     }
 }
 
@@ -348,10 +346,8 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
 
             HYP_UNREACHABLE();
         }
-        else
-        {
-            logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
-        }
+
+        logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { prefix, utilities::Format<FormatString>(std::forward<Args>(args)...) } }, FileName.Data(), LineNumber });
     }
 }
 
@@ -378,10 +374,8 @@ inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fi
 
             HYP_UNREACHABLE();
         }
-        else
-        {
-            logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
-        }
+
+        logger.Log(channel, LogMessage { Level, Time::Now().ToMilliseconds(), Span<StringView<StringType::UTF8>> { { s_prefix, str } }, fileName, lineNumber });
     }
 }
 

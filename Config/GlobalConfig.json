@@ -19,7 +19,7 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": false
+        "Enabled": true
       },
       "Enabled": true
     },
@@ -70,7 +70,7 @@
       "Normals": false
     },
     "Vulkan": {
-      "DebugLayers": true
+      "DebugLayers": false
     }
   },
   "Editor": {

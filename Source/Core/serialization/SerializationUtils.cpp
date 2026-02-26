@@ -1280,7 +1280,16 @@ bool BoxedFromJSON(const JSON::Value& jsonValue, const TypeInfo& typeInfo, Boxed
 
     if (typeInfo.id == TypeId::ForType<Name>())
     {
-        outBoxed = BoxedValue(Name(CreateNameFromDynamicString(*jsonValue.ToString().ToAnsi())));
+        if (!jsonValue.IsString())
+        {
+            HYP_LOG(Core, Warning, "Expected JSON string for Name, but got value: {}", jsonValue.ToString());
+            return false;
+        }
+
+        const JSON::JString& jsonString = jsonValue.AsString();
+
+        outBoxed = BoxedValue(Name(CreateNameFromDynamicString(*jsonString.ToAnsi())));
+
         return true;
     }
 

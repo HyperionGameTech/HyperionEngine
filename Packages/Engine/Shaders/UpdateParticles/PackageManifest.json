@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "UpdateParticles",
+  "FriendlyName": "UpdateParticles",
+  "Flags": 0,
+  "Path": "Engine/Shaders/UpdateParticles"
+}

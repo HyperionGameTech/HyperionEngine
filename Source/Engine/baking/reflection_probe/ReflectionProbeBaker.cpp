@@ -17,6 +17,8 @@
 namespace Hyperion {
 namespace Baking {
 
+constexpr TextureFormat ReflectionProbeTextureFormat = TextureFormat::RGBA8;
+
 Baker<ReflectionProbe>::Baker(LightmapperConfig&& config, const Handle<ReflectionProbe>& envProbe)
     : BakerBase(std::move(config), envProbe, MakeStrongRef(envProbe->GetScene()), envProbe->GetWorldBounds()),
       m_envProbe(envProbe)
@@ -56,14 +58,24 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
 
     TextureDesc textureDesc {
         TextureType::Cubemap,
-        bitmap.GetFormat(),
+        ReflectionProbeTextureFormat,
         Vec3u { dimensions.x, dimensions.y, 1 },
         TFM_LINEAR_MIPMAP,
         TFM_LINEAR,
         TWM_CLAMP_TO_EDGE
     };
 
-    ByteBuffer imageData(bitmap.ToByteView());
+    Bitmap<ReflectionProbeTextureFormat> finalBitmap(bitmap.GetWidth(), bitmap.GetHeight());
+    
+    Rect<uint32> rect {
+        0, 0,
+        bitmap.GetWidth(),
+        bitmap.GetHeight()
+    };
+
+    finalBitmap.Blit(bitmap, rect, rect);
+
+    ByteBuffer imageData(finalBitmap.ToByteView());
     Texture::GenerateMipmaps(textureDesc, imageData);
 
     Handle<Texture> cubemap = MakeHandle<Texture>(textureDesc, imageData.ToByteView());

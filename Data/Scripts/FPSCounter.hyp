@@ -1,5 +1,5 @@
-import Lib::{Logger,LogChannel,LogLevel, EngineDriver, Reflection, Debugger}
-import CfgLoader::{CfgLoader, GlobalCfg, CacheCfg, AppCfg, CfgBase}
+import Lib.{Logger,LogChannel,LogLevel, EngineDriver, Reflection, Debugger}
+import CfgLoader.{CfgLoader, GlobalCfg, CacheCfg, AppCfg, CfgBase}
 
 Logger := Logger.MakeScriptLogger()
 Channel := new LogChannel()

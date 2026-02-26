@@ -95,6 +95,8 @@ auto BakeData<ReflectionProbe>::ToBitmap() const -> BitmapType
 
                 AssertDebug(!MathUtil::IsNaN(color));
 
+                color = MathUtil::Min(color, Vec4f(1.0f));
+
                 bitmap.GetPixelReference(x, bitmapY).SetRGBA(color);
             }
         }
