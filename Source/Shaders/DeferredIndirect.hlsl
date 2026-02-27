@@ -93,7 +93,7 @@ DECLARE_BUFFER(DeferredPass, DDGIConstants) cbuffer DDGI
     DDGIConstants ddgiConstants;
 };
 
-#include "include/rt/probe/SampleDDGI.inc"
+#include "include/rt/probe/SampleDDGI.hlsli"
 
 #endif
 

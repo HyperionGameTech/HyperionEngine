@@ -567,7 +567,7 @@ function(collect_sources_and_modules dir out_sources out_headers out_modules)
     set(local_pchs "${HYP_PCH}") # start with global PCHs
 
     # if the directory is system/platform/<platform not equal to HYP_PLATFORM_NAME>, skip it
-    if(${dir} MATCHES "Source/Engine/system/platform/.*" AND NOT ${dir} MATCHES "Source/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+    if(${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/.*" AND NOT ${dir} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         message(STATUS "Skipping platform directory: ${dir}")
         return()
     endif()
@@ -717,29 +717,29 @@ collect_sources_and_modules(${THIRD_PARTY_INCLUDE_DIR} THIRD_PARTY_SOURCES THIRD
 source_group(TREE ${THIRD_PARTY_INCLUDE_DIR} PREFIX "Third-Party Code" FILES ${THIRD_PARTY_SOURCES} ${THIRD_PARTY_HEADERS})
 
 # platform specific stuff
-file(GLOB_RECURSE PLATFORM_FILES "Source/Engine/system/platform/**/*")
+file(GLOB_RECURSE PLATFORM_FILES "${CMAKE_SOURCE_DIR}/Engine/system/platform/**/*")
 foreach(PLATFORM_FILE ${PLATFORM_FILES})
-    if(NOT ${PLATFORM_FILE} MATCHES "Source/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
+    if(NOT ${PLATFORM_FILE} MATCHES "${CMAKE_SOURCE_DIR}/Engine/system/platform/${HYP_PLATFORM_NAME_LOWER}")
         list(REMOVE_ITEM SOURCES ${PLATFORM_FILE})
         list(REMOVE_ITEM HEADERS ${PLATFORM_FILE})
     endif()
 endforeach()
 
-# include shader files (under `res/shaders`) in the sln
-file(GLOB_RECURSE SHADER_FILES "res/shaders/*")
-if(SHADER_FILES)
+# include shader files in the sln
+file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Shaders/**/*")
+# we don't want to build shader files to be compiled by fxc but we want them in the solution
+foreach(SHADER_FILE ${SHADER_FILES})
+    source_group("Shader Code" FILES ${SHADER_FILE})
+
     if(MSVC)
-        # we don't want to build shader files to be compiled by fxc but we want them in the solution
-        foreach(SHADER_FILE ${SHADER_FILES})
-            source_group("Shader Code" FILES ${SHADER_FILE})
-
-            set_property(SOURCE ${SHADER_FILE} PROPERTY VS_TOOL_OVERRIDE "None")
-
-            # add to sources so they appear in the solution
-            list(APPEND SOURCES ${SHADER_FILE})
-        endforeach()
+        set_property(SOURCE ${SHADER_FILE} PROPERTY VS_TOOL_OVERRIDE "None")
     endif()
-endif()
+
+    # add to sources so they appear in the solution
+    list(APPEND SOURCES ${SHADER_FILE})
+
+    message(STATUS "Adding shader file to solution: ${SHADER_FILE}")
+endforeach()
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

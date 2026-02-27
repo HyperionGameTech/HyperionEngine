@@ -36,7 +36,7 @@ DECLARE_SRV(LightmapPathTracer, PointLightShadowMapsTextureArray) TextureCubeArr
 #include "../../include/shadows.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
-#include "../../include/rt/RTRadiance.inc"
+#include "../../include/rt/RayTracingHelpers.inc"
 
 /* End Shadows */
 

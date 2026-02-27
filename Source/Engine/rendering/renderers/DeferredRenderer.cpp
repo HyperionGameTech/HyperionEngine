@@ -1456,7 +1456,7 @@ void DeferredRenderer::CreateViewRayTracingPasses(View* view, DeferredRendererPa
     passData.rayTracingReflections->Create();
 
     /// FIXME: Proper AABB for DDGI
-    passData.ddgi = MakeUnique<DDGI>(DDGIInfo { .aabb = { { -60.0f, -5.0f, -60.0f }, { 60.0f, 40.0f, 60.0f } } });
+    passData.ddgi = MakeUnique<DDGI>(DDGIInfo { .aabb = { { -40.0f, -5.0f, -40.0f }, { 40.0f, 40.0f, 40.0f } } });
     passData.ddgi->Create();
 }
 

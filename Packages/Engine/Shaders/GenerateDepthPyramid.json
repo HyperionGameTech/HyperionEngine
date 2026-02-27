@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/GenerateDepthPyramid/GenerateDepthPyramid_9029785001816139361"
+        "Value": "Engine/Shaders/GenerateDepthPyramid/GenerateDepthPyramid_1829828941827249584"
       }
     }],
   "Name": "GenerateDepthPyramid",

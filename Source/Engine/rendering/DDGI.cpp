@@ -36,8 +36,8 @@
 
 namespace Hyperion {
 
-static constexpr TextureFormat DdgiIrradianceFormat = TextureFormat::RGBA16F;
-static constexpr TextureFormat DdgiDepthFormat = TextureFormat::RG16F;
+static constexpr TextureFormat IrradianceFormat = TextureFormat::RGBA8;
+static constexpr TextureFormat DepthFormat = TextureFormat::RG16F;
 static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / sizeof(uint32);
 
 static const ShaderPropertyId s_propHasEnvProbe = InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE")));
@@ -120,7 +120,7 @@ void DDGI::CreateStorageBuffers()
 
         m_irradianceImage = g_renderInterface->MakeImage(TextureDesc {
             TextureType::Texture2D,
-            DdgiIrradianceFormat,
+            IrradianceFormat,
             extent,
             TFM_NEAREST,
             TFM_NEAREST,
@@ -146,7 +146,7 @@ void DDGI::CreateStorageBuffers()
 
         m_depthImage = g_renderInterface->MakeImage(TextureDesc {
             TextureType::Texture2D,
-            DdgiDepthFormat,
+            DepthFormat,
             extent,
             TFM_NEAREST,
             TFM_NEAREST,
