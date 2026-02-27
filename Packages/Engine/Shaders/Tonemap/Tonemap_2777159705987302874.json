@@ -313,7 +313,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/Tonemap/Tonemap_2777159705987302874.PS",
-      "Size": 1556
+      "Size": 1500
     }],
   "PropertySetHashCode": {},
   "Name": "Tonemap_2777159705987302874",

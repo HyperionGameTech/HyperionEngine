@@ -1201,7 +1201,7 @@ public:
         entity->SetName(name);
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+        entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IgnoreParentScale);
 
         Handle<UIObject> uiObject = CreateUIObjectInternal<T>(name, entity, false /* init */);
         uiObject->SetPosition(position);

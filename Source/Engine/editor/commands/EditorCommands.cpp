@@ -20,6 +20,13 @@
 #include <Core/logging/Logger.hpp>
 
 #include <asset/Assets.hpp>
+#include <asset/AssetBatch.hpp>
+#include <asset/AssetRegistry.hpp>
+
+#include <rendering/Texture.hpp>
+#include <rendering/Mesh.hpp>
+
+#include <scene/animation/Skeleton.hpp>
 
 #include <engine/EngineGlobals.hpp>
 
@@ -31,7 +38,12 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
+namespace CoreApi {
+extern FilePath GetExecutablePath();
+} // namespace CoreApi
+
 extern const FilePath& GetProjectsDirectory();
+extern const FilePath& GetDataDirectory();
 
 #define DEFINE_EDITOR_COMMAND(name)                                        \
     HYP_API const Class* g_clsEditorCommand##name = nullptr;               \
@@ -810,6 +822,121 @@ public:
 DEFINE_EDITOR_COMMAND(AddAreaRectLight);
 
 #pragma endregion EditorCommandAddAreaRectLight
+
+#pragma region EditorCommandImportContent
+
+class HYP_API EditorCommandImportContent final : public EditorCommandBase
+{
+    HYP_OBJECT_BODY(EditorCommandImportContent);
+
+public:
+    virtual ~EditorCommandImportContent() override = default;
+
+    virtual void Execute(EditorSubsystem* subsystem) override
+    {
+
+        ShowOpenFileDialog(
+            "Select the file(s) to import into the project",
+            GetDataDirectory(),
+            { "obj", "fbx", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
+            /* allowMultiple */ true, /* allowDirectories */ false,
+            [](TResult<Array<FilePath>>&& result)
+            {
+                if (result.HasError())
+                {
+                    HYP_LOG(Editor, Error, "Failed to select files to import: {}", result.GetError().GetMessage());
+
+                    return;
+                }
+
+                EditorTaskScope* editorTaskScope = new EditorTaskScope(
+                    TickableEditorTask::StaticClass(),
+                    []() { /* no tick function */ },
+                    "Importing content...",
+                    "Content is being imported in the background.",
+                    /* isForegroundTask */ true);
+
+                // Create identifier based on the common folder of the assets
+                String identifier = "Unknown";
+
+                if (result.GetValue().Any())
+                {
+                    identifier = result.GetValue()[0].BasePath().Basename();
+                }
+
+                // Queue up an asset batch
+                AssetBatch* batch = AssetManager::GetInstance()->CreateBatch(identifier);
+
+                for (const FilePath& file : result.GetValue())
+                {
+                    batch->Add(file.Basename(), FilePath::Relative(file, CoreApi::GetExecutablePath()));
+                }
+
+                batch->OnComplete
+                    .Bind([editorTaskScope](AssetMap& results)
+                        {
+                            HYP_LOG(Editor, Verbose, "{} assets loaded.", results.Size());
+
+                            for (auto& it : results)
+                            {
+                                String& key = it.first;
+                                LoadedAsset& loadedAsset = it.second;
+
+                                editorTaskScope->GetEditorTask()->SetDescription("Processing " + key);
+
+                                AssertDebug(loadedAsset.value.Is<AssetObject>());
+
+                                if (!loadedAsset.value.Is<AssetObject>())
+                                {
+                                    continue;
+                                }
+
+                                const AssetObject& assetObject = loadedAsset.value.Get<AssetObject>();
+
+                                UTF8StringView importSubPath;
+
+                                if (assetObject.IsA(Texture::StaticClass()))
+                                {
+                                    importSubPath = "Media/Textures";
+                                }
+                                else if (assetObject.IsA(Node::StaticClass()))
+                                {
+                                    importSubPath = "Media/Models";
+                                }
+                                else if (assetObject.IsA(Skeleton::StaticClass()))
+                                {
+                                    importSubPath = "Media/Skeletons";
+                                }
+                                else
+                                {
+                                    importSubPath = "Media/Misc";
+                                }
+
+                                Result registerAssetResult = AssetManager::GetInstance()->GetAssetRegistry()->RegisterAsset(
+                                    HYP_FORMAT("$Import/{}", importSubPath),
+                                    MakeStrongRef(&assetObject),
+                                    AddAssetConflictMode::GenerateNewName);
+
+                                if (registerAssetResult.HasError())
+                                {
+                                    HYP_LOG(Editor, Error, "Failed to import asset {}: {}", assetObject.GetName(), registerAssetResult.GetError().GetMessage());
+                                }
+                            }
+
+                            delete editorTaskScope;
+                        })
+                    .Detach();
+
+                batch->LoadAsync();
+
+                // Note: The batch will be destroyed automatically by AssetManager when complete
+            });
+    }
+};
+
+DEFINE_EDITOR_COMMAND(ImportContent);
+
+#pragma endregion EditorCommandImportContent
 
 #undef DEFINE_EDITOR_COMMAND
 

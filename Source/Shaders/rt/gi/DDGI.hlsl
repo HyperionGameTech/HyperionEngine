@@ -63,7 +63,7 @@ DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 #include "../../include/shadows.inc"
 
 #define RAY_OFFSET 0.025
-#define NUM_BOUNCES 3
+#define NUM_BOUNCES 4
 
 void SetProbeRayData(uint2 coord, ProbeRayData ray_data)
 {
@@ -104,7 +104,7 @@ void RayGenMain()
     payload.roughness = 0.0;
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     
-    uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 16);
+    uint ray_seed = InitRandomSeed(InitRandomSeed(coord.x, coord.y), world_shader_data.frame_counter % 256);
 
     ProbeRayData ray_data[NUM_BOUNCES];
     ray_data[0].color = float4(0.0, 0.0, 0.0, 0.0);

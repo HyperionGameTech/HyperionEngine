@@ -16,11 +16,6 @@ layout(location = 14) out vec2 v_cube_face_uv;
 HYP_ATTRIBUTE vec3 a_position;
 HYP_ATTRIBUTE vec3 a_normal;
 HYP_ATTRIBUTE vec2 a_texcoord0;
-HYP_ATTRIBUTE_OPTIONAL vec3 a_texcoord1; // STUPID!!!
-HYP_ATTRIBUTE_OPTIONAL vec3 a_tangent;
-HYP_ATTRIBUTE_OPTIONAL vec3 a_bitangent;
-HYP_ATTRIBUTE_OPTIONAL vec4 a_bone_weights;
-HYP_ATTRIBUTE_OPTIONAL vec4 a_bone_indices;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 

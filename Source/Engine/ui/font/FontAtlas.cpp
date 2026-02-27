@@ -202,7 +202,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
                 uint32(offset.y + scaledExtent.y)
             };
 
-            atlasBitmap->Blit(*glyphBitmap, srcRect, dstRect);
+            BitmapUtils::Blit(*glyphBitmap, *atlasBitmap, srcRect, dstRect);
         }
 
         atlasBitmap->FlipVertical();

@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_701366301706474656"
+        "Value": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_10953337689885423504"
       }
     }],
   "Name": "LightmapPathTracer",

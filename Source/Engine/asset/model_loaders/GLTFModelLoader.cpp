@@ -728,11 +728,8 @@ bool BuildPrimitive(GltfLoadContext& ctx,
             {
                 for (uint32 i = 0; i < 4; ++i)
                 {
-                    if (weights[i] != 0.0f)
-                    {
-                        vertex.AddBoneIndex(int(joints[i]));
-                        vertex.AddBoneWeight(weights[i]);
-                    }
+                    vertex.SetBoneIndex(i, int(joints[i]));
+                    vertex.SetBoneWeight(i, weights[i]);
                 }
             }
         }

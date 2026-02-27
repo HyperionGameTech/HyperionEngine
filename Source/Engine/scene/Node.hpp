@@ -41,25 +41,23 @@ class EditorDelegates;
 HYP_ENUM()
 enum class NodeFlags : uint32
 {
-    NONE = 0x0,
+    None = 0x0,
 
-    IGNORE_PARENT_TRANSLATION = 0x1,
-    IGNORE_PARENT_SCALE = 0x2,
-    IGNORE_PARENT_ROTATION = 0x4,
-    IGNORE_PARENT_TRANSFORM = IGNORE_PARENT_TRANSLATION | IGNORE_PARENT_SCALE | IGNORE_PARENT_ROTATION,
+    IgnoreParentTranslation = 0x1,
+    IgnoreParentScale = 0x2,
+    IgnoreParentRotation = 0x4,
+    IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation,
 
-    EXCLUDE_FROM_PARENT_AABB = 0x8,
+    ExcludeFromParentBounds = 0x8,
 
-    TRANSIENT = 0x100, // Set if the node should not be serialized
+    HideInSceneOutline = 0x1000, // Should this node be hidden in the editor's outline window?
 
-    HIDE_IN_SCENE_OUTLINE = 0x1000, // Should this node be hidden in the editor's outline window?
+    Mobility = 0xE000, // ** mask **
+    MobilityStatic = 0x2000,
+    MobilityStaticByProxy = 0x4000, // static, but only because its parent is static
+    MobilityDynamic = Mobility & ~(MobilityStatic | MobilityStaticByProxy),
 
-    MOBILITY = 0xE000, // ** mask **
-    MOBILITY_STATIC = 0x2000,
-    MOBILITY_STATIC_BY_PROXY = 0x4000, // static, but only because its parent is static
-    MOBILITY_DYNAMIC = MOBILITY & ~(MOBILITY_STATIC | MOBILITY_STATIC_BY_PROXY),
-
-    DEFAULT = MOBILITY_STATIC
+    Default = MobilityStatic
 };
 
 HYP_MAKE_ENUM_FLAGS(NodeFlags)
@@ -760,7 +758,7 @@ public:
 
     HYP_FORCE_INLINE bool IsStatic() const
     {
-        return bool(m_nodeFlags & NodeFlags::MOBILITY_STATIC);
+        return bool(m_nodeFlags & NodeFlags::MobilityStatic);
     }
 
     void SetIsStatic(bool isStatic);

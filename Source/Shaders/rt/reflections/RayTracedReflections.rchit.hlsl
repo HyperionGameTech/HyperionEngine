@@ -136,7 +136,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         roughness = roughness_sample;
     }
 
-    const float ambient = 0.2;
+    const float ambient = 0.001;
 
     float4 indirect_lighting = material_color * (1.0 - metalness) * ambient;
 
@@ -162,7 +162,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
             ? GetSquareFalloffAttenuation(position.xyz, light.position_intensity.xyz, radius)
             : 1.0;
 
-        float4 local_light = float4(NdotL, NdotL, NdotL, NdotL) * light.color * light.position_intensity.w * attenuation;
+        float4 local_light = (float4)NdotL * light.color * light.position_intensity.w * attenuation;
 
         if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW))
         {

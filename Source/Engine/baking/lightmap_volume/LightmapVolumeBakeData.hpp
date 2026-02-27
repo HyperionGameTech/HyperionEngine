@@ -14,7 +14,7 @@ template <>
 class BakeData<LightmapVolume> : public BakeDataBase
 {
 public:
-    using BitmapType = Bitmap_RGBA32F;
+    using BitmapType = Bitmap_HDR;
 
     using MeshFloatDataArray = Array<float, DynamicAllocator>;
     using MeshIndexArray = Array<uint32, DynamicAllocator>;

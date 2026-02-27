@@ -25,58 +25,52 @@ struct VertexAttribute;
  *  bone indices, and bone weights. It is used to represent the data for each vertex in a mesh and is essential for rendering operations.
  *  The struct is designed to be compatible with serialization and deserialization processes.
  */
-HYP_STRUCT(Size = 128, Serialize = "bitwise")
+HYP_STRUCT()
 struct alignas(16) Vertex
 {
     HYP_STRUCT_BODY(Vertex);
 
+    static constexpr uint32 InvalidBoneIndex = uint32(-1);
+
     Vertex()
-        : numIndices(0),
-          numWeights(0)
     {
         for (int i = 0; i < MAX_BONE_INDICES; i++)
         {
-            boneIndices[i] = 0;
-            boneWeights[i] = 0;
+            boneIndices[i] = InvalidBoneIndex;
+            boneWeights[i] = 0.0f;
         }
     }
 
-    explicit Vertex(const Vector3& position)
+    explicit Vertex(const Vec3f& position)
+        : position(position)
+    {
+        for (int i = 0; i < MAX_BONE_INDICES; i++)
+        {
+            boneIndices[i] = InvalidBoneIndex;
+            boneWeights[i] = 0.0f;
+        }
+    }
+
+    explicit Vertex(const Vec3f& position, const Vec2f& texcoord0)
         : position(position),
-          numIndices(0),
-          numWeights(0)
+          texcoord0(texcoord0)
     {
         for (int i = 0; i < MAX_BONE_INDICES; i++)
         {
-            boneIndices[i] = 0;
-            boneWeights[i] = 0;
+            boneIndices[i] = InvalidBoneIndex;
+            boneWeights[i] = 0.0f;
         }
     }
 
-    explicit Vertex(const Vector3& position, const Vector2& texcoord0)
-        : position(position),
-          texcoord0(texcoord0),
-          numIndices(0),
-          numWeights(0)
-    {
-        for (int i = 0; i < MAX_BONE_INDICES; i++)
-        {
-            boneIndices[i] = 0;
-            boneWeights[i] = 0;
-        }
-    }
-
-    explicit Vertex(const Vector3& position, const Vector2& texcoord0, const Vector3& normal)
+    explicit Vertex(const Vec3f& position, const Vec2f& texcoord0, const Vec3f& normal)
         : position(position),
           normal(normal),
-          texcoord0(texcoord0),
-          numIndices(0),
-          numWeights(0)
+          texcoord0(texcoord0)
     {
         for (int i = 0; i < MAX_BONE_INDICES; i++)
         {
-            boneIndices[i] = 0;
-            boneWeights[i] = 0;
+            boneIndices[i] = InvalidBoneIndex;
+            boneWeights[i] = 0.0f;
         }
     }
 
@@ -152,12 +146,6 @@ struct alignas(16) Vertex
         return bitangent;
     }
 
-    HYP_FORCE_INLINE void AddBoneWeight(float val)
-    {
-        if (numWeights < MAX_BONE_WEIGHTS)
-            boneWeights[numWeights++] = val;
-    }
-
     HYP_FORCE_INLINE void SetBoneWeight(int i, float val)
     {
         boneWeights[i] = val;
@@ -168,9 +156,9 @@ struct alignas(16) Vertex
         return boneWeights[i];
     }
 
-    HYP_FORCE_INLINE int GetNumWeights() const
+    HYP_FORCE_INLINE int NumBoneWeights() const
     {
-        return numWeights;
+        return NumBoneIndices();
     }
 
     HYP_FORCE_INLINE const FixedArray<float, MAX_BONE_WEIGHTS>& GetBoneWeights() const
@@ -180,22 +168,7 @@ struct alignas(16) Vertex
 
     HYP_FORCE_INLINE void SetBoneWeights(const FixedArray<float, MAX_BONE_WEIGHTS>& weights)
     {
-        numWeights = 0;
-
-        for (int i = 0; i < MAX_BONE_WEIGHTS; i++)
-        {
-            if (weights[i] != 0.0f)
-            {
-                boneWeights[i] = weights[i];
-                numWeights = i + 1;
-            }
-        }
-    }
-
-    HYP_FORCE_INLINE void AddBoneIndex(int val)
-    {
-        if (numIndices < MAX_BONE_INDICES)
-            boneIndices[numIndices++] = val;
+        boneWeights = weights;
     }
 
     HYP_FORCE_INLINE void SetBoneIndex(int i, int val)
@@ -208,9 +181,19 @@ struct alignas(16) Vertex
         return boneIndices[i];
     }
 
-    HYP_FORCE_INLINE int GetNumIndices() const
+    HYP_FORCE_INLINE constexpr uint32 NumBoneIndices() const
     {
-        return numIndices;
+        uint32 count = 0;
+
+        for (uint32 i = 0; i < MAX_BONE_INDICES; i++)
+        {
+            if (boneIndices[i] == InvalidBoneIndex)
+                break;
+
+            count++;
+        }
+
+        return count;
     }
 
     HYP_FORCE_INLINE const FixedArray<uint32, MAX_BONE_INDICES>& GetBoneIndices() const
@@ -220,20 +203,12 @@ struct alignas(16) Vertex
 
     HYP_FORCE_INLINE void SetBoneIndices(const FixedArray<uint32, MAX_BONE_INDICES>& indices)
     {
-        numIndices = 0;
-
-        for (int i = 0; i < MAX_BONE_INDICES; i++)
-        {
-            if (indices[i] != 0)
-            {
-                boneIndices[i] = indices[i];
-                numIndices = i + 1;
-            }
-        }
+        boneIndices = indices;
     }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
+        const uint32 numBoneIndices = NumBoneIndices();
         return HashCode()
             .Combine(position)
             .Combine(normal)
@@ -241,10 +216,8 @@ struct alignas(16) Vertex
             .Combine(texcoord1)
             .Combine(tangent)
             .Combine(bitangent)
-            .Combine(numIndices)
-            .Combine(numWeights)
-            .Combine(boneIndices)
-            .Combine(boneWeights);
+            .Combine(HashCode::GetHashCode(boneIndices.Begin(), boneIndices.Begin() + numBoneIndices))
+            .Combine(HashCode::GetHashCode(boneWeights.Begin(), boneWeights.Begin() + numBoneIndices));
     }
 
     HYP_FIELD(Property = "Position", Serialize = true)
@@ -270,12 +243,6 @@ struct alignas(16) Vertex
 
     HYP_FIELD(Property = "BoneIndices", Serialize = true)
     FixedArray<uint32, MAX_BONE_INDICES> boneIndices;
-
-    HYP_FIELD(Property = "NumIndices", Serialize = true)
-    uint8 numIndices;
-
-    HYP_FIELD(Property = "NumWeights", Serialize = true)
-    uint8 numWeights;
 };
 
 static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure size matches C# Vertex struct alignment");

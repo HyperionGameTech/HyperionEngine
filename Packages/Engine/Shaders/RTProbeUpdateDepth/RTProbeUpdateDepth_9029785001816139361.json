@@ -1,0 +1,116 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_WINDOWS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "DEBUG_REFLECTIONS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "RTProbeUpdateDepth",
+  "VertexAttributes": {
+    "FlagMask": 0
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "DDGI",
+        "Slots": [[], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 3,
+              "Name": "ProbeRayData",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputIrradianceImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputDepthImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 1,
+              "Name": "DDGIConstants",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [4],
+  "ShaderModuleNames": ["probe_update_depth.comp"],
+  "EntryPointNames": ["main"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/RTProbeUpdateDepth/RTProbeUpdateDepth_9029785001816139361.CS",
+      "Size": 12188
+    }],
+  "PropertySetHashCode": {},
+  "Name": "RTProbeUpdateDepth_9029785001816139361",
+  "FriendlyName": "RTProbeUpdateDepth_9029785001816139361",
+  "OriginalFilepath": ""
+}

@@ -18,6 +18,8 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/ShaderInstance.hpp>
 #include <rendering/RenderHelpers.hpp>
+#include <rendering/Texture.hpp>
+#include <rendering/TextureViewCache.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 
@@ -38,9 +40,7 @@ static constexpr TextureFormat DdgiIrradianceFormat = TextureFormat::RGBA16F;
 static constexpr TextureFormat DdgiDepthFormat = TextureFormat::RG16F;
 static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / sizeof(uint32);
 
-#pragma region Render commands
-
-#pragma endregion Render commands
+static const ShaderPropertyId s_propHasEnvProbe = InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE")));
 
 DDGI::DDGI(DDGIInfo&& gridInfo)
     : m_gridInfo(std::move(gridInfo)),
@@ -250,7 +250,7 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("MAX_LIGHTS"), int(MaxBoundLights))));
 
     if (renderSetup.envProbe != nullptr)
-        shaderProperties.Add(InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE"))));
+        shaderProperties.Add(s_propHasEnvProbe);
 
     frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("DDGI"), shaderProperties));
     
@@ -268,9 +268,13 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << SetShaderUniform(9, "MaterialsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
     frame->renderQueue << SetShaderUniform(10, "EntitiesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENTITIES]->GetBuffer(frameIndex));
     frame->renderQueue << SetShaderUniform(11, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
-
+    
     if (renderSetup.envProbe != nullptr)
-        frame->renderQueue << SetShaderUniform(12, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+    {
+        frame->renderQueue << SetShaderUniform(12, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        frame->renderQueue << SetShaderUniform(13, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+        frame->renderQueue << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+    }
 
     frame->renderQueue << TraceRays(Vec3u { m_gridInfo.NumProbes(), m_gridInfo.numRaysPerProbe, 1u });
 

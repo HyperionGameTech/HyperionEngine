@@ -7,7 +7,7 @@
   "MeshDesc": {
     "MeshAttributes": {
       "VertexAttributes": {
-        "FlagMask": 15
+        "FlagMask": 7
       },
       "Topology": 0,
       "IndexBufferElemType": 4
@@ -17,7 +17,7 @@
   },
   "VertexData": {
     "Key": "Engine/Meshes/SphereDebugDrawShape.VB",
-    "Size": 19200
+    "Size": 16800
   },
   "IndexData": {
     "Key": "Engine/Meshes/SphereDebugDrawShape.IB",

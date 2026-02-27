@@ -323,7 +323,7 @@ static bool BuildElementTextures(
                 elementDimensions.y
             };
 
-            rescaledBitmap.Blit(*pBitmap, srcRect, dstRect);
+            BitmapUtils::Blit(*pBitmap, rescaledBitmap, srcRect, dstRect);
 
             pBitmap = &rescaledBitmap;
         }
@@ -478,6 +478,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
             MeshDesc newMeshDesc;
             newMeshDesc.meshAttributes = mesh->GetMeshAttributes();
+            newMeshDesc.meshAttributes.vertexAttributes |= VertexAttribute::TexCoord1; // add UV1
             newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
             newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
 

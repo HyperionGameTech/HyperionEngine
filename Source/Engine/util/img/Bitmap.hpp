@@ -1530,75 +1530,6 @@ public:
         }
     }
 
-    /*! \brief Blit another bitmap onto this bitmap at the specified offset.
-     *
-     * \param other The bitmap to blit.
-     * \param offset The offset to blit the other bitmap at.
-     * \param extent The dimensions of the area to blit.
-     */
-    template <TextureFormat OtherFormat>
-    void Blit(const Bitmap<OtherFormat>& other, Rect<uint32> srcRect, Rect<uint32> dstRect)
-    {
-        const int dstStartX = dstRect.x0;
-        const int dstEndX = dstRect.x1;
-
-        const int dstStartY = dstRect.y0;
-        const int dstEndY = dstRect.y1;
-
-        const int dstWidth = MathUtil::Abs(dstEndX - dstStartX);
-        const int dstHeight = MathUtil::Abs(dstEndY - dstStartY);
-
-        const int dstStepX = (dstEndX > dstStartX) ? 1 : -1;
-        const int dstStepY = (dstEndY > dstStartY) ? 1 : -1;
-
-        const float srcStartX = float(srcRect.x0);
-        const float srcEndX = float(srcRect.x1);
-
-        const float srcStartY = float(srcRect.y0);
-        const float srcEndY = float(srcRect.y1);
-
-        const float srcWidth = srcEndX - srcStartX;
-        const float srcHeight = srcEndY - srcStartY;
-
-        for (int j = 0; j < dstHeight; j++)
-        {
-            const float srcY = srcStartY + ((float(j) + 0.5f) / float(dstHeight)) * srcHeight;
-
-            int sy0 = int(MathUtil::Floor(srcY));
-            int sy1 = sy0 + 1;
-
-            const float ty = srcY - float(sy0);
-
-            sy0 = MathUtil::Max(sy0, 0);
-            sy1 = MathUtil::Max(sy1, 0);
-
-            for (int i = 0; i < dstWidth; i++)
-            {
-                const float srcX = srcStartX + ((float(i) + 0.5f) / float(dstWidth)) * srcWidth;
-
-                int sx0 = int(MathUtil::Floor(srcX));
-                int sx1 = sx0 + 1;
-
-                const float tx = srcX - float(sx0);
-
-                sx0 = MathUtil::Max(sx0, 0);
-                sx1 = MathUtil::Max(sx1, 0);
-
-                const Vec4f c00 = sx0 < other.GetWidth() && sy0 < other.GetHeight() ? other.GetPixelReference(sx0, sy0).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-                const Vec4f c10 = sx1 < other.GetWidth() && sy0 < other.GetHeight() ? other.GetPixelReference(sx1, sy0).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-                const Vec4f c01 = sx0 < other.GetWidth() && sy1 < other.GetHeight() ? other.GetPixelReference(sx0, sy1).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-                const Vec4f c11 = sx1 < other.GetWidth() && sy1 < other.GetHeight() ? other.GetPixelReference(sx1, sy1).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-
-                const Vec4f c0 = MathUtil::Lerp(c00, c10, tx);
-                const Vec4f c1 = MathUtil::Lerp(c01, c11, tx);
-
-                Vec4f resultColor = MathUtil::Lerp(c0, c1, ty);
-
-                GetPixelReference(uint32(dstStartX + i * dstStepX), uint32(dstStartY + j * dstStepY)).SetRGBA(resultColor);
-            }
-        }
-    }
-
 private:
     uint32 m_width;
     uint32 m_height;
@@ -1797,6 +1728,94 @@ private:
     ByteBuffer m_buffer;
 };
 
+namespace BitmapUtils
+{
+/*! \brief Blit a bitmap onto another bitmap at the specified offset.
+    *
+    * \param src The bitmap to read from.
+    * \param dst The bitmap to blit to.
+    * \param offset The offset on the src bitmap of where the image will start to be read
+    * \param extent The dimensions of the area to blit.
+    */
+template <TextureFormat SrcFormat, TextureFormat DstFormat>
+static inline void Blit(const Bitmap<SrcFormat>& src, Bitmap<DstFormat>& dst, Rect<uint32> srcRect, Rect<uint32> dstRect)
+{
+    const int dstStartX = dstRect.x0;
+    const int dstEndX = dstRect.x1;
+
+    const int dstStartY = dstRect.y0;
+    const int dstEndY = dstRect.y1;
+
+    const int dstWidth = MathUtil::Abs(dstEndX - dstStartX);
+    const int dstHeight = MathUtil::Abs(dstEndY - dstStartY);
+
+    const int dstStepX = (dstEndX > dstStartX) ? 1 : -1;
+    const int dstStepY = (dstEndY > dstStartY) ? 1 : -1;
+
+    const float srcStartX = float(srcRect.x0);
+    const float srcEndX = float(srcRect.x1);
+
+    const float srcStartY = float(srcRect.y0);
+    const float srcEndY = float(srcRect.y1);
+
+    const float srcWidth = srcEndX - srcStartX;
+    const float srcHeight = srcEndY - srcStartY;
+
+    for (int j = 0; j < dstHeight; j++)
+    {
+        const float srcY = srcStartY + ((float(j) + 0.5f) / float(dstHeight)) * srcHeight;
+
+        int sy0 = int(MathUtil::Floor(srcY));
+        int sy1 = sy0 + 1;
+
+        const float ty = srcY - float(sy0);
+
+        sy0 = MathUtil::Max(sy0, 0);
+        sy1 = MathUtil::Max(sy1, 0);
+
+        for (int i = 0; i < dstWidth; i++)
+        {
+            const float srcX = srcStartX + ((float(i) + 0.5f) / float(dstWidth)) * srcWidth;
+
+            int sx0 = int(MathUtil::Floor(srcX));
+            int sx1 = sx0 + 1;
+
+            const float tx = srcX - float(sx0);
+
+            sx0 = MathUtil::Max(sx0, 0);
+            sx1 = MathUtil::Max(sx1, 0);
+
+            const Vec4f c00 = sx0 < src.GetWidth() && sy0 < src.GetHeight() ? src.GetPixelReference(sx0, sy0).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+            const Vec4f c10 = sx1 < src.GetWidth() && sy0 < src.GetHeight() ? src.GetPixelReference(sx1, sy0).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+            const Vec4f c01 = sx0 < src.GetWidth() && sy1 < src.GetHeight() ? src.GetPixelReference(sx0, sy1).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+            const Vec4f c11 = sx1 < src.GetWidth() && sy1 < src.GetHeight() ? src.GetPixelReference(sx1, sy1).GetRGBA() : Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+
+            const Vec4f c0 = MathUtil::Lerp(c00, c10, tx);
+            const Vec4f c1 = MathUtil::Lerp(c01, c11, tx);
+
+            Vec4f resultColor = MathUtil::Lerp(c0, c1, ty);
+
+            dst.GetPixelReference(uint32(dstStartX + i * dstStepX), uint32(dstStartY + j * dstStepY)).SetRGBA(resultColor);
+        }
+    }
+}
+
+template <TextureFormat SrcFormat, TextureFormat DstFormat>
+static inline void Blit(const Bitmap<SrcFormat>& src, Bitmap<DstFormat>& dst)
+{
+    Rect<uint32> srcRect {};
+    srcRect.x1 = src.GetWidth();
+    srcRect.y1 = src.GetHeight();
+    
+    Rect<uint32> dstRect {};
+    srcRect.x1 = dst.GetWidth();
+    srcRect.y1 = dst.GetHeight();
+
+    Blit(src, dst, srcRect, dstRect);
+}
+
+} // namespace BitmapUtils
+
 // 2D
 
 using Bitmap_RGBA8_SRGB = Bitmap<TextureFormat::RGBA8_SRGB>;
@@ -1825,6 +1844,11 @@ using Bitmap_R11G11B10F = Bitmap<TextureFormat::R11G11B10F>;
 
 using Bitmap_RGBA8_SRGB = Bitmap<TextureFormat::RGBA8_SRGB>;
 
+// default bitmap type for CPU side processing when working with high range images
+using Bitmap_HDR = Bitmap_RGBA32F;
+
+using Bitmap_SDR = Bitmap_RGBA8;
+
 // 3D
 
 using Bitmap3D_RGBA8_SRGB = Bitmap3D<TextureFormat::RGBA8_SRGB>;
@@ -1850,5 +1874,10 @@ using Bitmap3D_RG32F = Bitmap3D<TextureFormat::RG32F>;
 using Bitmap3D_R32F = Bitmap3D<TextureFormat::R32F>;
 
 using Bitmap3D_R11G11B10F = Bitmap3D<TextureFormat::R11G11B10F>;
+
+// default bitmap type for CPU side processing when working with high range images
+using Bitmap3D_HDR = Bitmap3D_RGBA32F;
+
+using Bitmap3D_SDR = Bitmap3D_RGBA8;
 
 } // namespace Hyperion
