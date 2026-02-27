@@ -48,7 +48,7 @@ DECLARE_BUFFER(LightmapPathTracer, WorldsBuffer) cbuffer WorldsBuffer
 
 #include "../../include/Octahedron.inc"
 
-#include "../../include/rt/RTRadiance.inc"
+#include "../../include/rt/RayTracingHelpers.inc"
 #include "../../include/rt/payload.inc"
 
 DECLARE_UAV(LightmapPathTracer, HitsBuffer) RWStructuredBuffer<float4> hits;
@@ -139,30 +139,6 @@ float3 DebugTest_Albedo(in float3 position, in float3 normal, inout RayPayload p
     payload.barycentric_coords = saved_bary;
 
     return albedo;
-}
-
-float CheckInShadow(float3 position, float3 normal, float3 lightDir, float maxDist)
-{
-    float3 origin = position + normal * 0.01;
-    float3 direction = lightDir;
-
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE> rq;
-    
-    RayDesc ray;
-    ray.Origin = origin;
-    ray.Direction = direction;
-    ray.TMin = 0.0001;
-    ray.TMax = maxDist > 0.0 ? maxDist : 1000.0;
-    
-    rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xff, ray);
-    rq.Proceed();
-
-    return float(rq.CommittedStatus() != COMMITTED_NOTHING);
-}
-
-float CheckInShadow(float3 position, float3 normal, float3 lightDir)
-{
-    return CheckInShadow(position, normal, lightDir, -1.0);
 }
 
 [shader("raygeneration")]

@@ -44,7 +44,7 @@ DECLARE_BUFFER_DYNAMIC(RTReflections, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-#include "../include/rt/RTRadiance.inc"
+#include "../include/rt/RayTracingHelpers.inc"
 #include "../include/rt/payload.inc"
 
 DECLARE_BUFFER(RTReflections, RayTracingConstants) cbuffer RayTracingCBuffer

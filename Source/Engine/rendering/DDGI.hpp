@@ -28,7 +28,7 @@ struct DDGIInfo
     static constexpr Vec3u probeBorder = Vec3u { 2, 0, 2 };
 
     BoundingBox aabb;
-    float probeDistance = 2.5f;
+    float probeDistance = 3.0f;
     uint32 numRaysPerProbe = 32;
 
     HYP_FORCE_INLINE const Vec3f& GetOrigin() const

@@ -63,7 +63,7 @@ DECLARE_SRV(PathTracer, EnvProbesTexture) Texture2DArray envProbesTexture;
 
 #include "../../include/Octahedron.inc"
 
-#include "../../include/rt/RTRadiance.inc"
+#include "../../include/rt/RayTracingHelpers.inc"
 #include "../../include/rt/payload.inc"
 
 DECLARE_BUFFER(PathTracer, RayTracingConstants) cbuffer RayTracingCBuffer
@@ -79,44 +79,6 @@ DECLARE_BUFFER(PathTracer, Lights) cbuffer Lights
 #define RAY_OFFSET 0.01
 #define NUM_SAMPLES 2
 #define NUM_BOUNCES 4
-
-float CheckInShadow(float3 position, float3 normal, float3 lightDir)
-{
-    float3 origin = position + normal * 0.01;
-    float3 direction = lightDir;
-
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE> rq;
-    
-    RayDesc ray;
-    ray.Origin = origin;
-    ray.Direction = direction;
-    ray.TMin = 0.0001;
-    ray.TMax = 1000.0;
-    
-    rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xff, ray);
-    rq.Proceed();
-
-    return float(rq.CommittedStatus() != COMMITTED_NOTHING);
-}
-
-float CheckInShadowDistance(float3 position, float3 normal, float3 lightDir, float maxDist)
-{
-    float3 origin = position + normal * 0.01;
-    float3 direction = lightDir;
-
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_FORCE_OPAQUE> rq;
-    
-    RayDesc ray;
-    ray.Origin = origin;
-    ray.Direction = direction;
-    ray.TMin = 0.0001;
-    ray.TMax = max(0.0, maxDist);
-    
-    rq.TraceRayInline(tlas, RAY_FLAG_NONE, 0xff, ray);
-    rq.Proceed();
-
-    return float(rq.CommittedStatus() != COMMITTED_NOTHING);
-}
 
 [shader("raygeneration")]
 void RayGenMain()
@@ -318,7 +280,7 @@ void RayGenMain()
                     float d = sqrt(d2);
                     float3 L = toLight / d;
                     
-                    float shadow = 1.0 - CheckInShadowDistance(hitPos, N, L, max(0.0, d - RAY_OFFSET));
+                    float shadow = 1.0 - CheckInShadow(hitPos, N, L, max(0.0, d - RAY_OFFSET));
                     float NdotL = max(dot(N, L), 0.0);
 
                     if (shadow > 0.0 && NdotL > 0.0)

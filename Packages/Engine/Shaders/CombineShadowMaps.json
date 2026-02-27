@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/CombineShadowMaps/CombineShadowMaps_9029785001816139390"
+        "Value": "Engine/Shaders/CombineShadowMaps/CombineShadowMaps_1829828941827249593"
       }
     }],
   "Name": "CombineShadowMaps",

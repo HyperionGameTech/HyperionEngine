@@ -107,18 +107,9 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         metalness = metalness_sample;
     }
 
-    float roughness = GET_MATERIAL_PARAM(material, MATERIAL_PARAM_ROUGHNESS);
-
-    if (HAS_TEXTURE(material, RoughnessMap))
-    {
-        float roughness_sample = SAMPLE_MATERIAL_TEXTURE(material, RoughnessMap, float2(texcoord.x, 1.0 - texcoord.y)).r;
-        
-        roughness = roughness_sample;
-    }
-
-    payload.throughput = float4(material_color.rgb * (1.0 - metalness), 1.0);
+    payload.throughput = float4(material_color.rgb, metalness);
     payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
     payload.distance = RayTCurrent();
     payload.normal = normal;
-    payload.roughness = roughness;
+    payload.roughness = 0.0; // we don't care about roughness in DDGI
 }

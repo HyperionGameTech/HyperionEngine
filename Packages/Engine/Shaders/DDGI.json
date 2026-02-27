@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/DDGI/DDGI_15774161314392352057"
+        "Value": "Engine/Shaders/DDGI/DDGI_8026781846789951760"
       }
     }],
   "Name": "DDGI",
