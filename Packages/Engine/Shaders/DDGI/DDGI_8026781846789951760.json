@@ -26,15 +26,15 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "MAX_LIGHTS",
-      "Flags": 0,
-      "Value": 16,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
       "Name": "HAS_ENV_PROBE",
       "Flags": 0,
       "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MAX_LIGHTS",
+      "Flags": 0,
+      "Value": 16,
       "EnumValues": []
     }],
   "RevisionNumber": 31459917,
@@ -265,7 +265,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8026781846789951760.RGS",
-      "Size": 14604
+      "Size": 14620
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/DDGI/DDGI_8026781846789951760.CHS",

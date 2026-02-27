@@ -17,7 +17,7 @@
   },
   "VertexData": {
     "Key": "Engine/Meshes/PlaneDebugDrawShape.VB",
-    "Size": 512
+    "Size": 448
   },
   "IndexData": {
     "Key": "Engine/Meshes/PlaneDebugDrawShape.IB",

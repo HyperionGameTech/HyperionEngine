@@ -1261,12 +1261,12 @@ void UIObject::SetIsVisible(bool isVisible)
         {
             if (m_affectsParentSize)
             {
-                node->SetNodeFlags(node->GetNodeFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+                node->SetNodeFlags(node->GetNodeFlags() & ~NodeFlags::ExcludeFromParentBounds);
             }
         }
         else
         {
-            node->SetNodeFlags(node->GetNodeFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            node->SetNodeFlags(node->GetNodeFlags() | NodeFlags::ExcludeFromParentBounds);
         }
     }
 
@@ -1846,11 +1846,11 @@ void UIObject::SetAffectsParentSize(bool affectsParentSize)
     {
         if (m_affectsParentSize)
         {
-            m_node->SetNodeFlags(m_node->GetNodeFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetNodeFlags(m_node->GetNodeFlags() & ~NodeFlags::ExcludeFromParentBounds);
         }
         else
         {
-            m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::ExcludeFromParentBounds);
         }
     }
 }
@@ -2681,7 +2681,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
 
         if (!m_affectsParentSize || !m_isVisible)
         {
-            m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::ExcludeFromParentBounds);
         }
     }
 }
@@ -3099,7 +3099,7 @@ Handle<UIObject> UIObject::CreateUIObject(const Class* cls, Name name, Vec2i pos
     Handle<Entity> entity = MakeHandle<Entity>();
     entity->SetName(name);
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
-    entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+    entity->SetNodeFlags(entity->GetNodeFlags() | NodeFlags::IgnoreParentScale);
 
     Handle<UIObject> uiObject = std::move(uiObjectBoxed).Get<Handle<UIObject>>();
     Assert(uiObject != nullptr);

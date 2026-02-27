@@ -77,7 +77,7 @@ String NodeTag::ToString() const
 
 Node::Node(Name name, const Transform& localTransform, Scene* scene)
     : AssetObject(name),
-      m_nodeFlags(NodeFlags::DEFAULT),
+      m_nodeFlags(NodeFlags::Default),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
       m_scene(scene != nullptr ? scene : GetDetachedSceneForCurrentThread()),
@@ -244,7 +244,7 @@ void Node::OnMobilityChanged(bool isStatic)
                 continue;
             }
 
-            child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
+            child->SetNodeFlags(child->GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
         }
     }
     else
@@ -256,7 +256,7 @@ void Node::OnMobilityChanged(bool isStatic)
                 continue;
             }
 
-            child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MOBILITY_STATIC_BY_PROXY);
+            child->SetNodeFlags(child->GetNodeFlags() | NodeFlags::MobilityStaticByProxy);
         }
     }
 
@@ -271,11 +271,11 @@ void Node::OnAttachedToNode(Node* node)
 
     if (m_parentNode->IsStatic())
     {
-        SetNodeFlags(GetNodeFlags() | NodeFlags::MOBILITY_STATIC_BY_PROXY);
+        SetNodeFlags(GetNodeFlags() | NodeFlags::MobilityStaticByProxy);
     }
     else
     {
-        SetNodeFlags(GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
+        SetNodeFlags(GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
     }
 }
 
@@ -283,7 +283,7 @@ void Node::OnDetachedFromNode(Node* node)
 {
     Assert(node != nullptr);
 
-    SetNodeFlags(GetNodeFlags() & ~NodeFlags::MOBILITY_STATIC_BY_PROXY);
+    SetNodeFlags(GetNodeFlags() & ~NodeFlags::MobilityStaticByProxy);
 
     m_parentNode = nullptr;
 }
@@ -727,7 +727,7 @@ void Node::SetLocalTransform(const Transform& transform)
 
 void Node::SetIsStatic(bool isStatic)
 {
-    constexpr EnumFlags<NodeFlags> ControlledMobilityFlags = NodeFlags::MOBILITY_STATIC | NodeFlags::MOBILITY_DYNAMIC;
+    constexpr EnumFlags<NodeFlags> ControlledMobilityFlags = NodeFlags::MobilityStatic | NodeFlags::MobilityDynamic;
 
     EnumFlags<NodeFlags> newNodeFlags = m_nodeFlags;
 
@@ -735,11 +735,11 @@ void Node::SetIsStatic(bool isStatic)
 
     if (isStatic)
     {
-        newNodeFlags |= NodeFlags::MOBILITY_STATIC;
+        newNodeFlags |= NodeFlags::MobilityStatic;
     }
     else
     {
-        newNodeFlags |= NodeFlags::MOBILITY_DYNAMIC;
+        newNodeFlags |= NodeFlags::MobilityDynamic;
     }
 
     if (newNodeFlags == m_nodeFlags)
@@ -779,7 +779,7 @@ BoundingBox Node::GetLocalBoundsWithChildren() const
             continue;
         }
 
-        if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
+        if (!(child->GetNodeFlags() & NodeFlags::ExcludeFromParentBounds))
         {
             aabb = aabb.Union(child->GetLocalTransform() * child->GetLocalBoundsWithChildren());
         }
@@ -799,7 +799,7 @@ BoundingBox Node::GetWorldBounds() const
             continue;
         }
 
-        if (!(child->GetNodeFlags() & NodeFlags::EXCLUDE_FROM_PARENT_AABB))
+        if (!(child->GetNodeFlags() & NodeFlags::ExcludeFromParentBounds))
         {
             aabb = aabb.Union(child->GetWorldBounds());
         }
@@ -812,7 +812,7 @@ Vec3f Node::GetWorldTranslation() const
 {
     Vec3f translationWS = m_localTransform.GetTranslation();
 
-    if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION))
+    if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IgnoreParentTranslation))
     {
         translationWS = m_parentNode->GetWorldMatrix() * translationWS;
     }
@@ -822,7 +822,7 @@ Vec3f Node::GetWorldTranslation() const
 
 void Node::SetWorldTranslation(const Vec3f& translation)
 {
-    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION))
+    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentTranslation))
     {
         SetLocalTranslation(translation);
 
@@ -836,7 +836,7 @@ Vec3f Node::GetWorldScale() const
 {
     Vec3f scaleWS = m_localTransform.GetScale();
 
-    if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE))
+    if (m_parentNode != nullptr && !(m_nodeFlags & NodeFlags::IgnoreParentScale))
     {
         scaleWS *= m_parentNode->GetWorldScale();
     }
@@ -846,7 +846,7 @@ Vec3f Node::GetWorldScale() const
 
 void Node::SetWorldScale(const Vec3f& scale)
 {
-    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE))
+    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentScale))
     {
         SetLocalScale(scale);
 
@@ -863,7 +863,7 @@ Quaternion Node::GetWorldRotation() const
 
 void Node::SetWorldRotation(const Quaternion& rotation)
 {
-    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION))
+    if (m_parentNode == nullptr || (m_nodeFlags & NodeFlags::IgnoreParentRotation))
     {
         SetLocalRotation(rotation);
 
@@ -895,9 +895,9 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
     {
         transformMatrix = m_parentNode->GetWorldMatrix() * transformMatrix;
 
-        if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSFORM)
+        if (m_nodeFlags & NodeFlags::IgnoreParentTransform)
         {
-            if (m_nodeFlags & NodeFlags::IGNORE_PARENT_TRANSLATION)
+            if (m_nodeFlags & NodeFlags::IgnoreParentTranslation)
             {
                 transformMatrix[3][0] = prevWorldMatrix[3][0];
                 transformMatrix[3][1] = prevWorldMatrix[3][1];
@@ -905,7 +905,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
                 transformMatrix[3][3] = 1.0f;
             }
 
-            if (m_nodeFlags & NodeFlags::IGNORE_PARENT_ROTATION)
+            if (m_nodeFlags & NodeFlags::IgnoreParentRotation)
             {
                 const Mat4f curr = transformMatrix;
 
@@ -919,7 +919,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
                 transformMatrix.Orthonormalize();
             }
 
-            if (m_nodeFlags & NodeFlags::IGNORE_PARENT_SCALE)
+            if (m_nodeFlags & NodeFlags::IgnoreParentScale)
             {
                 const Vec3f prevScale = prevWorldMatrix.ExtractScale();
                 const Vec3f currentScale = transformMatrix.ExtractScale();

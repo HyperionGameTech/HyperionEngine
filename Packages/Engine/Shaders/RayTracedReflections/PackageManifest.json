@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "RayTracedReflections",
+  "FriendlyName": "RayTracedReflections",
+  "Flags": 0,
+  "Path": "Engine/Shaders/RayTracedReflections"
+}

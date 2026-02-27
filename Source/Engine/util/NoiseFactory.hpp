@@ -233,9 +233,9 @@ public:
         return result;
     }
 
-    Bitmap_RGBA8 CreateBitmap(Vec2f offset, Vec2u dimensions, float scale = 1.0f) const
+    Bitmap_SDR CreateBitmap(Vec2f offset, Vec2u dimensions, float scale = 1.0f) const
     {
-        Bitmap_RGBA8 bitmap(dimensions.x, dimensions.y);
+        Bitmap_SDR bitmap(dimensions.x, dimensions.y);
 
         for (uint32 y = 0; y < dimensions.y; ++y)
         {

@@ -802,8 +802,6 @@ extern struct Vertex
     Texcoord1 : Vec2f
     BoneWeights : Array<float>
     BoneIndices : Array<uint32>
-    NumIndices : uint8
-    NumWeights : uint8
 end
 extern struct SSRRendererConfig
     Enabled : bool
@@ -1975,19 +1973,18 @@ end
 extern struct NodeTagSet
 end
 extern enum NodeFlags : uint32
-    NONE = 0x0,
-    IGNORE_PARENT_TRANSLATION = 0x1,
-    IGNORE_PARENT_SCALE = 0x2,
-    IGNORE_PARENT_ROTATION = 0x4,
-    IGNORE_PARENT_TRANSFORM = ((IGNORE_PARENT_TRANSLATION | IGNORE_PARENT_SCALE) | IGNORE_PARENT_ROTATION),
-    EXCLUDE_FROM_PARENT_AABB = 0x8,
-    TRANSIENT = 0x100,
-    HIDE_IN_SCENE_OUTLINE = 0x1000,
-    MOBILITY = 0xE000,
-    MOBILITY_STATIC = 0x2000,
-    MOBILITY_STATIC_BY_PROXY = 0x4000,
-    MOBILITY_DYNAMIC = (MOBILITY & ~(MOBILITY_STATIC | MOBILITY_STATIC_BY_PROXY)),
-    DEFAULT = MOBILITY_STATIC
+    None = 0x0,
+    IgnoreParentTranslation = 0x1,
+    IgnoreParentScale = 0x2,
+    IgnoreParentRotation = 0x4,
+    IgnoreParentTransform = ((IgnoreParentTranslation | IgnoreParentScale) | IgnoreParentRotation),
+    ExcludeFromParentBounds = 0x8,
+    HideInSceneOutline = 0x1000,
+    Mobility = 0xE000,
+    MobilityStatic = 0x2000,
+    MobilityStaticByProxy = 0x4000,
+    MobilityDynamic = (Mobility & ~(MobilityStatic | MobilityStaticByProxy)),
+    Default = MobilityStatic
 end
 extern class Bone : Node
     Skeleton : Skeleton

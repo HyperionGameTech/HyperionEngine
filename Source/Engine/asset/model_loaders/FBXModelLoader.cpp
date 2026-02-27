@@ -995,11 +995,18 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         break;
                     }
 
+                    if (index >= MAX_BONE_INDICES)
+                    {
+                        HYP_LOG(Assets, Warning, "Too many bone indices!");
+
+                        continue;
+                    }
+
                     const double weight = cluster->boneWeights[index];
 
                     Vertex& vertex = mesh.vertices[positionIndex];
-                    vertex.AddBoneIndex(int(boneIndex));
-                    vertex.AddBoneWeight(float(weight));
+                    vertex.SetBoneIndex(index, int(boneIndex));
+                    vertex.SetBoneWeight(index, float(weight));
                 }
             }
         }

@@ -27,11 +27,10 @@ namespace Hyperion {
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
 
 const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
-    VertexAttribute::Position | VertexAttribute::Normal
-    | VertexAttribute::TexCoord0 | VertexAttribute::TexCoord1;
+    VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
 
 const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
-    StaticMeshVertexAttributes | VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
+    VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
 
 #pragma region VertexAttribute
 

@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_7611912206049323394"
+        "Value": "Engine/Shaders/ConvolveProbe/ConvolveProbe_13886593306927843597"
       }
     }],
   "Name": "ConvolveProbe",

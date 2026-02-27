@@ -269,11 +269,8 @@ void EditorGizmoBase::Init()
 
     m_node->UnlockTransform();
 
-    m_node->SetNodeFlags(
-        m_node->GetNodeFlags()
-        | NodeFlags::HIDE_IN_SCENE_OUTLINE // don't display transform widget in the outline
-        | NodeFlags::TRANSIENT             // should not ever be serialized to disk
-    );
+    m_node->SetNodeFlags(m_node->GetNodeFlags() | NodeFlags::HideInSceneOutline);
+    m_node->SetIsTransient(true);
 }
 
 void EditorGizmoBase::Shutdown()
@@ -1603,7 +1600,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 void EditorSubsystem::CreateHighlightNode()
 {
     // m_highlightNode = Handle<Node>(MakeHandle<Node>("Editor_Highlight"));
-    // m_highlightNode->SetFlags(m_highlightNode->GetNodeFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
+    // m_highlightNode->SetFlags(m_highlightNode->GetNodeFlags() | NodeFlags::HideInSceneOutline);
 
     // const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -2100,7 +2097,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     //        [this, listViewWeak = listView.ToWeak()](Node* node, const Property* property)
     //        {
     //            // Update name in list view
-    //            if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+    //            if (node->GetNodeFlags() & NodeFlags::HideInSceneOutline)
     //            {
     //                return;
     //            }
@@ -2128,7 +2125,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
         {
             Assert(node != nullptr);
 
-            if (node->GetNodeFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+            if (node->GetNodeFlags() & NodeFlags::HideInSceneOutline)
             {
                 return;
             }

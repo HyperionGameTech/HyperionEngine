@@ -240,7 +240,11 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
     frame->renderQueue << SetShaderUniform(17, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(parentPass->view.GetUnsafe()->GetCamera()));
 
     if (renderSetup.envProbe != nullptr)
-        frame->renderQueue << SetShaderUniform(18, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+    {
+        frame->renderQueue << SetShaderUniform(18, "EnvProbesTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(g_renderInterface->envProbesTexture));
+        frame->renderQueue << SetShaderUniform(19, "EnvProbesBuffer"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex));
+        frame->renderQueue << SetShaderUniform(20, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
+    }
 
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
     const SizeType numPixels = imageExtent.Volume();

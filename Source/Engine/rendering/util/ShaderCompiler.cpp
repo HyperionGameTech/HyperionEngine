@@ -377,27 +377,16 @@ void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
 
 static bool SatisfiesRequested(
     const ShaderPropertySet& requestedProperties, const VertexAttributeSet& requestedVertexAttributes,
-    const Shader& candidate,
-    bool primary)
+    const Shader& candidate)
 {
     if (candidate.properties != requestedProperties)
     {
         return false;
     }
 
-    if (primary)
+    if (requestedVertexAttributes == candidate.vertexAttributes)
     {
-        if (requestedVertexAttributes == candidate.vertexAttributes)
-        {
-            return true;
-        }
-    }
-    else
-    {
-        if ((requestedVertexAttributes & candidate.vertexAttributes) == candidate.vertexAttributes)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -1899,8 +1888,7 @@ bool ShaderCompiler::HandleBundle(
             return SatisfiesRequested(
                 shaderRequest->properties,
                 shaderRequest->vertexAttributes,
-                *shader,
-                /* primary */ true);
+                *shader);
         }) != inOutBundle->compiledShaders.End();
 
     if (anyMissing || (shaderRequest.HasValue() && !requestedFound))
@@ -3476,24 +3464,11 @@ bool ShaderCompiler::RequestShader(
         return false;
     }
 
-    // primary search.
-    // this will check for best fit (vertex attributes == requested vertex attributes)
     auto it = bundle->compiledShaders.FindIf(
         [&mergedProperties, &vertexAttributes](const Handle<Shader>& shader) -> bool
         {
-            return SatisfiesRequested(mergedProperties, vertexAttributes, *shader, /* primary */ true);
+            return SatisfiesRequested(mergedProperties, vertexAttributes, *shader);
         });
-
-    // do fallback search if primary not found.
-    // this will search for a shader where we can provide all the req'd vertex attributes to a given shader.
-    if (it == bundle->compiledShaders.End())
-    {
-        it = bundle->compiledShaders.FindIf(
-            [&mergedProperties, &vertexAttributes](const Handle<Shader>& shader) -> bool
-            {
-                return SatisfiesRequested(mergedProperties, vertexAttributes, *shader, /* primary */ false);
-            });
-    }
 
     if (it == bundle->compiledShaders.End())
     {
