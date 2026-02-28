@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/memory/Pimpl.hpp>
 

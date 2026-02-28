@@ -2,7 +2,7 @@
 
 #include <script/compiler/ast/AstConstant.hpp>
 #include <Core/containers/String.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 namespace Hyperion {
 

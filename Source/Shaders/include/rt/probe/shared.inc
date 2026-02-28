@@ -10,10 +10,6 @@
 #define PROBE_TOTAL_COUNT (ddgiConstants.probe_counts.x * ddgiConstants.probe_counts.y * ddgiConstants.probe_counts.z)
 #define PROBE_NORMAL_BIAS (0.01)
 
-#define PROBE_SIDE_LENGTH_DEPTH 16
-#define PROBE_SIDE_LENGTH_IRRADIANCE 8
-#define PROBE_BORDER_SIZE 2
-
 ivec3 ProbeIndexToGridPosition(uint index)
 {
     const int probe_count_xy = int(ddgiConstants.probe_counts.x) * int(ddgiConstants.probe_counts.y);

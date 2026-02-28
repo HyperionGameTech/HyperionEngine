@@ -9,7 +9,7 @@
 
 #include <Core/utilities/Variant.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 namespace Hyperion {
 

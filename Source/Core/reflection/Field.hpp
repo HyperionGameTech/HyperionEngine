@@ -9,7 +9,7 @@
 #include <Core/reflection/TypeInfoFwd.hpp>
 
 #include <Core/Defines.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/functional/Proc.hpp>
 #include <Core/functional/Delegate.hpp>

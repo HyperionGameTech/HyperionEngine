@@ -30,7 +30,7 @@
 #include <Core/filesystem/FilePath.hpp>
 
 #include <Core/Types.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/math/Mat4f.hpp>
 #include <Core/math/Quaternion.hpp>

@@ -4,7 +4,7 @@
 
 #include <Core/debug/Debug.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <type_traits>
 

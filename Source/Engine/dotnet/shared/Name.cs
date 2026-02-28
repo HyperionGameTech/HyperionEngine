@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 namespace Hyperion
 {
     /// <summary>
-    /// Represents a hashed name (see core/Name.hpp for implementation)
+    /// Represents a hashed name (see Core/name/Name.hpp for implementation)
     /// </summary>
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct Name

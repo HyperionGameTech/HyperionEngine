@@ -66,7 +66,7 @@ DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 
 #define RAY_OFFSET 0.025
 #define NUM_SAMPLES 1
-#define NUM_BOUNCES 3
+#define NUM_BOUNCES 4
 
 void SetProbeRayData(uint2 coord, ProbeRayData ray_data)
 {
@@ -267,106 +267,6 @@ void RayGenMain()
 #endif
 
     ray_data.color = accumRadiance / NUM_SAMPLES;
-
-#if 0
-    RayPayload payload = (RayPayload)0;
-    payload.throughput = float4(1.0, 1.0, 1.0, 1.0);
-    payload.color = float4(0.0, 0.0, 0.0, 0.0);
-    payload.distance = -1.0;
-    payload.normal = float3(0.0, 0.0, 0.0);
-    payload.roughness = 0.0;
-    payload.emissive = float4(0.0, 0.0, 0.0, 0.0);
-    
-    ProbeRayData ray_data[NUM_BOUNCES];
-    ray_data[0].color = float4(0.0, 0.0, 0.0, 0.0);
-    
-
-    RayBounceInfo bounces[NUM_BOUNCES];
-    uint num_bounces = 0;
-
-    for (int bounce_index = 0; bounce_index < NUM_BOUNCES; bounce_index++)
-    {
-        payload.distance = -1.0;
-
-        RayDesc ray;
-        ray.Origin = origin;
-        ray.Direction = direction;
-        ray.TMin = tmin;
-        ray.TMax = tmax;
-
-        TraceRay(tlas, flags, 0xFF, 0, 1, 0, ray, payload);
-
-        float3 N = payload.normal;
-        float3 hitPosition = origin + direction * payload.distance;
-
-        bounces[bounce_index].throughput = payload.throughput;
-        bounces[bounce_index].emissive = payload.emissive;
-
-        ray_data[bounce_index].color = float4(0.0, 0.0, 0.0, 0.0);
-        ray_data[bounce_index].origin = float4(origin, 1.0);
-        ray_data[bounce_index].normal = float4(N, 0.0);
-        ray_data[bounce_index].direction_depth = float4(direction, payload.distance);
-
-        if (payload.distance < 0.0)
-        {
-#if HAS_ENV_PROBE
-            if (current_env_probe.texture_index != ~0u)
-            {
-                uint probe_texture_index = max(0, min(current_env_probe.texture_index, HYP_MAX_BOUND_REFLECTION_PROBES - 1));
-
-                bounces[bounce_index].emissive += EnvProbeSample(sampler_linear, envProbesTexture, probe_texture_index, direction, 0.0);
-            }
-#endif
-            
-            for (uint light_index = 0; light_index < ddgiConstants.num_bound_lights; light_index++)
-            {
-                const Light light = lights[light_index];
-
-                float3 L = CalculateLightDirection(light, hitPosition);
-
-                float NdotL = max(dot(N, L), 0.00001);
-                float shadow = 1.0 - CheckInShadow(hitPosition, N, L, tmax);
-
-                bounces[bounce_index].emissive += light.color * light.position_intensity.w * shadow * NdotL;
-            }
-
-            ++num_bounces;
-
-            break;
-        }
-        
-        float3 hit_position = origin + direction * payload.distance;
-
-        direction = normalize(RandomInHemisphere(
-            float3(RandomFloat(ray_seed), RandomFloat(ray_seed), RandomFloat(ray_seed)),
-            payload.normal
-        ));
-        origin = hit_position + direction * RAY_OFFSET;
-
-        ++num_bounces;
-    }
-
-    for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--)
-    {
-        float4 radiance = bounces[bounce_index].emissive;
-
-        if (bounce_index != num_bounces - 1)
-        {
-            radiance += ray_data[bounce_index + 1].color * bounces[bounce_index].throughput;
-        }
-
-        float p = max(radiance.r, max(radiance.g, radiance.b));
-
-        if (RandomFloat(ray_seed) > p)
-        {
-            break;
-        }
-
-        radiance /= max(p, 0.0001);
-        
-        ray_data[bounce_index].color = radiance;
-    }
-#endif
 
     SetProbeRayData(coord, ray_data);
 }

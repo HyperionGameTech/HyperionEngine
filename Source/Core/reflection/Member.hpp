@@ -3,7 +3,7 @@
 #pragma once
 
 #include <Core/Defines.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 /// We need to include containers for TypeInfo traits.
 #include <Core/containers/String.hpp>

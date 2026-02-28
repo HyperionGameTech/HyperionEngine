@@ -42,6 +42,31 @@ static constexpr uint32 MaxBoundLights = sizeof(DDGIConstants::lightIndices) / s
 
 static const ShaderPropertyId s_propHasEnvProbe = InternShaderProperty(ShaderProperty(NAME("HAS_ENV_PROBE")));
 
+static const ShaderPropertyId s_propUpdateProbeDataModeIrradiance = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("IRRADIANCE")));
+static const ShaderPropertyId s_propUpdateProbeDataModeDepth = InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("DEPTH")));
+
+static const ShaderPropertyId s_propProbeSideLengthIrradiance = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_IRRADIANCE"), int(DDGI::IrradianceOctahedronSize)));
+static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_DEPTH"), int(DDGI::DepthOctahedronSize)));
+
+static Vec3u NumProbesPerDimension(const DDGIInfo& info)
+{
+    const Vec3f probesPerDimension = MathUtil::Ceil((info.aabb.GetExtent() / info.probeDistance) + Vec3f(DDGI::ProbeBorder));
+
+    return Vec3u(probesPerDimension);
+}
+
+static uint32 NumProbes(const DDGIInfo& info)
+{
+    const Vec3u perDimension = NumProbesPerDimension(info);
+
+    return perDimension.x * perDimension.y * perDimension.z;
+}
+
+static Vec2u GetImageDimensions(const DDGIInfo& info)
+{
+    return { uint32(MathUtil::NextPowerOf2(NumProbes(info))), info.numRaysPerProbe };
+}
+
 DDGI::DDGI(DDGIInfo&& gridInfo)
     : m_gridInfo(std::move(gridInfo)),
       m_counter(0)
@@ -69,8 +94,8 @@ void DDGI::Create()
 
 void DDGI::FillProbeGrid()
 {
-    const Vec3u grid = m_gridInfo.NumProbesPerDimension();
-    m_probeData.Resize(m_gridInfo.NumProbes());
+    const Vec3u grid = NumProbesPerDimension(m_gridInfo);
+    m_probeData.Resize(NumProbes(m_gridInfo));
 
     for (uint32 x = 0; x < grid.x; x++)
     {
@@ -81,7 +106,7 @@ void DDGI::FillProbeGrid()
                 const uint32 index = x * grid.x * grid.y + y * grid.z + z;
 
                 m_probeData[index] = DDGIProbeData {
-                    (Vec3f { float(x), float(y), float(z) } - (Vec3f(m_gridInfo.probeBorder) * 0.5f)) * m_gridInfo.probeDistance
+                    (Vec3f { float(x), float(y), float(z) } - (Vec3f(ProbeBorder) * 0.5f)) * m_gridInfo.probeDistance
                 };
             }
         }
@@ -104,17 +129,17 @@ void DDGI::CreateConstantBuffers()
 
 void DDGI::CreateStorageBuffers()
 {
-    const Vec3u probeCounts = m_gridInfo.NumProbesPerDimension();
+    const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
 
-    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, m_gridInfo.GetImageDimensions().x * m_gridInfo.GetImageDimensions().y * sizeof(ProbeRayData));
+    m_radianceBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STORAGE_BUFFER, GetImageDimensions(m_gridInfo).x * GetImageDimensions(m_gridInfo).y * sizeof(ProbeRayData));
     m_radianceBuffer->SetRequireCpuAccessible(true);
     Assert(m_radianceBuffer->Create());
     m_radianceBuffer->Memset(m_radianceBuffer->Size(), 0);
 
     { // irradiance image
         const Vec3u extent {
-            (m_gridInfo.irradianceOctahedronSize + 2) * probeCounts.x * probeCounts.y + 2,
-            (m_gridInfo.irradianceOctahedronSize + 2) * probeCounts.z + 2,
+            (IrradianceOctahedronSize + 2) * probeCounts.x * probeCounts.y + 2,
+            (IrradianceOctahedronSize + 2) * probeCounts.z + 2,
             1
         };
 
@@ -139,8 +164,8 @@ void DDGI::CreateStorageBuffers()
 
     { // depth image
         const Vec3u extent {
-            (m_gridInfo.depthOctahedronSize + 2) * probeCounts.x * probeCounts.y + 2,
-            (m_gridInfo.depthOctahedronSize + 2) * probeCounts.z + 2,
+            (DepthOctahedronSize + 2) * probeCounts.x * probeCounts.y + 2,
+            (DepthOctahedronSize + 2) * probeCounts.z + 2,
             1
         };
 
@@ -173,14 +198,14 @@ void DDGI::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup)
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    const Vec2u gridImageDimensions = m_gridInfo.GetImageDimensions();
-    const Vec3u numProbesPerDimension = m_gridInfo.NumProbesPerDimension();
+    const Vec2u gridImageDimensions = GetImageDimensions(m_gridInfo);
+    const Vec3u numProbesPerDimension = NumProbesPerDimension(m_gridInfo);
 
     DDGIConstants uniforms {};
     uniforms.rotationMatrix = m_randomGenerator.Next();
     uniforms.aabbMax = Vec4f(m_gridInfo.aabb.max, 1.0f);
     uniforms.aabbMin = Vec4f(m_gridInfo.aabb.min, 1.0f);
-    uniforms.probeBorder = Vec4u(m_gridInfo.probeBorder, 0);
+    uniforms.probeBorder = Vec4u(ProbeBorder, 0);
     uniforms.probeCounts = { numProbesPerDimension.x, numProbesPerDimension.y, numProbesPerDimension.z, 0 };
     uniforms.gridDimensions = { gridImageDimensions.x, gridImageDimensions.y, 0, 0 };
     uniforms.imageDimensions = { m_irradianceImage->GetExtent().x, m_irradianceImage->GetExtent().y, m_depthImage->GetExtent().x, m_depthImage->GetExtent().y };
@@ -276,31 +301,43 @@ void DDGI::Render(Frame* frame, const RenderSetup& renderSetup)
         frame->renderQueue << SetShaderUniform(14, "CurrentEnvProbe"_sh, g_renderInterface->gpuBuffers[GRB_ENV_PROBES]->GetBuffer(frameIndex), TShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe));
     }
 
-    frame->renderQueue << TraceRays(Vec3u { m_gridInfo.NumProbes(), m_gridInfo.numRaysPerProbe, 1u });
+    frame->renderQueue << TraceRays(Vec3u { NumProbes(m_gridInfo), m_gridInfo.numRaysPerProbe, 1u });
 
     frame->renderQueue << InsertBarrier(m_radianceBuffer, RS_UNORDERED_ACCESS);
 
     // Compute irradiance for ray traced probes
-    const Vec3u probeCounts = m_gridInfo.NumProbesPerDimension();
+    const Vec3u probeCounts = NumProbesPerDimension(m_gridInfo);
 
     frame->renderQueue << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
     frame->renderQueue << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
+    static const ShaderPropertyId s_propHysteresis = InternShaderProperty(ShaderProperty(NAME("HYSTERESIS"), float(0.98f)));
+
     // Update irradiance
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTProbeUpdateIrradiance")));
-    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    shaderProperties = ShaderPropertySet();
+    shaderProperties.Add(s_propHysteresis);
+    shaderProperties.Add(s_propUpdateProbeDataModeIrradiance);
+    shaderProperties.Add(s_propProbeSideLengthIrradiance);
+
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
+
+    frame->renderQueue << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
     frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
-    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
+    frame->renderQueue << SetShaderUniform(2, "OutputImage"_sh, m_irradianceImageView);
 
     frame->renderQueue << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
     // Update depth
-    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("RTProbeUpdateDepth")));
-    frame->renderQueue << SetShaderUniform(0, "DDGIConstants"_sh, m_cBuffers[frameIndex]);
+    shaderProperties = ShaderPropertySet();
+    shaderProperties.Add(s_propHysteresis);
+    shaderProperties.Add(s_propUpdateProbeDataModeDepth);
+    shaderProperties.Add(s_propProbeSideLengthDepth);
+
+    frame->renderQueue << SetCurrentShader(ShaderDesc(NAME("UpdateProbeData"), shaderProperties));
+
+    frame->renderQueue << SetShaderUniform(0, "CBuffer"_sh, m_cBuffers[frameIndex]);
     frame->renderQueue << SetShaderUniform(1, "ProbeRayData"_sh, m_radianceBuffer);
-    frame->renderQueue << SetShaderUniform(2, "OutputIrradianceImage"_sh, m_irradianceImageView);
-    frame->renderQueue << SetShaderUniform(3, "OutputDepthImage"_sh, m_depthImageView);
+    frame->renderQueue << SetShaderUniform(3, "OutputImage"_sh, m_depthImageView);
 
     frame->renderQueue << DispatchCompute(Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 

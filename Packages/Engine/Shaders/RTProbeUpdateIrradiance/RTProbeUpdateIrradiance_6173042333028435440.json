@@ -1,0 +1,116 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_WINDOWS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "DDGI_PROBE_SIDE_LENGTH_IRRADIANCE",
+      "Flags": 0,
+      "Value": 16,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "RTProbeUpdateIrradiance",
+  "VertexAttributes": {
+    "FlagMask": 0
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "DDGI",
+        "Slots": [[], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 3,
+              "Name": "ProbeRayData",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputIrradianceImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputDepthImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 1,
+              "Name": "DDGIConstants",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [4],
+  "ShaderModuleNames": ["probe_update_irradiance.comp"],
+  "EntryPointNames": ["main"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/RTProbeUpdateIrradiance/RTProbeUpdateIrradiance_6173042333028435440.CS",
+      "Size": 11936
+    }],
+  "PropertySetHashCode": {},
+  "Name": "RTProbeUpdateIrradiance_6173042333028435440",
+  "FriendlyName": "RTProbeUpdateIrradiance_6173042333028435440",
+  "OriginalFilepath": ""
+}

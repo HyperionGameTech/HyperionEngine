@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/RTProbeUpdateIrradiance/RTProbeUpdateIrradiance_1829828941827249584"
+        "Value": "Engine/Shaders/RTProbeUpdateIrradiance/RTProbeUpdateIrradiance_8116834170194475519"
       }
     }],
   "Name": "RTProbeUpdateIrradiance",

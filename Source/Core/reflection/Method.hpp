@@ -13,7 +13,7 @@
 #include <Core/utilities/EnumFlags.hpp>
 
 #include <Core/Defines.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 #include <Core/utilities/FunctionTraits.hpp>
 
 #include <Core/serialization/Serialization.hpp>

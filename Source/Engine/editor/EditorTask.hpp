@@ -3,7 +3,7 @@
 #pragma once
 
 #include <Core/Types.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/memory/RefCountedPtr.hpp>
 

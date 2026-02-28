@@ -31,16 +31,16 @@ namespace Hyperion {
  *  a binary stream, with static-entry versioning to detect schema changes.
  *
  *  \tparam Value     The value type to intern. Must be copyable and support HashCode::GetHashCode().
- *  \tparam Id        An enum or integral type used as the ID. Must be at most 4 bytes.
+ *  \tparam IdType        An enum or integral type used as the ID. Must be at most 4 bytes.
  *  \tparam PageSize  Page size passed to the internal SparsePagedArray reverse map. Must be a power of two. */
-template <class Value, class Id, uint32 PageSize = 128>
+template <class Value, class IdType, uint32 PageSize = 128>
 class BinaryDictionary
 {
-    static_assert(sizeof(Id) <= sizeof(uint32), "Id type must be at most 4 bytes");
+    static_assert(sizeof(IdType) <= sizeof(uint32), "IdType type must be at most 4 bytes");
 
     static constexpr uint16 FormatVersion = 1;
 
-    // Entry layout (fixed 16 bytes): HashCode value (uint64, 8 bytes) + Id stored as uint32 (4 bytes) + 4 bytes padding
+    // Entry layout (fixed 16 bytes): HashCode value (uint64, 8 bytes) + id stored as uint32 (4 bytes) + 4 bytes padding
     static constexpr SizeType EntryDataSize = sizeof(HashCode::ValueType) + sizeof(uint32);
     static constexpr SizeType EntryPaddingSize = (16 - (EntryDataSize % 16)) % 16;
     static constexpr SizeType SizeOfEntry = EntryDataSize + EntryPaddingSize;
@@ -67,7 +67,7 @@ public:
     /*! \brief Intern a value, returning its stable ID. Thread-safe.
      *  If the value has not been seen before a new ID is assigned and the value is stored.
      *  Entries added before Initialize() is called contribute to the static-entry hash used for versioning. */
-    Id Intern(const Value& value)
+    IdType Intern(const Value& value)
     {
         const HashCode hash = HashCode::GetHashCode(value);
 
@@ -76,7 +76,7 @@ public:
         auto it = m_forwardMap.Find(hash);
         if (it != m_forwardMap.End())
         {
-            const Id id = it->second;
+            const IdType id = it->second;
 
             if (!m_reverseMap.HasIndex(uint32(id)))
             {
@@ -101,7 +101,7 @@ public:
             return it->second;
         }
 
-        const Id newId = static_cast<Id>(m_forwardMap.Size());
+        const IdType newId = static_cast<IdType>(m_forwardMap.Size());
         m_forwardMap.Insert(hash, newId);
         m_reverseMap.Emplace(uint32(newId), value);
 
@@ -115,7 +115,7 @@ public:
 
     /*! \brief Look up a value by ID. Thread-safe.
      *  \return True if the ID was found and outValue was populated. */
-    bool GetById(Id id, Value& outValue) const
+    bool GetById(IdType id, Value& outValue) const
     {
         TSharedLock lock(m_mutex);
 
@@ -135,7 +135,7 @@ public:
     {
         TSharedLock lock(m_mutex);
 
-        HashSet<Id> visited;
+        HashSet<IdType> visited;
         visited.Reserve(m_forwardMap.Size());
 
         const uint32 headerOffset = stream.Position();
@@ -150,7 +150,7 @@ public:
         for (const auto& kvp : m_forwardMap)
         {
             const HashCode& hash = kvp.first;
-            const Id id = kvp.second;
+            const IdType id = kvp.second;
 
             if (visited.Contains(id))
             {
@@ -253,7 +253,7 @@ public:
             const HashCode::ValueType hashValue = *reinterpret_cast<const HashCode::ValueType*>(pBytes);
             const uint32 idValue = *reinterpret_cast<const uint32*>(pBytes + sizeof(HashCode::ValueType));
 
-            m_forwardMap.Insert(HashCode(hashValue), static_cast<Id>(idValue));
+            m_forwardMap.Insert(HashCode(hashValue), static_cast<IdType>(idValue));
 
             pBytes += SizeOfEntry;
         }
@@ -266,15 +266,15 @@ public:
 protected:
     /*! \brief Accumulated hash of all entries added before Initialize() was called.
      *  Used to detect static-schema changes during deserialization. */
-    HashCode    m_staticEntryHashCode {};
+    HashCode m_staticEntryHashCode {};
 
     /*! \brief True once Initialize() has been called; stops accumulation of m_staticEntryHashCode. */
-    bool        m_initialized = false;
+    bool m_initialized = false;
 
 private:
-    HashMap<HashCode, Id>               m_forwardMap;
-    SparsePagedArray<Value, PageSize>   m_reverseMap;
-    mutable SharedMutex                 m_mutex;
+    HashMap<HashCode, IdType> m_forwardMap;
+    SparsePagedArray<Value, PageSize> m_reverseMap;
+    mutable SharedMutex m_mutex;
 };
 
 } // namespace Hyperion

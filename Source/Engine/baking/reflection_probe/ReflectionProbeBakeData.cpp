@@ -30,7 +30,6 @@ Result BakeData<ReflectionProbe>::Build()
 
     const Vec3f origin = m_envProbe->GetWorldTranslation();
 
-    // Use the same face orientation as render code (Texture::s_cubemapDirections)
     for (uint32 face = 0; face < 6; face++)
     {
         const Vec3f forward = Texture::s_cubemapDirections[face].first;

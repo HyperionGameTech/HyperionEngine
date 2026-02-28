@@ -15,7 +15,7 @@
 #include <Core/utilities/ForEach.hpp>
 #include <Core/utilities/DeferredScope.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/Defines.hpp>
 

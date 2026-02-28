@@ -10,7 +10,7 @@
 #undef INCLUDE_FROM_RHI
 #undef INCLUDE_FROM_RHI_BASE
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 #include <Core/utilities/Optional.hpp>
 #include <Core/containers/ArrayMap.hpp>
 #include <Core/threading/Mutex.hpp>

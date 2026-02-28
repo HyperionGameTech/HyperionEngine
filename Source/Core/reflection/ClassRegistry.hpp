@@ -17,7 +17,7 @@
 #include <Core/functional/Proc.hpp>
 
 #include <Core/Defines.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 #include <Core/Util.hpp>
 
 #include <type_traits>
