@@ -85,7 +85,7 @@ void Shader::PageBlobData()
 
             if (!blobStorage.GetData(ref.key, ref.size, ref.raw))
             {
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                 Handle<AssetPackage> package = GetPackage();
                 Assert(package.IsValid());
                 Assert(package->IsSaved());

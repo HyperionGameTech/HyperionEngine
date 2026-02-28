@@ -51,7 +51,7 @@ public:
 
     void Wait(Mutex& mutex) const
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_CORE_ASSERT(mutex.m_locked, "Mutex must be locked before waiting on condition variable");
         mutex.m_locked = false;
 #endif
@@ -62,7 +62,7 @@ public:
         SleepConditionVariableCS(&m_conditionVariable, &mutex.m_criticalSection, INFINITE);
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         mutex.m_locked = true;
 #endif
     }
@@ -70,7 +70,7 @@ public:
     /*! \brief Wait with timeout in milliseconds. Returns true if notified, false if timeout occurred. */
     bool WaitFor(Mutex& mutex, uint32 timeoutMs) const
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_CORE_ASSERT(mutex.m_locked, "Mutex must be locked before waiting on condition variable");
         mutex.m_locked = false;
 #endif
@@ -97,7 +97,7 @@ public:
         result = (waitResult != 0);
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         mutex.m_locked = true;
 #endif
 

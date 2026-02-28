@@ -142,7 +142,7 @@ public:
         HYP_FORCE_INLINE T& operator*() const
         {
             EnsureReady();
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(array->m_validPages.Test(page));
             Page* pg = array->m_pages[page];
             HYP_CORE_ASSERT(pg && pg->initializedBits.Test(elem));
@@ -155,7 +155,7 @@ public:
         HYP_FORCE_INLINE T* operator->() const
         {
             EnsureReady();
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(array->m_validPages.Test(page));
             Page* pg = array->m_pages[page];
             HYP_CORE_ASSERT(pg && pg->initializedBits.Test(elem));

@@ -55,7 +55,7 @@ struct BuildMeshBlas : public RenderCommand
             material,
             Mat4f::identity);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         packedVerticesBuffer->SetDebugName(NAME_FMT("PackedVertexBuffer_GpuBlas_{}", blas->GetDebugName()));
         packedIndicesBuffer->SetDebugName(NAME_FMT("PackedIndexBuffer_GpuBlas_{}", blas->GetDebugName()));
 #endif
@@ -80,7 +80,7 @@ struct BuildMeshBlas : public RenderCommand
         CheckResultOrReturn(packedIndicesBuffer->Create());
 
         verticesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedVerticesSize);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         verticesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_VB_GpuBlas_{}", blas->GetDebugName()));
 #endif
         CheckResultOrReturn(verticesStagingBuffer->Create());
@@ -88,7 +88,7 @@ struct BuildMeshBlas : public RenderCommand
         verticesStagingBuffer->Copy(packedVertices.Size() * sizeof(PackedVertex), packedVertices.Data());
 
         indicesStagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packedIndicesSize);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         indicesStagingBuffer->SetDebugName(NAME_FMT("StagingBuffer_IB_GpuBlas_{}", blas->GetDebugName()));
 #endif
         CheckResultOrReturn(indicesStagingBuffer->Create());
@@ -141,7 +141,7 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
     GpuBlasRef blas;
     PUSH_RENDER_COMMAND(BuildMeshBlas, blas, std::move(packedVertices), std::move(packedIndices), MakeStrongRef(material));
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     blas->SetDebugName(NAME_FMT("MeshBlas_{}", mesh->GetName()));
 #endif
 

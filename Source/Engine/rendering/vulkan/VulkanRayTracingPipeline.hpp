@@ -45,7 +45,7 @@ public:
 
     void SetPushConstants(const void* data, SizeType size) override;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     void SetDebugName(Name name) override
     {
         VulkanPipelineBase::SetDebugName(name);

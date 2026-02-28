@@ -606,7 +606,7 @@ static inline bool CheckResult(const TResultType& result)
 {
     static constexpr const char* NoMessageText = "<no message>";
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Assert(result, "Result check failed: {}", result.HasError() ? result.GetError().GetMessage() : NoMessageText);
 #else
     if (HYP_UNLIKELY(!result))

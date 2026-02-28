@@ -16,14 +16,14 @@
 
 #include <rendering/Mesh.hpp>
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 #include <editor/EditorState.hpp>
 #include <editor/EditorPickCache.hpp>
 #endif
 
 namespace Hyperion {
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif
 
@@ -1013,7 +1013,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<
 
                     RayTestResults localBvhResults;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                     bool usedPickCache = false;
 
                     if (flags & RayTestFlags::EditorPick)

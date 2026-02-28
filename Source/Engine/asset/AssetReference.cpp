@@ -45,7 +45,7 @@ const AssetPath& AssetReference::GetAssetPath() const
         return assetPath;
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     AssertDebug(m_data.Is<AssetPath>());
 
     if (!m_data.Is<AssetPath>())

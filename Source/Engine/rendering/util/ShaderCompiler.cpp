@@ -982,7 +982,7 @@ static ByteBuffer CompileGLSL(
 
     glslang_spv_options_t spvOptions {};
     spvOptions.disable_optimizer = true;
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     spvOptions.generate_debug_info = true;
     spvOptions.strip_debug_info = false;
     spvOptions.validate = true;
@@ -1182,7 +1182,7 @@ static ByteBuffer CompileHLSL(
     }
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     args.PushBack(L"-Zsb");
 #endif
 

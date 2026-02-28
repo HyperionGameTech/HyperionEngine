@@ -170,7 +170,7 @@ void SimThread::Update()
         }
     }
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     g_editorState->Update(m_counter.delta);
 #endif
 

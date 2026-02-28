@@ -143,7 +143,7 @@ void LogAssert(const char* str)
     //     return;
     // }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     HYP_LOG_DYNAMIC(Core, Error, str);
     std::fflush(HYP_DEBUG_OUTPUT_STREAM);
 

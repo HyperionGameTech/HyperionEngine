@@ -243,7 +243,7 @@ struct BoxedValue
 
     ~BoxedValue()
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #ifdef HYP_SCRIPT
         HYP_CORE_ASSERT(extData.gcIndex == INVALID_GC_INDEX, "BoxedValue being destroyed while still registered with the GC (index = %u)", uint32(extData.gcIndex));
         extData.gcIndex = GARBAGE_GC_INDEX;
@@ -343,7 +343,7 @@ struct BoxedValue
         }
         else
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeName<T>().Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
@@ -352,7 +352,7 @@ struct BoxedValue
             Optional<ReturnType> resultValue;
             BoxedValue_Get<ReturnType, T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, resultValue);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
                 "Failed to invoke BoxedValue Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
                 TypeName<T>().Data(),
@@ -372,7 +372,7 @@ struct BoxedValue
         }
         else
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(Is<T>(), "Expected %s, got %s", TypeName<T>().Data(), *TypeInfo_GetName(*GetTypeInfo()));
 #endif
 
@@ -381,7 +381,7 @@ struct BoxedValue
             Optional<ReturnType> resultValue;
             BoxedValue_Get<ReturnType, T, typename BoxedValueHelper<T>::ConvertibleFrom> {}(value, resultValue);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_CORE_ASSERT(resultValue.HasValue(),
                 "Failed to invoke BoxedValue Get method with T = %s - Mismatched types or T could not be converted to the held type (%s)",
                 TypeName<T>().Data(),

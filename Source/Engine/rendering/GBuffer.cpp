@@ -193,7 +193,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
         GpuImageRef gpuImage = g_renderInterface->MakeImage(textureDesc);
         
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
 #endif
 

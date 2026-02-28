@@ -146,7 +146,7 @@ void SSGI::CreateUniformBuffers()
     for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
     {
         m_uniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         m_uniformBuffers[frameIndex]->SetDebugName(NAME_FMT("SSGI_UniformBuffer_Frame{}", frameIndex));
 #endif
 

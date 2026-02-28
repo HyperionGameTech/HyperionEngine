@@ -181,7 +181,7 @@ void VisibilityStateUpdaterSystem::Process(float delta, Span<Handle<Scene>> scen
 
         if (updatedEntities.Any())
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             if (updatedEntities.Size() >= 128)
             {
                 HYP_LOG(Scene, Warning, "Updating visibility states for a lot of entities ({})! This will have a performance impact if it happens frequently."

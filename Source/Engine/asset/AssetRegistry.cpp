@@ -1917,7 +1917,7 @@ void AssetRegistry::Initialize()
 
     Handle<AssetPackage> memoryPackage = GetPackageFromPath("$Memory", true);
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     // Add transient package for imported assets in editor mode
     Handle<AssetPackage> importsPackage = GetPackageFromPath("$Import", true);
 #endif

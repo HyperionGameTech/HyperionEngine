@@ -78,14 +78,14 @@ void ShadowMapAllocator::Initialize()
         uint16(m_atlases.Size()),
         IU_SAMPLED | IU_STORAGE });
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));
 #endif
 
     CheckResult(m_atlasImage->Create());
 
     m_atlasImageView = g_renderInterface->MakeImageView(m_atlasImage);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_atlasImageView->SetDebugName(NAME("ShadowMapAtlasImageView"));
 #endif
 
@@ -101,7 +101,7 @@ void ShadowMapAllocator::Initialize()
         MaxBoundOmniShadowMaps * 6,
         IU_SAMPLED | IU_STORAGE });
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_pointLightShadowMapImage->SetDebugName(NAME("PointLightShadowMapImage"));
 #endif
 
@@ -109,7 +109,7 @@ void ShadowMapAllocator::Initialize()
 
     m_pointLightShadowMapImageView = g_renderInterface->MakeImageView(m_pointLightShadowMapImage);
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_pointLightShadowMapImageView->SetDebugName(NAME("PointLightShadowMapImageView"));
 #endif
 

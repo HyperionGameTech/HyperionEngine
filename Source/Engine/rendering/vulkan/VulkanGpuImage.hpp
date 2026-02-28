@@ -90,7 +90,7 @@ public:
      */
     VulkanGpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
 

@@ -308,7 +308,7 @@ public:
         return m_layout;
     }
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -425,7 +425,7 @@ protected:
     DescriptorSetLayout m_layout;
     HashMap<Name, DescriptorSetElement> m_elements;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 
 #ifdef DECLARE_SET_TRACK_FRAME_USAGE
@@ -450,7 +450,7 @@ public:
         }
     }
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -585,7 +585,7 @@ protected:
     const ShaderInputGroup* m_decl;
     FixedArray<Array<DescriptorSetRef>, NumFramesInFlight> m_sets;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

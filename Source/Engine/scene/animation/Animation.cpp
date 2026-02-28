@@ -50,7 +50,7 @@ void AnimationTrack::PageBlobData()
 
         if (!blobStorage.GetData(m_keyframeData.key, m_keyframeData.size, m_keyframeData.raw))
         {
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
             // check if failed; if so, try to import from raw data blob in project directory
             Handle<AssetPackage> package = GetPackage();
             Assert(package.IsValid());

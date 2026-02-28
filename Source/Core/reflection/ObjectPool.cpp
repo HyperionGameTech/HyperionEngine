@@ -144,7 +144,7 @@ ObjectContainerBase::ObjectContainerBase(TypeId typeId, const Class* cls)
 
 ObjectContainerBase::~ObjectContainerBase()
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (m_pool != nullptr)
     {
         TLockGuard<AtomicFlag> guard;

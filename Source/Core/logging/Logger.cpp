@@ -233,7 +233,7 @@ public:
 
         if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             const bool isStandardOutput = (m_output == stdout || m_output == stderr);
             if (isStandardOutput)
             {
@@ -247,7 +247,7 @@ public:
                 std::fwrite(**it, 1, it->Size(), m_output);
             }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             if (isStandardOutput)
             {
                 static constexpr Span<const char> ResetCode = "\033[0m";
@@ -307,7 +307,7 @@ public:
 
         if (!redirectFunction || redirectFunction(redirectContext, *channelPtr, message))
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             const bool isStandardOutput = (m_output == stdout || m_output == stderr);
             if (isStandardOutput)
             {
@@ -321,7 +321,7 @@ public:
                 std::fwrite(**it, 1, it->Size(), m_outputError);
             }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             if (isStandardOutput)
             {
                 static constexpr Span<const char> ResetCode = "\033[0m";
@@ -813,7 +813,7 @@ void Logger::LogScript(const LogChannel& channel, LogLevel level, const String& 
 
 namespace logging {
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber)
 {
     static constexpr LogLevel Level = LogLevel::Debug;

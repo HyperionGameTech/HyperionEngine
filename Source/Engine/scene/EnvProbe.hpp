@@ -321,7 +321,7 @@ public:
     ReflectionProbe& operator=(const ReflectionProbe& other) = delete;
     ~ReflectionProbe() override = default;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     HYP_METHOD(EditorOnly, EditAction = "Bake Cubemap", EditCondition = "IsBaked")
     void BakeCubemap();
 #endif

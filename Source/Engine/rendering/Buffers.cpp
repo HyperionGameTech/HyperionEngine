@@ -112,7 +112,7 @@ struct StagingBufferPoolImpl
         newBuffer.lastUsedFrame = currFrame;
         newBuffer.buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, bufferSize);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         newBuffer.buffer->SetDebugName(HYP_NAME("StagingBufferPoolTempBuffer"));
 #endif
 
@@ -166,7 +166,7 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
 
     m_gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, gpuBufferSize);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_gpuBuffer->SetDebugName(NAME_FMT("GpuBufferHolder_{}", *m_structTypeInfo->name));
 #endif
     

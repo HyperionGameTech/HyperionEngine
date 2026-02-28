@@ -90,7 +90,7 @@ Handle<EngineStats> g_engineStats;
 MaterialCache* g_materialCache;
 ShaderCompiler* g_shaderCompiler;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 Handle<EditorState> g_editorState;
 #endif
 

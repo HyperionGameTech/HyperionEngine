@@ -39,7 +39,7 @@ inline void LogStatic_Channel(Logger& logger, const LogChannel& channel, Args&&.
 template <LogLevel Level>
 inline void LogDynamic(Logger& logger, const LogChannel& channel, const char* fileName, int lineNumber, const char* str);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 HYP_API extern void LogTemp(Logger& logger, const char* str, const char* fileName, int lineNumber);
 #endif
 
@@ -64,7 +64,7 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 #define HYP_LOG_DYNAMIC(channel, level, str) \
     Hyperion::logging::LogDynamic<Hyperion::logging::LogLevel::level>(Hyperion::logging::GetLogger(), g_logChannel_##channel, HYP_STATIC_STRING(__FILE__).Data(), (__LINE__), str)
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #define HYP_LOG_TEMP(fmt, ...) \
     Hyperion::logging::LogTemp(Hyperion::logging::GetLogger(), &(HYP_FORMAT(fmt, ##__VA_ARGS__))[0], HYP_STATIC_STRING(__FILE__).Data(), (__LINE__))
 #else

@@ -109,7 +109,7 @@ const VulkanGpuImageViewRef& VulkanTextureViewCache::GetOrCreate(
         VulkanGpuImageViewRef imageView = MakeHandle<VulkanGpuImageView>(
             texture->GetGpuImage(), subResource, ToVkImageViewType(viewTextureType));
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         imageView->SetDebugName(NAME_FMT("{}_IV", texture->GetGpuImage()->GetDebugName()));
 #endif
 

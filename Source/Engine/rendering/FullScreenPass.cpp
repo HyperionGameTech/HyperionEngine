@@ -355,7 +355,7 @@ void FullScreenPass::CreateFramebuffer()
     textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
     GpuImageRef attachmentImage = g_renderInterface->MakeImage(textureDesc);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", InstanceClass()->GetName()));
 #endif
 

@@ -33,6 +33,10 @@
 
 namespace Hyperion {
 
+#if HYP_EDITOR
+HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif
+
 class Texture;
 class TextureMipmapRenderer;
 
@@ -193,7 +197,7 @@ struct CreateTextureGpuImage : RenderCommand
             }
 
             GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, imageData.Size());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             stagingBuffer->SetDebugName(NAME_FMT("Texture_StagingBuffer_{}", texture->GetName().IsValid() ? texture->GetName() : NAME("Invalid")));
 #endif
 
@@ -327,7 +331,7 @@ void Texture::Init()
 {
     m_gpuImage = g_renderInterface->MakeImage(GetTextureDesc());
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (m_name.IsValid())
         m_gpuImage->SetDebugName(m_name);
 #endif
@@ -371,7 +375,7 @@ void Texture::PageBlobData()
 
         if (!blobStorage.GetData(m_imageData.key, m_imageData.size, m_imageData.raw))
         {
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
             // check if failed; if so, try to import from raw data blob in project directory
             Handle<AssetPackage> package = GetPackage();
             Assert(package && package->IsSaved());
@@ -382,6 +386,12 @@ void Texture::PageBlobData()
                 ByteBuffer buffer = stream.Read(stream.Max());
 
                 AllocateBlobData(m_imageData, buffer.Data(), buffer.Size(), 1);
+                    
+                Result saveBlobDataResult = SaveBlobData(blobStorage);
+                if (saveBlobDataResult.HasError())
+                {
+                    HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
+                }
 
                 MarkDirty();
 
@@ -581,7 +591,7 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
     AssertReady();
 
     GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     gpuBuffer->SetDebugName(NAME_FMT("Texture_Readback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
 #endif
 
@@ -648,7 +658,7 @@ void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
     const ResourceState previousResourceState = m_gpuImage->GetResourceState();
 
     GpuBufferRef stagingBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     stagingBuffer->SetDebugName(NAME_FMT("Texture_EnqueueReadback_StagingBuffer_{}", GetName().IsValid() ? GetName() : NAME("Invalid")));
 #endif
 

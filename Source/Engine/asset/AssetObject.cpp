@@ -355,7 +355,7 @@ Result AssetObject::SaveBlobData(
             return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
         }
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
         if (localBlobDirectory.HasValue())
         {
             // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data

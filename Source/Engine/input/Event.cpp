@@ -119,7 +119,7 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
 
 Event::~Event()
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     // To allow easier debugging of stale events
     m_timestamp = Time(0);
 #endif

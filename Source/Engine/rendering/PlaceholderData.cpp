@@ -321,19 +321,19 @@ void PlaceholderData::Initialize()
 
 #pragma region Samplers
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_samplerLinear->SetDebugName(NAME("Placeholder_Sampler_Linear"));
 #endif
 
     CheckResult(m_samplerLinear->Create());
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_samplerLinearMipmap->SetDebugName(NAME("Placeholder_Sampler_Linear_Mipmap"));
 #endif
 
     CheckResult(m_samplerLinearMipmap->Create());
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_samplerNearest->SetDebugName(NAME("Placeholder_Sampler_Nearest"));
 #endif
 
@@ -376,7 +376,7 @@ void PlaceholderData::Shutdown()
 GpuBufferRef PlaceholderData::CreateGpuBuffer(GpuBufferType bufferType, SizeType size)
 {
     GpuBufferRef gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, size);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     gpuBuffer->SetDebugName(NAME("Placeholder_GpuBuffer"));
 #endif
     CheckResult(gpuBuffer->Create());

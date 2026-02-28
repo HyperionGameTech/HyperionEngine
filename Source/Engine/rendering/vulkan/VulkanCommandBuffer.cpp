@@ -267,7 +267,7 @@ void VulkanCommandBuffer::DrawIndexedIndirect(
 
 void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (g_vulkanDynamicFunctions->vkCmdDebugMarkerBeginEXT)
     {
         const VkDebugMarkerMarkerInfoEXT marker {
@@ -283,7 +283,7 @@ void VulkanCommandBuffer::DebugMarkerBegin(const char* markerName) const
 
 void VulkanCommandBuffer::DebugMarkerEnd() const
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (g_vulkanDynamicFunctions->vkCmdDebugMarkerEndEXT)
     {
         g_vulkanDynamicFunctions->vkCmdDebugMarkerEndEXT(m_handle);

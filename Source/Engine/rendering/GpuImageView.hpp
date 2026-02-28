@@ -20,7 +20,7 @@ public:
     
     virtual ~GpuImageViewBase() override;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -73,7 +73,7 @@ protected:
     GpuImageRef m_image;
     ImageSubResource m_subResource;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

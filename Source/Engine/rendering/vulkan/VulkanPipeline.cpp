@@ -49,7 +49,7 @@ void VulkanPipelineBase::SetPushConstants(const void* data, SizeType size)
     m_pushConstants = PushConstantData(data, size);
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanPipelineBase::SetDebugName(Name name)
 {
