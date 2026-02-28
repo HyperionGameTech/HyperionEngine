@@ -4,7 +4,7 @@
 #include "./probe_uniforms.inc"
 #include "./shared.inc"
 
-vec4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
+float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
 {
     const int3 base_grid_coord = BaseGridCoord(P);
     const float3 base_probe_position = GridPositionToWorldPosition(base_grid_coord);
@@ -67,7 +67,7 @@ vec4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
     float3 net_irradiance = total_irradiance / max(total_weight, 0.001);
     net_irradiance = HYP_FMATH_SQR(net_irradiance);
 
-    return vec4(net_irradiance, 1.0);
+    return float4(net_irradiance, 1.0);
 }
 
 #endif

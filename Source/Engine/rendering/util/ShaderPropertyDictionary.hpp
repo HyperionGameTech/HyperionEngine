@@ -2,12 +2,9 @@
 
 #pragma once
 
-namespace Hyperion {
+#include <Core/serialization/BinaryDictionary.hpp>
 
-/*! \brief The purpose of ShaderPropertyCache is to assign all ShaderProperty hashes to an
- *  index in a contiguous array upon first seeing it and then reusing that index for
- *  subsequent uses of the same ShaderProperty. This allows us to use bitsets to represent
- *  sets of ShaderProperties efficiently, rather than using HashSets (which are used for serializing and deserializing them). */
+namespace Hyperion {
 
 enum class ShaderPropertyId : uint32;
 
@@ -17,6 +14,19 @@ class ByteWriter;
 
 class BufferedReader;
 using BufferedByteReader = BufferedReader;
+
+/*! \brief ShaderPropertyDictionary assigns all ShaderProperty hashes to a contiguous index
+ *  upon first use and reuses that index on subsequent encounters of the same ShaderProperty.
+ *  This allows sets of ShaderProperties to be represented as efficient bitsets rather than
+ *  HashSets (which are used only for serialization and deserialization) */
+class ShaderPropertyDictionary : public BinaryDictionary<ShaderProperty, ShaderPropertyId>
+{
+public:
+    ShaderPropertyDictionary() = default;
+    virtual ~ShaderPropertyDictionary() override = default;
+
+    static ShaderPropertyDictionary& GetInstance();
+};
 
 void InitShaderPropertyDictionary();
 
