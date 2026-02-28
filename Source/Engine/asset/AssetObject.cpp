@@ -263,50 +263,10 @@ Result AssetObject::Save(const FilePath& manifestPath)
 
     BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
-    Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
-    CollectBlobDataReferences(blobDataReferences);
-
-    for (auto& tup : blobDataReferences)
+    Result saveBlobDataResult = SaveBlobData(blobStorage, dir);
+    if (saveBlobDataResult.HasError())
     {
-        const char* magic = tup.GetElement<0>();
-        const SizeType magicLen = magic ? std::strlen(magic) : 0;
-
-        AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
-            "Blob data reference magic must be non-empty and at most {} characters long",
-            sizeof(BlobHeader::magic));
-
-        uint16 version = tup.GetElement<1>();
-        BlobDataReference* reference = tup.GetElement<2>();
-
-        Assert(reference != nullptr && reference->raw != nullptr);
-
-        BlobHeader header {};
-        Memory::StrCpy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));
-        header.payloadOffset = 0;
-        header.payloadSize = reference->size;
-        header.version = version;
-
-        reference->key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
-
-        if (!blobStorage.PutData(StringHash(reference->key), header, reference->raw))
-        {
-            AssertDebug(false, "Failed to write blob data reference!");
-
-            return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
-        }
-
-#ifdef HYP_EDITOR
-        // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
-        // and we need to "import" it via individual blobs upon fail.
-        // In cooked builds that data will be excluded
-        FileByteWriter stream { dir / (String(*GetName()) + "." + magic + ".raw.blob") };
-        if (!stream.IsOpen())
-        {
-            return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}", stream.GetFilePath());
-        }
-
-        stream.Write(reference->raw, reference->size);
-#endif
+        return saveBlobDataResult;
     }
 
     // save manifest after updating blob info
@@ -355,6 +315,62 @@ Result AssetObject::SaveManifest(ByteWriter& stream) const
     ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson, opts);
 
     stream.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
+
+    return {};
+}
+
+Result AssetObject::SaveBlobData(
+    BlobStorage& storage,
+    const Optional<FilePath>& localBlobDirectory)
+{
+    Array<Tuple<const char*, uint16, BlobDataReference*>> blobDataReferences;
+    CollectBlobDataReferences(blobDataReferences);
+
+    for (auto& tup : blobDataReferences)
+    {
+        const char* magic = tup.GetElement<0>();
+        const SizeType magicLen = magic ? std::strlen(magic) : 0;
+
+        AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
+            "Blob data reference magic must be non-empty and at most {} characters long",
+            sizeof(BlobHeader::magic));
+
+        uint16 version = tup.GetElement<1>();
+        BlobDataReference* reference = tup.GetElement<2>();
+
+        Assert(reference != nullptr && reference->raw != nullptr);
+
+        BlobHeader header {};
+        Memory::Copy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));
+        header.payloadOffset = 0;
+        header.payloadSize = reference->size;
+        header.version = version;
+
+        reference->key = CreateNameFromDynamicString(GetPath().ToString() + "." + magic);
+
+        if (!storage.PutData(StringHash(reference->key), header, reference->raw))
+        {
+            AssertDebug(false, "Failed to write blob data reference!");
+
+            return HYP_MAKE_ERROR(Error, "Failed to write blob data reference (magic: {}, version: {})", magic, version);
+        }
+
+#ifdef HYP_EDITOR
+        if (localBlobDirectory.HasValue())
+        {
+            // Save the blob data locally as well, as other users may not have the blob data or have mismatched blob data
+            // and we need to "import" it via individual blobs upon fail.
+            // In cooked builds that data will be excluded
+            FileByteWriter stream { *localBlobDirectory / (String(*GetName()) + "." + magic + ".raw.blob") };
+            if (!stream.IsOpen())
+            {
+                return HYP_MAKE_ERROR(Error, "Failed to write local blob data at path: {}", stream.GetFilePath());
+            }
+
+            stream.Write(reference->raw, reference->size);
+        }
+#endif
+    }
 
     return {};
 }

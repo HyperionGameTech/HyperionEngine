@@ -1856,8 +1856,10 @@ AssetRegistry::AssetRegistry()
 AssetRegistry::AssetRegistry(const String& rootPath)
     : m_rootPath(rootPath),
       m_scheduler(new Scheduler(s_assetRegistryThread)),
-      m_pruneTimer { 30.0 }, // every 30 seconds
+      m_pruneTimer { 30.0 },        // every 30 seconds
       m_pruneTaskBatch(nullptr),
+      m_saveBlobCacheTimer { 5.0 }, // every 5 seconds
+      m_saveBlobCacheBatch(nullptr),
       m_blobStorage(nullptr)
 {
 }
@@ -1868,12 +1870,24 @@ AssetRegistry::~AssetRegistry()
     {
         if (!m_pruneTaskBatch->IsCompleted())
         {
-            HYP_LOG(Assets, Warning, "Waiting for prune task batch to complete before destroying AssetRegistry...");
+            HYP_LOG(Assets, Info, "Waiting for prune task batch to complete before destroying AssetRegistry...");
             m_pruneTaskBatch->AwaitCompletion();
         }
 
         delete m_pruneTaskBatch;
         m_pruneTaskBatch = nullptr;
+    }
+
+    if (m_saveBlobCacheBatch != nullptr)
+    {
+        if (!m_saveBlobCacheBatch->IsCompleted())
+        {
+            HYP_LOG(Assets, Info, "Waiting for blob cache to finish saving");
+            m_saveBlobCacheBatch->AwaitCompletion();
+        }
+
+        delete m_saveBlobCacheBatch;
+        m_saveBlobCacheBatch = nullptr;
     }
 
     if (m_blobStorage != nullptr)
@@ -2036,6 +2050,55 @@ void AssetRegistry::PruneTransientPackages()
     }
 }
 
+void AssetRegistry::SaveBlobCache(bool async)
+{
+    auto DoSaveBlobCache = [this, weakThis = MakeWeakRef(this)]()
+    {
+        Handle<AssetRegistry> registry = weakThis.Lock();
+
+        if (!registry.IsValid())
+            return;
+
+        if (m_blobStorage != nullptr)
+        {
+            Result result = m_blobStorage->SaveIfDirty();
+
+            if (result.HasError())
+            {
+                HYP_LOG(Assets, Error, "Failed to save blob storage - error message was: {}", result.GetError().GetMessage());
+            }
+        }
+    };
+
+    if (async)
+    {
+        if (m_saveBlobCacheBatch != nullptr)
+        {
+            if (!m_saveBlobCacheBatch->IsCompleted())
+            {
+                HYP_LOG(Assets, Warning, "Skipping saving blob cache - async task already processing");
+
+                return;
+            }
+
+            m_saveBlobCacheBatch->ResetState();
+        }
+        else
+        {
+            m_saveBlobCacheBatch = new TaskBatch;
+            m_saveBlobCacheBatch->pool = &TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+        }
+
+        m_saveBlobCacheBatch->AddTask(DoSaveBlobCache);
+
+        TaskSystem::GetInstance().EnqueueBatch(m_saveBlobCacheBatch);
+    }
+    else
+    {
+        DoSaveBlobCache();
+    }
+}
+
 BlobStorage& AssetRegistry::GetBlobStorage()
 {
     Assert(m_blobStorage != nullptr);
@@ -2057,7 +2120,7 @@ void AssetRegistry::InitBlobStorage()
     m_blobStorage = new BlobStorage(s_blobStorageLocation, s_blobStoragePageSize);
 }
 
-void AssetRegistry::Update(float delta)
+void AssetRegistry::Update()
 {
     HYP_SCOPE;
     AssertOnThread(s_assetRegistryThread);
@@ -2067,6 +2130,13 @@ void AssetRegistry::Update(float delta)
         m_pruneTimer.NextTick();
 
         PruneTransientPackages();
+    }
+
+    if (!m_saveBlobCacheTimer.Waiting())
+    {
+        m_saveBlobCacheTimer.NextTick();
+
+        SaveBlobCache(/* async */ true);
     }
 
     if (m_scheduler->NumEnqueued() > 0)

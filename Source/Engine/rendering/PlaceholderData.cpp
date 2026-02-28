@@ -213,6 +213,8 @@ void PlaceholderData::Initialize()
             Handle<Texture> textureAsset = ObjCast<Texture>(asset);
             Assert(textureAsset != nullptr);
 
+            textureAsset->SetPersistentRequested(true, /* setFlag */ true);
+
             InitObject(textureAsset);
 
             outTexture = textureAsset;

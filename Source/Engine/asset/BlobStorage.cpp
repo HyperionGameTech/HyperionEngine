@@ -55,17 +55,334 @@ static void InitBlobStorage(BlobStorage& outStorage, const FilePath& baseDirecto
     };
 }
 
+#pragma region BlobTableOfContents
+
+HYP_DISABLE_OPTIMIZATION;
+class BlobTableOfContents
+{
+    enum class SlotState : uint8
+    {
+        Empty = 0,
+        Occupied = 1,
+        Deleted = 2
+    };
+
+public:
+    HYP_DEF_POOL_NEW_DELETE(g_assetPool);
+
+    static constexpr uint32 MaxKeyLength = 512;
+
+    struct Value
+    {
+        uint32 page;
+        uint64 offset;
+        uint64 size;
+    };
+
+    struct Entry
+    {
+        StringHash key;
+        Value value;
+        SlotState state;
+    };
+
+private:
+    struct MapHeader
+    {
+        uint64 capacity;
+        uint64 size;
+        uint64 deleted;
+    };
+
+    ByteBuffer mem;
+    bool dirty;
+
+    MapHeader* GetHeader()
+    { 
+        return reinterpret_cast<MapHeader*>(mem.Data()); 
+    }
+
+    const MapHeader* GetHeader() const
+    { 
+        return reinterpret_cast<const MapHeader*>(mem.Data()); 
+    }
+
+    Entry* GetBuckets()
+    {
+        return reinterpret_cast<Entry*>(mem.Data() + sizeof(MapHeader));
+    }
+
+public:
+    explicit BlobTableOfContents(SizeType capacity = 1024)
+        : dirty(false)
+    {
+        AllocateNew(capacity);
+    }
+
+    bool Insert(StringHash key, const Value& value)
+    {
+        MapHeader* header = GetHeader();
+
+        if (header->size * 10 >= header->capacity * 7)
+        {
+            Resize(header->capacity * 2);
+        }
+
+        return Insert_Internal(header, GetBuckets(), key, value);
+    }
+
+    bool Get(StringHash key, Value& outValue) const
+    {
+        const MapHeader* header = GetHeader();
+        const Entry* entries = reinterpret_cast<const Entry*>(mem.Data() + sizeof(MapHeader));
+
+        SizeType idx = key.GetHashCode().Value() % header->capacity;
+        SizeType startIdx = idx;
+
+        while (entries[idx].state != SlotState::Empty)
+        {
+            if (entries[idx].state == SlotState::Occupied && key == entries[idx].key)
+            {
+                outValue = entries[idx].value;
+
+                return true;
+            }
+
+            idx = (idx + 1) % header->capacity;
+
+            if (idx == startIdx)
+                return false;
+        }
+
+        return false;
+    }
+
+    void Put(StringHash key, const Value& value)
+    {
+        MapHeader* header = GetHeader();
+
+        // resize if (occupied + deleted) > 70% of Capacity
+        SizeType totalLoad = header->size + header->deleted;
+        if (totalLoad * 10 >= header->capacity * 7)
+        {
+            Resize(header->capacity * 2);
+        }
+
+        header = GetHeader();
+
+        Entry* entries = GetBuckets();
+
+        SizeType idx = key.GetHashCode().Value() % header->capacity;
+        
+        int64 firstDeleted = -1; 
+
+        while (entries[idx].state != SlotState::Empty)
+        {
+            if (entries[idx].state == SlotState::Occupied)
+            {
+                if (key == entries[idx].key)
+                {
+                    // FOUND: Update existing value
+                    entries[idx].value = value;
+
+                    dirty = true;
+
+                    return;
+                }
+            }
+            else if (entries[idx].state == SlotState::Deleted)
+            {
+                // remember deleted elem to recycle slot
+                if (firstDeleted == -1)
+                {
+                    firstDeleted = idx;
+                }
+            }
+            
+            idx = (idx + 1) % header->capacity;
+        }
+
+        // key not found. insert new.
+        // if we passed a deleted element, recycle it. otherwise use the current EMPTY slot.
+        SizeType insertIdx = (firstDeleted != -1) ? SizeType(firstDeleted) : idx;
+
+        if (entries[insertIdx].state == SlotState::Deleted)
+        {
+            header->deleted--; // We are reviving a dead slot
+        }
+        
+        entries[idx].key = key;
+        entries[insertIdx].value = value;
+        entries[insertIdx].state = SlotState::Occupied;
+
+        dirty = true;
+
+        header->size++;
+    }
+
+    bool Delete(StringHash key)
+    {
+        MapHeader* header = GetHeader();
+        Entry* entries = GetBuckets();
+
+        SizeType idx = key.GetHashCode().Value() % header->capacity;
+        SizeType startIdx = idx;
+
+        while (entries[idx].state != SlotState::Empty)
+        {
+            if (entries[idx].state == SlotState::Occupied && key == entries[idx].key)
+            {
+                // mark deleted
+                entries[idx].state = SlotState::Deleted;
+                header->size--;
+                header->deleted++;
+                
+                dirty = true;
+
+                return true;
+            }
+            
+            idx = (idx + 1) % header->capacity;
+
+            if (idx == startIdx)
+                return false;
+        }
+
+        return false; // Not found
+    }
+
+    const void* Data() const
+    {
+        return mem.Data();
+    }
+
+    bool Dirty() const
+    {
+        return dirty;
+    }
+
+    void Save(ByteWriter& stream)
+    {
+        stream.Write(mem);
+
+        dirty = false;
+    }
+
+    static Result Load(ByteReader& stream, BlobTableOfContents& outToc)
+    {
+        if (stream.Eof())
+        {
+            return HYP_MAKE_ERROR(Error, "Unexpected end of file");
+        }
+
+        const SizeType numToRead = stream.Max() - stream.Position();
+
+        outToc.mem.SetSize(numToRead);
+
+        SizeType numRead = stream.Read((void*)outToc.mem.Data(), numToRead);
+
+        outToc.dirty = false;
+
+        if (numRead != numToRead)
+        {
+            return HYP_MAKE_ERROR(Error, "Read size ({}) does not equal expected size ({})", numRead, numToRead);
+        }
+
+        return {};
+    }
+
+private:
+    bool Insert_Internal(MapHeader* header, Entry* entry, StringHash key, const Value& value)
+    {
+        SizeType idx = key.GetHashCode().Value() % header->capacity;
+        SizeType startIdx = idx;
+
+        while (entry[idx].state == SlotState::Occupied)
+        {
+            if (key == entry[idx].key)
+            {
+                entry[idx].value = value; // Update
+
+                dirty = true;
+
+                return true;
+            }
+
+            idx = (idx + 1) % header->capacity;
+
+            if (idx == startIdx)
+                return false;
+        }
+
+        entry[idx].key = key;
+        entry[idx].value = value;
+        entry[idx].state = SlotState::Occupied;
+
+        dirty = true;
+        
+        header->size++;
+
+        return true;
+    }
+
+    void AllocateNew(SizeType capacity)
+    {
+        SizeType totalBytes = sizeof(MapHeader) + (capacity * sizeof(Entry));
+        mem.SetSize(totalBytes, /* zeroize */ true);
+
+        MapHeader* header = GetHeader();
+        
+        header->capacity = capacity;
+        header->size = 0;
+        header->deleted = 0;
+    }
+
+    void Resize(SizeType newCapacity)
+    {
+        ByteBuffer newMem;
+        SizeType totalBytes = sizeof(MapHeader) + (newCapacity * sizeof(Entry));
+        newMem.SetSize(totalBytes, /* zeroize */ true);
+
+        Entry* newBuckets = reinterpret_cast<Entry*>(newMem.Data() + sizeof(MapHeader));
+        
+        MapHeader* newHeader = reinterpret_cast<MapHeader*>(newMem.Data());
+        newHeader->capacity = newCapacity;
+        newHeader->size = 0;
+        newHeader->deleted = 0;
+
+        // rehash
+        MapHeader* oldHeader = GetHeader();
+        Entry* oldBuckets = GetBuckets();
+        
+        for (SizeType i = 0; i < oldHeader->capacity; ++i) 
+        {
+            // Only copy OCCUPIED
+            if (oldBuckets[i].state == SlotState::Occupied)
+            {
+                Insert_Internal(newHeader, newBuckets, oldBuckets[i].key, oldBuckets[i].value);
+            }
+        }
+
+        std::swap(newMem, mem);
+    }
+};
+HYP_ENABLE_OPTIMIZATION;
+
+#pragma endregion BlobTableOfContents
+
 #pragma region BlobStorage
 
 BlobStorage::BlobStorage()
     : m_baseDirectory(FilePath()),
-      m_pageSize(DefaultPageSize)
+      m_pageSize(DefaultPageSize),
+      m_toc(nullptr)
 {
 }
 
 BlobStorage::BlobStorage(const FilePath& baseDirectory, uint64 pageSize)
     : m_baseDirectory(baseDirectory),
-      m_pageSize(pageSize)
+      m_pageSize(pageSize),
+      m_toc(nullptr)
 {
     InitBlobStorage(*this, baseDirectory, pageSize);
 
@@ -85,9 +402,11 @@ BlobStorage::BlobStorage(BlobStorage&& other) noexcept
       m_baseDirectory(std::move(other.m_baseDirectory)),
       m_pageSize(other.m_pageSize),
       m_freeRanges(std::move(other.m_freeRanges)),
-      m_pageData(std::move(other.m_pageData))
+      m_pageData(std::move(other.m_pageData)),
+      m_toc(other.m_toc)
 {
     other.callbacks = {};
+    other.m_toc = nullptr;
 }
 
 BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
@@ -109,13 +428,20 @@ BlobStorage& BlobStorage::operator=(BlobStorage&& other) noexcept
     
     callbacks = std::move(other.callbacks);
 
+    if (m_toc != nullptr)
+    {
+        delete m_toc;
+    }
+
     m_baseDirectory = std::move(other.m_baseDirectory);
     m_pageSize = other.m_pageSize;
     m_freeRanges = std::move(other.m_freeRanges);
     m_pageData = std::move(other.m_pageData);
     m_pageSize = other.m_pageSize;
+    m_toc = other.m_toc;
 
     other.callbacks = {};
+    other.m_toc = nullptr;
 
     return *this;
 }
@@ -130,6 +456,12 @@ BlobStorage::~BlobStorage()
     if (callbacks.Destroy)
     {
         callbacks.Destroy(callbacks.context);
+    }
+
+    if (m_toc != nullptr)
+    {
+        delete m_toc;
+        m_toc = nullptr;
     }
 }
 
@@ -236,7 +568,7 @@ bool BlobStorage::GetData(StringHash key, SizeType size, void*& outRawData)
     Mutex::Guard guard(m_mutex);
 
     BlobTableOfContents::Value tocValue;
-    if (!m_toc.Get(key, tocValue))
+    if (!m_toc->Get(key, tocValue))
     {
         HYP_LOG(Assets, Warning, "Blob data not found in table of contents: {}", key.GetHashCode().Value());
 
@@ -276,12 +608,12 @@ bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* 
     const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + totalBlobSize;
 
     BlobTableOfContents::Value existingValue;
-    if (m_toc.Get(key, existingValue))
+    if (m_toc->Get(key, existingValue))
     {
         if (existingValue.size != header.payloadSize)
         {
             // needs new allocation if changed!
-            Assert(m_toc.Delete(key));
+            Assert(m_toc->Delete(key));
         }
     }
 
@@ -340,7 +672,7 @@ bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* 
 
         pd.cursor = writeStream->Position();
 
-        m_toc.Put(key, BlobTableOfContents::Value {
+        m_toc->Put(key, BlobTableOfContents::Value {
             .page = page,
             .offset = offset,
             .size = header.payloadSize
@@ -412,33 +744,42 @@ void BlobStorage::ClosePage(uint32 page)
     }
 }
 
+Result BlobStorage::SaveTOC()
+{
+    Mutex::Guard guard(m_mutex);
+
+    return SaveTOC_Internal();
+}
+
 Result BlobStorage::SaveManifest()
 {
     Mutex::Guard guard(m_mutex);
 
-    if (m_baseDirectory.Empty())
+    return SaveManifest_Internal();
+}
+
+Result BlobStorage::SaveIfDirty()
+{
+    Mutex::Guard guard(m_mutex);
+
+    if (!m_toc || !m_toc->Dirty())
     {
-        return HYP_MAKE_ERROR(Error, "Base directory not set");
+        return {};
     }
 
-    if (!m_baseDirectory.IsDirectory() && !m_baseDirectory.MkDir())
+    Result result = SaveTOC_Internal();
+
+    if (result.HasError())
     {
-        return HYP_MAKE_ERROR(Error, "Not a valid directory and could not make directory: {}", m_baseDirectory);
+        return result;
     }
 
-    const FilePath manifestPath = m_baseDirectory / "Manifest.json";
+    result = SaveManifest_Internal();
 
-    FileByteWriter manifestWriter { manifestPath };
-
-    if (!manifestWriter.IsOpen())
+    if (result.HasError())
     {
-        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for BlobStorage at path: {}, errno: {}", manifestPath, std::strerror(errno));
+        return result;
     }
-
-    JSON::Object manifestJson;
-    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
-
-    manifestWriter.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
 
     return {};
 }
@@ -490,24 +831,6 @@ Result BlobStorage::LoadManifest()
     return {};
 }
 
-Result BlobStorage::SaveTOC()
-{
-    Mutex::Guard guard(m_mutex);
-
-    const FilePath tocPath = m_baseDirectory / "storage.toc";
-
-    FileByteWriter tocWriter { tocPath };
-
-    if (!tocWriter.IsOpen())
-    {
-        return HYP_MAKE_ERROR(Error, "Failed to open table of contents file for BlobStorage at path: {}, errno: {}", tocPath, std::strerror(errno));
-    }
-
-    m_toc.Save(tocWriter);
-
-    return {};
-}
-
 Result BlobStorage::LoadTOC()
 {
     Mutex::Guard guard(m_mutex);
@@ -526,7 +849,61 @@ Result BlobStorage::LoadTOC()
         return HYP_MAKE_ERROR(Error, "Failed to open BlobStorage table of contents file: {}", tocPath);
     }
 
-    return BlobTableOfContents::Load(reader, m_toc);
+    if (m_toc)
+    {
+        delete m_toc;
+    }
+
+    m_toc = new BlobTableOfContents;
+
+    return BlobTableOfContents::Load(reader, *m_toc);
+}
+
+Result BlobStorage::SaveManifest_Internal()
+{
+    if (m_baseDirectory.Empty())
+    {
+        return HYP_MAKE_ERROR(Error, "Base directory not set");
+    }
+
+    if (!m_baseDirectory.IsDirectory() && !m_baseDirectory.MkDir())
+    {
+        return HYP_MAKE_ERROR(Error, "Not a valid directory and could not make directory: {}", m_baseDirectory);
+    }
+
+    const FilePath manifestPath = m_baseDirectory / "Manifest.json";
+
+    FileByteWriter manifestWriter { manifestPath };
+
+    if (!manifestWriter.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open manifest file for BlobStorage at path: {}, errno: {}", manifestPath, std::strerror(errno));
+    }
+
+    JSON::Object manifestJson;
+    ObjectToJSON(InstanceClass(), BoxedValue(HandleFromThis()), manifestJson);
+
+    manifestWriter.WriteString(JSON::Value(std::move(manifestJson)).ToString(true).ToUtf8());
+
+    return {};
+}
+
+Result BlobStorage::SaveTOC_Internal()
+{
+    Assert(m_toc != nullptr);
+
+    const FilePath tocPath = m_baseDirectory / "storage.toc";
+
+    FileByteWriter tocWriter { tocPath };
+
+    if (!tocWriter.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open table of contents file for BlobStorage at path: {}, errno: {}", tocPath, std::strerror(errno));
+    }
+
+    m_toc->Save(tocWriter);
+
+    return {};
 }
 
 #pragma endregion BlobStorage
