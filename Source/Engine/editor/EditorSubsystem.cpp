@@ -1536,6 +1536,7 @@ void EditorSubsystem::Update(float delta)
         //        ));
     }
 
+#if 0
     RenderProxyList& pickRpl = g_editorState->GetPickCache().GetRenderProxyList();
     pickRpl.GetMeshes().Advance();
 
@@ -1565,6 +1566,7 @@ void EditorSubsystem::Update(float delta)
     {
         g_editorState->GetPickCache().PutEntry(mesh);
     }
+#endif
 }
 
 void EditorSubsystem::OnSceneAttached(const Handle<Scene>& scene)

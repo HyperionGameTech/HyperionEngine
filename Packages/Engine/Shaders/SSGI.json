@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/SSGI/SSGI_234581474205291527"
+      }
+    }],
+  "Name": "SSGI",
+  "FriendlyName": "SSGI",
+  "OriginalFilepath": ""
+}

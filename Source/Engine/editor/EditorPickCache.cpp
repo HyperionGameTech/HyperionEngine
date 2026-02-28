@@ -21,8 +21,11 @@ extern uint32 GetFrameCounter();
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
 
-constexpr SizeType IdealHeadroom = 4 * 1024 * 1024;
-constexpr SizeType MaxMemoryUsageBytes = 64 * 1024 * 1024;
+constexpr SizeType IdealHeadroom = 1 * 1024 * 1024;
+constexpr SizeType MaxMemoryUsageBytes = 256 * 1024 * 1024;
+
+// @TOOD Would be nice to compute screenspace size for each object using viewport camera and use that as part of residency computation?
+// so small objects are worth less, and if less than some pixel threshold, discard it entirely.
 
 struct EditorPickCacheImpl
 {
@@ -154,7 +157,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     // make sure we have enough memory before adding, otherwise fail
     if (!HasFreeSpace((vertexData.Size() * sizeof(Vec3f)) + numIndices * indexSize))
     {
-        HYP_LOG(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
+        HYP_LOG_ONCE(Editor, Error, "Not enough headroom in editor pick cache; cannot add mesh {} (id: {}) to editor pick cache", mesh->GetName(), mesh->Id());
 
         return;
     }
