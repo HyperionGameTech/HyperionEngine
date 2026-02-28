@@ -68,7 +68,11 @@ static constexpr const StringHash RelocatablePackages[] = {
     "$Import"_sh
 };
 
-extern HYP_API const FilePath& GetLibraryDirectory();
+HYP_API extern const FilePath& GetLibraryDirectory();
+
+#if HYP_EDITOR
+HYP_API extern const FilePath& GetProjectsDirectory();
+#endif
 
 StringHash AssetPackage_KeyByFunction(const Handle<AssetPackage>& assetPackage)
 {
@@ -2212,15 +2216,14 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 {
     HYP_SCOPE;
 
-    FilePath baseDirectory = GetLibraryDirectory();
+    Array<FilePath> dirs;
+    dirs.PushBack(GetLibraryDirectory());
 
-    if (!baseDirectory.Exists() || !baseDirectory.IsDirectory())
-    {
-        // nothing to load if it doesnt exist
-        return;
-    }
+#if HYP_EDITOR
+    dirs.PushBack(GetProjectsDirectory());
+#endif
 
-    TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), baseDirectory, loadSubpackages]()
+    TaskSystem::GetInstance().Enqueue([this, weakThis = WeakHandleFromThis(), dirs, loadSubpackages]()
         {
             HYP_NAMED_SCOPE("AssetRegistry::LoadPackagesAsync");
 
@@ -2237,6 +2240,12 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
 
             IterateDirectory = [&](const FilePath& dir)
             {
+                if (!dir.Exists() || !dir.IsDirectory())
+                {
+                    // nothing to load if it doesnt exist
+                    return;
+                }
+
                 bool packageFound = false;
 
                 const FilePath manifestPath = dir / "PackageManifest.json";
@@ -2287,7 +2296,10 @@ void AssetRegistry::LoadPackagesAsync(bool loadSubpackages)
                 }
             };
 
-            IterateDirectory(baseDirectory);
+            for (const FilePath& base : dirs)
+            {
+                IterateDirectory(base);
+            }
         },
         TaskThreadPoolName::THREAD_POOL_BACKGROUND, TaskEnqueueFlags::FIRE_AND_FORGET);
 }

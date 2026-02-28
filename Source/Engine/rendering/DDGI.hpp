@@ -24,7 +24,7 @@ enum ProbeSystemFlags : uint32
 struct DDGIInfo
 {
     BoundingBox aabb;
-    float probeDistance = 3.0f;
+    float probeDistance = 2.0f;
     uint32 numRaysPerProbe = 32;
 
     HYP_FORCE_INLINE const Vec3f& GetOrigin() const

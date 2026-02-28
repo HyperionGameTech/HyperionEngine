@@ -678,6 +678,8 @@ RenderCollector::~RenderCollector()
         {
             attrs.Clear(/* freeMemory */ true);
 
+            Array<FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>> allLocalQueues;
+
             if (prsHead)
             {
                 ParallelRenderingState* state = prsHead;
@@ -691,11 +693,58 @@ RenderCollector::~RenderCollector()
                         delete state->taskBatch;
                     }
 
+                    if (state->ownsSharedData && state->sharedData != nullptr)
+                    {
+                        // take the local queues to free for ourselves - we need to free up their memory on a per-thread basis
+                        allLocalQueues.PushBack(state->sharedData->localQueues);
+
+                        state->sharedData->localQueues = {};
+                    }
+
                     ParallelRenderingState* nextState = state->next;
 
                     delete state;
 
                     state = nextState;
+                }
+            }
+
+            if (allLocalQueues.Any())
+            {
+                // we have to free up the memory for each local queue on individual threads,
+                // due to the use of ThreadAllocator:
+                Array<Task<void>> tasks;
+                tasks.Reserve(ParallelRenderingState::MaxBatches);
+
+                auto& poolThreads = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER).GetThreads();
+
+                for (uint32 i = 0; i < uint32(poolThreads.Size()); i++)
+                {
+                    AssertDebug(poolThreads[i] != nullptr);
+
+                    tasks.EmplaceBack(poolThreads[i]->GetScheduler().Enqueue([&allLocalQueues]()
+                        {
+                            for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
+                            {
+                                ParallelRenderingState::LocalQueue* currQueue = queues[GetCurrentThreadIndex()];
+
+                                if (currQueue != nullptr)
+                                {
+                                    currQueue->~TRenderQueue();
+                                }
+                            }
+                        }));
+                }
+
+                AwaitAll(tasks.ToSpan());
+
+                for (FixedArray<ParallelRenderingState::LocalQueue*, ParallelRenderingState::MaxBatches>& queues : allLocalQueues)
+                {
+                    for (ParallelRenderingState::LocalQueue* queue : queues)
+                    {
+                        // NOTE: not PoolDelete(), we already destructed it on its own thread.
+                        PoolFree(*g_renderPool, queue);
+                    }
                 }
             }
 

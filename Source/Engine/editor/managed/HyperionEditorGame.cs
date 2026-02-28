@@ -93,7 +93,7 @@ namespace Hyperion.Editor
                     Assert.Throw(testModelAsset.Value != null);
 
                     Node n = _editorSubsystem!.GetActiveScene().RootNode.AddChild((Node)testModelAsset.Value);
-                    n.SetLocalScale(new Vec3f(0.03f));
+                    n.SetLocalScale(new Vec3f(2.0f));
                 }
                 else
                 {
