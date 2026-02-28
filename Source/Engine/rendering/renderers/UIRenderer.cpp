@@ -85,7 +85,7 @@ static void BuildRenderGroupsOrdered(
             continue;
         }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         AssertDebug(meshProxy->entity.Id().GetTypeId() == TypeId::ForType<Entity>(),
             "Cannot use Entity subclass as MeshEntity, indices would overlap! Class: {}",
             LookupTypeName(meshProxy->entity.Id().GetTypeId()));
@@ -134,7 +134,7 @@ static void BuildRenderGroupsOrdered(
         {
             rg = new RenderGroup(attributes, RenderGroupFlags::NONE);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             if (!rg)
             {
                 HYP_LOG(UI, Error, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());

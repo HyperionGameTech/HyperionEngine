@@ -173,7 +173,7 @@ RendererResult VulkanComputePipeline::Create()
         vkCreateComputePipelines(g_renderInterface->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create compute pipeline");
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         VulkanPipelineBase::SetDebugName(debugName);
@@ -188,7 +188,7 @@ void VulkanComputePipeline::SetPushConstants(const void* data, SizeType size)
     VulkanPipelineBase::SetPushConstants(data, size);
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanComputePipeline::SetDebugName(Name name)
 {

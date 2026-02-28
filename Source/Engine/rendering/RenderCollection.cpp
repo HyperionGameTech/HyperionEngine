@@ -493,7 +493,7 @@ RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool 
 
 RenderProxyList::~RenderProxyList()
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     int numRenderProxies = 0;
 
     ForEachResourceTracker(resourceTrackers.ToSpan(), [&](auto&& resourceTracker)
@@ -733,7 +733,7 @@ RenderCollector::~RenderCollector()
     parallelRenderingStateTail = nullptr;
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 SizeType RenderCollector::NumDrawCallsCollected() const
 {
     SizeType numDrawCalls = 0;
@@ -1277,7 +1277,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : changedIds)
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
             static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
@@ -1341,7 +1341,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : removed)
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
             Assert(id.GetTypeId() == TypeId::ForType<Entity>());
 #endif
@@ -1379,7 +1379,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
     {
         for (const ObjId<Entity>& id : added)
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
             static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
             Assert(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));

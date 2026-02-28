@@ -33,7 +33,7 @@ public:
         m_shaderInstance = shaderInstance;
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -74,7 +74,7 @@ protected:
 
     ShaderInstanceRef m_shaderInstance;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

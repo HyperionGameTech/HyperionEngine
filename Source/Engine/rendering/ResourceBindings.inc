@@ -4,7 +4,7 @@ typedef void (*WriteBufferDataFunction)(GpuBufferHolderBase* gpuBufferHolder, ui
 template <class T>
 static void OnBindingChanged_Default(T* resource, uint32 prev, uint32 next)
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     AssertOnThread(g_renderThread);
 #endif
 

@@ -63,7 +63,7 @@ public:
         return m_taskBatch.Get();
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     HYP_FORCE_INLINE const PerformanceClock& GetPerformanceClock() const
     {
         return m_performanceClock;
@@ -179,7 +179,7 @@ private:
     TypeMap<SystemBase*> m_systems;
     UniquePtr<TaskBatch> m_taskBatch;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     PerformanceClock m_performanceClock;
     FlatMap<SystemBase*, PerformanceClock> m_performanceClocks;
 #endif

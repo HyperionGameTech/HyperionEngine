@@ -328,7 +328,7 @@ public:
     {
         HYP_CORE_ASSERT(std::is_void_v<ReturnType> || !callingThreadId.IsValid() || callingThreadId == ThreadId::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         if (callingThreadId != ThreadId::Invalid())
         {
             HYP_CORE_ASSERT(GetThreadById(callingThreadId) != nullptr, "Cannot bind a handler to a thread that is not registered with the Threads system");

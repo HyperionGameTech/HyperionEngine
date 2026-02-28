@@ -96,7 +96,7 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
 
     AssertDebug(AllowUpdate());
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_performanceClock.Start();
 
     for (auto& it : m_systems)
@@ -123,14 +123,14 @@ void SystemExecutionGroup::StartProcessing(float delta, Span<Handle<Scene>> scen
             {
                 HYP_NAMED_SCOPE_FMT("Processing system {}", system->GetName());
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
                 PerformanceClock& performanceClock = m_performanceClocks[system];
                 performanceClock.Start();
 #endif
 
                 system->Process(delta, scenes);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
                 performanceClock.Stop();
 #endif
             });
@@ -169,7 +169,7 @@ void SystemExecutionGroup::FinishProcessing(bool executeBlocking)
         }
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     m_performanceClock.Stop();
 #endif
 }

@@ -385,7 +385,7 @@ DescriptorTableBase::DescriptorTableBase(const ShaderInputGroup* decl)
         for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
         {
             DescriptorSetRef descriptorSet = MakeHandle<DescriptorSet>(layout);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             descriptorSet->SetDebugName(layout.GetName());
 #endif
 

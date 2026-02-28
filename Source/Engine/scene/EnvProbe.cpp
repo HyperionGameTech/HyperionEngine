@@ -536,7 +536,7 @@ void EnvProbe::SetBakedTexture(const Handle<Texture>& texture)
 
 #pragma region ReflectionProbe
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 
 void ReflectionProbe::BakeCubemap()
 {

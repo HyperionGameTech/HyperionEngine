@@ -69,7 +69,7 @@ RendererResult VulkanAttachmentMap::Create()
 
         if (!def.image->IsCreated())
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             if (!def.image->GetDebugName().IsValid())
             {
                 def.image->SetDebugName(NAME_FMT("{}_RT_{}", framebuffer->Id(), it.first));

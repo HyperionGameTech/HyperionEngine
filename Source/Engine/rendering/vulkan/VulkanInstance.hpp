@@ -18,7 +18,7 @@ class VulkanInstance
 {
     static ExtensionMap GetExtensionMap();
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     RendererResult SetupDebug();
     RendererResult SetupDebugMessenger();
 #endif
@@ -56,7 +56,7 @@ private:
 
     VulkanDeviceRef m_device;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Array<const char*, VulkanAllocator> m_validationLayers;
     VkDebugUtilsMessengerEXT m_vkDebugMessenger;
 #endif

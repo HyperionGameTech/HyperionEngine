@@ -17,7 +17,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 
 static constexpr SizeType BlockSize = (16 * 1024 * 1024);
 

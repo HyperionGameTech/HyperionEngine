@@ -169,7 +169,7 @@ public:
 
     void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     HYP_METHOD(EditorOnly, EditAction = "BakeLightmaps")
     void BakeLightmaps();
 #endif

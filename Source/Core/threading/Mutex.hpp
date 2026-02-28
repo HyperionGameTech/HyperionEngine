@@ -36,7 +36,7 @@ public:
         InitializeCriticalSection(&m_criticalSection);
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         m_locked = false;
 #endif
     }
@@ -69,7 +69,7 @@ public:
         EnterCriticalSection(&m_criticalSection);
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_CORE_ASSERT(!m_locked, "Mutex is already locked");
         m_locked = true;
 #endif
@@ -77,7 +77,7 @@ public:
 
     void Unlock()
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_CORE_ASSERT(m_locked, "Mutex is not locked");
         m_locked = false;
 #endif
@@ -95,7 +95,7 @@ private:
     CRITICAL_SECTION m_criticalSection;
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     bool m_locked : 1;
 #endif
 };

@@ -417,7 +417,7 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter* out)
             return a->offset < b->offset;
         });
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     // sanity check: make sure no duplicate offsets
     for (SizeType i = 1; i < staticDataOrdered.Size(); i++)
     {
@@ -947,7 +947,7 @@ FBOMResult FBOMWriter::WriteStaticDataUsage(ByteWriter* out, const FBOMStaticDat
     const auto offset = staticData.offset;
     HYP_CORE_ASSERT(offset < m_writeStream->m_staticDataOffset);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     const auto it = m_writeStream->m_staticData.Find(staticData.GetUniqueID());
     HYP_CORE_ASSERT(it != m_writeStream->m_staticData.End());
 

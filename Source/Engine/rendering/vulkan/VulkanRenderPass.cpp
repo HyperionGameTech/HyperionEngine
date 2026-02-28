@@ -334,7 +334,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         }
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     // checks for valid layouts
     for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
     {

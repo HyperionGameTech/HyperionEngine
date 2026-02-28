@@ -10,7 +10,7 @@
 #include <scene/components/LightmapElementComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 #include <baking/BakerSubsystem.hpp>
 #include <baking/lightmap_volume/LightmapVolumeBakeData.hpp>
 #endif
@@ -36,7 +36,7 @@
 
 namespace Hyperion {
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 HYP_DECLARE_LOG_CHANNEL(Editor);
 #endif
 
@@ -297,7 +297,7 @@ void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
     proxy->bufferData.textureIndex = ~0u; /// \todo : Set the correct texture index based on the element
 }
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 
 void LightmapVolume::BakeLightmaps()
 {

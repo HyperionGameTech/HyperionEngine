@@ -128,7 +128,7 @@ void VulkanSwapchain::PresentFrame(VulkanFrame* frame, VulkanDeviceQueue* queue)
     AssertOnThread(g_renderThread);
 
     // Debug: ensure all images are in the PRESENT state
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     for (VulkanGpuImage* image : m_images)
     {
         Assert(image->GetResourceState() == RS_PRESENT);
@@ -461,7 +461,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
         VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(desc);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         image->SetDebugName(NAME_FMT("SwapchainImage_{}", i));
 #endif
 
@@ -488,7 +488,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
     CheckResultOrReturn(singleTimeCommands->Execute());
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     // Ensure all images are in the PRESENT state
     for (VulkanGpuImage* image : m_images)
     {

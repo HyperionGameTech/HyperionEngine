@@ -13,7 +13,7 @@
 #endif
 
 #if defined(HYPERION_BUILD_RELEASE) && HYPERION_BUILD_RELEASE
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #undef HYP_DEBUG_MODE
 #endif
 #endif
@@ -400,7 +400,7 @@
 
 #pragma region Debug Preprocessor Definitions
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #define HYP_ENABLE_BREAKPOINTS
 #endif
 
@@ -491,7 +491,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 
 #pragma region GPU features
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #if HYP_VULKAN
 // #define HYP_VULKAN_DEBUG
 #endif
@@ -510,7 +510,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 #define HYP_VULKAN_API_VERSION VK_API_VERSION_1_2 // moltenvk supports api 1.1
 #define HYP_MOLTENVK 1
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 // #define HYP_MOLTENVK_LINKED 1
 #endif
 #endif
@@ -549,7 +549,7 @@ static HYP_FORCE_INLINE void ExecuteBreakpointOnce()
 // Disabling compile time Name hashing saves on executable size at the cost of runtime performance
 #define HYP_COMPILE_TIME_NAME_HASHING 1
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 // #define HYP_ENABLE_MT_CHECK
 //  #define HYP_LOG_MEMORY_OPERATIONS
 

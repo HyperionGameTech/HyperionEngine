@@ -109,7 +109,7 @@ RendererResult VulkanSampler::Create()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanSampler::SetDebugName(Name name)
 {

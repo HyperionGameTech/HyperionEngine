@@ -495,7 +495,7 @@ int GraphicsPipelineCache::RunCleanupCycle(int maxIter)
 
         if (frameDiff >= GraphicsPipelineDiscardFrames)
         {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             HYP_LOG(Rendering, Verbose, "Removing graphics pipeline {} (debug name: {}) from cache as it has not been used in {} frames",
                 graphicsPipeline->Id(),
                 graphicsPipeline->GetDebugName(),

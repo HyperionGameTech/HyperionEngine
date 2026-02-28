@@ -1219,7 +1219,7 @@ void EditorSubsystem::ShutdownGizmos()
 
 static constexpr bool ShowOnlyActiveScene = true; /// \todo : Make this configurable
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem()
     : m_selectedManipulationMode(EditorManipulationMode::NONE),

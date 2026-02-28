@@ -31,7 +31,7 @@ namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 static inline void ValidateDynamicOffset(
     uint32 offset,
@@ -116,7 +116,7 @@ static inline void PopulateDynamicOffsets(
             const uint32 offset = offsets.values[idx];
             outDynamicOffsets[i] = offset;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             const DescriptorSetLayoutElement* layoutElement = layout.GetElement(Name(dynamicElementName));
             const auto it = elements.Find(Name(dynamicElementName));
             const DescriptorSetElement* element = it != elements.End() ? &it->second : nullptr;
@@ -508,7 +508,7 @@ RendererResult VulkanDescriptorSet::Create()
 
     AssertDebug(m_vkDescriptorPool != VK_NULL_HANDLE);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -781,14 +781,14 @@ VulkanDescriptorSetRef VulkanDescriptorSet::Clone() const
 {
     VulkanDescriptorSetRef descriptorSet = MakeHandle<VulkanDescriptorSet>(GetLayout());
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     descriptorSet->SetDebugName(GetDebugName());
 #endif
 
     return descriptorSet;
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanDescriptorSet::SetDebugName(Name name)
 {

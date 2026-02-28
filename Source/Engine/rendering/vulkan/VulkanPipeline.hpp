@@ -34,7 +34,7 @@ public:
 
     void SetPushConstants(const void* data, SizeType size);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     void SetDebugName(Name name);
 #endif
 

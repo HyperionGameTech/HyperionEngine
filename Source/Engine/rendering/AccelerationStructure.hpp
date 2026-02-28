@@ -62,7 +62,7 @@ public:
         EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
     }
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -97,7 +97,7 @@ public:
 protected:
     GpuBufferRef m_meshDescriptionsBuffer;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };
@@ -118,7 +118,7 @@ public:
     
     virtual ~GpuBlasBase() override = default;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -160,7 +160,7 @@ protected:
     Handle<Material> m_material;
     uint32 m_materialBinding;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

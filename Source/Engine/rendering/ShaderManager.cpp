@@ -14,7 +14,7 @@
 
 #include <Core/threading/SharedMutex.hpp>
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 #include <editor/EditorTask.hpp>
 #endif
 
@@ -105,7 +105,7 @@ public:
     {
         m_activeCompilationTask.acquire();
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
         UpdateEditorTask();
 #endif
 
@@ -149,7 +149,7 @@ public:
 
                     --m_numCompilingShaders;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                     UpdateEditorTask();
 #endif
                 }
@@ -159,7 +159,7 @@ public:
         }
     }
     
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     void UpdateEditorTask()
     {
         auto GetDescriptionText = [this]()

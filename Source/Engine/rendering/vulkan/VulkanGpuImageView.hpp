@@ -46,7 +46,7 @@ public:
 
     RendererResult Create() override;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
 

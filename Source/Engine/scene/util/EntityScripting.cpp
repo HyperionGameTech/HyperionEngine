@@ -286,7 +286,7 @@ void EntityScripting::InitEntityScriptComponent(Entity* entity, ScriptComponent&
                         }
                     }
                 }
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
                 else
                 {
                     HYP_FAIL("Failed to load .NET class {} from Assembly {}", scriptDesc.className.Data(), scriptComponent.assembly->GetGuid().ToUUID().ToString());

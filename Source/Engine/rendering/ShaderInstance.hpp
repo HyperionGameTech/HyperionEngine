@@ -42,7 +42,7 @@ public:
 
     virtual RendererResult Create() = 0;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -62,7 +62,7 @@ protected:
 
     const Shader* m_shader;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

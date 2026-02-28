@@ -20,7 +20,7 @@
 
 #include <Core/debug/Debug.hpp>
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorState.hpp>
@@ -38,7 +38,7 @@
 
 namespace Hyperion {
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 extern Handle<EditorState> g_editorState;
 #endif
 
@@ -1009,7 +1009,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
             TSharedLock<AssetObject> resGuard;
             Mesh* mesh = nullptr;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
             EditorPickCacheEntry* pickCacheEntry = nullptr;
 #endif
 
@@ -1028,7 +1028,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
                     {
                         bvh = &meshComponent->mesh->GetBVH();
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                         if (flags & RayTestFlags::EditorPick)
                         {
                             pickCacheEntry = g_editorState->GetPickCache().GetEntry(meshComponent->mesh);
@@ -1052,7 +1052,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTest
 
                 const Ray localSpaceRay = modelMatrix.Inverse() * ray;
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                 if ((flags & RayTestFlags::EditorPick) && pickCacheEntry)
                 {
                     localBvhResults = bvh->TestRay(

@@ -264,7 +264,7 @@ void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
 
 #pragma region BeginFramebuffer
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 thread_local int s_framebufferCount;
 thread_local Framebuffer* s_currentFramebuffer;
 #endif
@@ -272,7 +272,7 @@ thread_local Framebuffer* s_currentFramebuffer;
 BeginFramebuffer::BeginFramebuffer(Framebuffer* framebuffer)
     : m_framebuffer(framebuffer)
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Assert(!s_framebufferCount, "Cannot begin framebuffer: already in a framebuffer");
     s_framebufferCount++;
     s_currentFramebuffer = framebuffer;
@@ -304,7 +304,7 @@ void BeginFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 EndFramebuffer::EndFramebuffer(Framebuffer* framebuffer)
     : m_framebuffer(framebuffer)
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Assert(s_framebufferCount, "Cannot end framebuffer: not in a framebuffer");
     s_framebufferCount--;
 

@@ -791,7 +791,7 @@ protected:
 
         m_executor->GetNotifier().Await();
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         // Sanity Check
         HYP_CORE_ASSERT(IsCompleted());
 #endif
@@ -945,7 +945,7 @@ protected:
     {
         m_executor->GetNotifier().Await();
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         // Sanity Check
         HYP_CORE_ASSERT(IsCompleted());
 #endif

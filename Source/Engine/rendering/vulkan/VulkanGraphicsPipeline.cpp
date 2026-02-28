@@ -416,7 +416,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         vkCreateGraphicsPipelines(g_renderInterface->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         VulkanPipelineBase::SetDebugName(debugName);
@@ -505,7 +505,7 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
     }
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanGraphicsPipeline::SetDebugName(Name name)
 {

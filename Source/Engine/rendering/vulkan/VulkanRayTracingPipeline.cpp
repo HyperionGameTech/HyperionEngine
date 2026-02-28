@@ -144,7 +144,7 @@ RendererResult VulkanRayTracingPipeline::Create()
         VK_NULL_HANDLE,
         &m_handle));
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -277,7 +277,7 @@ RendererResult VulkanRayTracingPipeline::CreateShaderBindingTableEntry(
     }
 
     out.buffer = MakeHandle<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * numShaders);
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     out.buffer->SetDebugName(NAME("ShaderBindingTable"));
 #endif
 

@@ -40,7 +40,7 @@ public:
 
     virtual ~GpuImageBase() override = default;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -259,7 +259,7 @@ protected:
 
     EnumFlags<GpuImageFlags> m_flags;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

@@ -1610,7 +1610,7 @@ auto String<TStringType>::GetChar(SizeType index) const -> WidestCharType
 {
     const SizeType size = Size();
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     HYP_CORE_ASSERT(index < size);
 #endif
 

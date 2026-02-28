@@ -402,7 +402,7 @@ RendererResult VulkanGpuBuffer::Create()
         Memory::Fill(m_mapping, 0, m_size);
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -535,7 +535,7 @@ RendererResult VulkanGpuBuffer::CheckCanAllocate(
     return result;
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanGpuBuffer::SetDebugName(Name name)
 {

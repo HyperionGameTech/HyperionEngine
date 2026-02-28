@@ -257,7 +257,7 @@ void Material::SetParameter(MaterialParameterKey key, const MaterialParameter& v
     if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting parameter on static material with Id {} (name: {})", Id(), GetName());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
     }
@@ -282,7 +282,7 @@ void Material::SetParameters(const MaterialParameters& parameters)
     if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting parameters on static material with Id {} (name: {})", Id(), GetName());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
     }
@@ -302,7 +302,7 @@ void Material::ResetParameters()
     if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Resetting parameters on static material with Id {} (name: {})", Id(), GetName());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
     }
@@ -322,7 +322,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
     if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting texture on static material with Id {} (name: {})", Id(), GetName());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
     }
@@ -362,7 +362,7 @@ void Material::SetTextures(const MaterialTextures& textures)
     if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting textures on static material with id {} (name: {})", Id(), GetName());
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
     }

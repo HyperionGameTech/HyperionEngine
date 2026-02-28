@@ -58,7 +58,7 @@ public:
     HYP_METHOD()
     void PauseSimulation();
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     HYP_METHOD(EditorOnly)
     void SetToEditMode();
 #endif

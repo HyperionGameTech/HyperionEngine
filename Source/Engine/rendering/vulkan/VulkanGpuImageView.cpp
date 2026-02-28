@@ -111,7 +111,7 @@ RendererResult VulkanGpuImageView::Create()
         vkCreateImageView(g_renderInterface->GetDevice()->GetDevice(), &viewInfo, nullptr, &m_handle),
         "Failed to create image view");
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -121,7 +121,7 @@ RendererResult VulkanGpuImageView::Create()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanGpuImageView::SetDebugName(Name name)
 {

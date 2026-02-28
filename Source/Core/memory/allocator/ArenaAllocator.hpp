@@ -176,7 +176,7 @@ void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
         block = block->next;
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     HYP_FAIL("Failed to allocate from linear memory allocator!");
 #endif
 

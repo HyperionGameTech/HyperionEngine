@@ -167,7 +167,7 @@ public:
 
     void SetRenderTargetDesc(const RenderTargetDesc& renderTargetDesc);
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -232,7 +232,7 @@ protected:
     
     PSOCacheKey m_psoCacheKey;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

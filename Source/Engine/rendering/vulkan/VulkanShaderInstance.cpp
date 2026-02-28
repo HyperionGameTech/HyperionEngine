@@ -36,7 +36,7 @@ VulkanShaderInstance::VulkanShaderInstance()
 VulkanShaderInstance::VulkanShaderInstance(const Shader* shader)
     : ShaderInstanceBase(shader)
 {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (shader != nullptr)
     {
         SetDebugName(shader->GetName());
@@ -245,7 +245,7 @@ RendererResult VulkanShaderInstance::Create()
         CheckResultOrReturn(CreateShaderGroups());
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -255,7 +255,7 @@ RendererResult VulkanShaderInstance::Create()
     return {};
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanShaderInstance::SetDebugName(Name name)
 {

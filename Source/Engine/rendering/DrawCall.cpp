@@ -223,7 +223,7 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-#ifdef HYP_DEBUG_MODE // Sanity checks
+#if HYP_DEBUG_MODE // Sanity checks
     // type check - cannot be a subclass of Entity, indices would get messed up
     Assert(entity->InstanceClass() == Entity::StaticClass(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
 

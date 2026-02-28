@@ -383,7 +383,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
             nullptr),
         "Failed to create gpu image!");
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     if (Name debugName = GetDebugName())
     {
         SetDebugName(debugName);
@@ -993,7 +993,7 @@ VulkanGpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) cons
         1);
 }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 
 void VulkanGpuImage::SetDebugName(Name name)
 {

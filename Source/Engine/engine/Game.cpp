@@ -150,7 +150,7 @@ void Game::PauseSimulation()
     OnGameStateChange(this, previousGameStateMode, GameStateMode::PAUSED);
 }
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
 
 void Game::SetToEditMode()
 {

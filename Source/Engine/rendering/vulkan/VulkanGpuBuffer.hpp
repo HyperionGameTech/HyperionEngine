@@ -75,7 +75,7 @@ public:
 
     void Flush(SizeType offset, SizeType count) override;
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
 #endif
 

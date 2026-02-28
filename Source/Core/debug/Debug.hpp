@@ -26,7 +26,7 @@ enum class LogType : int
     RenDebug,
 };
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 // #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
 #define DebugLog(type, ...) \
     debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
@@ -59,7 +59,7 @@ using debug::LogType;
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
 #define HYP_THROW(msg) throw ::std::runtime_error(msg)
 #else
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #define HYP_THROW(msg)                        \
     do                                        \
     {                                         \
@@ -132,13 +132,13 @@ using debug::LogType;
 #define Assert(...) HYP_CONCAT(HYP_ASSERT, HYP_HAS_ARGS(__VA_ARGS__))(__VA_ARGS__)
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #define AssertDebug(...) Assert(__VA_ARGS__)
 #else
 #define AssertDebug(...) (void)(__VA_ARGS__)
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 // Assert used for internal Hyperion libraries. Uses a simple printf-style format string, rather than the internal Hyperion formatting library.
 // Opt to use this macro over AssertDebug() and Assert() to not pollute dependency on including logging headers.
 // These assertions are stripped from released builds.
@@ -158,7 +158,7 @@ using debug::LogType;
 #define HYP_CORE_ASSERT(...) (void)(__VA_ARGS__)
 #endif
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
 #define HYP_PRINT_STACK_TRACE() \
     debug::LogStackTrace()
 #else

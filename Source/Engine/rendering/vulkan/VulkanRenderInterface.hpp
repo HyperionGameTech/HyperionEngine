@@ -61,7 +61,7 @@ struct VulkanDynamicFunctions
     HYP_DECL_FN(vkGetRayTracingShaderGroupHandlesKHR);
     HYP_DECL_FN(vkCreateRayTracingPipelinesKHR);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     // debugging
     HYP_DECL_FN(vkCmdDebugMarkerBeginEXT);
     HYP_DECL_FN(vkCmdDebugMarkerEndEXT);

@@ -27,7 +27,7 @@ public:
     
     virtual ~GpuBufferBase() override = default;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -121,7 +121,7 @@ protected:
 
     mutable ResourceState m_resourceState;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 

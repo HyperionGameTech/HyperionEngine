@@ -210,7 +210,7 @@ public:
     static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(T& object)
     {
         object.~T();
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         Memory::Garble(&object, sizeof(T));
 #endif
     }
@@ -218,7 +218,7 @@ public:
     template <class T>
     static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(void* ptr)
     { /* Do nothing */
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         if (HYP_UNLIKELY(!ptr))
         {
             HYP_BREAKPOINT;
@@ -229,7 +229,7 @@ public:
     template <class T>
     static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(void* ptr)
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         if (HYP_UNLIKELY(!ptr))
         {
             HYP_BREAKPOINT;
@@ -238,7 +238,7 @@ public:
 
         static_cast<T*>(ptr)->~T();
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         Memory::Garble(ptr, sizeof(T));
 #endif
     }
@@ -246,7 +246,7 @@ public:
     template <class T>
     static typename std::enable_if_t<!std::is_same_v<void*, std::add_pointer_t<T>>, void> DestructAndFree(void* ptr)
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         if (HYP_UNLIKELY(!ptr))
         {
             HYP_BREAKPOINT;
@@ -258,7 +258,7 @@ public:
             static_cast<T*>(ptr)->~T();
         }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         Memory::Garble(ptr, sizeof(T));
 #endif
 
@@ -281,7 +281,7 @@ public:
 
     HYP_FORCE_INLINE static void Free(void* ptr)
     {
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         if (HYP_UNLIKELY(!ptr))
         {
             HYP_BREAKPOINT;

@@ -151,7 +151,7 @@ HYP_API void EngineDriver::Init()
     HYP_SCOPE;
     AssertOnThread(g_mainThread);
 
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
     // Create script compilation service
     m_scriptingService = MakeUnique<ScriptingService>(
         GetScriptsSourceDirectory(),

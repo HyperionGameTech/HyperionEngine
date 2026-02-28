@@ -1431,7 +1431,7 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value
         return Begin();
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     HYP_CORE_ASSERT(where >= Begin() && where <= End());
 #endif
 
@@ -1447,7 +1447,7 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value
         }
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     HYP_CORE_ASSERT(Capacity() >= m_size + 1);
 #endif
 

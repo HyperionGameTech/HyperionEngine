@@ -24,15 +24,11 @@
 
 namespace Hyperion {
 
+#if HYP_EDITOR
+HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif
+
 static const Name s_nameMeshDefault = NAME("<unnamed mesh>");
-
-const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
-    VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
-
-const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
-    VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
-
-#pragma region VertexAttribute
 
 const VertexAttribute* VertexAttribute::Attrs[] = {
     &Position,
@@ -47,6 +43,12 @@ const VertexAttribute* VertexAttribute::Attrs[] = {
 };
 
 #pragma region VertexAttributeSet
+
+const VertexAttributeSet VertexAttributeSet::StaticMeshVertexAttributes =
+    VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
+
+const VertexAttributeSet VertexAttributeSet::SkeletalMeshVertexAttributes =
+    VertexAttribute::BoneWeights | VertexAttribute::BoneIndices;
 
 Array<const VertexAttribute*> VertexAttributeSet::BuildAttributes() const
 {
@@ -214,13 +216,15 @@ void Mesh::PageBlobData()
         && m_vertexData.key
         && m_vertexData.size != 0)
     {
+        bool needsSaveBlobData = false;
+
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
 
         if (!blobStorage.GetData(m_vertexData.key, m_vertexData.size, m_vertexData.raw))
         {
-            ([this]()
+            ([&]()
                 {
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                     // check if failed; if so, try to import from raw data blob in project directory
                     Handle<AssetPackage> package = GetPackage();
                     Assert(package.IsValid());
@@ -232,6 +236,8 @@ void Mesh::PageBlobData()
                         ByteBuffer buffer = stream.Read(stream.Max());
 
                         AllocateBlobData(m_vertexData, buffer.Data(), buffer.Size(), alignof(Vertex));
+
+                        needsSaveBlobData = true;
 
                         MarkDirty();
 
@@ -249,9 +255,9 @@ void Mesh::PageBlobData()
 
         if (!blobStorage.GetData(m_indexData.key, m_indexData.size, m_indexData.raw))
         {
-            ([this]()
+            ([&]()
                 {
-#ifdef HYP_EDITOR
+#if HYP_EDITOR
                     // check if failed; if so, try to import from raw data blob in project directory
                     Handle<AssetPackage> package = GetPackage();
                     Assert(package.IsValid());
@@ -264,6 +270,8 @@ void Mesh::PageBlobData()
 
                         AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
 
+                        needsSaveBlobData = true;
+
                         MarkDirty();
 
                         return;
@@ -272,6 +280,17 @@ void Mesh::PageBlobData()
 
                     HYP_FAIL("Blob data missing! Data corruption detected.");
                 })();
+
+#if HYP_EDITOR
+            if (needsSaveBlobData)
+            {
+                Result saveBlobDataResult = SaveBlobData(blobStorage);
+                if (saveBlobDataResult.HasError())
+                {
+                    HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
+                }
+            }
+#endif
         }
         else
         {
@@ -338,7 +357,7 @@ void Mesh::UploadGpuData()
         vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
         indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
         vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
         indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
 #endif
@@ -352,7 +371,7 @@ void Mesh::UploadGpuData()
         {
             m_vertexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packedBufferSize);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             m_vertexBuffer->SetDebugName(NAME_FMT("{}_VBO", GetName()));
 #endif
         }
@@ -363,7 +382,7 @@ void Mesh::UploadGpuData()
         {
             m_indexBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packedIndicesSize);
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
             m_indexBuffer->SetDebugName(NAME_FMT("{}_IBO", GetName()));
 #endif
         }
@@ -711,7 +730,7 @@ Array<uint32> Mesh::BuildPackedIndices() const
         packedIndices[2] = 2;
     }
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     for (SizeType i = 0; i < packedIndices.Size(); i++)
     {
         uint32 idx = packedIndices[i];

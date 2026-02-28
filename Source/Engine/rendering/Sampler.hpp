@@ -38,7 +38,7 @@ public:
 
     virtual RendererResult Create() = 0;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name GetDebugName() const
     {
         return m_debugName;
@@ -55,7 +55,7 @@ protected:
     TextureFilterMode m_magFilterMode = TFM_NEAREST;
     TextureWrapMode m_wrapMode = TWM_CLAMP_TO_EDGE;
     
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     Name m_debugName;
 #endif
 };

@@ -175,7 +175,7 @@ public:
     RenderCollector& operator=(RenderCollector&& other) noexcept = delete;
     ~RenderCollector();
 
-#ifdef HYP_DEBUG_MODE
+#if HYP_DEBUG_MODE
     SizeType NumDrawCallsCollected() const;
 #endif
 
