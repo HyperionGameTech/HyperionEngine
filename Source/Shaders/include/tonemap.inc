@@ -1,5 +1,5 @@
-#ifndef HYP_TONEMAP_GLSL
-#define HYP_TONEMAP_GLSL
+#ifndef HYP_TONEMAP
+#define HYP_TONEMAP
 
 #include "shared.inc"
 

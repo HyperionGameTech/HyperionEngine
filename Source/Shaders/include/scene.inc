@@ -1,5 +1,5 @@
-#ifndef HYP_SCENE_GLSL
-#define HYP_SCENE_GLSL
+#ifndef HYP_SCENE
+#define HYP_SCENE
 
 #include "defines.inc"
 

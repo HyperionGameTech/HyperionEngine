@@ -1,5 +1,5 @@
-#ifndef HYP_SHARED_GLSL
-#define HYP_SHARED_GLSL
+#ifndef HYP_SHARED
+#define HYP_SHARED
 
 #include "defines.inc"
 

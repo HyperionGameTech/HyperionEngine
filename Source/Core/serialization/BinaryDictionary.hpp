@@ -1,0 +1,280 @@
+/* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
+
+#pragma once
+
+#include <Core/HashCode.hpp>
+#include <Core/Types.hpp>
+
+#include <Core/containers/HashMap.hpp>
+#include <Core/containers/HashSet.hpp>
+#include <Core/containers/SparsePagedArray.hpp>
+
+#include <Core/math/MathUtil.hpp>
+
+#include <Core/memory/Memory.hpp>
+
+#include <Core/threading/SharedMutex.hpp>
+#include <Core/threading/LockGuard.hpp>
+
+#include <Core/io/ByteWriter.hpp>
+#include <Core/io/BufferedByteReader.hpp>
+
+#include <Core/logging/Logger.hpp>
+
+namespace Hyperion {
+
+/*! \brief BinaryDictionary is a generic, thread-safe dictionary that maps values to compact integer IDs
+ *  and supports binary serialization.
+ *
+ *  It assigns each unique value (identified by its HashCode) a contiguous integer ID, enabling
+ *  efficient bitset-based set representation. The dictionary can be written to and read back from
+ *  a binary stream, with static-entry versioning to detect schema changes.
+ *
+ *  \tparam Value     The value type to intern. Must be copyable and support HashCode::GetHashCode().
+ *  \tparam Id        An enum or integral type used as the ID. Must be at most 4 bytes.
+ *  \tparam PageSize  Page size passed to the internal SparsePagedArray reverse map. Must be a power of two. */
+template <class Value, class Id, uint32 PageSize = 128>
+class BinaryDictionary
+{
+    static_assert(sizeof(Id) <= sizeof(uint32), "Id type must be at most 4 bytes");
+
+    static constexpr uint16 FormatVersion = 1;
+
+    // Entry layout (fixed 16 bytes): HashCode value (uint64, 8 bytes) + Id stored as uint32 (4 bytes) + 4 bytes padding
+    static constexpr SizeType EntryDataSize = sizeof(HashCode::ValueType) + sizeof(uint32);
+    static constexpr SizeType EntryPaddingSize = (16 - (EntryDataSize % 16)) % 16;
+    static constexpr SizeType SizeOfEntry = EntryDataSize + EntryPaddingSize;
+
+public:
+    BinaryDictionary() = default;
+    virtual ~BinaryDictionary() = default;
+
+    BinaryDictionary(const BinaryDictionary&) = delete;
+    BinaryDictionary& operator=(const BinaryDictionary&) = delete;
+
+    /*! \brief Mark the dictionary as initialized, stopping accumulation of the static-entry hash.
+     *  Call this once all statically-known entries have been interned. */
+    void Initialize()
+    {
+        if (m_initialized)
+        {
+            return;
+        }
+
+        m_initialized = true;
+    }
+
+    /*! \brief Intern a value, returning its stable ID. Thread-safe.
+     *  If the value has not been seen before a new ID is assigned and the value is stored.
+     *  Entries added before Initialize() is called contribute to the static-entry hash used for versioning. */
+    Id Intern(const Value& value)
+    {
+        const HashCode hash = HashCode::GetHashCode(value);
+
+        TSharedLock lock(m_mutex);
+
+        auto it = m_forwardMap.Find(hash);
+        if (it != m_forwardMap.End())
+        {
+            const Id id = it->second;
+
+            if (!m_reverseMap.HasIndex(uint32(id)))
+            {
+                // upgrade to exclusive lock to populate the reverse map
+                lock.Reset();
+
+                TUniqueLock uniqueLock(m_mutex);
+                m_reverseMap.Emplace(uint32(id), value);
+            }
+
+            return id;
+        }
+
+        lock.Reset();
+
+        TUniqueLock uniqueLock(m_mutex);
+
+        // double-check in case another thread inserted while we were re-locking
+        it = m_forwardMap.Find(hash);
+        if (it != m_forwardMap.End())
+        {
+            return it->second;
+        }
+
+        const Id newId = static_cast<Id>(m_forwardMap.Size());
+        m_forwardMap.Insert(hash, newId);
+        m_reverseMap.Emplace(uint32(newId), value);
+
+        if (!m_initialized)
+        {
+            m_staticEntryHashCode = m_staticEntryHashCode.Combine(hash);
+        }
+
+        return newId;
+    }
+
+    /*! \brief Look up a value by ID. Thread-safe.
+     *  \return True if the ID was found and outValue was populated. */
+    bool GetById(Id id, Value& outValue) const
+    {
+        TSharedLock lock(m_mutex);
+
+        if (!m_reverseMap.HasIndex(uint32(id)))
+        {
+            return false;
+        }
+
+        outValue = m_reverseMap.Get(uint32(id));
+
+        return true;
+    }
+
+    /*! \brief Serialize the dictionary to a binary stream.
+     *  The stream is written with a 64-byte reserved header followed by a flat array of fixed-size entries. */
+    void Write(ByteWriter& stream) const
+    {
+        TSharedLock lock(m_mutex);
+
+        HashSet<Id> visited;
+        visited.Reserve(m_forwardMap.Size());
+
+        const uint32 headerOffset = stream.Position();
+
+        // reserve 64 bytes for header at start
+        stream.Seek(headerOffset + 64);
+
+        const SizeType entryMapOffset = stream.Position();
+
+        uint32 maxIdValue = 0;
+
+        for (const auto& kvp : m_forwardMap)
+        {
+            const HashCode& hash = kvp.first;
+            const Id id = kvp.second;
+
+            if (visited.Contains(id))
+            {
+                continue;
+            }
+
+            stream.Seek(entryMapOffset + uint32(id) * SizeOfEntry);
+
+            const HashCode::ValueType hashValue = hash.Value();
+            stream.Write(&hashValue, sizeof(HashCode::ValueType));
+
+            const uint32 idValue = uint32(id);
+            stream.Write(&idValue, sizeof(uint32));
+
+            if constexpr (EntryPaddingSize > 0)
+            {
+                uint8 padding[EntryPaddingSize] {};
+                stream.Write(padding, EntryPaddingSize);
+            }
+
+            maxIdValue = MathUtil::Max(maxIdValue, uint32(id));
+
+            visited.Add(id);
+        }
+
+        stream.Seek(headerOffset);
+
+        // Header layout (16 bytes used, 48 bytes reserved):
+        //   uint16 version
+        //   uint16 padding
+        //   uint32 entryCount
+        //   uint64 staticEntryHash
+        stream.Write<uint16>(FormatVersion);
+        stream.Write<uint16>(0);
+        stream.Write<uint32>(visited.Empty() ? 0 : maxIdValue + 1);
+        stream.Write<uint64>(m_staticEntryHashCode.Value());
+    }
+
+    /*! \brief Deserialize the dictionary from a binary stream.
+     *  Only the forward (hash -> ID) map is populated; the reverse map is rebuilt lazily via Intern().
+     *  \return True on success. Returns false and rolls back the stream on version or hash mismatch. */
+    bool Read(BufferedByteReader& stream)
+    {
+        const SizeType readOffset = stream.Position();
+
+        uint16 version;
+        stream.Read<uint16>(&version);
+
+        if (version != FormatVersion)
+        {
+            HYP_LOG(Core, Error, "BinaryDictionary format version mismatch: expected {} but got {}", FormatVersion, version);
+            return false;
+        }
+
+        stream.Skip(sizeof(uint16));
+
+        uint32 entryCount;
+        stream.Read<uint32>(&entryCount);
+
+        uint64 staticHashValue;
+        stream.Read<uint64>(&staticHashValue);
+
+        if (staticHashValue != m_staticEntryHashCode.Value())
+        {
+            HYP_LOG(Core, Warning,
+                "BinaryDictionary static entry hash mismatch: expected {} but got {}. "
+                "This usually indicates that the static entries have changed since the dictionary was created.\n"
+                "The dictionary will be removed and regenerated to mitigate potential issues.",
+                m_staticEntryHashCode.Value(), staticHashValue);
+
+            stream.Seek(readOffset); // roll back to start
+
+            return false;
+        }
+
+        stream.Seek(readOffset + 64); // skip reserved header space
+
+        TUniqueLock lock(m_mutex);
+
+        m_forwardMap.Reserve(entryCount);
+
+        ubyte* bytes = (ubyte*)Memory::Allocate(entryCount * SizeOfEntry);
+        SizeType readBytes = 0;
+
+        if ((readBytes = stream.ReadBytes(bytes, entryCount * SizeOfEntry)) != entryCount * SizeOfEntry)
+        {
+            HYP_LOG(Core, Error, "BinaryDictionary is corrupt! Read {} bytes, expected {}.",
+                readBytes, entryCount * SizeOfEntry);
+
+            Memory::Free(bytes);
+
+            return false;
+        }
+
+        const ubyte* pBytes = bytes;
+        const ubyte* pEndBytes = bytes + (entryCount * SizeOfEntry);
+
+        while (pBytes != pEndBytes)
+        {
+            const HashCode::ValueType hashValue = *reinterpret_cast<const HashCode::ValueType*>(pBytes);
+            const uint32 idValue = *reinterpret_cast<const uint32*>(pBytes + sizeof(HashCode::ValueType));
+
+            m_forwardMap.Insert(HashCode(hashValue), static_cast<Id>(idValue));
+
+            pBytes += SizeOfEntry;
+        }
+
+        Memory::Free(bytes);
+
+        return true;
+    }
+
+protected:
+    /*! \brief Accumulated hash of all entries added before Initialize() was called.
+     *  Used to detect static-schema changes during deserialization. */
+    HashCode    m_staticEntryHashCode {};
+
+    /*! \brief True once Initialize() has been called; stops accumulation of m_staticEntryHashCode. */
+    bool        m_initialized = false;
+
+private:
+    HashMap<HashCode, Id>               m_forwardMap;
+    SparsePagedArray<Value, PageSize>   m_reverseMap;
+    mutable SharedMutex                 m_mutex;
+};
+
+} // namespace Hyperion
