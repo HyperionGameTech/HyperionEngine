@@ -215,8 +215,9 @@ class RenderProxyLight final : public IRenderProxy
 public:
     WeakHandle<Light> light;
     Material* lightMaterial = nullptr; // for textured area lights
-    ShadowMap* shadowMap = nullptr;
-    Array<View*, InlineAllocator<2>> shadowViews; // optional, for lights casting shadow
+    uint32 numCascades = 0;
+    Array<View*> shadowViewsStatic;
+    Array<View*> shadowViewsDynamic;
     LightShaderData bufferData {};
 };
 

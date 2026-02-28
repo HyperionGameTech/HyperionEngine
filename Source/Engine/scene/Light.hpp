@@ -256,13 +256,22 @@ public:
     void SetMaterial(Handle<Material> material);
 
     HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
-    HYP_FORCE_INLINE const Vec2u& GetShadowMapDimensions() const
+    const Vec2u& GetShadowMapDimensions() const
     {
         return m_shadowMapDimensions;
     }
 
     HYP_METHOD(Property = "ShadowMapDimensions", Editor = true)
     void SetShadowMapDimensions(Vec2u shadowMapDimensions);
+
+    HYP_METHOD(Property = "ShadowMapCascades", Editor = true)
+    uint32 NumShadowMapCascades() const
+    {
+        return m_numShadowMapCascades;
+    }
+
+    HYP_METHOD(Property = "ShadowMapCascades", Editor = true)
+    void SetNumShadowMapCascades(uint32 numShadowMapCascades);
 
     HYP_METHOD()
     BoundingBox GetAABB() const;
@@ -313,8 +322,15 @@ protected:
     Vec2f m_spotAngles;
     Handle<Material> m_material;
 
+    HYP_FIELD(Property = "ShadowMapDimensions")
     Vec2u m_shadowMapDimensions;
-    Array<Handle<View>> m_shadowViews;
+    
+    HYP_FIELD(Property = "ShadowMapCascades")
+    uint32 m_numShadowMapCascades;
+
+    Array<Handle<View>> m_shadowViewsStatic;
+    Array<Handle<View>> m_shadowViewsDynamic;
+
     BoundingBox m_shadowAabb;
 
 private:
