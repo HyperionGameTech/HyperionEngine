@@ -33,11 +33,37 @@ class Scene;
 class EntityManager;
 class WorldGrid;
 
+HYP_STRUCT()
 struct FogParams
 {
+    HYP_STRUCT_BODY(FogParams);
+
+    HYP_FIELD()
     Color color = Color(0xF2F8F7FF);
+    
+    HYP_FIELD()
     float startDistance = 250.0f;
+    
+    HYP_FIELD()
     float endDistance = 1000.0f;
+};
+
+HYP_STRUCT()
+struct CSMParams
+{
+    HYP_STRUCT_BODY(CSMParams);
+
+    HYP_FIELD()
+    uint32 numCascades = 4;
+};
+
+HYP_STRUCT()
+struct CSMState
+{
+    HYP_STRUCT_BODY(CSMState);
+
+    HYP_FIELD(Transient)
+    Vec3f playerCenter;
 };
 
 HYP_ENUM()
@@ -52,6 +78,8 @@ enum class SceneFlags : uint32
 
     STREAMED = 0x20,   //!< Allow streaming the scene in and out of the World dynamically, based on StreamingVolume proximity.
     HAS_OCTREE = 0x40, //!< Scene uses an octree for spatial partitioning.
+
+    AUDIO_LISTENER = 0x80, //!< Scene has an audio listener (only one scene in a world should have this flag set)
 
     DEFAULT = FOREGROUND | STREAMED | HAS_OCTREE
 };
@@ -95,22 +123,23 @@ public:
     Camera* GetPrimaryCamera() const;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE EnumFlags<SceneFlags> GetSceneFlags() const
+    EnumFlags<SceneFlags> GetSceneFlags() const
     {
         return m_sceneFlags;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetSceneFlags(EnumFlags<SceneFlags> flags)
+    void SetSceneFlags(EnumFlags<SceneFlags> flags)
     {
         m_sceneFlags = flags;
+        MarkDirty();
     }
 
     HYP_METHOD()
     HYP_NODISCARD Handle<Node> FindNodeByName(StringHash name) const;
 
     HYP_METHOD(Property = "Root", Editor = true)
-    HYP_FORCE_INLINE const Handle<Node>& GetRoot() const
+    const Handle<Node>& GetRoot() const
     {
         return m_root;
     }
@@ -119,73 +148,111 @@ public:
     void SetRoot(const Handle<Node>& root);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<EntityManager>& GetEntityManager() const
+    const Handle<EntityManager>& GetEntityManager() const
     {
         return m_entityManager;
     }
 
-    HYP_FORCE_INLINE SceneOctree& GetOctree()
+    SceneOctree& GetOctree()
     {
         return m_octree;
     }
 
-    HYP_FORCE_INLINE const SceneOctree& GetOctree() const
+    const SceneOctree& GetOctree() const
     {
         return m_octree;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsAttachedToWorld() const
+    bool IsAttachedToWorld() const
     {
         return m_world != nullptr;
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE World* GetWorld() const
+    HYP_METHOD(Property = "World", Transient)
+    World* GetWorld() const
     {
         return m_world;
     }
 
-    HYP_METHOD()
+    HYP_METHOD(Property = "World", Transient)
     void SetWorld(World* world);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsForegroundScene() const
+    bool IsForegroundScene() const
     {
         return m_sceneFlags & SceneFlags::FOREGROUND;
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE bool IsBackgroundScene() const
+    bool IsBackgroundScene() const
     {
         return !(m_sceneFlags & SceneFlags::FOREGROUND);
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE bool GetIsAudioListener() const
+    HYP_METHOD(Property = "IsAudioListener", Transient)
+    bool GetIsAudioListener() const
     {
-        return m_isAudioListener;
+        return m_sceneFlags & SceneFlags::AUDIO_LISTENER;
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE void SetIsAudioListener(bool isAudioListener)
+    HYP_METHOD(Property = "IsAudioListener", Transient)
+    void SetIsAudioListener(bool isAudioListener)
     {
-        m_isAudioListener = isAudioListener;
+        if (isAudioListener)
+        {
+            m_sceneFlags |= SceneFlags::AUDIO_LISTENER;
+        }
+        else
+        {
+            m_sceneFlags &= ~SceneFlags::AUDIO_LISTENER;
+        }
+
+        MarkDirty();
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Vec2i& GetStreamingCentroid() const
+    HYP_METHOD(Property = "StreamingCentroid")
+    const Vec2i& GetStreamingCentroid() const
     {
         return m_streamingCentroid;
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE void SetStreamingCenroid(const Vec2i& streamingCentroid)
+    HYP_METHOD(Property = "StreamingCentroid")
+    void SetStreamingCenroid(const Vec2i& streamingCentroid)
     {
         m_streamingCentroid = streamingCentroid;
+        MarkDirty();
     }
 
-    void Update(float delta);
+    HYP_METHOD(Property = "FogParams")
+    const FogParams& GetFogParams() const
+    {
+        return m_fogParams;
+    }
+
+    HYP_METHOD(Property = "FogParams")
+    void SetFogParams(const FogParams& fogParams);
+
+    HYP_METHOD(Property = "CSMParams")
+    const CSMParams& GetCSMParams() const
+    {
+        return m_csmParams;
+    }
+
+    HYP_METHOD(Property = "CSMParams")
+    void SetCSMParams(const CSMParams& csmParams);
+
+    HYP_METHOD(Property = "CSMState", Transient)
+    const CSMState& GetCSMState() const
+    {
+        return m_csmState;
+    }
+
+    HYP_METHOD(Property = "CSMState", Transient)
+    void SetCSMState(const CSMState& csmState)
+    {
+        m_csmState = csmState;
+    }
 
     HYP_METHOD()
     bool AddToWorld(World* world);
@@ -199,6 +266,8 @@ public:
      *  \param baseName The base name to use for the node name. */
     HYP_METHOD()
     Name GetUniqueNodeName(UTF8StringView baseName) const;
+
+    void Update(float delta);
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<Node>, Handle<Node>> OnRootNodeChanged;
@@ -221,15 +290,19 @@ private:
     HYP_FIELD(Property = "World", Transient)
     World* m_world;
 
+    HYP_FIELD(Property = "FogParams")
     FogParams m_fogParams;
+
+    HYP_FIELD(Property = "CSMParams")
+    CSMParams m_csmParams;
+
+    HYP_FIELD(Property = "CSMState", Transient)
+    CSMState m_csmState;
 
     HYP_FIELD(Property = "EntityManager", Transient)
     Handle<EntityManager> m_entityManager;
 
     SceneOctree m_octree;
-
-    HYP_FIELD(Property = "IsAudioListener")
-    bool m_isAudioListener;
 
     HYP_FIELD(Property = "PreviousDelta", Transient)
     float m_previousDelta;

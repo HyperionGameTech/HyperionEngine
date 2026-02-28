@@ -53,7 +53,7 @@ struct DDGIProbeData
     Vec3f position;
 };
 
-class HYP_API DDGI
+class DDGI
 {
 public:
     static constexpr uint32 IrradianceOctahedronSize = 8;

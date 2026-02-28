@@ -61,7 +61,6 @@ Scene::Scene(Name name, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_sceneFlags(flags),
       m_ownerThreadId(ownerThreadId),
       m_world(nullptr),
-      m_isAudioListener(false),
       m_entityManager(MakeHandle<EntityManager>(ownerThreadId, this)),
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previousDelta(0.01667f)
@@ -93,7 +92,7 @@ Scene::~Scene()
     }
 
     // Move so destruction of components can check GetEntityManager() returns nullptr
-    if (Handle<EntityManager> entityManager = std::move(m_entityManager))
+    if (Handle<EntityManager> entityManager = std::move(m_entityManager); entityManager.IsValid())
     {
         if (IsOnThread(entityManager->GetOwnerThreadId()))
         {
@@ -142,6 +141,18 @@ void Scene::SetOwnerThreadId(ThreadId ownerThreadId)
 
     m_ownerThreadId = ownerThreadId;
     m_entityManager->SetOwnerThreadId(ownerThreadId);
+}
+
+void Scene::SetFogParams(const FogParams& fogParams)
+{
+    m_fogParams = fogParams;
+    MarkDirty();
+}
+
+void Scene::SetCSMParams(const CSMParams& csmParams)
+{
+    m_csmParams = csmParams;
+    MarkDirty();
 }
 
 Camera* Scene::GetPrimaryCamera() const
@@ -198,30 +209,6 @@ Handle<Node> Scene::FindNodeByName(StringHash name) const
     }
 
     return m_root->FindChildByName(name);
-}
-
-void Scene::Update(float delta)
-{
-    HYP_SCOPE;
-    AssertOnThread(m_ownerThreadId);
-
-    AssertReady();
-
-    if (m_sceneFlags & SceneFlags::HAS_OCTREE)
-    {
-        HYP_NAMED_SCOPE("Update octree");
-
-        // Rebuild any octants that have had structural changes
-        // IMPORTANT: must be ran at start of tick, as pointers to octants' visibility states will be
-        // stored on VisibilityStateComponent.
-        m_octree.PerformUpdates();
-        m_octree.NextVisibilityState();
-    }
-
-    if (EntityManager* entityManager = m_entityManager)
-    {
-        entityManager->UpdateEntities(delta);
-    }
 }
 
 void Scene::SetRoot(const Handle<Node>& root)
@@ -308,6 +295,37 @@ Name Scene::GetUniqueNodeName(UTF8StringView baseName) const
     }
 
     return CreateNameFromDynamicString(uniqueName);
+}
+
+void Scene::Update(float delta)
+{
+    HYP_SCOPE;
+    AssertOnThread(m_ownerThreadId);
+
+    AssertReady();
+
+    if (Camera* primaryCamera = GetPrimaryCamera())
+    {
+        Vec3f newCenter = primaryCamera->GetWorldTranslation();
+
+        m_csmState.playerCenter = newCenter;
+    }
+
+    if (m_sceneFlags & SceneFlags::HAS_OCTREE)
+    {
+        HYP_NAMED_SCOPE("Update octree");
+
+        // Rebuild any octants that have had structural changes
+        // IMPORTANT: must be ran at start of tick, as pointers to octants' visibility states will be
+        // stored on VisibilityStateComponent.
+        m_octree.PerformUpdates();
+        m_octree.NextVisibilityState();
+    }
+
+    if (EntityManager* entityManager = m_entityManager)
+    {
+        entityManager->UpdateEntities(delta);
+    }
 }
 
 #pragma endregion Scene

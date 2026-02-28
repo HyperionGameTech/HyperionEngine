@@ -1854,6 +1854,16 @@ extern class AnimationTrack : AssetObject
     BoneName : Name
     KeyframeData : BlobDataReference
 end
+extern struct CSMState
+    CascadeViewProjMatrices : Array<Mat4f>
+    CascadeSplits : Array<float>
+    PlayerCenter : Vec3f
+end
+extern struct FogParams
+    Color : Color
+    StartDistance : float
+    EndDistance : float
+end
 extern enum SceneFlags : uint32
     NONE = 0x0,
     FOREGROUND = 0x1,
@@ -1862,7 +1872,11 @@ extern enum SceneFlags : uint32
     EDITOR = 0x10,
     STREAMED = 0x20,
     HAS_OCTREE = 0x40,
+    AUDIO_LISTENER = 0x80,
     DEFAULT = ((FOREGROUND | STREAMED) | HAS_OCTREE)
+end
+extern struct CSMParams
+    NumCascades : uint32
 end
 extern class Scene : AssetObject
     GetPrimaryCamera() -> Camera
@@ -1881,6 +1895,12 @@ extern class Scene : AssetObject
     SetIsAudioListener(isAudioListener : bool) -> void
     GetStreamingCentroid() -> Vec2i
     SetStreamingCenroid(streamingCentroid : Vec2i) -> void
+    GetFogParams() -> FogParams
+    SetFogParams(fogParams : FogParams) -> void
+    GetCSMParams() -> CSMParams
+    SetCSMParams(csmParams : CSMParams) -> void
+    GetCSMState() -> CSMState
+    SetCSMState(csmState : CSMState) -> void
     AddToWorld(world : World) -> bool
     RemoveFromWorld() -> bool
     GetUniqueNodeName(baseName : string) -> Name
@@ -1889,8 +1909,10 @@ extern class Scene : AssetObject
     Root : Node
     OwnerThreadId : any
     World : World
+    FogParams : FogParams
+    CsmParams : CSMParams
+    CsmState : CSMState
     EntityManager : EntityManager
-    IsAudioListener : bool
     PreviousDelta : float
     StreamingCentroid : Vec2i
 end
@@ -2161,11 +2183,15 @@ extern class Light : Entity
     SetMaterial(material : Material) -> void
     GetShadowMapDimensions() -> Vec2u
     SetShadowMapDimensions(shadowMapDimensions : Vec2u) -> void
+    NumShadowMapCascades() -> uint32
+    SetNumShadowMapCascades(numShadowMapCascades : uint32) -> void
     GetAABB() -> BoundingBox
     GetShadowMapFilter() -> ShadowMapFilter
     SetShadowMapFilter(shadowMapFilter : ShadowMapFilter) -> void
     Type : LightType
     Flags : LightFlags
+    ShadowMapDimensions : Vec2u
+    NumShadowMapCascades : uint32
 end
 extern class PointLight : Light
 end

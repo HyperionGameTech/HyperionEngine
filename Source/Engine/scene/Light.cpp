@@ -83,7 +83,8 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
       m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
-      m_shadowMapDimensions(DefaultShadowMapDimensions[type])
+      m_shadowMapDimensions(DefaultShadowMapDimensions[type]),
+      m_numShadowMapCascades(1)
 {
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
@@ -102,7 +103,8 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
-      m_shadowMapDimensions(DefaultShadowMapDimensions[type])
+      m_shadowMapDimensions(DefaultShadowMapDimensions[type]),
+      m_numShadowMapCascades(1)
 {
     m_entityInitInfo.canEverUpdate = true;
     m_entityInitInfo.receivesUpdate = true;
@@ -112,9 +114,14 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
 
 Light::~Light()
 {
-    if (m_shadowViews.Any())
+    if (m_shadowViewsStatic.Any())
     {
-        EnqueueDeletion(std::move(m_shadowViews));
+        EnqueueDeletion(std::move(m_shadowViewsStatic));
+    }
+
+    if (m_shadowViewsDynamic.Any())
+    {
+        EnqueueDeletion(std::move(m_shadowViewsDynamic));
     }
 
     if (m_material != nullptr)
@@ -147,24 +154,27 @@ void Light::CreateShadowViews()
 {
     HYP_SCOPE;
 
-    for (Handle<View>& shadowView : m_shadowViews)
+    for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
     {
-        if (!shadowView.IsValid())
+        for (Handle<View>& shadowView : *shadowViews)
         {
-            continue;
+            if (!shadowView.IsValid())
+            {
+                continue;
+            }
+
+            const Handle<Camera>& shadowCamera = shadowView->GetCamera();
+
+            if (!shadowCamera.IsValid())
+            {
+                continue;
+            }
+
+            RemoveChild(shadowCamera);
         }
 
-        const Handle<Camera>& shadowCamera = shadowView->GetCamera();
-
-        if (!shadowCamera.IsValid())
-        {
-            continue;
-        }
-
-        RemoveChild(shadowCamera);
+        EnqueueDeletion(std::move(*shadowViews));
     }
-
-    EnqueueDeletion(std::move(m_shadowViews));
 
     if (!(m_flags & LF_SHADOW))
     {
@@ -174,11 +184,6 @@ void Light::CreateShadowViews()
     const ShadowMapFilter shadowMapFilter = GetShadowMapFilter();
     AssertDebug(shadowMapFilter < std::size(s_shadowMapFilterProperties));
 
-    // Per shadow view flags
-    Array<EnumFlags<ViewFlags>> shadowViewFlags = {
-        ViewFlags::COLLECT_ALL_ENTITIES
-    };
-
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("DrawShadowMap");
     shaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
@@ -186,12 +191,16 @@ void Light::CreateShadowViews()
     RenderTargetDesc renderTargetDesc {};
     renderTargetDesc.extent = m_shadowMapDimensions;
 
+    bool cacheStaticShadows = false;
+
+    EnumFlags<ViewFlags> shadowViewFlags = DefaultShadowViewFlags;
+
     switch (m_type)
     {
     case LT_POINT:
     {
         // Frustum culling for cubemap views not currently supported.
-        shadowViewFlags[0] |= ViewFlags::NO_FRUSTUM_CULLING;
+        shadowViewFlags |= ViewFlags::NO_FRUSTUM_CULLING | ViewFlags::COLLECT_ALL_ENTITIES;
 
         renderTargetDesc.numAttachments = 0;
         renderTargetDesc.numLayers = 6;
@@ -219,11 +228,9 @@ void Light::CreateShadowViews()
     }
     case LT_DIRECTIONAL:
     {
+        cacheStaticShadows = true;
+
         // For directional lights, we have one for static objects and one for dynamic objects
-        shadowViewFlags = {
-            DefaultShadowViewFlags | ViewFlags::COLLECT_STATIC_ENTITIES,
-            DefaultShadowViewFlags | ViewFlags::COLLECT_DYNAMIC_ENTITIES
-        };
 
         renderTargetDesc.numAttachments = 0;
 
@@ -288,9 +295,17 @@ void Light::CreateShadowViews()
         AddChild(shadowMapCamera);
     }
 
-    AssertDebug(shadowViewFlags.Size() >= 1);
-    m_shadowViews.Resize(shadowViewFlags.Size());
+    m_shadowViewsDynamic.Resize(m_numShadowMapCascades);
 
+    if (cacheStaticShadows)
+    {
+        m_shadowViewsStatic.Resize(m_numShadowMapCascades);
+    }
+    else
+    {
+        m_shadowViewsStatic.Clear();
+    }
+    
     const RenderableAttributeSet overrideAttributes(
         MeshAttributes {},
         MaterialAttributes {
@@ -299,60 +314,102 @@ void Light::CreateShadowViews()
             .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK
         });
 
-    for (int i = 0; i < int(shadowViewFlags.Size()); i++)
+    Array<Array<Handle<View>>*, FixedAllocator<2>> allShadowViews;
+    allShadowViews.Reserve(2);
+
+    if (cacheStaticShadows)
     {
-        ViewDesc viewDesc {
-            .flags = shadowViewFlags[i] | DefaultShadowViewFlags,
-            .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
-            .renderTargetDesc = renderTargetDesc,
-            .scenes = {},
-            .camera = shadowMapCamera,
-            .overrideAttributes = overrideAttributes
-        };
+        allShadowViews.PushBack(&m_shadowViewsDynamic);
+        allShadowViews.PushBack(&m_shadowViewsStatic);
+    }
+    else
+    {
+        // @TODO also only using static shadows?
 
-        m_shadowViews[i] = MakeHandle<View>(viewDesc);
+        allShadowViews.PushBack(&m_shadowViewsDynamic);
+    }
 
-        if (Scene* scene = GetScene())
+    for (Array<Handle<View>>* shadowViews : allShadowViews)
+    {
+        for (Handle<View>& shadowView : *shadowViews)
         {
-            m_shadowViews[i]->AddScene(scene);
-        }
+            ViewDesc viewDesc {
+                .flags = shadowViewFlags,
+                .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
+                .renderTargetDesc = renderTargetDesc,
+                .scenes = {},
+                .camera = shadowMapCamera,
+                .overrideAttributes = overrideAttributes
+            };
 
-        InitObject(m_shadowViews[i]);
+            if (cacheStaticShadows)
+            {
+                viewDesc.flags &= ~ViewFlags::COLLECT_ALL_ENTITIES;
+
+                if (shadowViews == &m_shadowViewsDynamic)
+                {
+                    viewDesc.flags |= ViewFlags::COLLECT_DYNAMIC_ENTITIES;
+                }
+                else if (shadowViews == &m_shadowViewsStatic)
+                {
+                    viewDesc.flags |= ViewFlags::COLLECT_STATIC_ENTITIES;
+                }
+            }
+
+            shadowView = MakeHandle<View>(viewDesc);
+
+            if (Scene* scene = GetScene())
+            {
+                shadowView->AddScene(scene);
+            }
+
+            InitObject(shadowView);
+        }
     }
 }
 
 void Light::UpdateShadowViews()
 {
     HYP_SCOPE;
+    
+    m_shadowAabb = BoundingBox();
 
-    for (int i = 0; i < int(m_shadowViews.Size()); i++)
+    for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
     {
-        const Handle<View>& shadowView = m_shadowViews[i];
-        AssertDebug(shadowView != nullptr);
-
-        const Handle<Camera>& shadowCamera = shadowView->GetCamera();
-        AssertDebug(shadowCamera != nullptr);
-
-        switch (m_type)
+        for (const Handle<View>& shadowView : *shadowViews)
         {
-        case LT_DIRECTIONAL:
-            ShadowCameraHelper::UpdateShadowCameraDirectional(
-                shadowCamera,
-                Vec3f::Zero(), // TODO: Center around camera
-                GetPosition(),
-                45.0f, /// TODO: add proper radius for directional light.
-                m_shadowAabb);
+            AssertDebug(shadowView != nullptr);
 
-            break;
-        case LT_POINT:
-            m_shadowAabb = GetAABB();
+            const Handle<Camera>& shadowCamera = shadowView->GetCamera();
+            AssertDebug(shadowCamera != nullptr);
 
-            shadowCamera->SetTranslation(m_position);
+            switch (m_type)
+            {
+            case LT_DIRECTIONAL:
+            {
+                BoundingBox cascadeBounds;
 
-            break;
-        default:
-            HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(m_type));
-            break;
+                ShadowCameraHelper::UpdateShadowCameraDirectional(
+                    shadowCamera,
+                    m_scene->GetCSMState().playerCenter,
+                    GetPosition(),
+                    45.0f, /// TODO: add proper radius for directional light.
+                    cascadeBounds);
+
+                m_shadowAabb = m_shadowAabb.Union(cascadeBounds);
+
+                break;
+            }
+            case LT_POINT:
+                m_shadowAabb = GetAABB();
+
+                shadowCamera->SetTranslation(m_position);
+
+                break;
+            default:
+                HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(m_type));
+                break;
+            }
         }
     }
 }
@@ -379,16 +436,19 @@ void Light::OnAddedToScene(Scene* scene)
 
     if (m_flags & LF_SHADOW)
     {
-        for (const Handle<View>& shadowView : m_shadowViews)
+        for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
         {
-            AssertDebug(shadowView != nullptr);
-
-            if (!shadowView)
+            for (const Handle<View>& shadowView : *shadowViews)
             {
-                continue;
-            }
+                AssertDebug(shadowView != nullptr);
 
-            shadowView->AddScene(scene);
+                if (!shadowView)
+                {
+                    continue;
+                }
+
+                shadowView->AddScene(scene);
+            }
         }
     }
 }
@@ -401,16 +461,19 @@ void Light::OnRemovedFromScene(Scene* scene)
 
     if (m_flags & LF_SHADOW)
     {
-        for (const Handle<View>& shadowView : m_shadowViews)
+        for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
         {
-            AssertDebug(shadowView != nullptr);
-
-            if (!shadowView)
+            for (const Handle<View>& shadowView : *shadowViews)
             {
-                continue;
-            }
+                AssertDebug(shadowView != nullptr);
 
-            shadowView->RemoveScene(scene);
+                if (!shadowView)
+                {
+                    continue;
+                }
+
+                shadowView->RemoveScene(scene);
+            }
         }
     }
 }
@@ -440,9 +503,12 @@ void Light::Update(float delta)
 
     if (m_flags & LF_SHADOW)
     {
-        for (int i = 0; i < int(m_shadowViews.Size()); i++)
+        for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
         {
-            GetWorld()->ProcessViewAsync(m_shadowViews[i]);
+            for (const Handle<View>& shadowView : *shadowViews)
+            {
+                GetWorld()->ProcessViewAsync(shadowView);
+            }
         }
 
         SetNeedsRenderProxyUpdate();
@@ -600,6 +666,20 @@ void Light::SetShadowMapDimensions(Vec2u shadowMapDimensions)
     SetNeedsRenderProxyUpdate();
 }
 
+void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
+{
+    numShadowMapCascades = MathUtil::Clamp(numShadowMapCascades, 1u, 4u);
+
+    if (numShadowMapCascades == m_numShadowMapCascades)
+    {
+        return;
+    }
+
+    m_numShadowMapCascades = numShadowMapCascades;
+
+    SetNeedsRenderProxyUpdate();
+}
+
 void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
 {
     if (shadowMapFilter == GetShadowMapFilter())
@@ -661,10 +741,19 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     proxy->light = WeakHandleFromThis();
     proxy->lightMaterial = m_material.Get();
 
-    proxy->shadowViews.Resize(m_shadowViews.Size());
-    for (SizeType i = 0; i < m_shadowViews.Size(); i++)
+    proxy->numCascades = m_numShadowMapCascades;
+
+    proxy->shadowViewsStatic.Resize(m_shadowViewsStatic.Size());
+    proxy->shadowViewsDynamic.Resize(m_shadowViewsDynamic.Size());
+
+    for (SizeType i = 0; i < m_shadowViewsStatic.Size(); i++)
     {
-        proxy->shadowViews[i] = m_shadowViews[i].Get();
+        proxy->shadowViewsStatic[i] = m_shadowViewsStatic[i].Get();
+    }
+
+    for (SizeType i = 0; i < m_shadowViewsDynamic.Size(); i++)
+    {
+        proxy->shadowViewsDynamic[i] = m_shadowViewsDynamic[i].Get();
     }
 
     const BoundingBox aabb = GetAABB();
@@ -697,9 +786,9 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
         break;
     }
 
-    if (m_shadowViews.Any())
+    if (m_shadowViewsDynamic.Any())
     {
-        bufferData.shadowMatrix = m_shadowViews[0]->GetCamera()->GetViewProjectionMatrix();
+        bufferData.shadowMatrix = m_shadowViewsDynamic[0]->GetCamera()->GetViewProjectionMatrix();
         bufferData.aabbMin = Vec4f(m_shadowAabb.min, 1.0f);
         bufferData.aabbMax = Vec4f(m_shadowAabb.max, 1.0f);
     }
