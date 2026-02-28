@@ -7,7 +7,7 @@
 #include <Core/reflection/Member.hpp>
 
 #include <Core/Defines.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/functional/Proc.hpp>
 

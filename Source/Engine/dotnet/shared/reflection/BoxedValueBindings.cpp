@@ -5,7 +5,7 @@
 #include <Core/reflection/Class.hpp>
 #include <Core/reflection/Struct.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/reflection/GenericArrayWrapper.hpp>
 

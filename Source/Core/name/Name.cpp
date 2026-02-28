@@ -1,6 +1,6 @@
 /* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/utilities/Uuid.hpp>
 #include <Core/utilities/Format.hpp>

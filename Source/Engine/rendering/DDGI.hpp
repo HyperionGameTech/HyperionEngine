@@ -23,10 +23,6 @@ enum ProbeSystemFlags : uint32
 
 struct DDGIInfo
 {
-    static constexpr uint32 irradianceOctahedronSize = 8;
-    static constexpr uint32 depthOctahedronSize = 16;
-    static constexpr Vec3u probeBorder = Vec3u { 2, 0, 2 };
-
     BoundingBox aabb;
     float probeDistance = 3.0f;
     uint32 numRaysPerProbe = 32;
@@ -34,25 +30,6 @@ struct DDGIInfo
     HYP_FORCE_INLINE const Vec3f& GetOrigin() const
     {
         return aabb.min;
-    }
-
-    HYP_FORCE_INLINE Vec3u NumProbesPerDimension() const
-    {
-        const Vec3f probesPerDimension = MathUtil::Ceil((aabb.GetExtent() / probeDistance) + Vec3f(probeBorder));
-
-        return Vec3u(probesPerDimension);
-    }
-
-    HYP_FORCE_INLINE uint32 NumProbes() const
-    {
-        const Vec3u perDimension = NumProbesPerDimension();
-
-        return perDimension.x * perDimension.y * perDimension.z;
-    }
-
-    HYP_FORCE_INLINE Vec2u GetImageDimensions() const
-    {
-        return { uint32(MathUtil::NextPowerOf2(NumProbes())), numRaysPerProbe };
     }
 };
 
@@ -79,7 +56,11 @@ struct DDGIProbeData
 class HYP_API DDGI
 {
 public:
-    DDGI(DDGIInfo&& gridInfo);
+    static constexpr uint32 IrradianceOctahedronSize = 8;
+    static constexpr uint32 DepthOctahedronSize = 8;
+    static constexpr Vec3u ProbeBorder = Vec3u { 2, 0, 2 };
+
+    explicit DDGI(DDGIInfo&& gridInfo);
     DDGI(const DDGI& other) = delete;
     DDGI& operator=(const DDGI& other) = delete;
     ~DDGI();

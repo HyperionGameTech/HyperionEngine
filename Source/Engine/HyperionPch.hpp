@@ -6,7 +6,7 @@
 #include <Core/Defines.hpp>
 #include <Core/HashCode.hpp>
 #include <Core/Constants.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/memory/ByteBuffer.hpp>
 #include <Core/memory/RefCountedPtr.hpp>

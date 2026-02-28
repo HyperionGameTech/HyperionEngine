@@ -4,7 +4,7 @@
 
 #include <Core/reflection/StaticField.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 using namespace Hyperion;
 

@@ -8,7 +8,7 @@
 #include <Core/utilities/FormatFwd.hpp>
 #include <Core/threading/Mutex.hpp>
 
-#include <Core/NameInternal.hpp>
+#include <Core/name/NameInternal.hpp>
 
 #include <Core/Defines.hpp>
 

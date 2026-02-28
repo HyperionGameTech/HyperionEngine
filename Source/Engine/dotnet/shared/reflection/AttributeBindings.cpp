@@ -4,7 +4,7 @@
 
 #include <Core/reflection/ClassAttribute.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <dotnet/ManagedObject.hpp>
 

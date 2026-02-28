@@ -12,7 +12,7 @@
 #include <Core/utilities/GlobalContext.hpp>
 #include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <dotnet/DotNETHost.hpp>
 #include <dotnet/interop/ManagedGuid.hpp>

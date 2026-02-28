@@ -33,7 +33,7 @@ float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
         weight *= HYP_FMATH_SQR(max(0.0001, (dot(true_direction_to_probe, N) + 1.0) * 0.5)) + 0.2;
         
         /* Visibility test */
-        float2 depth_texcoord = TextureCoordFromDirection(-dir, probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.zw, PROBE_SIDE_LENGTH_DEPTH);
+        float2 depth_texcoord = TextureCoordFromDirection(-dir, probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.zw, DDGI_PROBE_SIDE_LENGTH_DEPTH);
         float distance_to_probe = length(probe_to_point);
 
         float2 depth_sample = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_depth, depth_texcoord, 0.0).rg;
@@ -47,7 +47,7 @@ float4 DDGISampleIrradiance(float3 P, float3 N, float3 V)
         weight = max(0.0001, weight);
 
         float3 irradiance_dir = N;
-        float2 irradiance_texcoord = TextureCoordFromDirection(normalize(irradiance_dir), probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.xy, PROBE_SIDE_LENGTH_IRRADIANCE);
+        float2 irradiance_texcoord = TextureCoordFromDirection(normalize(irradiance_dir), probe_index, ddgiConstants.probe_counts.xyz, ddgiConstants.image_dimensions.xy, DDGI_PROBE_SIDE_LENGTH_IRRADIANCE);
         float3 irradiance = SAMPLE_TEXTURE_2D_LOD(gbuffer_sampler, probe_irradiance, irradiance_texcoord, 0.0).rgb;
     
         const float crush_threshold = 0.2;

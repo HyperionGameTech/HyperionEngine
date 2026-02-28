@@ -7,7 +7,7 @@
 
 #include <Core/utilities/StringView.hpp>
 #include <Core/utilities/Span.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/Defines.hpp>
 #include <Core/Util.hpp>

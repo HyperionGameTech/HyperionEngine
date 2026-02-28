@@ -9,7 +9,7 @@
 #include <Core/containers/Array.hpp>
 #include <Core/containers/TypeMap.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/reflection/BoxedValue.hpp>
 #include <Core/reflection/ObjectFwd.hpp>

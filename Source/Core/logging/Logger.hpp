@@ -4,7 +4,7 @@
 
 #include <Core/logging/LoggerFwd.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/utilities/StringView.hpp>
 #include <Core/utilities/Format.hpp>

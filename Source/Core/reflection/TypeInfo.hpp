@@ -9,7 +9,7 @@
 #include <Core/memory/AnyRef.hpp>
 #include <Core/memory/Any.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 #include <Core/Types.hpp>
 #include <Core/utilities/Traits.hpp>
 #include <Core/HashCode.hpp>

@@ -9,7 +9,7 @@
 #include <core/reflection/BoxedValue.hpp>
 #include <Core/reflection/Class.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 namespace Hyperion {
 

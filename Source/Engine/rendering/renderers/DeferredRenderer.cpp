@@ -94,6 +94,9 @@ static const FixedArray<ShaderPropertySet, LT_MAX> s_deferredLightTypeProperties
 
 static const ShaderPropertyId s_propHasDiffuseMap = InternShaderProperty(ShaderProperty(NAME("HAS_DIFFUSE_MAP")));
 
+static const ShaderPropertyId s_propProbeSideLengthIrradiance = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_IRRADIANCE"), int(DDGI::IrradianceOctahedronSize)));
+static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_DEPTH"), int(DDGI::DepthOctahedronSize)));
+
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
     "GBufferNormalsTexture"_sh,
@@ -168,7 +171,14 @@ static void GetDeferredShaderProperties(
     if (mode == DPM_INDIRECT_LIGHTING)
     {
         outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && rayTracingReflections);
-        outShaderProperties.Set(s_propRayTracingGlobalIllumination, s_renderConfig.rayTracing && rayTracingGlobalIllumination);
+
+        if (s_renderConfig.rayTracing && rayTracingGlobalIllumination)
+        {
+            outShaderProperties.Add(s_propRayTracingGlobalIllumination);
+
+            outShaderProperties.Add(s_propProbeSideLengthIrradiance);
+            outShaderProperties.Add(s_propProbeSideLengthDepth);
+        }
 
         outShaderProperties.Set(s_propHBILEnabled, hbil);
         outShaderProperties.Set(s_propSSGIEnabled, ssgi);

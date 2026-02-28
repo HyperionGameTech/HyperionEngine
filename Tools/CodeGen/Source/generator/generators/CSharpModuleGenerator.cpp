@@ -7,7 +7,7 @@
 
 #include <parser/Parser.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/utilities/StringUtil.hpp>
 

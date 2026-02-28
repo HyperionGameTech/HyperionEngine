@@ -17,7 +17,7 @@
 
 #include <scripting/ScriptableDelegate.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/math/Transform.hpp>
 #include <Core/math/Ray.hpp>

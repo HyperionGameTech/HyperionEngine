@@ -5,7 +5,7 @@
 #include <Core/containers/LinkedList.hpp>
 #include <Core/containers/FixedArray.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/threading/AtomicVar.hpp>
 #include <Core/threading/Mutex.hpp>

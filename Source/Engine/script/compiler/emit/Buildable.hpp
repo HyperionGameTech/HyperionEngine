@@ -2,7 +2,7 @@
 
 #include <Core/containers/Array.hpp>
 #include <Core/containers/SortedArray.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 #include <Core/Types.hpp>
 
 namespace Hyperion {

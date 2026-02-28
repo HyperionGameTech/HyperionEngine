@@ -5,9 +5,9 @@
 #define DEPTH 1
 
 #if DEPTH
-    #define GROUP_SIZE 16
+    #define GROUP_SIZE DDGI_PROBE_SIDE_LENGTH_DEPTH
 #else
-    #define GROUP_SIZE 8
+    #define GROUP_SIZE DDGI_PROBE_SIDE_LENGTH_IRRADIANCE
 #endif
 
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = 1) in;
@@ -15,16 +15,16 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = 1) i
 #include "../include/rt/probe/probe_uniforms.inc"
 
 #if DEPTH
-    #define PROBE_SIDE_LENGTH PROBE_SIDE_LENGTH_DEPTH
+    #define DDGI_PROBE_SIDE_LENGTH DDGI_PROBE_SIDE_LENGTH_DEPTH
     #define OUTPUT_IMAGE output_depth
     #define OUTPUT_IMAGE_DIMENSIONS ddgiConstants.image_dimensions.zw
 #else
-    #define PROBE_SIDE_LENGTH PROBE_SIDE_LENGTH_IRRADIANCE
+    #define DDGI_PROBE_SIDE_LENGTH DDGI_PROBE_SIDE_LENGTH_IRRADIANCE
     #define OUTPUT_IMAGE output_irradiance
     #define OUTPUT_IMAGE_DIMENSIONS ddgiConstants.image_dimensions.xy
 #endif
 
-#define PROBE_SIDE_LENGTH_BORDER (PROBE_SIDE_LENGTH + ddgiConstants.probe_border.x)
+#define DDGI_PROBE_SIDE_LENGTH_BORDER (DDGI_PROBE_SIDE_LENGTH + ddgiConstants.probe_border.x)
 
 DECLARE_BUFFER(DDGI, DDGIConstants) uniform CBuffer
 {
@@ -155,29 +155,29 @@ const ivec4 g_offsets[36] = ivec4[](
 
 void main()
 {
-    //const ivec2 current_coord = (ivec2(gl_WorkGroupID.xy) * ivec2(PROBE_SIDE_LENGTH_BORDER)) + ivec2(1);
-    const ivec2 current_coord = ivec2(gl_GlobalInvocationID.xy);//(ivec2(gl_WorkGroupID.xy) * ivec2(PROBE_SIDE_LENGTH_BORDER));
+    //const ivec2 current_coord = (ivec2(gl_WorkGroupID.xy) * ivec2(DDGI_PROBE_SIDE_LENGTH_BORDER)) + ivec2(1);
+    const ivec2 current_coord = ivec2(gl_GlobalInvocationID.xy);//(ivec2(gl_WorkGroupID.xy) * ivec2(DDGI_PROBE_SIDE_LENGTH_BORDER));
 
     if (current_coord.x == 0 || current_coord.y == 0 || current_coord.x == (ddgiConstants.image_dimensions.x - 1) || current_coord.y == (ddgiConstants.image_dimensions.y - 1)) {
         return;
     }
 
-    if (current_coord.x % int(PROBE_SIDE_LENGTH_BORDER) == 0) {
+    if (current_coord.x % int(DDGI_PROBE_SIDE_LENGTH_BORDER) == 0) {
         imageStore(OUTPUT_IMAGE, current_coord, imageLoad(OUTPUT_IMAGE, ivec2(current_coord.x - 1, current_coord.y)));
         return;
     }
 
-    if (current_coord.x % int(PROBE_SIDE_LENGTH_BORDER) == 1) {
+    if (current_coord.x % int(DDGI_PROBE_SIDE_LENGTH_BORDER) == 1) {
         imageStore(OUTPUT_IMAGE, current_coord, imageLoad(OUTPUT_IMAGE, ivec2(current_coord.x + 1, current_coord.y)));
         return;
     }
 
-    if (current_coord.y % int(PROBE_SIDE_LENGTH_BORDER) == 0) {
+    if (current_coord.y % int(DDGI_PROBE_SIDE_LENGTH_BORDER) == 0) {
         imageStore(OUTPUT_IMAGE, current_coord, imageLoad(OUTPUT_IMAGE, ivec2(current_coord.x, current_coord.y - 1)));
         return;
     }
 
-    if (current_coord.y % int(PROBE_SIDE_LENGTH_BORDER) == 1) {
+    if (current_coord.y % int(DDGI_PROBE_SIDE_LENGTH_BORDER) == 1) {
         imageStore(OUTPUT_IMAGE, current_coord, imageLoad(OUTPUT_IMAGE, ivec2(current_coord.x, current_coord.y + 1)));
         return;
     }

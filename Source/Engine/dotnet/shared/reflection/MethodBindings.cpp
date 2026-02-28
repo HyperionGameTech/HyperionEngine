@@ -6,7 +6,7 @@
 #include <Core/reflection/Method.hpp>
 #include <Core/reflection/ClassRegistry.hpp>
 #include <Core/reflection/Object.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>

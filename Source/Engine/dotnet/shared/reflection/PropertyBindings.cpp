@@ -5,7 +5,7 @@
 #include <Core/reflection/Class.hpp>
 #include <Core/reflection/Property.hpp>
 #include <Core/reflection/Object.hpp>
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 #include <Core/logging/Logger.hpp>
 #include <Core/logging/LogChannels.hpp>

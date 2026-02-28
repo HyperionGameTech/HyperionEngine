@@ -15,7 +15,7 @@
 
 #include <Core/utilities/Time.hpp>
 
-#include <Core/Name.hpp>
+#include <Core/name/Name.hpp>
 
 namespace Hyperion {
 
