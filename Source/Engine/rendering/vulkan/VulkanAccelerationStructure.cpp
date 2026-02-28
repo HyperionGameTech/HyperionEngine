@@ -154,16 +154,19 @@ VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Mat4f& tr
 
 VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
 {
-    EnqueueDeletion(std::move(m_geometries));
-    EnqueueDeletion(std::move(m_buffer));
-    EnqueueDeletion(std::move(m_scratchBuffer));
+    m_geometries.Clear();
+    m_buffer.Reset();
+    m_scratchBuffer.Reset();
 
     if (m_accelerationStructure != VK_NULL_HANDLE)
     {
-        g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
-            g_renderInterface->GetDevice()->GetDevice(),
-            m_accelerationStructure,
-            VK_NULL_HANDLE);
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([accelerationStructure = m_accelerationStructure]()
+            {
+                g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
+                    g_renderInterface->GetDevice()->GetDevice(),
+                    accelerationStructure,
+                    VK_NULL_HANDLE);
+            }));
 
         m_accelerationStructure = VK_NULL_HANDLE;
     }
@@ -447,14 +450,20 @@ VulkanGpuTlas::VulkanGpuTlas()
 
 VulkanGpuTlas::~VulkanGpuTlas()
 {
-    EnqueueDeletion(std::move(m_instancesBuffer));
-    EnqueueDeletion(std::move(m_meshDescriptionsBuffer));
-    EnqueueDeletion(std::move(m_scratchBuffer));
-    EnqueueDeletion(std::move(m_blases));
+    m_instancesBuffer.Reset();
+    m_meshDescriptionsBuffer.Reset();
+    m_scratchBuffer.Reset();
 
-    for (auto& it : m_blasToStorageId)
+    for (VulkanGpuBlas* blas : m_blases)
     {
-        const uint32 storageId = it.second;
+        blas->Release();
+    }
+
+    m_blases.Clear();
+
+    for (auto& it : m_keyToBlasAndStorageId)
+    {
+        const uint32 storageId = it.second.second;
 
         g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);       // VB
         g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);   // IB
@@ -506,9 +515,9 @@ RendererResult VulkanGpuTlas::Create()
         return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one GpuBlas");
     }
 
-    for (VulkanGpuBlasRef& blas : m_blases)
+    for (VulkanGpuBlas* blas : m_blases)
     {
-        Assert(blas.IsValid());
+        Assert(blas != nullptr);
 
         CheckResultOrReturn(blas->Create());
     }
@@ -530,11 +539,11 @@ RendererResult VulkanGpuTlas::Create()
     return RendererResult();
 }
 
-void VulkanGpuTlas::AddGpuBlas(const VulkanGpuBlasRef& blas)
+void VulkanGpuTlas::AddGpuBlas(uint64 key, VulkanGpuBlas* blas)
 {
     Assert(blas != nullptr);
 
-    if (m_blases.Find(blas) != m_blases.End())
+    if (m_keyToBlasAndStorageId.Find(key) != m_keyToBlasAndStorageId.End())
     {
         // already has the GpuBlas
         return;
@@ -559,55 +568,53 @@ void VulkanGpuTlas::AddGpuBlas(const VulkanGpuBlasRef& blas)
         }
     }*/
 
+    auto& entry = m_keyToBlasAndStorageId[key];
+    entry.first = blas;
+    entry.second = ~0u;
+
+    blas->AddRef();
+
     m_blases.PushBack(blas);
+    m_keys.PushBack(key);
 
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void VulkanGpuTlas::RemoveGpuBlas(const VulkanGpuBlasRef& blas)
+void VulkanGpuTlas::RemoveGpuBlas(uint64 key)
 {
-    if (!blas)
+    auto it = m_keyToBlasAndStorageId.Find(key);
+
+    AssertDebug(it != m_keyToBlasAndStorageId.End());
+
+    if (it != m_keyToBlasAndStorageId.End())
     {
-        return;
-    }
+        VulkanGpuBlas* blas = it->second.first;
+        uint32 storageId = it->second.second;
 
-    auto it = m_blases.Find(blas);
+        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
+        g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
 
-    AssertDebug(it != m_blases.End());
+        g_renderInterface->bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
 
-    if (it != m_blases.End())
-    {
-        VulkanGpuBlasRef vulkanBlas = std::move(*it);
-        m_blases.Erase(it);
+        auto blasesIt = m_blases.Find(blas);
+        Assert(blasesIt != m_blases.End());
 
-        auto storageIt = m_blasToStorageId.Find(vulkanBlas.Get());
+        blas->Release();
 
-        if (storageIt != m_blasToStorageId.End())
-        {
-            const uint32 storageId = storageIt->second;
+        auto keysIt = m_keys.Begin() + std::distance(m_blases.Begin(), blasesIt);
+        m_keys.Erase(keysIt);
 
-            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2);
-            g_renderInterface->bindlessStorage->RemoveResource(BindlessStorage_Buffers, storageId * 2 + 1);
+        m_blases.Erase(blasesIt);
 
-            g_renderInterface->bindlessStorage->ReleaseId(BindlessStorage_Buffers, storageId);
-
-            m_blasToStorageId.Erase(storageIt);
-        }
-
-        EnqueueDeletion(std::move(vulkanBlas));
+        m_keyToBlasAndStorageId.Erase(it);
 
         SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
     }
 }
 
-bool VulkanGpuTlas::HasGpuBlas(const VulkanGpuBlasRef& blas)
+bool VulkanGpuTlas::HasGpuBlas(uint64 key)
 {
-    if (!blas)
-    {
-        return false;
-    }
-
-    return m_blases.Find(blas) != m_blases.End();
+    return m_keyToBlasAndStorageId.Find(key) != m_keyToBlasAndStorageId.End();
 }
 
 RendererResult VulkanGpuTlas::BuildInstancesBuffer()
@@ -669,7 +676,7 @@ RendererResult VulkanGpuTlas::BuildInstancesBuffer(uint32 first, uint32 last)
 
     for (uint32 i = first; i < last; i++)
     {
-        const VulkanGpuBlasRef& blas = m_blases[i];
+        VulkanGpuBlas* blas = m_blases[i];
         Assert(blas != nullptr);
 
         const uint32 instanceIndex = i; /* Index of mesh in mesh descriptions buffer. */
@@ -753,7 +760,8 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
 
     for (uint32 i = first; i < last; i++)
     {
-        const VulkanGpuBlasRef& blas = m_blases[i];
+        VulkanGpuBlas* blas = m_blases[i];
+        uint64 key = m_keys[i];
 
         MeshDescription& meshDescription = meshDescriptions[i - first];
         meshDescription = {};
@@ -766,12 +774,9 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
         uint32 storageId = ~0u;
 
         { // allocate / update resources in bindless storage
-            auto storageIt = m_blasToStorageId.Find(blas.Get());
-            if (storageIt != m_blasToStorageId.End())
-            {
-                storageId = storageIt->second;
-            }
-            else
+            storageId = m_keyToBlasAndStorageId[key].second;
+
+            if (storageId == ~0u)
             {
                 storageId = g_renderInterface->bindlessStorage->AllocateId(BindlessStorage_Buffers);
                 AssertDebug(!(storageId & StorageIdDirtyBit));
@@ -782,7 +787,7 @@ RendererResult VulkanGpuTlas::BuildMeshDescriptionsBuffer(uint32 first, uint32 l
             {
                 storageId &= ~StorageIdDirtyBit;
 
-                m_blasToStorageId.Set(blas.Get(), storageId);
+                m_keyToBlasAndStorageId[key].second = storageId;
                 
                 g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2, blas->GetGeometries()[0]->GetPackedVerticesBuffer());
                 g_renderInterface->bindlessStorage->AddResource(BindlessStorage_Buffers, storageId * 2 + 1, blas->GetGeometries()[0]->GetPackedIndicesBuffer());
@@ -821,7 +826,7 @@ RendererResult VulkanGpuTlas::UpdateStructure(RTUpdateStateFlags& outUpdateState
 
     for (uint32 i = 0; i < uint32(m_blases.Size()); i++)
     {
-        const VulkanGpuBlasRef& blas = m_blases[i];
+        VulkanGpuBlas* blas = m_blases[i];
         Assert(blas != nullptr);
 
         RTUpdateStateFlags blasUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
@@ -854,7 +859,7 @@ RendererResult VulkanGpuTlas::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     Assert(m_accelerationStructure != VK_NULL_HANDLE);
 
     // check each GpuBlas, assert that it is valid.
-    for (const VulkanGpuBlasRef& blas : m_blases)
+    for (VulkanGpuBlas* blas : m_blases)
     {
         Assert(blas != nullptr);
         Assert(blas->IsCreated());

@@ -32,6 +32,7 @@
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
+#include <rendering/MeshRTData.hpp>
 
 #include <rendering/AccelerationStructure.hpp>
 #include <rendering/RayTracingPipeline.hpp>
@@ -1487,7 +1488,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, RayT
         GpuTlasRef& tlas = passData.rayTracingTlases[frameIndex];
 
         tlas = g_renderInterface->MakeTLAS();
-        tlas->AddGpuBlas(blas);
+        tlas->AddGpuBlas(0, blas);
 
         CheckResult(tlas->Create());
     }
@@ -2205,27 +2206,28 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        const GpuBlasRef& cachedBlas = m_meshRTData.GetOrCreateBLAS(entity, meshProxy->mesh, meshProxy->material);
+        uint64 newKey;
+        uint64 oldKey;
 
-        if (!cachedBlas)
+        GpuBlas* blas;
+
+        g_renderInterface->blasCache->GetOrCreateBLAS(
+            entity, meshProxy->mesh, meshProxy->material,
+            newKey, oldKey,
+            blas);
+
+        if (!blas)
         {
             HYP_LOG(Rendering, Error, "Failed to build BLAS for Mesh {}", meshProxy->mesh->GetName());
             continue;
         }
 
-        GpuBlasRef& blas = meshProxy->rayTracingData.blas;
-
-        if (blas != cachedBlas)
+        if (oldKey != 0)
         {
-            if (blas != nullptr)
+            for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
-                {
-                    pd->rayTracingTlases[frameIndex]->RemoveGpuBlas(blas);
-                }
+                pd->rayTracingTlases[frameIndex]->RemoveGpuBlas(oldKey);
             }
-
-            blas = cachedBlas;
         }
 
         if (!blas->IsCreated())
@@ -2245,11 +2247,11 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
             blas->SetTransform(meshProxy->bufferData.modelMatrix);
         }
 
-        if (!pd->rayTracingTlases[currentFrameIndex]->HasGpuBlas(blas))
+        if (!pd->rayTracingTlases[currentFrameIndex]->HasGpuBlas(newKey))
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                pd->rayTracingTlases[frameIndex]->AddGpuBlas(meshProxy->rayTracingData.blas);
+                pd->rayTracingTlases[frameIndex]->AddGpuBlas(newKey, blas);
             }
 
             hasBlas = true;

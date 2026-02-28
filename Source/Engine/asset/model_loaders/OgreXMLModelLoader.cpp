@@ -317,8 +317,11 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         mesh->CalculateNormals();
 
         mesh->SetOriginalFilepath(FilePath::Relative(state.filepath, state.assetManager->GetBasePath()));
-
-        state.assetManager->GetAssetRegistry()->RegisterAsset("$Import/Media/Meshes", mesh);
+        
+        if (Result result = mesh->Register("$Import/Media/Meshes"); result.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to register mesh: {}", result.GetError().GetMessage());
+        }
 
         MaterialAttributes materialAttributes {};
         materialAttributes.bucket = RB_TRANSLUCENT;
@@ -330,6 +333,11 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_TRANSMISSION, 0.9f);
         material->SetParameter(MaterialParameterKey::MATERIAL_KEY_ROUGHNESS, 0.2f);
+        
+        if (Result result = material->Register("$Import/Media/Materials"); result.HasError())
+        {
+            HYP_LOG(Assets, Error, "Failed to register material: {}", result.GetError().GetMessage());
+        }
 
         entity->SetLocalBounds(mesh->GetAABB());
 

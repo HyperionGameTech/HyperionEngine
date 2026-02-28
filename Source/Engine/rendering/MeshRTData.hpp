@@ -15,24 +15,28 @@ class Material;
 
 using BLASRef = GpuBlasRef;
 
-class MeshRTData
+class BLASCache
 {
 public:
-    MeshRTData();
+    BLASCache();
     
-    MeshRTData(const MeshRTData& other) = delete;
-    MeshRTData& operator=(const MeshRTData& other) = delete;
+    BLASCache(const BLASCache& other) = delete;
+    BLASCache& operator=(const BLASCache& other) = delete;
 
-    MeshRTData(MeshRTData&& other) noexcept = delete;
-    MeshRTData& operator=(MeshRTData&& other) noexcept = delete;
+    BLASCache(BLASCache&& other) noexcept = delete;
+    BLASCache& operator=(BLASCache&& other) noexcept = delete;
 
-    ~MeshRTData();
+    ~BLASCache();
 
-    const BLASRef& GetOrCreateBLAS(Entity* entity, Mesh* mesh, Material* material);
-    void InvalidateBLAS(Entity* entity);
+    void GetOrCreateBLAS(
+        Entity* entity, Mesh* mesh, Material* material,
+        uint64& outNewKey, uint64& outOldKey,
+        GpuBlas*& outBlas);
+
+    void RunCleanupCycle(int maxIter);
 
 private:
-    Pimpl<class MeshRTDataImpl> m_impl;
+    Pimpl<class BLASCacheImpl> m_impl;
 };
 
 } // namespace Hyperion

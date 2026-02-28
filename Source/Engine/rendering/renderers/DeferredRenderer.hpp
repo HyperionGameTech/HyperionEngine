@@ -9,7 +9,6 @@
 #include <rendering/TemporalAA.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
-#include <rendering/MeshRTData.hpp>
 
 #include <rendering/RTReflections.hpp>
 
@@ -408,8 +407,6 @@ private:
     LastFrameData m_lastFrameData;
 
     RendererConfig m_rendererConfig;
-
-    MeshRTData m_meshRTData;
 
     Handle<Mesh> m_quadMesh;
 };

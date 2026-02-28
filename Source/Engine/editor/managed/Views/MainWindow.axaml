@@ -127,7 +127,22 @@
                         Grid.Column="0"
                         Orientation="Horizontal"
                         Spacing="6">
-                        <Button Content="Save" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Content="Save" Command="{Binding SaveProject}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <DropDownButton
+                              Background="Transparent"
+                              BorderThickness="0"
+                              Content="Show Flags">
+                            <!-- @TODO populate dynamically -->
+                            <DropDownButton.Flyout>
+                              <MenuFlyout>
+                                <MenuItem Header="Unlit" />
+                              </MenuFlyout>
+                            </DropDownButton.Flyout>
+                          </DropDownButton>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel

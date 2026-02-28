@@ -35,6 +35,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/DebugDrawer.hpp>
 #include <rendering/Shader.hpp>
+#include <rendering/MeshRTData.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -884,7 +885,8 @@ RenderInterface::RenderInterface()
       shaderManager(PoolNew<ShaderManager>(*g_renderPool)),
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
-      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool))
+      stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
+      blasCache(PoolNew<BLASCache>(*g_renderPool))
 {
 }
 
@@ -1041,6 +1043,9 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, shaderManager);
     shaderManager = nullptr;
+
+    PoolDelete(*g_renderPool, blasCache);
+    blasCache = nullptr;
 
     PoolDelete(*g_renderPool, stagingBufferPool);
     stagingBufferPool = nullptr;
@@ -1427,6 +1432,8 @@ void RenderInterface::EndFrame()
 
         subtypeData.indicesPendingDelete.Clear();
     }
+
+    blasCache->RunCleanupCycle(32);
 
     DeletionQueue::GetInstance().UpdateEntryListQueue();
     DeletionQueue::GetInstance().Iterate();

@@ -1737,12 +1737,6 @@ extern enum AssetChangeType : uint32
     RENAMED = 3,
     MAX
 end
-extern enum AddAssetConflictMode : uint8
-    FailOnConflict = 0,
-    GenerateNewName,
-    ReplaceExisting,
-    Default
-end
 extern class AssetRegistry
     GetRootPath() -> string
     SetRootPath(rootPath : string) -> void
@@ -1787,11 +1781,6 @@ extern class AssetPackage
     Flags : AssetPackageFlags
     Dependencies : Array<AssetPath>
 end
-extern enum AssetPackageFlags : uint32
-    None = 0x0,
-    Transient = 0x1,
-    Hidden = 0x2
-end
 extern struct AssetReference
     GetAssetPath() -> AssetPath
     SetAssetPath(assetPath : AssetPath) -> void
@@ -1802,12 +1791,6 @@ extern struct AssetPath
     GetChain() -> Array<Name>
     SetChain(names : Array<Name>) -> void
     ToString() -> string
-end
-extern enum AssetObjectFlags : uint8
-    None = 0x0,
-    Persistent = 0x1,
-    Transient = 0x2,
-    TransientByProxy = 0x4
 end
 extern class AssetObject
     GetName() -> Name
@@ -1831,6 +1814,7 @@ extern class AssetObject
     SetIsTransientByProxy(isTransientByProxy : bool) -> void
     IsSaved() -> bool
     Save(manifestPath : string) -> Result
+    Register(path : string, conflictMode : AddAssetConflictMode) -> Result
     Name : Name
     FriendlyName : Name
     Flags : AssetObjectFlags
@@ -2416,6 +2400,23 @@ extern class Material : AssetObject
     IsDynamic : bool
 end
 extern class AssetLoaderBase
+end
+extern enum AddAssetConflictMode : uint8
+    FailOnConflict = 0,
+    GenerateNewName,
+    ReplaceExisting,
+    Default
+end
+extern enum AssetObjectFlags : uint8
+    None = 0x0,
+    Persistent = 0x1,
+    Transient = 0x2,
+    TransientByProxy = 0x4
+end
+extern enum AssetPackageFlags : uint32
+    None = 0x0,
+    Transient = 0x1,
+    Hidden = 0x2
 end
 extern struct UUID
     Data0 : uint64
