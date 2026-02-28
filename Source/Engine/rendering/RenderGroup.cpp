@@ -37,6 +37,8 @@
 
 #include <Core/profiling/PerformanceClock.hpp>
 
+#include <Core/threading/ThreadLocalStorage.hpp>
+
 #include <engine/EngineDriver.hpp>
 #include <engine/EngineStats.hpp>
 
@@ -459,7 +461,7 @@ static void RenderAll_Parallel(
                     return;
                 }
 
-                auto& rq = *parallelRenderingState->localQueues[batchIndex];
+                auto& rq = *parallelRenderingState->localQueues[GetCurrentThreadIndex()];
 
                 const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
 
@@ -564,7 +566,7 @@ static void RenderAll_Parallel(
                     return;
                 }
 
-                auto& rq = *parallelRenderingState->localQueues[batchIndex];
+                auto& rq = *parallelRenderingState->localQueues[GetCurrentThreadIndex()];
 
                 const InstancedDrawCallStorage& instancedDrawCalls = drawCallCollection.instancedDrawCalls;
 

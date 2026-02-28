@@ -106,13 +106,15 @@ private:
 static ThreadMap s_staticThreadMap = {};
 static ThreadMap s_dynamicThreadMap = {};
 
-thread_local ThreadBase* s_currentThread = nullptr;
+static thread_local ThreadBase* s_currentThread = nullptr;
 
 #ifdef HYP_ENABLE_THREAD_ID
-thread_local ThreadId s_currentThreadId = ThreadId::Invalid();
+static thread_local ThreadId s_currentThreadId = ThreadId::Invalid();
 #else
 static const ThreadId s_currentThreadId = ThreadId::Invalid();
 #endif
+
+static thread_local uint32 s_currentThreadIndex = 0;
 
 void SetCurrentThreadId(const ThreadId& id)
 {
@@ -223,6 +225,16 @@ void SetCurrentThreadObject(ThreadBase* thread)
 
     SetCurrentThreadId(thread->Id());
     SetCurrentThreadPriority(thread->GetPriority());
+}
+
+uint32 GetCurrentThreadIndex()
+{
+    return s_currentThreadIndex;
+}
+
+void SetCurrentThreadIndex(uint32 threadIndex)
+{
+    s_currentThreadIndex = threadIndex;
 }
 
 void AssertOnThread(ThreadMask mask, const char* message)

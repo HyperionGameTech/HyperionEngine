@@ -6,7 +6,7 @@
 
 #include <Core/memory/resource/Resource.hpp>
 
-#include <Core/memory/allocator/ArenaAllocator.hpp>
+#include <Core/memory/allocator/ThreadAllocator.hpp>
 
 #include <Core/threading/DataRaceDetector.hpp>
 #include <Core/threading/Task.hpp>
@@ -62,7 +62,7 @@ struct ParallelRenderingState
 
     static constexpr uint32 MaxBatches = NumAsyncCommandBuffers;
 
-    using LocalQueue = TRenderQueue<Arena>;
+    using LocalQueue = TRenderQueue<ThreadAllocator>;
 
     TaskBatch* taskBatch = nullptr;
 

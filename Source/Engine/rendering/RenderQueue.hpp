@@ -921,6 +921,7 @@ class TRenderQueue : public RenderQueueBase
     template <class OtherAllocatorType>
     friend class TRenderQueue;
 
+public:
     using Base = RenderQueueBase;
 
     using Base::CmdHeader;
@@ -928,7 +929,6 @@ class TRenderQueue : public RenderQueueBase
     using Base::MoveCmdFnPtr;
     using Base::PrepareCmdFnPtr;
 
-public:
     TRenderQueue()
         : m_offset(0)
     {
@@ -1037,14 +1037,27 @@ public:
     void Prepare(Frame* frame);
     void Execute(CommandBuffer* commandBuffer);
 
-    void Clear()
+    void Clear(bool freeMemory)
     {
         m_cmdHeaders.Clear();
-        m_cmdHeaders.Refit();
 
-        m_buffer.Clear();
+        if (freeMemory)
+        {
+            m_cmdHeaders.Refit();
+            m_buffer.Clear();
+        }
 
         m_offset = 0;
+    }
+
+    void Reserve(uint32 numCmdHeaders, uint32 bufferSizeBytes = 0)
+    {
+        m_cmdHeaders.Reserve(numCmdHeaders);
+
+        if (bufferSizeBytes > 0 && bufferSizeBytes > m_buffer.Size())
+        {
+            m_buffer.SetSize(ByteUtil::AlignAs(bufferSizeBytes, 16));
+        }
     }
 
 private:

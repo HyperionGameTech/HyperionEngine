@@ -18,27 +18,6 @@ namespace Hyperion {
 HYP_DECLARE_LOG_CHANNEL(Memory);
 HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
 
-#pragma region Memory Pool
-
-static TypeMap<UniquePtr<IResourceMemoryPool>> s_resourceMemoryPools;
-static Mutex s_resourceMemoryPoolsMutex;
-
-IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId typeId, UniquePtr<IResourceMemoryPool> (*createFn)(void))
-{
-    Mutex::Guard guard(s_resourceMemoryPoolsMutex);
-
-    auto it = s_resourceMemoryPools.Find(typeId);
-
-    if (it == s_resourceMemoryPools.End())
-    {
-        it = s_resourceMemoryPools.Set(typeId, createFn()).first;
-    }
-
-    return it->second.Get();
-}
-
-#pragma endregion Memory Pool
-
 #pragma region ResourceGuard
 
 ResourceGuard::ResourceGuard(ResourceBase& resource, int mask)

@@ -125,12 +125,17 @@ TaskThreadPool::TaskThreadPool(Array<UniquePtr<TaskThread>>&& threads)
     m_threads.Reserve(threads.Size());
     m_threadMask = 0;
 
+    uint32 threadIndex = 0;
+
     for (UniquePtr<TaskThread>& thread : threads)
     {
+        thread->SetThreadIndex(threadIndex);
         thread->SetOwnerPool(this);
 
         m_threadMask |= thread->Id().GetMask();
         m_threads.PushBack(std::move(thread));
+
+        ++threadIndex;
     }
 }
 

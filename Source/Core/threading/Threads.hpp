@@ -35,6 +35,9 @@ HYP_API ThreadBase* GetThreadById(const ThreadId& threadId);
 
 HYP_API ThreadBase* CurrentThreadObject();
 
+HYP_API uint32 GetCurrentThreadIndex();
+HYP_API void SetCurrentThreadIndex(uint32 threadIndex);
+
 HYP_API const ThreadId& CurrentThreadId();
 
 HYP_API void RegisterThread(const ThreadId& id, ThreadBase* thread);
@@ -66,6 +69,8 @@ using threading::RegisterThread;
 using threading::SetCurrentThreadId;
 using threading::SetCurrentThreadObject;
 using threading::SetCurrentThreadPriority;
+using threading::GetCurrentThreadIndex;
+using threading::SetCurrentThreadIndex;
 using threading::ThreadSleep;
 using threading::UnregisterThread;
 

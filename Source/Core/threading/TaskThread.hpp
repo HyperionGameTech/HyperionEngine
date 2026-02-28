@@ -19,8 +19,8 @@ class TaskThreadPool;
 class HYP_API TaskThread : public Thread<Scheduler>
 {
 public:
-    TaskThread(const ThreadId& threadId, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
-    TaskThread(Name name, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    explicit TaskThread(const ThreadId& threadId, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    explicit TaskThread(Name name, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
     virtual ~TaskThread() override = default;
 
@@ -34,6 +34,13 @@ public:
     HYP_FORCE_INLINE TaskThreadPool* GetOwnerPool() const
     {
         return m_ownerPool;
+    }
+
+    void SetThreadIndex(uint32 threadIndex);
+
+    HYP_FORCE_INLINE uint32 GetThreadIndex() const
+    {
+        return m_threadIndex;
     }
 
     HYP_FORCE_INLINE bool IsFree() const
@@ -63,7 +70,10 @@ protected:
 
     AtomicVar<uint32> m_numTasks;
 
-    TaskThreadPool* m_ownerPool = nullptr;
+    TaskThreadPool* m_ownerPool;
+
+private:
+    uint32 m_threadIndex; // index of thread in owner pool
 };
 
 } // namespace threading
