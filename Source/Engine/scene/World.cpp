@@ -430,6 +430,16 @@ void World::SetWorldFlags(EnumFlags<WorldFlags> flags)
     }
 }
 
+void World::SetFogParams(const FogParams& fogParams)
+{
+    m_fogParams = fogParams;
+}
+
+void World::SetCSMParams(const CSMParams& csmParams)
+{
+    m_csmParams = csmParams;
+}
+
 const GameState& World::GetGameState() const
 {
     if (m_gameInstance != nullptr)
@@ -463,6 +473,8 @@ void World::ProcessViewAsync(View* view)
 void World::BeginUpdate(TaskBatch& inBatch, float delta)
 {
     HYP_SCOPE;
+
+    UpdateCSMState();
 
     for (Scene* scene : m_scenes)
     {
@@ -592,6 +604,60 @@ void World::EndUpdate()
 #endif
 }
 
+void World::UpdateCSMState()
+{
+    const GameState& gameState = GetGameState();
+
+    if (gameState.IsSimulating())
+    {
+        bool found = false;
+
+        for (Scene* scene : m_scenes)
+        {
+            for (auto [entity, _0, _1] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::PrimaryCamera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+            {
+                Camera* camera = static_cast<Camera*>(entity);
+
+                found = true;
+
+                m_csmState.playerCenter = camera->GetTranslation();
+
+                break;
+            }
+
+            if (found)
+            {
+                break;
+            }
+        }
+    }
+#if HYP_EDITOR
+    else if (gameState.IsEditMode())
+    {
+        bool found = false;
+
+        for (Scene* scene : m_scenes)
+        {
+            for (auto [entity, _0, _1] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>, TagComponent<EntityTag::EditorCamera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+            {
+                Camera* camera = static_cast<Camera*>(entity);
+
+                found = true;
+
+                m_csmState.playerCenter = camera->GetTranslation();
+
+                break;
+            }
+
+            if (found)
+            {
+                break;
+            }
+        }
+    }
+#endif
+}
+
 void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)
 {
     outScenes.Reserve(outScenes.Size() + m_scenes.Size());
@@ -599,6 +665,19 @@ void World::CollectScenes(Array<Scene*, SceneTempAllocator>& outScenes)
     for (Scene* scene : m_scenes)
     {
         outScenes.PushBack(scene);
+    }
+}
+
+void World::CollectCameras(Array<Camera*, SceneTempAllocator>& outCameras)
+{
+    outCameras.Reserve(m_scenes.Size() * 3);
+
+    for (Scene* scene : m_scenes)
+    {
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            outCameras.PushBack(static_cast<Camera*>(entity));
+        }
     }
 }
 

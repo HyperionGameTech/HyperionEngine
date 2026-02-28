@@ -613,6 +613,14 @@ extern struct Keyframe
     Transform : Transform
     Blend(to : Keyframe, blend : float) -> Keyframe
 end
+extern struct CSMState
+    PlayerCenter : Vec3f
+end
+extern struct FogParams
+    Color : Color
+    StartDistance : float
+    EndDistance : float
+end
 extern enum WorldFlags : uint32
     NONE = 0x0,
     EDITOR_WORLD = 0x1,
@@ -622,12 +630,21 @@ extern enum WorldFlags : uint32
     ALL_STREAMING_LAYER_FLAGS = HAS_SCENE_STREAMING_LAYER,
     DEFAULT = ((HAS_PHYSICS | HAS_STREAMING) | ALL_STREAMING_LAYER_FLAGS)
 end
+extern struct CSMParams
+    NumCascades : uint32
+end
 extern class World
     GetName() -> Name
     SetName(name : Name) -> void
     GetGame() -> Game
     GetWorldFlags() -> WorldFlags
     SetWorldFlags(flags : WorldFlags) -> void
+    GetFogParams() -> FogParams
+    SetFogParams(fogParams : FogParams) -> void
+    GetCSMParams() -> CSMParams
+    SetCSMParams(csmParams : CSMParams) -> void
+    GetCSMState() -> CSMState
+    SetCSMState(csmState : CSMState) -> void
     GetPhysicsWorld() -> PhysicsWorldBase
     TryAddSubsystem(subsystem : Subsystem) -> bool
     GetSubsystemByName(name : any) -> Subsystem
@@ -655,6 +672,9 @@ extern class World
     GameInstance : Game
     WorldFlags : WorldFlags
     Scenes : Array<Scene>
+    FogParams : FogParams
+    CsmParams : CSMParams
+    CsmState : CSMState
     Systems : Array<SystemBase>
 end
 extern struct VisibilityStateSnapshot
@@ -730,6 +750,7 @@ extern enum EntityTag : uint64
     MobDynamic,
     Light,
     PrimaryCamera,
+    EditorCamera,
     LightmapElement,
     ReceivesUpdate,
     MaxPersistent,
@@ -1854,16 +1875,6 @@ extern class AnimationTrack : AssetObject
     BoneName : Name
     KeyframeData : BlobDataReference
 end
-extern struct CSMState
-    CascadeViewProjMatrices : Array<Mat4f>
-    CascadeSplits : Array<float>
-    PlayerCenter : Vec3f
-end
-extern struct FogParams
-    Color : Color
-    StartDistance : float
-    EndDistance : float
-end
 extern enum SceneFlags : uint32
     NONE = 0x0,
     FOREGROUND = 0x1,
@@ -1874,9 +1885,6 @@ extern enum SceneFlags : uint32
     HAS_OCTREE = 0x40,
     AUDIO_LISTENER = 0x80,
     DEFAULT = ((FOREGROUND | STREAMED) | HAS_OCTREE)
-end
-extern struct CSMParams
-    NumCascades : uint32
 end
 extern class Scene : AssetObject
     GetPrimaryCamera() -> Camera
@@ -1895,12 +1903,6 @@ extern class Scene : AssetObject
     SetIsAudioListener(isAudioListener : bool) -> void
     GetStreamingCentroid() -> Vec2i
     SetStreamingCenroid(streamingCentroid : Vec2i) -> void
-    GetFogParams() -> FogParams
-    SetFogParams(fogParams : FogParams) -> void
-    GetCSMParams() -> CSMParams
-    SetCSMParams(csmParams : CSMParams) -> void
-    GetCSMState() -> CSMState
-    SetCSMState(csmState : CSMState) -> void
     AddToWorld(world : World) -> bool
     RemoveFromWorld() -> bool
     GetUniqueNodeName(baseName : string) -> Name
@@ -1909,9 +1911,6 @@ extern class Scene : AssetObject
     Root : Node
     OwnerThreadId : any
     World : World
-    FogParams : FogParams
-    CsmParams : CSMParams
-    CsmState : CSMState
     EntityManager : EntityManager
     PreviousDelta : float
     StreamingCentroid : Vec2i

@@ -15,6 +15,7 @@ HYP_REGISTER_ENTITY_TAG(MobStatic, true);
 HYP_REGISTER_ENTITY_TAG(MobDynamic, true);
 HYP_REGISTER_ENTITY_TAG(Light, true);
 HYP_REGISTER_ENTITY_TAG(PrimaryCamera, true);
+HYP_REGISTER_ENTITY_TAG(EditorCamera, true);
 HYP_REGISTER_ENTITY_TAG(LightmapElement, true);
 
 HYP_REGISTER_ENTITY_TAG(ReceivesUpdate, false);

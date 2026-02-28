@@ -14,6 +14,7 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/EntityManager.hpp>
 
 #include <EditorViewport.generated.inl>
 
@@ -38,10 +39,12 @@ void EditorViewport::Init()
     if (!m_camera)
     {
         m_camera = MakeHandle<Camera>();
+        m_camera->SetName(NAME("EditorViewportCamera"));
+        m_camera->SetIsTransient(true);
+        m_camera->AddTag<EntityTag::EditorCamera>();
         m_camera->SetWindow(m_window);
         m_camera->SetCameraFlags(CameraFlags::MATCH_WINDOW_SIZE);
         m_camera->AddCameraController(MakeHandle<EditorCameraController>());
-        m_camera->SetName(NAME("EditorViewportCamera"));
         m_camera->SetFOV(60.0f);
         m_camera->SetNear(0.1f);
         m_camera->SetFar(3000.0f);
@@ -49,19 +52,17 @@ void EditorViewport::Init()
 
     InitObject(m_camera);
 
-    const ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT
-            | ViewFlags::GBUFFER
-            | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-        .viewport = Viewport {
-            .extent = Vec2u(m_camera->GetDimensions()),
-            .position = Vec2i::Zero()
-        },
-        .renderTargetDesc = {
-            .extent = Vec2u(m_camera->GetDimensions())
-        },
-        .camera = m_camera
-    };
+    ViewDesc viewDesc {};
+    viewDesc.flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS;
+
+    viewDesc.viewport = {};
+    viewDesc.viewport.extent = Vec2u(m_camera->GetDimensions());
+    viewDesc.viewport.position = Vec2i::Zero();
+
+    viewDesc.renderTargetDesc = {};
+    viewDesc.renderTargetDesc.extent = Vec2u(m_camera->GetDimensions());
+
+    viewDesc.camera = m_camera;
 
     m_view = MakeHandle<View>(viewDesc);
     InitObject(m_view);

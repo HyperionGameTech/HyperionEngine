@@ -23,6 +23,7 @@ enum class EntityTag : uint64
     Light,
 
     PrimaryCamera,
+    EditorCamera,
 
     LightmapElement,
 

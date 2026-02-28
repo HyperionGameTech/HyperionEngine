@@ -33,39 +33,6 @@ class Scene;
 class EntityManager;
 class WorldGrid;
 
-HYP_STRUCT()
-struct FogParams
-{
-    HYP_STRUCT_BODY(FogParams);
-
-    HYP_FIELD()
-    Color color = Color(0xF2F8F7FF);
-    
-    HYP_FIELD()
-    float startDistance = 250.0f;
-    
-    HYP_FIELD()
-    float endDistance = 1000.0f;
-};
-
-HYP_STRUCT()
-struct CSMParams
-{
-    HYP_STRUCT_BODY(CSMParams);
-
-    HYP_FIELD()
-    uint32 numCascades = 4;
-};
-
-HYP_STRUCT()
-struct CSMState
-{
-    HYP_STRUCT_BODY(CSMState);
-
-    HYP_FIELD(Transient)
-    Vec3f playerCenter;
-};
-
 HYP_ENUM()
 enum class SceneFlags : uint32
 {
@@ -224,36 +191,6 @@ public:
         MarkDirty();
     }
 
-    HYP_METHOD(Property = "FogParams")
-    const FogParams& GetFogParams() const
-    {
-        return m_fogParams;
-    }
-
-    HYP_METHOD(Property = "FogParams")
-    void SetFogParams(const FogParams& fogParams);
-
-    HYP_METHOD(Property = "CSMParams")
-    const CSMParams& GetCSMParams() const
-    {
-        return m_csmParams;
-    }
-
-    HYP_METHOD(Property = "CSMParams")
-    void SetCSMParams(const CSMParams& csmParams);
-
-    HYP_METHOD(Property = "CSMState", Transient)
-    const CSMState& GetCSMState() const
-    {
-        return m_csmState;
-    }
-
-    HYP_METHOD(Property = "CSMState", Transient)
-    void SetCSMState(const CSMState& csmState)
-    {
-        m_csmState = csmState;
-    }
-
     HYP_METHOD()
     bool AddToWorld(World* world);
 
@@ -289,15 +226,6 @@ private:
 
     HYP_FIELD(Property = "World", Transient)
     World* m_world;
-
-    HYP_FIELD(Property = "FogParams")
-    FogParams m_fogParams;
-
-    HYP_FIELD(Property = "CSMParams")
-    CSMParams m_csmParams;
-
-    HYP_FIELD(Property = "CSMState", Transient)
-    CSMState m_csmState;
 
     HYP_FIELD(Property = "EntityManager", Transient)
     Handle<EntityManager> m_entityManager;
