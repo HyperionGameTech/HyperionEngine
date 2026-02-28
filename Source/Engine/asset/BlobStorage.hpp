@@ -27,6 +27,8 @@ namespace Hyperion {
 class ByteReader;
 class ByteWriter;
 
+class BlobTableOfContents;
+
 struct BlobStorageCallbacks
 {
     void* context = nullptr;
@@ -112,6 +114,8 @@ public:
     Result SaveManifest();
     Result SaveTOC();
 
+    Result SaveIfDirty();
+
     // Needs to be set by impl
     BlobStorageCallbacks callbacks;
 
@@ -122,6 +126,9 @@ private:
 
     Result LoadManifest();
     Result LoadTOC();
+
+    Result SaveManifest_Internal();
+    Result SaveTOC_Internal();
 
     HYP_FIELD()
     FilePath m_baseDirectory;
@@ -135,7 +142,7 @@ private:
     HYP_FIELD()
     Array<BlobPageData> m_pageData;
 
-    BlobTableOfContents m_toc;
+    BlobTableOfContents* m_toc;
 
     mutable Mutex m_mutex;
 };

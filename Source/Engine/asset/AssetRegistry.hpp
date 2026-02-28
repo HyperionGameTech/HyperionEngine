@@ -456,7 +456,7 @@ public:
     void Initialize();
 
     /*! \brief Called by AssetManager to perform enqueued tasks that mutate the registry. */
-    void Update(float delta);
+    void Update();
 
     HYP_FIELD()
     ScriptableDelegate<void, Handle<AssetPackage>> OnPackageAdded;
@@ -473,6 +473,8 @@ private:
     void PostTask(Func&& fn, Task<FutureType>* outFuture = nullptr);
 
     void PruneTransientPackages();
+
+    void SaveBlobCache(bool async);
 
     Handle<AssetPackage> GetPackageFromPath_Internal(
         const UTF8StringView& path,
@@ -493,6 +495,10 @@ private:
     // timer for when we should prune transient packages
     ClockTimer m_pruneTimer;
     threading::TaskBatch* m_pruneTaskBatch;
+
+    // timer for saving blob cache data
+    ClockTimer m_saveBlobCacheTimer;
+    threading::TaskBatch* m_saveBlobCacheBatch;
 
     Scheduler* m_scheduler;
 

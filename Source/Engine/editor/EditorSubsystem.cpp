@@ -1444,14 +1444,9 @@ void EditorSubsystem::OnAddedToWorld()
     m_editorScene = MakeHandle<Scene>(NAME("EditorScene"), SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     GetWorld()->AddScene(m_editorScene);
 
-    LoadEditorUIDefinitions();
+    LoadFont();
 
-    // InitContentBrowser();
     InitViewport();
-    // InitSceneOutline();
-    // InitActiveSceneSelection();
-
-    // InitDetailView();
 
     CreateHighlightNode();
 
@@ -1582,7 +1577,7 @@ void EditorSubsystem::OnSceneDetached(Scene* scene)
     HYP_SCOPE;
 }
 
-void EditorSubsystem::LoadEditorUIDefinitions()
+void EditorSubsystem::LoadFont()
 {
     UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
     Assert(uiSubsystem != nullptr);
@@ -2006,73 +2001,6 @@ void EditorSubsystem::InitViewport()
         }));
 
     InitDebugOverlays();
-    InitGizmoSelection();
-}
-
-void EditorSubsystem::InitSceneOutline()
-{
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    AssertDebug(uiSubsystem != nullptr);
-
-    Handle<UIListView> listView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(listView.IsValid());
-
-    listView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    listView->SetDataSource(MakeHandle<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
-
-    if (ShowOnlyActiveScene)
-    {
-        OnActiveSceneChanged
-            .Bind([this](const Handle<Scene>& activeScene)
-                {
-                    UpdateWatchedNodes();
-                })
-            .Detach();
-    }
-
-    m_delegateHandlers.Remove(&listView->OnSelectedItemChange);
-    m_delegateHandlers.Add(listView->OnSelectedItemChange.Bind([this, listViewWeak = listView.ToWeak()](UIListViewItem* listViewItem)
-        {
-            Handle<UIListView> listView = listViewWeak.Lock();
-
-            if (!listView)
-            {
-                return UIEventHandlerResult::ERR;
-            }
-
-            if (!listViewItem)
-            {
-                SetFocusedNode(Handle<Node>::Null(), false);
-
-                return UIEventHandlerResult::OK;
-            }
-
-            const UUID dataSourceElementUuid = listViewItem->GetDataSourceElementUUID();
-
-            if (dataSourceElementUuid == UUID::Invalid())
-            {
-                return UIEventHandlerResult::ERR;
-            }
-
-            if (!listView->GetDataSource())
-            {
-                return UIEventHandlerResult::ERR;
-            }
-
-            const UIDataSourceElement* dataSourceElementValue = listView->GetDataSource()->Get(dataSourceElementUuid);
-
-            if (!dataSourceElementValue)
-            {
-                return UIEventHandlerResult::ERR;
-            }
-
-            const WeakHandle<Node>& nodeWeak = dataSourceElementValue->GetValue().Get<WeakHandle<Node>>();
-            Handle<Node> node = nodeWeak.Lock();
-
-            SetFocusedNode(node, false);
-
-            return UIEventHandlerResult::OK;
-        }));
 }
 
 void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
@@ -2238,157 +2166,6 @@ void EditorSubsystem::UpdateWatchedNodes()
     }
 }
 
-void EditorSubsystem::InitDetailView()
-{
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    AssertDebug(uiSubsystem != nullptr);
-
-    Handle<UIListView> detailsListView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")));
-    AssertDebug(detailsListView.IsValid());
-
-    Handle<UIListView> outlineListView = ObjCast<UIListView>(uiSubsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")));
-    AssertDebug(outlineListView.IsValid());
-
-    detailsListView->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-
-    m_editorDelegates->RemoveNodeWatchers("DetailView"_sh);
-
-    m_delegateHandlers.Remove(&OnFocusedNodeChanged);
-    m_delegateHandlers.Add(OnFocusedNodeChanged.Bind([this, cls = Node::StaticClass(), detailsListViewWeak = detailsListView.ToWeak(), outlineListViewWeak = outlineListView.ToWeak()](const Handle<Node>& node, const Handle<Node>& previousNode, bool shouldSelectInOutline)
-        {
-            m_editorDelegates->RemoveNodeWatchers("DetailView"_sh);
-
-            Handle<UIListView> detailsListView = detailsListViewWeak.Lock();
-
-            if (!detailsListView)
-            {
-                return;
-            }
-
-            if (!node.IsValid())
-            {
-                detailsListView->SetDataSource(nullptr);
-
-                return;
-            }
-
-            detailsListView->SetDataSource(MakeHandle<UIDataSource>(TypeWrapper<EditorNodePropertyRef> {}));
-
-            UIDataSourceBase* dataSource = detailsListView->GetDataSource();
-
-            Array<Pair<Property*, int>> propertiesWithSortOrder;
-            Array<Property*> propertiesWithoutSortOrder;
-
-            for (auto it = cls->GetMembers(MemberType::Property).Begin(); it != cls->GetMembers(MemberType::Property).End(); ++it)
-            {
-                if (Property* property = static_cast<Property*>(&*it))
-                {
-                    if (!property->GetAttribute(Attributes::g_attrEditor))
-                    {
-                        continue;
-                    }
-
-                    if (!property->CanGet())
-                    {
-                        continue;
-                    }
-
-                    if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrEditOrder); attr.IsValid())
-                    {
-                        propertiesWithSortOrder.EmplaceBack(property, attr.GetInt());
-
-                        continue;
-                    }
-
-                    propertiesWithoutSortOrder.PushBack(property);
-                }
-                else
-                {
-                    HYP_UNREACHABLE();
-                }
-            }
-
-            // sort properties with sort order
-            std::sort(
-                propertiesWithSortOrder.Begin(),
-                propertiesWithSortOrder.End(),
-                [](const Pair<Property*, int>& a, const Pair<Property*, int>& b)
-                {
-                    return a.second < b.second;
-                });
-
-            Array<Property*> allProperties;
-            allProperties.Reserve(propertiesWithSortOrder.Size() + propertiesWithoutSortOrder.Size());
-
-            for (const Pair<Property*, int>& pair : propertiesWithSortOrder)
-            {
-                allProperties.PushBack(pair.first);
-            }
-
-            for (Property* property : propertiesWithoutSortOrder)
-            {
-                allProperties.PushBack(property);
-            }
-
-            for (Property* property : allProperties)
-            {
-                EditorNodePropertyRef nodePropertyRef;
-                nodePropertyRef.node = node.ToWeak();
-                nodePropertyRef.property = property;
-
-                if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrLabel))
-                {
-                    nodePropertyRef.title = attr.GetString();
-                }
-                else
-                {
-                    nodePropertyRef.title = *property->GetName();
-                }
-
-                if (const ClassAttributeValue& attr = property->GetAttribute(Attributes::g_attrDescription))
-                {
-                    nodePropertyRef.description = attr.GetString();
-                }
-
-                dataSource->Push(UUID(), BoxedValue(std::move(nodePropertyRef)));
-            }
-
-            m_editorDelegates->AddNodeWatcher(
-                NAME("DetailView"),
-                node,
-                {},
-                Proc<void(Node*, const Property*)> {
-                    [this, cls = Node::StaticClass(), detailsListViewWeak](Node* node, const Property* property)
-                    {
-                        // Update name in list view
-
-                        Handle<UIListView> detailsListView = detailsListViewWeak.Lock();
-
-                        if (!detailsListView)
-                        {
-                            HYP_LOG(Editor, Error, "Failed to get strong reference to list view!");
-
-                            return;
-                        }
-
-                        if (UIDataSourceBase* dataSource = detailsListView->GetDataSource())
-                        {
-                            UIDataSourceElement* dataSourceElement = dataSource->FindWithPredicate([node, property](const UIDataSourceElement* item)
-                                {
-                                    return item->GetValue().Get<EditorNodePropertyRef>().property == property;
-                                });
-
-                            if (!dataSourceElement)
-                            {
-                                return;
-                            }
-
-                            dataSource->ForceUpdate(dataSourceElement->GetUUID());
-                        }
-                    } });
-        }));
-}
-
 void EditorSubsystem::InitDebugOverlays()
 {
     HYP_SCOPE;
@@ -2445,62 +2222,6 @@ void EditorSubsystem::InitDebugOverlays()
     {
         uiSubsystem->GetUIStage()->AddChildUIObject(debugOverlayContainer);
     }
-}
-
-void EditorSubsystem::InitGizmoSelection()
-{
-    HYP_SCOPE;
-
-    UISubsystem* uiSubsystem = GetWorld()->GetSubsystem<UISubsystem>();
-    Assert(uiSubsystem != nullptr);
-
-    Handle<UIObject> gizmoSelection = uiSubsystem->GetUIStage()->FindChildUIObject(NAME("GizmoSelection"));
-    if (gizmoSelection != nullptr)
-    {
-        gizmoSelection->RemoveFromParent();
-    }
-
-    gizmoSelection = uiSubsystem->GetUIStage()->CreateUIObject<UIMenuBar>(NAME("GizmoSelection"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
-    Assert(gizmoSelection != nullptr);
-
-    gizmoSelection->SetDepth(150);
-    gizmoSelection->SetTextSize(8.0f);
-    gizmoSelection->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.5f));
-    gizmoSelection->SetTextColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
-    gizmoSelection->SetBorderFlags(UIObjectBorderFlags::ALL);
-    gizmoSelection->SetBorderRadius(5.0f);
-    gizmoSelection->SetPosition(Vec2i { 5, 5 });
-
-    Array<Pair<int, Handle<UIObject>>> gizmoMenuItems;
-    gizmoMenuItems.Reserve(GetGizmos().Size());
-
-    // add each manipulation widget to the selection menu
-    for (const Handle<EditorGizmoBase>& gizmo : GetGizmos())
-    {
-        if (gizmo->GetManipulationMode() == EditorManipulationMode::NONE)
-        {
-            continue;
-        }
-
-        Handle<UIObject> gizmoMenuItem = gizmoSelection->CreateUIObject<UIMenuItem>(gizmo->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
-        Assert(gizmoMenuItem != nullptr);
-
-        gizmoMenuItem->SetText(gizmo->GetMenuText());
-
-        auto it = std::lower_bound(gizmoMenuItems.Begin(), gizmoMenuItems.End(), gizmo->GetPriority(), [](const Pair<int, Handle<UIObject>>& a, int b)
-            {
-                return a.first < b;
-            });
-
-        gizmoMenuItems.Insert(it, Pair<int, Handle<UIObject>> { gizmo->GetPriority(), std::move(gizmoMenuItem) });
-    }
-
-    for (Pair<int, Handle<UIObject>>& gizmoMenuItem : gizmoMenuItems)
-    {
-        gizmoSelection->AddChildUIObject(std::move(gizmoMenuItem.second));
-    }
-
-    uiSubsystem->GetUIStage()->AddChildUIObject(gizmoSelection);
 }
 
 void EditorSubsystem::InitActiveSceneSelection()

@@ -457,15 +457,12 @@ public:
     ScriptableDelegate<void, Handle<EditorViewport>> OnActiveViewportChanged;
 
 private:
-    void LoadEditorUIDefinitions();
+    void LoadFont();
 
     void CreateHighlightNode();
 
     void InitViewport();
-    void InitSceneOutline();
-    void InitDetailView();
     void InitDebugOverlays();
-    void InitGizmoSelection();
     void InitActiveSceneSelection();
 
     TResult<Handle<FontAtlas>> CreateFontAtlas();

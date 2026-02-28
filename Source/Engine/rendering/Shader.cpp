@@ -15,6 +15,10 @@
 
 namespace Hyperion {
 
+#if HYP_EDITOR
+HYP_DECLARE_LOG_CHANNEL(Editor);
+#endif
+
 extern ShaderInputGroup& GetStaticDescriptorTableDeclaration();
 
 Shader::~Shader()
@@ -86,14 +90,20 @@ void Shader::PageBlobData()
                 Assert(package.IsValid());
                 Assert(package->IsSaved());
 
-                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + "." + GetShaderHeaderPrefix(moduleType) + ".raw.blob") };
+                const char* moduleTypeString = GetShaderHeaderPrefix(moduleType);
+
+                FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + "." + moduleTypeString + ".raw.blob") };
                 if (!stream.Eof())
                 {
                     ByteBuffer buffer = stream.Read(stream.Max());
 
                     AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-
-                    MarkDirty();
+                    
+                    Result saveBlobDataResult = SaveBlobData(blobStorage);
+                    if (saveBlobDataResult.HasError())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
+                    }
 
                     continue;
                 }

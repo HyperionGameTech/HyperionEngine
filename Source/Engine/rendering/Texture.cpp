@@ -374,8 +374,7 @@ void Texture::PageBlobData()
 #ifdef HYP_EDITOR
             // check if failed; if so, try to import from raw data blob in project directory
             Handle<AssetPackage> package = GetPackage();
-            Assert(package.IsValid());
-            Assert(package->IsSaved());
+            Assert(package && package->IsSaved());
 
             FileByteReader stream { package->GetSavedDirectory() / (String(*GetName()) + ".TEX.raw.blob") };
             if (!stream.Eof())

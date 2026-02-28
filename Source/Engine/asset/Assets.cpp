@@ -364,7 +364,7 @@ void AssetManager::Update(float delta)
     HYP_SCOPE;
     AssertOnThread(g_simThread);
 
-    m_assetRegistry->Update(delta);
+    m_assetRegistry->Update();
 
     uint32 numPendingBatches;
 
