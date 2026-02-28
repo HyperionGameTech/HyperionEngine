@@ -261,9 +261,9 @@ void LightmapRenderer_GpuPathTracing::CreateAccelerationStructures()
             CheckResult(blas->Create());
         }
 
-        if (!m_tlas->HasGpuBlas(blas))
+        if (!m_tlas->HasGpuBlas(entity->Id().ToIndex()))
         {
-            m_tlas->AddGpuBlas(blas);
+            m_tlas->AddGpuBlas(entity->Id().ToIndex(), blas);
 
             hasBlas = true;
         }

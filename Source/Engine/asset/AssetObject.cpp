@@ -375,6 +375,11 @@ Result AssetObject::SaveBlobData(
     return {};
 }
 
+Result AssetObject::Register(const UTF8StringView& path, AddAssetConflictMode conflictMode)
+{
+    return g_assetManager->GetAssetRegistry()->RegisterAsset(path, MakeStrongRef(this), conflictMode);
+}
+
 Result AssetObject::Load(
     JSON::Object& manifestData,
     Handle<AssetObject>& outAssetObject)

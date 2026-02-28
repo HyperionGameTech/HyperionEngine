@@ -280,9 +280,9 @@ public:
 
     bool IsCreated() const override;
 
-    void AddGpuBlas(const VulkanGpuBlasRef& blas) override;
-    void RemoveGpuBlas(const VulkanGpuBlasRef& blas) override;
-    bool HasGpuBlas(const VulkanGpuBlasRef& blas) override;
+    void AddGpuBlas(uint64 key, VulkanGpuBlas* blas) override;
+    void RemoveGpuBlas(uint64 key) override;
+    bool HasGpuBlas(uint64 key) override;
 
     RendererResult Create() override;
 
@@ -310,8 +310,10 @@ private:
     RendererResult BuildMeshDescriptionsBuffer();
     RendererResult BuildMeshDescriptionsBuffer(uint32 first, uint32 last);
 
-    Array<VulkanGpuBlasRef> m_blases;
-    HashMap<VulkanGpuBlas*, uint32> m_blasToStorageId;
+    Array<VulkanGpuBlas*, VulkanAllocator> m_blases;
+    Array<uint64, VulkanAllocator> m_keys;
+    HashMap<uint64, Pair<VulkanGpuBlas*, uint32>, PooledNodeAllocator<VulkanAllocator>> m_keyToBlasAndStorageId;
+
     VulkanGpuBufferRef m_instancesBuffer;
 };
 

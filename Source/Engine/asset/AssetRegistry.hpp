@@ -3,6 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/AssetEnums.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
@@ -52,26 +53,6 @@ extern StringHash AssetObject_KeyByFunction(const Handle<AssetObject>& assetObje
 
 using AssetPackageSet = HashSet<Handle<AssetPackage>, &AssetPackage_KeyByFunction, NodeAllocator<AssetAllocator>>;
 using AssetObjectSet = HashSet<Handle<AssetObject>, &AssetObject_KeyByFunction, NodeAllocator<AssetAllocator>>;
-
-HYP_ENUM()
-enum class AssetPackageFlags : uint32
-{
-    None = 0x0,
-    Transient = 0x1,    //!< Not saved to disk
-    Hidden = 0x2        //!< Hide in content browser
-};
-
-HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
-
-HYP_ENUM()
-enum class AddAssetConflictMode : uint8
-{
-    FailOnConflict = 0,
-    GenerateNewName,
-    ReplaceExisting,
-
-    Default //!< per-package type default
-};
 
 HYP_CLASS()
 class HYP_API AssetPackage final : public ObjectBase

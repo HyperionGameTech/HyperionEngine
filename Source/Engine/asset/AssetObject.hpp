@@ -3,6 +3,7 @@
 #pragma once
 
 #include <asset/AssetPath.hpp>
+#include <asset/AssetEnums.hpp>
 #include <asset/BlobStorageStructs.hpp>
 #include <asset/BlobStorage.hpp>
 
@@ -51,17 +52,6 @@ class Object;
 
 HYP_API extern Pool* g_assetPool;
 using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
-
-HYP_ENUM()
-enum class AssetObjectFlags : uint8
-{
-    None = 0x0,
-    Persistent = 0x1,       //!< Asset is persistently loaded in memory
-    Transient = 0x2,        //!< Asset is not saved to disk
-    TransientByProxy = 0x4  //!< Same as above, but is transient due to parent package being transient (will change if asset is moved to a non-transient package)
-};
-
-HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
 
 HYP_CLASS(Abstract)
 class HYP_API AssetObject : public ObjectBase
@@ -197,6 +187,11 @@ public:
     void UnlockReader();
 
     void GetNumUsers(int64& outReaders, int64& outWriters) const;
+
+    HYP_METHOD()
+    Result Register(
+        const UTF8StringView& path,
+        AddAssetConflictMode conflictMode = AddAssetConflictMode::Default);
 
     static Result Load(
         JSON::Object& manifestData,

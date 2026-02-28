@@ -510,6 +510,11 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         {
             bakeEntity.material = MakeHandle<Material>();
         }
+        
+        if (Result result = bakeEntity.material->Register("$Import/Media/Materials"); result.HasError())
+        {
+            HYP_LOG(Lightmap, Error, "Failed to register material: {}", result.GetError().GetMessage());
+        }
 
         isNewMaterial = true;
 

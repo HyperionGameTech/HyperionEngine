@@ -86,9 +86,9 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    virtual void AddGpuBlas(const GpuBlasRef& blas) = 0;
-    virtual void RemoveGpuBlas(const GpuBlasRef& blas) = 0;
-    virtual bool HasGpuBlas(const GpuBlasRef& blas) = 0;
+    virtual void AddGpuBlas(uint64 key, GpuBlas* blas) = 0;
+    virtual void RemoveGpuBlas(uint64 key) = 0;
+    virtual bool HasGpuBlas(uint64 key) = 0;
 
     virtual RendererResult Create() = 0;
 

@@ -10,6 +10,9 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
+#include <asset/Assets.hpp>
+#include <asset/AssetRegistry.hpp>
+
 #include <rendering/Material.hpp>
 
 #include <TerrainWorldGridLayer.generated.inl>
@@ -47,6 +50,8 @@ void TerrainWorldGridLayer::Init()
     m_material->SetParameter(MATERIAL_KEY_ROUGHNESS, 0.95f);
     m_material->SetParameter(MATERIAL_KEY_METALNESS, 0.0f);
     m_material->SetParameter(MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
+    
+    g_assetManager->GetAssetRegistry()->RegisterAsset("$Memory/Media/Materials", m_material);
 
     // if (auto albedoTextureAsset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
     // {

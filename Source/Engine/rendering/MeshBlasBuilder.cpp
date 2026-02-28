@@ -22,8 +22,6 @@
 
 namespace Hyperion {
 
-HYP_DISABLE_OPTIMIZATION;
-
 struct BuildMeshBlas : public RenderCommand
 {
     GpuBlasRef blas;
