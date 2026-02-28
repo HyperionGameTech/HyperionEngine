@@ -71,7 +71,7 @@ private:
     struct CachedShadowMapData
     {
         ShadowMap* shadowMap = nullptr;
-        Handle<FullScreenPass> combineShadowMapsPass; // Pass to combine shadow maps for this light (optional)
+        UniquePtr<FullScreenPass> combineShadowMapsPass; // Pass to combine shadow maps for this light (optional)
         GpuImageRef combinedShadowMapsBlurred;
         FixedArray<GpuBufferRef, NumFramesInFlight> blurUniformBuffers;
     };

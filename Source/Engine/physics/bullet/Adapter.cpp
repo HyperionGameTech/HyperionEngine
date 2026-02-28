@@ -38,28 +38,28 @@ static inline Quaternion FromBtQuaternion(const btQuaternion& quat)
 
 struct RigidBodyInternalData
 {
-    UniquePtr<btRigidBody> rigidBody;
-    UniquePtr<btMotionState> motionState;
+    RC<btRigidBody> rigidBody;
+    RC<btMotionState> motionState;
 };
 
-static UniquePtr<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
+static RC<btCollisionShape> CreatePhysicsShapeHandle(PhysicsShape* physicsShape)
 {
     switch (physicsShape->GetType())
     {
     case PhysicsShapeType::BOX:
-        return MakeUnique<btBoxShape>(
+        return MakeRefCountedPtr<btBoxShape>(
             ToBtVector(static_cast<BoxPhysicsShape*>(physicsShape)->GetAABB().GetExtent() * 0.5f));
     case PhysicsShapeType::SPHERE:
-        return MakeUnique<btSphereShape>(
+        return MakeRefCountedPtr<btSphereShape>(
             static_cast<SpherePhysicsShape*>(physicsShape)->GetSphere().GetRadius());
     case PhysicsShapeType::PLANE:
-        return MakeUnique<btStaticPlaneShape>(
+        return MakeRefCountedPtr<btStaticPlaneShape>(
             ToBtVector(static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().GetXYZ()),
             static_cast<PlanePhysicsShape*>(physicsShape)->GetPlane().w);
     case PhysicsShapeType::CONVEX_HULL:
         static_assert(sizeof(btScalar) == sizeof(float), "sizeof(btScalar) must be sizeof(float) for reinterpret_cast to be safe");
 
-        return MakeUnique<btConvexHullShape>(
+        return MakeRefCountedPtr<btConvexHullShape>(
             reinterpret_cast<const btScalar*>(static_cast<ConvexHullPhysicsShape*>(physicsShape)->GetVertexData()),
             static_cast<ConvexHullPhysicsShape*>(physicsShape)->NumVertices(),
             sizeof(float) * 3);
@@ -169,13 +169,13 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
             ->calculateLocalInertia(rigidBody->GetPhysicsMaterial().GetMass(), localInertia);
     }
 
-    UniquePtr<RigidBodyInternalData> internalData = MakeUnique<RigidBodyInternalData>();
+    RC<RigidBodyInternalData> internalData = MakeRefCountedPtr<RigidBodyInternalData>();
 
     btTransform btTransform;
     btTransform.setIdentity();
     btTransform.setOrigin(ToBtVector(rigidBody->GetTransform().GetTranslation()));
     btTransform.setRotation(ToBtQuaternion(rigidBody->GetTransform().GetRotation()));
-    internalData->motionState = MakeUnique<btDefaultMotionState>(btTransform);
+    internalData->motionState = MakeRefCountedPtr<btDefaultMotionState>(btTransform);
 
     btRigidBody::btRigidBodyConstructionInfo constructionInfo(
         rigidBody->GetPhysicsMaterial().GetMass(),
@@ -183,7 +183,7 @@ void BulletPhysicsAdapter::OnRigidBodyAdded(const Handle<RigidBody>& rigidBody)
         static_cast<btCollisionShape*>(rigidBody->GetShape()->GetHandle()),
         localInertia);
 
-    internalData->rigidBody = MakeUnique<btRigidBody>(constructionInfo);
+    internalData->rigidBody = MakeRefCountedPtr<btRigidBody>(constructionInfo);
     internalData->rigidBody->setActivationState(DISABLE_DEACTIVATION); // TEMP
     internalData->rigidBody->setWorldTransform(btTransform);
 

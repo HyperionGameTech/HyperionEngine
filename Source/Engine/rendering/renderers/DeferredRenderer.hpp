@@ -60,11 +60,8 @@ enum CubemapType : uint32
     CMT_MAX
 };
 
-HYP_CLASS(NoScriptBindings)
 class DeferredPass final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(DeferredPass);
-
     friend class DeferredRenderer;
 
 public:
@@ -88,11 +85,8 @@ private:
     SamplerRef m_ltcSampler;
 };
 
-HYP_CLASS(NoScriptBindings)
 class TonemapPass final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(TonemapPass);
-
 public:
     TonemapPass(Vec2u extent, GBuffer* gbuffer);
     TonemapPass(const TonemapPass& other) = delete;
@@ -115,11 +109,8 @@ private:
     virtual void Resize_Internal(Vec2u newSize) override;
 };
 
-HYP_CLASS(NoScriptBindings)
 class LightmapPass final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(LightmapPass);
-
 public:
     LightmapPass();
     LightmapPass(const LightmapPass& other) = delete;
@@ -173,11 +164,8 @@ private:
     virtual void Resize_Internal(Vec2u newSize) override;
 };
 
-HYP_CLASS(NoScriptBindings)
 class FogVolumePass final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(FogVolumePass);
-
 public:
     FogVolumePass();
     FogVolumePass(const FogVolumePass& other) = delete;
@@ -234,11 +222,8 @@ private:
     virtual void Resize_Internal(Vec2u newSize) override;
 };
 
-HYP_CLASS(NoScriptBindings)
 class ReflectionsPass final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(ReflectionsPass);
-
 public:
     ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView);
     ReflectionsPass(const ReflectionsPass& other) = delete;
@@ -299,21 +284,21 @@ public:
 
     Handle<Texture> mipChain;
 
-    Handle<DeferredPass> indirectPass;
-    Handle<DeferredPass> directPass;
+    UniquePtr<DeferredPass> indirectPass;
+    UniquePtr<DeferredPass> directPass;
 
     FramebufferRef deferredShadingFramebuffer;
 
-    Handle<ReflectionsPass> reflectionsPass;
+    UniquePtr<ReflectionsPass> reflectionsPass;
 
-    Handle<LightmapPass> lightmapPass;
+    UniquePtr<LightmapPass> lightmapPass;
 
-    Handle<FogVolumePass> fogVolumePass;
+    UniquePtr<FogVolumePass> fogVolumePass;
 
-    Handle<TonemapPass> tonemapPass;
+    UniquePtr<TonemapPass> tonemapPass;
 
-    Handle<HBAO> hbao;
-    Handle<FullScreenPass> combinePass;
+    UniquePtr<HBAO> hbao;
+    UniquePtr<FullScreenPass> combinePass;
     UniquePtr<PostProcessing> postProcessing;
     UniquePtr<TemporalAA> temporalAa;
     UniquePtr<SSGI> ssgi;

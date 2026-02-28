@@ -1369,10 +1369,10 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
 
-        passData.indirectPass = MakeHandle<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
+        passData.indirectPass = MakeUnique<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
         passData.indirectPass->Create();
 
-        passData.directPass = MakeHandle<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
+        passData.directPass = MakeUnique<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
         passData.directPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -1392,27 +1392,27 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         InitObject(passData.mipChain);
 
-        passData.hbao = MakeHandle<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+        passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
         passData.hbao->Create();
 
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
 
-        passData.reflectionsPass = MakeHandle<ReflectionsPass>(
+        passData.reflectionsPass = MakeUnique<ReflectionsPass>(
             passData.viewport.extent,
             gbuffer,
             g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
 
         passData.reflectionsPass->Create();
 
-        passData.tonemapPass = MakeHandle<TonemapPass>(passData.viewport.extent, gbuffer);
+        passData.tonemapPass = MakeUnique<TonemapPass>(passData.viewport.extent, gbuffer);
         passData.tonemapPass->Create();
 
         // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-        passData.lightmapPass = MakeHandle<LightmapPass>();
+        passData.lightmapPass = MakeUnique<LightmapPass>();
         passData.lightmapPass->Create();
 
-        passData.fogVolumePass = MakeHandle<FogVolumePass>();
+        passData.fogVolumePass = MakeUnique<FogVolumePass>();
         passData.fogVolumePass->Create();
 
         passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
@@ -1530,20 +1530,20 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.hbao->Resize(newSize);
 
     passData.reflectionsPass.Reset();
-    passData.reflectionsPass = MakeHandle<ReflectionsPass>(
+    passData.reflectionsPass = MakeUnique<ReflectionsPass>(
         newSize,
         gbuffer,
         g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
 
     passData.reflectionsPass->Create();
 
-    passData.tonemapPass = MakeHandle<TonemapPass>(passData.viewport.extent, gbuffer);
+    passData.tonemapPass = MakeUnique<TonemapPass>(passData.viewport.extent, gbuffer);
     passData.tonemapPass->Create();
 
-    passData.lightmapPass = MakeHandle<LightmapPass>();
+    passData.lightmapPass = MakeUnique<LightmapPass>();
     passData.lightmapPass->Create();
 
-    passData.fogVolumePass = MakeHandle<FogVolumePass>();
+    passData.fogVolumePass = MakeUnique<FogVolumePass>();
     passData.fogVolumePass->Create();
 
     passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
@@ -2208,7 +2208,6 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
         uint64 newKey;
         uint64 oldKey;
-
         GpuBlas* blas;
 
         g_renderInterface->blasCache->GetOrCreateBLAS(

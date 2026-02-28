@@ -1177,6 +1177,11 @@ extern struct MeshInstanceData
     BufferStructSizes : Array<uint32>
     BufferStructAlignments : Array<uint32>
 end
+extern struct HBAOConfig
+    Radius : float
+    Power : float
+    UseTemporalBlending : bool
+end
 extern enum GpuImageFlags : uint32
     NONE = 0x0
 end
@@ -1187,11 +1192,6 @@ extern enum GBufferTargetName : uint32
     GTN_VELOCITY,
     GTN_DEPTH,
     GTN_MAX
-end
-extern struct HBAOConfig
-    Radius : float
-    Power : float
-    UseTemporalBlending : bool
 end
 extern struct DescriptorSetLayoutElement
     Type : ShaderInputType

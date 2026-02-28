@@ -16,19 +16,19 @@ public:
     DOFBlur& operator=(const DOFBlur& other) = delete;
     ~DOFBlur();
 
-    const Handle<FullScreenPass>& GetHorizontalBlurPass() const
+    FullScreenPass* GetHorizontalBlurPass() const
     {
-        return m_blurHorizontalPass;
+        return m_blurHorizontalPass.Get();
     }
 
-    const Handle<FullScreenPass>& GetVerticalBlurPass() const
+    FullScreenPass* GetVerticalBlurPass() const
     {
-        return m_blurVerticalPass;
+        return m_blurVerticalPass.Get();
     }
 
-    const Handle<FullScreenPass>& GetCombineBlurPass() const
+    FullScreenPass* GetCombineBlurPass() const
     {
-        return m_blurMixPass;
+        return m_blurMixPass.Get();
     }
 
     void Create();
@@ -41,9 +41,9 @@ private:
 
     Vec2u m_extent;
 
-    Handle<FullScreenPass> m_blurHorizontalPass;
-    Handle<FullScreenPass> m_blurVerticalPass;
-    Handle<FullScreenPass> m_blurMixPass;
+    UniquePtr<FullScreenPass> m_blurHorizontalPass;
+    UniquePtr<FullScreenPass> m_blurVerticalPass;
+    UniquePtr<FullScreenPass> m_blurMixPass;
 };
 
 } // namespace Hyperion

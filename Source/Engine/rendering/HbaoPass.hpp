@@ -33,11 +33,8 @@ struct HBAOConfig : public ConfigBase<HBAOConfig>
     }
 };
 
-HYP_CLASS(NoScriptBindings)
 class HBAO final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(HBAO);
-
 public:
     HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer);
     HBAO(const HBAO& other) = delete;

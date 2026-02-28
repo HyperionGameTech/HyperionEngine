@@ -49,6 +49,8 @@ struct SSGIConfig : public ConfigBase<SSGIConfig>
 class SSGI
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     SSGI(SSGIConfig&& config, GBuffer* gbuffer);
     ~SSGI();
 
