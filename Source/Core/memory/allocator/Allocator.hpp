@@ -13,6 +13,7 @@
 #include <Core/Types.hpp>
 
 namespace Hyperion {
+
 namespace memory {
 
 class Pool;
@@ -633,7 +634,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
         // Fixed allocations should be handled by the Allocation struct itself
         HYP_NOT_IMPLEMENTED();
     }
-};
+};  
 
 /*! \brief Binds a pointer-to-pointer of a given AllocatorType, allowing the instance to be passed as an allocator to other structures. */
 template <class AllocatorType, AllocatorType** GlobalInstance = nullptr>

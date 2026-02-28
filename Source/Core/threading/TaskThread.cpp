@@ -17,17 +17,23 @@ namespace threading {
 static const double TaskThreadLagSpikeThreshold = 50.0;
 static const double TaskThreadSingleTaskLagSpikeThreshold = 10.0;
 
+extern void SetCurrentThreadIndex(uint32 threadIndex);
+
 // #define HYP_ENABLE_LAG_SPIKE_DETECTION
 
 TaskThread::TaskThread(const ThreadId& threadId, ThreadPriorityValue priority)
     : Thread(threadId, priority),
-      m_numTasks(0)
+      m_numTasks(0),
+      m_ownerPool(nullptr),
+      m_threadIndex(0)
 {
 }
 
 TaskThread::TaskThread(Name name, ThreadPriorityValue priority)
     : Thread(ThreadId(name, THREAD_CATEGORY_TASK), priority),
-      m_numTasks(0)
+      m_numTasks(0),
+      m_ownerPool(nullptr),
+      m_threadIndex(0)
 {
 }
 
@@ -37,8 +43,20 @@ void TaskThread::SetPriority(ThreadPriorityValue priority)
     HYP_NOT_IMPLEMENTED();
 }
 
+void TaskThread::SetThreadIndex(uint32 threadIndex)
+{
+    m_threadIndex = threadIndex;
+
+    if (IsOnThread(Id()))
+    {
+        SetCurrentThreadIndex(threadIndex);
+    }
+}
+
 void TaskThread::operator()()
 {
+    SetCurrentThreadIndex(m_threadIndex);
+
     while (!m_stopRequested.Load())
     {
         Scheduler::ScheduledTask scheduledTask;

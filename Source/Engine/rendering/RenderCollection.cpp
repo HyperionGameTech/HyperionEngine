@@ -38,6 +38,7 @@
 #include <scene/animation/Skeleton.hpp>
 
 #include <Core/threading/Threads.hpp>
+#include <Core/threading/ThreadLocalStorage.hpp>
 
 #include <Core/Util.hpp>
 
@@ -62,25 +63,20 @@ struct ParallelRenderingState_Shared
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
     static constexpr uint32 MaxBatches = ParallelRenderingState::MaxBatches;
-    static constexpr SizeType LocalQueueArenaSize = 64 * 1024;
+    static constexpr SizeType MaxLocalQueueSizeBytes = 64 * 1024 * 1024;
 
     using LocalQueue = ParallelRenderingState::LocalQueue;
 
-    FixedArray<Arena*, MaxBatches> arenas;
     FixedArray<LocalQueue*, MaxBatches> localQueues;
 
     ParallelRenderingState_Shared()
-        : arenas {},
-          localQueues {}
+        : localQueues {}
     {
         AssertOnThread(g_renderThread);
 
         for (uint32 i = 0; i < MaxBatches; i++)
         {
-            Arena* arena = PoolNew<Arena>(*g_renderPool, LocalQueueArenaSize);
-            arenas[i] = arena;
-
-            localQueues[i] = PoolNew<LocalQueue>(*g_renderPool, arena);
+            localQueues[i] = PoolNew<LocalQueue>(*g_renderPool);
         }
     }
 
@@ -94,11 +90,6 @@ struct ParallelRenderingState_Shared
             {
                 PoolDelete(*g_renderPool, localQueues[i]);
             }
-
-            if (arenas[i])
-            {
-                PoolDelete(*g_renderPool, arenas[i]);
-            }
         }
     }
 
@@ -106,8 +97,8 @@ struct ParallelRenderingState_Shared
     {
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
-            localQueues[i]->Clear();
-            arenas[i]->Reset();
+            // don't free memory; each queue uses thread-local memory allocators
+            localQueues[i]->Clear(/* freeMemory */ false);
         }
     }
 };
@@ -796,7 +787,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
     {
         if (!parallelRenderingStateHead)
         {
-            ParallelRenderingState_Shared* sharedData =  new ParallelRenderingState_Shared;
+            ParallelRenderingState_Shared* sharedData = new ParallelRenderingState_Shared;
 
             parallelRenderingStateHead = new ParallelRenderingState(sharedData, true);
 
@@ -817,7 +808,7 @@ ParallelRenderingState* RenderCollector::AcquireNextParallelRenderingState()
 
         if (!next)
         {
-            ParallelRenderingState_Shared* sharedData = new ParallelRenderingState_Shared;//curr->sharedData;
+            ParallelRenderingState_Shared* sharedData = new ParallelRenderingState_Shared;
 
             ParallelRenderingState* newParallelRenderingState = new ParallelRenderingState(sharedData, true);
 
@@ -857,12 +848,12 @@ void RenderCollector::CommitParallelRenderingState(RenderQueue& renderQueue)
         state->taskBatch->AwaitCompletion();
 
         renderQueue.Concat(state->rootQueue);
-        state->rootQueue.Clear();
+        state->rootQueue.Clear(/* freeMemory */ false);
 
         for (uint32 i = 0; i < ParallelRenderingState::MaxBatches; i++)
         {
             renderQueue.Concat(*state->localQueues[i]);
-            state->localQueues[i]->Clear();
+            state->localQueues[i]->Clear(/* freeMemory */ false);
         }
 
         renderQueue << SetStencilState(0, 0xFF, 0x0); // reset stencil

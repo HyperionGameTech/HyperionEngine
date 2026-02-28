@@ -117,7 +117,10 @@ public:
         {
             UniquePtr<ThreadBase>& thread = m_threads.PushBack(MakeUnique<TaskThreadType>(CreateTaskThreadId(baseName, threadIndex)));
 
-            static_cast<TaskThread*>(thread.Get())->SetOwnerPool(this);
+            TaskThread* taskThread = static_cast<TaskThread*>(thread.Get());
+
+            taskThread->SetThreadIndex(threadIndex);
+            taskThread->SetOwnerPool(this);
 
             m_threadMask |= thread->Id().GetMask();
         }
