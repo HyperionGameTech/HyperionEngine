@@ -143,18 +143,6 @@ void Scene::SetOwnerThreadId(ThreadId ownerThreadId)
     m_entityManager->SetOwnerThreadId(ownerThreadId);
 }
 
-void Scene::SetFogParams(const FogParams& fogParams)
-{
-    m_fogParams = fogParams;
-    MarkDirty();
-}
-
-void Scene::SetCSMParams(const CSMParams& csmParams)
-{
-    m_csmParams = csmParams;
-    MarkDirty();
-}
-
 Camera* Scene::GetPrimaryCamera() const
 {
     HYP_SCOPE;
@@ -301,15 +289,6 @@ void Scene::Update(float delta)
 {
     HYP_SCOPE;
     AssertOnThread(m_ownerThreadId);
-
-    AssertReady();
-
-    if (Camera* primaryCamera = GetPrimaryCamera())
-    {
-        Vec3f newCenter = primaryCamera->GetWorldTranslation();
-
-        m_csmState.playerCenter = newCenter;
-    }
 
     if (m_sceneFlags & SceneFlags::HAS_OCTREE)
     {

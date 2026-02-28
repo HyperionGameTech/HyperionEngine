@@ -389,9 +389,11 @@ void Light::UpdateShadowViews()
             {
                 BoundingBox cascadeBounds;
 
+                World* world = GetWorld();
+
                 ShadowCameraHelper::UpdateShadowCameraDirectional(
                     shadowCamera,
-                    m_scene->GetCSMState().playerCenter,
+                    world != nullptr ? world->GetCSMState().playerCenter : Vec3f::Zero(),
                     GetPosition(),
                     45.0f, /// TODO: add proper radius for directional light.
                     cascadeBounds);
@@ -493,8 +495,6 @@ void Light::OnTransformUpdated()
     {
         m_position.Normalize();
     }
-
-    UpdateShadowViews();
 }
 
 void Light::Update(float delta)
@@ -503,6 +503,8 @@ void Light::Update(float delta)
 
     if (m_flags & LF_SHADOW)
     {
+        UpdateShadowViews();
+
         for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
         {
             for (const Handle<View>& shadowView : *shadowViews)
