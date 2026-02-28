@@ -41,7 +41,8 @@ ShadowRendererPassData::~ShadowRendererPassData()
 
 #pragma region ShadowRendererBase
 
-static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filterMode, TextureFormat format, Vec2u dimensions, Span<View*> views)
+static UniquePtr<FullScreenPass> CreateCombineShadowMapsPass(
+    ShadowMapFilter filterMode, TextureFormat format, Vec2u dimensions, Span<View*> views)
 {
     AssertDebug(views.Size() == 2, "Combine pass requires 2 views (one for static objects, one for dynamic objects)");
 
@@ -52,7 +53,7 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
         properties.Add(InternShaderProperty(ShaderProperty(NAME("VSM"))));
     }
 
-    Handle<FullScreenPass> combineShadowMapsPass = MakeHandle<FullScreenPass>(
+    UniquePtr<FullScreenPass> combineShadowMapsPass = MakeUnique<FullScreenPass>(
         ShaderDesc(NAME("CombineShadowMaps"), properties),
         format,
         dimensions,

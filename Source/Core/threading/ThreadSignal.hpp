@@ -9,7 +9,10 @@ namespace threading {
 class ThreadSignal
 {
 public:
-    ThreadSignal() = default;
+    explicit ThreadSignal(bool startSignalled = true)
+        : m_signalCount(startSignalled ? 1 : 0)
+    {
+    }
 
     ThreadSignal(const ThreadSignal&) = delete;
     ThreadSignal& operator=(const ThreadSignal&) = delete;
@@ -46,7 +49,7 @@ public:
 private:
     mutable Mutex m_mutex;
     ConditionVariable m_conditionVariable;
-    int m_signalCount = 0;
+    int m_signalCount;
 };
 
 } // namespace threading

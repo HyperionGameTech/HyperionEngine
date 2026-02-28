@@ -11,8 +11,6 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <PostFX.generated.inl>
-
 namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
@@ -54,7 +52,7 @@ PostProcessingEffect::PostProcessingEffect(PostProcessingStage stage, uint32 eff
 
 PostProcessingEffect::~PostProcessingEffect() = default;
 
-void PostProcessingEffect::Init()
+void PostProcessingEffect::Initialize()
 {
     m_shaderDesc = GetShaderDesc();
 
@@ -88,7 +86,7 @@ void PostProcessing::Create()
         {
             Assert(effect.second != nullptr);
 
-            effect.second->Init();
+            effect.second->Initialize();
 
             effect.second->OnAdded();
         }
@@ -148,7 +146,7 @@ void PostProcessing::PerformUpdates()
 
             Assert(effect != nullptr);
 
-            effect->Init();
+            effect->Initialize();
 
             effect->OnAdded();
 

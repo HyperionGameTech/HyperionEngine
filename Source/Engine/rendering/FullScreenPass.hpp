@@ -10,6 +10,8 @@
 
 #include <Core/memory/UniquePtr.hpp>
 
+#include <Core/threading/ThreadSignal.hpp>
+
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
@@ -34,15 +36,14 @@ enum FullScreenPassFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(FullScreenPassFlags);
 
-HYP_CLASS(NoScriptBindings)
-class HYP_API FullScreenPass : public ObjectBase
+class FullScreenPass
 {
-    HYP_OBJECT_BODY(FullScreenPass);
-
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     friend struct RecreateFullScreenPassFramebuffer;
 
-    FullScreenPass(EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
+    explicit FullScreenPass(EnumFlags<FullScreenPassFlags> flags = FSP_NONE);
 
     FullScreenPass(
         TextureFormat imageFormat,
@@ -72,7 +73,10 @@ public:
 
     FullScreenPass(const FullScreenPass&) = delete;
     FullScreenPass& operator=(const FullScreenPass&) = delete;
+
     virtual ~FullScreenPass();
+
+    virtual Name GetName() const;
 
     HYP_FORCE_INLINE const Vec2u& GetExtent() const
     {
@@ -178,8 +182,10 @@ private:
     bool m_isInitialized;
 
     // Used for half-res rendering
-    Handle<FullScreenPass> m_mergeHalfResTexturesPass;
+    UniquePtr<FullScreenPass> m_mergeHalfResTexturesPass;
     GpuBufferRef m_mergeHalfResTexturesUniformBuffer;
+
+    ThreadSignal m_threadSignal; // for render commands
 };
 
 } // namespace Hyperion

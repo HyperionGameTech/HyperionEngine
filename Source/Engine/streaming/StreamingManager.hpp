@@ -32,6 +32,11 @@ class WorldGridLayer;
 
 class StreamingNotifier final : public ThreadSignal
 {
+public:
+    StreamingNotifier()
+        : ThreadSignal(false)
+    {
+    }
 };
 
 HYP_CLASS()

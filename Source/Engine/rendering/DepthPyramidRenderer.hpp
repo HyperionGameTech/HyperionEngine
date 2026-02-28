@@ -17,7 +17,9 @@ class GBuffer;
 class DepthPyramidRenderer
 {
 public:
-    DepthPyramidRenderer(GBuffer* gbuffer);
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
+    explicit DepthPyramidRenderer(GBuffer* gbuffer);
     ~DepthPyramidRenderer();
 
     HYP_FORCE_INLINE const GpuImageViewRef& GetResultImageView() const

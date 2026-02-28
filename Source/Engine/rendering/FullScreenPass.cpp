@@ -32,11 +32,11 @@
 
 #include <util/MeshBuilder.hpp>
 
-#include <FullScreenPass.generated.inl>
-
 namespace Hyperion {
 
 static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
+
+static const Name s_nameFullScreenPass = NAME("FullScreenPass");
 
 struct MergeHalfResTexturesUniforms
 {
@@ -47,11 +47,11 @@ struct MergeHalfResTexturesUniforms
 
 struct RecreateFullScreenPassFramebuffer : RenderCommand
 {
-    WeakHandle<FullScreenPass> fullScreenPassWeak;
+    FullScreenPass* pass;
     Vec2u newSize;
 
-    RecreateFullScreenPassFramebuffer(const WeakHandle<FullScreenPass>& fullScreenPassWeak, Vec2u newSize)
-        : fullScreenPassWeak(fullScreenPassWeak),
+    RecreateFullScreenPassFramebuffer(FullScreenPass* pass, Vec2u newSize)
+        : pass(pass),
           newSize(newSize)
     {
     }
@@ -60,22 +60,16 @@ struct RecreateFullScreenPassFramebuffer : RenderCommand
 
     virtual RendererResult operator()() override
     {
-        Handle<FullScreenPass> fullScreenPass = fullScreenPassWeak.Lock();
-        if (!fullScreenPass)
+        if (pass->m_isInitialized)
         {
-            HYP_LOG(Rendering, Verbose, "FullScreenPass {} is no longer alive, skipping recreate.", fullScreenPassWeak.Id());
-
-            return {};
-        }
-
-        if (fullScreenPass->m_isInitialized)
-        {
-            fullScreenPass->Resize_Internal(newSize);
+            pass->Resize_Internal(newSize);
         }
         else
         {
-            fullScreenPass->m_extent = newSize;
+            pass->m_extent = newSize;
         }
+
+        pass->m_threadSignal.Signal();
 
         return {};
     }
@@ -135,12 +129,18 @@ FullScreenPass::FullScreenPass(
 
 FullScreenPass::~FullScreenPass()
 {
+    m_threadSignal.Wait();
+
     m_fullScreenQuad.Reset();
 
     EnqueueDeletion(std::move(m_framebuffer));
-    EnqueueDeletion(std::move(m_mergeHalfResTexturesUniformBuffer));
 
     // not calling EnqueueDeletion() for graphics pipeline as it is managed by the graphics pipeline caching system
+}
+
+Name FullScreenPass::GetName() const
+{
+    return s_nameFullScreenPass;
 }
 
 const GpuImageViewRef& FullScreenPass::GetFinalImageView() const
@@ -236,7 +236,8 @@ void FullScreenPass::SetBlendFunction(const BlendFunction& blendFunction)
 
 void FullScreenPass::Resize(Vec2u newSize)
 {
-    PUSH_RENDER_COMMAND(RecreateFullScreenPassFramebuffer, WeakHandleFromThis(), newSize);
+    m_threadSignal.Wait();
+    PUSH_RENDER_COMMAND(RecreateFullScreenPassFramebuffer, this, newSize);
 }
 
 void FullScreenPass::Resize_Internal(Vec2u newSize)
@@ -253,8 +254,7 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
 
     newSize = MathUtil::Max(newSize, Vec2u::One());
 
-    HYP_LOG(Rendering, Verbose, "Resizing FullScreenPass {} from {} to {}",
-        Id().Value(),
+    HYP_LOG(Rendering, Verbose, "Resizing FullScreenPass from {} to {}",
         m_extent,
         newSize);
 
@@ -356,7 +356,7 @@ void FullScreenPass::CreateFramebuffer()
 
     GpuImageRef attachmentImage = g_renderInterface->MakeImage(textureDesc);
 #if HYP_DEBUG_MODE
-    attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", InstanceClass()->GetName()));
+    attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", GetName()));
 #endif
 
     CheckResult(attachmentImage->Create());
@@ -411,7 +411,7 @@ void FullScreenPass::CreateHistoryTexture()
         TWM_CLAMP_TO_EDGE
     });
 
-    m_historyTexture->SetName(NAME_FMT("{}_FrameHistory", InstanceClass()->GetName()));
+    m_historyTexture->SetName(NAME_FMT("{}_FrameHistory", GetName()));
 
     InitObject(m_historyTexture);
 }
@@ -436,7 +436,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
 
     m_mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-    m_mergeHalfResTexturesPass = MakeHandle<FullScreenPass>(
+    m_mergeHalfResTexturesPass = MakeUnique<FullScreenPass>(
         ShaderDesc(NAME("MergeHalfResTextures")),
         m_imageFormat,
         m_extent,

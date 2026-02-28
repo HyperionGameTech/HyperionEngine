@@ -63,7 +63,7 @@ public:
 
     /*! \brief Set the internal handle of the PhysicsShape. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(UniquePtr<void>&& handle)
+    HYP_FORCE_INLINE void SetHandle(RC<void>&& handle)
     {
         m_handle = std::move(handle);
     }
@@ -71,7 +71,7 @@ public:
 protected:
     PhysicsShapeType m_type;
 
-    UniquePtr<void> m_handle;
+    RC<void> m_handle;
 };
 
 HYP_CLASS()
@@ -246,7 +246,7 @@ public:
 
     /*! \brief Set the internal handle of the RigidBody. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(UniquePtr<void>&& handle)
+    HYP_FORCE_INLINE void SetHandle(RC<void>&& handle)
     {
         m_handle = std::move(handle);
     }
@@ -262,7 +262,7 @@ private:
     PhysicsMaterial m_physicsMaterial;
     bool m_isKinematic;
 
-    UniquePtr<void> m_handle;
+    RC<void> m_handle;
 };
 
 } // namespace Hyperion

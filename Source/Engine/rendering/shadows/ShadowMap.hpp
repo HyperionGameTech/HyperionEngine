@@ -40,9 +40,15 @@ enum ShadowMapType : uint32
 class ShadowMap
 {
 public:
-    ShadowMap(ShadowMapType type, ShadowMapFilter filterMode, const ShadowMapAtlasElement& atlasElement, const GpuImageViewRef& imageView);
+    ShadowMap(
+        ShadowMapType type,
+        ShadowMapFilter filterMode,
+        const ShadowMapAtlasElement& atlasElement,
+        const GpuImageViewRef& imageView);
+
     ShadowMap(const ShadowMap&) = delete;
     ShadowMap& operator=(const ShadowMap&) = delete;
+
     ~ShadowMap();
 
     HYP_FORCE_INLINE ShadowMapType GetShadowMapType() const
@@ -71,7 +77,7 @@ private:
     ShadowMapAtlasElement* m_atlasElement;
     GpuImageViewRef m_imageView;
 
-    Handle<FullScreenPass> m_combineShadowMapsPass;
+    UniquePtr<FullScreenPass> m_combineShadowMapsPass;
 };
 
 } // namespace Hyperion

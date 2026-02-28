@@ -26,9 +26,6 @@ HYP_API extern bool IsA(const Class* cls, const void* ptr, const TypeId& typeId)
 
 namespace memory {
 
-template <class T>
-class UniquePtr;
-
 class AnyBase
 {
 protected:
@@ -91,10 +88,6 @@ class Any final : public AnyBase
     }
 
 public:
-    // UniquePtr is a friend class
-    template <class T>
-    friend class memory::UniquePtr;
-
     Any()
         : m_block(nullptr)
     {

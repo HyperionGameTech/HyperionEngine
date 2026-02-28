@@ -33,11 +33,8 @@ enum PostProcessingStage
     POST_PROCESSING_STAGE_POST_SHADING
 };
 
-HYP_CLASS(NoScriptBindings)
-class HYP_API PostFXPass final : public FullScreenPass
+class PostFXPass final : public FullScreenPass
 {
-    HYP_OBJECT_BODY(PostFXPass);
-
 public:
     PostFXPass(
         TextureFormat imageFormat,
@@ -75,7 +72,7 @@ protected:
     uint32 m_effectIndex;
 };
 
-class HYP_API PostProcessingEffect
+class PostProcessingEffect
 {
 public:
     PostProcessingEffect(
@@ -117,7 +114,7 @@ public:
         m_isEnabled = isEnabled;
     }
 
-    void Init();
+    void Initialize();
 
     virtual void OnAdded() = 0;
     virtual void OnRemoved() = 0;

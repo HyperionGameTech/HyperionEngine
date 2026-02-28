@@ -163,7 +163,6 @@ void SSRRenderer::CreatePasses()
             m_uvsTexture->GetExtent().GetXY(),
             nullptr);
 
-        InitObject(m_writeUvs);
         m_writeUvs->Create();
     }
 
