@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/TemporalBlending/TemporalBlending_4861578501041289757"
+      }
+    }],
+  "Name": "TemporalBlending",
+  "FriendlyName": "TemporalBlending",
+  "OriginalFilepath": ""
+}

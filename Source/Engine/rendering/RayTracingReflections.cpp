@@ -213,7 +213,7 @@ void RayTracingReflections::Render(Frame* frame, const RenderSetup& renderSetup)
 
     AssertDebug(parentPass->view.IsValid());
 
-    Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    Framebuffer* viewFramebuffer = parentPass->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
     AssertDebug(pd->cBuffer != nullptr);

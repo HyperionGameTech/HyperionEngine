@@ -141,7 +141,6 @@ public:
     int priority;
 
     FixedArray<ResourceTrackerBase<AllocatorType>*, TupleSize<TrackedResourceTypes>::value> resourceTrackers;
-    FixedArray<void (*)(ResourceTrackerBase<AllocatorType>*), TupleSize<TrackedResourceTypes>::value> releaseRefsFunctions;
 
 #define DEF_RESOURCE_TRACKER_GETTER(getterName, T)                                                                                                                            \
     HYP_FORCE_INLINE auto Get##getterName()->typename TupleElement_Tuple<FindTypeElementIndex<class T, TrackedResourceTypes>::value, ResourceTrackerTypes>::Type&             \

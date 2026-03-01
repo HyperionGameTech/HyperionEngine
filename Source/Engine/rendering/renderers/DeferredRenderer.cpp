@@ -2122,7 +2122,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     // debug draw
-    if (renderCollector.mappingsByBucket[RenderBucket::Debug].Any()
+    if (renderCollector.mappingsByBucket[uint32(RenderBucket::Debug)].Any()
         || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
     {
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);

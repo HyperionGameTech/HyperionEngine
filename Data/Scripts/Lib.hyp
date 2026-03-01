@@ -1154,6 +1154,13 @@ extern struct RendererConfig
     SsgiEnabled : bool
     TaaEnabled : bool
 end
+extern enum RenderBucket : uint8
+    Opaque,
+    Lightmapped,
+    Translucent,
+    Sky,
+    Debug
+end
 extern struct MeshAttributes
     VertexAttributes : VertexAttributeSet
     Topology : Topology

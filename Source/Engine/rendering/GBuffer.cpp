@@ -68,12 +68,10 @@ GBuffer::GBuffer(Vec2u extent)
     : m_extent(extent),
       m_isCreated(false)
 {
-    for (uint32 bucketIndex = 0; bucketIndex < NumRenderBuckets - 1; bucketIndex++)
+    for (uint32 bucketIndex = 0; bucketIndex < NumRenderBuckets; bucketIndex++)
     {
-        const RenderBucket rb = RenderBucket(bucketIndex + 1);
-
         m_buckets[bucketIndex].SetGBuffer(this);
-        m_buckets[bucketIndex].SetBucket(rb);
+        m_buckets[bucketIndex].SetBucket(RenderBucket(bucketIndex));
     }
 }
 

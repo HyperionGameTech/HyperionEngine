@@ -19,9 +19,9 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": false
+        "Enabled": true
       },
-      "Enabled": false
+      "Enabled": true
     },
     "HBAO": {
       "Radius": 2.500000,
@@ -70,7 +70,7 @@
       "Normals": false
     },
     "Vulkan": {
-      "DebugLayers": true
+      "DebugLayers": false
     }
   },
   "Editor": {

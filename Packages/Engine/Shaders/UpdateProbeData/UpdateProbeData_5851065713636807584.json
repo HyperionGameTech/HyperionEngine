@@ -1,0 +1,114 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_WINDOWS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "DDGI_PROBE_SIDE_LENGTH_IRRADIANCE",
+      "Flags": 0,
+      "Value": 8,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "MODE",
+      "Flags": 0,
+      "Value": "IRRADIANCE",
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYSTERESIS",
+      "Flags": 0,
+      "Value": 0.980000,
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "UpdateProbeData",
+  "VertexAttributes": {
+    "FlagMask": 0
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "DDGI",
+        "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "ProbeRayData",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 2,
+              "ElementType": 6,
+              "Name": "OutputImage",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 1,
+              "Name": "CBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], []],
+        "Flags": 0
+      }]
+  },
+  "ShaderModuleTypes": [4],
+  "ShaderModuleNames": ["UpdateProbeData.hlsl"],
+  "EntryPointNames": ["CSMain"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/UpdateProbeData/UpdateProbeData_5851065713636807584.CS",
+      "Size": 6400
+    }],
+  "PropertySetHashCode": {},
+  "Name": "UpdateProbeData_5851065713636807584",
+  "FriendlyName": "UpdateProbeData_5851065713636807584",
+  "OriginalFilepath": ""
+}

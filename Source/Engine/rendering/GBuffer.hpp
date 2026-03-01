@@ -103,15 +103,11 @@ public:
 
     HYP_FORCE_INLINE GBufferTarget& GetBucket(RenderBucket rb)
     {
-        AssertDebug(rb >= RenderBucket::Opaque && rb < NumRenderBuckets);
-
         return m_buckets[uint32(rb)];
     }
 
     HYP_FORCE_INLINE const GBufferTarget& GetBucket(RenderBucket rb) const
     {
-        AssertDebug(rb >= RenderBucket::Opaque && rb < NumRenderBuckets);
-
         return m_buckets[uint32(rb)];
     }
 
@@ -135,7 +131,7 @@ private:
     void CreateBucketFramebuffers();
     FramebufferRef CreateFramebuffer(const FramebufferRef& parentFramebuffer, Vec2u resolution, RenderBucket rb);
 
-    FixedArray<GBufferTarget, uint32(NumRenderBuckets) - 1> m_buckets;
+    FixedArray<GBufferTarget, NumRenderBuckets> m_buckets;
     Array<FramebufferRef> m_framebuffers;
 
     Vec2u m_extent;

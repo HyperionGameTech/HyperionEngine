@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/CombineShadowMaps/CombineShadowMaps_1829828941827249593"
+      }
+    }],
+  "Name": "CombineShadowMaps",
+  "FriendlyName": "CombineShadowMaps",
+  "OriginalFilepath": ""
+}

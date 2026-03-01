@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/DeferredIndirect/DeferredIndirect_13370867308187601986"
+      }
+    }],
+  "Name": "DeferredIndirect",
+  "FriendlyName": "DeferredIndirect",
+  "OriginalFilepath": ""
+}

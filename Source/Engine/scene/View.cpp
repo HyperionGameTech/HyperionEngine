@@ -88,7 +88,7 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 
     if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return static_cast<GBuffer&>(*m_impl).GetBucket(RenderBucket::RenderBucket::Opaque).GetFramebuffer();
+        return static_cast<GBuffer&>(*m_impl).GetBucket(RenderBucket::Opaque).GetFramebuffer();
     }
 
     return ObjCast<Framebuffer>(m_impl);
