@@ -76,7 +76,7 @@ Light::Light()
 
 Light::Light(LightType type, const Vec3f& position, const Color& color, float intensity, float radius)
     : m_type(type),
-      m_flags(LightFlags::Default),
+      m_lightFlags(LightFlags::Default),
       m_position(position),
       m_color(color),
       m_intensity(intensity),
@@ -94,7 +94,7 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
 
 Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
     : m_type(type),
-      m_flags(LightFlags::Default),
+      m_lightFlags(LightFlags::Default),
       m_position(position),
       m_normal(normal),
       m_areaSize(areaSize),
@@ -114,16 +114,6 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
 
 Light::~Light()
 {
-    if (m_shadowViewsStatic.Any())
-    {
-        EnqueueDeletion(std::move(m_shadowViewsStatic));
-    }
-
-    if (m_shadowViewsDynamic.Any())
-    {
-        EnqueueDeletion(std::move(m_shadowViewsDynamic));
-    }
-
     if (m_material != nullptr)
     {
         EnqueueDeletion(std::move(m_material));
@@ -147,279 +137,7 @@ void Light::Init()
         InitObject(m_material);
     }
 
-    if (m_flags & LightFlags::ShadowCaster)
-    {
-        CreateShadowViews();
-        UpdateShadowViews();
-    }
-
     SetReady(true);
-}
-
-void Light::CreateShadowViews()
-{
-    HYP_SCOPE;
-
-    for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
-    {
-        for (Handle<View>& shadowView : *shadowViews)
-        {
-            if (!shadowView.IsValid())
-            {
-                continue;
-            }
-
-            const Handle<Camera>& shadowCamera = shadowView->GetCamera();
-
-            if (!shadowCamera.IsValid())
-            {
-                continue;
-            }
-
-            RemoveChild(shadowCamera);
-        }
-
-        EnqueueDeletion(std::move(*shadowViews));
-    }
-
-    if (!(m_flags & LightFlags::ShadowCaster))
-    {
-        return;
-    }
-
-    const ShadowMapFilter shadowMapFilter = GetShadowMapFilter();
-    AssertDebug(shadowMapFilter < std::size(s_shadowMapFilterProperties));
-
-    ShaderDesc shaderDesc;
-    shaderDesc.name = NAME("DrawShadowMap");
-    shaderDesc.properties.Add(s_shadowMapFilterProperties[shadowMapFilter]);
-
-    RenderTargetDesc renderTargetDesc {};
-    renderTargetDesc.extent = m_shadowMapDimensions;
-
-    bool cacheStaticShadows = false;
-
-    EnumFlags<ViewFlags> shadowViewFlags = DefaultShadowViewFlags;
-
-    switch (m_type)
-    {
-    case LightType::Point:
-    {
-        // Frustum culling for cubemap views not currently supported.
-        shadowViewFlags |= ViewFlags::NO_FRUSTUM_CULLING | ViewFlags::COLLECT_ALL_ENTITIES;
-
-        renderTargetDesc.numAttachments = 0;
-        renderTargetDesc.numLayers = 6;
-
-        // depth, depth^2 texture (for variance shadow map)
-        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        moments.imageType = TextureType::Cubemap;
-        moments.format = PointLightShadowFormat;
-        moments.loadOp = LoadOperation::CLEAR;
-        moments.storeOp = StoreOperation::STORE;
-        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
-
-        AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        depth.imageType = TextureType::Cubemap;
-        depth.format = TextureFormat::D32F;
-        depth.loadOp = LoadOperation::CLEAR;
-        depth.storeOp = StoreOperation::STORE;
-
-        shaderDesc.name = NAME("DrawCubemap");
-
-        shaderDesc.properties = {};
-        shaderDesc.properties.Add(s_propModeShadows);
-
-        break;
-    }
-    case LightType::Directional:
-    {
-        cacheStaticShadows = true;
-
-        // For directional lights, we have one for static objects and one for dynamic objects
-
-        renderTargetDesc.numAttachments = 0;
-
-        // depth, depth^2 texture (for variance shadow map)
-        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        moments.format = DirectionalLightShadowFormats[shadowMapFilter];
-        moments.imageType = TextureType::Texture2D;
-        moments.loadOp = LoadOperation::CLEAR;
-        moments.storeOp = StoreOperation::STORE;
-        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
-
-        AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        depth.format = TextureFormat::D32F;
-        depth.imageType = TextureType::Texture2D;
-        depth.loadOp = LoadOperation::CLEAR;
-        depth.storeOp = StoreOperation::STORE;
-
-        break;
-    }
-    default:
-        // no shadow mapping implementation
-        return;
-    }
-
-    Handle<Camera> shadowMapCamera;
-
-    // Check existing immediate children for Camera instances (used for deserialization)
-    auto shadowMapCameraIt = FindIf(m_childNodes, [](const Handle<Node>& node)
-        {
-            return node->IsA<Camera>();
-        });
-
-    if (shadowMapCameraIt != m_childNodes.End())
-    {
-        shadowMapCamera = ObjCast<Camera>(*shadowMapCameraIt);
-    }
-
-    if (!shadowMapCamera)
-    {
-        shadowMapCamera = MakeHandle<Camera>(int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y));
-        shadowMapCamera->SetName(NAME_FMT("ShadowMapCamera_{}", GetName()));
-
-        switch (m_type)
-        {
-        case LightType::Directional:
-            shadowMapCamera->AddCameraController(MakeHandle<OrthoCameraController>());
-            break;
-        case LightType::Point:
-            shadowMapCamera->SetFOV(90.0f);
-            shadowMapCamera->SetNear(0.01f);
-            shadowMapCamera->SetFar(m_radius);
-
-            shadowMapCamera->AddCameraController(MakeHandle<PerspectiveCameraController>());
-
-            shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
-            break;
-        default:
-            break;
-        }
-
-        InitObject(shadowMapCamera);
-        AddChild(shadowMapCamera);
-    }
-
-    m_shadowViewsDynamic.Resize(m_numShadowMapCascades);
-
-    if (cacheStaticShadows)
-    {
-        m_shadowViewsStatic.Resize(m_numShadowMapCascades);
-    }
-    else
-    {
-        m_shadowViewsStatic.Clear();
-    }
-    
-    const RenderableAttributeSet overrideAttributes(
-        MeshAttributes {},
-        MaterialAttributes {
-            .shaderName = shaderDesc.name,
-            .shaderProperties = shaderDesc.properties,
-            .cullFaces = shadowMapFilter == SMF_VSM ? FCM_FRONT : FCM_BACK
-        });
-
-    Array<Array<Handle<View>>*, FixedAllocator<2>> allShadowViews;
-    allShadowViews.Reserve(2);
-
-    if (cacheStaticShadows)
-    {
-        allShadowViews.PushBack(&m_shadowViewsDynamic);
-        allShadowViews.PushBack(&m_shadowViewsStatic);
-    }
-    else
-    {
-        // @TODO also only using static shadows?
-
-        allShadowViews.PushBack(&m_shadowViewsDynamic);
-    }
-
-    for (Array<Handle<View>>* shadowViews : allShadowViews)
-    {
-        for (Handle<View>& shadowView : *shadowViews)
-        {
-            ViewDesc viewDesc {
-                .flags = shadowViewFlags,
-                .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
-                .renderTargetDesc = renderTargetDesc,
-                .scenes = {},
-                .camera = shadowMapCamera,
-                .overrideAttributes = overrideAttributes
-            };
-
-            if (cacheStaticShadows)
-            {
-                viewDesc.flags &= ~ViewFlags::COLLECT_ALL_ENTITIES;
-
-                if (shadowViews == &m_shadowViewsDynamic)
-                {
-                    viewDesc.flags |= ViewFlags::COLLECT_DYNAMIC_ENTITIES;
-                }
-                else if (shadowViews == &m_shadowViewsStatic)
-                {
-                    viewDesc.flags |= ViewFlags::COLLECT_STATIC_ENTITIES;
-                }
-            }
-
-            shadowView = MakeHandle<View>(viewDesc);
-
-            if (Scene* scene = GetScene())
-            {
-                shadowView->AddScene(scene);
-            }
-
-            InitObject(shadowView);
-        }
-    }
-}
-
-void Light::UpdateShadowViews()
-{
-    HYP_SCOPE;
-    
-    m_shadowAabb = BoundingBox();
-
-    for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
-    {
-        for (const Handle<View>& shadowView : *shadowViews)
-        {
-            AssertDebug(shadowView != nullptr);
-
-            const Handle<Camera>& shadowCamera = shadowView->GetCamera();
-            AssertDebug(shadowCamera != nullptr);
-
-            switch (m_type)
-            {
-            case LightType::Directional:
-            {
-                BoundingBox cascadeBounds;
-
-                World* world = GetWorld();
-
-                ShadowCameraHelper::UpdateShadowCameraDirectional(
-                    *shadowCamera,
-                    world != nullptr ? world->GetCSMState().playerCenter : Vec3f::Zero(),
-                    GetPosition(),
-                    45.0f, /// TODO: add proper radius for directional light.
-                    cascadeBounds);
-
-                m_shadowAabb = m_shadowAabb.Union(cascadeBounds);
-
-                break;
-            }
-            case LightType::Point:
-                m_shadowAabb = GetAABB();
-
-                shadowCamera->SetTranslation(m_position);
-
-                break;
-            default:
-                HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(m_type));
-                break;
-            }
-        }
-    }
 }
 
 void Light::OnAttachedToNode(Node* node)
@@ -441,24 +159,6 @@ void Light::OnAddedToScene(Scene* scene)
     HYP_SCOPE;
 
     Entity::OnAddedToScene(scene);
-
-    if (m_flags & LightFlags::ShadowCaster)
-    {
-        for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
-        {
-            for (const Handle<View>& shadowView : *shadowViews)
-            {
-                AssertDebug(shadowView != nullptr);
-
-                if (!shadowView)
-                {
-                    continue;
-                }
-
-                shadowView->AddScene(scene);
-            }
-        }
-    }
 }
 
 void Light::OnRemovedFromScene(Scene* scene)
@@ -466,24 +166,6 @@ void Light::OnRemovedFromScene(Scene* scene)
     HYP_SCOPE;
 
     Entity::OnRemovedFromScene(scene);
-
-    if (m_flags & LightFlags::ShadowCaster)
-    {
-        for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
-        {
-            for (const Handle<View>& shadowView : *shadowViews)
-            {
-                AssertDebug(shadowView != nullptr);
-
-                if (!shadowView)
-                {
-                    continue;
-                }
-
-                shadowView->RemoveScene(scene);
-            }
-        }
-    }
 }
 
 void Light::OnTransformUpdated()
@@ -507,18 +189,8 @@ void Light::Update(float delta)
 {
     HYP_SCOPE;
 
-    if (m_flags & LightFlags::ShadowCaster)
+    if (m_lightFlags & LightFlags::ShadowCaster)
     {
-        UpdateShadowViews();
-
-        for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
-        {
-            for (const Handle<View>& shadowView : *shadowViews)
-            {
-                GetWorld()->ProcessViewAsync(shadowView);
-            }
-        }
-
         SetNeedsRenderProxyUpdate();
     }
 }
@@ -695,10 +367,10 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
         return;
     }
 
-    m_flags &= ~LightFlags::ShadowFilterMask;
+    m_lightFlags &= ~LightFlags::ShadowFilterMask;
 
     // ShadowMapFilter enum members are sequentially ordered so turn it into a flag
-    m_flags |= EnumFlags<LightFlags>(1u << shadowMapFilter);
+    m_lightFlags |= EnumFlags<LightFlags>(1u << shadowMapFilter);
 
     SetNeedsRenderProxyUpdate();
 }
@@ -751,19 +423,6 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
     proxy->numCascades = m_numShadowMapCascades;
 
-    proxy->shadowViewsStatic.Resize(m_shadowViewsStatic.Size());
-    proxy->shadowViewsDynamic.Resize(m_shadowViewsDynamic.Size());
-
-    for (SizeType i = 0; i < m_shadowViewsStatic.Size(); i++)
-    {
-        proxy->shadowViewsStatic[i] = m_shadowViewsStatic[i].Get();
-    }
-
-    for (SizeType i = 0; i < m_shadowViewsDynamic.Size(); i++)
-    {
-        proxy->shadowViewsDynamic[i] = m_shadowViewsDynamic[i].Get();
-    }
-
     const BoundingBox aabb = GetAABB();
 
     LightShaderData& bufferData = proxy->bufferData;
@@ -772,7 +431,7 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     bufferData.radiusFalloffPacked = (uint32(Float16(m_falloff).Raw()) << 16) | Float16(m_radius).Raw();
     bufferData.positionIntensity = Vec4f(m_position, m_intensity);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()
-    bufferData.flags = m_flags;
+    bufferData.flags = m_lightFlags;
 
     switch (GetLightType())
     {
@@ -797,29 +456,6 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
     for (uint32 cascadeIndex = 0; cascadeIndex < uint32(std::size(bufferData.cascades)); cascadeIndex++)
     {
         bufferData.splitDistances[cascadeIndex] = Float16(0.0f); // @TODO
-
-        LightShaderData::ShadowMapCascade& cascade = bufferData.cascades[cascadeIndex];
-
-        if (cascadeIndex < m_numShadowMapCascades)
-        {
-            cascade.viewProjMat = m_shadowViewsDynamic[cascadeIndex]->GetCamera()->GetViewProjectionMatrix();
-
-            cascade.aabbMin.x = m_shadowAabb.min.x;
-            cascade.aabbMin.y = m_shadowAabb.min.y;
-            cascade.aabbMin.z = m_shadowAabb.min.z;
-            
-            cascade.aabbMax.x = m_shadowAabb.max.x;
-            cascade.aabbMax.y = m_shadowAabb.max.y;
-            cascade.aabbMax.z = m_shadowAabb.max.z;
-        }
-        else
-        {
-            cascade.aabbMin = MathUtil::MaxSafeValue<Vec4f>();
-            cascade.aabbMin.w = 0.0f;
-
-            cascade.aabbMax = MathUtil::MinSafeValue<Vec4f>();
-            cascade.aabbMax.w = 0.0f;
-        }
     }
 }
 

@@ -1687,35 +1687,6 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    // Render shadows for shadow casting lights
-    for (uint32 lightTypeIndex = 0; lightTypeIndex < NumLightTypes; lightTypeIndex++)
-    {
-        LightType lightType = LightType(lightTypeIndex);
-
-        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
-
-        if (!lights[lightTypeIndex].Any() || !shadowRenderer)
-        {
-            // No lights of that LightType bound or there is no defined ShadowRenderer
-            continue;
-        }
-
-        /// TODO: We'll need a new PassData type (ShadowPassData ?) in order to store the textures / image views (in the case of atlas textures)
-        /// and we'll need some state to tell if we need to re-render the shadows.
-        for (Light* light : lights[lightTypeIndex])
-        {
-            AssertDebug(light != nullptr);
-
-            if (light->GetLightFlags() & LightFlags::ShadowCaster)
-            {
-                RenderSetup shadowRs = rs.Fork();
-                shadowRs.light = light;
-
-                shadowRenderer->RenderFrame(frame, shadowRs);
-            }
-        }
-    }
-
     {
         RenderSetup envProbeBaseRS = rs.Fork();
 
@@ -1888,6 +1859,29 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     DeferredRendererPassData& passData = *passDataCasted;
 
     const uint32 frameIndex = frame->GetFrameIndex();
+
+    // Render shadows for shadow casting lights
+    for (Light* light : rpl.GetLights())
+    {
+        if (!(light->GetLightFlags() & LightFlags::ShadowCaster))
+        {
+            continue;
+        }
+
+        const uint32 lightTypeIndex = uint32(light->GetLightType());
+
+        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
+
+        if (!shadowRenderer)
+        {
+            continue;
+        }
+        
+        RenderSetup shadowRs = rs.Fork();
+        shadowRs.light = light;
+
+        shadowRenderer->RenderFrame(frame, shadowRs);
+    }
 
     Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);

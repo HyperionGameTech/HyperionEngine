@@ -49,11 +49,7 @@ enum class LightFlags : uint32
     ShadowVariance = 0x8,
     ShadowFilterMask = (ShadowPCF | ShadowContactHardening | ShadowVariance),
 
-    ShadowCSMSplit0 = 0x20,
-    ShadowCSMSplit1 = 0x40,
-    ShadowCSMSplit2 = 0x80,
-    ShadowCSMSplit3 = 0x100,
-    ShadowCSMSplitMask = ShadowCSMSplit0 | ShadowCSMSplit1 | ShadowCSMSplit2 | ShadowCSMSplit3,
+    ShadowCacheStaticObjects = 0x10,
 
     Default = ShadowCaster | ShadowPCF
 };
@@ -105,18 +101,18 @@ public:
     HYP_METHOD()
     EnumFlags<LightFlags> GetLightFlags() const
     {
-        return m_flags;
+        return m_lightFlags;
     }
 
     HYP_METHOD()
     void SetLightFlags(EnumFlags<LightFlags> flags)
     {
-        if (m_flags == flags)
+        if (m_lightFlags == flags)
         {
             return;
         }
 
-        m_flags = flags;
+        m_lightFlags = flags;
         SetNeedsRenderProxyUpdate();
     }
 
@@ -287,8 +283,8 @@ public:
     HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
     ShadowMapFilter GetShadowMapFilter() const
     {
-        return (ShadowMapFilter)((m_flags & LightFlags::ShadowFilterMask)
-                ? MathUtil::FastLog2(m_flags & LightFlags::ShadowFilterMask)
+        return (ShadowMapFilter)((m_lightFlags & LightFlags::ShadowFilterMask)
+                ? MathUtil::FastLog2(m_lightFlags & LightFlags::ShadowFilterMask)
                 : 0);
     }
 
@@ -311,14 +307,11 @@ protected:
 
     void OnTransformUpdated() override;
 
-    void CreateShadowViews();
-    void UpdateShadowViews();
-
     HYP_FIELD()
     LightType m_type;
 
     HYP_FIELD(Property = "LightFlags")
-    EnumFlags<LightFlags> m_flags;
+    EnumFlags<LightFlags> m_lightFlags;
 
     Vec3f m_position;
     Vec3f m_normal;
@@ -336,11 +329,6 @@ protected:
     HYP_FIELD(Property = "ShadowMapCascades")
     uint32 m_numShadowMapCascades;
 
-    Array<Handle<View>> m_shadowViewsStatic;
-    Array<Handle<View>> m_shadowViewsDynamic;
-
-    BoundingBox m_shadowAabb;
-
 private:
     Pair<Vec3f, Vec3f> CalculateAreaLightRect() const;
 };
@@ -352,13 +340,15 @@ class HYP_API DirectionalLight : public Light
 
 public:
     DirectionalLight()
-        : Light(LightType::Directional, Vec3f(0.0f, 1.0f, 0.0f).Normalized(), Color::White(), 1.0f, 0.0f)
+        : DirectionalLight(Vec3f(0.0f, 1.0f, 0.0f).Normalized(), Color::White(), 1.0f)
     {
     }
 
     DirectionalLight(const Vec3f& direction, const Color& color, float intensity)
         : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
     {
+        m_lightFlags |= LightFlags::ShadowCacheStaticObjects;
+        m_numShadowMapCascades = 4;
     }
 
     virtual ~DirectionalLight() override = default;
