@@ -567,6 +567,13 @@ bool BlobStorage::GetData(StringHash key, SizeType size, void*& outRawData)
 {
     Mutex::Guard guard(m_mutex);
 
+    if (!m_toc)
+    {
+        HYP_LOG(Assets, Warning, "Table of contents is NULL");
+
+        return false;
+    }
+
     BlobTableOfContents::Value tocValue;
     if (!m_toc->Get(key, tocValue))
     {
@@ -603,6 +610,11 @@ bool BlobStorage::GetData(StringHash key, SizeType size, void*& outRawData)
 bool BlobStorage::PutData(StringHash key, const BlobHeader& header, const void* rawData)
 {
     Mutex::Guard guard(m_mutex);
+
+    if (!m_toc)
+    {
+        m_toc = new BlobTableOfContents;
+    }
     
     const SizeType totalBlobSize = header.payloadOffset + header.payloadSize;
     const SizeType totalBlobSizePlusHeader = sizeof(BlobHeader) + totalBlobSize;

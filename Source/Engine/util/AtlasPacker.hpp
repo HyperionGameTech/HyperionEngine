@@ -96,7 +96,7 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
             outElementIndex = uint32(elements.Size());
 
             outElement.offsetCoords = Vec2u { uint32(bestX), uint32(bestY) };
-            outElement.offsetUv = Vec2f(outElement.offsetCoords) / Vec2f(atlasDimensions - 1);
+            outElement.offsetUV = Vec2f(outElement.offsetCoords) / Vec2f(atlasDimensions - 1);
             outElement.dimensions = dim;
             outElement.scale = Vec2f(dim) / Vec2f(atlasDimensions);
 
@@ -164,7 +164,7 @@ bool AtlasPacker<AtlasElement>::RemoveElement(const AtlasElement& element)
 
     auto it = elements.Begin() + element.index;
 
-    freeSpaces.EmplaceBack(Vec2i(element.offsetUv * Vec2f(atlasDimensions)), Vec2i(element.dimensions));
+    freeSpaces.EmplaceBack(Vec2i(element.offsetUV * Vec2f(atlasDimensions)), Vec2i(element.dimensions));
 
     std::sort(freeSpaces.Begin(), freeSpaces.End(), [](const auto& a, const auto& b)
         {

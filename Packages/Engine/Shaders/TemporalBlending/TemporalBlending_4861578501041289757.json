@@ -34,7 +34,7 @@
       "$Class": "ShaderProperty",
       "Name": "TEMPORAL_BLEND_TECHNIQUE",
       "Flags": 0,
-      "Value": "1",
+      "Value": 1,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
@@ -203,7 +203,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/TemporalBlending/TemporalBlending_4861578501041289757.CS",
-      "Size": 2072
+      "Size": 6764
     }],
   "PropertySetHashCode": {},
   "Name": "TemporalBlending_4861578501041289757",

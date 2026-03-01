@@ -6,11 +6,9 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/PostFX.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/TemporalAA.hpp>
+#include <rendering/TAAPass.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/RenderObject.hpp>
-
-#include <rendering/RTReflections.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
@@ -31,7 +29,7 @@ class GBuffer;
 class EnvGrid;
 class EnvProbe;
 class FullScreenPass;
-class TemporalAA;
+class TAAPass;
 class PostProcessing;
 class HBAO;
 class DOFBlur;
@@ -300,7 +298,7 @@ public:
     UniquePtr<HBAO> hbao;
     UniquePtr<FullScreenPass> combinePass;
     UniquePtr<PostProcessing> postProcessing;
-    UniquePtr<TemporalAA> temporalAa;
+    UniquePtr<TAAPass> taaPass;
     UniquePtr<SSGI> ssgi;
     UniquePtr<DepthPyramidRenderer> depthPyramidRenderer;
     UniquePtr<DOFBlur> dofBlur;

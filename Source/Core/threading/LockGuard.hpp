@@ -146,6 +146,11 @@ public:
 
     void Reset(TLockObject& newMutex)
     {
+        if (obj == &newMutex)
+        {
+            return;
+        }
+
         if (obj)
         {
             obj->UnlockReader();
@@ -154,6 +159,7 @@ public:
         obj = &newMutex;
         obj->LockReader();
     }
+    
 private:
     TLockObject* obj;
 };
@@ -197,6 +203,11 @@ public:
 
     void Reset(TLockObject& newMutex)
     {
+        if (obj == &newMutex)
+        {
+            return;
+        }
+
         if (obj)
         {
             obj->UnlockWriter();

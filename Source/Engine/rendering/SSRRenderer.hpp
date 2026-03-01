@@ -78,6 +78,8 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 class SSRRenderer
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     SSRRenderer(
         SSRRendererConfig&& config,
         GBuffer* gbuffer,

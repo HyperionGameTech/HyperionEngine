@@ -1120,10 +1120,6 @@ extern enum Topology : uint8
 end
 extern struct BlendFunction
 end
-extern struct RayTracingReflectionsConfig
-    Extent : Vec2u
-    PathTracing : bool
-end
 extern struct MeshRayTracingData
 end
 extern enum GlobalRendererType : uint32
@@ -1190,6 +1186,10 @@ extern enum MaterialAttributeFlags : uint8
     MAF_DEPTH_TEST = 0x2,
     MAF_STENCIL_TEST = 0x4,
     MAF_ALPHA_DISCARD = 0x8
+end
+extern struct RayTracingReflectionsConfig
+    Extent : Vec2u
+    PathTracing : bool
 end
 extern struct MeshInstanceData
     NumInstances : uint32

@@ -22,7 +22,7 @@ class HYP_API ShadowRendererPassData : public PassData
 public:
     virtual ~ShadowRendererPassData() override;
 
-    Array<Mat4f, InlineAllocator<2>> prevCameraMatrices;
+    Array<Mat4f, RenderAllocator> prevCameraMatrices;
 };
 
 struct ShadowRendererPassDataExt : PassDataExt
@@ -70,14 +70,16 @@ private:
     // we store the shadow maps here rather than on the per-view PassData
     struct CachedShadowMapData
     {
-        Array<ShadowMap*> shadowMaps;
+        Array<ShadowMap*, RenderAllocator> shadowMaps;
+        
         UniquePtr<FullScreenPass> combineShadowMapsPass; // Pass to combine shadow maps for this light (optional)
+
         GpuImageRef combinedShadowMapsBlurred;
         FixedArray<GpuBufferRef, NumFramesInFlight> blurUniformBuffers;
     };
 
     /// Cached per-light shadow map rendering data that is cleaned up when no longer used
-    HashMap<WeakHandle<Light>, CachedShadowMapData> m_cachedShadowMapData;
+    HashMap<WeakHandle<Light>, CachedShadowMapData, NodeAllocator<RenderAllocator>> m_cachedShadowMapData;
 };
 
 class PointShadowRenderer : public ShadowRendererBase

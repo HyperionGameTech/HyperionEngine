@@ -80,7 +80,7 @@ DECLARE_SRV(SSGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shado
 #include "../include/scene.inc"
 #include "../include/gbuffer.inc"
 #include "../include/BlueNoise.inc"
-#include "../include/shadows.inc"
+#include "../include/Shadows.hlsli"
 #include "../include/Octahedron.inc"
 #include "../include/env_probe.inc"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS

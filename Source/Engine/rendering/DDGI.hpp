@@ -56,6 +56,8 @@ struct DDGIProbeData
 class DDGI
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     static constexpr uint32 IrradianceOctahedronSize = 8;
     static constexpr uint32 DepthOctahedronSize = 8;
     static constexpr Vec3u ProbeBorder = Vec3u { 2, 0, 2 };

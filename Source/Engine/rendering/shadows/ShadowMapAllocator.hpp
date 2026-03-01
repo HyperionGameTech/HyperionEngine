@@ -35,7 +35,7 @@ struct ShadowMapAtlasElement
     uint32 index = ~0u;
 
     // Offset in the atlas texture array, in uv space
-    Vec2f offsetUv;
+    Vec2f offsetUV;
 
     // Offset in the atlas texture array, in pixels
     Vec2u offsetCoords;
@@ -50,7 +50,7 @@ struct ShadowMapAtlasElement
     {
         return layerIndex == other.layerIndex
             && index == other.index
-            && offsetUv == other.offsetUv
+            && offsetUV == other.offsetUV
             && offsetCoords == other.offsetCoords
             && dimensions == other.dimensions
             && scale == other.scale;
@@ -60,7 +60,7 @@ struct ShadowMapAtlasElement
     {
         return layerIndex != other.layerIndex
             || index != other.index
-            || offsetUv != other.offsetUv
+            || offsetUV != other.offsetUV
             || offsetCoords != other.offsetCoords
             || dimensions != other.dimensions
             || scale != other.scale;

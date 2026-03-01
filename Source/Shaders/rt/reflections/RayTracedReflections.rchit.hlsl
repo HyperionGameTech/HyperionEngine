@@ -29,7 +29,7 @@ DECLARE_SRV(RTReflections, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 DECLARE_SRV(RTReflections, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../include/shadows.inc"
+#include "../include/Shadows.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../include/rt/RayTracingHelpers.inc"
@@ -155,7 +155,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
         const float3 L = CalculateLightDirection(light, position);
         const float NdotL = max(dot(normal, L), 0.00001);
 
-        const float2 radiusFalloff = unpackHalf2x16(light.radius_falloff);
+        const float2 radiusFalloff = unpackHalf2x16(light.radiusFalloffPacked);
         const float radius = radiusFalloff.x;
 
         const float attenuation = light.type == HYP_LIGHT_TYPE_POINT

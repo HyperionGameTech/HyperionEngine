@@ -32,7 +32,7 @@ DECLARE_SRV(PathTracer, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 DECLARE_SRV(PathTracer, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../../include/shadows.inc"
+#include "../../include/Shadows.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #include "../../include/rt/RayTracingHelpers.inc"
@@ -71,7 +71,7 @@ float CheckLightIntersection(in Light light, in float3 position, in float3 R)
     float3 light_to_position = position - light.position_intensity.xyz;
     float light_to_position_length = length(light_to_position);
 
-    const float2 radiusFalloff = unpackHalf2x16(light.radius_falloff);
+    const float2 radiusFalloff = unpackHalf2x16(light.radiusFalloffPacked);
     const float radius = radiusFalloff.x;
 
     if (light_to_position_length > radius)
