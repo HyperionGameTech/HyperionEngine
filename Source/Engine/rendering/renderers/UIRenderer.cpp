@@ -123,11 +123,11 @@ static void BuildRenderGroupsOrdered(
             attributes.SetShaderProperties(newProperties);
         }
 
-        const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
+        const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
 
         attributes.SetLayerIndex(pair.second);
 
-        DrawCallCollectionMapping& mapping = renderCollector.mappingsByBucket[rb][attributes];
+        DrawCallCollectionMapping& mapping = renderCollector.mappingsByBucket[uint32(bucket)][attributes];
         RenderGroup*& rg = mapping.renderGroup;
 
         if (!rg)

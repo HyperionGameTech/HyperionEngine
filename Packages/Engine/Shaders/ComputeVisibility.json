@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/ComputeVisibility/ComputeVisibility_1829828941827249584"
+      }
+    }],
+  "Name": "ComputeVisibility",
+  "FriendlyName": "ComputeVisibility",
+  "OriginalFilepath": ""
+}

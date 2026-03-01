@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/RenderSky/RenderSky_11399982633662477820"
+      }
+    }],
+  "Name": "RenderSky",
+  "FriendlyName": "RenderSky",
+  "OriginalFilepath": ""
+}

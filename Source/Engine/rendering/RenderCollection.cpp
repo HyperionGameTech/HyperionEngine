@@ -468,8 +468,7 @@ RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool 
       useRefCounting(useRefCounting),
       viewport(Viewport { Vec2u::One(), Vec2i::Zero() }),
       priority(0),
-      resourceTrackers {},
-      releaseRefsFunctions {}
+      resourceTrackers {}
 {
     AssertDebug(pAllocator != nullptr);
 
@@ -1035,9 +1034,9 @@ void RenderCollector::ExecuteDrawCalls(
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucketBits) == 1)
     {
-        const RenderBucket rb = RenderBucket(MathUtil::FastLog2_Pow2(bucketBits));
+        const uint32 renderBucketIndex = MathUtil::FastLog2_Pow2(bucketBits);
 
-        auto& mappings = mappingsByBucket[rb];
+        auto& mappings = mappingsByBucket[renderBucketIndex];
 
         if (mappings.Empty())
         {
@@ -1315,12 +1314,12 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
     if (changedIds.Any())
     {
-        for (const ObjId<Entity>& id : changedIds)
+        for (const ObjId<Entity> id : changedIds)
         {
 #if HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
             static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
-            Assert(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
+            AssertDebug(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
 
             const uint32 idx = id.ToIndex();
@@ -1329,7 +1328,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             AssertDebug(cachedAttributes != nullptr);
 
             // remove from prev
-            auto& prevMappings = mappingsByBucket[cachedAttributes->GetMaterialAttributes().bucket];
+            auto& prevMappings = mappingsByBucket[uint32(cachedAttributes->GetMaterialAttributes().bucket)];
 
             auto it = prevMappings.Find(*cachedAttributes);
             Assert(it != prevMappings.End());
@@ -1341,6 +1340,8 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 
             RenderableAttributeSet newAttributes;
             GeometryPass::BuildAttributes(*meshProxy, newAttributes, overrideAttributes);
+
+            const RenderBucket bucket = newAttributes.GetMaterialAttributes().bucket;
 
             AssertDebug(newAttributes.GetMeshAttributes().vertexAttributes != 0);
 
@@ -1354,7 +1355,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             prevMapping = nullptr;
 
             // Add proxy to group
-            DrawCallCollectionMapping& newMapping = mappingsByBucket[newAttributes.GetMaterialAttributes().bucket][newAttributes];
+            DrawCallCollectionMapping& newMapping = mappingsByBucket[uint32(bucket)][newAttributes];
 
             RenderGroup*& rg = newMapping.renderGroup;
 
@@ -1383,7 +1384,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
         {
 #if HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
-            Assert(id.GetTypeId() == TypeId::ForType<Entity>());
+            AssertDebug(id.GetTypeId() == TypeId::ForType<Entity>());
 #endif
 
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
@@ -1399,8 +1400,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             AssertDebug(previousAttributes.HasIndex(idx));
 
             const RenderableAttributeSet& attributes = previousAttributes.Get(idx);
+            const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            auto& mappings = mappingsByBucket[attributes.GetMaterialAttributes().bucket];
+            auto& mappings = mappingsByBucket[uint32(bucket)];
 
             auto it = mappings.Find(attributes);
             Assert(it != mappings.End());
@@ -1422,7 +1424,7 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
 #if HYP_DEBUG_MODE
             // type check - cannot be a subclass of Entity, indices would get messed up
             static const TypeId s_entityTypeId = TypeId::ForType<Entity>();
-            Assert(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
+            AssertDebug(id.GetTypeId() == s_entityTypeId, "Cannot include instance of Entity subclass in RenderGroup: {}", LookupTypeName(id.GetTypeId()));
 #endif
 
             const RenderProxyMesh* meshProxy = renderProxyList.GetMeshEntities().GetProxy(id);
@@ -1432,10 +1434,9 @@ void RenderCollector::BuildRenderGroups(View* view, RenderProxyList& renderProxy
             GeometryPass::BuildAttributes(*meshProxy, attributes, overrideAttributes);
 
             const RenderBucket bucket = attributes.GetMaterialAttributes().bucket;
-            AssertDebug(bucket < mappingsByBucket.Size());
 
             // Add proxy to group
-            DrawCallCollectionMapping& mapping = mappingsByBucket[bucket][attributes];
+            DrawCallCollectionMapping& mapping = mappingsByBucket[uint32(bucket)][attributes];
             RenderGroup*& rg = mapping.renderGroup;
 
             if (!rg)
