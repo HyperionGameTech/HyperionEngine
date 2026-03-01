@@ -58,7 +58,7 @@ static RenderableAttributeSet GetRenderableAttributes()
             .topology = TOP_LINES
         },
         MaterialAttributes {
-            .bucket = RB_DEBUG,
+            .bucket = RenderBucket::Debug,
             .fillMode = FM_FILL,
             .blendFunction = BlendFunction::None(),
             .flags = MAF_DEPTH_TEST

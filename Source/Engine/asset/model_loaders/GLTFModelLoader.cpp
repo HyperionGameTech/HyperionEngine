@@ -478,7 +478,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = NAME("GeometryPass");
     materialAttributes.shaderProperties = {};
-    materialAttributes.bucket = RB_OPAQUE;
+    materialAttributes.bucket = RenderBucket::Opaque;
 
     if (material == nullptr)
     {
@@ -562,7 +562,7 @@ Handle<Material> AcquireMaterial(GltfLoadContext& ctx, const cgltf_material* mat
     switch (material->alpha_mode)
     {
     case cgltf_alpha_mode_blend:
-        materialAttributes.bucket = RB_TRANSLUCENT;
+        materialAttributes.bucket = RenderBucket::Translucent;
         materialAttributes.blendFunction = BlendFunction::AlphaBlending();
         break;
     case cgltf_alpha_mode_mask:

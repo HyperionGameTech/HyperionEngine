@@ -60,30 +60,30 @@ static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_L
     | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS
     | ViewFlags::SKIP_CAMERAS;
 
-static constexpr Vec2u DefaultShadowMapDimensions[LT_MAX] = {
-    Vec2u(1024, 1024), // LT_DIRECTIONAL
-    Vec2u(256, 256),   // LT_POINT
-    Vec2u(256, 256),   // LT_SPOT
-    Vec2u(256, 256)    // LT_AREA_RECT
+static constexpr Vec2u DefaultShadowMapDimensions[NumLightTypes] = {
+    Vec2u(1024, 1024), // LightType::Directional
+    Vec2u(256, 256),   // LightType::Point
+    Vec2u(256, 256),   // LightType::Spot
+    Vec2u(256, 256)    // LightType::AreaRect
 };
 
 #pragma region Light
 
 Light::Light()
-    : Light(LT_DIRECTIONAL, Vec3f::Zero(), Color::White(), 1.0f, 1.0f)
+    : Light(LightType::Directional, Vec3f::Zero(), Color::White(), 1.0f, 1.0f)
 {
 }
 
 Light::Light(LightType type, const Vec3f& position, const Color& color, float intensity, float radius)
     : m_type(type),
-      m_flags(LF_DEFAULT),
+      m_flags(LightFlags::Default),
       m_position(position),
       m_color(color),
       m_intensity(intensity),
       m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
-      m_shadowMapDimensions(DefaultShadowMapDimensions[type]),
+      m_shadowMapDimensions(DefaultShadowMapDimensions[uint32(type)]),
       m_numShadowMapCascades(1)
 {
     m_entityInitInfo.canEverUpdate = true;
@@ -94,7 +94,7 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
 
 Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
     : m_type(type),
-      m_flags(LF_DEFAULT),
+      m_flags(LightFlags::Default),
       m_position(position),
       m_normal(normal),
       m_areaSize(areaSize),
@@ -103,7 +103,7 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
-      m_shadowMapDimensions(DefaultShadowMapDimensions[type]),
+      m_shadowMapDimensions(DefaultShadowMapDimensions[uint32(type)]),
       m_numShadowMapCascades(1)
 {
     m_entityInitInfo.canEverUpdate = true;
@@ -136,12 +136,18 @@ void Light::Init()
 
     Entity::Init();
 
+    // temp debug
+    if (m_type == LightType::Directional)
+    {
+        m_numShadowMapCascades = 2;
+    }
+
     if (m_material.IsValid())
     {
         InitObject(m_material);
     }
 
-    if (m_flags & LF_SHADOW)
+    if (m_flags & LightFlags::ShadowCaster)
     {
         CreateShadowViews();
         UpdateShadowViews();
@@ -176,7 +182,7 @@ void Light::CreateShadowViews()
         EnqueueDeletion(std::move(*shadowViews));
     }
 
-    if (!(m_flags & LF_SHADOW))
+    if (!(m_flags & LightFlags::ShadowCaster))
     {
         return;
     }
@@ -197,7 +203,7 @@ void Light::CreateShadowViews()
 
     switch (m_type)
     {
-    case LT_POINT:
+    case LightType::Point:
     {
         // Frustum culling for cubemap views not currently supported.
         shadowViewFlags |= ViewFlags::NO_FRUSTUM_CULLING | ViewFlags::COLLECT_ALL_ENTITIES;
@@ -226,7 +232,7 @@ void Light::CreateShadowViews()
 
         break;
     }
-    case LT_DIRECTIONAL:
+    case LightType::Directional:
     {
         cacheStaticShadows = true;
 
@@ -275,10 +281,10 @@ void Light::CreateShadowViews()
 
         switch (m_type)
         {
-        case LT_DIRECTIONAL:
+        case LightType::Directional:
             shadowMapCamera->AddCameraController(MakeHandle<OrthoCameraController>());
             break;
-        case LT_POINT:
+        case LightType::Point:
             shadowMapCamera->SetFOV(90.0f);
             shadowMapCamera->SetNear(0.01f);
             shadowMapCamera->SetFar(m_radius);
@@ -385,7 +391,7 @@ void Light::UpdateShadowViews()
 
             switch (m_type)
             {
-            case LT_DIRECTIONAL:
+            case LightType::Directional:
             {
                 BoundingBox cascadeBounds;
 
@@ -402,7 +408,7 @@ void Light::UpdateShadowViews()
 
                 break;
             }
-            case LT_POINT:
+            case LightType::Point:
                 m_shadowAabb = GetAABB();
 
                 shadowCamera->SetTranslation(m_position);
@@ -436,7 +442,7 @@ void Light::OnAddedToScene(Scene* scene)
 
     Entity::OnAddedToScene(scene);
 
-    if (m_flags & LF_SHADOW)
+    if (m_flags & LightFlags::ShadowCaster)
     {
         for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
         {
@@ -461,7 +467,7 @@ void Light::OnRemovedFromScene(Scene* scene)
 
     Entity::OnRemovedFromScene(scene);
 
-    if (m_flags & LF_SHADOW)
+    if (m_flags & LightFlags::ShadowCaster)
     {
         for (Array<Handle<View>>* shadowViews : { &m_shadowViewsDynamic, &m_shadowViewsStatic })
         {
@@ -487,11 +493,11 @@ void Light::OnTransformUpdated()
     Entity::OnTransformUpdated();
 
     BoundingBox aabb = GetAABB();
-    Entity::SetLocalBounds(m_type == LT_DIRECTIONAL ? aabb : (aabb + (GetWorldTranslation() * -1.0f)));
+    Entity::SetLocalBounds(m_type == LightType::Directional ? aabb : (aabb + (GetWorldTranslation() * -1.0f)));
 
     m_position = GetWorldTranslation();
 
-    if (m_type == LT_DIRECTIONAL)
+    if (m_type == LightType::Directional)
     {
         m_position.Normalize();
     }
@@ -501,7 +507,7 @@ void Light::Update(float delta)
 {
     HYP_SCOPE;
 
-    if (m_flags & LF_SHADOW)
+    if (m_flags & LightFlags::ShadowCaster)
     {
         UpdateShadowViews();
 
@@ -689,7 +695,7 @@ void Light::SetShadowMapFilter(ShadowMapFilter shadowMapFilter)
         return;
     }
 
-    m_flags &= ~LF_SHADOW_FILTER_MASK;
+    m_flags &= ~LightFlags::ShadowFilterMask;
 
     // ShadowMapFilter enum members are sequentially ordered so turn it into a flag
     m_flags |= EnumFlags<LightFlags>(1u << shadowMapFilter);
@@ -701,12 +707,12 @@ BoundingBox Light::GetAABB() const
 {
     HYP_SCOPE;
 
-    if (m_type == LT_DIRECTIONAL)
+    if (m_type == LightType::Directional)
     {
         return BoundingBox::Infinity();
     }
 
-    if (m_type == LT_AREA_RECT)
+    if (m_type == LightType::AreaRect)
     {
         const Pair<Vec3f, Vec3f> rect = CalculateAreaLightRect();
 
@@ -716,7 +722,7 @@ BoundingBox Light::GetAABB() const
             .Union(GetWorldTranslation() + m_normal * m_radius);
     }
 
-    if (m_type == LT_POINT)
+    if (m_type == LightType::Point)
     {
         return BoundingBox(GetBoundingSphere());
     }
@@ -728,7 +734,7 @@ BoundingSphere Light::GetBoundingSphere() const
 {
     HYP_SCOPE;
 
-    if (m_type == LT_DIRECTIONAL)
+    if (m_type == LightType::Directional)
     {
         return BoundingSphere::infinity;
     }
@@ -770,19 +776,19 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 
     switch (GetLightType())
     {
-    case LT_AREA_RECT:
+    case LightType::AreaRect:
         bufferData.areaSize = m_areaSize;
         bufferData.areaNormal[0] = m_normal.x;
         bufferData.areaNormal[1] = m_normal.y;
         bufferData.areaNormal[2] = m_normal.z;
         break;
-    case LT_SPOT:
+    case LightType::Spot:
         bufferData.areaSize = m_spotAngles;
         bufferData.spotLightDir[0] = m_normal.x;
         bufferData.spotLightDir[1] = m_normal.y;
         bufferData.spotLightDir[2] = m_normal.z;
         break;
-    case LT_POINT:
+    case LightType::Point:
         break;
     default:
         break;

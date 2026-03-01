@@ -164,7 +164,7 @@ ParticleVolumeRenderer::VolumeState& ParticleVolumeRenderer::EnsureVolumeState(R
     MaterialAttributes materialAttributes {};
     materialAttributes.shaderName = NAME("Particle");
     materialAttributes.shaderProperties = properties;
-    materialAttributes.bucket = RB_TRANSLUCENT;
+    materialAttributes.bucket = RenderBucket::Translucent;
     materialAttributes.blendFunction = BlendFunction::AlphaBlending();
     materialAttributes.cullFaces = FCM_FRONT;
     materialAttributes.flags = MAF_DEPTH_TEST; // depth test on, depth write off by default
@@ -250,7 +250,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
     cBuffer->Copy(sizeof(uniforms), &uniforms);
 
     // this is rendered from translucent pass in DeferredRenderer
-    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    Framebuffer* framebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     Assert(framebuffer != nullptr);
 
     { // update gpu particles pass (compute, done before frame is rendered)

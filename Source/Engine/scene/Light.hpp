@@ -24,30 +24,38 @@ class RenderProxyLight;
 enum ShadowMapFilter : uint32;
 
 HYP_ENUM()
-enum LightType : uint32
+enum class LightType : uint32
 {
-    LT_INVALID = ~0u,
+    Directional = 0,
+    Point,
+    Spot,
+    AreaRect,
 
-    LT_DIRECTIONAL = 0,
-    LT_POINT,
-    LT_SPOT,
-    LT_AREA_RECT,
-
-    LT_MAX
+    Max
 };
 
+static constexpr LightType InvalidLightType = LightType(~0u);
+static constexpr uint32 NumLightTypes = uint32(LightType::Max);
+
 HYP_ENUM()
-enum LightFlags : uint32
+enum class LightFlags : uint32
 {
-    LF_NONE = 0x0,
+    None = 0x0,
 
-    LF_SHADOW = 0x1,
-    LF_SHADOW_PCF = 0x2,
-    LF_SHADOW_CONTACT_HARDENING = 0x4,
-    LF_SHADOW_VSM = 0x8,
-    LF_SHADOW_FILTER_MASK = (LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING | LF_SHADOW_VSM),
+    ShadowCaster = 0x1,
 
-    LF_DEFAULT = LF_SHADOW | LF_SHADOW_PCF
+    ShadowPCF = 0x2,
+    ShadowContactHardening = 0x4,
+    ShadowVariance = 0x8,
+    ShadowFilterMask = (ShadowPCF | ShadowContactHardening | ShadowVariance),
+
+    ShadowCSMSplit0 = 0x20,
+    ShadowCSMSplit1 = 0x40,
+    ShadowCSMSplit2 = 0x80,
+    ShadowCSMSplit3 = 0x100,
+    ShadowCSMSplitMask = ShadowCSMSplit0 | ShadowCSMSplit1 | ShadowCSMSplit2 | ShadowCSMSplit3,
+
+    Default = ShadowCaster | ShadowPCF
 };
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);
@@ -195,9 +203,9 @@ public:
     {
         switch (m_type)
         {
-        case LT_DIRECTIONAL:
+        case LightType::Directional:
             return INFINITY;
-        case LT_POINT:
+        case LightType::Point:
             return m_radius;
         default:
             return 0.0f;
@@ -279,8 +287,8 @@ public:
     HYP_METHOD(Property = "ShadowMapFilter", Editor = true, Transient)
     ShadowMapFilter GetShadowMapFilter() const
     {
-        return (ShadowMapFilter)((uint32(m_flags) & LF_SHADOW_FILTER_MASK)
-                ? MathUtil::FastLog2(uint32(m_flags) & LF_SHADOW_FILTER_MASK)
+        return (ShadowMapFilter)((m_flags & LightFlags::ShadowFilterMask)
+                ? MathUtil::FastLog2(m_flags & LightFlags::ShadowFilterMask)
                 : 0);
     }
 
@@ -344,12 +352,12 @@ class HYP_API DirectionalLight : public Light
 
 public:
     DirectionalLight()
-        : Light(LT_DIRECTIONAL, Vec3f(0.0f, 1.0f, 0.0f).Normalized(), Color::White(), 1.0f, 0.0f)
+        : Light(LightType::Directional, Vec3f(0.0f, 1.0f, 0.0f).Normalized(), Color::White(), 1.0f, 0.0f)
     {
     }
 
     DirectionalLight(const Vec3f& direction, const Color& color, float intensity)
-        : Light(LT_DIRECTIONAL, direction.Normalized(), color, intensity, 0.0f)
+        : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
     {
     }
 
@@ -375,12 +383,12 @@ class HYP_API PointLight : public Light
 
 public:
     PointLight()
-        : Light(LT_POINT, Vec3f(0.0f), Color::White(), 5.0f, 10.0f)
+        : Light(LightType::Point, Vec3f(0.0f), Color::White(), 5.0f, 10.0f)
     {
     }
 
     PointLight(const Vec3f& position, const Color& color, float intensity, float radius)
-        : Light(LT_POINT, position, color, intensity, radius)
+        : Light(LightType::Point, position, color, intensity, radius)
     {
     }
 
@@ -394,12 +402,12 @@ class HYP_API SpotLight : public Light
 
 public:
     SpotLight()
-        : Light(LT_SPOT, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
+        : Light(LightType::Spot, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(30.0f, 15.0f), Color::White(), 1.0f, 10.0f)
     {
     }
 
     SpotLight(const Vec3f& position, const Vec3f& direction, const Vec2f& angles, const Color& color, float intensity, float radius)
-        : Light(LT_SPOT, position, direction, angles, color, intensity, radius)
+        : Light(LightType::Spot, position, direction, angles, color, intensity, radius)
     {
     }
 
@@ -413,12 +421,12 @@ class HYP_API AreaRectLight : public Light
 
 public:
     AreaRectLight()
-        : Light(LT_AREA_RECT, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(1.0f, 1.0f), Color::White(), 1.0f, 10.0f)
+        : Light(LightType::AreaRect, Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec2f(1.0f, 1.0f), Color::White(), 1.0f, 10.0f)
     {
     }
 
     AreaRectLight(const Vec3f& position, const Vec3f& normal, const Vec2f& areaSize, const Color& color, float intensity, float radius)
-        : Light(LT_AREA_RECT, position, normal, areaSize, color, intensity, radius)
+        : Light(LightType::AreaRect, position, normal, areaSize, color, intensity, radius)
     {
     }
 

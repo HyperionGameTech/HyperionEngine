@@ -326,9 +326,9 @@ void BakerBase::Build()
         }
 
         // Only process opaque and translucent materials
-        if (meshComponent.material->GetBucket() != RB_OPAQUE
-            && meshComponent.material->GetBucket() != RB_LIGHTMAP
-            && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
+        if (meshComponent.material->GetBucket() != RenderBucket::Opaque
+            && meshComponent.material->GetBucket() != RenderBucket::Lightmapped
+            && meshComponent.material->GetBucket() != RenderBucket::Translucent)
         {
             continue;
         }

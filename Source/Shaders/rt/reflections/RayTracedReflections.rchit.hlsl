@@ -164,7 +164,7 @@ void ClosestHitMain(inout RayPayload payload, in BuiltInTriangleIntersectionAttr
 
         float4 local_light = (float4)NdotL * light.color * light.position_intensity.w * attenuation;
 
-        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW))
+        if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW_CASTER))
         {
             local_light *= GetShadowStandard(light, position.xyz);
         }

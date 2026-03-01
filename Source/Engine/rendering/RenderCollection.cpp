@@ -53,7 +53,7 @@ namespace CoreApi {
 extern const GlobalConfig& GetGlobalConfig();
 } // namespace CoreApi
 
-static constexpr uint32 AllBucketsMask = (1u << RB_MAX) - 1;
+static constexpr uint32 AllBucketsMask = (1u << NumRenderBuckets) - 1;
 
 #pragma region ParallelRenderingState
 
@@ -219,8 +219,8 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
     }
 
     const bool hasInstancing = proxy.instanceData.enableAutoInstancing || proxy.instanceData.numInstances > 1;
-    const bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
-    const bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RB_LIGHTMAP;
+    const bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RenderBucket::Translucent;
+    const bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RenderBucket::Lightmapped;
     const bool hasDeferredLighting = !hasForwardLighting && !hasLightmaps;
     const bool hasAlphaDiscard = bool(attributes.GetMaterialAttributes().flags & MAF_ALPHA_DISCARD);
     const bool hasSkinning = proxy.skeleton != nullptr && proxy.skeleton->GetRootBone() != nullptr;
@@ -320,7 +320,7 @@ static RenderGroup* CreateRenderGroup(
     // Disable occlusion culling for translucent objects
     const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-    if (rb == RB_TRANSLUCENT || rb == RB_SKYBOX || rb == RB_DEBUG)
+    if (RenderBucketMask<RenderBucket::Translucent, RenderBucket::Sky, RenderBucket::Debug> & (1u << uint32(rb)))
     {
         renderGroupFlags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
     }

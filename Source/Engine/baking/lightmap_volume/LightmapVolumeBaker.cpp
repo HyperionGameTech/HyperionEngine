@@ -399,9 +399,9 @@ void Baker<LightmapVolume>::Build()
             continue;
         }
 
-        if (meshComponent.material->GetBucket() != RB_OPAQUE
-            && meshComponent.material->GetBucket() != RB_LIGHTMAP
-            && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
+        if (meshComponent.material->GetBucket() != RenderBucket::Opaque
+            && meshComponent.material->GetBucket() != RenderBucket::Lightmapped
+            && meshComponent.material->GetBucket() != RenderBucket::Translucent)
         {
             continue;
         }
@@ -518,7 +518,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
 
         isNewMaterial = true;
 
-        bakeEntity.material->SetBucket(RB_LIGHTMAP);
+        bakeEntity.material->SetBucket(RenderBucket::Lightmapped);
 
         auto UpdateMeshComponent = [entityManagerWeak = MakeWeakRef(m_scene->GetEntityManager()),
                                         lightmapElementId = m_lightmapElementId,

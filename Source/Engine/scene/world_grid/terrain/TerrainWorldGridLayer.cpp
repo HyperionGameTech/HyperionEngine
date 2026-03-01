@@ -43,7 +43,7 @@ void TerrainWorldGridLayer::Init()
     InitObject(m_scene);
 
     m_material = MakeHandle<Material>(NAME("terrain_material"));
-    m_material->SetBucket(RB_OPAQUE);
+    m_material->SetBucket(RenderBucket::Opaque);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
     m_material->SetParameter(MATERIAL_KEY_ALBEDO, Vec4f(0.06f, 0.25f, 0.05f, 1.0f));

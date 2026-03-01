@@ -68,7 +68,7 @@ GBuffer::GBuffer(Vec2u extent)
     : m_extent(extent),
       m_isCreated(false)
 {
-    for (uint32 bucketIndex = 0; bucketIndex < RB_MAX - 1; bucketIndex++)
+    for (uint32 bucketIndex = 0; bucketIndex < NumRenderBuckets - 1; bucketIndex++)
     {
         const RenderBucket rb = RenderBucket(bucketIndex + 1);
 
@@ -150,14 +150,14 @@ void GBuffer::CreateBucketFramebuffers()
 
         switch (rb)
         {
-        case RB_OPAQUE:
+        case RenderBucket::Opaque:
             target.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
             break;
-        case RB_LIGHTMAP:    // fallthrough
-        case RB_TRANSLUCENT: // fallthrough
-        case RB_SKYBOX:      // fallthrough
-        case RB_DEBUG:       // fallthrough
-            target.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
+        case RenderBucket::Lightmapped:    // fallthrough
+        case RenderBucket::Translucent: // fallthrough
+        case RenderBucket::Sky:      // fallthrough
+        case RenderBucket::Debug:       // fallthrough
+            target.m_framebuffer = CreateFramebuffer(GetBucket(RenderBucket::Opaque).m_framebuffer, m_extent, rb);
             break;
         default:
             HYP_UNREACHABLE();
@@ -219,7 +219,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     };
 
     // add gbuffer attachments
-    if (rb == RB_OPAQUE)
+    if (rb == RenderBucket::Opaque)
     {
         for (uint32 i = 0; i < GTN_MAX; i++)
         {
@@ -235,7 +235,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         // add the attachments shared with opaque bucket (including depth)
         for (uint32 i = 0; i < GTN_MAX; i++)
         {
-            if (rb == RB_DEBUG && i == GTN_DEPTH)
+            if (rb == RenderBucket::Debug && i == GTN_DEPTH)
             {
                 // debug bucket creates its own depth attachment
                 const TextureFormat format = GetImageFormat(GBufferTargetName(i));

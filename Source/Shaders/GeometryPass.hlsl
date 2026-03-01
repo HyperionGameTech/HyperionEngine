@@ -216,7 +216,7 @@ PSOutput PSMain(PSInput input)
         { // direct lighting
             float shadow = 1.0;
 
-            if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW))
+            if (light.type == HYP_LIGHT_TYPE_DIRECTIONAL && bool(light.flags & LF_SHADOW_CASTER))
             {
                 shadow = GetShadow(light, P, texcoord, camera.dimensions.xy, NdotL);
             }

@@ -776,7 +776,7 @@ Handle<Node> TranslateEditorGizmo::Load_Internal() const
                     materialParameters = Material::DefaultParameters();
                 }
 
-                materialAttributes.bucket = RB_DEBUG;
+                materialAttributes.bucket = RenderBucket::Debug;
 
                 meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
                 meshComponent->material->SetIsDynamic(true);
@@ -860,7 +860,7 @@ Handle<Node> RotateEditorGizmo::Load_Internal() const
                         materialParameters = Material::DefaultParameters();
                     }
 
-                    materialAttributes.bucket = RB_DEBUG;
+                    materialAttributes.bucket = RenderBucket::Debug;
 
                     meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
                     meshComponent->material->SetIsDynamic(true);
@@ -1520,7 +1520,7 @@ void EditorSubsystem::Update(float delta)
         //                .vertexAttributes = StaticMeshVertexAttributes
         //            },
         //            MaterialAttributes {
-        //                .bucket             = RB_TRANSLUCENT,
+        //                .bucket             = RenderBucket::Translucent,
         //                .fillMode          = FM_FILL,
         //                .blendFunction     = BlendFunction::None(),
         //                .flags              = MAF_DEPTH_TEST,
@@ -1610,7 +1610,7 @@ void EditorSubsystem::CreateHighlightNode()
     //             NAME("Forward"),
     //             ShaderProperties(mesh->GetVertexAttributes())
     //         },
-    //         .bucket = RB_TRANSLUCENT,
+    //         .bucket = RenderBucket::Translucent,
     //         // .flags = MAF_NONE, // temp
     //         .stencilFunction = StencilFunction {
     //             .passOp        = SO_REPLACE,

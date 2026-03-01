@@ -43,7 +43,7 @@ class RenderProxyList;
 struct ResourceContainer;
 struct RenderProxy;
 enum class RenderGroupFlags : uint32;
-enum LightType : uint32;
+enum class LightType : uint32;
 enum EnvProbeType : uint32;
 
 // UpdateRenderProxy trait declared in RenderProxyList.hpp
@@ -187,7 +187,7 @@ public:
     // map entity id to previous attribute set (for draw call collection)
     SparsePagedArray<RenderableAttributeSet, 128, RenderAllocator> previousAttributes;
 
-    FixedArray<HashMap<RenderableAttributeSet, DrawCallCollectionMapping, NodeAllocator<RenderAllocator>>, RB_MAX> mappingsByBucket;
+    FixedArray<HashMap<RenderableAttributeSet, DrawCallCollectionMapping, NodeAllocator<RenderAllocator>>, NumRenderBuckets> mappingsByBucket;
 
     EntityBatchAllocatorBase* batchAllocator;
     EnumFlags<RenderGroupFlags> renderGroupFlags;

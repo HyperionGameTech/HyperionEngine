@@ -965,9 +965,9 @@ RendererResult RenderInterface::Initialize()
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer;
     globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer;
 
-    globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
-    globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer;
-    globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer;
+    globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(NumLightTypes); // 1 ShadowMapRenderer per LightType
+    globalRenderers[GRT_SHADOW_MAP][uint32(LightType::Point)] = new PointShadowRenderer;
+    globalRenderers[GRT_SHADOW_MAP][uint32(LightType::Directional)] = new DirectionalShadowRenderer;
 
     // one global particle volume renderer
     globalRenderers[GRT_PARTICLE_VOLUME].ResizeZeroed(1);

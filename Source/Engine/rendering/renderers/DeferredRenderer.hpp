@@ -41,7 +41,8 @@ class RenderGroup;
 class EntityBatchAllocatorBase;
 class RenderProxyList;
 class RenderCollector;
-enum LightType : uint32;
+
+enum class LightType : uint32;
 enum EnvProbeType : uint32;
 
 enum DeferredPassMode : uint32

@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "DeferredDirect",
-  "FriendlyName": "DeferredDirect",
-  "Flags": 0,
-  "Path": "Engine/Shaders/DeferredDirect"
-}

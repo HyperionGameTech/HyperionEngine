@@ -86,7 +86,7 @@ static const Float16 s_ltcBrdf[] = {
 static_assert(sizeof(s_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
 // Maps individual light types to per-light specific properties.
-static const FixedArray<ShaderPropertySet, LT_MAX> s_deferredLightTypeProperties {
+static const FixedArray<ShaderPropertySet, NumLightTypes> s_deferredLightTypeProperties {
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("DIRECTIONAL"))) } },
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("POINT"))) } },
     ShaderPropertySet { { InternShaderProperty(ShaderProperty(NAME("LIGHT_TYPE"), NAME("SPOT"))) } },
@@ -133,7 +133,7 @@ static void GetDeferredShaderProperties(
     DeferredPassMode mode,
     ShaderPropertySet& outShaderProperties,
     const RenderProxyList* rpl = nullptr,
-    LightType lightType = LT_INVALID)
+    LightType lightType = InvalidLightType)
 {
     static const GlobalConfig& s_globalConfig = CoreApi::GetGlobalConfig();
     static const IRenderConfig& s_renderConfig = g_renderInterface->GetRenderConfig();
@@ -198,7 +198,7 @@ static void GetDeferredShaderProperties(
         outShaderProperties.Add(s_propDebugIrradiance);
     }
 
-    if (lightType != LT_INVALID)
+    if (lightType != InvalidLightType)
     {
         outShaderProperties = outShaderProperties | s_deferredLightTypeProperties[uint32(lightType)];
     }
@@ -362,7 +362,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
@@ -406,16 +406,16 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     }
 
     // last LightType we rendered
-    LightType prevLightType = LT_INVALID;
+    LightType prevLightType = InvalidLightType;
 
     // render with each light
-    for (uint32 lightTypeIndex = 0; lightTypeIndex < LT_MAX; lightTypeIndex++)
+    for (uint32 lightTypeIndex = 0; lightTypeIndex < NumLightTypes; lightTypeIndex++)
     {
         const LightType lightType = LightType(lightTypeIndex);
 
         for (Light* light : rpl.GetLights())
         {
-            if (light->GetLightType() != lightTypeIndex)
+            if (light->GetLightType() != lightType)
             {
                 continue;
             }
@@ -434,7 +434,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
             uint32 localNumShaderUniforms = numShaderUniforms;
             rq << SetShaderUniform(localNumShaderUniforms++, "CurrentLight"_sh, g_renderInterface->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex), TShaderDataOffset<LightShaderData>(light));
 
-            if (lightType == LT_AREA_RECT)
+            if (lightType == LightType::AreaRect)
             {
                 if (lightProxy != nullptr && lightProxy->lightMaterial != nullptr)
                 {
@@ -523,7 +523,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     AssertDebug(dpd != nullptr);
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
     uint32 numShaderUniforms = 0;
 
@@ -533,7 +533,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
     rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
 
-    Framebuffer* translucentPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+    Framebuffer* translucentPassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
     AssertDebug(translucentPassFramebuffer != nullptr);
 
     rq << SetShaderUniform(numShaderUniforms++, "DeferredResult"_sh, translucentPassFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
@@ -667,7 +667,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    Framebuffer* viewFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     AssertDebug(viewFramebuffer != nullptr);
 
     const VertexAttributeSet vertexAttributes = VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0;
@@ -886,7 +886,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
@@ -953,7 +953,7 @@ void FogVolumePass::UpdateUniforms(Frame* frame, const RenderSetup& renderSetup,
     {
         const LightType lightType = light->GetLightType();
 
-        if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+        if (lightType != LightType::Directional && lightType != LightType::Point)
         {
             continue;
         }
@@ -1124,7 +1124,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(rs.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& opaquePassFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
     for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX; attachmentIndex++)
     {
@@ -1295,7 +1295,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
     // depth for stencil testing
     Attachment* depthAttachment = framebuffer->AddAttachment(
         1,
-        gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage(),
+        gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImage(),
         LoadOperation::LOAD,
         StoreOperation::STORE);
 
@@ -1358,8 +1358,8 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         HYP_LOG(Rendering, Verbose, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
 
-        const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-        const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+        const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+        const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
 
         passData.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
         passData.ssgi->Create();
@@ -1512,8 +1512,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     gbuffer->Resize(newSize);
 
-    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
+    const FramebufferRef& opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    const FramebufferRef& lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
 
     {
         if (passData.deferredShadingFramebuffer.IsValid())
@@ -1581,7 +1581,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     // Collect view-independent renderable types from all views, binned
     //// \todo : We could use the existing binning by subclass that ResourceTracker now provides.
     FixedArray<FlatSet<EnvProbe*>, EPT_MAX> envProbes;
-    FixedArray<FlatSet<Light*>, LT_MAX> lights;
+    FixedArray<FlatSet<Light*>, NumLightTypes> lights;
     FlatSet<EnvGrid*> envGrids;
 
     // For rendering EnvGrids and EnvProbes, we use a directional light from one of the Views that references it (if found)
@@ -1635,7 +1635,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             AssertDebug(light != nullptr);
 
-            lights[light->GetLightType()].Insert(light);
+            lights[uint32(light->GetLightType())].Insert(light);
         }
 
         for (EnvProbe* envProbe : rpl.GetEnvProbes())
@@ -1651,7 +1651,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                 {
                     AssertDebug(light != nullptr);
 
-                    if (light->GetLightType() == LT_DIRECTIONAL)
+                    if (light->GetLightType() == LightType::Directional)
                     {
                         envProbeLights[envProbe] = light;
 
@@ -1674,7 +1674,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             {
                 for (Light* light : rpl.GetLights())
                 {
-                    if (light->GetLightType() == LT_DIRECTIONAL)
+                    if (light->GetLightType() == LightType::Directional)
                     {
                         envGridLights[envGrid] = light;
 
@@ -1688,11 +1688,13 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     }
 
     // Render shadows for shadow casting lights
-    for (uint32 lightType = 0; lightType < LT_MAX; lightType++)
+    for (uint32 lightTypeIndex = 0; lightTypeIndex < NumLightTypes; lightTypeIndex++)
     {
-        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][lightType];
+        LightType lightType = LightType(lightTypeIndex);
 
-        if (!lights[lightType].Any() || !shadowRenderer)
+        RendererBase* shadowRenderer = g_renderInterface->globalRenderers[GRT_SHADOW_MAP][lightTypeIndex];
+
+        if (!lights[lightTypeIndex].Any() || !shadowRenderer)
         {
             // No lights of that LightType bound or there is no defined ShadowRenderer
             continue;
@@ -1700,11 +1702,11 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
         /// TODO: We'll need a new PassData type (ShadowPassData ?) in order to store the textures / image views (in the case of atlas textures)
         /// and we'll need some state to tell if we need to re-render the shadows.
-        for (Light* light : lights[lightType])
+        for (Light* light : lights[lightTypeIndex])
         {
             AssertDebug(light != nullptr);
 
-            if (light->GetLightFlags() & LF_SHADOW)
+            if (light->GetLightFlags() & LightFlags::ShadowCaster)
             {
                 RenderSetup shadowRs = rs.Fork();
                 shadowRs.light = light;
@@ -1723,9 +1725,9 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             envProbeBaseRS.envProbe = envProbes[EPT_SKY].Front();
         }
 
-        if (lights[LT_DIRECTIONAL].Any())
+        if (lights[uint32(LightType::Directional)].Any())
         {
-            envProbeBaseRS.light = lights[LT_DIRECTIONAL].Front();
+            envProbeBaseRS.light = lights[uint32(LightType::Directional)].Front();
         }
 
         if (envProbes.Any())
@@ -1887,10 +1889,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
-    Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
-    Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
-    Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RB_DEBUG);
+    Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
+    Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
+    Framebuffer* debugPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Debug);
 
     const bool doParticles = true;
 
@@ -1928,7 +1930,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // render opaque objects into separate framebuffer
         frame->renderQueue << BeginFramebuffer(opaquePassFramebuffer);
 
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_OPAQUE));
+        ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Opaque>);
 
         frame->renderQueue << EndFramebuffer(opaquePassFramebuffer);
     }
@@ -1940,7 +1942,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
         frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
 
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_LIGHTMAP));
+        ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Lightmapped>);
 
         frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
     }
@@ -2085,8 +2087,8 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
 
         // begin translucent with forward rendering
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_TRANSLUCENT));
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_SKYBOX));
+        ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Translucent>);
+        ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Sky>);
 
         // render fog volumes
         for (FogVolume* fogVolume : rpl.GetFogVolumes())
@@ -2120,12 +2122,12 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     // debug draw
-    if (renderCollector.mappingsByBucket[RB_DEBUG].Any()
+    if (renderCollector.mappingsByBucket[RenderBucket::Debug].Any()
         || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
     {
         frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
 
-        ExecuteDrawCalls(frame, rs, renderCollector, (1u << RB_DEBUG));
+        ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
 
         DebugDrawer::GetInstance().Render(frame, rs);
 
@@ -2199,9 +2201,9 @@ void DeferredRenderer::UpdateRayTracingView(Frame* frame, const RenderSetup& rs)
 
         const RenderBucket bucket = meshProxy->material->GetRenderAttributes().bucket;
 
-        if (bucket != RB_OPAQUE
-            && bucket != RB_LIGHTMAP
-            && bucket != RB_TRANSLUCENT)
+        if (bucket != RenderBucket::Opaque
+            && bucket != RenderBucket::Lightmapped
+            && bucket != RenderBucket::Translucent)
         {
             continue;
         }
@@ -2278,13 +2280,7 @@ void DeferredRenderer::PerformOcclusionCulling(Frame* frame, const RenderSetup& 
 {
     HYP_SCOPE;
 
-    constexpr uint32 BucketMask = (1 << RB_OPAQUE)
-        | (1 << RB_LIGHTMAP)
-        | (1 << RB_SKYBOX)
-        | (1 << RB_TRANSLUCENT)
-        | (1 << RB_DEBUG);
-
-    renderCollector.PerformOcclusionCulling(frame, rs, BucketMask);
+    renderCollector.PerformOcclusionCulling(frame, rs, AllRenderBucketsMask);
 }
 
 void DeferredRenderer::ExecuteDrawCalls(

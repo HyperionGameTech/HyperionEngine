@@ -1626,7 +1626,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 MaterialAttributes materialAttributes {};
                 materialAttributes.shaderName = NAME("GeometryPass");
                 materialAttributes.shaderProperties = {};
-                materialAttributes.bucket = RB_OPAQUE;
+                materialAttributes.bucket = RenderBucket::Opaque;
 
                 Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
                     CreateNameFromDynamicString(fbxNode.name),
