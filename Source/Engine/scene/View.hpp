@@ -16,6 +16,8 @@
 
 #include <Core/memory/resource/Resource.hpp>
 
+#include <Core/math/Frustum.hpp>
+
 #include <rendering/Shared.hpp>
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/RenderObject.hpp>
@@ -153,7 +155,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Array<Scene*>& GetScenes() const
+    const Array<Scene*>& GetScenes() const
     {
         return m_scenes;
     }
@@ -165,7 +167,7 @@ public:
     void RemoveScene(Scene* scene);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Camera>& GetCamera() const
+    const Handle<Camera>& GetCamera() const
     {
         return m_camera;
     }
@@ -193,7 +195,7 @@ public:
     GpuImage* GetReadbackTextureGpuImage() const;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE int GetPriority() const
+    int GetPriority() const
     {
         return m_priority;
     }
@@ -214,6 +216,11 @@ public:
     HYP_FORCE_INLINE const WeakHandle<View>& GetRayTracingView() const
     {
         return m_rayTracingView;
+    }
+
+    HYP_FORCE_INLINE const Frustum& GetSubFrustum() const
+    {
+        return m_subFrustum;
     }
 
     bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RayTestFlags::TestBVH) const;
@@ -265,6 +272,8 @@ protected:
 
     Viewport m_viewport;
     Viewport m_viewportBuffered[RingBufferDepth];
+
+    Frustum m_subFrustum;
 
     int m_priority;
 

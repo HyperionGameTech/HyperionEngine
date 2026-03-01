@@ -320,10 +320,13 @@ void View::UpdateVisibility()
     AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
-    if (!m_camera.IsValid())
+    if (m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot update visibility!", Id().Value());
-        return;
+        m_subFrustum = m_camera->GetFrustum();
+    }
+    else
+    {
+        m_subFrustum = Frustum {};
     }
 
     for (Scene* scene : m_scenes)
@@ -335,7 +338,7 @@ void View::UpdateVisibility()
             continue;
         }
 
-        scene->GetOctree().CalculateVisibility(m_camera);
+        scene->GetOctree().CalculateVisibility(this);
     }
 }
 
@@ -636,8 +639,6 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
         return;
     }
 
-    const ObjId<Camera> cameraId = m_camera->Id();
-
     for (Scene* scene : m_scenes)
     {
         AssertDebug(scene && scene->IsReady());
@@ -649,7 +650,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             continue;
         }
 
-        const VisibilityStateSnapshot visibilityStateSnapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(cameraId);
+        const VisibilityStateSnapshot visibilityStateSnapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(Id());
 
         uint32 numCollectedEntities = 0;
         uint32 numSkippedEntities = 0;
@@ -706,7 +707,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                             continue;
                         }
 
-                        if (!visibilityStateComponent.visibilityState->GetSnapshot(cameraId).ValidToParent(visibilityStateSnapshot))
+                        if (!visibilityStateComponent.visibilityState->GetSnapshot(Id()).ValidToParent(visibilityStateSnapshot))
                         {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                             ++numSkippedEntities;
@@ -800,7 +801,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                             continue;
                         }
 
-                        if (!visibilityStateComponent.visibilityState->GetSnapshot(cameraId).ValidToParent(visibilityStateSnapshot))
+                        if (!visibilityStateComponent.visibilityState->GetSnapshot(Id()).ValidToParent(visibilityStateSnapshot))
                         {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                             ++numSkippedEntities;
@@ -894,7 +895,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
                             continue;
                         }
 
-                        if (!visibilityStateComponent.visibilityState->GetSnapshot(cameraId).ValidToParent(visibilityStateSnapshot))
+                        if (!visibilityStateComponent.visibilityState->GetSnapshot(Id()).ValidToParent(visibilityStateSnapshot))
                         {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                             ++numSkippedEntities;
