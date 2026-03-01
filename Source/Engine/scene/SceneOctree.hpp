@@ -30,7 +30,7 @@ namespace Hyperion {
 
 class Entity;
 class EntityManager;
-class Camera;
+class View;
 
 class SceneOctree;
 
@@ -159,7 +159,7 @@ public:
     }
 
     void NextVisibilityState();
-    void CalculateVisibility(const Handle<Camera>& camera);
+    void CalculateVisibility(const View* view);
 
     bool TestRay(const Ray& ray, RayTestResults& outResults, EnumFlags<RayTestFlags> flags = RayTestFlags::TestBVH) const;
 
@@ -211,7 +211,7 @@ private:
     void ResetEntriesHash();
     void RebuildEntriesHash(uint32 level = 0);
 
-    void UpdateVisibilityState(const Handle<Camera>& camera, uint16 validityMarker);
+    void UpdateVisibilityState(const View* view, uint16 validityMarker);
 
     /*! \brief Move the entity to a new octant. If allowRebuild is true, the octree will be rebuilt if the entry doesn't fit in the new octant,
         and subdivided octants will be collapsed if they are empty + new octants will be created if they are needed.

@@ -6,6 +6,7 @@
 #include <scene/Entity.hpp>
 #include <scene/Node.hpp>
 #include <scene/BVH.hpp>
+#include <scene/View.hpp>
 
 #include <scene/EntityManager.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
@@ -858,28 +859,30 @@ void SceneOctree::NextVisibilityState()
     m_visibilityState.Next();
 }
 
-void SceneOctree::CalculateVisibility(const Handle<Camera>& camera)
+void SceneOctree::CalculateVisibility(const View* view)
 {
     HYP_SCOPE;
 
     Assert(IsRoot());
 
-    UpdateVisibilityState(camera, m_visibilityState.validityMarker);
+    UpdateVisibilityState(view, m_visibilityState.validityMarker);
 }
 
-void SceneOctree::UpdateVisibilityState(const Handle<Camera>& camera, uint16 validityMarker)
+void SceneOctree::UpdateVisibilityState(const View* view, uint16 validityMarker)
 {
-    if (!camera.IsValid())
+    if (!view)
     {
         return;
     }
 
-    const Frustum& frustum = camera->GetFrustum();
+    const Frustum& frustum = view->GetSubFrustum();
 
     if (!frustum.ContainsAABB(m_aabb))
     {
         return;
     }
+
+    const ObjId<View> viewId = view->Id();
 
     SceneOctree* current = this;
     uint8 childIndex = uint8(-1);
@@ -888,7 +891,7 @@ void SceneOctree::UpdateVisibilityState(const Handle<Camera>& camera, uint16 val
     {
         // Process current node.
         current->m_visibilityState.validityMarker = validityMarker;
-        current->m_visibilityState.MarkAsValid(camera.Id());
+        current->m_visibilityState.MarkAsValid(viewId);
 
         if (current->m_isDivided)
         {

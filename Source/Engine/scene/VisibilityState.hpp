@@ -11,7 +11,7 @@
 
 namespace Hyperion {
 
-class Camera;
+class View;
 
 HYP_STRUCT()
 struct VisibilityStateSnapshot
@@ -31,8 +31,6 @@ struct VisibilityState
 {
     HYP_STRUCT_BODY(VisibilityState);
 
-    // static_assert(std::is_final_v<Camera>, "ObjId<Camera> must be final (to prevent ID index issues with derived types)");
-
     Array<VisibilityStateSnapshot, InlineAllocator<8>> snapshots;
     uint16 validityMarker { 0u };
 
@@ -51,7 +49,7 @@ struct VisibilityState
         ++validityMarker;
     }
 
-    HYP_FORCE_INLINE VisibilityStateSnapshot GetSnapshot(ObjId<Camera> id) const
+    HYP_FORCE_INLINE VisibilityStateSnapshot GetSnapshot(ObjId<View> id) const
     {
         if (id.ToIndex() >= snapshots.Size())
         {
@@ -61,7 +59,7 @@ struct VisibilityState
         return snapshots[id.ToIndex()];
     }
 
-    HYP_FORCE_INLINE void MarkAsValid(ObjId<Camera> id)
+    HYP_FORCE_INLINE void MarkAsValid(ObjId<View> id)
     {
         if (id.ToIndex() >= snapshots.Size())
         {
