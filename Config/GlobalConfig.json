@@ -19,9 +19,9 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": true
+        "Enabled": false
       },
-      "Enabled": true
+      "Enabled": false
     },
     "HBAO": {
       "Radius": 2.500000,

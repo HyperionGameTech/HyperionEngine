@@ -473,6 +473,18 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(&worldUpdateTaskBatch);
     worldUpdateTaskBatch.AwaitCompletion();
 
+    { // collect shadow views
+        const SizeType initialNumViews = views.Size();
+
+        for (SizeType viewIndex = 0; viewIndex < initialNumViews; viewIndex++)
+        {
+            View* view = views[viewIndex];
+            Assert(view != nullptr);
+
+            view->PrepareShadowViews(views);
+        }
+    }
+
     static const auto RemoveNonUnique = []<class ArrayType>(ArrayType& elems)
     {
         for (SizeType idx = 0; idx < elems.Size();)
@@ -611,11 +623,11 @@ void EngineDriver::UpdateSim(float delta)
             scene->GetEntityManager()->Lock();
     }
 
-    for (uint32 index = 0; index < views.Size(); index++)
+    for (SizeType viewIndex = 0; viewIndex < views.Size(); viewIndex++)
     {
         HYP_NAMED_SCOPE("Per-view entity collection");
 
-        View* view = views[index];
+        View* view = views[viewIndex];
         Assert(view != nullptr);
 
         view->UpdateVisibility();
@@ -631,7 +643,7 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
     m_viewCollectionBatch->AwaitCompletion();
 
-    for (uint32 index = 0; index < views.Size(); index++)
+    for (SizeType index = 0; index < views.Size(); index++)
     {
         views[index]->EndAsyncCollection();
     }
@@ -667,6 +679,8 @@ void EngineDriver::UpdateSim(float delta)
     {
         bufferData->gameTime = m_currentWorld->GetGameState().gameTime;
     }
+
+    m_viewsPerFrame[slot] = views;
 }
 
 #pragma endregion EngineDriver

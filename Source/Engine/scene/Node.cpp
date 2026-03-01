@@ -770,6 +770,11 @@ void Node::SetLocalBounds(const BoundingBox& aabb)
 
 BoundingBox Node::GetLocalBoundsWithChildren() const
 {
+    if (!m_localBounds.IsFinite())
+    {
+        return m_localBounds;
+    }
+
     BoundingBox aabb = m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero();
 
     for (const Handle<Node>& child : GetChildren())
@@ -790,6 +795,11 @@ BoundingBox Node::GetLocalBoundsWithChildren() const
 
 BoundingBox Node::GetWorldBounds() const
 {
+    if (!m_localBounds.IsFinite())
+    {
+        return m_localBounds;
+    }
+
     BoundingBox aabb = m_worldMatrix * (m_localBounds.IsValid() ? m_localBounds : BoundingBox::Zero());
 
     for (const Handle<Node>& child : GetChildren())

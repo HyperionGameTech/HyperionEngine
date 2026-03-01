@@ -317,7 +317,7 @@ void View::UpdateViewport()
 void View::UpdateVisibility()
 {
     HYP_SCOPE;
-    AssertOnThread(g_simThread | g_visThread | ThreadCategory::THREAD_CATEGORY_TASK); // Task thread categry is temp hack!
+    AssertOnThread(g_simThread | g_visThread);
     AssertReady();
 
     if (!m_camera.IsValid())
@@ -336,6 +336,100 @@ void View::UpdateVisibility()
         }
 
         scene->GetOctree().CalculateVisibility(m_camera);
+    }
+}
+
+void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
+{
+    HYP_SCOPE;
+    AssertOnThread(g_simThread);
+
+    if (m_flags & (ViewFlags::SKIP_LIGHTS | ViewFlags::SHADOW_VIEW))
+    {
+        return;
+    }
+
+    for (Scene* scene : m_scenes)
+    {
+        AssertDebug(scene && scene->IsReady());
+
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            Light* light = static_cast<Light*>(entity);
+
+            bool lightCastsShadows = light->GetLightFlags() & LightFlags::ShadowCaster;
+
+            if (!lightCastsShadows)
+            {
+                continue;
+            }
+                
+            const bool cacheStaticObjects = (light->GetLightFlags() & LightFlags::ShadowCacheStaticObjects);
+
+            View* shadowViewsStatic[MaxShadowMapCascades] {};
+            View* shadowViewsDynamic[MaxShadowMapCascades] {};
+                    
+            for (uint32 cascadeIndex = 0; cascadeIndex < light->NumShadowMapCascades(); cascadeIndex++)
+            {
+                if (cacheStaticObjects)
+                {
+                    shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
+                        this,
+                        light,
+                        cascadeIndex,
+                        /* isStatic */ true);
+                }
+                        
+                shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
+                    this,
+                    light,
+                    cascadeIndex,
+                    /* isStatic */ false);
+
+                Assert(shadowViewsDynamic[cascadeIndex] != nullptr);
+
+                for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
+                {
+                    if (!shadowView || outShadowViews.Contains(shadowView))
+                    {
+                        continue;
+                    }
+                    
+                    BoundingBox shadowBounds;
+
+                    Camera* shadowCamera = shadowView->GetCamera();
+                    Assert(shadowCamera != nullptr);
+
+                    switch (light->GetLightType())
+                    {
+                    case LightType::Directional:
+                    {
+                        ShadowCameraHelper::UpdateShadowCameraDirectional(
+                            *shadowCamera,
+                            m_camera.IsValid() ? m_camera->GetTranslation() : Vec3f::Zero(),
+                            light->GetPosition().Normalized(),
+                            35.0f, /// TODO: add proper radius for directional light.
+                            shadowBounds);
+
+                        break;
+                    }
+                    case LightType::Point:
+                        shadowBounds = light->GetAABB();
+
+                        shadowCamera->SetTranslation(light->GetPosition());
+
+                        break;
+                    default:
+                        HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
+                        break;
+                    }
+
+                    shadowView->m_scenes = m_scenes;
+
+                    outShadowViews.PushBack(shadowView);
+                }
+            }
+        }
     }
 }
 
@@ -902,6 +996,12 @@ void View::CollectCameras(RenderProxyList& rpl)
 {
     HYP_SCOPE;
 
+    // still want to consider our own camera for update
+    if (m_camera.IsValid())
+    {
+        rpl.GetCameras().Track(m_camera.Id(), m_camera, m_camera->GetRenderProxyVersionPtr());
+    }
+
     if (m_flags & ViewFlags::SKIP_CAMERAS)
     {
         return;
@@ -982,93 +1082,6 @@ void View::CollectLights(RenderProxyList& rpl)
                         }
 
                         rpl.GetTextures().Track(texture->Id(), texture.Get());
-                    }
-                }
-                
-                if (lightCastsShadows)
-                {
-                    const bool cacheStaticObjectsShadowMap = light->GetLightFlags() & LightFlags::ShadowCacheStaticObjects;
-
-                    View* shadowViewsStatic[MaxShadowMapCascades] {};
-                    View* shadowViewsDynamic[MaxShadowMapCascades] {};
-                    
-                    for (uint32 cascadeIndex = 0; cascadeIndex < light->NumShadowMapCascades(); cascadeIndex++)
-                    {
-                        if (cacheStaticObjectsShadowMap)
-                        {
-                            shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
-                                this,
-                                light,
-                                cascadeIndex,
-                                /* isStatic */ true);
-                        }
-                        
-                        shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
-                            this,
-                            light,
-                            cascadeIndex,
-                            /* isStatic */ false);
-
-                        for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
-                        {
-                            if (!shadowView)
-                            {
-                                continue;
-                            }
-
-                            BoundingBox shadowBounds;
-
-                            Camera* shadowCamera = shadowView->GetCamera();
-                            Assert(shadowCamera != nullptr);
-
-                            switch (light->GetLightType())
-                            {
-                            case LightType::Directional:
-                            {
-                                BoundingBox cascadeBounds;
-
-                                ShadowCameraHelper::UpdateShadowCameraDirectional(
-                                    *shadowCamera,
-                                    m_camera.IsValid() ? m_camera->GetTranslation() : Vec3f::Zero(),
-                                    light->GetPosition(),
-                                    45.0f, /// TODO: add proper radius for directional light.
-                                    cascadeBounds);
-
-                                shadowBounds = shadowBounds.Union(cascadeBounds);
-
-                                break;
-                            }
-                            case LightType::Point:
-                                shadowBounds = light->GetAABB();
-
-                                shadowCamera->SetTranslation(light->GetPosition());
-
-                                break;
-                            default:
-                                HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
-                                break;
-                            }
-
-                            shadowView->m_scenes = m_scenes;
-
-                            // @TODO: NOT currently thread safe,
-                            // as each octact holds visibility bits per-camera!! if another thread reads/writes to the same vis bits
-                            // (or snapshot array resizes!) - we're toast
-                            // figure out another sln
-                            shadowView->UpdateVisibility();
-
-                            RenderProxyList& shadowViewRpl = GetProducerProxyList(shadowView);
-                            shadowViewRpl.BeginWrite();
-                            
-                            shadowViewRpl.viewport = shadowView->m_viewport;
-                            shadowViewRpl.priority = shadowView->m_priority;
-
-                            shadowView->CollectMeshEntities(shadowViewRpl);
-
-                            shadowViewRpl.EndWrite();
-
-                            shadowView->m_scenes.Clear();
-                        }
                     }
                 }
             }

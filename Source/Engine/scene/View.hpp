@@ -47,33 +47,35 @@ enum class ViewFlags : uint32
     NONE = 0x0,
     GBUFFER = 0x1,
 
-    ALL_WORLD_SCENES = 0x2, //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
+    ALL_WORLD_SCENES = 0x2,             //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
 
-    COLLECT_STATIC_ENTITIES = 0x4,  //!< If set, the view will collect static entities (those that are not dynamic). Dynamic entities are those that move or are animated.
-    COLLECT_DYNAMIC_ENTITIES = 0x8, //!< If set, the view will collect dynamic entities (those that are not static). Static entities are those that do not move and are not animated.
+    COLLECT_STATIC_ENTITIES = 0x4,      //!< If set, the view will collect static entities (those that are not dynamic). Dynamic entities are those that move or are animated.
+    COLLECT_DYNAMIC_ENTITIES = 0x8,     //!< If set, the view will collect dynamic entities (those that are not static). Static entities are those that do not move and are not animated.
     COLLECT_ALL_ENTITIES = COLLECT_STATIC_ENTITIES | COLLECT_DYNAMIC_ENTITIES,
 
-    NO_FRUSTUM_CULLING = 0x10, //!< If set, the view will not perform frustum culling. This is useful for debugging or when you want to render everything regardless of visibility.
+    NO_FRUSTUM_CULLING = 0x10,          //!< If set, the view will not perform frustum culling. This is useful for debugging or when you want to render everything regardless of visibility.
 
-    SKIP_ENV_PROBES = 0x20,        //!< If set, the view will not collect EnvProbes
-    SKIP_ENV_GRIDS = 0x40,         //!< If set, the view will not collect EnvGrids.
-    SKIP_LIGHTS = 0x80,            //!< If set, the view will not collect Lights.
-    SKIP_LIGHTMAP_VOLUMES = 0x100, //!< If set, the view will not collect LightmapVolumes.
-    SKIP_PARTICLE_VOLUMES = 0x200, //!< If set, the view will not collect ParticleVolumes.
-    SKIP_FOG_VOLUMES = 0x400,      //!< If set, the view will not collect FogVolumes.
-    SKIP_CAMERAS = 0x800,          //!< If set, the view will not collect Cameras.
+    SKIP_ENV_PROBES = 0x20,             //!< If set, the view will not collect EnvProbes
+    SKIP_ENV_GRIDS = 0x40,              //!< If set, the view will not collect EnvGrids.
+    SKIP_LIGHTS = 0x80,                 //!< If set, the view will not collect Lights.
+    SKIP_LIGHTMAP_VOLUMES = 0x100,      //!< If set, the view will not collect LightmapVolumes.
+    SKIP_PARTICLE_VOLUMES = 0x200,      //!< If set, the view will not collect ParticleVolumes.
+    SKIP_FOG_VOLUMES = 0x400,           //!< If set, the view will not collect FogVolumes.
+    SKIP_CAMERAS = 0x800,               //!< If set, the view will not collect Cameras.
 
-    NOT_MULTI_BUFFERED = 0x1000, //!< Disables double / triple buffering for the RenderProxyList this View writes to.
-                                 //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
-                                 //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
-    NO_DRAW_CALLS = 0x2000,      //!< If set, no draw calls will be built for any mesh entities that this View collects.
+    NOT_MULTI_BUFFERED = 0x1000,        //!< Disables double / triple buffering for the RenderProxyList this View writes to.
+                                        //  --- Use ONLY for Views that are not written to every frame, and instead are written to and read once (or infrequently); e.g EnvProbes.
+                                        //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
+    NO_DRAW_CALLS = 0x2000,             //!< If set, no draw calls will be built for any mesh entities that this View collects.
 
-    ENABLE_READBACK = 0x4000, //!< Enable render target texture readback (final texture)
+    ENABLE_READBACK = 0x4000,           //!< Enable render target texture readback (final texture)
 
     // enable flags
-    RAY_TRACING = 0x100000, //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
+    RAY_TRACING = 0x100000,             //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
 
     MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the Viewport dimensions will always match the associated Camera's dimensions.
+
+    SHADOW_VIEW = 0x400000,             //!< This View is for a rendering a shadow map slice or cascade
 
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
@@ -222,6 +224,8 @@ public:
     /*! \brief Computes visibility states for all Scenes this View has using the Camera */
     void UpdateVisibility();
 
+    void PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews);
+
     /*! \brief Enqueue tasks to `batch` to asynchronously collect entities and other scene resources for the current View. */
     void BeginAsyncCollection(TaskBatch& batch);
     /*! \brief End asynchronous scene collection tasks */
@@ -261,8 +265,6 @@ protected:
 
     Viewport m_viewport;
     Viewport m_viewportBuffered[RingBufferDepth];
-
-    // ViewID m_viewId; // unique Id for this view in the current frame
 
     int m_priority;
 

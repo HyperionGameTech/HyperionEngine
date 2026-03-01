@@ -506,8 +506,7 @@ void Camera::SetTranslation(const Vec3f& translation)
         }
     }
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    UpdateMatrices();
 }
 
 void Camera::SetNextTranslation(const Vec3f& translation)
@@ -539,8 +538,7 @@ void Camera::SetDirection(const Vec3f& direction)
         }
     }
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    UpdateMatrices();
 }
 
 void Camera::SetUpVector(const Vec3f& up)
@@ -557,8 +555,7 @@ void Camera::SetUpVector(const Vec3f& up)
         }
     }
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    UpdateMatrices();
 }
 
 void Camera::Rotate(const Vec3f& axis, float radians)
@@ -568,8 +565,7 @@ void Camera::Rotate(const Vec3f& axis, float radians)
     m_direction.Rotate(axis, radians);
     m_direction.Normalize();
 
-    UpdateViewMatrix();
-    UpdateViewProjectionMatrix();
+    UpdateMatrices();
 }
 
 void Camera::SetViewMatrix(const Mat4f& viewMat)
@@ -794,11 +790,10 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.viewMat = m_viewMat;
     bufferData.projMat = m_projMat;
 
-    bufferData.viewProjMat = m_viewProjMat;
-
     bufferData.inverseViewMat = m_viewMat.Inverse();
     bufferData.inverseProjMat = m_projMat.Inverse();
 
+    bufferData.viewProjMat = m_viewProjMat;
     bufferData.prevViewProjMat = m_prevViewProjMat;
     
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };

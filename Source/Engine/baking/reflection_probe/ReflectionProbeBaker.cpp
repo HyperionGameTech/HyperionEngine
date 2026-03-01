@@ -65,8 +65,14 @@ void Baker<ReflectionProbe>::OnCompleted_Internal()
         TWM_CLAMP_TO_EDGE
     };
 
+    Rect<uint32> rect {};
+    rect.x0 = 0;
+    rect.y0 = 0;
+    rect.x1 = bitmap.GetWidth();
+    rect.y1 = bitmap.GetHeight();
+
     Bitmap<ReflectionProbeTextureFormat> finalBitmap(bitmap.GetWidth(), bitmap.GetHeight());
-    BitmapUtils::Blit(bitmap, finalBitmap);
+    BitmapUtils::Blit(bitmap, finalBitmap, rect, rect);
 
     ByteBuffer imageData(finalBitmap.ToByteView());
     Texture::GenerateMipmaps(textureDesc, imageData);

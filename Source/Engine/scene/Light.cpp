@@ -38,28 +38,6 @@
 
 namespace Hyperion {
 
-static constexpr TextureFormat PointLightShadowFormat = TextureFormat::RG16F;
-static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
-    TextureFormat::RGBA8, // STANDARD
-    TextureFormat::RGBA8, // PCF
-    TextureFormat::RGBA8, // CONTACT_HARDENING
-    TextureFormat::RG16F  // VSM
-};
-
-static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("STANDARD"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("PCF"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("CONTACT_HARDENED"))),
-    InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("VSM")))
-};
-
-static const ShaderPropertyId s_propModeShadows = InternShaderProperty(ShaderProperty(NAME("MODE_SHADOWS")));
-
-static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
-    | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
-    | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS
-    | ViewFlags::SKIP_CAMERAS;
-
 static constexpr Vec2u DefaultShadowMapDimensions[NumLightTypes] = {
     Vec2u(1024, 1024), // LightType::Directional
     Vec2u(256, 256),   // LightType::Point
@@ -125,12 +103,6 @@ void Light::Init()
     HYP_SCOPE;
 
     Entity::Init();
-
-    // temp debug
-    if (m_type == LightType::Directional)
-    {
-        m_numShadowMapCascades = 2;
-    }
 
     if (m_material.IsValid())
     {
@@ -348,7 +320,7 @@ void Light::SetShadowMapDimensions(Vec2u shadowMapDimensions)
 
 void Light::SetNumShadowMapCascades(uint32 numShadowMapCascades)
 {
-    numShadowMapCascades = MathUtil::Clamp(numShadowMapCascades, 1u, 4u);
+    numShadowMapCascades = MathUtil::Clamp(numShadowMapCascades, 1u, MaxShadowMapCascades);
 
     if (numShadowMapCascades == m_numShadowMapCascades)
     {

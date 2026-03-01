@@ -1808,8 +1808,8 @@ static inline void Blit(const Bitmap<SrcFormat>& src, Bitmap<DstFormat>& dst)
     srcRect.y1 = src.GetHeight();
     
     Rect<uint32> dstRect {};
-    srcRect.x1 = dst.GetWidth();
-    srcRect.y1 = dst.GetHeight();
+    dstRect.x1 = dst.GetWidth();
+    dstRect.y1 = dst.GetHeight();
 
     Blit(src, dst, srcRect, dstRect);
 }
