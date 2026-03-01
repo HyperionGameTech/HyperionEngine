@@ -19,15 +19,11 @@ struct ShadowViewCacheKey
 {
     View* view;
     Light* light;
-    uint32 cascadeIndex;
-    bool isStatic;
 
     HYP_FORCE_INLINE bool operator==(const ShadowViewCacheKey& other) const
     {
         return view == other.view
-            && light == other.light
-            && cascadeIndex == other.cascadeIndex
-            && isStatic == other.isStatic;
+            && light == other.light;
     }
 
     HYP_FORCE_INLINE bool operator!=(const ShadowViewCacheKey& other) const
@@ -38,9 +34,7 @@ struct ShadowViewCacheKey
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         return HashCode::GetHashCode(view)
-            .Combine(light)
-            .Combine(cascadeIndex)
-            .Combine(isStatic);
+            .Combine(light);
     }
 };
 

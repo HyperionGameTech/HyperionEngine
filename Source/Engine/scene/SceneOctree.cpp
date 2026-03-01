@@ -954,9 +954,6 @@ void SceneOctree::RebuildEntriesHash(uint32 level)
             EntityTag tag = EntityTag(i + 1);
             AssertDebug(uint32(tag) < m_entryHashes.Size());
 
-            // sanity check, temp.
-            AssertDebug(m_entityManager->HasTag(entry.value, tag));
-
             m_entryHashes[uint32(tag)].Add(entryHashCode);
         }
     }

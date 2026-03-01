@@ -28,10 +28,10 @@ static constexpr TextureFormat DirectionalLightShadowFormats[SMF_MAX] = {
     TextureFormat::RG16F  // VSM
 };
 
-static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SKIP_LIGHTS
+static constexpr EnumFlags<ViewFlags> DefaultShadowViewFlags = ViewFlags::SHADOW_VIEW
+    | ViewFlags::SKIP_LIGHTS | ViewFlags::SKIP_CAMERAS
     | ViewFlags::SKIP_LIGHTMAP_VOLUMES | ViewFlags::SKIP_PARTICLE_VOLUMES | ViewFlags::SKIP_FOG_VOLUMES
-    | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS
-    | ViewFlags::SKIP_CAMERAS;
+    | ViewFlags::SKIP_ENV_PROBES | ViewFlags::SKIP_ENV_GRIDS;
 
 static const ShaderPropertyId s_shadowMapFilterProperties[SMF_MAX] = {
     InternShaderProperty(ShaderProperty(NAME("MODE"), NAME("STANDARD"))),
@@ -204,7 +204,7 @@ struct ShadowViewCacheEntry
     Array<View*> dynamicViews;
     Array<Camera*> cameras;
 
-    uint32 lastFrameUsed;
+    volatile int64 lastFrameUsed;
 };
 
 class ShadowViewCacheImpl
@@ -260,7 +260,7 @@ ShadowViewCache::ShadowViewCache()
 
 ShadowViewCache::~ShadowViewCache() = default;
 
-View* ShadowViewCache::GetOrCreateShadowView(
+HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
     View* view,
     Light* light,
     uint32 cascadeIndex,
@@ -272,9 +272,7 @@ View* ShadowViewCache::GetOrCreateShadowView(
 
     ShadowViewCacheKey key {};
     key.view = view;
-    key.light = light;
-    key.cascadeIndex = cascadeIndex;
-    key.isStatic = isStatic;
+    key.light = light;;
 
 #if SHADOW_VIEW_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);
@@ -287,22 +285,23 @@ View* ShadowViewCache::GetOrCreateShadowView(
 
     if (it != m_impl->cache.End())
     {
-        ShadowViewCacheEntry& entry = it->second;
+        ShadowViewCacheEntry* entry = &it->second;
+        AtomicExchange(&entry->lastFrameUsed, int64(GetFrameCounter()));
 
-        auto* views = isStatic ? &entry.staticViews : &entry.dynamicViews;
+        auto* views = isStatic ? &entry->staticViews : &entry->dynamicViews;
 
-        if (cascadeIndex >= entry.staticViews.Size())
+        if (cascadeIndex >= entry->staticViews.Size())
         {
 #if SHADOW_VIEW_CACHE_MULTITHREADED
             sharedLock.Reset();
             uniqueLock.Reset(m_impl->mutex);
 #endif
 
-            if (cascadeIndex >= entry.staticViews.Size())
+            if (cascadeIndex >= entry->staticViews.Size())
             {
-                entry.staticViews.Resize(cascadeIndex + 1);
-                entry.dynamicViews.Resize(cascadeIndex + 1);
-                entry.cameras.Resize(cascadeIndex + 1);
+                entry->staticViews.Resize(cascadeIndex + 1);
+                entry->dynamicViews.Resize(cascadeIndex + 1);
+                entry->cameras.Resize(cascadeIndex + 1);
             }
         }
 
@@ -320,11 +319,12 @@ View* ShadowViewCache::GetOrCreateShadowView(
 
         it = m_impl->cache.Find(key);
         Assert(it != m_impl->cache.End());
+
+        entry = &it->second;
         
-        Camera*& camera = entry.cameras[cascadeIndex];
+        Camera*& camera = entry->cameras[cascadeIndex];
 
-        views = isStatic ? &entry.staticViews : &entry.dynamicViews;
-
+        views = isStatic ? &entry->staticViews : &entry->dynamicViews;
         outView = (*views)[cascadeIndex];
 
         if (!outView)
@@ -343,6 +343,7 @@ View* ShadowViewCache::GetOrCreateShadowView(
 #endif
 
         ShadowViewCacheEntry& entry = m_impl->cache[key];
+        AtomicExchange(&entry.lastFrameUsed, int64(GetFrameCounter()));
 
         if (cascadeIndex >= entry.staticViews.Size())
         {
@@ -354,11 +355,15 @@ View* ShadowViewCache::GetOrCreateShadowView(
         Camera*& camera = entry.cameras[cascadeIndex];
 
         auto& views = isStatic ? entry.staticViews : entry.dynamicViews;
+        outView = views[cascadeIndex];
 
-        outView = new View(GetViewDesc(light, isStatic, cascadeIndex, camera));
-        InitObject(outView);
+        if (!outView)
+        {
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, camera));
+            InitObject(outView);
 
-        views[cascadeIndex] = outView;
+            views[cascadeIndex] = outView;
+        }
     }
 
     return outView;
@@ -372,9 +377,7 @@ View* ShadowViewCache::TryGetShadowView(
 {
     ShadowViewCacheKey key {};
     key.view = view;
-    key.light = light;
-    key.cascadeIndex = cascadeIndex;
-    key.isStatic = isStatic;
+    key.light = light;;
 
 #if SHADOW_VIEW_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);

@@ -249,9 +249,6 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
 
         LightShaderData::ShadowMapCascade& cascadeBufferData = lightProxy->bufferData.cascades[cascadeIndex];
-        
-        cascadeBufferData.aabbMin.w = atlasElement.offsetUV.x;
-        cascadeBufferData.aabbMax.w = atlasElement.offsetUV.y;
 
         cascadeBufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
 
@@ -266,9 +263,12 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         cascadeBufferData.aabbMin.x = shadowBoundsWS.min.x;
         cascadeBufferData.aabbMin.y = shadowBoundsWS.min.y;
         cascadeBufferData.aabbMin.z = shadowBoundsWS.min.z;
+        cascadeBufferData.aabbMin.w = atlasElement.offsetUV.x;
+
         cascadeBufferData.aabbMax.x = shadowBoundsWS.max.x;
         cascadeBufferData.aabbMax.y = shadowBoundsWS.max.y;
         cascadeBufferData.aabbMax.z = shadowBoundsWS.max.z;
+        cascadeBufferData.aabbMax.w = atlasElement.offsetUV.y;
         
         lightProxy->bufferData.layerIndices[cascadeIndex] = (atlasElement.layerIndex & 0xFFu);
 
@@ -318,6 +318,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             static constexpr uint32 Mask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
 
             RenderCollector& renderCollector = GetRenderCollector(shadowView);
+
             renderCollector.ExecuteDrawCalls(frame, rs, Mask);
 
             if (!shouldCombineShadowMaps)

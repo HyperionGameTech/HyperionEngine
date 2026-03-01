@@ -82,6 +82,7 @@
 #include <util/BlueNoise.hpp>
 
 #include <engine/EngineStats.hpp>
+#include <engine/EngineDriver.hpp>
 
 #include <system/AppContext.hpp>
 
@@ -1148,24 +1149,13 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
 
     RenderCommands::Flush();
 
-    Array<View*, RenderTempAllocator> activeViews;
+    Span<View* const> activeViews = g_engineDriver->GetCurrentFrameViews();
 
-    // collect views for worlds enqueued to be rendered
-    for (World* world : frameData.activeWorlds)
+    for (View* view : activeViews)
     {
-        for (View* view : world->GetViews())
-        {
-            if (activeViews.Contains(view))
-            {
-                continue;
-            }
-
-            activeViews.PushBack(view);
-
-            // ensure ViewFrameData exists
-            ViewFrameData& vfd = *GetViewFrameData(view, slot);
-            AssertDebug(vfd.rplShared != nullptr);
-        }
+        // ensure ViewFrameData exists
+        ViewFrameData& vfd = *GetViewFrameData(view, slot);
+        AssertDebug(vfd.rplShared != nullptr);
     }
 
     // ensure ViewData and render-side owned lists exists

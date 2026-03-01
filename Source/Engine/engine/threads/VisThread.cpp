@@ -41,15 +41,15 @@ static bool ProcessEntity(
 
     const BoundingBox worldBounds = entity->GetWorldBounds();
 
+    if (!worldBounds.IsValid() || !worldBounds.IsFinite())
+    {
+        return false;
+    }
+
     // if entity is not in the octree, try to insert it
     if (visibilityStateComponent.octantId == OctantId::Invalid())
     {
         visibilityStateComponent.visibilityState = nullptr;
-
-        if (!worldBounds.IsValid())
-        {
-            return false;
-        }
 
         const SceneOctree::Result insertResult = octree.Insert(entity, worldBounds);
 

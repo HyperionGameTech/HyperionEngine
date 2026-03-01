@@ -41,6 +41,7 @@ class SimThread;
 class DeletionQueue;
 class RenderState;
 class World;
+class View;
 class EngineStats;
 
 struct EngineDelegates
@@ -109,11 +110,14 @@ public:
     void AddWorld(const Handle<World>& world);
     void RemoveWorld(const World* world);
 
+    HYP_FORCE_INLINE Span<View* const> GetCurrentFrameViews() const
+    {
+        return m_viewsPerFrame[GetRingIndex()].ToSpan();
+    }
+
     bool IsRenderLoopActive() const;
 
     bool StartThreads();
-
-    void MainThreadUpdate();
 
     HYP_METHOD()
     void SetGameInstance(Game* gameInstance);
@@ -140,6 +144,8 @@ private:
     Array<Handle<World>> m_worlds; // Sim thread only
     World* m_currentWorld;         // Sim thread only
     Handle<World> m_defaultWorld;
+
+    Array<View*> m_viewsPerFrame[RingBufferDepth];
 
     EngineDelegates m_delegates;
 
