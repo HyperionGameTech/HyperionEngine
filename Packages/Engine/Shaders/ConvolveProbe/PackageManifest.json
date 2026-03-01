@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "ConvolveProbe",
-  "FriendlyName": "ConvolveProbe",
-  "Flags": 0,
-  "Path": "Engine/Shaders/ConvolveProbe"
-}

@@ -1154,15 +1154,6 @@ extern struct RendererConfig
     SsgiEnabled : bool
     TaaEnabled : bool
 end
-extern enum RenderBucket : uint8
-    RB_NONE = 0,
-    RB_OPAQUE,
-    RB_LIGHTMAP,
-    RB_TRANSLUCENT,
-    RB_SKYBOX,
-    RB_DEBUG,
-    RB_MAX
-end
 extern struct MeshAttributes
     VertexAttributes : VertexAttributeSet
     Topology : Topology
@@ -2203,21 +2194,25 @@ extern class DirectionalLight : Light
     SetDirection(direction : Vec3f) -> void
 end
 extern enum LightType : uint32
-    LT_INVALID = ~0u,
-    LT_DIRECTIONAL = 0,
-    LT_POINT,
-    LT_SPOT,
-    LT_AREA_RECT,
-    LT_MAX
+    Directional = 0,
+    Point,
+    Spot,
+    AreaRect,
+    Max
 end
 extern enum LightFlags : uint32
-    LF_NONE = 0x0,
-    LF_SHADOW = 0x1,
-    LF_SHADOW_PCF = 0x2,
-    LF_SHADOW_CONTACT_HARDENING = 0x4,
-    LF_SHADOW_VSM = 0x8,
-    LF_SHADOW_FILTER_MASK = ((LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING) | LF_SHADOW_VSM),
-    LF_DEFAULT = (LF_SHADOW | LF_SHADOW_PCF)
+    None = 0x0,
+    ShadowCaster = 0x1,
+    ShadowPCF = 0x2,
+    ShadowContactHardening = 0x4,
+    ShadowVariance = 0x8,
+    ShadowFilterMask = ((ShadowPCF | ShadowContactHardening) | ShadowVariance),
+    ShadowCSMSplit0 = 0x20,
+    ShadowCSMSplit1 = 0x40,
+    ShadowCSMSplit2 = 0x80,
+    ShadowCSMSplit3 = 0x100,
+    ShadowCSMSplitMask = (((ShadowCSMSplit0 | ShadowCSMSplit1) | ShadowCSMSplit2) | ShadowCSMSplit3),
+    Default = (ShadowCaster | ShadowPCF)
 end
 extern struct EnvProbeSphericalHarmonics
 end

@@ -67,12 +67,20 @@ struct Light
 
 // Maps to LightFlags
 #define LF_NONE 0x0
-#define LF_SHADOW 0x1
+
+#define LF_SHADOW_CASTER 0x1
 #define LF_SHADOW_PCF 0x2
 #define LF_SHADOW_CONTACT_HARDENING 0x4
 #define LF_SHADOW_VSM 0x8
 #define LF_SHADOW_FILTER_MASK (LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING | LF_SHADOW_VSM)
-#define LF_DEFAULT (LF_SHADOW | LF_SHADOW_PCF)
+
+#define LF_SHADOW_CSM_SPLIT_0 0x20
+#define LF_SHADOW_CSM_SPLIT_1 0x40
+#define LF_SHADOW_CSM_SPLIT_2 0x80
+#define LF_SHADOW_CSM_SPLIT_3 0x100
+#define LF_SHADOW_CSM_SPLIT_MASK (LF_SHADOW_CSM_SPLIT_0 | LF_SHADOW_CSM_SPLIT_1 | LF_SHADOW_CSM_SPLIT_2 | LF_SHADOW_CSM_SPLIT_3)
+
+#define LF_DEFAULT (LF_SHADOW_CASTER | LF_SHADOW_PCF)
 
 // each cascade takes up 1 byte in normal.w
 #define LIGHT_LAYER_INDEX(light, cascadeIndex) ((FLOAT_BITS_TO_UINT(light.normal.w) >> (cascadeIndex * 8)) & 0xFF)

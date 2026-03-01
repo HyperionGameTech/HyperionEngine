@@ -540,7 +540,7 @@ public:
 
     Material(
         Name name,
-        RenderBucket rb = RB_OPAQUE);
+        RenderBucket rb = RenderBucket::Opaque);
 
     Material(
         Name name,

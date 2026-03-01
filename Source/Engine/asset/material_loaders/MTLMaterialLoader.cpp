@@ -479,7 +479,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
     {
         MaterialAttributes attributes;
         /*attributes.blendFunction = BlendFunction::AlphaBlending();
-        attributes.bucket = RB_TRANSLUCENT;*/
+        attributes.bucket = RenderBucket::Translucent;*/
         attributes.flags |= MAF_ALPHA_DISCARD;
 
         MaterialParameters parameters = Material::DefaultParameters();
@@ -495,7 +495,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                     }))
             {
                 attributes.blendFunction = BlendFunction::AlphaBlending();
-                attributes.bucket = RB_TRANSLUCENT;
+                attributes.bucket = RenderBucket::Translucent;
             }
         }
 
@@ -504,7 +504,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
         //     if (it->second.values[3] < 1.0f)
         //     {
         //         attributes.blendFunction = BlendFunction::AlphaBlending();
-        //         attributes.bucket = RB_TRANSLUCENT;
+        //         attributes.bucket = RenderBucket::Translucent;
         //     }
         // }
 

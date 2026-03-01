@@ -150,7 +150,8 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
         }
 
         // Only process opaque and translucent materials
-        if (meshComponent.material->GetBucket() != RB_OPAQUE && meshComponent.material->GetBucket() != RB_TRANSLUCENT)
+        if (meshComponent.material->GetBucket() != RenderBucket::Opaque
+            && meshComponent.material->GetBucket() != RenderBucket::Translucent)
         {
             continue;
         }

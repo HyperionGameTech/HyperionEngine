@@ -163,7 +163,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
             return;
         }
 
-        if (renderSetup.light->GetLightType() != LT_DIRECTIONAL)
+        if (renderSetup.light->GetLightType() != LightType::Directional)
         {
             HYP_LOG_ONCE(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}",
                 renderSetup.light->Id(), view->Id());
@@ -209,7 +209,7 @@ void ReflectionProbeRenderer::RenderProbe(Frame* frame, const RenderSetup& rende
         renderCollector.NumDrawCallsCollected());
 #endif
 
-    renderCollector.ExecuteDrawCalls(frame, renderSetup, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
+    renderCollector.ExecuteDrawCalls(frame, renderSetup, RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent>);
 
     const ViewOutputTarget& outputTarget = view->GetOutputTarget();
     AssertDebug(outputTarget.IsValid());
@@ -468,7 +468,7 @@ void ReflectionProbeRenderer::ComputeSH(Frame* frame, const RenderSetup& renderS
 
     for (Light* light : rpl.GetLights())
     {
-        if (light->GetLightType() == LT_DIRECTIONAL)
+        if (light->GetLightType() == LightType::Directional)
         {
             AssertDebug(RetrieveResourceBinding(light) != ~0u, "Light not bound!");
 

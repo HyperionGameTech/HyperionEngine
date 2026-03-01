@@ -168,7 +168,7 @@ void SSGI::Render(Frame* frame, const RenderSetup& renderSetup)
     DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
     AssertDebug(dpd != nullptr);
 
-    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
 
     // Update uniform buffer data
     SSGIUniforms uniforms;
@@ -269,7 +269,7 @@ void SSGI::FillUniformBufferData(View* view, SSGIUniforms& outUniforms) const
         {
             const LightType lightType = light->GetLightType();
 
-            if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+            if (lightType != LightType::Directional && lightType != LightType::Point)
             {
                 continue;
             }

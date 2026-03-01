@@ -267,8 +267,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             pd->prevCameraMatrices[cascadeIndex] = cascadeBufferData.viewProjMat;
 
             // Draw the actual shadowmap
+            static constexpr uint32 Mask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
+
             RenderCollector& renderCollector = GetRenderCollector(shadowView);
-            renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT) | (1u << RB_LIGHTMAP)));
+            renderCollector.ExecuteDrawCalls(frame, rs, Mask);
 
             if (!shouldCombineShadowMaps)
             {

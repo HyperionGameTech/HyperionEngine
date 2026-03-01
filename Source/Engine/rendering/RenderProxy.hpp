@@ -193,16 +193,17 @@ struct alignas(16) LightShaderData
     {
         float areaNormal[3];
         float spotLightDir[3];
+
         struct
         {
             float _pad[3];
-            uint8 layerIndices[4]; // per cascade
+            uint8 layerIndices[MaxShadowMapCascades]; // per cascade
         };
     };
 
     Vec2f areaSize; // also angles for spot lights
 
-    Float16 splitDistances[4];
+    Float16 splitDistances[MaxShadowMapCascades];
 
     struct ShadowMapCascade
     {
@@ -210,7 +211,7 @@ struct alignas(16) LightShaderData
         Vec4f aabbMin;          // w = offsetUV.x
         Vec4f aabbMax;          // w = offsetUV.y
         Vec4f dimensionsScale;  // xy = shadow map dimensions in pixels, zw = shadow map dimensions relative to the atlas dimensions
-    } cascades[4];
+    } cascades[MaxShadowMapCascades];
 };
 
 class RenderProxyLight final : public IRenderProxy

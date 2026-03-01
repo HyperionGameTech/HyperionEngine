@@ -33,6 +33,8 @@ enum class TemporalBlendTechnique
 class TemporalBlending
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     friend struct RecreateTemporalBlendingFramebuffer;
 
     TemporalBlending(

@@ -154,7 +154,7 @@ const MaterialParameters& Material::DefaultParameters()
 Material::Material()
     : m_attributes {
           .shaderName = s_defaultShaderName,
-          .bucket = RB_OPAQUE,
+          .bucket = RenderBucket::Opaque,
           .fillMode = FM_FILL,
           .blendFunction = BlendFunction::None(),
           .cullFaces = FCM_BACK,

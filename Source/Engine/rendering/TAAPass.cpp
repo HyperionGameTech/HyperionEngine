@@ -116,7 +116,7 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
     Assert(cameraProxy != nullptr);
 
-    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
+    const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent();
 
     TAAConstants constants {};
     constants.dimensions = m_extent;
@@ -136,8 +136,8 @@ void TAAPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << SetShaderUniform(0, "InColorTexture"_sh, m_inputImageView);
     frame->renderQueue << SetShaderUniform(1, "InPrevColorTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(prevTexture));
-    frame->renderQueue << SetShaderUniform(2, "InVelocityTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-    frame->renderQueue << SetShaderUniform(3, "InDepthTexture"_sh, m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+    frame->renderQueue << SetShaderUniform(2, "InVelocityTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+    frame->renderQueue << SetShaderUniform(3, "InDepthTexture"_sh, m_gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
     frame->renderQueue << SetShaderUniform(4, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     frame->renderQueue << SetShaderUniform(5, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     frame->renderQueue << SetShaderUniform(6, "OutColorImage"_sh, g_renderInterface->textureViewCache->GetOrCreate(activeTexture));

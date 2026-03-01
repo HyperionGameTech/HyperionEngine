@@ -324,7 +324,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         }
 
         MaterialAttributes materialAttributes {};
-        materialAttributes.bucket = RB_TRANSLUCENT;
+        materialAttributes.bucket = RenderBucket::Translucent;
         materialAttributes.blendFunction = BlendFunction::AlphaBlending();
         materialAttributes.shaderName = NAME("GeometryPass");
         materialAttributes.shaderProperties = {};

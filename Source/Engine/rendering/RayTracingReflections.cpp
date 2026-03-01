@@ -129,7 +129,8 @@ void RayTracingReflections::UpdateUniforms(Frame* frame, const RenderSetup& rend
             {
                 const LightType lightType = light->GetLightType();
 
-                if (lightType != LT_DIRECTIONAL && lightType != LT_POINT)
+                if (lightType != LightType::Directional
+                    && lightType != LightType::Point)
                 {
                     continue;
                 }

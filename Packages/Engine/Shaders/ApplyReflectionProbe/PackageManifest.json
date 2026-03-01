@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "ApplyReflectionProbe",
-  "FriendlyName": "ApplyReflectionProbe",
-  "Flags": 0,
-  "Path": "Engine/Shaders/ApplyReflectionProbe"
-}

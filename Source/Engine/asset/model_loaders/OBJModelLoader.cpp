@@ -447,7 +447,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         MaterialAttributes materialAttributes {};
         materialAttributes.shaderName = NAME("GeometryPass");
         materialAttributes.shaderProperties = {};
-        materialAttributes.bucket = RB_OPAQUE;
+        materialAttributes.bucket = RenderBucket::Opaque;
 
         if (!material.IsValid())
         {

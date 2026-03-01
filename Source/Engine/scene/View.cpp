@@ -88,7 +88,7 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
 
     if (m_impl->IsA(GBuffer::StaticClass()))
     {
-        return static_cast<GBuffer&>(*m_impl).GetBucket(RenderBucket::RB_OPAQUE).GetFramebuffer();
+        return static_cast<GBuffer&>(*m_impl).GetBucket(RenderBucket::RenderBucket::Opaque).GetFramebuffer();
     }
 
     return ObjCast<Framebuffer>(m_impl);
@@ -944,17 +944,17 @@ void View::CollectLights(RenderProxyList& rpl)
             {
                 switch (light->GetLightType())
                 {
-                case LT_DIRECTIONAL:
+                case LightType::Directional:
                     isLightInFrustum = true;
                     break;
-                case LT_POINT:
+                case LightType::Point:
                     isLightInFrustum = m_camera->GetFrustum().ContainsBoundingSphere(light->GetBoundingSphere());
                     break;
-                case LT_SPOT:
+                case LightType::Spot:
                     /// \todo Implement frustum culling for spot lights
                     isLightInFrustum = true;
                     break;
-                case LT_AREA_RECT:
+                case LightType::AreaRect:
                     isLightInFrustum = m_camera->GetFrustum().ContainsAABB(light->GetAABB());
                     break;
                 default:

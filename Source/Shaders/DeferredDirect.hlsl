@@ -245,14 +245,14 @@ PSOutput PSMain(PSInput input)
         float4 light_color = currentLight.color;
 
 #ifdef LIGHT_TYPE_POINT
-        if ((currentLight.flags & LF_SHADOW) != 0)
+        if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
         {
             const float3 world_to_light = position.xyz - currentLight.position_intensity.xyz;
 
             shadow = GetPointShadow(currentLight, world_to_light, NdotL);
         }
 #elif defined(LIGHT_TYPE_DIRECTIONAL)
-        if ((currentLight.flags & LF_SHADOW) != 0)
+        if ((currentLight.flags & LF_SHADOW_CASTER) != 0)
         {
             shadow = GetShadow(currentLight, position.xyz, texcoord, camera.dimensions.xy, NdotL, /* cascadeIndex */ 0);
         }
