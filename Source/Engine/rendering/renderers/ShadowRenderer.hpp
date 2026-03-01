@@ -72,14 +72,37 @@ private:
     {
         Array<ShadowMap*, RenderAllocator> shadowMaps;
         
+        FixedArray<View*, MaxShadowMapCascades> shadowViewsDynamic;
+        FixedArray<View*, MaxShadowMapCascades> shadowViewsStatic;
+
         UniquePtr<FullScreenPass> combineShadowMapsPass; // Pass to combine shadow maps for this light (optional)
 
         GpuImageRef combinedShadowMapsBlurred;
         FixedArray<GpuBufferRef, NumFramesInFlight> blurUniformBuffers;
+
+        uint32 lastFrameUsed;
     };
 
-    /// Cached per-light shadow map rendering data that is cleaned up when no longer used
-    HashMap<WeakHandle<Light>, CachedShadowMapData, NodeAllocator<RenderAllocator>> m_cachedShadowMapData;
+    struct CacheKey
+    {
+        Light* light;
+        View* view;
+
+        HYP_FORCE_INLINE bool operator==(const CacheKey& other)
+        {
+            return light == other.light
+                && view == other.view;
+        }
+
+        HYP_FORCE_INLINE HashCode GetHashCode() const
+        {
+            return HashCode::GetHashCode(light)
+                .Combine(view);
+        }
+    };
+
+    /// Cached (per-light/view combination) shadow map rendering data that is cleaned up when no longer used
+    HashMap<CacheKey, CachedShadowMapData, NodeAllocator<RenderAllocator>> m_cachedShadowMapData;
 };
 
 class PointShadowRenderer : public ShadowRendererBase

@@ -49,6 +49,7 @@
 #include <rendering/renderers/ParticleVolumeRenderer.hpp>
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
+#include <rendering/shadows/ShadowViewCache.hpp>
 
 #include <rendering/ResourceBindings.hpp>
 
@@ -394,6 +395,8 @@ struct ViewFrameData
 struct FrameData
 {
     HashMap<View*, ViewFrameData*> viewFrameData;
+    SharedMutex viewFrameDataMutex;
+
     Array<World*> activeWorlds;
 
     Array<RenderProxyList*> ownedLists; // render thread side owned lists
@@ -452,17 +455,44 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     AssertDebug(view != nullptr);
 
-    ViewFrameData*& vfd = s_frameData[slot].viewFrameData[view];
+    FrameData& frameData = s_frameData[slot];
 
-    if (!vfd)
+    TSharedLock<SharedMutex> sharedLock;
+    TUniqueLock<SharedMutex> uniqueLock;
+
+    // need to lock IFF on task thread
+    if (s_threadFrameIndex == nullptr)
     {
-        vfd = new ViewFrameData;
-        vfd->view = view;
-
-        vfd->rplShared = view->GetRenderProxyList(slot);
-        AssertDebug(vfd->rplShared != nullptr);
-        AssertDebug(vfd->rplShared->isShared, "Expected isShared to be true to ensure multiple threads don't access the list concurrently");
+        sharedLock.Reset(frameData.viewFrameDataMutex);
     }
+
+    auto it = frameData.viewFrameData.Find(view);
+    if (it != frameData.viewFrameData.End())
+    {
+        return it->second;
+    }
+
+    if (sharedLock)
+    {
+        sharedLock.Reset();
+        uniqueLock.Reset(frameData.viewFrameDataMutex);
+
+        it = frameData.viewFrameData.Find(view);
+
+        if (it != frameData.viewFrameData.End())
+        {
+            return it->second;
+        }
+    }
+
+    ViewFrameData* vfd = new ViewFrameData;
+    vfd->view = view;
+
+    vfd->rplShared = view->GetRenderProxyList(slot);
+    AssertDebug(vfd->rplShared != nullptr);
+    AssertDebug(vfd->rplShared->isShared, "Expected isShared to be true to ensure multiple threads don't access the list concurrently");
+
+    frameData.viewFrameData[view] = vfd;
 
     return vfd;
 }
@@ -690,7 +720,9 @@ uint32 GetFrameCounter()
 RenderProxyList& GetProducerProxyList(View* view)
 {
     HYP_SCOPE;
-    AssertOnThread(g_simThread);
+
+    // can be called on sim thread or on task thread for tasks enqueued and awaited by sim thread, **exclusively**
+    AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     ViewFrameData* vd = GetViewFrameData(view, s_frameIndex[PRODUCER]);
     Assert(vd != nullptr);
@@ -886,7 +918,8 @@ RenderInterface::RenderInterface()
       finalPass(nullptr),
       textureViewCache(PoolNew<TextureViewCache>(*g_renderPool)),
       stagingBufferPool(PoolNew<StagingBufferPool>(*g_renderPool)),
-      blasCache(PoolNew<BLASCache>(*g_renderPool))
+      blasCache(PoolNew<BLASCache>(*g_renderPool)),
+      shadowViewCache(PoolNew<ShadowViewCache>(*g_renderPool))
 {
 }
 
@@ -1046,6 +1079,9 @@ void RenderInterface::Shutdown()
 
     PoolDelete(*g_renderPool, blasCache);
     blasCache = nullptr;
+
+    PoolDelete(*g_renderPool, shadowViewCache);
+    shadowViewCache = nullptr;
 
     PoolDelete(*g_renderPool, stagingBufferPool);
     stagingBufferPool = nullptr;
@@ -1434,6 +1470,8 @@ void RenderInterface::EndFrame()
     }
 
     blasCache->RunCleanupCycle(32);
+
+    // shadowViewCache->RunCleanupCycle(8);
 
     DeletionQueue::GetInstance().UpdateEntryListQueue();
     DeletionQueue::GetInstance().Iterate();

@@ -24,6 +24,8 @@
 #include <scene/Light.hpp>
 #include <scene/View.hpp>
 
+#include <scene/camera/Camera.hpp>
+
 #include <Core/utilities/DeferredScope.hpp>
 
 #include <ShadowRenderer.generated.inl>
@@ -43,11 +45,8 @@ ShadowRendererPassData::~ShadowRendererPassData()
 #pragma region ShadowRendererBase
 
 static UniquePtr<FullScreenPass> CreateCombineShadowMapsPass(
-    ShadowMapFilter filterMode, TextureFormat format, Vec2u dimensions,
-    Span<View*> viewsStatic, Span<View*> viewsDynamic)
+    ShadowMapFilter filterMode, TextureFormat format, Vec2u dimensions)
 {
-    AssertDebug(viewsStatic.Size() == viewsDynamic.Size(), "Combine pass requires same number of views");
-
     ShaderPropertySet properties;
 
     if (filterMode == SMF_VSM)
@@ -76,9 +75,11 @@ void ShadowRendererBase::Shutdown()
 {
     HashSet<ShadowMap*> shadowMaps;
 
-    for (const KeyValuePair<WeakHandle<Light>, CachedShadowMapData>& it : m_cachedShadowMapData)
+    for (KeyValuePair<CacheKey, CachedShadowMapData>& pair : m_cachedShadowMapData)
     {
-        for (ShadowMap* shadowMap : it.second.shadowMaps)
+        CachedShadowMapData& value = pair.second;
+
+        for (ShadowMap* shadowMap : value.shadowMaps)
         {
             shadowMaps.Insert(shadowMap);
         }
@@ -104,19 +105,24 @@ void ShadowRendererBase::Shutdown()
 
 int ShadowRendererBase::RunCleanupCycle(int maxIter)
 {
+    static constexpr uint32 MaxFramesBeforeDiscard = 100;
+
+    const uint32 currentFrame = GetFrameCounter();
+
     int numCycles = RendererBase::RunCleanupCycle(maxIter);
 
     for (auto it = m_cachedShadowMapData.Begin(); it != m_cachedShadowMapData.End() && numCycles < maxIter; numCycles++)
     {
-        // check if weak object is no longer alive
-        if (!it->first || it->first.GetUnsafe()->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
+        CachedShadowMapData& value = it->second;
+
+        if (currentFrame - value.lastFrameUsed >= MaxFramesBeforeDiscard)
         {
-            HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} as it is no longer valid.", it->first.Id());
+            HYP_LOG(Rendering, Verbose, "Removing cached shadow map for Light {} + View {} as it has not been used in over {} frames", it->first.light->Id(), it->first.view->Id(), MaxFramesBeforeDiscard);
 
             for (ShadowMap* shadowMap : it->second.shadowMaps)
             {
                 bool shadowMapFreed = g_renderInterface->shadowMapAllocator->FreeShadowMap(shadowMap);
-                AssertDebug(shadowMapFreed, "Failed to free shadow map for Light {}!", it->first.Id());
+                AssertDebug(shadowMapFreed, "Failed to free shadow map for Light {} + View {}", it->first.light->Id(), it->first.view->Id());
             }
 
             it = m_cachedShadowMapData.Erase(it);
@@ -135,7 +141,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-    AssertDebug(renderSetup.world && renderSetup.light);
+    AssertDebug(renderSetup.view && renderSetup.world && renderSetup.light);
 
     Light* light = renderSetup.light;
 
@@ -143,18 +149,20 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     Assert(lightProxy != nullptr, "Proxy for Light {} not found when rendering shadows!", light->Id());
 
     const bool isVarianceShadowMap = light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM;
-    const bool shouldCombineShadowMaps = lightProxy->shadowViewsStatic.Any() && lightProxy->shadowViewsDynamic.Any();
+    const bool shouldCombineShadowMaps = light->GetLightFlags() & LightFlags::ShadowCacheStaticObjects;
     
-    WeakHandle<Light> lightWeak = MakeWeakRef(light);
+    CacheKey cacheKey {};
+    cacheKey.light = light;
+    cacheKey.view = renderSetup.view;
 
-    KeyValuePair<WeakHandle<Light>, CachedShadowMapData>* existingPair = m_cachedShadowMapData.TryGet(lightWeak);
+    KeyValuePair<CacheKey, CachedShadowMapData>* existingPair = m_cachedShadowMapData.TryGet(cacheKey);
     CachedShadowMapData* cachedData = existingPair ? &existingPair->second : nullptr;
 
     if (!cachedData)
     {
         // init shadow data
 
-        cachedData = &m_cachedShadowMapData[lightWeak];
+        cachedData = &m_cachedShadowMapData[cacheKey];
         cachedData->shadowMaps.Resize(lightProxy->numCascades);
 
         Vec2u maxDimensions;
@@ -175,8 +183,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             cachedData->combineShadowMapsPass = CreateCombineShadowMapsPass(
                 isVarianceShadowMap ? ShadowMapFilter::SMF_VSM : ShadowMapFilter::SMF_STANDARD,
                 TextureFormat::RG16F,
-                maxDimensions,
-                lightProxy->shadowViewsStatic, lightProxy->shadowViewsDynamic);
+                maxDimensions);
         }
 
         if (isVarianceShadowMap)
@@ -197,15 +204,40 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             /// TODO: Add re-alloc of shadow maps if parameters have changed
         }
     }
+
+    cachedData->lastFrameUsed = GetFrameCounter();
     
     FullScreenPass* combineShadowMapsPass = cachedData->combineShadowMapsPass.Get();
 
-    Array<RenderProxyList*, RenderTempAllocator> renderProxyLists;
-    renderProxyLists.Reserve(lightProxy->shadowViewsStatic.Size() + lightProxy->shadowViewsDynamic.Size());
+    Array<RenderProxyList*, FixedAllocator<MaxShadowMapCascades * 2>> renderProxyLists;
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
 
     for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
+        cachedData->shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowViewCache->TryGetShadowView(
+            renderSetup.view,
+            renderSetup.light,
+            cascadeIndex,
+            /* isStatic */ false);
+
+        if (!cachedData->shadowViewsDynamic[cascadeIndex])
+        {
+            continue;
+        }
+            
+        if (shouldCombineShadowMaps)
+        {
+            cachedData->shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->TryGetShadowView(
+                renderSetup.view,
+                renderSetup.light,
+                cascadeIndex,
+                /* isStatic */ true);
+        }
+        else
+        {
+            cachedData->shadowViewsStatic[cascadeIndex] = nullptr;
+        }
+
         ShadowMap* shadowMap = cachedData->shadowMaps[cascadeIndex];
         Assert(shadowMap != nullptr && shadowMap->GetAtlasElement() != nullptr);
         
@@ -222,10 +254,25 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         cascadeBufferData.aabbMax.w = atlasElement.offsetUV.y;
 
         cascadeBufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
+
+        cascadeBufferData.viewProjMat = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera()->GetViewProjectionMatrix();
+
+        BoundingBox shadowBoundsNDC;
+        shadowBoundsNDC.min = Vec3f(-1.0f);
+        shadowBoundsNDC.max = Vec3f(1.0f);
+
+        BoundingBox shadowBoundsWS = cascadeBufferData.viewProjMat.Inverse() * shadowBoundsNDC;
+
+        cascadeBufferData.aabbMin.x = shadowBoundsWS.min.x;
+        cascadeBufferData.aabbMin.y = shadowBoundsWS.min.y;
+        cascadeBufferData.aabbMin.z = shadowBoundsWS.min.z;
+        cascadeBufferData.aabbMax.x = shadowBoundsWS.max.x;
+        cascadeBufferData.aabbMax.y = shadowBoundsWS.max.y;
+        cascadeBufferData.aabbMax.z = shadowBoundsWS.max.z;
         
         lightProxy->bufferData.layerIndices[cascadeIndex] = (atlasElement.layerIndex & 0xFFu);
 
-        for (View* shadowView : { lightProxy->shadowViewsDynamic[cascadeIndex], lightProxy->shadowViewsStatic[cascadeIndex] })
+        for (View* shadowView : { cachedData->shadowViewsDynamic[cascadeIndex], cachedData->shadowViewsStatic[cascadeIndex] })
         {
             if (!shadowView)
             {
@@ -238,7 +285,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
             AssertDebug(framebuffer.IsValid());
 
-            RenderSetup rs = renderSetup;
+            RenderSetup rs = renderSetup.Fork();
             rs.view = shadowView;
             rs.passData = FetchViewPassData(shadowView);
 
@@ -333,20 +380,19 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
         if (shouldCombineShadowMaps)
         {
-            AssertDebug(lightProxy->shadowViewsStatic.Size() == lightProxy->shadowViewsDynamic.Size());
-            AssertDebug(lightProxy->shadowViewsStatic[cascadeIndex]->GetViewDesc().renderTargetDesc.numLayers == 1,
+            AssertDebug(cachedData->shadowViewsStatic[cascadeIndex]->GetViewDesc().renderTargetDesc.numLayers == 1,
                 "Combining static and dynamic shadow maps does not support cubemap targets!");
 
-            RenderSetup rs = renderSetup;
+            RenderSetup rs = renderSetup.Fork();
             // FullScreenPass::Begin() needs a View set
-            rs.view = lightProxy->shadowViewsStatic[cascadeIndex];
+            rs.view = cachedData->shadowViewsStatic[cascadeIndex];
 
             { // Combine passes into one
                 combineShadowMapsPass->Begin(frame, rs);
 
                 frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-                frame->renderQueue << SetShaderUniform(5, "Src0"_sh, lightProxy->shadowViewsStatic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-                frame->renderQueue << SetShaderUniform(6, "Src1"_sh, lightProxy->shadowViewsDynamic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+                frame->renderQueue << SetShaderUniform(5, "Src0"_sh, cachedData->shadowViewsStatic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+                frame->renderQueue << SetShaderUniform(6, "Src1"_sh, cachedData->shadowViewsDynamic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
 
                 combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
                 combineShadowMapsPass->End(frame, rs);
@@ -413,16 +459,16 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             AssertDebug(shadowMap != nullptr);
 
             View* shadowView = shouldCombineShadowMaps
-                ? lightProxy->shadowViewsStatic[cascadeIndex]
-                : lightProxy->shadowViewsDynamic[cascadeIndex];
+                ? cachedData->shadowViewsStatic[cascadeIndex]
+                : cachedData->shadowViewsDynamic[cascadeIndex];
 
-            const GpuImageViewRef& inputImageView = cachedData->combineShadowMapsPass != nullptr
+            GpuImageView* inputImageView = cachedData->combineShadowMapsPass != nullptr
                 ? cachedData->combineShadowMapsPass->GetFinalImageView()
                 : shadowView->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
 
-            const GpuImageViewRef& outputImageView = shadowMap->GetImageView();
+            GpuImageView* outputImageView = shadowMap->GetImageView();
 
-            Assert(inputImageView.IsValid());
+            AssertDebug(inputImageView != nullptr && outputImageView != nullptr);
 
             struct alignas(16)
             {

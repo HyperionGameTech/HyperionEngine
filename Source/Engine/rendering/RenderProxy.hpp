@@ -220,8 +220,6 @@ public:
     WeakHandle<Light> light;
     Material* lightMaterial = nullptr; // for textured area lights
     uint32 numCascades = 0;
-    Array<View*> shadowViewsStatic;
-    Array<View*> shadowViewsDynamic;
     LightShaderData bufferData {};
 };
 

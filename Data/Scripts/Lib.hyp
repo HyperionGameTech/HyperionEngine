@@ -2186,7 +2186,7 @@ extern class Light : Entity
     GetShadowMapFilter() -> ShadowMapFilter
     SetShadowMapFilter(shadowMapFilter : ShadowMapFilter) -> void
     Type : LightType
-    Flags : LightFlags
+    LightFlags : LightFlags
     ShadowMapDimensions : Vec2u
     NumShadowMapCascades : uint32
 end
@@ -2214,11 +2214,7 @@ extern enum LightFlags : uint32
     ShadowContactHardening = 0x4,
     ShadowVariance = 0x8,
     ShadowFilterMask = ((ShadowPCF | ShadowContactHardening) | ShadowVariance),
-    ShadowCSMSplit0 = 0x20,
-    ShadowCSMSplit1 = 0x40,
-    ShadowCSMSplit2 = 0x80,
-    ShadowCSMSplit3 = 0x100,
-    ShadowCSMSplitMask = (((ShadowCSMSplit0 | ShadowCSMSplit1) | ShadowCSMSplit2) | ShadowCSMSplit3),
+    ShadowCacheStaticObjects = 0x10,
     Default = (ShadowCaster | ShadowPCF)
 end
 extern struct EnvProbeSphericalHarmonics
