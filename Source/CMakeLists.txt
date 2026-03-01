@@ -740,6 +740,7 @@ foreach(SHADER_FILE ${SHADER_FILES})
 
     message(STATUS "Adding shader file to solution: ${SHADER_FILE}")
 endforeach()
+include_directories(${CMAKE_SOURCE_DIR}/Shaders) # so VS can find them for intellisense
 
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to be used")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

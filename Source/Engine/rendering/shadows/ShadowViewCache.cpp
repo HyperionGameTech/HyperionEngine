@@ -1,14 +1,15 @@
 /* Copyright (c) 2016-2026 Andrew J. MacDonald. All rights reserved. */
 
-#include <ScenePch.hpp>
+#include <RenderingPch.hpp>
 
-#include <scene/ShadowViewCache.hpp>
-#include <scene/Light.hpp>
-#include <scene/View.hpp>
+#include <rendering/shadows/ShadowViewCache.hpp>
 
 #include <Core/containers/HashMap.hpp>
 
 #include <Core/threading/SharedMutex.hpp>
+
+#include <scene/Light.hpp>
+#include <scene/View.hpp>
 
 namespace Hyperion {
 
