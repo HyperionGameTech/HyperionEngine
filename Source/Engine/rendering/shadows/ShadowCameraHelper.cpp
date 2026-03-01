@@ -6,33 +6,34 @@
 
 namespace Hyperion {
 
-HYP_API void ShadowCameraHelper::UpdateShadowCameraDirectional(
-    const Handle<Camera>& camera,
+void ShadowCameraHelper::UpdateShadowCameraDirectional(
+    Camera& camera,
     const Vec3f& center,
     const Vec3f& dir,
     float radius,
-    BoundingBox& outAabb)
+    BoundingBox& outBounds)
 {
-    AssertDebug(camera.IsValid());
+    camera.SetTranslation(center + (dir.Normalized() * -1.0f));
+    camera.SetTarget(center);
 
-    camera->SetTranslation(center + (dir.Normalized() * -1.0f));
-    camera->SetTarget(center);
+    BoundingBox bounds { center - radius, center + radius };
 
-    BoundingBox aabb { center - radius, center + radius };
-
-    FixedArray<Vec3f, 8> corners = aabb.GetCorners();
+    FixedArray<Vec3f, 8> corners = bounds.GetCorners();
 
     for (Vec3f& corner : corners)
     {
-        corner = camera->GetViewMatrix() * corner;
+        corner = camera.GetViewMatrix() * corner;
 
-        aabb.max = MathUtil::Max(aabb.max, corner);
-        aabb.min = MathUtil::Min(aabb.min, corner);
+        bounds.max = MathUtil::Max(bounds.max, corner);
+        bounds.min = MathUtil::Min(bounds.min, corner);
     }
 
-    camera->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
+    camera.SetToOrthographicProjection(
+        bounds.min.x, bounds.max.x,
+        bounds.min.y, bounds.max.y,
+        bounds.min.z, bounds.max.z);
 
-    outAabb = aabb;
+    outBounds = bounds;
 }
 
 } // namespace Hyperion

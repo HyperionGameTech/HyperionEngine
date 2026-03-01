@@ -398,7 +398,7 @@ void Light::UpdateShadowViews()
                 World* world = GetWorld();
 
                 ShadowCameraHelper::UpdateShadowCameraDirectional(
-                    shadowCamera,
+                    *shadowCamera,
                     world != nullptr ? world->GetCSMState().playerCenter : Vec3f::Zero(),
                     GetPosition(),
                     45.0f, /// TODO: add proper radius for directional light.

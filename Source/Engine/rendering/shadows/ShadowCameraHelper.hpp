@@ -14,12 +14,12 @@ class Camera;
 class ShadowCameraHelper
 {
 public:
-    static HYP_API void UpdateShadowCameraDirectional(
-        const Handle<Camera>& camera,
+    static void UpdateShadowCameraDirectional(
+        Camera& camera,
         const Vec3f& center,
         const Vec3f& dir,
         float radius,
-        BoundingBox& outAabb);
+        BoundingBox& outBounds);
 };
 
 } // namespace Hyperion

@@ -35,6 +35,10 @@ DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float2> outputImage;
 DECLARE_UAV(DDGI, OutputImage) RWTexture2D<float4> outputImage;
 #endif
 
+#ifndef HYSTERESIS
+#define HYSTERESIS 0.9
+#endif
+
 float2 NormalizeOctahedralCoord(uint2 coord)
 {
     int2 oct_frag_coord = int2((int(coord.x) - 2) % DDGI_PROBE_SIDE_LENGTH_BORDER, (int(coord.y) - 2) % DDGI_PROBE_SIDE_LENGTH_BORDER);

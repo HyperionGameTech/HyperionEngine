@@ -32,24 +32,24 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
     Camera camera;
 };
 
-DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEntityInstanceBatch> entity_instance_batch_buffer;
-#define entity_instance_batch entity_instance_batch_buffer[0]
+DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEntityInstanceBatch> currentBatchBuffer;
+#define currentBatch currentBatchBuffer[0]
 
 #undef OBJECT_INDEX
-#define OBJECT_INDEX (entity_instance_batch.batch.indices[instanceId >> 2][instanceId & 3])
+#define OBJECT_INDEX (currentBatch.batch.indices[instanceId >> 2][instanceId & 3])
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
     VSOutput output;
 
-    float2 clamped_offset = entity_instance_batch.offsets[instanceId].xy;
-    float2 size = entity_instance_batch.sizes[instanceId].xy;
-    float2 clamped_size = entity_instance_batch.sizes[instanceId].zw;
+    float2 clamped_offset = currentBatch.offsets[instanceId].xy;
+    float2 size = currentBatch.sizes[instanceId].xy;
+    float2 clamped_size = currentBatch.sizes[instanceId].zw;
 
-    float4 position = mul(entity_instance_batch.batch.transforms[instanceId], float4(input.a_position, 1.0));
+    float4 position = mul(currentBatch.batch.transforms[instanceId], float4(input.a_position, 1.0));
     float4 ndc_position = mul(camera.viewProjMat, position);
 
-    float4 instance_texcoords = entity_instance_batch.texcoords[instanceId];
+    float4 instance_texcoords = currentBatch.texcoords[instanceId];
 
     float2 instance_texcoord_size = instance_texcoords.zw - instance_texcoords.xy;
     float2 clamped_instance_texcoord_size = instance_texcoord_size * (clamped_size / size);
@@ -57,7 +57,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     output.texcoord0 = instance_texcoords.xy - (clamped_offset / clamped_size * clamped_instance_texcoord_size) + (input.a_texcoord0 * clamped_instance_texcoord_size);
 
     output.object_index = OBJECT_INDEX;
-    output.properties = entity_instance_batch.properties[instanceId];
+    output.properties = currentBatch.properties[instanceId];
 
     output.position = position.xyz;
     output.screen_space_position = float3(ndc_position.xy * 0.5 + 0.5, ndc_position.z);
@@ -109,8 +109,8 @@ DECLARE_SAMPLER(Default, SamplerNearest) SamplerState sampler_nearest;
 
 #define texture_sampler sampler_linear
 
-DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> material_buffer;
-#define material material_buffer[0]
+DECLARE_SRV_DYNAMIC(Default, MaterialsBuffer) StructuredBuffer<Material> materialBuffer;
+#define material materialBuffer[0]
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material

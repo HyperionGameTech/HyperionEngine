@@ -79,9 +79,9 @@ float3 GetNoiseValue(uint id)
         (global_counter + baseOffset + 1u) % HYP_PARTICLE_NOISE_MAP_SIZE,
         (global_counter + baseOffset + 2u) % HYP_PARTICLE_NOISE_MAP_SIZE);
 
-    float2 uv0 = (float2(float(indices.x % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.x / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5)) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
-    float2 uv1 = (float2(float(indices.y % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.y / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5)) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
-    float2 uv2 = (float2(float(indices.z % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5, float(indices.z / HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5)) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
+    float2 uv0 = (float2)(float(indices.x % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
+    float2 uv1 = (float2)(float(indices.y % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
+    float2 uv2 = (float2)(float(indices.z % HYP_PARTICLE_NOISE_MAP_EXTENT) + 0.5) / float(HYP_PARTICLE_NOISE_MAP_EXTENT);
 
     float3 noiseValue = float3(
         SAMPLE_TEXTURE_2D(sampler_linear, noise_map, uv0).r * 2.0 - 1.0,

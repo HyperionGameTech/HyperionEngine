@@ -6,6 +6,7 @@
 
 #include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/shadows/ShadowMap.hpp>
+#include <rendering/shadows/ShadowViewCache.hpp>
 
 #include <rendering/RenderInterface.hpp>
 #include <rendering/ShaderManager.hpp>
