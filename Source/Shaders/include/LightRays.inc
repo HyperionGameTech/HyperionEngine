@@ -1,7 +1,7 @@
 #ifndef HYP_LIGHT_RAYS
 #define HYP_LIGHT_RAYS
 
-#include "shadows.inc"
+#include "Shadows.hlsli"
 
 #define VOLUMETRIC_LIGHTING_STEPS 64
 #define VOLUMETRIC_LIGHTING_MIE_G 0.758

@@ -62,7 +62,7 @@ DECLARE_SRV(DDGI, EnvProbesTexture) Texture2DArray envProbesTexture;
 DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-#include "../../include/shadows.inc"
+#include "../../include/Shadows.hlsli"
 
 #define RAY_OFFSET 0.025
 #define NUM_SAMPLES 1

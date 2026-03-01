@@ -152,7 +152,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
         const ShadowMapAtlasElement atlasElement {
             .layerIndex = pointLightIndex,
-            .offsetUv = Vec2f::Zero(),
+            .offsetUV = Vec2f::Zero(),
             .offsetCoords = Vec2u::Zero(),
             .dimensions = dimensions,
             .scale = Vec2f::One()

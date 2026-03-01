@@ -36,7 +36,7 @@ DECLARE_SRV(DDGI, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 DECLARE_SRV(DDGI, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
 #define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
-#include "../../include/shadows.inc"
+#include "../../include/Shadows.hlsli"
 #undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
 
 #undef HYP_NO_CUBEMAP

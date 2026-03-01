@@ -726,7 +726,7 @@ foreach(PLATFORM_FILE ${PLATFORM_FILES})
 endforeach()
 
 # include shader files in the sln
-file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Shaders/**/*")
+file(GLOB_RECURSE SHADER_FILES "${CMAKE_SOURCE_DIR}/Shaders/*")
 # we don't want to build shader files to be compiled by fxc but we want them in the solution
 foreach(SHADER_FILE ${SHADER_FILES})
     source_group("Shader Code" FILES ${SHADER_FILE})

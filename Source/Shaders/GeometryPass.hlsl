@@ -70,7 +70,7 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) TextureCubeArray point_sh
 
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.inc"
-#include "include/shadows.inc"
+#include "include/Shadows.hlsli"
 #endif
 
 #ifdef SHADING_TYPE_FORWARD
@@ -236,7 +236,7 @@ PSOutput PSMain(PSInput input)
 
             float3 specular = specular_lobe;
 
-            const float2 radiusFalloff = float2(f16tof32(light.radius_falloff), f16tof32(light.radius_falloff >> 16));
+            const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
             const float radius = radiusFalloff.x;
             const float falloff = radiusFalloff.y;
 

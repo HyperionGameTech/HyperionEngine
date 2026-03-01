@@ -112,6 +112,8 @@
 
 #define HYP_MATERIAL_CUBEMAP_TEXTURES 1
 
+#define HYP_MAX_SHADOW_CASCADES 4
+
 #define HYP_MAX_BOUND_AMBIENT_PROBES 4096
 #define HYP_MAX_BOUND_REFLECTION_PROBES 16
 #define HYP_MAX_BOUND_POINT_SHADOW_MAPS 16
@@ -172,8 +174,8 @@
 
     #define DECLARE_SAMPLER(set, var)
 
-    #define HYP_ATTRIBUTE(location)
-    #define HYP_ATTRIBUTE_OPTIONAL(location)
+    #define HYP_ATTRIBUTE
+    #define HYP_ATTRIBUTE_OPTIONAL
 
     // If we don't set these, we'll have lots of inactive code blocks
     // for HLSL shaders that define multiple shader stages in one file.

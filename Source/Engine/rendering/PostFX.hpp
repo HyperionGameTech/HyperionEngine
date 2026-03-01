@@ -75,6 +75,8 @@ protected:
 class PostProcessingEffect
 {
 public:
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
+
     PostProcessingEffect(
         PostProcessingStage stage,
         uint32 effectIndex,

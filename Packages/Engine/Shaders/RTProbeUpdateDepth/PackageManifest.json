@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "RTProbeUpdateDepth",
-  "FriendlyName": "RTProbeUpdateDepth",
-  "Flags": 0,
-  "Path": "Engine/Shaders/RTProbeUpdateDepth"
-}

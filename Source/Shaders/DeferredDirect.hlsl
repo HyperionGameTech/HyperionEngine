@@ -105,7 +105,7 @@ DECLARE_SRV(DeferredPass, PointLightShadowMapsTextureArray) TextureCubeArray poi
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE
 
-#include "include/shadows.inc"
+#include "include/Shadows.hlsli"
 
 #include "include/PhysicalCamera.inc"
 #include "include/LightRays.inc"
@@ -134,9 +134,9 @@ PSOutput PSMain(PSInput input)
 
     float depth = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, gbuffer_depth_texture, texcoord).r;
 
-    float4 view_space_position = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
+    float4 positionVS = ReconstructViewSpacePositionFromDepth(camera.invProjMat, texcoord, depth);
 
-    float4 position = mul(camera.invViewMat, view_space_position);
+    float4 position = mul(camera.invViewMat, positionVS);
     position /= position.w;
 
     uint2 materialData = gbuffer_material_texture.Load(int3(pixelCoord, 0)).xy;
@@ -157,15 +157,15 @@ PSOutput PSMain(PSInput input)
         const float reflectance = 0.16 * material_reflectance * material_reflectance;
         float4 F0 = float4(albedo.rgb * metalness + (reflectance * (1.0 - metalness)), 1.0);
 
-        const float4 diffuse_color = CalculateDiffuseColor(albedo, metalness);
+        const float4 diffuseColor = CalculateDiffuseColor(albedo, metalness);
 
-        float4 F90 = float4(saturate(dot(F0, float4(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33))), saturate(dot(F0, float4(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33))), saturate(dot(F0, float4(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33))), saturate(dot(F0, float4(50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33, 50.0 * 0.33))));
+        float4 F90 = (float4)saturate(dot(F0, (float4)(50.0 * 0.33)));
 
         float3 N = normalize(normal);
         float3 T = normalize(tangent);
         float3 B = normalize(bitangent);
         float3 V = normalize(camera.position.xyz - position.xyz);
-        float3 H = float3(0.0, 0.0, 0.0);
+        float3 H = (float3)0.0;
 
         const float NdotV = max(0.000001, dot(N, V));
 
@@ -223,11 +223,11 @@ PSOutput PSMain(PSInput input)
         const float3 pts[4] = { p0, p1, p2, p3 };
 
         float4 area_light_diffuse = CalculateAreaLightRadiance(currentLight, (float3x3)1.0, pts, position.xyz, N, V);
-        area_light_diffuse *= diffuse_color * (1.0 / HYP_FMATH_PI);
+        area_light_diffuse *= diffuseColor * (1.0 / HYP_FMATH_PI);
 
         float4 area_light_specular = CalculateAreaLightRadiance(currentLight, Minv, pts, position.xyz, N, V);
 
-        area_light_specular *= diffuse_color * t2.x + (float4(1.0, 1.0, 1.0, 1.0) - diffuse_color) * t2.y;
+        area_light_specular *= diffuseColor * t2.x + (float4(1.0, 1.0, 1.0, 1.0) - diffuseColor) * t2.y;
         area_light_radiance = area_light_specular + area_light_diffuse;
 
         const float NdotL = 0.0;
@@ -254,7 +254,7 @@ PSOutput PSMain(PSInput input)
 #elif defined(LIGHT_TYPE_DIRECTIONAL)
         if ((currentLight.flags & LF_SHADOW) != 0)
         {
-            shadow = GetShadow(currentLight, position.xyz, texcoord, camera.dimensions.xy, NdotL);
+            shadow = GetShadow(currentLight, position.xyz, texcoord, camera.dimensions.xy, NdotL, /* cascadeIndex */ 0);
         }
 #endif
 
@@ -269,7 +269,7 @@ PSOutput PSMain(PSInput input)
         const float4 specular_lobe = D * G * F;
 
 #if defined(LIGHT_TYPE_POINT) || defined(LIGHT_TYPE_SPOT)
-        const float2 radiusFalloff = float2(f16tof32(currentLight.radius_falloff), f16tof32(currentLight.radius_falloff >> 16));
+        const float2 radiusFalloff = float2(f16tof32(currentLight.radiusFalloffPacked), f16tof32(currentLight.radiusFalloffPacked >> 16));
         const float radius = radiusFalloff.x;
         const float falloff = radiusFalloff.y;
 
@@ -288,7 +288,7 @@ PSOutput PSMain(PSInput input)
 
         float4 specular = specular_lobe;
 
-        float4 diffuse_lobe = diffuse_color * (1.0 / HYP_FMATH_PI);
+        float4 diffuse_lobe = diffuseColor * (1.0 / HYP_FMATH_PI);
         float4 diffuse = diffuse_lobe;
 
         float4 direct_component = diffuse + specular * float4(energy_compensation, 1.0);

@@ -459,7 +459,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
     Assert(lightmapElement != nullptr);
 
     HYP_LOG(Lightmap, Verbose, "Lightmap baking complete! Building element with id {}, UV offset: {}, Scale: {}", m_lightmapElementId,
-        lightmapElement->offsetUv, lightmapElement->scale);
+        lightmapElement->offsetUV, lightmapElement->scale);
 
     // Update meshes
     for (SizeType bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
@@ -489,7 +489,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
                 Vec2f& lightmapUv = vertex.texcoord1;
                 lightmapUv.y = 1.0f - lightmapUv.y; // Invert Y coordinate for lightmaps
                 lightmapUv *= lightmapElement->scale;
-                lightmapUv += Vec2f(lightmapElement->offsetUv.x, lightmapElement->offsetUv.y);
+                lightmapUv += Vec2f(lightmapElement->offsetUV.x, lightmapElement->offsetUV.y);
             }
 
             mesh->SetMeshData(newMeshDesc, bakeMesh.vertices.ToSpan(), bakeMesh.indices.ToByteView());

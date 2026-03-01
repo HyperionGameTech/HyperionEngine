@@ -48,7 +48,7 @@ struct LightmapElement
     LightmapElementId id = InvalidLightmapElementId;
 
     HYP_FIELD(Serialize = true)
-    Vec2f offsetUv;
+    Vec2f offsetUV;
 
     HYP_FIELD(Serialize = true)
     Vec2u offsetCoords;

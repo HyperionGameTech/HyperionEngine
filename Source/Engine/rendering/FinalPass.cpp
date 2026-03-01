@@ -129,7 +129,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         AssertDebug(pd != nullptr);
 
         GpuImageView* inputImageView = dr->GetRendererConfig().taaEnabled
-            ? g_renderInterface->textureViewCache->GetOrCreate(pd->temporalAa->GetResultTexture())
+            ? g_renderInterface->textureViewCache->GetOrCreate(pd->taaPass->GetResultTexture())
             : pd->tonemapPass->GetFinalImageView();
 
         rq << SetShaderUniform(2, "InTexture"_sh, inputImageView);

@@ -35,7 +35,7 @@
 #include <rendering/ShaderManager.hpp>
 #include <rendering/DebugDrawer.hpp>
 #include <rendering/Shader.hpp>
-#include <rendering/MeshRTData.hpp>
+#include <rendering/BLASCache.hpp>
 
 #include <rendering/util/ResourceTracker.hpp>
 #include <rendering/util/DeletionQueue.hpp>

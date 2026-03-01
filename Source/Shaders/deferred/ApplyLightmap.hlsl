@@ -85,7 +85,7 @@ DECLARE_BUFFER(LightmapPass, WorldsBuffer) cbuffer WorldsBuffer
 DECLARE_SRV(LightmapPass, ShadowMapsTextureArray) Texture2DArray shadow_maps;
 DECLARE_SRV(LightmapPass, PointLightShadowMapsTextureArray) TextureCubeArray point_shadow_maps;
 
-#include "../include/shadows.inc"
+#include "../include/Shadows.hlsli"
 
 DECLARE_SRV(LightmapPass, IrradianceTexture) Texture2D IrradianceTexture;
 DECLARE_SRV(LightmapPass, RadianceTexture) Texture2D RadianceTexture;

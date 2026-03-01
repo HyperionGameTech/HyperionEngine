@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "RTProbeUpdateIrradiance",
-  "FriendlyName": "RTProbeUpdateIrradiance",
-  "Flags": 0,
-  "Path": "Engine/Shaders/RTProbeUpdateIrradiance"
-}

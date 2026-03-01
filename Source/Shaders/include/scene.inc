@@ -40,38 +40,29 @@ struct Camera
     vec4 _pad3;
 };
 
+struct ShadowCascade
+{
+    float4x4 viewProjMat;
+    float4 aabbMin;         // w = offsetUV.x
+    float4 aabbMax;         // w = offsetUV.y
+    float4 dimensionsScale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
+};
+
 struct Light
 {
-    // 0
     uint type;
-    // 4
-    uint material_index; // for area lights - ~0u == no material
-    // 8
-    uint radius_falloff; // packed as half
-    // 12
+    uint material_index;        // for area lights - ~0u == no material
+    uint radiusFalloffPacked;   // packed as half
     uint flags;
+    
+    float4 position_intensity;  // position or direction
+    float4 color;
+    float4 normal;              // for area lights/spot lights - x,y,z = normal - w = layer indices per cascade for shadow maps. Each cascade is 1 byte.
 
-    // 16
-    vec4 position_intensity; // position or direction
-    // 32
-    vec4 color;
-    // 48
-    vec4 normal;             // for area lights/spot lights - x,y,z = normal - w = layer index for shadow maps
+    float2 area_size;           // for area lights = area size, for spot lights = spot angles
+    uint2 splitDistances;       // 4 x half
 
-    // 64
-    mat4 shadow_matrix;
-    // 128
-    vec4 aabb_min;
-    // 144
-    vec4 aabb_max;
-    // 160
-    vec4 dimensions_scale; // xy = slice dimensions in pixels, zw = slice dimensions relative to the atlas dimensions
-    // 176
-    vec2 offset_uv;
-
-    // 184
-    vec2 area_size; // for area lights = area size, for spot lights = spot angles
-    // 192
+    ShadowCascade cascades[HYP_MAX_SHADOW_CASCADES];
 };
 
 // Maps to LightFlags
@@ -83,7 +74,8 @@ struct Light
 #define LF_SHADOW_FILTER_MASK (LF_SHADOW_PCF | LF_SHADOW_CONTACT_HARDENING | LF_SHADOW_VSM)
 #define LF_DEFAULT (LF_SHADOW | LF_SHADOW_PCF)
 
-#define LIGHT_LAYER_INDEX(light) (FLOAT_BITS_TO_UINT(light.normal.w))
+// each cascade takes up 1 byte in normal.w
+#define LIGHT_LAYER_INDEX(light, cascadeIndex) ((FLOAT_BITS_TO_UINT(light.normal.w) >> (cascadeIndex * 8)) & 0xFF)
 
 struct LightmapVolume
 {

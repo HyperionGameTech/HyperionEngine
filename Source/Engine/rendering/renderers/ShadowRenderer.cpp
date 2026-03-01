@@ -141,13 +141,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     RenderProxyLight* lightProxy = static_cast<RenderProxyLight*>(GetRenderProxy(light));
     Assert(lightProxy != nullptr, "Proxy for Light {} not found when rendering shadows!", light->Id());
 
-    if (lightProxy->shadowViewsStatic.Empty() && lightProxy->shadowViewsDynamic.Empty())
-    {
-        return;
-    }
-
     const bool isVarianceShadowMap = light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM;
-
     const bool shouldCombineShadowMaps = lightProxy->shadowViewsStatic.Any() && lightProxy->shadowViewsDynamic.Any();
     
     WeakHandle<Light> lightWeak = MakeWeakRef(light);
@@ -155,10 +149,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
     KeyValuePair<WeakHandle<Light>, CachedShadowMapData>* existingPair = m_cachedShadowMapData.TryGet(lightWeak);
     CachedShadowMapData* cachedData = existingPair ? &existingPair->second : nullptr;
 
-    ShadowMap* firstShadowMap = nullptr; // for now, just hold one -- we will need multiple for CSM
-
     if (!cachedData)
     {
+        // init shadow data
+
         cachedData = &m_cachedShadowMapData[lightWeak];
         cachedData->shadowMaps.Resize(lightProxy->numCascades);
 
@@ -173,12 +167,6 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             cachedData->shadowMaps[cascadeIndex] = shadowMap;
 
             maxDimensions = MathUtil::Max(maxDimensions, shadowMap->GetAtlasElement()->dimensions);
-
-            // TEMP
-            if (cascadeIndex == 0)
-            {
-                firstShadowMap = shadowMap;
-            }
         }
 
         if (shouldCombineShadowMaps)
@@ -194,53 +182,54 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         {
             for (uint32 frameIndex = 0; frameIndex < NumFramesInFlight; frameIndex++)
             {
-                cachedData->blurUniformBuffers[frameIndex] = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(Vec2u) * 3);
+                GpuBufferRef& buffer = cachedData->blurUniformBuffers[frameIndex];
+
+                buffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(Vec2u) * 3);
 
 #if HYP_DEBUG_MODE
-                cachedData->blurUniformBuffers[frameIndex]->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));
+                buffer->SetDebugName(NAME_FMT("BlurShadowMap_UniformBuffer_Frame{}", frameIndex));
 #endif
 
-                DeferCreate(cachedData->blurUniformBuffers[frameIndex]);
+                CheckResult(buffer->Create());
             }
 
             /// TODO: Add re-alloc of shadow maps if parameters have changed
         }
     }
-    else
-    {
-        firstShadowMap = cachedData->shadowMaps[0];
-    }
-
-    Assert(firstShadowMap != nullptr);
-    Assert(firstShadowMap->GetAtlasElement() != nullptr);
-
-    const ShadowMapAtlasElement& atlasElement = *firstShadowMap->GetAtlasElement();
-
-    lightProxy->bufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
-    lightProxy->bufferData.offsetUv = atlasElement.offsetUv;
-    lightProxy->bufferData.layerIndex = atlasElement.layerIndex;
-
-    UpdateGpuData(light);
-
-    GpuImage* shadowMapImage = firstShadowMap->GetImageView()->GetImage();
-    AssertDebug(shadowMapImage != nullptr);
-    AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
-
+    
     FullScreenPass* combineShadowMapsPass = cachedData->combineShadowMapsPass.Get();
 
     Array<RenderProxyList*, RenderTempAllocator> renderProxyLists;
     renderProxyLists.Reserve(lightProxy->shadowViewsStatic.Size() + lightProxy->shadowViewsDynamic.Size());
-
     HYP_DEFER({ for (RenderProxyList* rpl : renderProxyLists) rpl->EndRead(); });
 
-    Span<View*> allShadowViews[2] = { lightProxy->shadowViewsDynamic, lightProxy->shadowViewsStatic };
-
-    for (Span<View*> shadowViews : allShadowViews)
+    for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
     {
-        for (uint32 shadowViewIndex = 0; shadowViewIndex < uint32(shadowViews.Size()); shadowViewIndex++)
+        ShadowMap* shadowMap = cachedData->shadowMaps[cascadeIndex];
+        Assert(shadowMap != nullptr && shadowMap->GetAtlasElement() != nullptr);
+        
+        GpuImage* shadowMapImage = shadowMap->GetImageView()->GetImage();
+        AssertDebug(shadowMapImage != nullptr);
+
+        const ShadowMapAtlasElement& atlasElement = *shadowMap->GetAtlasElement();
+        AssertDebug(atlasElement.layerIndex <= UINT8_MAX);
+        AssertDebug(atlasElement.layerIndex < shadowMapImage->NumArrayLayers());
+
+        LightShaderData::ShadowMapCascade& cascadeBufferData = lightProxy->bufferData.cascades[cascadeIndex];
+        
+        cascadeBufferData.aabbMin.w = atlasElement.offsetUV.x;
+        cascadeBufferData.aabbMax.w = atlasElement.offsetUV.y;
+
+        cascadeBufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
+        
+        lightProxy->bufferData.layerIndices[cascadeIndex] = (atlasElement.layerIndex & 0xFFu);
+
+        for (View* shadowView : { lightProxy->shadowViewsDynamic[cascadeIndex], lightProxy->shadowViewsStatic[cascadeIndex] })
         {
-            View* shadowView = shadowViews[shadowViewIndex];
-            AssertDebug(shadowView != nullptr);
+            if (!shadowView)
+            {
+                continue;
+            }
 
             const ViewOutputTarget& outputTarget = shadowView->GetOutputTarget();
             AssertDebug(outputTarget.IsValid());
@@ -259,12 +248,12 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             rpl.BeginRead();
             renderProxyLists.PushBack(&rpl);
 
-            if (pd->prevCameraMatrices.Size() <= shadowViewIndex)
+            if (pd->prevCameraMatrices.Size() <= cascadeIndex)
             {
-                pd->prevCameraMatrices.Resize(shadowViewIndex + 1);
+                pd->prevCameraMatrices.Resize(cascadeIndex + 1);
             }
 
-            const bool isMatrixDirty = pd->prevCameraMatrices[shadowViewIndex] != lightProxy->bufferData.shadowMatrix;
+            const bool isMatrixDirty = pd->prevCameraMatrices[cascadeIndex] != cascadeBufferData.viewProjMat;
 
             if (!isMatrixDirty
                 && !rpl.GetMeshEntities().GetDiff().NeedsUpdate()
@@ -275,12 +264,13 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             // @TODO: Octree transforms hash check?
 
-            pd->prevCameraMatrices[shadowViewIndex] = lightProxy->bufferData.shadowMatrix;
+            pd->prevCameraMatrices[cascadeIndex] = cascadeBufferData.viewProjMat;
 
+            // Draw the actual shadowmap
             RenderCollector& renderCollector = GetRenderCollector(shadowView);
             renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT) | (1u << RB_LIGHTMAP)));
 
-            if (!combineShadowMapsPass)
+            if (!shouldCombineShadowMaps)
             {
                 // blit image into final result
                 const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
@@ -337,14 +327,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
             }
         }
-    }
 
-    if (shouldCombineShadowMaps)
-    {
-        AssertDebug(lightProxy->shadowViewsStatic.Size() == lightProxy->shadowViewsDynamic.Size());
-
-        for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
+        if (shouldCombineShadowMaps)
         {
+            AssertDebug(lightProxy->shadowViewsStatic.Size() == lightProxy->shadowViewsDynamic.Size());
             AssertDebug(lightProxy->shadowViewsStatic[cascadeIndex]->GetViewDesc().renderTargetDesc.numLayers == 1,
                 "Combining static and dynamic shadow maps does not support cubemap targets!");
 
@@ -360,7 +346,6 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 frame->renderQueue << SetShaderUniform(6, "Src1"_sh, lightProxy->shadowViewsDynamic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
 
                 combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
-
                 combineShadowMapsPass->End(frame, rs);
             }
 
@@ -419,19 +404,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                     .numLayers = 1
                 });
         }
-    }
-
-    if (isVarianceShadowMap)
-    {
-        for (uint32 cascadeIndex = 0; cascadeIndex < lightProxy->numCascades; cascadeIndex++)
+        
+        if (isVarianceShadowMap)
         {
-            /// TEMP
-            ShadowMap* cascadeShadowMap = firstShadowMap;
-            if (cascadeIndex > 0)
-                break;
-            /// TEMP
-
-            AssertDebug(cascadeShadowMap != nullptr);
+            AssertDebug(shadowMap != nullptr);
 
             View* shadowView = shouldCombineShadowMaps
                 ? lightProxy->shadowViewsStatic[cascadeIndex]
@@ -441,7 +417,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 ? cachedData->combineShadowMapsPass->GetFinalImageView()
                 : shadowView->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
 
-            const GpuImageViewRef& outputImageView = cascadeShadowMap->GetImageView();
+            const GpuImageViewRef& outputImageView = shadowMap->GetImageView();
 
             Assert(inputImageView.IsValid());
 
@@ -495,6 +471,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 });
         }
     }
+
+    UpdateGpuData(light);
 }
 
 PassData* ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)

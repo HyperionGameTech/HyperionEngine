@@ -788,17 +788,32 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
         break;
     }
 
-    if (m_shadowViewsDynamic.Any())
+    for (uint32 cascadeIndex = 0; cascadeIndex < uint32(std::size(bufferData.cascades)); cascadeIndex++)
     {
-        bufferData.shadowMatrix = m_shadowViewsDynamic[0]->GetCamera()->GetViewProjectionMatrix();
-        bufferData.aabbMin = Vec4f(m_shadowAabb.min, 1.0f);
-        bufferData.aabbMax = Vec4f(m_shadowAabb.max, 1.0f);
-    }
-    else
-    {
-        bufferData.shadowMatrix = Mat4f::Identity();
-        bufferData.aabbMin = MathUtil::MaxSafeValue<Vec4f>();
-        bufferData.aabbMax = MathUtil::MinSafeValue<Vec4f>();
+        bufferData.splitDistances[cascadeIndex] = Float16(0.0f); // @TODO
+
+        LightShaderData::ShadowMapCascade& cascade = bufferData.cascades[cascadeIndex];
+
+        if (cascadeIndex < m_numShadowMapCascades)
+        {
+            cascade.viewProjMat = m_shadowViewsDynamic[cascadeIndex]->GetCamera()->GetViewProjectionMatrix();
+
+            cascade.aabbMin.x = m_shadowAabb.min.x;
+            cascade.aabbMin.y = m_shadowAabb.min.y;
+            cascade.aabbMin.z = m_shadowAabb.min.z;
+            
+            cascade.aabbMax.x = m_shadowAabb.max.x;
+            cascade.aabbMax.y = m_shadowAabb.max.y;
+            cascade.aabbMax.z = m_shadowAabb.max.z;
+        }
+        else
+        {
+            cascade.aabbMin = MathUtil::MaxSafeValue<Vec4f>();
+            cascade.aabbMin.w = 0.0f;
+
+            cascade.aabbMax = MathUtil::MinSafeValue<Vec4f>();
+            cascade.aabbMax.w = 0.0f;
+        }
     }
 }
 

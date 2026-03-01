@@ -94,7 +94,7 @@ struct ViewDesc
     TextureFormat readbackTextureFormat = TextureFormat::R10G10B10A2; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
 };
 
-class HYP_API ViewOutputTarget
+class ViewOutputTarget
 {
 public:
     ViewOutputTarget();

@@ -44,7 +44,7 @@ DECLARE_SRV(ComputeSH, PointLightShadowMapsTextureArray) TextureCubeArray point_
 DECLARE_SRV_DYNAMIC(ComputeSH, CurrentLight) StructuredBuffer<Light> current_light_buffer;
 #define currentLight current_light_buffer[0]
 
-#include "../include/shadows.inc"
+#include "../include/Shadows.hlsli"
 #endif
 
 DECLARE_SRV(ComputeSH, InColorCubemap) TextureCube cubemap_color;

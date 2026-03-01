@@ -29,16 +29,16 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/shadows/ShadowMapAllocator.hpp>
 #include <rendering/ConstantsAllocator.hpp>
 #include <rendering/TextureViewCache.hpp>
-#include <rendering/MeshRTData.hpp>
-
+#include <rendering/BLASCache.hpp>
 #include <rendering/AccelerationStructure.hpp>
 #include <rendering/RayTracingPipeline.hpp>
 #include <rendering/MeshBlasBuilder.hpp>
-#include <rendering/RTReflections.hpp>
+#include <rendering/RayTracingReflections.hpp>
 #include <rendering/DDGI.hpp>
+
+#include <rendering/shadows/ShadowMapAllocator.hpp>
 
 #include <rendering/util/ShaderCompiler.hpp>
 #include <rendering/util/DeletionQueue.hpp>
@@ -563,9 +563,9 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
         rq << SetShaderUniform(numShaderUniforms++, "SSGIResultTexture"_sh, g_renderInterface->placeholderData->GetImageView2D1x1R8());
     }
 
-    if (dpd->temporalAa)
+    if (dpd->taaPass)
     {
-        rq << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->temporalAa->GetResultTexture()));
+        rq << SetShaderUniform(numShaderUniforms++, "TAAResultTexture"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->taaPass->GetResultTexture()));
     }
     else
     {
@@ -1232,7 +1232,7 @@ DeferredRendererPassData::~DeferredRendererPassData()
 
     hbao.Reset();
 
-    temporalAa.Reset();
+    taaPass.Reset();
 
     // m_dofBlur->Destroy();
 
@@ -1415,8 +1415,8 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>();
         passData.fogVolumePass->Create();
 
-        passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
-        passData.temporalAa->Create();
+        passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
+        passData.taaPass->Create();
 
         CreateViewRayTracingPasses(view, passData);
 
@@ -1546,8 +1546,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.fogVolumePass = MakeUnique<FogVolumePass>();
     passData.fogVolumePass->Create();
 
-    passData.temporalAa = MakeUnique<TemporalAA>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
-    passData.temporalAa->Create();
+    passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), newSize, gbuffer);
+    passData.taaPass->Create();
 
     passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
     passData.depthPyramidRenderer->Create();
@@ -1804,7 +1804,7 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             if (dstImage != nullptr)
             {
                 GpuImage* srcImage = m_rendererConfig.taaEnabled
-                    ? pd->temporalAa->GetResultTexture()->GetGpuImage()
+                    ? pd->taaPass->GetResultTexture()->GetGpuImage()
                     : pd->tonemapPass->GetFinalImageView()->GetImage();
 
                 Assert(srcImage != nullptr);
@@ -1902,7 +1902,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         && view->GetRayTracingView().IsValid()
         && passData.ddgi != nullptr;
 
-    if (passData.temporalAa != nullptr && m_rendererConfig.taaEnabled)
+    if (passData.taaPass != nullptr && m_rendererConfig.taaEnabled)
     {
         // apply jitter to camera for TAA
         RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(view->GetCamera()));
@@ -2136,9 +2136,9 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
     passData.tonemapPass->Render(frame, rs);
 
-    if (passData.temporalAa != nullptr && m_rendererConfig.taaEnabled)
+    if (passData.taaPass != nullptr && m_rendererConfig.taaEnabled)
     {
-        passData.temporalAa->Render(frame, rs);
+        passData.taaPass->Render(frame, rs);
     }
 
     // depth of field

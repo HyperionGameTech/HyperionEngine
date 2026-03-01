@@ -74,6 +74,8 @@ int Shader::GetRevisionNumber() const
 
 void Shader::PageBlobData()
 {
+    bool needSaveBlobData = false;
+
     for (uint32 i = 0; i < uint32(shaderBlobs.Size()); i++)
     {
         BlobDataReference& ref = shaderBlobs[i];
@@ -98,12 +100,8 @@ void Shader::PageBlobData()
                     ByteBuffer buffer = stream.Read(stream.Max());
 
                     AllocateBlobData(ref, buffer.Data(), buffer.Size(), 1);
-                    
-                    Result saveBlobDataResult = SaveBlobData(blobStorage);
-                    if (saveBlobDataResult.HasError())
-                    {
-                        HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
-                    }
+
+                    needSaveBlobData = true;
 
                     continue;
                 }
@@ -114,6 +112,18 @@ void Shader::PageBlobData()
             {
                 ref.readOnly = true;
             }
+        }
+    }
+
+    if (needSaveBlobData)
+    {    
+        BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
+
+        Result saveBlobDataResult = SaveBlobData(blobStorage);
+
+        if (saveBlobDataResult.HasError())
+        {
+            HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
         }
     }
 }

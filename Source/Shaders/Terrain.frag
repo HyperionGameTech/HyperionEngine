@@ -58,7 +58,7 @@ DECLARE_SRV(Default, PointLightShadowMapsTextureArray) uniform textureCubeArray 
 #ifdef LIGHTING_FORWARD
 #include "include/brdf.inc"
 #include "deferred/DeferredLighting.inc"
-#include "include/shadows.inc"
+#include "include/Shadows.hlsli"
 #endif
 
 DECLARE_SRV_DYNAMIC(Default, CurrentEnvProbe) readonly buffer CurrentEnvProbe

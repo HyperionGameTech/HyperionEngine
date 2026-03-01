@@ -125,7 +125,7 @@ DECLARE_SRV(FogVolume, PointLightShadowMapsTextureArray) TextureCubeArray point_
 #undef HYP_DEFERRED_NO_REFRACTION
 #undef HYP_DEFERRED_NO_ENV_PROBE
 
-#include "../include/shadows.inc"
+#include "../include/Shadows.hlsli"
 
 #ifndef CURRENT_MATERIAL
 #define CURRENT_MATERIAL material
@@ -262,7 +262,7 @@ float4 RayMarch(float3 rayOrigin, float3 rayDir, float tNear, float tFar, float 
                     float cosTheta = dot(lightDir, rayDir);
                     phase = HenyeyGreenstein(phaseG, cosTheta);
 
-                    const float2 radiusFalloff = float2(f16tof32(light.radius_falloff), f16tof32(light.radius_falloff >> 16));
+                    const float2 radiusFalloff = float2(f16tof32(light.radiusFalloffPacked), f16tof32(light.radiusFalloffPacked >> 16));
                     const float radius = radiusFalloff.x;
                     const float falloff = radiusFalloff.y;
 

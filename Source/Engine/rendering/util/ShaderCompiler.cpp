@@ -3060,8 +3060,8 @@ bool ShaderCompiler::CompileBundle(
     Mutex compiledShadersMutex;
     Mutex errorMessagesMutex;
 
-    AtomicVar<uint32> numCompiledPermutations { 0u };
-    AtomicVar<uint32> numErroredPermutations { 0u };
+    uint32 numCompiledPermutations = 0;
+    uint32 numErroredPermutations = 0;
 
     // compile shader with each permutation of properties
     ForEachPermutation(
@@ -3332,8 +3332,8 @@ bool ShaderCompiler::CompileBundle(
                 ++numCompiled;
             }
 
-            numCompiledPermutations.Increment(numErrored == 0 && numCompiled > 0 ? 1 : 0, MemoryOrder::RELAXED);
-            numErroredPermutations.Increment(numErrored > 0 ? 1 : 0, MemoryOrder::RELAXED);
+            numCompiledPermutations += (numErrored == 0 && numCompiled > 0 ? 1 : 0);
+            numErroredPermutations += (numErrored > 0 ? 1 : 0);
 
             if (numErrored == 0 && numCompiled > 0)
             {
@@ -3350,7 +3350,7 @@ bool ShaderCompiler::CompileBundle(
     {
         HYP_LOG(ShaderCompiler, Error,
             "Shader compilation failed for shader {} with {} errored permutations!",
-            decl.name, numErroredPermutations.Get(MemoryOrder::RELAXED));
+            decl.name, numErroredPermutations);
 
         for (const String& errorMessage : outBundle->errorMessages)
         {
