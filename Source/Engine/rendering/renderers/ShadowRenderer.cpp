@@ -277,23 +277,69 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
         cascadeBufferData.aabbMax.w = atlasElement.offsetUV.y;
         
         lightProxy->bufferData.layerIndices[cascadeIndex] = (atlasElement.layerIndex & 0xFFu);
+        
+        FramebufferRef& framebuffer = cachedData->shadowMapFramebuffers[cascadeIndex];
 
-        for (View* shadowView : { cachedData->shadowViewsDynamic[cascadeIndex], cachedData->shadowViewsStatic[cascadeIndex] })
+        if (!framebuffer.IsValid())
         {
+            const RenderTargetDesc& renderTargetDesc = cachedData->shadowViewsDynamic[cascadeIndex]->GetViewDesc().renderTargetDesc;
+
+            framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+
+            uint32 attachmentIndex = 0;
+
+            // initial attachment writes to atlas element
+            for (; attachmentIndex < 1; attachmentIndex++)
+            {
+                const GpuImageRef& image = shadowMap->GetImageView()->GetImage();
+                AssertDebug(image != nullptr);
+
+                const AttachmentDesc& attachmentDesc = renderTargetDesc.attachments[attachmentIndex];
+
+                framebuffer->AddAttachment(
+                    attachmentIndex,
+                    image,
+                    attachmentDesc.loadOp,
+                    attachmentDesc.storeOp);
+            }
+
+            // remaining attachments - if any - are the framebuffers' own.
+            for (; attachmentIndex < renderTargetDesc.numAttachments; attachmentIndex++)
+            {
+                const AttachmentDesc& attachmentDesc = renderTargetDesc.attachments[attachmentIndex];
+
+                framebuffer->AddAttachment(
+                    attachmentIndex,
+                    attachmentDesc.format,
+                    attachmentDesc.imageType,
+                    attachmentDesc.loadOp,
+                    attachmentDesc.storeOp);
+            }
+
+            CheckResult(framebuffer->Create());
+        }
+
+        View* passes[] = {
+            cachedData->shadowViewsDynamic[cascadeIndex],
+            cachedData->shadowViewsStatic[cascadeIndex]
+        };
+
+        for (uint32 passIndex = 0; passIndex < std::size(passes); passIndex++)
+        {
+            // @TODO check if we need barrier here if > 1 pass - might be automatically inserted in CommitPipelineState().
+
+            View* shadowView = passes[passIndex];
+
             if (!shadowView)
             {
                 continue;
             }
 
-            const ViewOutputTarget& outputTarget = shadowView->GetOutputTarget();
-            AssertDebug(outputTarget.IsValid());
-
-            const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
-            AssertDebug(framebuffer.IsValid());
-
             RenderSetup rs = renderSetup.Fork();
             rs.view = shadowView;
             rs.passData = FetchViewPassData(shadowView);
+            rs.framebuffer = framebuffer;
+            rs.viewport = Viewport { atlasElement.dimensions, Vec2i(atlasElement.offsetCoords) };
 
             ShadowRendererPassData* pd = ObjCast<ShadowRendererPassData>(rs.passData);
             AssertDebug(pd != nullptr);
@@ -327,6 +373,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             renderCollector.ExecuteDrawCalls(frame, rs, Mask);
 
+#if 0
             if (!shouldCombineShadowMaps)
             {
                 // blit directly into final result
@@ -383,8 +430,10 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, baseSubResource);
                 frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
             }
+#endif
         }
 
+#if 0
         if (shouldCombineShadowMaps)
         {
             AssertDebug(cachedData->shadowViewsStatic[cascadeIndex]->GetViewDesc().renderTargetDesc.numLayers == 1,
@@ -466,6 +515,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                     .numLayers = 1
                 });
         }
+#endif
         
         if (isVarianceShadowMap)
         {
@@ -477,7 +527,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             GpuImageView* inputImageView = cachedData->combineShadowMapsPass != nullptr
                 ? cachedData->combineShadowMapsPass->GetFinalImageView()
-                : shadowView->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
+                : framebuffer->GetAttachment(0)->GetImageView();
 
             GpuImageView* outputImageView = shadowMap->GetImageView();
 
@@ -541,7 +591,6 @@ PassData* ShadowRendererBase::CreateViewPassData(View* view, PassDataExt& ext)
 {
     ShadowRendererPassData* pd = new ShadowRendererPassData();
     pd->view = MakeWeakRef(view);
-    pd->viewport = view->GetViewport();
 
     return pd;
 }

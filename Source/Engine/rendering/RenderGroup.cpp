@@ -119,33 +119,6 @@ static void DivideDrawCalls(SizeType numDrawCalls, uint32 numBatches, OutArray& 
     }
 }
 
-static void ValidatePipelineState(const RenderSetup& renderSetup, GraphicsPipeline* pipeline)
-{
-#if 0
-    HYP_SCOPE;
-
-    Assert(pipeline.IsValid());
-
-    Assert(renderSetup.passData != nullptr);
-
-    const Handle<View> view = renderSetup.passData->view.Lock();
-    Assert(view.IsValid());
-
-    const ViewOutputTarget& outputTarget = view->GetOutputTarget();
-    Assert(outputTarget.IsValid());
-
-    // Pipeline state validation: Does the pipeline framebuffer match the output target?
-    const Array<FramebufferRef>& pipelineFramebuffers = pipeline->GetFramebuffers();
-
-    for (uint32 i = 0; i < pipelineFramebuffers.Size(); ++i)
-    {
-        AssertDebug(pipelineFramebuffers[i] == outputTarget.GetFramebuffers()[i],
-            "Pipeline framebuffer at index {} does not match output target framebuffer at index {}",
-            i, i);
-    }
-#endif
-}
-
 template <bool UseIndirectRendering>
 static void RenderAll(
     Frame* frame,
@@ -678,7 +651,13 @@ void RenderGroup::PerformRendering(
     AssertDebug(renderSetup.world && renderSetup.view);
     AssertDebug(renderSetup.passData != nullptr, "RenderSetup must have valid PassData for rendering!");
 
-    Framebuffer* framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
+    Framebuffer* framebuffer = renderSetup.framebuffer;
+    
+    if (!framebuffer)
+    {
+        framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
+    }
+
     AssertDebug(framebuffer != nullptr);
 
     static const bool isIndirectRenderingEnabled = g_renderInterface->GetRenderConfig().indirectRendering;
@@ -710,8 +689,8 @@ void RenderGroup::PerformRendering(
     rq << SetVertexAttributes(renderableAttributes.GetMeshAttributes().vertexAttributes);
     
     rq << SetCurrentView(
-        renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        renderSetup.view->GetViewport());
+        framebuffer->GetRenderTargetDesc(),
+        renderSetup.viewport);
     
     rq << SetCurrentShader(ShaderDesc(
         renderableAttributes.GetMaterialAttributes().shaderName,

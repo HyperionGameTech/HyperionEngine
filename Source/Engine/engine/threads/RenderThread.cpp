@@ -155,14 +155,19 @@ void RenderThread::Update()
         RendererBase* mainRenderer = g_renderInterface->globalRenderers[GRT_MAIN][0];
         AssertDebug(mainRenderer != nullptr);
 
-        RenderSetup rs;
-        rs.swapchain = swapchain;
+        RenderSetup renderSetup {};
+
+        if (swapchain != nullptr)
+        {
+            renderSetup.swapchain = swapchain;
+            renderSetup.viewport = Viewport { swapchain->GetExtent() };
+        }
 
         for (World* world : worldsToRender)
         {
             AssertDebug(world != nullptr && world->IsReady());
 
-            rs.world = world;
+            renderSetup.world = world;
 
 #if HYP_EDITOR
             // for editor world, render UI as well
@@ -170,19 +175,19 @@ void RenderThread::Update()
             {
                 if (RendererBase* uiRenderer = g_renderInterface->globalRenderers[GRT_UI][0])
                 {
-                    uiRenderer->RenderFrame(frame, rs);
+                    uiRenderer->RenderFrame(frame, renderSetup);
                 }
             }
 #endif
 
             if (world->GetViews().Size() != 0)
             {
-                mainRenderer->RenderFrame(frame, rs);
+                mainRenderer->RenderFrame(frame, renderSetup);
                 numViewsRendered += world->GetViews().Size();
             }
         }
 
-        rs.world = nullptr;
+        renderSetup.world = nullptr;
 
         if (!g_renderInterface->finalPass)
         {
@@ -190,7 +195,7 @@ void RenderThread::Update()
             g_renderInterface->finalPass->Create();
         }
 
-        g_renderInterface->finalPass->Render(frame, rs);
+        g_renderInterface->finalPass->Render(frame, renderSetup);
     }
 
     // update shared global descriptor sets

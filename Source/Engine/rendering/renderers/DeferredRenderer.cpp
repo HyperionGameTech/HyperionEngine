@@ -308,8 +308,6 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const Viewport& viewport = rs.view->GetViewport();
-
     RenderProxyList& rpl = GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
@@ -323,7 +321,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     rq << SetCurrentView(
         rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        rs.view->GetViewport());
+        rs.viewport);
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     rq << SetTopology(TOP_TRIANGLES);
@@ -687,7 +685,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     rq << SetCurrentView(
         viewFramebuffer->GetRenderTargetDesc(),
-        renderSetup.view->GetViewport());
+        renderSetup.viewport);
 
     rq << SetVertexAttributes(vertexAttributes);
 
@@ -873,7 +871,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     rq << SetCurrentView(
         renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        renderSetup.view->GetViewport());
+        renderSetup.viewport);
 
     rq << SetTopology(m_volumeMesh->GetTopology());
     rq << SetVertexAttributes(m_volumeMesh->GetVertexAttributes());
@@ -1066,7 +1064,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    Viewport viewport = rs.view->GetViewport();
+    Viewport viewport = rs.viewport;
 
     if (ShouldRenderCheckerboarded())
     {
@@ -1088,7 +1086,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     rq << SetCurrentView(
         rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        rs.view->GetViewport());
+        viewport);
 
     rq << SetCurrentShader(m_shaderDesc);
 
@@ -1191,7 +1189,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         renderTargetDesc.attachments[0].loadOp = LoadOperation::LOAD;
         renderTargetDesc.attachments[0].blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
 
-        rq << SetCurrentView(renderTargetDesc, rs.view->GetViewport());
+        rq << SetCurrentView(renderTargetDesc, rs.viewport);
 
         rq << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
@@ -1351,15 +1349,9 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         DeferredRendererPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
-        passData.viewport = view->GetViewport();
 
         GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
         Assert(gbuffer != nullptr);
-
-        if (gbuffer->GetExtent() != passData.viewport.extent)
-        {
-            gbuffer->Resize(passData.viewport.extent);
-        }
 
         gbuffer->Create();
 
@@ -1378,10 +1370,10 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         passData.deferredShadingFramebuffer = CreateDeferredShadingFramebuffer(gbuffer);
 
-        passData.indirectPass = MakeUnique<DeferredPass>(DPM_INDIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
+        passData.indirectPass = MakeUnique<DeferredPass>(DPM_INDIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
         passData.indirectPass->Create();
 
-        passData.directPass = MakeUnique<DeferredPass>(DPM_DIRECT_LIGHTING, passData.viewport.extent, gbuffer, passData.deferredShadingFramebuffer);
+        passData.directPass = MakeUnique<DeferredPass>(DPM_DIRECT_LIGHTING, gbuffer->GetExtent(), gbuffer, passData.deferredShadingFramebuffer);
         passData.directPass->Create();
 
         passData.depthPyramidRenderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
@@ -1403,7 +1395,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
         {
-            passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+            passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer->GetExtent(), gbuffer);
             passData.hbao->Create();
         }
 
@@ -1411,13 +1403,13 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         // m_dofBlur->Create();
 
         passData.reflectionsPass = MakeUnique<ReflectionsPass>(
-            passData.viewport.extent,
+            gbuffer->GetExtent(),
             gbuffer,
             g_renderInterface->textureViewCache->GetOrCreate(passData.mipChain));
 
         passData.reflectionsPass->Create();
 
-        passData.tonemapPass = MakeUnique<TonemapPass>(passData.viewport.extent, gbuffer);
+        passData.tonemapPass = MakeUnique<TonemapPass>(gbuffer->GetExtent(), gbuffer);
         passData.tonemapPass->Create();
 
         // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
@@ -1427,7 +1419,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         passData.fogVolumePass = MakeUnique<FogVolumePass>();
         passData.fogVolumePass->Create();
 
-        passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), passData.viewport.extent, gbuffer);
+        passData.taaPass = MakeUnique<TAAPass>(passData.tonemapPass->GetFinalImageView(), gbuffer->GetExtent(), gbuffer);
         passData.taaPass->Create();
 
         CreateViewRayTracingPasses(view, passData);
@@ -1440,7 +1432,6 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         RayTracingPassData& passData = *pd;
 
         passData.view = MakeWeakRef(view);
-        passData.viewport = view->GetViewport();
 
         return pd;
     }
@@ -1515,8 +1506,6 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     Assert(viewport.extent.Volume() > 0);
 
-    passData.viewport = viewport;
-
     const Vec2u newSize = Vec2u(viewport.extent);
 
     GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
@@ -1541,7 +1530,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
     {
-        passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+        passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), viewport.extent, gbuffer);
         passData.hbao->Create();
     }
 
@@ -1553,7 +1542,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
 
     passData.reflectionsPass->Create();
 
-    passData.tonemapPass = MakeUnique<TonemapPass>(passData.viewport.extent, gbuffer);
+    passData.tonemapPass = MakeUnique<TonemapPass>(viewport.extent, gbuffer);
     passData.tonemapPass->Create();
 
     passData.lightmapPass = MakeUnique<LightmapPass>();
@@ -1617,20 +1606,23 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
 
         if (view->GetFlags() & ViewFlags::GBUFFER)
         {
-            PassData* pd = FetchViewPassData(view);
-            Assert(pd != nullptr);
+            GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
 
-            DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd);
-            Assert(pdCasted != nullptr);
-
-            const Viewport vp = view->GetViewport();
-
-            if (pdCasted->viewport != vp)
+            if (!gbuffer || gbuffer->GetExtent() != rs.viewport.extent)
             {
-                ResizeView(vp, view, *pdCasted);
-            }
+                PassData* pd = FetchViewPassData(view);
+                Assert(pd != nullptr);
 
-            pdCasted->priority = view->GetPriority();
+                DeferredRendererPassData* pdCasted = ObjCast<DeferredRendererPassData>(pd);
+                Assert(pdCasted != nullptr);
+
+                pdCasted->priority = view->GetPriority();
+
+                if (gbuffer->GetExtent() != rs.viewport.extent)
+                {
+                    ResizeView(rs.viewport, view, *pdCasted);
+                }
+            }
         }
         else if ((view->GetFlags() & ViewFlags::RAY_TRACING) && g_renderInterface->GetRenderConfig().rayTracing)
         {
@@ -1640,11 +1632,11 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             RayTracingPassData* pdCasted = ObjCast<RayTracingPassData>(pd);
             Assert(pdCasted != nullptr);
 
-            RenderSetup newRS = rs.Fork();
-            newRS.passData = pd;
-            newRS.view = view;
+            RenderSetup newRenderSetup = rs.Fork();
+            newRenderSetup.passData = pd;
+            newRenderSetup.view = view;
 
-            UpdateRayTracingView(frame, newRS);
+            UpdateRayTracingView(frame, newRenderSetup);
         }
 
         for (Light* light : rpl.GetLights())
@@ -1704,17 +1696,17 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
     }
 
     {
-        RenderSetup envProbeBaseRS = rs.Fork();
+        RenderSetup envProbeSetup = rs.Fork();
 
         // Set sky as fallback probe
         if (envProbes[EPT_SKY].Any())
         {
-            envProbeBaseRS.envProbe = envProbes[EPT_SKY].Front();
+            envProbeSetup.envProbe = envProbes[EPT_SKY].Front();
         }
 
         if (lights[uint32(LightType::Directional)].Any())
         {
-            envProbeBaseRS.light = lights[uint32(LightType::Directional)].Front();
+            envProbeSetup.light = lights[uint32(LightType::Directional)].Front();
         }
 
         if (envProbes.Any())
@@ -1731,10 +1723,10 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
                             continue; // skip baked
                         }
 
-                        RenderSetup envProbeRS = envProbeBaseRS.Fork();
-                        envProbeRS.envProbe = envProbe;
+                        RenderSetup currentEnvProbeSetup = envProbeSetup.Fork();
+                        currentEnvProbeSetup.envProbe = envProbe;
 
-                        renderer->RenderFrame(frame, envProbeRS);
+                        renderer->RenderFrame(frame, currentEnvProbeSetup);
                     }
                 }
                 else
@@ -1748,17 +1740,17 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
         {
             for (EnvGrid* envGrid : envGrids)
             {
-                RenderSetup envGridRS = envProbeBaseRS.Fork();
+                RenderSetup envGridSetup = envProbeSetup.Fork();
 
                 // Set global directional light as fallback
                 if (envGridLights.Contains(envGrid))
                 {
-                    envGridRS.light = envGridLights[envGrid];
+                    envGridSetup.light = envGridLights[envGrid];
                 }
 
-                envGridRS.envGrid = envGrid;
+                envGridSetup.envGrid = envGrid;
 
-                g_renderInterface->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridRS);
+                g_renderInterface->globalRenderers[GRT_ENV_GRID][0]->RenderFrame(frame, envGridSetup);
             }
         }
     }
@@ -1772,53 +1764,14 @@ void DeferredRenderer::RenderFrame(Frame* frame, const RenderSetup& rs)
             continue;
         }
 
-        RenderSetup viewRS = rs.Fork();
-
         DeferredRendererPassData* pd = ObjCast<DeferredRendererPassData>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
-        AssertDebug(pd->viewport.extent.Volume() != 0);
 
-        viewRS.view = view;
-        viewRS.passData = pd;
+        RenderSetup currentViewSetup = rs.Fork();
+        currentViewSetup.view = view;
+        currentViewSetup.passData = pd;
 
-        RenderFrameForView(frame, viewRS);
-
-        viewRS.view = nullptr;
-        viewRS.passData = nullptr;
-
-        if (view->GetFlags() & ViewFlags::ENABLE_READBACK)
-        {
-            GpuImage* dstImage = view->GetReadbackTextureGpuImage();
-
-            if (dstImage != nullptr)
-            {
-                GpuImage* srcImage = m_rendererConfig.taaEnabled
-                    ? pd->taaPass->GetResultTexture()->GetGpuImage()
-                    : pd->tonemapPass->GetFinalImageView()->GetImage();
-
-                Assert(srcImage != nullptr);
-
-                const ResourceState previousResourceState = srcImage->GetResourceState();
-
-                // wait for the image to be ready before readback
-                if (previousResourceState == RS_UNDEFINED)
-                {
-                    HYP_LOG(Rendering, Warning, "Src image in UNDEFINED resource state; skipping texture blit.");
-
-                    continue;
-                }
-
-                frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
-
-                AssertDebug(dstImage->IsCreated());
-
-                frame->renderQueue << InsertBarrier(dstImage, RS_COPY_DST);
-                frame->renderQueue << Blit(srcImage, dstImage);
-                frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
-
-                frame->renderQueue << InsertBarrier(srcImage, previousResourceState);
-            }
-        }
+        RenderFrameForView(frame, currentViewSetup);
 
         RenderProxyList& rpl = GetConsumerProxyList(view);
 
@@ -1858,9 +1811,6 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     View* view = rs.view;
-
-    const Viewport& viewport = view->GetViewport();
-
     Assert(view->GetFlags() & ViewFlags::GBUFFER);
 
     RenderProxyList& rpl = GetConsumerProxyList(view);
@@ -1898,7 +1848,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         shadowRenderer->RenderFrame(frame, shadowRs);
     }
-
+    
     Framebuffer* opaquePassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
     Framebuffer* lightmapPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Lightmapped);
     Framebuffer* translucentPassFramebuffer = view->GetOutputTarget().GetFramebuffer(RenderBucket::Translucent);
@@ -1927,7 +1877,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             const uint32 frameCounter = GetWorldBufferData()->frameCounter + 1;
 
             Vec4f jitter = Vec4f::Zero();
-            Mat4f::Jitter(frameCounter, viewport.extent.x, viewport.extent.y, jitter);
+            Mat4f::Jitter(frameCounter, rs.viewport.extent.x, rs.viewport.extent.y, jitter);
 
             cameraBufferData.jitter = jitter * CameraJitterScale;
 
@@ -2068,7 +2018,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
             frame->renderQueue << SetCurrentView(
                 rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-                rs.view->GetViewport());
+                rs.viewport);
 
             frame->renderQueue << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
             frame->renderQueue << SetFaceCullMode(FCM_BACK);

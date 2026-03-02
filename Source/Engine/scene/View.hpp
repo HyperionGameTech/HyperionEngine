@@ -47,6 +47,7 @@ HYP_ENUM()
 enum class ViewFlags : uint32
 {
     NONE = 0x0,
+
     GBUFFER = 0x1,
 
     ALL_WORLD_SCENES = 0x2,             //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
@@ -70,14 +71,14 @@ enum class ViewFlags : uint32
                                         //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
     NO_DRAW_CALLS = 0x2000,             //!< If set, no draw calls will be built for any mesh entities that this View collects.
 
-    ENABLE_READBACK = 0x4000,           //!< Enable render target texture readback (final texture)
-
     // enable flags
     RAY_TRACING = 0x100000,             //!< Does this View contain rayTracing data (acceleration structures)? (RayTracing must be enabled in the global config and must have RT hardware support)
 
     MATCH_CAMERA_DIMENSIONS = 0x200000, //!< If set, the Viewport dimensions will always match the associated Camera's dimensions.
 
     SHADOW_VIEW = 0x400000,             //!< This View is for a rendering a shadow map slice or cascade
+
+    EXTERNAL_RENDERTARGET = 0x800000,
 
     DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
@@ -87,7 +88,6 @@ HYP_MAKE_ENUM_FLAGS(ViewFlags)
 struct ViewDesc
 {
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
-    Viewport viewport;
     RenderTargetDesc renderTargetDesc;
     Array<Scene*> scenes;
     Camera* camera = nullptr;
@@ -95,7 +95,6 @@ struct ViewDesc
     float resolutionScale = 1.0f;
     Optional<RenderableAttributeSet> overrideAttributes;
     const Class* entityBatchClass = nullptr;
-    TextureFormat readbackTextureFormat = TextureFormat::R10G10B10A2; //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
 };
 
 class ViewOutputTarget
@@ -177,23 +176,6 @@ public:
         return m_outputTarget;
     }
 
-    /*! \brief Get the Viewport of this View.
-     *  Thread-safe but only callable from the Sim thread or Render thread as it is buffered over multiple frames. */
-    const Viewport& GetViewport() const;
-
-    /*! \brief Set the Viewport of this View.
-     *  Only callable on the Sim thread. */
-    void SetViewport(const Viewport& viewport);
-
-    HYP_FORCE_INLINE const Handle<Texture>& GetReadbackTexture() const
-    {
-        AssertOnThread(g_simThread);
-
-        return m_readbackTexture;
-    }
-
-    GpuImage* GetReadbackTextureGpuImage() const;
-
     HYP_METHOD()
     int GetPriority() const
     {
@@ -241,12 +223,8 @@ public:
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
 
-    Delegate<void, const Handle<Texture>&> OnReadbackTextureChanged;
-
 protected:
     void Init() override;
-
-    void CreateReadbackTexture();
 
     void CollectCameras(RenderProxyList& rpl);
     void CollectLights(RenderProxyList& rpl);
@@ -270,15 +248,9 @@ protected:
 
     RenderProxyList* m_renderProxyLists[RingBufferDepth];
 
-    Viewport m_viewport;
-    Viewport m_viewportBuffered[RingBufferDepth];
-
     Frustum m_subFrustum;
 
     int m_priority;
-
-    Handle<Texture> m_readbackTexture;
-    GpuImage* m_readbackTextureGpuImages[RingBufferDepth];
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
 

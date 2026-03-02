@@ -413,7 +413,11 @@ void Mesh::UploadGpuData()
         {
         }
 
-        virtual ~CopyMeshGpuData() override = default;
+        virtual ~CopyMeshGpuData() override
+        {
+            EnqueueDeletion(std::move(vertexBuffer));
+            EnqueueDeletion(std::move(indexBuffer));
+        }
 
         virtual RendererResult operator()() override
         {

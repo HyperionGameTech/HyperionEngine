@@ -56,6 +56,8 @@ static RenderTargetDesc GetRenderTargetDesc(
 {
     outViewFlags = DefaultShadowViewFlags;
 
+    outViewFlags |= ViewFlags::EXTERNAL_RENDERTARGET; // use atlas as target
+
     const ShadowMapFilter shadowMapFilter = light->GetShadowMapFilter();
 
     RenderTargetDesc renderTargetDesc {};
@@ -167,10 +169,6 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Ca
 
     ViewDesc viewDesc {};
 
-    viewDesc.viewport = {};
-    viewDesc.viewport.extent = light->GetShadowMapDimensions();
-    viewDesc.viewport.position = Vec2i::Zero();
-
     viewDesc.scenes = {};
     viewDesc.camera = inOutCamera;
 
@@ -199,6 +197,10 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Ca
         {
             viewDesc.flags |= ViewFlags::COLLECT_DYNAMIC_ENTITIES;
         }
+    }
+    else
+    {
+        viewDesc.flags |= ViewFlags::COLLECT_ALL_ENTITIES;
     }
 
     return viewDesc;
@@ -276,7 +278,7 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
 
     ShadowViewCacheKey key {};
     key.view = view;
-    key.light = light;;
+    key.light = light;
 
 #if SHADOW_VIEW_CACHE_MULTITHREADED
     TSharedLock<SharedMutex> sharedLock(m_impl->mutex);

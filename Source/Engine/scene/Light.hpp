@@ -347,7 +347,7 @@ public:
     DirectionalLight(const Vec3f& direction, const Color& color, float intensity)
         : Light(LightType::Directional, direction.Normalized(), color, intensity, 0.0f)
     {
-        m_lightFlags |= LightFlags::ShadowCacheStaticObjects;
+        //m_lightFlags |= LightFlags::ShadowCacheStaticObjects;
         //m_numShadowMapCascades = 4;
     }
 

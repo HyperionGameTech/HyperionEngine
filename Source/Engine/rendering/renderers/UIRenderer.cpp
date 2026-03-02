@@ -159,7 +159,7 @@ static void BuildRenderGroupsOrdered(
     }
 }
 
-void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits)
+void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer, uint32 bucketBits)
 {
     HYP_SCOPE;
 
@@ -173,7 +173,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    if (framebuffer.IsValid())
+    if (framebuffer != nullptr)
     {
         frame->renderQueue << BeginFramebuffer(framebuffer);
     }
@@ -232,7 +232,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
     // Wait for all parallel rendering tasks to finish
     CommitParallelRenderingState(frame->renderQueue);
 
-    if (framebuffer.IsValid())
+    if (framebuffer != nullptr)
     {
         frame->renderQueue << EndFramebuffer(framebuffer);
     }
@@ -264,22 +264,28 @@ void UIRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     UIRendererPassData* pd = ObjCast<UIRendererPassData>(FetchViewPassData(m_view));
     AssertDebug(pd != nullptr);
 
-    RenderSetup rs = renderSetup;
+    RenderSetup rs = renderSetup.Fork();
     rs.view = m_view.Get();
     rs.passData = pd;
+    
+    Framebuffer* framebuffer = rs.framebuffer;
+    
+    if (!framebuffer)
+    {
+        framebuffer = m_view->GetOutputTarget().GetFramebuffer();
+    }
+
+    AssertDebug(framebuffer != nullptr);
 
     RenderProxyList& rpl = GetConsumerProxyList(m_view);
     rpl.BeginRead();
-
-    const ViewOutputTarget& outputTarget = m_view->GetOutputTarget();
-    Assert(outputTarget.IsValid());
 
     BuildRenderGroupsOrdered(renderCollector, rpl, rpl.meshEntityOrdering, {});
 
     rpl.EndRead();
 
     renderCollector.BuildDrawCalls(0);
-    renderCollector.ExecuteDrawCalls(frame, rs, outputTarget.GetFramebuffer(), 0);
+    renderCollector.ExecuteDrawCalls(frame, rs, framebuffer, 0);
 }
 
 PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)
@@ -287,9 +293,6 @@ PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)
     UIRendererPassData* pd = new UIRendererPassData();
 
     pd->view = MakeWeakRef(view);
-    pd->viewport = view->GetViewport();
-
-    HYP_LOG(UI, Verbose, "Creating UI pass data with viewport size {}", pd->viewport.extent);
 
     return pd;
 }

@@ -139,10 +139,8 @@ View::View()
 View::View(const ViewDesc& viewDesc)
     : m_viewDesc(viewDesc),
       m_flags(viewDesc.flags),
-      m_viewport(viewDesc.viewport),
       m_camera(MakeStrongRef(viewDesc.camera)),
       m_priority(viewDesc.priority),
-      m_readbackTextureGpuImages {},
       m_overrideAttributes(viewDesc.overrideAttributes),
       m_collectionTaskBatch(nullptr)
 {
@@ -187,11 +185,6 @@ View::~View()
     {
         EnqueueDeletion(std::move(m_camera));
     }
-
-    if (m_readbackTexture != nullptr)
-    {
-        EnqueueDeletion(std::move(m_readbackTexture));
-    }
 }
 
 void View::Init()
@@ -203,53 +196,46 @@ void View::Init()
         InitObject(m_camera);
     }
 
-    for (Viewport& viewportBuffered : m_viewportBuffered)
-    {
-        viewportBuffered = m_viewport;
-    }
-
     const Vec2u extent = MathUtil::Max(m_viewDesc.renderTargetDesc.extent, Vec2u::One());
 
-    if (m_viewDesc.flags & ViewFlags::GBUFFER)
+    if (!(m_viewDesc.flags & ViewFlags::EXTERNAL_RENDERTARGET))
     {
-        AssertDebug(m_viewDesc.renderTargetDesc.numAttachments == 0,
-            "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
-
-        m_outputTarget = ViewOutputTarget(MakeHandle<GBuffer>(extent));
-    }
-    else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
-    {
-        FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.renderTargetDesc);
-
-        for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
+        if (m_viewDesc.flags & ViewFlags::GBUFFER)
         {
-            const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
-            AssertDebug(attachmentDesc.format != InvalidTextureFormat);
+            AssertDebug(m_viewDesc.renderTargetDesc.numAttachments == 0,
+                "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
-            Attachment* attachment = framebuffer->AddAttachment(
-                attachmentIndex,
-                attachmentDesc.format,
-                attachmentDesc.imageType,
-                attachmentDesc.loadOp,
-                attachmentDesc.storeOp);
+            m_outputTarget = ViewOutputTarget(MakeHandle<GBuffer>(extent));
+        }
+        else if (m_viewDesc.renderTargetDesc.numAttachments > 0)
+        {
+            FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(m_viewDesc.renderTargetDesc);
 
-            attachment->SetClearColor(Vec4f(
-                attachmentDesc.clearColor[0],
-                attachmentDesc.clearColor[1],
-                attachmentDesc.clearColor[2],
-                attachmentDesc.clearColor[3]));
+            for (uint32 attachmentIndex = 0; attachmentIndex < m_viewDesc.renderTargetDesc.numAttachments; attachmentIndex++)
+            {
+                const AttachmentDesc& attachmentDesc = m_viewDesc.renderTargetDesc.attachments[attachmentIndex];
+                AssertDebug(attachmentDesc.format != InvalidTextureFormat);
+
+                Attachment* attachment = framebuffer->AddAttachment(
+                    attachmentIndex,
+                    attachmentDesc.format,
+                    attachmentDesc.imageType,
+                    attachmentDesc.loadOp,
+                    attachmentDesc.storeOp);
+
+                attachment->SetClearColor(Vec4f(
+                    attachmentDesc.clearColor[0],
+                    attachmentDesc.clearColor[1],
+                    attachmentDesc.clearColor[2],
+                    attachmentDesc.clearColor[3]));
+            }
+
+            DeferCreate(framebuffer);
+
+            m_outputTarget = ViewOutputTarget(framebuffer);
         }
 
-        DeferCreate(framebuffer);
-
-        m_outputTarget = ViewOutputTarget(framebuffer);
-    }
-
-    Assert(m_outputTarget.IsValid(), "View with id {} must have a valid output target!", Id());
-
-    if (m_flags & ViewFlags::ENABLE_READBACK)
-    {
-        CreateReadbackTexture();
+        Assert(m_outputTarget.IsValid(), "View with id {} must have a valid output target!", Id());
     }
 
     SetReady(true);
@@ -285,35 +271,6 @@ void View::UpdateViewport()
     HYP_SCOPE;
     AssertOnThread(g_simThread);
     AssertReady();
-
-    const uint32 slot = GetRingIndex();
-
-    if ((m_flags & ViewFlags::MATCH_CAMERA_DIMENSIONS))
-    {
-        if (m_camera != nullptr)
-        {
-            const Vec2u newExtent = MathUtil::Max(Vec2u(m_camera->GetDimensions()), Vec2u::One());
-
-            if (m_viewport.extent != newExtent)
-            {
-                HYP_LOG(Scene, Verbose, "Matching viewport extent to Camera dimensions: {} -> {}", m_viewport.extent, newExtent);
-            }
-
-            m_viewport.extent = newExtent;
-        }
-        else
-        {
-            m_viewport.extent = Vec2u::One();
-        }
-    }
-
-    Viewport& viewportBuffered = m_viewportBuffered[slot];
-    viewportBuffered = m_viewport;
-
-    if (m_readbackTexture)
-    {
-        m_readbackTextureGpuImages[slot] = m_readbackTexture->GetGpuImage();
-    }
 }
 
 void View::UpdateVisibility()
@@ -456,7 +413,6 @@ void View::BeginAsyncCollection(TaskBatch& batch)
         {
             rpl.BeginWrite();
 
-            rpl.viewport = m_viewport;
             rpl.priority = m_priority;
 
             CollectCameras(rpl);
@@ -496,98 +452,6 @@ void View::CollectSync()
     taskBatch.ExecuteBlocking();
 
     EndAsyncCollection();
-}
-
-const Viewport& View::GetViewport() const
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread | g_renderThread);
-
-    if (IsOnThread(g_simThread))
-    {
-        return m_viewport;
-    }
-
-    AssertReady();
-
-    return m_viewportBuffered[GetRingIndex()];
-}
-
-void View::SetViewport(const Viewport& viewport)
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    if (viewport == m_viewport)
-    {
-        return;
-    }
-
-    const Vec2u prevExtent = m_viewport.extent;
-
-    m_viewport = viewport;
-
-    if (IsInitCalled())
-    {
-        if (prevExtent != m_viewport.extent && (m_flags & ViewFlags::ENABLE_READBACK))
-        {
-            HYP_LOG(Scene, Verbose, "View viewport extent changed from {} to {}, recreating readback texture",
-                prevExtent, m_viewport.extent);
-
-            m_readbackTexture.Reset();
-
-            CreateReadbackTexture();
-        }
-
-        m_viewportBuffered[GetRingIndex()] = viewport;
-    }
-}
-
-GpuImage* View::GetReadbackTextureGpuImage() const
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread | g_renderThread);
-
-    return m_readbackTextureGpuImages[GetRingIndex()];
-}
-
-void View::CreateReadbackTexture()
-{
-    HYP_SCOPE;
-    AssertOnThread(g_simThread);
-
-    m_readbackTexture.Reset();
-    m_readbackTexture = MakeHandle<Texture>(TextureDesc {
-        TextureType::Texture2D,
-        m_viewDesc.readbackTextureFormat,
-        Vec3u { m_viewport.extent, 1 },
-        TFM_NEAREST,
-        TFM_NEAREST,
-        TWM_CLAMP_TO_EDGE,
-        1,
-        IU_SAMPLED
-    });
-
-    m_readbackTexture->SetName(NAME_FMT("View_{}_ReadbackTexture", Id().Value()));
-
-    if (IsInitCalled())
-    {
-        InitObject(m_readbackTexture);
-    }
-
-    if (IsReady())
-    {
-        // notify change
-        OnReadbackTextureChanged(m_readbackTexture);
-    }
-    else
-    {
-        // set buffered gpu images before render thread sees them
-        for (uint32 i = 0; i < ArraySize(m_readbackTextureGpuImages); i++)
-        {
-            m_readbackTextureGpuImages[i] = m_readbackTexture->GetGpuImage();
-        }
-    }
 }
 
 void View::SetPriority(int priority)

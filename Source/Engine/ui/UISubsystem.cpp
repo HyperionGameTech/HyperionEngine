@@ -218,7 +218,6 @@ void UISubsystem::Init()
 
     ViewDesc viewDesc {
         .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),
-        .viewport = Viewport { .extent = windowSize2, .position = Vec2i::Zero() },
         .renderTargetDesc = renderTargetDesc,
         .scenes = { m_uiStage->GetScene() },
         .camera = m_uiStage->GetCamera(),
@@ -264,9 +263,9 @@ void UISubsystem::Update(float delta)
 
     RenderProxyList& rpl = GetProducerProxyList(m_view);
     rpl.BeginWrite();
+
     rpl.disableBuildRenderCollection = true;
     rpl.useOrdering = true;
-    rpl.viewport = m_view->GetViewport();
     rpl.priority = m_view->GetPriority();
 
     rpl.meshEntityOrdering.Clear();

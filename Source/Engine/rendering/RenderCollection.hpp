@@ -208,7 +208,7 @@ public:
     void ExecuteDrawCalls(
         Frame* frame,
         const RenderSetup& renderSetup,
-        const FramebufferRef& framebuffer,
+        Framebuffer* framebuffer,
         uint32 bucketBits,
         bool commit = true);
 

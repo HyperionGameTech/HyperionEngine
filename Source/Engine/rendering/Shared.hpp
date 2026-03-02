@@ -1024,10 +1024,10 @@ struct Viewport
     HYP_STRUCT_BODY(Viewport);
 
     HYP_FIELD()
-    Vec2u extent;
+    Vec2u extent = Vec2u::One();
 
     HYP_FIELD()
-    Vec2i position;
+    Vec2i position = Vec2i::Zero();
 
     HYP_FORCE_INLINE explicit operator bool() const
     {

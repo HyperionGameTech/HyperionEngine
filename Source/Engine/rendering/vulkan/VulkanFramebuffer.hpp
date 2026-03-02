@@ -127,7 +127,8 @@ struct VulkanAttachmentMap
                 .loadOp = loadOp,
                 .storeOp = storeOp,
                 .blendFunction = BlendFunction::None(),
-                .clearColor = {} });
+                .clearColor = {}
+            });
 
         attachment->SetBinding(binding);
 
@@ -135,7 +136,8 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 image,
-                attachment });
+                attachment
+            });
 
         return attachment;
     }

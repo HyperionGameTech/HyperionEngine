@@ -56,18 +56,21 @@ Array<VkDescriptorSetLayout, VulkanAllocator> GetVkDescriptorSetLayouts<VulkanGr
 
 VulkanGraphicsPipeline::VulkanGraphicsPipeline()
     : VulkanPipelineBase(),
-      GraphicsPipelineBase()
+      GraphicsPipelineBase(),
+      m_renderPass(nullptr)
 {
 }
 
 VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderInstanceRef& shaderInstance)
     : VulkanPipelineBase(),
-      GraphicsPipelineBase(shaderInstance)
+      GraphicsPipelineBase(shaderInstance),
+      m_renderPass(nullptr)
 {
 }
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
+    m_renderPass->Release();
     m_shaderInstance.Reset();
 }
 
@@ -176,8 +179,11 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    VulkanRenderPass renderPass(m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
-    CheckResultOrReturn(renderPass.Create());
+    if (!m_renderPass)
+    {
+        m_renderPass = new VulkanRenderPass(m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
+        CheckResultOrReturn(m_renderPass->Create());
+    }
 
     m_viewport = { m_renderTargetDesc.extent, Vec2i::Zero() };
 
@@ -382,7 +388,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkGraphicsPipelineCreateInfo pipelineInfo { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
 
-    const Array<VkPipelineShaderStageCreateInfo>& stages = m_shaderInstance->GetVulkanShaderStages();
+    const Array<VkPipelineShaderStageCreateInfo, VulkanAllocator>& stages = m_shaderInstance->GetVulkanShaderStages();
     Assert(stages.Any(), "No shader stages found");
 
     pipelineInfo.stageCount = uint32(stages.Size());
@@ -396,7 +402,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_layout;
-    pipelineInfo.renderPass = renderPass.GetVulkanHandle();
+    pipelineInfo.renderPass = m_renderPass->GetVulkanHandle();
     pipelineInfo.subpass = 0; /* Index of the subpass */
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;

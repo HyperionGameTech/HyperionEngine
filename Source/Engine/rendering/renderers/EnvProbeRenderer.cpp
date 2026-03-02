@@ -89,10 +89,11 @@ void EnvProbeRenderer::RenderFrame(Frame* frame, const RenderSetup& renderSetup)
     EnvProbe* envProbe = renderSetup.envProbe;
     AssertDebug(envProbe != nullptr);
 
-    RenderSetup rs = renderSetup;
+    RenderSetup rs = renderSetup.Fork();
     rs.view = envProbe->GetView();
     rs.passData = FetchViewPassData(rs.view);
     rs.envProbe = renderSetup.prev ? renderSetup.prev->envProbe : nullptr;
+    rs.viewport = Viewport { envProbe->GetDimensions() };
 
     RenderProbe(frame, rs, envProbe);
 }
@@ -101,7 +102,6 @@ PassData* EnvProbeRenderer::CreateViewPassData(View* view, PassDataExt& ext)
 {
     EnvProbeRendererPassData* pd = new EnvProbeRendererPassData();
     pd->view = MakeWeakRef(view);
-    pd->viewport = view->GetViewport();
 
     return pd;
 }

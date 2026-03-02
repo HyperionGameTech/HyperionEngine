@@ -70,7 +70,7 @@ void ShadowMapAllocator::Initialize()
 {
     m_atlasImage = g_renderInterface->MakeImage(TextureDesc {
         TextureType::Texture2DArray,
-        TextureFormat::RG16F,
+        TextureFormat::D16,
         Vec3u { m_atlasDimensions, 1 },
         TFM_NEAREST,
         TFM_NEAREST,
