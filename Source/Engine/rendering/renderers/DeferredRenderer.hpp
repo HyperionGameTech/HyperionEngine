@@ -100,7 +100,7 @@ private:
         return false;
     }
 
-    virtual bool ShouldRenderHalfRes() const override
+    virtual bool ShouldRenderCheckerboarded() const override
     {
         return false;
     }
@@ -155,7 +155,7 @@ private:
         return false;
     }
 
-    virtual bool ShouldRenderHalfRes() const override
+    virtual bool ShouldRenderCheckerboarded() const override
     {
         return false;
     }
@@ -213,7 +213,7 @@ private:
         return false;
     }
 
-    virtual bool ShouldRenderHalfRes() const override
+    virtual bool ShouldRenderCheckerboarded() const override
     {
         return false;
     }
@@ -250,7 +250,7 @@ private:
         return false;
     }
 
-    virtual bool ShouldRenderHalfRes() const override
+    virtual bool ShouldRenderCheckerboarded() const override
     {
         return false;
     }

@@ -1,0 +1,308 @@
+#include "../include/defines.inc"
+
+#ifdef VERTEX_SHADER
+
+struct VSInput
+{
+    HYP_ATTRIBUTE float3 a_position : POSITION;
+    HYP_ATTRIBUTE float3 a_normal : NORMAL;
+    HYP_ATTRIBUTE float2 a_texcoord0 : TEXCOORD0;
+};
+
+struct VSOutput
+{
+    float4 position_cs : SV_POSITION;
+    float3 position : POSITION;
+    float2 texcoord : TEXCOORD0;
+};
+
+VSOutput VSMain(VSInput input)
+{
+    VSOutput output;
+
+    float4 position = float4(input.a_position, 1.0);
+
+    output.position = position.xyz;
+    output.texcoord = input.a_texcoord0;
+    output.position_cs = position;
+
+    return output;
+}
+
+#endif // VERTEX_SHADER
+
+#ifdef PIXEL_SHADER
+
+struct PSInput
+{
+    float4 position_cs : SV_POSITION;
+    float3 position : POSITION;
+    float2 texcoord : TEXCOORD0;
+};
+
+struct PSOutput
+{
+    float4 output_color : SV_Target0;
+};
+
+DECLARE_SRV(HBAO, GBufferAlbedoTexture) Texture2D gbuffer_albedo_texture;
+DECLARE_SRV(HBAO, GBufferNormalsTexture) Texture2D gbuffer_normals_texture;
+DECLARE_SRV(HBAO, GBufferMaterialTexture) Texture2D gbuffer_material_texture;
+DECLARE_SRV(HBAO, GBufferVelocityTexture) Texture2D gbuffer_velocity_texture;
+
+DECLARE_SRV(HBAO, GBufferMipChain) Texture2D gbuffer_mip_chain;
+DECLARE_SRV(HBAO, GBufferDepthTexture) Texture2D gbuffer_depth_texture;
+DECLARE_SAMPLER(HBAO, SamplerLinear) SamplerState sampler_linear;
+DECLARE_SAMPLER(HBAO, SamplerNearest) SamplerState sampler_nearest;
+
+#define HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+#include "../include/shared.inc"
+#include "../include/scene.inc"
+#include "../include/gbuffer.inc"
+#include "../include/packing.inc"
+#include "../include/noise.inc"
+#undef HYP_DO_NOT_DEFINE_DESCRIPTOR_SETS
+
+DECLARE_BUFFER_DYNAMIC(HBAO, CamerasBuffer) cbuffer CamerasBuffer
+{
+    Camera camera;
+};
+
+DECLARE_BUFFER(HBAO, WorldsBuffer) cbuffer WorldsBuffer
+{
+    WorldShaderData world_shader_data;
+};
+
+DECLARE_BUFFER(HBAO, UniformBuffer) cbuffer UniformBuffer
+{
+    uint2 dimension;
+    float radius;
+    float power;
+};
+
+#include "../include/Temporal.inc"
+
+#define HYP_HBAO_NUM_CIRCLES 4
+#define HYP_HBAO_NUM_SLICES 4
+
+#define ANGLE_BIAS 0.0015
+
+float GetOffsets(float2 uv)
+{
+    int2 position = int2(uv * float2(dimension));
+    return 0.25 * float((position.y - position.x) & 3);
+}
+
+float GetDepth(float2 uv)
+{
+    return SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_depth_texture, uv).r;
+}
+
+float3 GetPosition(float2 uv, float depth)
+{
+    return ReconstructViewSpacePositionFromDepth(camera.invProjMat, uv, depth).xyz;
+}
+
+float3 GetNormal(float2 uv)
+{
+    float3 normal = GBufferUnpackNormal(SAMPLE_TEXTURE_2D(sampler_nearest, gbuffer_normals_texture, uv));
+    float3 view_normal = mul(camera.view, float4(normal, 0.0)).xyz;
+    return view_normal;
+}
+
+float IntegrateUniformWeight(float2 h)
+{
+    float2 arc = float2(1.0, 1.0) - cos(h);
+    return arc.x + arc.y;
+}
+
+float IntegrateArcCosWeight(float2 h, float n)
+{
+    float2 arc = -cos(2.0 * h - n) + cos(n) + 2.0 * h * sin(n);
+    return 0.25 * (arc.x + arc.y);
+}
+
+float2 RotateDirection(float2 uv, float2 cos_sin)
+{
+    return float2(
+        uv.x * cos_sin.x - uv.y * cos_sin.y,
+        uv.x * cos_sin.y + uv.y * cos_sin.x);
+}
+
+float Falloff(float dist_sqr)
+{
+    return dist_sqr * (-1.0 / HYP_FMATH_SQR(radius)) + 1.0;
+}
+
+float2 CalculateImpact(float2 theta_0, float2 theta_1, float nx, float ny)
+{
+    float2 sin_theta_0 = sin(theta_0);
+    float2 sin_theta_1 = sin(theta_1);
+    float2 cos_theta_0 = cos(theta_0);
+    float2 cos_theta_1 = cos(theta_1);
+
+    const float2 dx = (theta_0 - sin_theta_0 * cos_theta_0) - (theta_1 - sin_theta_1 * cos_theta_1);
+    const float2 dy = cos_theta_1 * cos_theta_1 - cos_theta_0 * cos_theta_0;
+
+    return max(nx * dx + ny * dy, float2(0.0, 0.0));
+}
+
+#ifdef HBIL_ENABLED
+void TraceAO_New(float2 uv, out float occlusion, out float4 light_color)
+#else
+void TraceAO_New(float2 uv, out float occlusion)
+#endif
+{
+    const float fov_rad = HYP_FMATH_DEG2RAD(camera.fov);
+    const float tan_half_fov = tan(fov_rad * 0.5);
+    const float inv_tan_half_fov = 1.0 / tan_half_fov;
+    const float2 focal_len = float2(inv_tan_half_fov * (float(camera.dimensions.y) / float(camera.dimensions.x)), inv_tan_half_fov);
+
+    uint2 pixel_coord = uint2(clamp(int2(uv * float2(dimension - 1)), int2(0, 0), int2(dimension) - int2(1, 1)));
+
+    const float projected_scale = float(dimension.y) / (tan_half_fov * 2.0);
+
+    const float temporal_offset = GetSpatialOffset(world_shader_data.frame_counter);
+    const float temporal_rotation = GetTemporalRotation(world_shader_data.frame_counter);
+
+    const float noise_offset = GetOffsets(uv);
+    const float noise_direction = InterleavedGradientNoise(float2(pixel_coord));
+    const float ray_step = frac(noise_offset + temporal_offset);
+
+    const float depth = GetDepth(uv);
+    const float3 P = GetPosition(uv, depth);
+    const float3 N = GetNormal(uv);
+    const float3 V = normalize(P);
+
+    const float camera_distance = P.z;
+    const float2 texel_size = float2(1.0, 1.0) / float2(dimension);
+    const float step_radius = max((projected_scale * radius) / max(camera_distance, HYP_FMATH_EPSILON), float(HYP_HBAO_NUM_SLICES)) / float(HYP_HBAO_NUM_SLICES + 1);
+
+    occlusion = 0.0;
+
+#ifdef HBIL_ENABLED
+    light_color = float4(0.0, 0.0, 0.0, 0.0);
+#endif
+
+    for (int i = 0; i < HYP_HBAO_NUM_CIRCLES; i++)
+    {
+        float angle = (float(i) + noise_direction) / float(HYP_HBAO_NUM_CIRCLES) * 2.0 * HYP_FMATH_PI;
+
+        float2 ss_ray = float2(sin(angle), cos(angle));
+        float3 ray = normalize(float3(ss_ray.xy * V.z, -dot(V.xy, ss_ray.xy)));
+        const float nx = dot(ray, N);
+        const float ny = -dot(N, V);
+        const float ctg_th0 = -nx / ny;
+
+        float2 cos_max_theta = float2(ctg_th0 * rsqrt(ctg_th0 * ctg_th0 + 1.0), ctg_th0 * rsqrt(ctg_th0 * ctg_th0 + 1.0));
+        float2 max_theta = float2(acos(cos_max_theta.x), acos(cos_max_theta.y));
+
+        const float start_angle_delta = 0.0;
+        max_theta = max(float2(0.0, 0.0), max_theta - start_angle_delta);
+        cos_max_theta = cos(max_theta);
+
+        float2 slice_ao = float2(0.0, 0.0);
+
+#ifdef HBIL_ENABLED
+        float4 slice_light[2] = { float4(0.0, 0.0, 0.0, 0.0), float4(0.0, 0.0, 0.0, 0.0) };
+#endif
+
+        for (int j = 0; j < HYP_HBAO_NUM_SLICES; j++)
+        {
+            float2 uv_offset = (ss_ray * texel_size) * max(step_radius * (float(j) + ray_step), float(j + 1));
+
+            float4 new_uv = uv.xyxy + float4(uv_offset, -uv_offset);
+
+            // Fade hits that approach the screen edge
+            const float4 new_uv_ndc = new_uv * 2.0 - 1.0;
+            const float max_dimension = min(1.0, max(abs(new_uv_ndc.x), abs(new_uv_ndc.y)));
+            const float fade = 1.0 - saturate(max(0.0, max_dimension - 0.95) / (1.0 - 0.98));
+
+            if (all(new_uv.xy < float2(1.0, 1.0)) && all(new_uv.xy >= float2(0.0, 0.0)))
+            {
+                new_uv = saturate(new_uv);
+
+                float depth_0 = GetDepth(new_uv.xy);
+                float depth_1 = GetDepth(new_uv.zw);
+
+                float3 ds = GetPosition(new_uv.xy, depth_0) - P;
+                float3 dt = GetPosition(new_uv.zw, depth_1) - P;
+
+                const float2 len = float2(length(ds), length(dt));
+                const float2 dist = len / radius;
+                ds /= len.x;
+                dt /= len.y;
+
+                const float2 DdotD = float2(dot(ds, ds), dot(dt, dt));
+                const float2 NdotD = float2(dot(ds, N), dot(dt, N));
+
+                const float2 DdotV = float2(-dot(ds, V), -dot(dt, V));
+
+                const float2 condition = float2(DdotV > cos_max_theta) * float2(dist < float2(1.0, 1.0));
+                float2 falloffs = saturate(float2(Falloff(DdotD.x), Falloff(DdotD.y)));
+
+                const float2 theta = acos(DdotV);
+
+                const float2 impact = CalculateImpact(min(max_theta, theta + float2(HYP_FMATH_PI / 9.0, HYP_FMATH_PI / 9.0)), theta, nx, ny);
+                const float2 total_impact = condition * falloffs * impact;
+
+#ifdef HBIL_ENABLED
+                float4 new_color_0 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.xy);
+                float4 new_color_1 = SAMPLE_TEXTURE_2D(sampler_linear, gbuffer_albedo_texture, new_uv.zw);
+
+                slice_light[0] += new_color_0 * total_impact.x;
+                slice_light[1] += new_color_1 * total_impact.y;
+#endif
+
+                slice_ao += float2(
+                        (1.0 - dist.x * dist.x) * (NdotD.x - slice_ao.x),
+                        (1.0 - dist.y * dist.y) * (NdotD.y - slice_ao.y))
+                    * condition * fade;
+
+                cos_max_theta = lerp(cos_max_theta, DdotV, condition);
+                max_theta = lerp(max_theta, theta, condition);
+            }
+        }
+
+#ifdef HBIL_ENABLED
+        light_color += slice_light[0] + slice_light[1];
+#endif
+
+        occlusion += slice_ao.x + slice_ao.y;
+    }
+
+    occlusion = 1.0 - saturate(pow(occlusion / float(HYP_HBAO_NUM_CIRCLES * HYP_HBAO_NUM_SLICES), 1.0 / power));
+    occlusion *= 1.0 / (1.0 - ANGLE_BIAS);
+
+#ifdef HBIL_ENABLED
+    light_color = light_color / float(HYP_HBAO_NUM_CIRCLES * HYP_HBAO_NUM_SLICES);
+    light_color *= 1.0 / (1.0 - ANGLE_BIAS);
+#endif
+}
+
+PSOutput PSMain(PSInput input)
+{
+    PSOutput output;
+
+    float2 texcoord = input.texcoord;
+
+    float4 values;
+    float occlusion;
+
+#ifdef HBIL_ENABLED
+    float4 light_color;
+
+    TraceAO_New(texcoord, occlusion, light_color);
+
+    values = float4(light_color.rgb, occlusion);
+#else
+    TraceAO_New(texcoord, occlusion);
+
+    values = float4(occlusion, occlusion, occlusion, occlusion);
+#endif
+
+    output.output_color = values;
+    return output;
+}
+
+#endif // PIXEL_SHADER

@@ -1059,7 +1059,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     Viewport viewport = rs.view->GetViewport();
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
@@ -1113,7 +1113,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     rq << BeginFramebuffer(GetFramebuffer());
 
     // render previous frame's result to screen if doing temporal blending (and not checkerboarded)
-    if (!m_isFirstFrame && UsesTemporalBlending() && !ShouldRenderHalfRes())
+    if (!m_isFirstFrame && UsesTemporalBlending() && !ShouldRenderCheckerboarded())
     {
         DrawHistoryTexture(frame, rs);
     }
@@ -1204,14 +1204,14 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     frame->renderQueue << EndFramebuffer(GetFramebuffer());
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
-        MergeHalfResTextures(frame, rs);
+        MergeCheckerboard(frame, rs);
     }
 
     if (UsesTemporalBlending())
     {
-        if (!ShouldRenderHalfRes())
+        if (!ShouldRenderCheckerboarded())
         {
             CopyResultToPreviousTexture(frame, rs);
         }
@@ -1527,7 +1527,8 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
 
-    passData.hbao->Resize(newSize);
+    passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+    passData.hbao->Create();
 
     passData.reflectionsPass.Reset();
     passData.reflectionsPass = MakeUnique<ReflectionsPass>(

@@ -1,0 +1,7 @@
+{
+  "Dependencies": [],
+  "Name": "MergeHalfResTextures",
+  "FriendlyName": "MergeHalfResTextures",
+  "Flags": 0,
+  "Path": "Engine/Shaders/MergeHalfResTextures"
+}

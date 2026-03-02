@@ -209,6 +209,8 @@ PSOutput PSMain(PSInput input)
     result = velocity.rgb;
 #elif defined(DEBUG_NORMALS)
     result = normal * 0.5 + 0.5;
+#elif defined(DEBUG_AO)
+    result = float3(ao, ao, ao);
 #endif
 
     output.output_color = float4(result, 1.0);

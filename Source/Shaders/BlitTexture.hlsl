@@ -65,7 +65,7 @@ PSOutput PSMain(PSInput input)
 
     float2 texcoord = input.v_texcoord;
 
-#ifdef HALFRES
+#ifdef CHECKERBOARDED
     // map texcoords to previous frame's output coords
     texcoord = (texcoord * 0.5) + float2(0.5 * float((world_shader_data.frame_counter - 1u) & 1u), 0.0);
 #endif
