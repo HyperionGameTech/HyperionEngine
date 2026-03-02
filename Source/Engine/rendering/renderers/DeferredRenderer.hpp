@@ -21,7 +21,7 @@ class IndirectDrawState;
 class GBuffer;
 class Texture;
 class DepthPyramidRenderer;
-class SSRRenderer;
+class SSRPass;
 class SSGI;
 class View;
 class DeferredRenderer;
@@ -32,6 +32,7 @@ class FullScreenPass;
 class TAAPass;
 class PostProcessing;
 class HBAO;
+class SSAO;
 class DOFBlur;
 class Texture;
 class RayTracingReflections;
@@ -234,9 +235,9 @@ public:
         return m_mipChainImageView;
     }
 
-    HYP_FORCE_INLINE SSRRenderer* GetSSRRenderer() const
+    HYP_FORCE_INLINE SSRPass* GetSSRPass() const
     {
-        return m_ssrRenderer.Get();
+        return m_ssrPass.Get();
     }
 
     bool ShouldRenderSSR() const;
@@ -255,7 +256,7 @@ private:
         return false;
     }
 
-    void CreateSSRRenderer();
+    void CreateSSRPass();
 
     virtual void RenderToFramebuffer_Internal(Frame* frame, const RenderSetup& rs, Framebuffer* framebuffer) override
     {
@@ -266,7 +267,7 @@ private:
 
     GpuImageViewRef m_mipChainImageView;
 
-    UniquePtr<SSRRenderer> m_ssrRenderer;
+    UniquePtr<SSRPass> m_ssrPass;
 
     bool m_isFirstFrame;
 };
@@ -297,6 +298,8 @@ public:
     UniquePtr<TonemapPass> tonemapPass;
 
     UniquePtr<HBAO> hbao;
+    //UniquePtr<SSAO> ssao;
+
     UniquePtr<FullScreenPass> combinePass;
     UniquePtr<PostProcessing> postProcessing;
     UniquePtr<TAAPass> taaPass;

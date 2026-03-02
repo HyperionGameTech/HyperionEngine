@@ -32,6 +32,7 @@ class RenderGroup;
 class View;
 class VolumeBase;
 class EntityBatchAllocatorBase;
+class FullScreenPass;
 
 namespace threading {
 class TaskBatch;
@@ -60,6 +61,9 @@ struct RendererConfig : public ConfigBase<RendererConfig>
 
     HYP_FIELD(JsonPath = "RayTracing.GI.Enabled")
     bool rayTracingGlobalIllumination = false;
+
+    HYP_FIELD(JsonPath = "SSAO.Enabled")
+    bool ssaoEnabled = false;
 
     HYP_FIELD(JsonPath = "HBAO.Enabled")
     bool hbaoEnabled = false;
@@ -272,7 +276,7 @@ public:
     int CullUnusedGraphicsPipelines(int maxIter = 10);
 };
 
-class HYP_API RendererBase
+class RendererBase
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
@@ -293,7 +297,10 @@ public:
 protected:
     RendererBase();
 
-    virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) = 0;
+    virtual PassData* CreateViewPassData(View* view, PassDataExt& ext)
+    {
+        return nullptr;
+    }
 
     PassData* TryGetViewPassData(View* view);
     PassData* FetchViewPassData(View* view, PassDataExt* ext = nullptr, bool forceNew = false);
@@ -304,5 +311,6 @@ private:
     PassDataMap m_viewPassData;
     typename PassDataMap::Iterator m_viewPassDataCleanupIterator;
 };
+
 
 } // namespace Hyperion

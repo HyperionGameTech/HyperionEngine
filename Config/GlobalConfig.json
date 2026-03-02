@@ -19,13 +19,16 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": true
+        "Enabled": false
       },
       "Enabled": true
     },
+    "SSAO": {
+      "Enabled": false
+    },
     "HBAO": {
-      "Radius": 4.000000,
-      "Power": 5.000000,
+      "Radius": 1.500000,
+      "Power": 2.500000,
       "UseTemporalBlending": false,
       "Enabled": true
     },
@@ -71,7 +74,7 @@
       "AO": false
     },
     "Vulkan": {
-      "DebugLayers": false
+      "DebugLayers": true
     }
   },
   "Editor": {

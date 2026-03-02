@@ -51,7 +51,7 @@ enum class LightFlags : uint32
 
     ShadowCacheStaticObjects = 0x10,
 
-    Default = ShadowCaster | ShadowContactHardening
+    Default = ShadowCaster | ShadowPCF
 };
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);
@@ -373,7 +373,7 @@ class HYP_API PointLight : public Light
 
 public:
     PointLight()
-        : Light(LightType::Point, Vec3f(0.0f), Color::White(), 5.0f, 10.0f)
+        : PointLight(Vec3f(0.0f), Color::White(), 5.0f, 10.0f)
     {
     }
 

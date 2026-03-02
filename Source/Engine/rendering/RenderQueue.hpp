@@ -783,6 +783,36 @@ private:
     bool depthTest;
 };
 
+class SetDepthBias final : public CmdBase
+{
+public:
+    explicit SetDepthBias(int depthBias, float depthBiasSlope)
+        : depthBias(depthBias),
+          depthBiasSlope(depthBiasSlope)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    int depthBias;
+    float depthBiasSlope;
+};
+
+class SetDepthClamp final : public CmdBase
+{
+public:
+    explicit SetDepthClamp(bool depthClamp)
+        : depthClamp(depthClamp)
+    {
+    }
+
+    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
+
+private:
+    bool depthClamp;
+};
+
 class SetStencilTest final : public CmdBase
 {
 public:
@@ -966,7 +996,7 @@ public:
 
         constexpr SizeType CmdSize = sizeof(TCmd);
 
-        const uint32 alignedOffset = ByteUtil::AlignAs(m_offset, alignof(TCmd));
+        const uint32 alignedOffset = ByteUtil::AlignAs(m_offset, 16);
 
         if (m_buffer.Size() < alignedOffset + CmdSize)
         {

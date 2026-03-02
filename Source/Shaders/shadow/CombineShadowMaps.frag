@@ -30,8 +30,8 @@ void main()
 
     combinedDepths = vec4(moments, 0.0, 0.0);
 #else
-    float unpackedDepth0 = UnpackDepth(color0);
-    float unpackedDepth1 = UnpackDepth(color1);
+    float unpackedDepth0 = color0.r;
+    float unpackedDepth1 = color1.r;
 
     float depth = min(unpackedDepth0, unpackedDepth1);
 

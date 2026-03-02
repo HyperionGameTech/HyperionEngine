@@ -408,8 +408,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                         ShadowCameraHelper::UpdateShadowCameraDirectional(
                             *shadowCamera,
                             Vec3f::Zero(), //m_camera.IsValid() ? m_camera->GetTranslation() : Vec3f::Zero(),
-                            light->GetPosition().Normalized(),
-                            35.0f);
+                            light->GetPosition().Normalized() * 1000.0f,
+                            45.0f);
 
                         break;
                     }

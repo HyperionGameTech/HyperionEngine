@@ -75,17 +75,17 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
     }
 };
 
-class SSRRenderer
+class SSRPass final : public FullScreenPass
 {
 public:
     HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    SSRRenderer(
+    SSRPass(
         SSRRendererConfig&& config,
         GBuffer* gbuffer,
         const GpuImageViewRef& mipChainImageView);
 
-    ~SSRRenderer();
+    ~SSRPass();
 
     HYP_FORCE_INLINE const Handle<Texture>& GetUVsTexture() const
     {

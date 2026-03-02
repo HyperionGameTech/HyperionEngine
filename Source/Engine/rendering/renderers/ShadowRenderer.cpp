@@ -252,7 +252,13 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
         cascadeBufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
 
-        cascadeBufferData.viewProjMat = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera()->GetViewProjectionMatrix();
+        Camera* camera = cachedData->shadowViewsDynamic[cascadeIndex]->GetCamera();
+        Assert(camera != nullptr);
+
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(camera));
+        Assert(cameraProxy != nullptr);
+
+        cascadeBufferData.viewProjMat = cameraProxy->bufferData.viewProjMat;
 
         BoundingBox shadowBoundsNDC;
         shadowBoundsNDC.min = Vec3f(-1.0f);
@@ -323,11 +329,11 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             if (!shouldCombineShadowMaps)
             {
-                // blit image into final result
-                const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
-                Assert(framebufferImage.IsValid());
+                // blit directly into final result
+                GpuImage* srcImage = framebuffer->GetAttachment(0)->GetImage();
+                Assert(srcImage != nullptr);
 
-                const uint16 numLayers = framebufferImage->NumArrayLayers();
+                const uint16 numLayers = srcImage->NumArrayLayers();
 
                 Assert((atlasElement.layerIndex * numLayers) + numLayers <= shadowMapImage->NumArrayLayers(),
                     "Atlas element has layer index = {} and num faces = {} ({} x {} + {} = {}), but shadow map atlas has total num faces = {}",
@@ -341,13 +347,13 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 baseSubResource.baseArrayLayer = (atlasElement.layerIndex * numLayers);
                 baseSubResource.numLayers = numLayers;
 
-                frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
+                frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
                 frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, baseSubResource);
 
                 for (uint16 layerIndex = 0; layerIndex < numLayers; layerIndex++)
                 {
                     frame->renderQueue << Blit(
-                        framebufferImage,
+                        srcImage,
                         shadowMapImage,
                         Rect<uint32> {
                             0, 0,
@@ -375,7 +381,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 }
 
                 frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, baseSubResource);
-                frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
+                frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
             }
         }
 
@@ -391,9 +397,15 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             { // Combine passes into one
                 combineShadowMapsPass->Begin(frame, rs);
 
+                Framebuffer* srcFramebuffer0 = cachedData->shadowViewsStatic[cascadeIndex]->GetOutputTarget().GetFramebuffer();
+                Attachment* srcAttachment0 = srcFramebuffer0->GetAttachment(srcFramebuffer0->NumAttachments() - 1);
+
+                Framebuffer* srcFramebuffer1 = cachedData->shadowViewsDynamic[cascadeIndex]->GetOutputTarget().GetFramebuffer();
+                Attachment* srcAttachment1 = srcFramebuffer1->GetAttachment(srcFramebuffer1->NumAttachments() - 1);
+
                 frame->renderQueue << SetShaderUniform(4, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
-                frame->renderQueue << SetShaderUniform(5, "Src0"_sh, cachedData->shadowViewsStatic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
-                frame->renderQueue << SetShaderUniform(6, "Src1"_sh, cachedData->shadowViewsDynamic[cascadeIndex]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView());
+                frame->renderQueue << SetShaderUniform(5, "Src0"_sh, srcAttachment0->GetImageView());
+                frame->renderQueue << SetShaderUniform(6, "Src1"_sh, srcAttachment1->GetImageView());
 
                 combineShadowMapsPass->RenderFullScreenQuad(frame, rs);
                 combineShadowMapsPass->End(frame, rs);
@@ -402,11 +414,11 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             AttachmentBase* attachment = combineShadowMapsPass->GetFramebuffer()->GetAttachment(0);
             Assert(attachment != nullptr);
 
-            const GpuImageRef& srcImage = attachment->GetImage();
-            Assert(srcImage.IsValid());
+            GpuImage* combineResultImage = attachment->GetImage();
+            Assert(combineResultImage != nullptr);
 
             // Copy combined shadow map to the final shadow map
-            frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
+            frame->renderQueue << InsertBarrier(combineResultImage, RS_COPY_SRC);
             frame->renderQueue << InsertBarrier(
                 shadowMapImage,
                 RS_COPY_DST,
@@ -419,9 +431,9 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             // copy the image
             frame->renderQueue << Blit(
-                srcImage,
+                combineResultImage,
                 shadowMapImage,
-                Rect<uint32> { 0, 0, srcImage->GetExtent().x, srcImage->GetExtent().y },
+                Rect<uint32> { 0, 0, combineResultImage->GetExtent().x, combineResultImage->GetExtent().y },
                 Rect<uint32> {
                     atlasElement.offsetCoords.x,
                     atlasElement.offsetCoords.y,
@@ -443,7 +455,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             );
 
             // put the images back into a state for reading
-            frame->renderQueue << InsertBarrier(srcImage, RS_SHADER_RESOURCE);
+            frame->renderQueue << InsertBarrier(combineResultImage, RS_SHADER_RESOURCE);
             frame->renderQueue << InsertBarrier(
                 shadowMapImage,
                 RS_SHADER_RESOURCE,

@@ -306,15 +306,15 @@
   "EntryPointNames": ["RayGenMain", "ClosestHitMain", "MissMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_701366301706474656.RGS",
       "Size": 16532
     }, {
       "$Class": "BlobDataReference",
-      "Key": "",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_701366301706474656.CHS",
       "Size": 7840
     }, {
       "$Class": "BlobDataReference",
-      "Key": "",
+      "Key": "Engine/Shaders/LightmapPathTracer/LightmapPathTracer_701366301706474656.MS",
       "Size": 668
     }],
   "PropertySetHashCode": {},

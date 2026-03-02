@@ -91,7 +91,7 @@
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/CombineShadowMaps/CombineShadowMaps_1829828941827249593.PS",
-      "Size": 2980
+      "Size": 2640
     }],
   "PropertySetHashCode": {},
   "Name": "CombineShadowMaps_1829828941827249593",

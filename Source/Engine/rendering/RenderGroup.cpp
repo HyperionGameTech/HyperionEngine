@@ -717,13 +717,24 @@ void RenderGroup::PerformRendering(
         renderableAttributes.GetMaterialAttributes().shaderName,
         renderableAttributes.GetMaterialAttributes().shaderProperties));
 
-    rq << SetDepthTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
-    rq << SetDepthWrite(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
-    rq << SetStencilTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
-    rq << SetCurrentBlendFunction(renderableAttributes.GetMaterialAttributes().blendFunction);
-    rq << SetStencilFunction(renderableAttributes.GetMaterialAttributes().stencilFunction);
     rq << SetFillMode(renderableAttributes.GetMaterialAttributes().fillMode);
     rq << SetFaceCullMode(renderableAttributes.GetMaterialAttributes().cullFaces);
+    
+    rq << SetCurrentBlendFunction(renderableAttributes.GetMaterialAttributes().blendFunction);
+
+    rq << SetDepthTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_TEST));
+    rq << SetDepthWrite(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_WRITE));
+    rq << SetDepthClamp(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP));
+
+    if (renderableAttributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)
+    {
+        rq << SetDepthBias(
+            renderableAttributes.GetMaterialAttributes().depthBias,
+            renderableAttributes.GetMaterialAttributes().depthBiasSlope);
+    }
+
+    rq << SetStencilTest(bool(renderableAttributes.GetMaterialAttributes().flags & MAF_STENCIL_TEST));
+    rq << SetStencilFunction(renderableAttributes.GetMaterialAttributes().stencilFunction);
 
     if (stencilReference != 0)
     {

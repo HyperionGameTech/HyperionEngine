@@ -172,7 +172,7 @@ PSOutput PSMain(PSInput input)
         float ao = 1.0;
         float shadow = 1.0;
 
-#if HBAO_ENABLED
+#if HBAO_ENABLED || SSAO_ENABLED
         const float4 ssao_data = SAMPLE_TEXTURE_2D(HYP_SAMPLER_NEAREST, ssao_gi_result, texcoord);
         ao = ssao_data.a;
 #endif

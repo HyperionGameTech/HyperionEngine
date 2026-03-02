@@ -815,16 +815,6 @@ extern enum ShadowMapType : uint32
     SMT_SPOT,
     SMT_OMNI
 end
-extern struct Vertex
-    Position : Vec3f
-    Normal : Vec3f
-    Tangent : Vec3f
-    Bitangent : Vec3f
-    Texcoord0 : Vec2f
-    Texcoord1 : Vec2f
-    BoneWeights : Array<float>
-    BoneIndices : Array<uint32>
-end
 extern struct SSRRendererConfig
     Enabled : bool
     Quality : int
@@ -835,6 +825,16 @@ extern struct SSRRendererConfig
     EyeFade : Vec2f
     ScreenEdgeFade : Vec2f
     ResolutionScale : float
+end
+extern struct Vertex
+    Position : Vec3f
+    Normal : Vec3f
+    Tangent : Vec3f
+    Bitangent : Vec3f
+    Texcoord0 : Vec2f
+    Texcoord1 : Vec2f
+    BoneWeights : Array<float>
+    BoneIndices : Array<uint32>
 end
 extern struct SSGIConfig
     Quality : int
@@ -1131,6 +1131,7 @@ extern enum GlobalRendererType : uint32
     GRT_ENV_GRID,
     GRT_SHADOW_MAP,
     GRT_PARTICLE_VOLUME,
+    GRT_SSAO,
     GRT_MAX
 end
 extern enum GlobalRenderBuffer : uint8
@@ -1150,6 +1151,7 @@ extern struct RendererConfig
     PathTracer : bool
     RayTracingReflections : bool
     RayTracingGlobalIllumination : bool
+    SsaoEnabled : bool
     HbaoEnabled : bool
     HbilEnabled : bool
     SsgiEnabled : bool
@@ -1177,14 +1179,18 @@ extern struct MaterialAttributes
     Flags : MaterialAttributeFlags
     StencilFunction : StencilFunction
     StencilReference : uint8
+    DepthBias : int32
+    DepthBiasSlope : float
     TextureMask : uint32
 end
 extern enum MaterialAttributeFlags : uint8
     MAF_NONE = 0x0,
     MAF_DEPTH_WRITE = 0x1,
     MAF_DEPTH_TEST = 0x2,
-    MAF_STENCIL_TEST = 0x4,
-    MAF_ALPHA_DISCARD = 0x8
+    MAF_DEPTH_BIAS = 0x4,
+    MAF_DEPTH_CLAMP = 0x8,
+    MAF_STENCIL_TEST = 0x10,
+    MAF_ALPHA_DISCARD = 0x20
 end
 extern struct RayTracingReflectionsConfig
     Extent : Vec2u
@@ -2181,7 +2187,7 @@ extern class Light : Entity
     SetMaterial(material : Material) -> void
     GetShadowMapDimensions() -> Vec2u
     SetShadowMapDimensions(shadowMapDimensions : Vec2u) -> void
-    NumShadowMapCascades() -> uint32
+    GetNumShadowMapCascades() -> uint32
     SetNumShadowMapCascades(numShadowMapCascades : uint32) -> void
     GetAABB() -> BoundingBox
     GetShadowMapFilter() -> ShadowMapFilter

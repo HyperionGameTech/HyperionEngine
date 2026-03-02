@@ -26,19 +26,7 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "DDGI_PROBE_SIDE_LENGTH_IRRADIANCE",
-      "Flags": 0,
-      "Value": 8,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "DDGI_PROBE_SIDE_LENGTH_DEPTH",
-      "Flags": 0,
-      "Value": 8,
-      "EnumValues": []
-    }, {
-      "$Class": "ShaderProperty",
-      "Name": "RT_GI",
+      "Name": "HBAO_ENABLED",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
@@ -58,20 +46,6 @@
               "Register": 1,
               "ElementType": 5,
               "Name": "GBufferDepthTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
-              "Name": "DDGIDepthTexture",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -197,20 +171,6 @@
               "$Class": "ShaderInput",
               "Register": 1,
               "ElementType": 5,
-              "Name": "DDGIIrradianceTexture",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 1,
-              "ElementType": 5,
               "Name": "SSAOResultTexture",
               "Count": 1,
               "Size": 4294967295,
@@ -226,20 +186,6 @@
               "Register": 3,
               "ElementType": 1,
               "Name": "WorldsBuffer",
-              "Count": 1,
-              "Size": 4294967295,
-              "IsDynamic": false,
-              "StructInfo": {
-                "Name": "",
-                "Size": 4294967295,
-                "FieldNames": [],
-                "FieldTypes": []
-              }
-            }, {
-              "$Class": "ShaderInput",
-              "Register": 3,
-              "ElementType": 1,
-              "Name": "DDGIConstants",
               "Count": 1,
               "Size": 4294967295,
               "IsDynamic": false,
@@ -314,15 +260,15 @@
   "EntryPointNames": ["VSMain", "PSMain"],
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_13370867308187601986.VS",
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4570072176435578573.VS",
       "Size": 932
     }, {
       "$Class": "BlobDataReference",
-      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_13370867308187601986.PS",
-      "Size": 12848
+      "Key": "Engine/Shaders/DeferredIndirect/DeferredIndirect_4570072176435578573.PS",
+      "Size": 6100
     }],
   "PropertySetHashCode": {},
-  "Name": "DeferredIndirect_13370867308187601986",
-  "FriendlyName": "DeferredIndirect_13370867308187601986",
+  "Name": "DeferredIndirect_4570072176435578573",
+  "FriendlyName": "DeferredIndirect_4570072176435578573",
   "OriginalFilepath": ""
 }
