@@ -51,7 +51,7 @@ enum class LightFlags : uint32
 
     ShadowCacheStaticObjects = 0x10,
 
-    Default = ShadowCaster | ShadowPCF
+    Default = ShadowCaster | ShadowContactHardening
 };
 
 HYP_MAKE_ENUM_FLAGS(LightFlags);

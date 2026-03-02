@@ -14,6 +14,9 @@
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/DescriptorSet.hpp>
 #include <rendering/Mesh.hpp>
+#include <rendering/GBuffer.hpp>
+#include <rendering/TextureViewCache.hpp>
+#include <rendering/Texture.hpp>
 
 #include <rendering/renderers/DeferredRenderer.hpp>
 
@@ -88,27 +91,15 @@ HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
 
 HBAO::~HBAO()
 {
-    EnqueueDeletion(std::move(m_uniformBuffer));
+    EnqueueDeletion(std::move(m_cBuffer));
     EnqueueDeletion(std::move(m_descriptorSet));
-}
-
-void HBAO::CreateUniformBuffers()
-{
-    HBAOUniforms uniforms {};
-    uniforms.dimension = ShouldRenderHalfRes() ? m_extent / 2 : m_extent;
-    uniforms.radius = m_config.radius;
-    uniforms.power = m_config.power;
-
-    m_uniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-
-    PUSH_RENDER_COMMAND(CreateHBAOUniformBuffer, uniforms, m_uniformBuffer);
 }
 
 void HBAO::Resize_Internal(Vec2u newSize)
 {
     HYP_SCOPE;
 
-    EnqueueDeletion(std::move(m_uniformBuffer));
+    EnqueueDeletion(std::move(m_cBuffer));
     EnqueueDeletion(std::move(m_descriptorSet));
 
     FullScreenPass::Resize_Internal(newSize);
@@ -126,7 +117,27 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     RenderQueue& rq = frame->renderQueue;
 
+    if (!m_cBuffer)
+    {
+        
+        HBAOUniforms constants {};
+        constants.dimension = ShouldRenderHalfRes() ? m_extent / 2 : m_extent;
+        constants.radius = m_config.radius;
+        constants.power = m_config.power;
+
+        m_cBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(constants));
+        CheckResult(m_cBuffer->Create());
+
+        m_cBuffer->Copy(sizeof(constants), &constants);
+    }
+
     Begin(frame, renderSetup);
+    
+    DeferredRendererPassData* dpd = ObjCast<DeferredRendererPassData>(renderSetup.passData);
+    AssertDebug(dpd != nullptr);
+
+    const FramebufferRef& inputsFramebuffer = dpd->view.GetUnsafe()->GetOutputTarget().GetFramebuffer(RenderBucket::Opaque);
+    AssertDebug(inputsFramebuffer.IsValid());
     
     ShaderPropertySet shaderProperties;
     shaderProperties.Set(s_propHbilEnabled, CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
@@ -137,8 +148,24 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     }
 
     rq << SetCurrentShader(ShaderDesc(NAME("HBAO"), shaderProperties));
+    
+    uint32 numShaderUniforms = 0;
+    
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
+    rq << SetShaderUniform(numShaderUniforms++, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinearMipmap());
 
-    rq << SetShaderUniform(6, "UniformBuffer"_sh, m_uniformBuffer);
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferAlbedoTexture"_sh, inputsFramebuffer->GetAttachment(GTN_ALBEDO)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferNormalsTexture"_sh, inputsFramebuffer->GetAttachment(GTN_NORMALS)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMaterialTexture"_sh, inputsFramebuffer->GetAttachment(GTN_MATERIAL)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferVelocityTexture"_sh, inputsFramebuffer->GetAttachment(GTN_VELOCITY)->GetImageView());
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferDepthTexture"_sh, inputsFramebuffer->GetAttachment(GTN_DEPTH)->GetImageView());
+    
+    rq << SetShaderUniform(numShaderUniforms++, "GBufferMipChain"_sh, g_renderInterface->textureViewCache->GetOrCreate(dpd->mipChain));
+
+    rq << SetShaderUniform(numShaderUniforms++, "CamerasBuffer"_sh, g_renderInterface->gpuBuffers[GRB_CAMERAS]->GetBuffer(frameIndex), TShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()));
+    rq << SetShaderUniform(numShaderUniforms++, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
+
+    rq << SetShaderUniform(numShaderUniforms++, "UniformBuffer"_sh, m_cBuffer);
     
     RenderFullScreenQuad(frame, renderSetup);
 

@@ -57,12 +57,10 @@ protected:
     virtual void Resize_Internal(Vec2u newSize) override;
 
 private:
-    void CreateUniformBuffers();
-
     HBAOConfig m_config;
 
     DescriptorSetRef m_descriptorSet;
-    GpuBufferRef m_uniformBuffer;
+    GpuBufferRef m_cBuffer;
 };
 
 } // namespace Hyperion
