@@ -303,7 +303,12 @@ PSOutput PSMain(PSInput input)
         result = (result * (1.0 - light_rays.a)) + light_rays;
     }
 
-#if defined(DEBUG_REFLECTIONS) || defined(DEBUG_IRRADIANCE) || defined(PATHTRACER) || defined(DEBUG_VELOCITY) || defined(DEBUG_NORMALS)
+#if defined(DEBUG_REFLECTIONS)      \
+    || defined(DEBUG_IRRADIANCE)    \
+    || defined(PATHTRACER)          \
+    || defined(DEBUG_VELOCITY)      \
+    || defined(DEBUG_NORMALS)       \
+    || defined(DEBUG_AO)
     output.output_color = float4(0.0, 0.0, 0.0, 0.0);
 #else
     output.output_color = float4(result);

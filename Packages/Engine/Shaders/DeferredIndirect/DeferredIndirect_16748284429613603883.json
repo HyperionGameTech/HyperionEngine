@@ -38,13 +38,13 @@
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "RT_GI",
+      "Name": "HBAO_ENABLED",
       "Flags": 0,
       "Value": null,
       "EnumValues": []
     }, {
       "$Class": "ShaderProperty",
-      "Name": "HBAO_ENABLED",
+      "Name": "RT_GI",
       "Flags": 0,
       "Value": null,
       "EnumValues": []

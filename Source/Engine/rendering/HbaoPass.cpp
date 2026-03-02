@@ -49,39 +49,8 @@ struct HBAOUniforms
     float power;
 };
 
-static const ShaderPropertyId s_propHbilEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
+static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
 static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
-
-#pragma region Render commands
-
-struct CreateHBAOUniformBuffer : RenderCommand
-{
-    HBAOUniforms uniforms;
-    GpuBufferRef uniformBuffer;
-
-    CreateHBAOUniformBuffer(
-        const HBAOUniforms& uniforms,
-        const GpuBufferRef& uniformBuffer)
-        : uniforms(uniforms),
-          uniformBuffer(uniformBuffer)
-    {
-        Assert(uniforms.dimension.x * uniforms.dimension.y != 0);
-
-        Assert(this->uniformBuffer != nullptr);
-    }
-
-    virtual ~CreateHBAOUniformBuffer() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        CheckResultOrReturn(uniformBuffer->Create());
-        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-
-        return {};
-    }
-};
-
-#pragma endregion Render commands
 
 HBAO::HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(TextureFormat::RGBA8, extent, gbuffer),
@@ -119,7 +88,6 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
 
     if (!m_cBuffer)
     {
-        
         HBAOUniforms constants {};
         constants.dimension = ShouldRenderHalfRes() ? m_extent / 2 : m_extent;
         constants.radius = m_config.radius;
@@ -140,7 +108,7 @@ void HBAO::Render(Frame* frame, const RenderSetup& renderSetup)
     AssertDebug(inputsFramebuffer.IsValid());
     
     ShaderPropertySet shaderProperties;
-    shaderProperties.Set(s_propHbilEnabled, CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
+    shaderProperties.Set(s_propHBILEnabled, CoreApi::GetGlobalConfig().Get("Rendering.HBIL.Enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {

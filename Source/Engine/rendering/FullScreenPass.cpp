@@ -34,11 +34,11 @@
 
 namespace Hyperion {
 
-static const ShaderPropertyId s_propHalfRes = InternShaderProperty(ShaderProperty(NAME("HALFRES")));
+static const ShaderPropertyId s_propCheckerboarded = InternShaderProperty(ShaderProperty(NAME("CHECKERBOARDED")));
 
 static const Name s_nameFullScreenPass = NAME("FullScreenPass");
 
-struct MergeHalfResTexturesUniforms
+struct MergeCheckerboardUniforms
 {
     Vec2u dimensions;
 };
@@ -152,9 +152,9 @@ const GpuImageViewRef& FullScreenPass::GetFinalImageView() const
         return g_renderInterface->textureViewCache->GetOrCreate(m_temporalBlending->GetResultTexture());
     }
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
-        return m_mergeHalfResTexturesPass->GetFinalImageView();
+        return m_mergeCheckerboardPass->GetFinalImageView();
     }
 
     AttachmentBase* colorAttachment = GetAttachment(0);
@@ -170,7 +170,7 @@ const GpuImageViewRef& FullScreenPass::GetFinalImageView() const
 const GpuImageViewRef& FullScreenPass::GetPreviousFrameColorImageView() const
 {
     // If we're rendering at half res, we use the same image we render to but at an offset.
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
         AttachmentBase* colorAttachment = GetAttachment(0);
 
@@ -198,13 +198,12 @@ void FullScreenPass::Create()
 
     CreateFullScreenQuad();
     CreateFramebuffer();
-    CreateMergeHalfResTexturesPass();
+    CreateMergeCheckerboardPass();
     CreateTemporalBlending();
 
     /// @NOTE: if we use temporal blending and we're not rendering at half res, we need a history texture,
     ///        so we blit to it each frame after rendering and use it as input the next frame.
-    ///        (when using halfres, the merge pass handles history internally via checkerboarding)
-    if (UsesTemporalBlending() && !ShouldRenderHalfRes())
+    if (UsesTemporalBlending() && !ShouldRenderCheckerboarded())
     {
         CreateHistoryTexture();
     }
@@ -277,10 +276,10 @@ void FullScreenPass::Resize_Internal(Vec2u newSize)
 
     m_temporalBlending.Reset();
 
-    CreateMergeHalfResTexturesPass();
+    CreateMergeCheckerboardPass();
     CreateTemporalBlending();
 
-    if (UsesTemporalBlending() && !ShouldRenderHalfRes())
+    if (UsesTemporalBlending() && !ShouldRenderCheckerboarded())
     {
         CreateHistoryTexture();
     }
@@ -326,17 +325,21 @@ void FullScreenPass::CreateFramebuffer()
 
     Vec2u framebufferExtent = m_extent;
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
         static constexpr double ResolutionScale = 0.5;
 
         const uint32 numPixels = framebufferExtent.x * framebufferExtent.y;
-        const int numPixelsScaled = MathUtil::Ceil(numPixels * ResolutionScale);
+        const int numPixelsScaled = ByteUtil::AlignAs(MathUtil::Ceil(numPixels * ResolutionScale), 16);
 
         const Vec2i reshapedExtent = MathUtil::ReshapeExtent(Vec2i { numPixelsScaled, 1 });
 
         // double the width as we swap between the two halves when rendering (checkerboarded)
         framebufferExtent = Vec2u { uint32(reshapedExtent.x * 2), uint32(reshapedExtent.y) };
+    }
+    else if (ShouldRenderHalfRes())
+    {
+        framebufferExtent /= 2;
     }
 
     RenderTargetDesc renderTargetDesc;
@@ -364,7 +367,7 @@ void FullScreenPass::CreateFramebuffer()
     Attachment* attachment = m_framebuffer->AddAttachment(
         0,
         attachmentImage,
-        ShouldRenderHalfRes() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
+        ShouldRenderCheckerboarded() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
         StoreOperation::STORE);
 
     CheckResult(attachment->Create());
@@ -385,8 +388,8 @@ void FullScreenPass::CreateTemporalBlending()
         TextureFormat::RGBA8,
         TemporalBlendTechnique::TECHNIQUE_3,
         DefaultTemporalBlendingFeedback,
-        ShouldRenderHalfRes()
-            ? m_mergeHalfResTexturesPass->GetFinalImageView()
+        ShouldRenderCheckerboarded()
+            ? m_mergeCheckerboardPass->GetFinalImageView()
             : GetAttachment(0)->GetImageView(),
         m_gbuffer);
 
@@ -416,33 +419,33 @@ void FullScreenPass::CreateHistoryTexture()
     InitObject(m_historyTexture);
 }
 
-void FullScreenPass::CreateMergeHalfResTexturesPass()
+void FullScreenPass::CreateMergeCheckerboardPass()
 {
     HYP_SCOPE;
 
-    if (!ShouldRenderHalfRes())
+    if (!ShouldRenderCheckerboarded())
     {
         return;
     }
 
-    MergeHalfResTexturesUniforms uniforms {};
+    MergeCheckerboardUniforms uniforms {};
     uniforms.dimensions = m_extent;
 
-    if (!m_mergeHalfResTexturesUniformBuffer)
+    if (!m_mergeCheckerboardUniformBuffer)
     {
-        m_mergeHalfResTexturesUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-        CheckResult(m_mergeHalfResTexturesUniformBuffer->Create());
+        m_mergeCheckerboardUniformBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        CheckResult(m_mergeCheckerboardUniformBuffer->Create());
     }
 
-    m_mergeHalfResTexturesUniformBuffer->Copy(sizeof(uniforms), &uniforms);
+    m_mergeCheckerboardUniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
-    m_mergeHalfResTexturesPass = MakeUnique<FullScreenPass>(
-        ShaderDesc(NAME("MergeHalfResTextures")),
+    m_mergeCheckerboardPass = MakeUnique<FullScreenPass>(
+        ShaderDesc(NAME("MergeCheckerboard")),
         m_imageFormat,
         m_extent,
         nullptr);
 
-    m_mergeHalfResTexturesPass->Create();
+    m_mergeCheckerboardPass->Create();
 }
 
 void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderSetup)
@@ -458,13 +461,13 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
     
     ShaderDesc shaderDesc;
     shaderDesc.name = NAME("BlitTexture");
-    shaderDesc.properties.Add(s_propHalfRes);
+    shaderDesc.properties.Set(s_propCheckerboarded, ShouldRenderCheckerboarded());
 
     rq << SetCurrentShader(shaderDesc);
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
@@ -514,7 +517,7 @@ void FullScreenPass::CopyResultToPreviousTexture(Frame* frame, const RenderSetup
     rq << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
 }
 
-void FullScreenPass::MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup)
+void FullScreenPass::MergeCheckerboard(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -523,19 +526,19 @@ void FullScreenPass::MergeHalfResTextures(Frame* frame, const RenderSetup& rende
 
     RenderQueue& rq = frame->renderQueue;
 
-    Assert(m_mergeHalfResTexturesPass != nullptr);
+    Assert(m_mergeCheckerboardPass != nullptr);
 
-    m_mergeHalfResTexturesPass->Begin(frame, renderSetup);
+    m_mergeCheckerboardPass->Begin(frame, renderSetup);
 
     rq << SetShaderUniform(0, "SamplerLinear"_sh, g_renderInterface->placeholderData->GetSamplerLinear());
     rq << SetShaderUniform(1, "SamplerNearest"_sh, g_renderInterface->placeholderData->GetSamplerNearest());
     rq << SetShaderUniform(2, "WorldsBuffer"_sh, g_renderInterface->gpuBuffers[GRB_WORLDS]->GetBuffer(frameIndex));
     rq << SetShaderUniform(3, "InTexture"_sh, GetAttachment(0)->GetImageView());
-    rq << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeHalfResTexturesUniformBuffer);
+    rq << SetShaderUniform(4, "UniformBuffer"_sh, m_mergeCheckerboardUniformBuffer);
 
-    m_mergeHalfResTexturesPass->RenderFullScreenQuad(frame, renderSetup);
+    m_mergeCheckerboardPass->RenderFullScreenQuad(frame, renderSetup);
 
-    m_mergeHalfResTexturesPass->End(frame, renderSetup);
+    m_mergeCheckerboardPass->End(frame, renderSetup);
 }
 
 void FullScreenPass::Render(Frame* frame, const RenderSetup& renderSetup)
@@ -552,14 +555,14 @@ void FullScreenPass::Render(Frame* frame, const RenderSetup& renderSetup)
 
     RenderToFramebuffer(frame, renderSetup, m_framebuffer);
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
-        MergeHalfResTextures(frame, renderSetup);
+        MergeCheckerboard(frame, renderSetup);
     }
 
     if (UsesTemporalBlending())
     {
-        if (!ShouldRenderHalfRes())
+        if (!ShouldRenderCheckerboarded())
         {
             CopyResultToPreviousTexture(frame, renderSetup);
         }
@@ -636,7 +639,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         DrawHistoryTexture(frame, renderSetup);
     }
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
         Assert(framebuffer != nullptr, "Framebuffer must be set before rendering to it, if rendering at half res");
 
@@ -701,7 +704,7 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
         DrawHistoryTexture(frame, renderSetup);
     }
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
@@ -746,14 +749,14 @@ void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)
 
     rq << EndFramebuffer(m_framebuffer);
 
-    if (ShouldRenderHalfRes())
+    if (ShouldRenderCheckerboarded())
     {
-        MergeHalfResTextures(frame, renderSetup);
+        MergeCheckerboard(frame, renderSetup);
     }
 
     if (UsesTemporalBlending())
     {
-        if (!ShouldRenderHalfRes())
+        if (!ShouldRenderCheckerboarded())
         {
             CopyResultToPreviousTexture(frame, renderSetup);
         }

@@ -141,6 +141,11 @@ protected:
         return false;
     }
 
+    virtual bool ShouldRenderCheckerboarded() const
+    {
+        return false;
+    }
+
     virtual bool ShouldRenderHalfRes() const
     {
         return false;
@@ -150,7 +155,7 @@ protected:
 
     void DrawHistoryTexture(Frame* frame, const RenderSetup& renderSetup);
     void CopyResultToPreviousTexture(Frame* frame, const RenderSetup& renderSetup);
-    void MergeHalfResTextures(Frame* frame, const RenderSetup& renderSetup);
+    void MergeCheckerboard(Frame* frame, const RenderSetup& renderSetup);
 
     virtual void Resize_Internal(Vec2u newSize);
 
@@ -177,13 +182,13 @@ protected:
 private:
     void CreateTemporalBlending();
     void CreateHistoryTexture();
-    void CreateMergeHalfResTexturesPass();
+    void CreateMergeCheckerboardPass();
 
     bool m_isInitialized;
 
     // Used for half-res rendering
-    UniquePtr<FullScreenPass> m_mergeHalfResTexturesPass;
-    GpuBufferRef m_mergeHalfResTexturesUniformBuffer;
+    UniquePtr<FullScreenPass> m_mergeCheckerboardPass;
+    GpuBufferRef m_mergeCheckerboardUniformBuffer;
 
     ThreadSignal m_threadSignal; // for render commands
 };

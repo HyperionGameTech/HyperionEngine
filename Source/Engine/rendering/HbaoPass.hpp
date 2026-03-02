@@ -47,11 +47,11 @@ protected:
     virtual bool UsesTemporalBlending() const override
     {
         return false;
-    } // m_config.useTemporalBlending; }
+    }
 
     virtual bool ShouldRenderHalfRes() const override
     {
-        return false;
+        return true;
     }
 
     virtual void Resize_Internal(Vec2u newSize) override;

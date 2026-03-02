@@ -24,8 +24,8 @@
       "Enabled": true
     },
     "HBAO": {
-      "Radius": 2.500000,
-      "Power": 0.800000,
+      "Radius": 4.000000,
+      "Power": 5.000000,
       "UseTemporalBlending": false,
       "Enabled": true
     },
@@ -67,7 +67,8 @@
         "EnvGridProbes": false
       },
       "Irradiance": false,
-      "Normals": false
+      "Normals": false,
+      "AO": false
     },
     "Vulkan": {
       "DebugLayers": false

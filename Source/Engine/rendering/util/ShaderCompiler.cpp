@@ -317,6 +317,7 @@ static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(Shad
 static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
 static const ShaderPropertyId s_propDebugVelocity = InternShaderProperty(ShaderProperty(NAME("DEBUG_VELOCITY")));
 static const ShaderPropertyId s_propDebugNormals = InternShaderProperty(ShaderProperty(NAME("DEBUG_NORMALS")));
+static const ShaderPropertyId s_propDebugAO = InternShaderProperty(ShaderProperty(NAME("DEBUG_AO")));
 
 void MergeGlobalShaderProperties(ShaderPropertySet& out)
 {
@@ -352,6 +353,9 @@ void MergeGlobalShaderProperties(ShaderPropertySet& out)
 
     if (globalConfig.Get("Rendering.Debug.Normals").ToBool(false))
         out.Add(s_propDebugNormals);
+
+    if (globalConfig.Get("Rendering.Debug.AO").ToBool(false))
+        out.Add(s_propDebugAO);
 }
 
 void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
@@ -376,20 +380,12 @@ void MergeGlobalShaderProperties(ShaderVariantPerms& inOutPerm)
 }
 
 static bool SatisfiesRequested(
-    const ShaderPropertySet& requestedProperties, const VertexAttributeSet& requestedVertexAttributes,
+    const ShaderPropertySet& requestedProperties,
+    const VertexAttributeSet& requestedVertexAttributes,
     const Shader& candidate)
 {
-    if (candidate.properties != requestedProperties)
-    {
-        return false;
-    }
-
-    if (requestedVertexAttributes == candidate.vertexAttributes)
-    {
-        return true;
-    }
-
-    return false;
+    return candidate.properties == requestedProperties
+        && candidate.vertexAttributes == requestedVertexAttributes;
 }
 
 #pragma endregion Helpers
