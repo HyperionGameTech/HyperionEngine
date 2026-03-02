@@ -6,6 +6,8 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanRenderInterface.hpp>
 
+#include <rendering/util/DeletionQueue.hpp>
+
 #include <Core/memory/Memory.hpp>
 
 #include <Core/debug/Debug.hpp>
@@ -24,15 +26,18 @@ VulkanPipelineBase::VulkanPipelineBase()
 
 VulkanPipelineBase::~VulkanPipelineBase()
 {
-    if (m_handle != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(g_renderInterface->GetDevice()->GetDevice(), m_handle, nullptr);
-        m_handle = VK_NULL_HANDLE;
-    }
+    // sanity check to ensure validity of handle and layout are the same
+    AssertDebug((m_handle == VK_NULL_HANDLE) == (m_layout == VK_NULL_HANDLE));
 
-    if (m_layout != VK_NULL_HANDLE)
+    if (m_handle != VK_NULL_HANDLE && m_layout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(g_renderInterface->GetDevice()->GetDevice(), m_layout, nullptr);
+        EnqueueDeletion(FunctionWrapper<Proc<void()>>([handle = m_handle, layout = m_layout]()
+            {
+                vkDestroyPipeline(g_renderInterface->GetDevice()->GetDevice(), handle, nullptr);
+                vkDestroyPipelineLayout(g_renderInterface->GetDevice()->GetDevice(), layout, nullptr);
+            }));
+
+        m_handle = VK_NULL_HANDLE;
         m_layout = VK_NULL_HANDLE;
     }
 }

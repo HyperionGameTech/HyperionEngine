@@ -216,6 +216,8 @@ void VulkanGpuBuffer::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     ResourceState newState) const
 {
+    AssertDebug(!commandBuffer->IsInRenderPass());
+
     if (!IsCreated())
     {
         HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
@@ -249,6 +251,8 @@ void VulkanGpuBuffer::InsertBarrier(
     ResourceState newState,
     ShaderModuleType shaderType) const
 {
+    AssertDebug(!commandBuffer->IsInRenderPass());
+
     if (!IsCreated())
     {
         HYP_LOG(RenderingBackend, Warning, "Attempt to insert a resource barrier but buffer was not created");
@@ -282,6 +286,8 @@ void VulkanGpuBuffer::CopyFrom(
     const VulkanGpuBuffer* srcBuffer,
     uint32 count)
 {
+    AssertDebug(!commandBuffer->IsInRenderPass());
+
     if (!IsCreated())
     {
         HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but dst buffer was not created");
@@ -313,6 +319,8 @@ void VulkanGpuBuffer::CopyFrom(
     uint32 srcOffset, uint32 dstOffset,
     uint32 count)
 {
+    AssertDebug(!commandBuffer->IsInRenderPass());
+
     if (!IsCreated())
     {
         HYP_LOG(RenderingBackend, Warning, "Attempt to copy from buffer but dst buffer was not created");

@@ -85,11 +85,9 @@ void DefaultGame::OnLaunch_Impl()
     Vec2u viewportSize = Vec2u(m_camera->GetDimensions());
 
     ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK | ViewFlags::MATCH_CAMERA_DIMENSIONS,
-        .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
+        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::MATCH_CAMERA_DIMENSIONS,
         .renderTargetDesc = { .extent = viewportSize },
-        .camera = m_camera,
-        .readbackTextureFormat = TextureFormat::R10G10B10A2
+        .camera = m_camera
     };
 
     Handle<View> view = MakeHandle<View>(viewDesc);

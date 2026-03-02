@@ -164,6 +164,11 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
 
     const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
 
+    if (m_gpuBuffer.IsValid())
+    {
+        EnqueueDeletion(std::move(m_gpuBuffer));
+    }
+
     m_gpuBuffer = g_renderInterface->MakeGpuBuffer(bufferType, gpuBufferSize);
 
 #if HYP_DEBUG_MODE

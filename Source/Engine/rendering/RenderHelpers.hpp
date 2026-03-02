@@ -27,9 +27,11 @@ uint32 MipmapSize(uint32 srcSize, int lod);
 class SingleTimeCommands
 {
 public:
-    HYP_API virtual ~SingleTimeCommands() = default;
+    HYP_DEF_POOL_NEW_DELETE(g_renderPool);
 
-    void Push(Proc<void(RenderQueue& renderQueue)>&& fn)
+    virtual ~SingleTimeCommands() = default;
+
+    void Push(Proc<void(RenderQueue&)>&& fn)
     {
         m_functions.PushBack(std::move(fn));
     }
@@ -37,7 +39,7 @@ public:
     virtual RendererResult Execute() = 0;
 
 protected:
-    Array<Proc<void(RenderQueue& renderQueue)>> m_functions;
+    Array<Proc<void(RenderQueue&)>, RenderAllocator> m_functions;
 };
 
 } // namespace Hyperion

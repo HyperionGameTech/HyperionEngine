@@ -81,7 +81,6 @@ PassData* ParticleVolumeRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     PassData* pd = new PassData();
     pd->view = MakeWeakRef(view);
-    pd->viewport = view->GetViewport();
 
     return pd;
 }

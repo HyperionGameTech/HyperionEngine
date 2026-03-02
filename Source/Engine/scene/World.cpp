@@ -208,7 +208,6 @@ void World::Init()
             .flags = ViewFlags::RAY_TRACING | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::ALL_WORLD_SCENES | ViewFlags::COLLECT_ALL_ENTITIES
                 | ViewFlags::NO_FRUSTUM_CULLING,
-            .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
             .renderTargetDesc = renderTargetDesc,
             .camera = camera
         };

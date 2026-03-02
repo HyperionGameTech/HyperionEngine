@@ -180,7 +180,6 @@ void BakerBase::Initialize()
                 | ViewFlags::RAY_TRACING
                 | ViewFlags::NO_DRAW_CALLS
                 | ViewFlags::NOT_MULTI_BUFFERED,
-            .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
             .renderTargetDesc = renderTargetDesc,
             .scenes = { m_scene },
             .camera = camera

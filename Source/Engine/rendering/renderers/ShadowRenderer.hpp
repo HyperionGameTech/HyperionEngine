@@ -75,6 +75,8 @@ private:
         FixedArray<View*, MaxShadowMapCascades> shadowViewsDynamic;
         FixedArray<View*, MaxShadowMapCascades> shadowViewsStatic;
 
+        FixedArray<FramebufferRef, MaxShadowMapCascades> shadowMapFramebuffers;
+
         UniquePtr<FullScreenPass> combineShadowMapsPass; // Pass to combine shadow maps for this light (optional)
 
         GpuImageRef combinedShadowMapsBlurred;

@@ -80,6 +80,7 @@ private:
     void UpdateViewport(VulkanCommandBuffer* commandBuffer, const Viewport& viewport);
 
     Viewport m_viewport;
+    VulkanRenderPass* m_renderPass;
 };
 
 } // namespace Hyperion

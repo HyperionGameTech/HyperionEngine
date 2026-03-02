@@ -94,6 +94,10 @@ struct HYP_API RenderSetup
 
     Swapchain* swapchain;
 
+    // override render target to use this framebuffer, even if View has an OutputTarget.
+    Framebuffer* framebuffer;
+    Viewport viewport;
+
     PassData* passData;
 
     RenderSetup* prev;
@@ -107,6 +111,7 @@ public:
           light(nullptr),
           volume(nullptr),
           swapchain(nullptr),
+          framebuffer(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -120,6 +125,7 @@ public:
           light(nullptr),
           volume(nullptr),
           swapchain(nullptr),
+          framebuffer(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -134,6 +140,7 @@ public:
           light(nullptr),
           volume(nullptr),
           swapchain(nullptr),
+          framebuffer(nullptr),
           passData(nullptr),
           prev(nullptr)
     {
@@ -258,7 +265,6 @@ public:
     virtual ~PassData();
 
     WeakHandle<View> view;
-    Viewport viewport;
 
     CullData cullData;
 

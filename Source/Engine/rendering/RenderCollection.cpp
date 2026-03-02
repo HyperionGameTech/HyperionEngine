@@ -466,7 +466,6 @@ static inline void UpdateRefs(T& renderProxyList)
 RenderProxyList::RenderProxyList(AllocatorType* pAllocator, bool isShared, bool useRefCounting)
     : isShared(isShared),
       useRefCounting(useRefCounting),
-      viewport(Viewport { Vec2u::One(), Vec2i::Zero() }),
       priority(0),
       resourceTrackers {}
 {
@@ -1003,11 +1002,17 @@ void RenderCollector::ExecuteDrawCalls(
     if (renderSetup.view->GetFlags() & ViewFlags::GBUFFER)
     {
         // Pass NULL framebuffer for GBuffer rendering, as it will be handled by DeferredRenderer outside of this scope.
-        ExecuteDrawCalls(frame, renderSetup, FramebufferRef::Null(), bucketBits, commit);
+        ExecuteDrawCalls(frame, renderSetup, nullptr, bucketBits, commit);
     }
     else
     {
-        const FramebufferRef& framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
+        Framebuffer* framebuffer = renderSetup.framebuffer;
+    
+        if (!framebuffer)
+        {
+            framebuffer = renderSetup.view->GetOutputTarget().GetFramebuffer();
+        }
+
         AssertDebug(framebuffer != nullptr, "Must have a valid framebuffer for rendering");
 
         ExecuteDrawCalls(frame, renderSetup, framebuffer, bucketBits, commit);
@@ -1017,7 +1022,7 @@ void RenderCollector::ExecuteDrawCalls(
 void RenderCollector::ExecuteDrawCalls(
     Frame* frame,
     const RenderSetup& renderSetup,
-    const FramebufferRef& framebuffer,
+    Framebuffer* framebuffer,
     uint32 bucketBits,
     bool commit)
 {

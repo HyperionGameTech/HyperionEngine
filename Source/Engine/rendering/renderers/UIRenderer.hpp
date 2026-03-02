@@ -33,7 +33,7 @@ public:
     UIRenderCollector() = default;
     ~UIRenderCollector() = default;
 
-    void ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, const FramebufferRef& framebuffer, uint32 bucketBits);
+    void ExecuteDrawCalls(Frame* frame, const RenderSetup& renderSetup, Framebuffer* framebuffer, uint32 bucketBits);
 };
 
 class UIRenderer : public RendererBase

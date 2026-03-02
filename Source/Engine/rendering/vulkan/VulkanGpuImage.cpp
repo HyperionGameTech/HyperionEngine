@@ -509,6 +509,8 @@ void VulkanGpuImage::InsertBarrier(
     ResourceState newState,
     ShaderModuleType shaderModuleType)
 {
+    AssertDebug(!commandBuffer->IsInRenderPass());
+
     // entire image
     ImageSubResource subResource {};
     subResource.baseMipLevel = 0;
@@ -530,6 +532,7 @@ void VulkanGpuImage::InsertBarrier(
     ShaderModuleType shaderModuleType)
 {
     AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
+    AssertDebug(!commandBuffer->IsInRenderPass());
 
     if (m_handle == VK_NULL_HANDLE)
     {

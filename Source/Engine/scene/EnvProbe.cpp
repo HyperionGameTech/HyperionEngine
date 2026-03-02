@@ -312,7 +312,6 @@ void EnvProbe::CreateView()
             | ViewFlags::NO_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
-        .viewport = Viewport { .extent = m_dimensions, .position = Vec2i::Zero() },
         .renderTargetDesc = renderTargetDesc,
         .scenes = {},
         .camera = m_camera,
