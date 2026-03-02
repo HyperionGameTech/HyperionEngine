@@ -133,6 +133,36 @@ public:
         m_depthWrite = depthWrite;
     }
 
+    HYP_FORCE_INLINE bool GetDepthClamp() const
+    {
+        return m_depthClamp;
+    }
+
+    HYP_FORCE_INLINE void SetDepthClamp(bool depthClamp)
+    {
+        m_depthClamp = depthClamp;
+    }
+
+    HYP_FORCE_INLINE int GetDepthBias() const
+    {
+        return m_depthBias;
+    }
+
+    HYP_FORCE_INLINE void SetDepthBias(int depthBias)
+    {
+        m_depthBias = depthBias;
+    }
+
+    HYP_FORCE_INLINE float GetDepthBiasSlope() const
+    {
+        return m_depthBiasSlope;
+    }
+
+    HYP_FORCE_INLINE void SetDepthBiasSlope(float depthBiasSlope)
+    {
+        m_depthBiasSlope = depthBiasSlope;
+    }
+
     HYP_FORCE_INLINE const Optional<StencilFunction>& GetStencilFunction() const
     {
         return m_stencilFunction;
@@ -223,9 +253,13 @@ protected:
 
     bool m_depthTest = true;
     bool m_depthWrite = true;
+    bool m_depthClamp = false;
 
     bool m_stencilWrite = false;
     Optional<StencilFunction> m_stencilFunction;
+
+    int m_depthBias = 0;
+    float m_depthBiasSlope = 0.0f;
 
     ShaderInstanceRef m_shaderInstance;
     RenderTargetDesc m_renderTargetDesc;

@@ -24,11 +24,13 @@ enum MaterialAttributeFlags : uint8
 
     MAF_DEPTH_WRITE = 0x1,
     MAF_DEPTH_TEST = 0x2,
-    MAF_STENCIL_TEST = 0x4,
-    MAF_ALPHA_DISCARD = 0x8
+    MAF_DEPTH_BIAS = 0x4,  //!< Enable depth bias settings.
+    MAF_DEPTH_CLAMP = 0x8,
+    MAF_STENCIL_TEST = 0x10,
+    MAF_ALPHA_DISCARD = 0x20
 };
 
-HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags)
+HYP_MAKE_ENUM_FLAGS(MaterialAttributeFlags);
 
 HYP_STRUCT()
 struct MaterialAttributes
@@ -62,6 +64,12 @@ struct MaterialAttributes
     HYP_FIELD()
     uint8 stencilReference = 0;
 
+    HYP_FIELD()
+    int32 depthBias = 0;
+
+    HYP_FIELD()
+    float depthBiasSlope = 0.0f;
+
     HYP_FIELD(Transient)
     uint32 textureMask = 0;
 
@@ -76,21 +84,14 @@ struct MaterialAttributes
             && flags == other.flags
             && stencilFunction == other.stencilFunction
             && stencilReference == other.stencilReference
+            && depthBias == other.depthBias
+            && MathUtil::ApproxEqual(depthBiasSlope, other.depthBiasSlope)
             && textureMask == other.textureMask;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MaterialAttributes& other) const
     {
-        return shaderName != other.shaderName
-            || shaderProperties != other.shaderProperties
-            || bucket != other.bucket
-            || fillMode != other.fillMode
-            || blendFunction != other.blendFunction
-            || cullFaces != other.cullFaces
-            || flags != other.flags
-            || stencilFunction != other.stencilFunction
-            || stencilReference != other.stencilReference
-            || textureMask != other.textureMask;
+        return !(operator==(other));
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -105,6 +106,8 @@ struct MaterialAttributes
         hc.Add(flags);
         hc.Add(stencilFunction);
         hc.Add(stencilReference);
+        hc.Add(depthBias);
+        hc.Add(depthBiasSlope);
         hc.Add(textureMask);
 
         return hc;

@@ -12,9 +12,9 @@
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/RenderInterface.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
-#include <rendering/SSRRenderer.hpp>
+#include <rendering/passes/SSRPass.hpp>
 #include <rendering/SSGI.hpp>
-#include <rendering/HbaoPass.hpp>
+#include <rendering/HBAO.hpp>
 #include <rendering/DepthOfField.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
@@ -98,6 +98,18 @@ static const ShaderPropertyId s_propHasDiffuseMap = InternShaderProperty(ShaderP
 static const ShaderPropertyId s_propProbeSideLengthIrradiance = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_IRRADIANCE"), int(DDGI::IrradianceOctahedronSize)));
 static const ShaderPropertyId s_propProbeSideLengthDepth = InternShaderProperty(ShaderProperty(NAME("DDGI_PROBE_SIDE_LENGTH_DEPTH"), int(DDGI::DepthOctahedronSize)));
 
+static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
+static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
+static const ShaderPropertyId s_propSSAOEnabled = InternShaderProperty(ShaderProperty(NAME("SSAO_ENABLED")));
+static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
+
+static const ShaderPropertyId s_propRayTracingReflections = InternShaderProperty(ShaderProperty(NAME("RT_REFLECTIONS")));
+static const ShaderPropertyId s_propRayTracingGlobalIllumination = InternShaderProperty(ShaderProperty(NAME("RT_GI")));
+static const ShaderPropertyId s_propPathTracer = InternShaderProperty(ShaderProperty(NAME("PATHTRACER")));
+
+static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
+static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
+
 static constexpr StringHash GBufferTextureNames[GTN_MAX] = {
     "GBufferAlbedoTexture"_sh,
     "GBufferNormalsTexture"_sh,
@@ -148,6 +160,7 @@ static void GetDeferredShaderProperties(
     DEF_STATIC_CONFIGURATION_VALUE(rayTracingGlobalIllumination, "Rendering.RayTracing.GI.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbil, "Rendering.HBIL.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(hbao, "Rendering.HBAO.Enabled");
+    DEF_STATIC_CONFIGURATION_VALUE(ssao, "Rendering.SSAO.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(ssgi, "Rendering.SSGI.Enabled");
     DEF_STATIC_CONFIGURATION_VALUE(pathTracing, "Rendering.RayTracing.PathTracing.Enabled");
 
@@ -156,19 +169,15 @@ static void GetDeferredShaderProperties(
 
 #undef DEF_STATIC_CONFIGURATION_VALUE
 
-    static const ShaderPropertyId s_propHBAOEnabled = InternShaderProperty(ShaderProperty(NAME("HBAO_ENABLED")));
-    static const ShaderPropertyId s_propHBILEnabled = InternShaderProperty(ShaderProperty(NAME("HBIL_ENABLED")));
-    static const ShaderPropertyId s_propSSGIEnabled = InternShaderProperty(ShaderProperty(NAME("SSGI_ENABLED")));
-
-    static const ShaderPropertyId s_propRayTracingReflections = InternShaderProperty(ShaderProperty(NAME("RT_REFLECTIONS")));
-    static const ShaderPropertyId s_propRayTracingGlobalIllumination = InternShaderProperty(ShaderProperty(NAME("RT_GI")));
-    static const ShaderPropertyId s_propPathTracer = InternShaderProperty(ShaderProperty(NAME("PATHTRACER")));
-
-    static const ShaderPropertyId s_propDebugReflections = InternShaderProperty(ShaderProperty(NAME("DEBUG_REFLECTIONS")));
-    static const ShaderPropertyId s_propDebugIrradiance = InternShaderProperty(ShaderProperty(NAME("DEBUG_IRRADIANCE")));
-
-    outShaderProperties.Set(s_propHBAOEnabled, hbao);
-
+    if (ssao)
+    {
+        outShaderProperties.Add(s_propSSAOEnabled);
+    }
+    else if (hbao)
+    {
+        outShaderProperties.Add(s_propHBAOEnabled);
+    }
+    
     if (mode == DPM_INDIRECT_LIGHTING)
     {
         outShaderProperties.Set(s_propRayTracingReflections, s_renderConfig.rayTracing && rayTracingReflections);
@@ -573,7 +582,7 @@ void TonemapPass::Render(Frame* frame, const RenderSetup& rs)
     }
 
     Texture* ssrTexture = dpd->reflectionsPass->ShouldRenderSSR()
-        ? dpd->reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()
+        ? dpd->reflectionsPass->GetSSRPass()->GetFinalResultTexture()
         : nullptr;
 
     if (ssrTexture)
@@ -1010,7 +1019,7 @@ ReflectionsPass::~ReflectionsPass()
 {
     EnqueueDeletion(std::move(m_mipChainImageView));
 
-    m_ssrRenderer.Reset();
+    m_ssrPass.Reset();
 }
 
 void ReflectionsPass::Create()
@@ -1019,7 +1028,7 @@ void ReflectionsPass::Create()
 
     FullScreenPass::Create();
 
-    CreateSSRRenderer();
+    CreateSSRPass();
 }
 
 bool ReflectionsPass::ShouldRenderSSR() const
@@ -1030,10 +1039,10 @@ bool ReflectionsPass::ShouldRenderSSR() const
     return s_ssrEnabled.ToBool(true) && !s_rayTracingReflectionsEnabled.ToBool(false);
 }
 
-void ReflectionsPass::CreateSSRRenderer()
+void ReflectionsPass::CreateSSRPass()
 {
-    m_ssrRenderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView);
-    m_ssrRenderer->Create();
+    m_ssrPass = MakeUnique<SSRPass>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mipChainImageView);
+    m_ssrPass->Create();
 }
 
 void ReflectionsPass::Resize_Internal(Vec2u newSize)
@@ -1071,7 +1080,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     if (ShouldRenderSSR())
     {
-        m_ssrRenderer->Render(frame, rs);
+        m_ssrPass->Render(frame, rs);
     }
 
     rq << SetTopology(TOP_TRIANGLES);
@@ -1175,7 +1184,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
 
     if (ShouldRenderSSR())
     {
-        const Handle<Texture>& ssrTexture = m_ssrRenderer->GetFinalResultTexture();
+        const Handle<Texture>& ssrTexture = m_ssrPass->GetFinalResultTexture();
 
         // render SSR to screen
         RenderTargetDesc renderTargetDesc = rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc();
@@ -1392,8 +1401,11 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         InitObject(passData.mipChain);
 
-        passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
-        passData.hbao->Create();
+        if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
+        {
+            passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+            passData.hbao->Create();
+        }
 
         // m_dofBlur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
         // m_dofBlur->Create();
@@ -1527,8 +1539,11 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredRendere
     passData.directPass->Resize(newSize);
     passData.indirectPass->Resize(newSize);
 
-    passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
-    passData.hbao->Create();
+    if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
+    {
+        passData.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), passData.viewport.extent, gbuffer);
+        passData.hbao->Create();
+    }
 
     passData.reflectionsPass.Reset();
     passData.reflectionsPass = MakeUnique<ReflectionsPass>(
@@ -1991,7 +2006,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    if (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled)
+    if (!m_rendererConfig.ssaoEnabled && (m_rendererConfig.hbaoEnabled || m_rendererConfig.hbilEnabled))
     {
         passData.hbao->Render(frame, rs);
     }

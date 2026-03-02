@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/HbaoPass.hpp>
+#include <rendering/HBAO.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -32,7 +32,7 @@
 
 #include <engine/EngineDriver.hpp>
 
-#include <HbaoPass.generated.inl>
+#include <HBAO.generated.inl>
 
 namespace Hyperion {
 

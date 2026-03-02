@@ -97,9 +97,21 @@ bool GraphicsPipelineBase::MatchesSignature(
         || materialAttributes.cullFaces != m_faceCullMode
         || materialAttributes.fillMode != m_fillMode
         || bool(materialAttributes.flags & MAF_DEPTH_TEST) != m_depthTest
-        || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite)
+        || bool(materialAttributes.flags & MAF_DEPTH_WRITE) != m_depthWrite
+        || bool(materialAttributes.flags & MAF_DEPTH_CLAMP) != m_depthClamp)
     {
         return false;
+    }
+
+    if (materialAttributes.flags & MAF_DEPTH_BIAS)
+    {
+        if (m_depthBias != materialAttributes.depthBias || !MathUtil::ApproxEqual(m_depthBiasSlope, materialAttributes.depthBiasSlope))
+            return false;
+    }
+    else
+    {
+        if (m_depthBias != 0)
+            return false;
     }
 
     if (materialAttributes.flags & MAF_STENCIL_TEST)

@@ -200,7 +200,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     viewportState.pScissors = &vkScissor;
 
     VkPipelineRasterizationStateCreateInfo rasterizer { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
-    rasterizer.depthClampEnable = VK_FALSE;
+    rasterizer.depthClampEnable = m_depthClamp ? VK_TRUE : VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
@@ -232,9 +232,9 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    /* Also visit for shadow mapping! Along with other optional parameters such as
-     * depthBiasClamp, slopeFactor etc. */
-    rasterizer.depthBiasEnable = VK_FALSE;
+    rasterizer.depthBiasEnable = m_depthBias != 0 ? VK_TRUE : VK_FALSE;
+    rasterizer.depthBiasConstantFactor = float(m_depthBias);
+    rasterizer.depthBiasSlopeFactor = m_depthBiasSlope;
 
     VkPipelineMultisampleStateCreateInfo multisampling { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
     multisampling.sampleShadingEnable = VK_FALSE;

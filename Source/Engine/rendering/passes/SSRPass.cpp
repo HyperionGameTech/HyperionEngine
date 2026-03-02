@@ -2,7 +2,7 @@
 
 #include <RenderingPch.hpp>
 
-#include <rendering/SSRRenderer.hpp>
+#include <rendering/passes/SSRPass.hpp>
 #include <rendering/RendererBase.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -28,7 +28,7 @@
 
 #include <Core/threading/Threads.hpp>
 
-#include <SSRRenderer.generated.inl>
+#include <SSRPass.generated.inl>
 
 namespace Hyperion {
 
@@ -51,41 +51,9 @@ struct SSRUniforms
         screenEdgeFadeEnd;
 };
 
-#pragma region Render commands
+#pragma region SSRPass
 
-struct CreateSSRUniformBuffer : RenderCommand
-{
-    SSRUniforms uniforms;
-    GpuBufferRef uniformBuffer;
-
-    CreateSSRUniformBuffer(
-        const SSRUniforms& uniforms,
-        const GpuBufferRef& uniformBuffer)
-        : uniforms(uniforms),
-          uniformBuffer(uniformBuffer)
-    {
-        Assert(uniforms.dimensions.x * uniforms.dimensions.y != 0);
-
-        Assert(this->uniformBuffer != nullptr);
-    }
-
-    virtual ~CreateSSRUniformBuffer() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        CheckResultOrReturn(uniformBuffer->Create());
-
-        uniformBuffer->Copy(sizeof(uniforms), &uniforms);
-
-        return {};
-    }
-};
-
-#pragma endregion Render commands
-
-#pragma region SSRRenderer
-
-SSRRenderer::SSRRenderer(
+SSRPass::SSRPass(
     SSRRendererConfig&& config,
     GBuffer* gbuffer,
     const GpuImageViewRef& mipChainImageView)
@@ -98,7 +66,7 @@ SSRRenderer::SSRRenderer(
 {
 }
 
-SSRRenderer::~SSRRenderer()
+SSRPass::~SSRPass()
 {
     delete m_writeUvs;
     delete m_sampleGbuffer;
@@ -114,18 +82,18 @@ SSRRenderer::~SSRRenderer()
     EnqueueDeletion(std::move(m_uniformBuffer));
 }
 
-void SSRRenderer::Create()
+void SSRPass::Create()
 {
 }
 
-const Handle<Texture>& SSRRenderer::GetFinalResultTexture() const
+const Handle<Texture>& SSRPass::GetFinalResultTexture() const
 {
     return m_temporalBlending
         ? m_temporalBlending->GetResultTexture()
         : m_sampledResultTexture;
 }
 
-ShaderPropertySet SSRRenderer::GetShaderProperties() const
+ShaderPropertySet SSRPass::GetShaderProperties() const
 {
     ShaderPropertySet shaderProperties;
     shaderProperties.Set(InternShaderProperty(ShaderProperty(NAME("CONE_TRACING"))), m_config.coneTracing);
@@ -134,7 +102,7 @@ ShaderPropertySet SSRRenderer::GetShaderProperties() const
     return shaderProperties;
 }
 
-void SSRRenderer::CreatePasses()
+void SSRPass::CreatePasses()
 {
     const ShaderPropertySet shaderProperties = GetShaderProperties();
 
@@ -195,7 +163,7 @@ void SSRRenderer::CreatePasses()
     }
 }
 
-void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
+void SSRPass::UpdatePipelineState(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_SCOPE;
 
@@ -243,8 +211,8 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
 #if HYP_DEBUG_MODE
         m_uniformBuffer->SetDebugName(NAME("SSR_UniformBuffer"));
 #endif
-
-        PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniformBuffer);
+        CheckResult(m_uniformBuffer->Create());
+        m_uniformBuffer->Copy(sizeof(uniforms), &uniforms);
 
         // Create textures
         m_uvsTexture = MakeHandle<Texture>(TextureDesc {
@@ -296,7 +264,7 @@ void SSRRenderer::UpdatePipelineState(Frame* frame, const RenderSetup& renderSet
     }
 }
 
-void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
+void SSRPass::Render(Frame* frame, const RenderSetup& renderSetup)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 
@@ -361,6 +329,6 @@ void SSRRenderer::Render(Frame* frame, const RenderSetup& renderSetup)
     m_isRendered = true;
 }
 
-#pragma endregion SSRRenderer
+#pragma endregion SSRPass
 
 } // namespace Hyperion

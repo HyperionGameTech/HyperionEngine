@@ -664,6 +664,74 @@ void SetDepthTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetDepthTest
 
+#pragma region SetDepthBias
+
+void SetDepthBias::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthBias* cmdCasted = static_cast<SetDepthBias*>(cmd);
+
+    RenderInterface::State& state = g_renderInterface->state;
+
+    const bool enableDepthBias = cmdCasted->depthBias != 0;
+
+    if (enableDepthBias)
+    {
+        if ((state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS)
+            && state.attributes.GetMaterialAttributes().depthBias == cmdCasted->depthBias
+            && MathUtil::ApproxEqual(state.attributes.GetMaterialAttributes().depthBiasSlope, cmdCasted->depthBiasSlope))
+        {
+            return;
+        }
+
+        state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_BIAS;
+        state.attributes.GetMaterialAttributes().depthBias = cmdCasted->depthBias;
+        state.attributes.GetMaterialAttributes().depthBiasSlope = cmdCasted->depthBiasSlope;
+    }
+    else
+    {
+        if (!(state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_BIAS))
+            return;
+
+        state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_BIAS;
+    }
+
+    state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetDepthBias>);
+    // cmdCasted->~SetDepthBias();
+}
+
+#pragma endregion SetDepthBias
+
+#pragma region SetDepthClamp
+
+void SetDepthClamp::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+{
+    SetDepthClamp* cmdCasted = static_cast<SetDepthClamp*>(cmd);
+
+    if (cmdCasted->depthClamp)
+    {
+        if (g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP)
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags |= MAF_DEPTH_CLAMP;
+    }
+    else
+    {
+        if (!(g_renderInterface->state.attributes.GetMaterialAttributes().flags & MAF_DEPTH_CLAMP))
+            return;
+
+        g_renderInterface->state.attributes.GetMaterialAttributes().flags &= ~MAF_DEPTH_CLAMP;
+    }
+
+    g_renderInterface->state.attributes.Invalidate();
+    
+    static_assert(std::is_trivially_destructible_v<SetDepthClamp>);
+    // cmdCasted->~SetDepthClamp();
+}
+
+#pragma endregion SetDepthClamp
+
 #pragma region SetStencilTest
 
 void SetStencilTest::InvokeStatic(CmdBase* cmd, CommandBuffer*)

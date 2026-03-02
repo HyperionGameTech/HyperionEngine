@@ -152,6 +152,8 @@ enum GlobalRendererType : uint32
     GRT_SHADOW_MAP,      //!< Shadow map renderers, e.g. PointLightShadowRenderer, DirectionalLightShadowRenderer
     GRT_PARTICLE_VOLUME, //!< Global renderer instance for ParticleVolumes
 
+    GRT_SSAO,
+
     GRT_MAX
 };
 

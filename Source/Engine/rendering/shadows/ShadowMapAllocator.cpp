@@ -76,7 +76,8 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         uint16(m_atlases.Size()),
-        IU_SAMPLED | IU_STORAGE });
+        IU_SAMPLED
+    });
     
 #if HYP_DEBUG_MODE
     m_atlasImage->SetDebugName(NAME("ShadowMapAtlasImage"));
@@ -99,7 +100,8 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         MaxBoundOmniShadowMaps * 6,
-        IU_SAMPLED | IU_STORAGE });
+        IU_SAMPLED
+    });
     
 #if HYP_DEBUG_MODE
     m_pointLightShadowMapImage->SetDebugName(NAME("PointLightShadowMapImage"));
