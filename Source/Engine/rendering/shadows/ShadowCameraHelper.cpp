@@ -10,8 +10,7 @@ void ShadowCameraHelper::UpdateShadowCameraDirectional(
     Camera& camera,
     const Vec3f& center,
     const Vec3f& dir,
-    float radius,
-    BoundingBox& outBounds)
+    float radius)
 {
     camera.SetTranslation(center + (dir.Normalized() * -1.0f));
     camera.SetTarget(center);
@@ -32,8 +31,6 @@ void ShadowCameraHelper::UpdateShadowCameraDirectional(
         bounds.min.x, bounds.max.x,
         bounds.min.y, bounds.max.y,
         bounds.min.z, bounds.max.z);
-
-    outBounds = bounds;
 }
 
 } // namespace Hyperion

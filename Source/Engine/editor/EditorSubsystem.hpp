@@ -467,8 +467,7 @@ private:
 
     TResult<Handle<FontAtlas>> CreateFontAtlas();
 
-    void UpdateCamera(float delta);
-    void UpdateDebugOverlays(float delta);
+    void UpdateDebugOverlays();
 
     void StartWatchingNode(const Handle<Node>& node);
     void StopWatchingNode(const Handle<Node>& node);

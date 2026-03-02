@@ -1503,9 +1503,7 @@ void EditorSubsystem::Update(float delta)
 
     m_editorDelegates->Update();
 
-    UpdateCamera(delta);
-
-    UpdateDebugOverlays(delta);
+    UpdateDebugOverlays();
 
     if (m_focusedNode.IsValid())
     {
@@ -1592,6 +1590,7 @@ void EditorSubsystem::LoadFont()
     }
 
     uiSubsystem->GetUIStage()->SetDefaultFontAtlas(*fontAtlasResult);
+    uiSubsystem->GetUIStage()->SetTextSize(18.0f);
 }
 
 void EditorSubsystem::CreateHighlightNode()
@@ -2817,12 +2816,7 @@ Vec3f EditorSubsystem::CalculateSceneInsertionPoint(float desiredDistance, float
     return insertionPoint;
 }
 
-void EditorSubsystem::UpdateCamera(float delta)
-{
-    HYP_SCOPE;
-}
-
-void EditorSubsystem::UpdateDebugOverlays(float delta)
+void EditorSubsystem::UpdateDebugOverlays()
 {
     HYP_SCOPE;
 
@@ -2833,7 +2827,14 @@ void EditorSubsystem::UpdateDebugOverlays(float delta)
             continue;
         }
 
-        debugOverlay->Update(delta);
+        if (debugOverlay->GetTimer().Waiting())
+        {
+            continue;
+        }
+
+        debugOverlay->GetTimer().NextTick();
+
+        debugOverlay->Update(debugOverlay->GetTimer().delta);
     }
 }
 

@@ -18,8 +18,7 @@ public:
         Camera& camera,
         const Vec3f& center,
         const Vec3f& dir,
-        float radius,
-        BoundingBox& outBounds);
+        float radius);
 };
 
 } // namespace Hyperion

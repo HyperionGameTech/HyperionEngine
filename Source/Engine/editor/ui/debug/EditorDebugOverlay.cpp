@@ -20,6 +20,7 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 #pragma region EditorDebugOverlayBase
 
 EditorDebugOverlayBase::EditorDebugOverlayBase()
+    : m_timer { 0.0167f }
 {
 }
 

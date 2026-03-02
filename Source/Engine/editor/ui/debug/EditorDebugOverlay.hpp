@@ -7,7 +7,8 @@
 
 #include <Core/math/Color.hpp>
 
-#include <Core/reflection/Handle.hpp>
+#include <Core/utilities/ClockTimer.hpp>
+
 #include <Core/Defines.hpp>
 
 #include <ui/UIObject.hpp>
@@ -30,6 +31,11 @@ public:
     HYP_FORCE_INLINE const Handle<UIObject>& GetUIObject() const
     {
         return m_uiObject;
+    }
+
+    HYP_FORCE_INLINE ClockTimer& GetTimer()
+    {
+        return m_timer;
     }
 
     void Initialize(UIObject* spawnParent);
@@ -67,6 +73,7 @@ protected:
     }
 
     Handle<UIObject> m_uiObject;
+    ClockTimer m_timer;
 };
 
 HYP_CLASS()

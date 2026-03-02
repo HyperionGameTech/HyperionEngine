@@ -267,6 +267,7 @@ void Mesh::PageBlobData()
                     if (!stream.Eof())
                     {
                         ByteBuffer buffer = stream.Read(stream.Max());
+                        AssertDebug(buffer.Size() == stream.Max());
 
                         AllocateBlobData(m_indexData, buffer.Data(), buffer.Size(), alignof(uint32));
 
@@ -280,22 +281,22 @@ void Mesh::PageBlobData()
 
                     HYP_FAIL("Blob data missing! Data corruption detected.");
                 })();
-
-#if HYP_EDITOR
-            if (needsSaveBlobData)
-            {
-                Result saveBlobDataResult = SaveBlobData(blobStorage);
-                if (saveBlobDataResult.HasError())
-                {
-                    HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
-                }
-            }
-#endif
         }
         else
         {
             m_indexData.readOnly = true;
         }
+
+#if HYP_EDITOR
+        if (needsSaveBlobData)
+        {
+            Result saveBlobDataResult = SaveBlobData(blobStorage);
+            if (saveBlobDataResult.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
+            }
+        }
+#endif
     }
 }
 

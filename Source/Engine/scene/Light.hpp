@@ -269,7 +269,7 @@ public:
     void SetShadowMapDimensions(Vec2u shadowMapDimensions);
 
     HYP_METHOD(Property = "ShadowMapCascades", Editor = true)
-    uint32 NumShadowMapCascades() const
+    uint32 GetNumShadowMapCascades() const
     {
         return m_numShadowMapCascades;
     }
