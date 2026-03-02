@@ -200,9 +200,10 @@ static ViewDesc GetViewDesc(Light* light, bool isStatic, uint32 cascadeIndex, Ca
 
 struct ShadowViewCacheEntry
 {
+    Camera* camera;
+
     Array<View*> staticViews;
     Array<View*> dynamicViews;
-    Array<Camera*> cameras;
 
     volatile int64 lastFrameUsed;
 };
@@ -236,12 +237,9 @@ public:
                 }
             }
 
-            for (Camera* camera : entry.cameras)
+            if (entry.camera)
             {
-                if (camera)
-                {
-                    camera->Release();
-                }
+                entry.camera->Release();
             }
         }
     }
@@ -290,18 +288,22 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
 
         auto* views = isStatic ? &entry->staticViews : &entry->dynamicViews;
 
-        if (cascadeIndex >= entry->staticViews.Size())
+        if (cascadeIndex >= entry->staticViews.Size() || !entry->camera)
         {
 #if SHADOW_VIEW_CACHE_MULTITHREADED
             sharedLock.Reset();
             uniqueLock.Reset(m_impl->mutex);
 #endif
 
+            if (!entry->camera)
+            {
+                entry->camera = CreateShadowCamera(light, cascadeIndex);
+            }
+
             if (cascadeIndex >= entry->staticViews.Size())
             {
                 entry->staticViews.Resize(cascadeIndex + 1);
                 entry->dynamicViews.Resize(cascadeIndex + 1);
-                entry->cameras.Resize(cascadeIndex + 1);
             }
         }
 
@@ -321,15 +323,18 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
         Assert(it != m_impl->cache.End());
 
         entry = &it->second;
-        
-        Camera*& camera = entry->cameras[cascadeIndex];
+
+        if (!entry->camera)
+        {
+            entry->camera = CreateShadowCamera(light, cascadeIndex);
+        }
 
         views = isStatic ? &entry->staticViews : &entry->dynamicViews;
         outView = (*views)[cascadeIndex];
 
         if (!outView)
         {
-            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, camera));
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, entry->camera));
             InitObject(outView);
 
             (*views)[cascadeIndex] = outView;
@@ -349,17 +354,14 @@ HYP_NODISCARD View* ShadowViewCache::GetOrCreateShadowView(
         {
             entry.staticViews.Resize(cascadeIndex + 1);
             entry.dynamicViews.Resize(cascadeIndex + 1);
-            entry.cameras.Resize(cascadeIndex + 1);
         }
-        
-        Camera*& camera = entry.cameras[cascadeIndex];
 
         auto& views = isStatic ? entry.staticViews : entry.dynamicViews;
         outView = views[cascadeIndex];
 
         if (!outView)
         {
-            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, camera));
+            outView = new View(GetViewDesc(light, isStatic, cascadeIndex, entry.camera));
             InitObject(outView);
 
             views[cascadeIndex] = outView;

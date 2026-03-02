@@ -41,7 +41,7 @@
 #include <engine/EngineDriver.hpp>
 
 // #define HYP_DISABLE_VISIBILITY_CHECK
-// #define HYP_VISIBILITY_CHECK_DEBUG
+#define HYP_VISIBILITY_CHECK_DEBUG
 
 #include <View.generated.inl>
 
@@ -198,8 +198,10 @@ void View::Init()
 {
     ObjectBase::Init();
 
-    Assert(m_camera.IsValid(), "Camera is not valid for View with Id #%u", Id().Value());
-    InitObject(m_camera);
+    if (m_camera.IsValid())
+    {
+        InitObject(m_camera);
+    }
 
     for (Viewport& viewportBuffered : m_viewportBuffered)
     {
@@ -372,17 +374,8 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
             View* shadowViewsStatic[MaxShadowMapCascades] {};
             View* shadowViewsDynamic[MaxShadowMapCascades] {};
                     
-            for (uint32 cascadeIndex = 0; cascadeIndex < light->NumShadowMapCascades(); cascadeIndex++)
+            for (uint32 cascadeIndex = 0; cascadeIndex < light->GetNumShadowMapCascades(); cascadeIndex++)
             {
-                if (cacheStaticObjects)
-                {
-                    shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
-                        this,
-                        light,
-                        cascadeIndex,
-                        /* isStatic */ true);
-                }
-                        
                 shadowViewsDynamic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
                     this,
                     light,
@@ -391,16 +384,21 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                 Assert(shadowViewsDynamic[cascadeIndex] != nullptr);
 
-                for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
+                if (cacheStaticObjects)
                 {
-                    if (!shadowView || outShadowViews.Contains(shadowView))
-                    {
-                        continue;
-                    }
-                    
+                    shadowViewsStatic[cascadeIndex] = g_renderInterface->shadowViewCache->GetOrCreateShadowView(
+                        this,
+                        light,
+                        cascadeIndex,
+                        /* isStatic */ true);
+                }
+
+                // Update shadow map camera
+                if (cascadeIndex == 0)
+                {
                     BoundingBox shadowBounds;
 
-                    Camera* shadowCamera = shadowView->GetCamera();
+                    Camera* shadowCamera = shadowViewsDynamic[0]->GetCamera();
                     Assert(shadowCamera != nullptr);
 
                     switch (light->GetLightType())
@@ -411,8 +409,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                             *shadowCamera,
                             m_camera.IsValid() ? m_camera->GetTranslation() : Vec3f::Zero(),
                             light->GetPosition().Normalized(),
-                            35.0f, /// TODO: add proper radius for directional light.
-                            shadowBounds);
+                            35.0f);
 
                         break;
                     }
@@ -425,6 +422,14 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
                     default:
                         HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
                         break;
+                    }
+                }
+
+                for (View* shadowView : { shadowViewsDynamic[cascadeIndex], shadowViewsStatic[cascadeIndex] })
+                {
+                    if (!shadowView || outShadowViews.Contains(shadowView))
+                    {
+                        continue;
                     }
 
                     shadowView->m_scenes = m_scenes;
@@ -631,13 +636,6 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
     HYP_SCOPE;
     AssertOnThread(g_simThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
-
-    if (!m_camera.IsValid())
-    {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect entities!", Id().Value());
-
-        return;
-    }
 
     for (Scene* scene : m_scenes)
     {
@@ -1053,14 +1051,14 @@ void View::CollectLights(RenderProxyList& rpl)
                     isLightInFrustum = true;
                     break;
                 case LightType::Point:
-                    isLightInFrustum = m_camera->GetFrustum().ContainsBoundingSphere(light->GetBoundingSphere());
+                    isLightInFrustum = m_subFrustum.ContainsBoundingSphere(light->GetBoundingSphere());
                     break;
                 case LightType::Spot:
                     /// \todo Implement frustum culling for spot lights
                     isLightInFrustum = true;
                     break;
                 case LightType::AreaRect:
-                    isLightInFrustum = m_camera->GetFrustum().ContainsAABB(light->GetAABB());
+                    isLightInFrustum = m_subFrustum.ContainsAABB(light->GetAABB());
                     break;
                 default:
                     break;
@@ -1117,7 +1115,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
+            if (!m_subFrustum.ContainsAABB(volumeAabb))
             {
                 continue;
             }
@@ -1152,9 +1150,9 @@ void View::CollectParticleVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && m_camera.IsValid())
+            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING))
             {
-                if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
+                if (!m_subFrustum.ContainsAABB(volumeAabb))
                 {
                     // continue;
                 }
@@ -1190,9 +1188,9 @@ void View::CollectFogVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && m_camera.IsValid())
+            if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING))
             {
-                if (!m_camera->GetFrustum().ContainsAABB(volumeAabb))
+                if (!m_subFrustum.ContainsAABB(volumeAabb))
                 {
                     // continue;
                 }
@@ -1229,7 +1227,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
                 continue;
             }
 
-            if (!m_camera->GetFrustum().ContainsAABB(worldBounds))
+            if (!m_subFrustum.ContainsAABB(worldBounds))
             {
                 HYP_LOG(Scene, Verbose, "EnvGrid {} is not in frustum of View {}", envGrid->Id(), Id());
 
@@ -1269,7 +1267,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                     continue;
                 }
 
-                if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && !m_camera->GetFrustum().ContainsAABB(probeAabb))
+                if (!(m_flags & ViewFlags::NO_FRUSTUM_CULLING) && !m_subFrustum.ContainsAABB(probeAabb))
                 {
                     continue;
                 }

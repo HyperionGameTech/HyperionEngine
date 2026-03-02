@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/UpdateParticles/UpdateParticles_4637316556027118789"
+      }
+    }],
+  "Name": "UpdateParticles",
+  "FriendlyName": "UpdateParticles",
+  "OriginalFilepath": ""
+}

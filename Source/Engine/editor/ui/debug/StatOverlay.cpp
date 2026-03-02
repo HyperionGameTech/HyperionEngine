@@ -48,6 +48,7 @@ StatOverlay::StatOverlay()
     : m_deltaAccumGame(0.0f),
       m_numTicksGame(0)
 {
+    m_timer = ClockTimer { 0.0333f }; // update max. 30hz/s
 }
 
 StatOverlay::~StatOverlay() = default;
@@ -69,8 +70,7 @@ Handle<UIObject> StatOverlay::CreateUIObject_Impl(UIObject* spawnParent)
         UIObjectSize(UIObjectSize::AUTO));
 
     renderListView->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-    renderListView->SetOrientation(UIListViewOrientation::HORIZONTAL);
-    renderListView->SetTextSize(8);
+    renderListView->SetOrientation(UIListViewOrientation::HORIZONTAL);;
 
     Handle<UIText> fpsTextElement = renderListView->CreateUIObject<UIText>(
         NAME("FpsCounter_Fps"),
@@ -113,7 +113,6 @@ Handle<UIObject> StatOverlay::CreateUIObject_Impl(UIObject* spawnParent)
 void StatOverlay::Update_Impl(float delta)
 {
     HYP_SCOPE;
-    AssertOnThread(g_simThread);
 
     m_deltaAccumGame += delta;
     m_numTicksGame++;
@@ -137,16 +136,14 @@ void StatOverlay::Update_Impl(float delta)
         const int avgFps = int(snapshot[StatIdFps].avg);
 
         m_fpsTextElement->SetText(HYP_FORMAT(
-            "{} fps, {} ms/frame (avg: {}, min: {}, max: {})  GT: {}ms  RT: {}ms  RT(sync): {}ms  SCR: {}ms",
+            "{} fps, {} ms/frame (avg: {}, min: {}, max: {})  Sim: {}ms  Render: {}ms",
             avgFps,
             snapshot[StatIdMsPerFrame].value,
             snapshot[StatIdMsPerFrame].avg,
             snapshot[StatIdMsPerFrame].min,
             snapshot[StatIdMsPerFrame].max,
             g_simTimer.GetValue(),
-            g_renderTimer.GetValue(),
-            g_renderCpuSyncTimer.GetValue(),
-            g_scriptUpdateTimer.GetValue()));
+            g_renderTimer.GetValue()));
 
         m_fpsTextElement->SetTextColor(GetFpsColor(avgFps));
     }
@@ -154,19 +151,20 @@ void StatOverlay::Update_Impl(float delta)
     if (m_countersTextElement.IsValid())
     {
         String countersText;
-        countersText += HYP_FORMAT("DrawCalls: {}", snapshot[g_statDrawCalls].value);
+        countersText += HYP_FORMAT("Tris: {}", uint64(snapshot[g_statTriangles].value));
+        countersText += HYP_FORMAT(", DrawCalls: {}", snapshot[g_statDrawCalls].value);
 
         if (snapshot[g_statInstancedDrawCalls].value > 0)
         {
             countersText += HYP_FORMAT(", Instanced: {}", snapshot[g_statInstancedDrawCalls].value);
         }
 
-        if (snapshot[g_statDebugDraws].value > 0)
+        /*if (snapshot[g_statDebugDraws].value > 0)
         {
             countersText += HYP_FORMAT(", DebugDraw: {}", snapshot[g_statDebugDraws].value);
-        }
+        }*/
 
-        countersText += HYP_FORMAT(", Tris: {}", uint64(snapshot[g_statTriangles].value));
+        /*countersText += HYP_FORMAT(", Tris: {}", uint64(snapshot[g_statTriangles].value));
         countersText += HYP_FORMAT(", RenderGroups: {}", snapshot[g_statRenderGroups].value);
         countersText += HYP_FORMAT(", Views: {}", snapshot[g_statViews].value);
         countersText += HYP_FORMAT(", Textures: {}", snapshot[g_statTextures].value);
@@ -190,7 +188,7 @@ void StatOverlay::Update_Impl(float delta)
         if (snapshot[g_statEnvProbes].value > 0)
         {
             countersText += HYP_FORMAT(", EnvProbes: {}", snapshot[g_statEnvProbes].value);
-        }
+        }*/
 
         m_countersTextElement->SetText(countersText);
     }

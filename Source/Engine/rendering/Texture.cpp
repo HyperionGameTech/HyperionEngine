@@ -384,6 +384,7 @@ void Texture::PageBlobData()
             if (!stream.Eof())
             {
                 ByteBuffer buffer = stream.Read(stream.Max());
+                AssertDebug(buffer.Size() == stream.Max());
 
                 AllocateBlobData(m_imageData, buffer.Data(), buffer.Size(), 1);
                     

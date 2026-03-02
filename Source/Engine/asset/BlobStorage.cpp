@@ -902,7 +902,10 @@ Result BlobStorage::SaveManifest_Internal()
 
 Result BlobStorage::SaveTOC_Internal()
 {
-    Assert(m_toc != nullptr);
+    if (!m_toc)
+    {
+        m_toc = new BlobTableOfContents;
+    }
 
     const FilePath tocPath = m_baseDirectory / "storage.toc";
 
