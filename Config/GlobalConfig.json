@@ -19,15 +19,15 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": false
+        "Enabled": true
       },
-      "Enabled": false
+      "Enabled": true
     },
     "HBAO": {
       "Radius": 2.500000,
       "Power": 0.800000,
       "UseTemporalBlending": false,
-      "Enabled": false
+      "Enabled": true
     },
     "HBIL": {
       "Enabled": false

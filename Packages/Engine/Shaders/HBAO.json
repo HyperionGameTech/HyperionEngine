@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/HBAO/HBAO_1829828941827249593"
+      }
+    }],
+  "Name": "HBAO",
+  "FriendlyName": "HBAO",
+  "OriginalFilepath": ""
+}
