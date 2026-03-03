@@ -32,12 +32,6 @@ constexpr ResourceState PreRenderResourceStates[2] = {
     RS_RENDER_TARGET // LOAD
 };
 
-constexpr ResourceState PreRenderResourceStatesDepth[2] = {
-    // CLEAR=0, LOAD=1
-    RS_UNDEFINED,    // CLEAR
-    RS_DEPTH_STENCIL // LOAD
-};
-
 constexpr ResourceState PostRenderResourceStates[uint8(VulkanRenderPassMode::Max)] = {
     RS_RENDER_TARGET,   // RenderTarget
     RS_PRESENT          // Presentation
@@ -51,17 +45,17 @@ VkImageAspectFlags ToVkImageAspect(TextureFormat);
 VkImageType ToVkImageType(TextureType);
 VkImageViewType ToVkImageViewType(TextureType);
 VkDescriptorType ToVkDescriptorType(ShaderInputType);
-VkImageLayout GetVkImageLayout(ResourceState state);
-VkAccessFlags GetVkAccessMask(ResourceState state);
-VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType = (ShaderModuleType)0);
+VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil = false);
+VkAccessFlags GetVkAccessMask(ResourceState state, bool isDepthStencil = false);
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool isSrc, bool isDepthStencil, ShaderModuleType shaderType = (ShaderModuleType)0);
 VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type);
 VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false);
 VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false);
-VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment);
-VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthAttachment);
+VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil);
+VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil);
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);
 VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation);
-VkImageLayout GetIntermediateLayout(bool isDepthAttachment);
+VkImageLayout GetIntermediateLayout(bool isDepthStencil);
 VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode);
 VkStencilOp ToVkStencilOp(StencilOp stencilOp);
 VkCompareOp ToVkCompareOp(StencilCompareOp compareOp);

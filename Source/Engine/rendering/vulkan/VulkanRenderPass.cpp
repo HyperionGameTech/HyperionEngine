@@ -10,6 +10,7 @@
 #include <rendering/vulkan/VulkanFrame.hpp>
 #include <rendering/vulkan/VulkanMemory.hpp>
 #include <rendering/vulkan/VulkanResult.hpp>
+#include <rendering/vulkan/VulkanHelpers.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -18,8 +19,6 @@
 namespace Hyperion {
 
 extern VulkanRenderInterface* g_renderInterface;
-
-extern VkImageLayout GetVkImageLayout(ResourceState state);
 
 VulkanRenderPass::VulkanRenderPass()
     : VulkanRenderPass(RenderTargetDesc(), VulkanRenderPassMode::RenderTarget)
@@ -325,40 +324,34 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         {
             VulkanGpuImage* image = attachment->GetImage();
 
-            const ResourceState resourceState = attachment->IsDepthAttachment()
-                ? PreRenderResourceStatesDepth[1]
-                : PreRenderResourceStates[1];
-
-            if (resourceState != RS_UNDEFINED && image->GetResourceState() != resourceState)
+            if (image->GetResourceState() != RS_RENDER_TARGET)
             {
-                image->InsertBarrier(cmd, resourceState, ShaderModuleType::Pixel);
+                image->InsertBarrier(cmd, RS_RENDER_TARGET, ShaderModuleType::Pixel);
             }
         }
     }
 
-#if HYP_DEBUG_MODE
-    // checks for valid layouts
-    for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
-    {
-        VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
-        AssertDebug(attachment != nullptr);
-    
-        const ResourceState expectedState = attachment->IsDepthAttachment()
-            ? PreRenderResourceStatesDepth[int(attachment->GetLoadOperation() == LoadOperation::LOAD)]
-            : PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
-    
-        const ResourceState currentState = attachment->GetImage()->GetResourceState();
-    
-        if (expectedState != RS_UNDEFINED)
-        {
-            AssertDebug(
-                expectedState == currentState,
-                "Attachment expected layout {} but found {}",
-                EnumToString(expectedState),
-                EnumToString(currentState));
-        }
-    }
-#endif
+//#if HYP_DEBUG_MODE
+//    // checks for valid layouts
+//    for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
+//    {
+//        VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
+//        AssertDebug(attachment != nullptr);
+//    
+//        const ResourceState expectedState = PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
+//    
+//        const ResourceState currentState = attachment->GetImage()->GetResourceState();
+//    
+//        if (expectedState != RS_UNDEFINED)
+//        {
+//            AssertDebug(
+//                expectedState == currentState,
+//                "Attachment expected layout {} but found {}",
+//                EnumToString(expectedState),
+//                EnumToString(currentState));
+//        }
+//    }
+//#endif
 
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -380,8 +373,7 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
         VulkanAttachment* attachment = m_recordingFramebuffer->GetAttachment(attachmentIndex);
         AssertDebug(attachment != nullptr);
 
-        attachment->GetImage()->SetResourceState(
-            attachment->IsDepthAttachment() ? RS_DEPTH_STENCIL : PostRenderResourceStates[uint32(m_renderPassMode)]);
+        attachment->GetImage()->SetResourceState(PostRenderResourceStates[uint32(m_renderPassMode)]);
     }
 
     m_recordingFramebuffer = nullptr;
