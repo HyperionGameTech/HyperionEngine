@@ -186,7 +186,6 @@ public:
 
         RenderableAttributeSet attributes;
         Viewport viewport;
-        RenderTargetDesc renderTargetDesc;
 
         ShaderUniform shaderUniforms[MaxShaderUniforms] {};
         uint32 validUniforms = 0;
@@ -222,7 +221,6 @@ public:
             validUniforms = 0;
             dirtyUniforms = 0;
             dirtyBufferOffsets = 0;
-            renderTargetDesc = {};
 
             Memory::Fill(prevBoundDescriptorSets, 0, sizeof(prevBoundDescriptorSets));
 

@@ -22,7 +22,7 @@ VulkanAttachment::VulkanAttachment(
     const VulkanGpuImageRef& image,
     const VulkanGpuImageViewRef& imageView,
     const VulkanFramebufferWeakRef& framebuffer,
-    VulkanRenderPassMode renderPassMode,
+    RenderPassMode renderPassMode,
     const AttachmentDesc& attachmentDesc)
     : AttachmentBase(image, imageView, framebuffer, attachmentDesc),
       m_renderPassMode(renderPassMode),

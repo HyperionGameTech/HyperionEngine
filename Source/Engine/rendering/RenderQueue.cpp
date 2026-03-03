@@ -511,22 +511,21 @@ void SetCurrentShader::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 
 #pragma endregion SetCurrentShader
 
-#pragma region SetCurrentView
+#pragma region SetCurrentViewport
 
-void SetCurrentView::InvokeStatic(CmdBase* cmd, CommandBuffer*)
+void SetCurrentViewport::InvokeStatic(CmdBase* cmd, CommandBuffer*)
 {
-    SetCurrentView* cmdCasted = static_cast<SetCurrentView*>(cmd);
+    SetCurrentViewport* cmdCasted = static_cast<SetCurrentViewport*>(cmd);
 
     Framebuffer* framebuffer = nullptr;
 
-    g_renderInterface->state.renderTargetDesc = cmdCasted->renderTargetDesc;
     g_renderInterface->state.viewport = cmdCasted->viewport;
 
-    static_assert(std::is_trivially_destructible_v<SetCurrentView>);
-    // cmdCasted->~SetCurrentView();
+    static_assert(std::is_trivially_destructible_v<SetCurrentViewport>);
+    // cmdCasted->~SetCurrentViewport();
 }
 
-#pragma endregion SetCurrentView
+#pragma endregion SetCurrentViewport
 
 #pragma region SetTopology
 

@@ -21,7 +21,7 @@
 
 namespace Hyperion {
 
-enum class VulkanRenderPassMode : uint8;
+enum class RenderPassMode : uint8;
 
 extern Pool* g_vulkanPool;
 
@@ -35,7 +35,7 @@ public:
         const VulkanGpuImageRef& image,
         const VulkanGpuImageViewRef& imageView, // May be null
         const VulkanFramebufferWeakRef& framebuffer,
-        VulkanRenderPassMode renderPassMode,
+        RenderPassMode renderPassMode,
         const AttachmentDesc& attachmentDesc);
 
     ~VulkanAttachment() override;
@@ -50,7 +50,7 @@ public:
         return m_vkAttachmentDescription;
     }
 
-    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
+    HYP_FORCE_INLINE RenderPassMode GetRenderPassMode() const
     {
         return m_renderPassMode;
     }
@@ -60,7 +60,7 @@ public:
     RendererResult Create() override;
 
 private:
-    VulkanRenderPassMode m_renderPassMode;
+    RenderPassMode m_renderPassMode;
 
     VkAttachmentReference m_vkAttachmentReference;
     VkAttachmentDescription m_vkAttachmentDescription;

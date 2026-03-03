@@ -459,12 +459,12 @@ void FullScreenPass::DrawHistoryTexture(Frame* frame, const RenderSetup& renderS
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        rq << SetCurrentView(m_framebuffer->GetRenderTargetDesc(), Viewport { viewportExtent, viewportOffset });
+        rq << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        rq << SetCurrentView(m_framebuffer->GetRenderTargetDesc(), Viewport { m_framebuffer->GetExtent() });
+        rq << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
     }
 
     rq << SetDepthTest(false);
@@ -631,12 +631,12 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
         const Vec2i viewportOffset = (Vec2i(framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(framebuffer->GetExtent().x / 2, framebuffer->GetExtent().y);
 
-        rq << SetCurrentView(framebuffer->GetRenderTargetDesc(), Viewport { viewportExtent, viewportOffset });
+        rq << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        rq << SetCurrentView(framebuffer->GetRenderTargetDesc(), Viewport { framebuffer->GetExtent() });
+        rq << SetCurrentViewport(Viewport { framebuffer->GetExtent() });
     }
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
@@ -692,12 +692,12 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
         const Vec2i viewportOffset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (GetWorldBufferData()->frameCounter & 1);
         const Vec2u viewportExtent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-        rq << SetCurrentView(m_framebuffer->GetRenderTargetDesc(), Viewport { viewportExtent, viewportOffset });
+        rq << SetCurrentViewport(Viewport { viewportExtent, viewportOffset });
     }
     else
     {
         // render previous frame's result to screen
-        rq << SetCurrentView(m_framebuffer->GetRenderTargetDesc(), Viewport { m_framebuffer->GetExtent() });
+        rq << SetCurrentViewport(Viewport { m_framebuffer->GetExtent() });
     }
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);

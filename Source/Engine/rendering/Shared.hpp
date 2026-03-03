@@ -1272,6 +1272,14 @@ struct DescriptorTableOffsetMap
     }
 };
 
+enum class RenderPassMode : uint8
+{
+    RenderTarget,
+    Present,
+
+    Max
+};
+
 struct AttachmentDesc
 {
     TextureType imageType = TextureType::Texture2D;
@@ -1328,12 +1336,15 @@ struct RenderTargetDesc
 
     uint32 numLayers = 1;
 
+    RenderPassMode renderPassMode = RenderPassMode::RenderTarget;
+
     HYP_FORCE_INLINE bool operator==(const RenderTargetDesc& other) const
     {
         return extent == other.extent
             && numAttachments == other.numAttachments
             && std::equal(attachments, attachments + numAttachments, other.attachments)
-            && numLayers == other.numLayers;
+            && numLayers == other.numLayers
+            && renderPassMode == other.renderPassMode;
     }
 
     HYP_FORCE_INLINE bool operator!=(const RenderTargetDesc& other) const
@@ -1354,7 +1365,8 @@ struct RenderTargetDesc
         return HashCode::GetHashCode(extent)
             .Combine(numAttachments)
             .Combine(HashCode::GetHashCode(attachments, attachments + numAttachments))
-            .Combine(numLayers);
+            .Combine(numLayers)
+            .Combine(renderPassMode);
     }
 };
 

@@ -34,6 +34,9 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
+// Draw the actual shadowmap
+static constexpr uint32 BucketMask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
+
 #pragma region ShadowRendererPassData
 
 ShadowRendererPassData::~ShadowRendererPassData()
@@ -359,12 +362,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
             pd->prevCameraMatrices[cascadeIndex] = cascadeBufferData.viewProjMat;
 
-            // Draw the actual shadowmap
-            static constexpr uint32 Mask = RenderBucketMask<RenderBucket::Opaque, RenderBucket::Translucent, RenderBucket::Lightmapped>;
-
-            RenderCollector& renderCollector = GetRenderCollector(shadowView);
-
-            renderCollector.ExecuteDrawCalls(frame, rs, Mask);
+            GetRenderCollector(shadowView).ExecuteDrawCalls(frame, rs, BucketMask);
 
 #if 0
             if (!shouldCombineShadowMaps)

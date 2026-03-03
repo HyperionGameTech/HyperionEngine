@@ -1540,18 +1540,20 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
     {
     case PSO_Graphics:
     {
+        AssertDebug(state.framebuffer != nullptr);
+        
         GraphicsPipeline* pipeline = nullptr;
 
         if (!state.prevGraphicsPipeline
             || !state.prevGraphicsPipeline->MatchesSignature(
                 state.attributes,
-                state.renderTargetDesc))
+                state.framebuffer->GetRenderTargetDesc()))
         {
             GraphicsPipelineCacheHandle cacheHandle;
 
             graphicsPipelineCache->GetOrCreate(
                 state.attributes,
-                state.renderTargetDesc,
+                state.framebuffer->GetRenderTargetDesc(),
                 cacheHandle);
 
             pipeline = *cacheHandle;

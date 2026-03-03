@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "Particle",
-  "FriendlyName": "Particle",
-  "Flags": 0,
-  "Path": "Engine/Shaders/Particle"
-}

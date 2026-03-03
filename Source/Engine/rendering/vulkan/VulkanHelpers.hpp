@@ -18,21 +18,13 @@ namespace Hyperion {
 enum class ShaderInputType : uint8;
 enum class ShaderModuleType : uint8;
 
-enum class VulkanRenderPassMode : uint8
-{
-    RenderTarget,
-    Presentation,
-
-    Max
-};
-
 constexpr ResourceState PreRenderResourceStates[2] = {
     // CLEAR=0, LOAD=1
     RS_UNDEFINED,    // CLEAR
     RS_RENDER_TARGET // LOAD
 };
 
-constexpr ResourceState PostRenderResourceStates[uint8(VulkanRenderPassMode::Max)] = {
+constexpr ResourceState PostRenderResourceStates[uint8(RenderPassMode::Max)] = {
     RS_RENDER_TARGET,   // RenderTarget
     RS_PRESENT          // Presentation
 };
@@ -52,14 +44,14 @@ VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type);
 VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false);
 VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false);
 VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
-VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
+VkImageLayout GetFinalLayout(RenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);
 VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation);
 VkImageLayout GetIntermediateLayout(bool isDepthStencil, bool hasStencil, bool onlyDepth, bool onlyStencil);
 VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode);
 VkStencilOp ToVkStencilOp(StencilOp stencilOp);
 VkCompareOp ToVkCompareOp(StencilCompareOp compareOp);
-VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode);
+VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, RenderPassMode renderPassMode);
 VkAttachmentReference ToVkAttachmentReference(uint32 index, const AttachmentDesc& attachmentDesc);
 
 class VulkanSingleTimeCommands final : public SingleTimeCommands

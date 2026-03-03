@@ -660,7 +660,6 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
 
     Assert(renderSetup.HasView());
 
-    const RenderTargetDesc& renderTargetDesc = renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc();
     const Viewport& viewport = renderSetup.viewport;
 
     RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(GetRenderProxy(renderSetup.view->GetCamera()));
@@ -742,7 +741,7 @@ void DebugDrawer::Render(Frame* frame, const RenderSetup& renderSetup)
     shaderDesc.properties.Add(s_propImmediateMode);
     
     rq << SetCurrentShader(shaderDesc);
-    rq << SetCurrentView(renderTargetDesc, viewport);
+    rq << SetCurrentViewport(viewport);
 
     HYP_DEFER({
         // reset states

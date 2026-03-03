@@ -17,7 +17,7 @@ struct MeshInstanceData;
 
 extern void MeshInstanceData_OnPostLoad(MeshInstanceData&);
 
-HYP_STRUCT(PostLoad = "MeshInstanceData_OnPostLoad", Size = 88)
+HYP_STRUCT(PostLoad = "MeshInstanceData_OnPostLoad")
 struct MeshInstanceData
 {
     HYP_STRUCT_BODY(MeshInstanceData);

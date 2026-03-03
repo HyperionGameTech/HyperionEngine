@@ -688,9 +688,7 @@ void RenderGroup::PerformRendering(
     rq << SetTopology(renderableAttributes.GetMeshAttributes().topology);
     rq << SetVertexAttributes(renderableAttributes.GetMeshAttributes().vertexAttributes);
     
-    rq << SetCurrentView(
-        framebuffer->GetRenderTargetDesc(),
-        renderSetup.viewport);
+    rq << SetCurrentViewport(renderSetup.viewport);
     
     rq << SetCurrentShader(ShaderDesc(
         renderableAttributes.GetMaterialAttributes().shaderName,
