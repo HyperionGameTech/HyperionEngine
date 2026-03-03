@@ -16,12 +16,6 @@
 
 namespace Hyperion {
 
-#pragma region Helpers
-
-extern VkImageLayout GetVkImageLayout(ResourceState state);
-
-#pragma endregion Helpers
-
 #pragma region VulkanAttachment
 
 VulkanAttachment::VulkanAttachment(

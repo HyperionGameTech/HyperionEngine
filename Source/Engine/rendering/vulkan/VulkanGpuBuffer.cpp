@@ -226,8 +226,8 @@ void VulkanGpuBuffer::InsertBarrier(
     }
 
     VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    barrier.srcAccessMask = GetVkAccessMask(m_resourceState);
-    barrier.dstAccessMask = GetVkAccessMask(newState);
+    barrier.srcAccessMask = GetVkAccessMask(m_resourceState, false);
+    barrier.dstAccessMask = GetVkAccessMask(newState, false);
     barrier.buffer = m_handle;
     barrier.offset = 0;
     barrier.size = m_size;
@@ -236,8 +236,8 @@ void VulkanGpuBuffer::InsertBarrier(
 
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
-        GetVkShaderStageMask(m_resourceState, true),
-        GetVkShaderStageMask(newState, false),
+        GetVkShaderStageMask(m_resourceState, true, false),
+        GetVkShaderStageMask(newState, false, false),
         0,
         0, nullptr,
         1, &barrier,
@@ -261,8 +261,8 @@ void VulkanGpuBuffer::InsertBarrier(
     }
 
     VkBufferMemoryBarrier barrier { VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER };
-    barrier.srcAccessMask = GetVkAccessMask(m_resourceState);
-    barrier.dstAccessMask = GetVkAccessMask(newState);
+    barrier.srcAccessMask = GetVkAccessMask(m_resourceState, false);
+    barrier.dstAccessMask = GetVkAccessMask(newState, false);
     barrier.buffer = m_handle;
     barrier.offset = 0;
     barrier.size = m_size;
@@ -271,8 +271,8 @@ void VulkanGpuBuffer::InsertBarrier(
 
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
-        GetVkShaderStageMask(m_resourceState, true, shaderType),
-        GetVkShaderStageMask(newState, false, shaderType),
+        GetVkShaderStageMask(m_resourceState, true, false, shaderType),
+        GetVkShaderStageMask(newState, false, false, shaderType),
         0,
         0, nullptr,
         1, &barrier,

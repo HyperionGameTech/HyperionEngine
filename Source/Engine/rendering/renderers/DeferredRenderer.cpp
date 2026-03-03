@@ -1296,7 +1296,7 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
         1,
         gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView(),
         LoadOperation::LOAD,
-        StoreOperation::STORE);
+        StoreOperation::NONE);
 
     CheckResult(framebuffer->Create());
 
@@ -1970,7 +1970,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // deferred lighting on opaque objects
         frame->renderQueue << InsertBarrier(
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
-            RS_DEPTH_STENCIL);
+            RS_SHADER_RESOURCE);
 
         frame->renderQueue << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 

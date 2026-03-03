@@ -33,10 +33,6 @@ static constexpr SizeType MaxImageBytes = 256 * 1024 * 1024; // 256 MiB - cannot
 
 extern VulkanRenderInterface* g_renderInterface;
 
-extern VkImageLayout GetVkImageLayout(ResourceState);
-extern VkAccessFlags GetVkAccessMask(ResourceState);
-extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModuleType);
-
 #pragma region VulkanGpuImage
 
 VulkanGpuImage::VulkanGpuImage(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags)
@@ -194,7 +190,7 @@ RendererResult VulkanGpuImage::Create(ResourceState initialState)
         return {};
     }
 
-    VkImageLayout initialLayout = GetVkImageLayout(initialState);
+    VkImageLayout initialLayout = GetVkImageLayout(initialState, m_textureDesc.IsDepthStencil());
 
     if (!m_isHandleOwned)
     {
@@ -629,11 +625,13 @@ void VulkanGpuImage::InsertBarrier(
     range.baseMipLevel = MathUtil::Min(subResource.baseMipLevel, NumMips() - 1);
     range.levelCount = MathUtil::Min(subResource.numLevels, NumMips() - range.baseMipLevel);
 
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+
     VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    barrier.oldLayout = GetVkImageLayout(currResourceState);
-    barrier.newLayout = GetVkImageLayout(newState);
-    barrier.srcAccessMask = GetVkAccessMask(currResourceState);
-    barrier.dstAccessMask = GetVkAccessMask(newState);
+    barrier.oldLayout = GetVkImageLayout(currResourceState, isDepthStencil);
+    barrier.newLayout = GetVkImageLayout(newState, isDepthStencil);
+    barrier.srcAccessMask = GetVkAccessMask(currResourceState, isDepthStencil);
+    barrier.dstAccessMask = GetVkAccessMask(newState, isDepthStencil);
     barrier.image = m_handle;
     barrier.subresourceRange = range;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -641,8 +639,8 @@ void VulkanGpuImage::InsertBarrier(
 
     vkCmdPipelineBarrier(
         commandBuffer->GetVulkanHandle(),
-        GetVkShaderStageMask(currResourceState, true, shaderModuleType),
-        GetVkShaderStageMask(newState, false, shaderModuleType),
+        GetVkShaderStageMask(currResourceState, true, isDepthStencil, shaderModuleType),
+        GetVkShaderStageMask(newState, false, isDepthStencil, shaderModuleType),
         0,
         0, nullptr,
         0, nullptr,

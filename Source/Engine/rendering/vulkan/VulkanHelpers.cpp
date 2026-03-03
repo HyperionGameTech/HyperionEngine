@@ -217,7 +217,7 @@ VkDescriptorType ToVkDescriptorType(ShaderInputType type)
     }
 }
 
-VkImageLayout GetVkImageLayout(ResourceState state)
+VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil)
 {
     switch (state)
     {
@@ -229,11 +229,19 @@ VkImageLayout GetVkImageLayout(ResourceState state)
     case RS_UNORDERED_ACCESS:
         return VK_IMAGE_LAYOUT_GENERAL;
     case RS_RENDER_TARGET:
+        if (isDepthStencil)
+            return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        else
+            return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     case RS_RESOLVE_DST:
         return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     case RS_DEPTH_STENCIL:
         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     case RS_SHADER_RESOURCE:
+        if (isDepthStencil)
+            return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        else
+            return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     case RS_RESOLVE_SRC:
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     case RS_COPY_DST:
@@ -247,7 +255,7 @@ VkImageLayout GetVkImageLayout(ResourceState state)
     }
 }
 
-VkAccessFlags GetVkAccessMask(ResourceState state)
+VkAccessFlags GetVkAccessMask(ResourceState state, bool isDepthStencil)
 {
     switch (state)
     {
@@ -263,7 +271,10 @@ VkAccessFlags GetVkAccessMask(ResourceState state)
     case RS_INDEX_BUFFER:
         return VK_ACCESS_INDEX_READ_BIT;
     case RS_RENDER_TARGET:
-        return VkAccessFlagBits(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+        if (isDepthStencil)
+            return VkAccessFlagBits(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        else
+            return VkAccessFlagBits(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
     case RS_UNORDERED_ACCESS:
         return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
     case RS_DEPTH_STENCIL:
@@ -285,14 +296,15 @@ VkAccessFlags GetVkAccessMask(ResourceState state)
     }
 }
 
-VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shaderType)
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state,
+    bool isSrc, bool isDepthStencil, ShaderModuleType shaderType)
 {
     switch (state)
     {
     case RS_UNDEFINED:
     case RS_PRE_INITIALIZED:
     case RS_COMMON:
-        if (!src)
+        if (!isSrc)
         {
             HYP_LOG(RenderingBackend, Warning,
                 "Attempt to get shader stage mask for resource state {}, but `src` was set to false. Falling back to all commands stage mask.",
@@ -356,9 +368,12 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
             HYP_UNREACHABLE();
         }
     case RS_RENDER_TARGET:
-        return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        if (isDepthStencil)
+            return isSrc ? VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        else
+            return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     case RS_DEPTH_STENCIL:
-        return src ? VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        return isSrc ? VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     case RS_INDIRECT_ARG:
         return VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     case RS_COPY_DST:
@@ -367,7 +382,7 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
     case RS_RESOLVE_SRC:
         return VK_PIPELINE_STAGE_TRANSFER_BIT;
     case RS_PRESENT:
-        return src ? (VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT) : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        return isSrc ? (VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT) : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     default:
         HYP_UNREACHABLE();
     }
@@ -495,16 +510,16 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
     }
 }
 
-VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthAttachment)
+VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil)
 {
     const uint8 loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
 
-    return GetVkImageLayout(isDepthAttachment ? PreRenderResourceStatesDepth[loadOperationIndex] : PreRenderResourceStates[loadOperationIndex]);
+    return GetVkImageLayout(PreRenderResourceStates[loadOperationIndex], isDepthStencil);
 }
 
-VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthAttachment)
+VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil)
 {
-    return GetVkImageLayout(isDepthAttachment ? RS_DEPTH_STENCIL : PostRenderResourceStates[uint8(renderPassMode)]);
+    return GetVkImageLayout(PostRenderResourceStates[uint8(renderPassMode)], isDepthStencil);
 }
 
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
@@ -539,9 +554,9 @@ VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
     }
 }
 
-VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
+VkImageLayout GetIntermediateLayout(bool isDepthStencil)
 {
-    return isDepthAttachment
+    return isDepthStencil
         ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
         : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
