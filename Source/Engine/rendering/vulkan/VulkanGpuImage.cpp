@@ -1010,7 +1010,7 @@ void VulkanGpuImage::CopyFromBuffer(
 
     const uint8 mipIdx = dstMipIndex != UINT8_MAX ? dstMipIndex : 0;
 
-    const uint32 bufferOffsetStep = m_textureDesc.GetMipByteSize(mipIdx) / numArrayLayers;
+    const uint32 bufferOffsetStep = m_textureDesc.GetMipByteSize(mipIdx, /* includeArrayLayers */ false);
     const Vec3u mipExtent = m_textureDesc.GetMipExtent(mipIdx);
 
     if (dstArrayLayer == UINT16_MAX)
@@ -1027,6 +1027,10 @@ void VulkanGpuImage::CopyFromBuffer(
             region.imageSubresource.layerCount = 1;
             region.imageOffset = { 0, 0, 0 };
             region.imageExtent = VkExtent3D { mipExtent.x, mipExtent.y, mipExtent.z };
+
+            // https://docs.vulkan.org/spec/latest/chapters/copies.html#VUID-vkCmdCopyBufferToImage-dstImage-07975
+            // bufferOffset must be a multiple texel block size
+            AssertDebug(region.bufferOffset % (TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format)) == 0);
 
             vkCmdCopyBufferToImage(
                 commandBuffer->GetVulkanHandle(),
@@ -1049,6 +1053,10 @@ void VulkanGpuImage::CopyFromBuffer(
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
         region.imageExtent = VkExtent3D { mipExtent.x, mipExtent.y, mipExtent.z };
+        
+        // https://docs.vulkan.org/spec/latest/chapters/copies.html#VUID-vkCmdCopyBufferToImage-dstImage-07975
+        // bufferOffset must be a multiple texel block size
+        AssertDebug(region.bufferOffset % (TextureUtils::BytesPerComponent(m_textureDesc.format) * TextureUtils::NumComponents(m_textureDesc.format)) == 0);
 
         vkCmdCopyBufferToImage(
             commandBuffer->GetVulkanHandle(),

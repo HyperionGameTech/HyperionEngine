@@ -438,14 +438,14 @@ void Texture::GenerateMipmaps(TextureDesc& desc, ByteBuffer& imageData)
     }
 
     // base mip size
-    const uint32 baseMipSize = desc.GetMipByteSize(0) * numArrayLayers;
+    const uint32 baseMipSize = desc.GetMipByteSize(0, /* includeArrayLayers */ true);
     AssertDebug(imageData.Size() == baseMipSize);
 
     uint32 totalSize = baseMipSize;
 
     for (uint32 mip = 1; mip < numMipLevels; mip++)
     {
-        totalSize += desc.GetMipByteSize(mip) * numArrayLayers;
+        totalSize += desc.GetMipByteSize(mip, /* includeArrayLayers */ true);
     }
 
     imageData.SetSize(totalSize);
