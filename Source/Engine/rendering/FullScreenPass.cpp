@@ -350,10 +350,12 @@ void FullScreenPass::CreateFramebuffer()
 
     Attachment* attachment = m_framebuffer->AddAttachment(
         0,
-        m_imageFormat,
-        TextureType::Texture2D,
-        ShouldRenderCheckerboarded() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
-        StoreOperation::STORE);
+        AttachmentDesc {
+            TextureType::Texture2D,
+            m_imageFormat,
+            ShouldRenderCheckerboarded() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
+            StoreOperation::STORE
+        });
 
     CheckResult(attachment->Create());
     CheckResult(m_framebuffer->Create());

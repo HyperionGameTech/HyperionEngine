@@ -232,9 +232,8 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(VulkanAttachment* attachment)
 
 VulkanAttachment* VulkanFramebuffer::AddAttachment(
     uint32 binding,
-    const GpuImageViewRef& imageView,
-    LoadOperation loadOp,
-    StoreOperation storeOp)
+    const AttachmentDesc& desc,
+    const VulkanGpuImageViewRef& imageView)
 {
     Assert(imageView.IsValid() && imageView->GetImage().IsValid());
 
@@ -243,14 +242,7 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
         imageView,
         WeakHandleFromThis(),
         GetRenderPassMode(),
-        AttachmentDesc {
-            .imageType = imageView->GetImage()->GetType(),
-            .format = imageView->GetImage()->GetTextureDesc().format,
-            .loadOp = loadOp,
-            .storeOp = storeOp,
-            .blendFunction = BlendFunction::None(),
-            .clearColor = {}
-        });
+        desc);
 
     attachment->SetBinding(binding);
 
@@ -259,19 +251,13 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
 
 VulkanAttachment* VulkanFramebuffer::AddAttachment(
     uint32 binding,
-    TextureFormat format,
-    TextureType type,
-    LoadOperation loadOp,
-    StoreOperation storeOp)
+    const AttachmentDesc& attachmentDesc)
 {
     return m_attachmentMap.AddAttachment(
         binding,
         m_renderTargetDesc.extent,
-        format,
-        type,
-        GetRenderPassMode(),
-        loadOp,
-        storeOp);
+        attachmentDesc,
+        GetRenderPassMode());
 }
 
 bool VulkanFramebuffer::RemoveAttachment(uint32 binding)

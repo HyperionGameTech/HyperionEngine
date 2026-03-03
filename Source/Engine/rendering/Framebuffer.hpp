@@ -71,18 +71,8 @@ public:
 
     virtual Attachment* AddAttachment(Attachment* attachment) = 0;
 
-    virtual Attachment* AddAttachment(
-        uint32 binding,
-        const GpuImageViewRef& imageView,
-        LoadOperation loadOp,
-        StoreOperation storeOp) = 0;
-
-    virtual Attachment* AddAttachment(
-        uint32 binding,
-        TextureFormat format,
-        TextureType type,
-        LoadOperation loadOp,
-        StoreOperation storeOp) = 0;
+    virtual Attachment* AddAttachment(uint32 binding, const AttachmentDesc& desc) = 0;
+    virtual Attachment* AddAttachment(uint32 binding, const AttachmentDesc& desc, const GpuImageViewRef& imageView) = 0;
 
     virtual bool RemoveAttachment(uint32 binding) = 0;
     virtual Attachment* GetAttachment(uint32 binding) const = 0;

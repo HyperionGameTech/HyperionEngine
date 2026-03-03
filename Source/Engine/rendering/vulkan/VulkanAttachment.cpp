@@ -61,7 +61,11 @@ RendererResult VulkanAttachment::Create()
 
     m_vkAttachmentReference = VkAttachmentReference {};
     m_vkAttachmentReference.attachment = m_binding;
-    m_vkAttachmentReference.layout = GetIntermediateLayout(IsDepthAttachment());
+    m_vkAttachmentReference.layout = GetIntermediateLayout(
+        IsDepthAttachment(),
+        TextureUtils::HasStencilComponent(m_attachmentDesc.format),
+        m_attachmentDesc.onlyDepth,
+        m_attachmentDesc.onlyStencil);
 
     if (!m_image->IsCreated())
     {

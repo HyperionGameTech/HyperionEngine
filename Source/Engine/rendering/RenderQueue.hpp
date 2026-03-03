@@ -286,31 +286,49 @@ private:
 class InsertBarrier final : public CmdBase
 {
 public:
-    InsertBarrier(GpuBuffer* buffer, const ResourceState& state, ShaderModuleType shaderModuleType = ShaderModuleType::None)
+    InsertBarrier(
+        GpuBuffer* buffer,
+        const ResourceState& state,
+        ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(buffer),
           m_image(nullptr),
           m_state(state),
           m_shaderModuleType(shaderModuleType),
-          m_hasSubResource(false)
+          m_hasSubResource(false),
+          m_onlyDepth(false),
+          m_onlyStencil(false)
     {
     }
 
-    InsertBarrier(GpuImage* image, const ResourceState& state, ShaderModuleType shaderModuleType = ShaderModuleType::None)
+    InsertBarrier(
+        GpuImage* image,
+        const ResourceState& state,
+        ShaderModuleType shaderModuleType = ShaderModuleType::None,
+        bool onlyDepth = false,
+        bool onlyStencil = false)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
           m_shaderModuleType(shaderModuleType),
-          m_hasSubResource(false)
+          m_hasSubResource(false),
+          m_onlyDepth(onlyDepth),
+          m_onlyStencil(onlyStencil)
     {
     }
 
-    InsertBarrier(GpuImage* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = ShaderModuleType::None)
+    InsertBarrier(
+        GpuImage* image,
+        const ResourceState& state,
+        const ImageSubResource& subResource,
+        ShaderModuleType shaderModuleType = ShaderModuleType::None)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
           m_subResource(subResource),
           m_shaderModuleType(shaderModuleType),
-          m_hasSubResource(true)
+          m_hasSubResource(true),
+          m_onlyDepth(false),
+          m_onlyStencil(false)
     {
     }
 
@@ -334,11 +352,22 @@ public:
         {
             if (cmdCasted->m_hasSubResource)
             {
-                cmdCasted->m_image->InsertBarrier(commandBuffer, cmdCasted->m_subResource, cmdCasted->m_state, cmdCasted->m_shaderModuleType);
+                cmdCasted->m_image->InsertBarrier(
+                    commandBuffer,
+                    cmdCasted->m_subResource,
+                    cmdCasted->m_state,
+                    cmdCasted->m_shaderModuleType,
+                    cmdCasted->m_onlyDepth,
+                    cmdCasted->m_onlyStencil);
             }
             else
             {
-                cmdCasted->m_image->InsertBarrier(commandBuffer, cmdCasted->m_state, cmdCasted->m_shaderModuleType);
+                cmdCasted->m_image->InsertBarrier(
+                    commandBuffer,
+                    cmdCasted->m_state,
+                    cmdCasted->m_shaderModuleType,
+                    cmdCasted->m_onlyDepth,
+                    cmdCasted->m_onlyStencil);
             }
         }
 
@@ -353,6 +382,8 @@ private:
     ShaderModuleType m_shaderModuleType;
     ImageSubResource m_subResource;
     bool m_hasSubResource : 1;
+    bool m_onlyDepth : 1;
+    bool m_onlyStencil : 1;
 };
 
 class Blit final : public CmdBase

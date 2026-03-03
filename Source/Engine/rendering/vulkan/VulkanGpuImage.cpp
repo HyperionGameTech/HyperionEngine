@@ -63,6 +63,7 @@ VulkanGpuImage::~VulkanGpuImage()
         m_isHandleOwned = true;
 
         m_resourceState = RS_UNDEFINED;
+        m_stencilState = RS_UNDEFINED;
         m_subResourceStates.Clear();
     }
 }
@@ -432,6 +433,7 @@ RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
 
         m_handle = VK_NULL_HANDLE;
         m_resourceState = RS_UNDEFINED;
+        m_stencilState = RS_UNDEFINED;
         m_subResourceStates.Clear();
 
         CheckResultOrReturn(Create());
@@ -496,14 +498,28 @@ auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
 void VulkanGpuImage::SetResourceState(ResourceState newState)
 {
     m_resourceState = newState;
+    m_stencilState = TextureUtils::HasStencilComponent(m_textureDesc.format) ? newState : RS_UNDEFINED;
 
     m_subResourceStates.Clear();
+}
+
+void VulkanGpuImage::SetStencilState(ResourceState newState)
+{
+    if (!TextureUtils::HasStencilComponent(m_textureDesc.format))
+    {
+        m_stencilState = RS_UNDEFINED;
+        return;
+    }
+
+    m_stencilState = newState;
 }
 
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     ResourceState newState,
-    ShaderModuleType shaderModuleType)
+    ShaderModuleType shaderModuleType,
+    bool onlyDepth,
+    bool onlyStencil)
 {
     AssertDebug(!commandBuffer->IsInRenderPass());
 
@@ -518,14 +534,18 @@ void VulkanGpuImage::InsertBarrier(
         commandBuffer,
         subResource,
         newState,
-        shaderModuleType);
+        shaderModuleType,
+        onlyDepth,
+        onlyStencil);
 }
 
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     const ImageSubResource& subResource,
     ResourceState newState,
-    ShaderModuleType shaderModuleType)
+    ShaderModuleType shaderModuleType,
+    bool onlyDepth,
+    bool onlyStencil)
 {
     AssertDebug(newState != RS_UNDEFINED && newState != RS_PRE_INITIALIZED);
     AssertDebug(!commandBuffer->IsInRenderPass());
@@ -549,11 +569,21 @@ void VulkanGpuImage::InsertBarrier(
     const uint16 maxArrayLayers = uint16(subResource.baseArrayLayer + MathUtil::Min(subResource.numLayers, NumArrayLayers()));
     const uint8 maxMipLevels = uint8(subResource.baseMipLevel + MathUtil::Min(subResource.numLevels, NumMips()));
 
-    ResourceState currResourceState = GetResourceState();
+    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
+    const bool hasStencil = TextureUtils::HasStencilComponent(m_textureDesc.format);
+
+    // can only use these if we actually do have a stencil component,
+    // otherwise use default/main path
+    onlyDepth &= hasStencil;
+    onlyStencil &= hasStencil;
+
+    ResourceState currResourceState = m_resourceState;
+    const ResourceState currStencilState = m_stencilState;
 
     if (HasSubResourceStates())
     {
         currResourceState = RS_UNDEFINED;
+
         bool firstSubResource = true;
         bool breakLoop = false;
 
@@ -601,14 +631,47 @@ void VulkanGpuImage::InsertBarrier(
             }
         }
     }
+    
+#if HYP_DEBUG_MODE
+    if (hasStencil && currResourceState != currStencilState)
+    {
+        // Depth/stencil separate states sanity checks.
+        if (currResourceState == newState)
+        {
+            Assert(onlyStencil);
+
+            if (newState == RS_SHADER_RESOURCE)
+            {
+                Assert(currStencilState == RS_RENDER_TARGET);
+            }
+            else if (newState == RS_RENDER_TARGET)
+            {
+                Assert(currStencilState == RS_SHADER_RESOURCE);
+            }
+        }
+        else if (currStencilState == newState)
+        {
+            Assert(onlyDepth);
+
+            if (newState == RS_SHADER_RESOURCE)
+            {
+                Assert(currResourceState == RS_RENDER_TARGET);
+            }
+            else if (newState == RS_RENDER_TARGET)
+            {
+                Assert(currResourceState == RS_SHADER_RESOURCE);
+            }
+        }
+    }
+#endif
 
     VkImageAspectFlags aspectFlagBits = 0;
 
-    if (TextureUtils::IsDepthFormat(GetTextureFormat()))
+    if (isDepthStencil)
     {
         aspectFlagBits |= VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        if (TextureUtils::HasStencilComponent(GetTextureFormat()))
+        if (hasStencil)
         {
             aspectFlagBits |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
@@ -625,11 +688,58 @@ void VulkanGpuImage::InsertBarrier(
     range.baseMipLevel = MathUtil::Min(subResource.baseMipLevel, NumMips() - 1);
     range.levelCount = MathUtil::Min(subResource.numLevels, NumMips() - range.baseMipLevel);
 
-    const bool isDepthStencil = m_textureDesc.IsDepthStencil();
-
     VkImageMemoryBarrier barrier { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    barrier.oldLayout = GetVkImageLayout(currResourceState, isDepthStencil);
-    barrier.newLayout = GetVkImageLayout(newState, isDepthStencil);
+
+    if (hasStencil && currResourceState != currStencilState)
+    {
+        switch (currResourceState)
+        {
+        case RS_SHADER_RESOURCE:
+            switch (currStencilState)
+            {
+            case RS_RENDER_TARGET:
+                barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
+            break;
+        case RS_RENDER_TARGET:
+            switch (currStencilState)
+            {
+            case RS_SHADER_RESOURCE:
+                barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+                break;
+            default:
+                HYP_UNREACHABLE();
+            }
+            break;
+        default:
+            HYP_UNREACHABLE();
+        }
+    }
+    else
+    {
+        barrier.oldLayout = GetVkImageLayout(currResourceState, isDepthStencil);
+    }
+
+    // debug
+    if (barrier.oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL)
+    {
+        HYP_BREAKPOINT;
+    }
+
+    if (onlyDepth && currStencilState == newState)
+    {
+        onlyDepth = false;
+    }
+
+    if (onlyStencil && currResourceState == newState)
+    {
+        onlyStencil = false;
+    }
+
+    barrier.newLayout = GetVkImageLayout(newState, isDepthStencil, onlyDepth, onlyStencil);
     barrier.srcAccessMask = GetVkAccessMask(currResourceState, isDepthStencil);
     barrier.dstAccessMask = GetVkAccessMask(newState, isDepthStencil);
     barrier.image = m_handle;
@@ -649,9 +759,19 @@ void VulkanGpuImage::InsertBarrier(
     if (subResource.baseMipLevel == 0 && subResource.numLevels >= NumMips()
         && subResource.baseArrayLayer == 0 && subResource.numLayers >= NumArrayLayers())
     {
+        if (onlyStencil)
+        {
+            m_stencilState = newState;
+        }
+        else
+        {
+            SetResourceState(newState);
 
-        // If all subresources will be set, just set the whole resource state
-        SetResourceState(newState);
+            if (onlyDepth)
+            {
+                m_stencilState = currStencilState;
+            }
+        }
 
         return;
     }
@@ -690,7 +810,19 @@ void VulkanGpuImage::InsertBarrier(
     // No more remaining subresources, entire image was transitioned
     if (m_subResourceStates.Empty())
     {
-        SetResourceState(newState);
+        if (onlyStencil)
+        {
+            m_stencilState = newState;
+        }
+        else
+        {
+            SetResourceState(newState);
+
+            if (onlyDepth)
+            {
+                m_stencilState = currStencilState;
+            }
+        }
     }
 }
 
@@ -724,10 +856,12 @@ RendererResult VulkanGpuImage::Blit(
         dstRect,
         ImageSubResource {
             .numLevels = srcImage->m_textureDesc.NumMips(),
-            .numLayers = srcImage->m_textureDesc.NumArrayLayers() },
+            .numLayers = srcImage->m_textureDesc.NumArrayLayers()
+        },
         ImageSubResource {
             .numLevels = m_textureDesc.NumMips(),
-            .numLayers = m_textureDesc.NumArrayLayers() });
+            .numLayers = m_textureDesc.NumArrayLayers()
+        });
 }
 
 RendererResult VulkanGpuImage::Blit(

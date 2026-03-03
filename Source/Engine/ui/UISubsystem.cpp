@@ -216,13 +216,12 @@ void UISubsystem::Init()
     renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::RGBA16F });
     renderTargetDesc.AddAttachment({ TextureType::Texture2D, TextureFormat::D16 });
 
-    ViewDesc viewDesc {
-        .flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS)),
-        .renderTargetDesc = renderTargetDesc,
-        .scenes = { m_uiStage->GetScene() },
-        .camera = m_uiStage->GetCamera(),
-        .entityBatchClass = UIEntityInstanceBatch::StaticClass()
-    };
+    ViewDesc viewDesc {};
+    viewDesc.flags = (ViewFlags::DEFAULT & ~(ViewFlags::ALL_WORLD_SCENES | ViewFlags::MATCH_CAMERA_DIMENSIONS));
+    viewDesc.renderTargetDesc = renderTargetDesc;
+    viewDesc.scenes = { m_uiStage->GetScene() };
+    viewDesc.camera = m_uiStage->GetCamera();
+    viewDesc.entityBatchClass = UIEntityInstanceBatch::StaticClass();
 
     m_view = MakeHandle<View>(viewDesc);
     InitObject(m_view);

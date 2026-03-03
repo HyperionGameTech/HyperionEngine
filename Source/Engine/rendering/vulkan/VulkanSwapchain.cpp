@@ -289,9 +289,13 @@ RendererResult VulkanSwapchain::Create()
         VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
         framebuffer->AddAttachment(
             0,
-            g_renderInterface->MakeImageView(image),
-            LoadOperation::CLEAR,
-            StoreOperation::STORE);
+            AttachmentDesc {
+                TextureType::Texture2D,
+                image->GetTextureFormat(),
+                LoadOperation::CLEAR,
+                StoreOperation::STORE
+            },
+            g_renderInterface->MakeImageView(image));
 
         CheckResultOrReturn(framebuffer->Create());
         

@@ -57,9 +57,16 @@ public:
         return m_textureDesc;
     }
 
+    /*! \brief Gets the current resource state of the image. If this is a depth-stencil image, this is the state of the depth aspect. */
     HYP_FORCE_INLINE ResourceState GetResourceState() const
     {
         return m_resourceState;
+    }
+
+    /*! \brief Get the resource state of the stencil aspect of this image. Only valid if the image has a depth-stencil format. */
+    HYP_FORCE_INLINE ResourceState GetStencilState() const
+    {
+        return m_stencilState;
     }
 
     virtual void SetResourceState(ResourceState newState)
@@ -197,13 +204,17 @@ public:
     virtual void InsertBarrier(
         CommandBuffer* commandBuffer,
         ResourceState newState,
-        ShaderModuleType shaderModuleType) = 0;
+        ShaderModuleType shaderModuleType,
+        bool onlyDepth = false,
+        bool onlyStencil = false) = 0;
 
     virtual void InsertBarrier(
         CommandBuffer* commandBuffer,
         const ImageSubResource& subResource,
         ResourceState newState,
-        ShaderModuleType shaderModuleType) = 0;
+        ShaderModuleType shaderModuleType,
+        bool onlyDepth = false,
+        bool onlyStencil = false) = 0;
 
     virtual RendererResult Blit(
         CommandBuffer* commandBuffer,
@@ -241,6 +252,7 @@ public:
 protected:
     explicit GpuImageBase(EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE)
         : m_resourceState(RS_UNDEFINED),
+          m_stencilState(RS_UNDEFINED),
           m_flags(flags)
     {
     }
@@ -248,6 +260,7 @@ protected:
     explicit GpuImageBase(const TextureDesc& textureDesc, EnumFlags<GpuImageFlags> flags = GpuImageFlags::NONE)
         : m_textureDesc(textureDesc),
           m_resourceState(RS_UNDEFINED),
+          m_stencilState(RS_UNDEFINED),
           m_flags(flags)
     {
     }
@@ -255,7 +268,9 @@ protected:
     TextureDesc m_textureDesc;
 
     ResourceState m_resourceState;
-    HashMap<uint64, ResourceState> m_subResourceStates;
+    ResourceState m_stencilState;
+
+    HashMap<uint64, ResourceState, NodeAllocator<RHIAllocator>> m_subResourceStates;
 
     EnumFlags<GpuImageFlags> m_flags;
     

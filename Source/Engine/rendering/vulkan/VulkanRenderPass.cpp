@@ -230,7 +230,7 @@ RendererResult VulkanRenderPass::Create()
 
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
-            depthAttachmentReference = ToVkAttachmentReference(attachmentIndex, true);
+            depthAttachmentReference = ToVkAttachmentReference(attachmentIndex, attachmentDesc);
             subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 
             VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
@@ -238,7 +238,7 @@ RendererResult VulkanRenderPass::Create()
         }
         else
         {
-            colorAttachmentReferences.PushBack(ToVkAttachmentReference(attachmentIndex, false));
+            colorAttachmentReferences.PushBack(ToVkAttachmentReference(attachmentIndex, attachmentDesc));
 
             VkClearValue& clearValue = m_vkClearValues.EmplaceBack();
             clearValue.color = {
@@ -246,7 +246,8 @@ RendererResult VulkanRenderPass::Create()
                     attachmentDesc.clearColor[0],
                     attachmentDesc.clearColor[1],
                     attachmentDesc.clearColor[2],
-                    attachmentDesc.clearColor[3] }
+                    attachmentDesc.clearColor[3]
+                }
             };
         }
     }
@@ -320,38 +321,45 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
         AssertDebug(attachment != nullptr);
 
-        if (attachment->GetLoadOperation() == LoadOperation::LOAD)
-        {
-            VulkanGpuImage* image = attachment->GetImage();
+        const AttachmentDesc& attachmentDesc = attachment->GetAttachmentDesc();
 
-            if (image->GetResourceState() != RS_RENDER_TARGET)
+        VulkanGpuImage* image = attachment->GetImage();
+
+        const TextureDesc& textureDesc = image->GetTextureDesc();
+
+        const bool isDepthStencil = textureDesc.IsDepthStencil();
+        const bool hasStencil = TextureUtils::HasStencilComponent(textureDesc.format);
+
+        if (isDepthStencil && hasStencil)
+        {
+            const bool transitionDepth = !attachmentDesc.onlyStencil && image->GetResourceState() != RS_RENDER_TARGET;
+            const bool transitionStencil = !attachmentDesc.onlyDepth && image->GetStencilState() != RS_RENDER_TARGET;
+
+            if (transitionDepth ^ transitionStencil)
+            {
+                if (transitionDepth)
+                {
+                    image->InsertBarrier(cmd, RS_RENDER_TARGET, ShaderModuleType::Pixel, /* onlyDepth */ true, /* onlyStencil */ false);
+                }
+
+                if (transitionStencil)
+                {
+                    image->InsertBarrier(cmd, RS_RENDER_TARGET, ShaderModuleType::Pixel, /* onlyDepth */ false, /* onlyStencil */ true);
+                }
+            }
+            else if (transitionDepth && transitionStencil)
             {
                 image->InsertBarrier(cmd, RS_RENDER_TARGET, ShaderModuleType::Pixel);
             }
+
+            continue;
+        }
+
+        if (image->GetResourceState() != RS_RENDER_TARGET)
+        {
+            image->InsertBarrier(cmd, RS_RENDER_TARGET, ShaderModuleType::Pixel);
         }
     }
-
-//#if HYP_DEBUG_MODE
-//    // checks for valid layouts
-//    for (uint32 attachmentIndex = 0; attachmentIndex < framebuffer->NumAttachments(); attachmentIndex++)
-//    {
-//        VulkanAttachment* attachment = framebuffer->GetAttachment(attachmentIndex);
-//        AssertDebug(attachment != nullptr);
-//    
-//        const ResourceState expectedState = PreRenderResourceStates[int(attachment->GetLoadOperation() == LoadOperation::LOAD)];
-//    
-//        const ResourceState currentState = attachment->GetImage()->GetResourceState();
-//    
-//        if (expectedState != RS_UNDEFINED)
-//        {
-//            AssertDebug(
-//                expectedState == currentState,
-//                "Attachment expected layout {} but found {}",
-//                EnumToString(expectedState),
-//                EnumToString(currentState));
-//        }
-//    }
-//#endif
 
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -373,7 +381,29 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
         VulkanAttachment* attachment = m_recordingFramebuffer->GetAttachment(attachmentIndex);
         AssertDebug(attachment != nullptr);
 
-        attachment->GetImage()->SetResourceState(PostRenderResourceStates[uint32(m_renderPassMode)]);
+        const ResourceState newState = PostRenderResourceStates[uint32(m_renderPassMode)];
+
+        if (attachment->IsDepthAttachment())
+        {
+            if (attachment->GetAttachmentDesc().onlyStencil)
+            {
+                attachment->GetImage()->SetStencilState(newState);
+
+                continue;
+            }
+
+            if (attachment->GetAttachmentDesc().onlyDepth)
+            {
+                const ResourceState stencilState = attachment->GetImage()->GetStencilState();
+
+                attachment->GetImage()->SetResourceState(newState);
+                attachment->GetImage()->SetStencilState(stencilState);
+
+                continue;
+            }
+        }
+
+        attachment->GetImage()->SetResourceState(newState);
     }
 
     m_recordingFramebuffer = nullptr;

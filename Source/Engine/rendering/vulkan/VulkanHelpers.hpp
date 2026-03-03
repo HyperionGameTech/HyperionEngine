@@ -45,22 +45,22 @@ VkImageAspectFlags ToVkImageAspect(TextureFormat);
 VkImageType ToVkImageType(TextureType);
 VkImageViewType ToVkImageViewType(TextureType);
 VkDescriptorType ToVkDescriptorType(ShaderInputType);
-VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil = false);
+VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil = false, bool onlyDepth = false, bool onlyStencil = false);
 VkAccessFlags GetVkAccessMask(ResourceState state, bool isDepthStencil = false);
 VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool isSrc, bool isDepthStencil, ShaderModuleType shaderType = (ShaderModuleType)0);
 VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type);
 VmaMemoryUsage GetVmaMemoryUsage(GpuBufferType type, bool requireCpuAccessible = false);
 VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool requireCpuAccessible = false);
-VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil);
-VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil);
+VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
+VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth = false, bool onlyStencil = false);
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation);
 VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation);
-VkImageLayout GetIntermediateLayout(bool isDepthStencil);
+VkImageLayout GetIntermediateLayout(bool isDepthStencil, bool hasStencil, bool onlyDepth, bool onlyStencil);
 VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode);
 VkStencilOp ToVkStencilOp(StencilOp stencilOp);
 VkCompareOp ToVkCompareOp(StencilCompareOp compareOp);
 VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode);
-VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth);
+VkAttachmentReference ToVkAttachmentReference(uint32 index, const AttachmentDesc& attachmentDesc);
 
 class VulkanSingleTimeCommands final : public SingleTimeCommands
 {

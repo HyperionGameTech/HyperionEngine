@@ -114,11 +114,17 @@ void SSRPass::CreatePasses()
         renderTargetDesc.numLayers = 1;
 
         FramebufferRef writeUvsFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+
+        AttachmentDesc attachmentDesc {};
+        attachmentDesc.imageType = TextureType::Texture2D;
+        attachmentDesc.format = m_uvsTexture->GetFormat();
+        attachmentDesc.loadOp = LoadOperation::CLEAR;
+        attachmentDesc.storeOp = StoreOperation::STORE;
+
         Attachment* attachment = writeUvsFramebuffer->AddAttachment(
             0,
-            g_renderInterface->MakeImageView(m_uvsTexture->GetGpuImage()),
-            LoadOperation::CLEAR,
-            StoreOperation::STORE);
+            attachmentDesc,
+            g_renderInterface->MakeImageView(m_uvsTexture->GetGpuImage()));
 
         CheckResult(writeUvsFramebuffer->Create());
 
@@ -142,11 +148,17 @@ void SSRPass::CreatePasses()
         renderTargetDesc.numLayers = 1;
 
         FramebufferRef sampleGbufferFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
+        
+        AttachmentDesc attachmentDesc {};
+        attachmentDesc.imageType = TextureType::Texture2D;
+        attachmentDesc.format = m_sampledResultTexture->GetFormat();
+        attachmentDesc.loadOp = LoadOperation::CLEAR;
+        attachmentDesc.storeOp = StoreOperation::STORE;
+
         sampleGbufferFramebuffer->AddAttachment(
             0,
-            g_renderInterface->MakeImageView(m_sampledResultTexture->GetGpuImage()),
-            LoadOperation::CLEAR,
-            StoreOperation::STORE);
+            attachmentDesc,
+            g_renderInterface->MakeImageView(m_sampledResultTexture->GetGpuImage()));
 
         CheckResult(sampleGbufferFramebuffer->Create());
 
