@@ -54,13 +54,17 @@ public:
     void InsertBarrier(
         DX12CommandBuffer* commandBuffer,
         ResourceState newState,
-        ShaderModuleType shaderModuleType) override;
+        ShaderModuleType shaderModuleType,
+        bool onlyDepth = false,
+        bool onlyStencil = false) override;
 
     void InsertBarrier(
         DX12CommandBuffer* commandBuffer,
         const ImageSubResource& subResource,
         ResourceState newState,
-        ShaderModuleType shaderModuleType) override;
+        ShaderModuleType shaderModuleType,
+        bool onlyDepth = false,
+        bool onlyStencil = false) override;
 
     RendererResult Blit(
         DX12CommandBuffer* commandBuffer,

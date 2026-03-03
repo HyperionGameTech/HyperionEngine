@@ -169,21 +169,16 @@ DX12Attachment* DX12Framebuffer::AddAttachment(DX12Attachment* attachment)
 
 DX12Attachment* DX12Framebuffer::AddAttachment(
     uint32 binding,
-    const DX12GpuImageRef& image,
-    LoadOperation loadOp,
-    StoreOperation storeOp)
+    const AttachmentDesc& desc,
+    const DX12GpuImageViewRef& imageView)
 {
+    Assert(imageView != nullptr);
+
     DX12Attachment* attachment = new DX12Attachment(
-        image,
+        imageView->GetImage(),
+        imageView,
         MakeWeakRef(this),
-        AttachmentDesc {
-            .imageType = image->GetTextureDesc().type,
-            .format = image->GetTextureDesc().format,
-            .loadOp = loadOp,
-            .storeOp = storeOp,
-            .blendFunction = BlendFunction::None(),
-            .clearColor = { }
-        });
+        desc);
 
     attachment->SetBinding(binding);
 
@@ -203,14 +198,11 @@ DX12Attachment* DX12Framebuffer::AddAttachment(
 
 DX12Attachment* DX12Framebuffer::AddAttachment(
     uint32 binding,
-    TextureFormat format,
-    TextureType type,
-    LoadOperation loadOp,
-    StoreOperation storeOp)
+    const AttachmentDesc& desc)
 {
     TextureDesc textureDesc;
-    textureDesc.type = type;
-    textureDesc.format = format;
+    textureDesc.type = desc.imageType;
+    textureDesc.format = desc.format;
     textureDesc.extent = Vec3u {
         m_renderTargetDesc.extent.x,
         m_renderTargetDesc.extent.y,
@@ -223,14 +215,7 @@ DX12Attachment* DX12Framebuffer::AddAttachment(
     DX12Attachment* attachment = new DX12Attachment(
         image,
         MakeWeakRef(this),
-        AttachmentDesc {
-            .imageType = image->GetTextureDesc().type,
-            .format = image->GetTextureDesc().format,
-            .loadOp = loadOp,
-            .storeOp = storeOp,
-            .blendFunction = BlendFunction::None(),
-            .clearColor = { }
-        });
+        desc);
 
     attachment->SetBinding(binding);
 

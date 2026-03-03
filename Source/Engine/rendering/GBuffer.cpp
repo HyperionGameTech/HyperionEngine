@@ -182,10 +182,12 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
     {
         return framebuffer->AddAttachment(
             binding,
-            format,
-            TextureType::Texture2D,
-            LoadOperation::CLEAR,
-            StoreOperation::STORE);
+            AttachmentDesc {
+                TextureType::Texture2D,
+                format,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE
+            });
     };
 
     auto AddSharedAttachment = [&](uint32 binding) -> Attachment*
@@ -195,11 +197,13 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
         AttachmentBase* parentAttachment = parentFramebuffer->GetAttachment(binding);
         Assert(parentAttachment != nullptr);
 
+        AttachmentDesc newDesc = parentAttachment->GetAttachmentDesc();
+        newDesc.loadOp = LoadOperation::LOAD;
+
         return framebuffer->AddAttachment(
             binding,
-            g_renderInterface->MakeImageView(parentAttachment->GetImage()),
-            LoadOperation::LOAD,
-            StoreOperation::STORE);
+            newDesc,
+            g_renderInterface->MakeImageView(parentAttachment->GetImage()));
     };
 
     // add gbuffer attachments

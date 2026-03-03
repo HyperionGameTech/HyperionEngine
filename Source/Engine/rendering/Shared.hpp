@@ -1280,6 +1280,9 @@ struct AttachmentDesc
     BlendFunction blendFunction = BlendFunction::None();
     float clearColor[4] = {};
 
+    bool onlyDepth = false;
+    bool onlyStencil = false;
+
     HYP_FORCE_INLINE bool operator==(const AttachmentDesc& other) const
     {
         return imageType == other.imageType
@@ -1287,17 +1290,14 @@ struct AttachmentDesc
             && loadOp == other.loadOp
             && storeOp == other.storeOp
             && blendFunction == other.blendFunction
-            && Memory::Compare((void*)clearColor, (const void*)other.clearColor, sizeof(clearColor)) == 0;
+            && Memory::Compare((void*)clearColor, (const void*)other.clearColor, sizeof(clearColor)) == 0
+            && onlyDepth == other.onlyDepth
+            && onlyStencil == other.onlyStencil;
     }
 
     HYP_FORCE_INLINE bool operator!=(const AttachmentDesc& other) const
     {
-        return imageType != other.imageType
-            || format != other.format
-            || loadOp != other.loadOp
-            || storeOp != other.storeOp
-            || blendFunction != other.blendFunction
-            || Memory::Compare((void*)clearColor, (const void*)other.clearColor, sizeof(clearColor)) != 0;
+        return !operator==(other);
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -1309,6 +1309,8 @@ struct AttachmentDesc
         hc.Add(uint8(storeOp));
         hc.Add(blendFunction);
         hc.Add(clearColor);
+        hc.Add(onlyDepth);
+        hc.Add(onlyStencil);
 
         return hc;
     }

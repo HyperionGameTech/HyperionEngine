@@ -43,17 +43,22 @@ public:
     HANDLE GetNativeHandle() const override;
 
     void SetResourceState(ResourceState newState) override;
+    void SetStencilState(ResourceState newState);
 
     void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         ResourceState newState,
-        ShaderModuleType shaderModuleType) override;
+        ShaderModuleType shaderModuleType,
+        bool onlyDepth = false,
+        bool onlyStencil = false) override;
 
     void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         const ImageSubResource& subResource,
         ResourceState newState,
-        ShaderModuleType shaderModuleType) override;
+        ShaderModuleType shaderModuleType,
+        bool onlyDepth = false,
+        bool onlyStencil = false) override;
 
     RendererResult Blit(
         VulkanCommandBuffer* commandBuffer,

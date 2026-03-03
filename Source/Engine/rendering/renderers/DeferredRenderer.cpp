@@ -1286,17 +1286,28 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 
     Attachment* colorAttachment = framebuffer->AddAttachment(
         0,
-        TextureFormat::RGBA16F,
-        TextureType::Texture2D,
-        LoadOperation::CLEAR,
-        StoreOperation::STORE);
+        AttachmentDesc {
+            TextureType::Texture2D,
+            TextureFormat::RGBA16F,
+            LoadOperation::CLEAR,
+            StoreOperation::STORE
+        });
 
     // depth for stencil testing
+    const GpuImageViewRef& depthImageView = gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView();
+    Assert(depthImageView.IsValid());
+
+    AttachmentDesc depthAttachmentDesc {};
+    depthAttachmentDesc.imageType = TextureType::Texture2D;
+    depthAttachmentDesc.format = depthImageView->GetImage()->GetTextureFormat();
+    depthAttachmentDesc.loadOp = LoadOperation::LOAD;
+    depthAttachmentDesc.storeOp = StoreOperation::NONE;
+    depthAttachmentDesc.onlyStencil = true;
+
     Attachment* depthAttachment = framebuffer->AddAttachment(
         1,
-        gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView(),
-        LoadOperation::LOAD,
-        StoreOperation::NONE);
+        depthAttachmentDesc,
+        depthImageView);
 
     CheckResult(framebuffer->Create());
 
@@ -1970,7 +1981,10 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     { // deferred lighting on opaque objects
         frame->renderQueue << InsertBarrier(
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
-            RS_SHADER_RESOURCE);
+            RS_RENDER_TARGET,
+            ShaderModuleType::Pixel,
+            /* onlyDepth */ false,
+            /* onlyStencil */ true);
 
         frame->renderQueue << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 

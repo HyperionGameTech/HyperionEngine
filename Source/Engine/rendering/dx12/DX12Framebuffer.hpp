@@ -31,14 +31,9 @@ public:
     RendererResult Create() override;
 
     DX12Attachment* AddAttachment(DX12Attachment* attachment) override;
-    DX12Attachment* AddAttachment(uint32 binding, const DX12GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
-
-    DX12Attachment* AddAttachment(
-        uint32 binding,
-        TextureFormat format,
-        TextureType type,
-        LoadOperation loadOp,
-        StoreOperation storeOp) override;
+    
+    DX12Attachment* AddAttachment(uint32 binding, const AttachmentDesc& desc) = 0;
+    DX12Attachment* AddAttachment(uint32 binding, const AttachmentDesc& desc, const DX12GpuImageViewRef& imageView) = 0;
 
     bool RemoveAttachment(uint32 binding) override;
     DX12Attachment* GetAttachment(uint32 binding) const override;

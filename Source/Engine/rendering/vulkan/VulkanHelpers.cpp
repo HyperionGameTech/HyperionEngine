@@ -217,7 +217,8 @@ VkDescriptorType ToVkDescriptorType(ShaderInputType type)
     }
 }
 
-VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil)
+VkImageLayout GetVkImageLayout(ResourceState state,
+    bool isDepthStencil, bool onlyDepth, bool onlyStencil)
 {
     switch (state)
     {
@@ -230,7 +231,15 @@ VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil)
         return VK_IMAGE_LAYOUT_GENERAL;
     case RS_RENDER_TARGET:
         if (isDepthStencil)
+        {
+            if (onlyDepth)
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+
+            if (onlyStencil)
+                return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+
             return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
         else
             return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     case RS_RESOLVE_DST:
@@ -239,7 +248,15 @@ VkImageLayout GetVkImageLayout(ResourceState state, bool isDepthStencil)
         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     case RS_SHADER_RESOURCE:
         if (isDepthStencil)
+        {
+            if (onlyDepth)
+                return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+
+            if (onlyStencil)
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+
             return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        }
         else
             return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     case RS_RESOLVE_SRC:
@@ -510,16 +527,16 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type, bool req
     }
 }
 
-VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil)
+VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil, bool onlyDepth, bool onlyStencil)
 {
     const uint8 loadOperationIndex = loadOperation == LoadOperation::LOAD ? 1 : 0;
 
-    return GetVkImageLayout(PreRenderResourceStates[loadOperationIndex], isDepthStencil);
+    return GetVkImageLayout(PreRenderResourceStates[loadOperationIndex], isDepthStencil, onlyDepth, onlyStencil);
 }
 
-VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil)
+VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth, bool onlyStencil)
 {
-    return GetVkImageLayout(PostRenderResourceStates[uint8(renderPassMode)], isDepthStencil);
+    return GetVkImageLayout(PostRenderResourceStates[uint8(renderPassMode)], isDepthStencil, onlyDepth, onlyStencil);
 }
 
 VkAttachmentLoadOp ToVkLoadOp(LoadOperation loadOperation)
@@ -554,11 +571,20 @@ VkAttachmentStoreOp ToVkStoreOp(StoreOperation storeOperation)
     }
 }
 
-VkImageLayout GetIntermediateLayout(bool isDepthStencil)
+VkImageLayout GetIntermediateLayout(bool isDepthStencil, bool hasStencil, bool onlyDepth, bool onlyStencil)
 {
-    return isDepthStencil
-        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    if (isDepthStencil)
+    {
+        if (onlyStencil)
+            return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+
+        if (onlyDepth)
+            return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    }
+
+    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
 VkBlendFactor ToVkBlendFactor(BlendModeFactor blendMode)
@@ -626,27 +652,37 @@ VkCompareOp ToVkCompareOp(StencilCompareOp compareOp)
     }
 }
 
-VkAttachmentDescription ToVkAttachmentDescription(const AttachmentDesc& attachmentDesc, VulkanRenderPassMode renderPassMode)
+VkAttachmentDescription ToVkAttachmentDescription(
+    const AttachmentDesc& attachmentDesc,
+    VulkanRenderPassMode renderPassMode)
 {
-    const bool isDepth = TextureUtils::IsDepthFormat(attachmentDesc.format);
+    const bool isDepthStencil = TextureUtils::IsDepthFormat(attachmentDesc.format);
+    const bool hasStencil = isDepthStencil && TextureUtils::HasStencilComponent(attachmentDesc.format);
+    const bool onlyDepth = hasStencil && attachmentDesc.onlyDepth;
+    const bool onlyStencil = hasStencil && attachmentDesc.onlyStencil;
 
     return VkAttachmentDescription {
         .format = ToVkFormat(attachmentDesc.format),
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = ToVkLoadOp(attachmentDesc.loadOp),
-        .storeOp = ToVkStoreOp(attachmentDesc.storeOp),
-        .stencilLoadOp = isDepth ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = isDepth ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = GetInitialLayout(attachmentDesc.loadOp, isDepth),
-        .finalLayout = GetFinalLayout(renderPassMode, isDepth)
+        .loadOp = !onlyStencil ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .storeOp = !onlyStencil ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .stencilLoadOp = hasStencil && !onlyDepth ? ToVkLoadOp(attachmentDesc.loadOp) : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = hasStencil && !onlyDepth ? ToVkStoreOp(attachmentDesc.storeOp) : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = GetInitialLayout(attachmentDesc.loadOp, isDepthStencil, onlyDepth, onlyStencil),
+        .finalLayout = GetFinalLayout(renderPassMode, isDepthStencil, onlyDepth, onlyStencil)
     };
 }
 
-VkAttachmentReference ToVkAttachmentReference(uint32 index, bool isDepth)
+VkAttachmentReference ToVkAttachmentReference(uint32 index, const AttachmentDesc& attachmentDesc)
 {
+    const bool isDepthStencil = TextureUtils::IsDepthFormat(attachmentDesc.format);
+    const bool hasStencil = isDepthStencil && TextureUtils::HasStencilComponent(attachmentDesc.format);
+    const bool onlyDepth = hasStencil && attachmentDesc.onlyDepth;
+    const bool onlyStencil = hasStencil && attachmentDesc.onlyStencil;
+
     return VkAttachmentReference {
         .attachment = index,
-        .layout = GetIntermediateLayout(isDepth)
+        .layout = GetIntermediateLayout(isDepthStencil, hasStencil, onlyDepth, onlyStencil)
     };
 }
 

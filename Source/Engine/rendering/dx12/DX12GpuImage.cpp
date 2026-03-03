@@ -202,7 +202,9 @@ void DX12GpuImage::SetSubResourceState(const ImageSubResource& subResource, Reso
 void DX12GpuImage::InsertBarrier(
     DX12CommandBuffer* commandBuffer,
     ResourceState newState,
-    ShaderModuleType shaderModuleType)
+    ShaderModuleType shaderModuleType,
+    bool onlyDepth,
+    bool onlyStencil)
 {
     // @TODO
 }
@@ -211,7 +213,9 @@ void DX12GpuImage::InsertBarrier(
     DX12CommandBuffer* commandBuffer,
     const ImageSubResource& subResource,
     ResourceState newState,
-    ShaderModuleType shaderModuleType)
+    ShaderModuleType shaderModuleType,
+    bool onlyDepth,
+    bool onlyStencil)
 {
     // @TODO
 }

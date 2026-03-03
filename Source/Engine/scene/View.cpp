@@ -218,10 +218,7 @@ void View::Init()
 
                 Attachment* attachment = framebuffer->AddAttachment(
                     attachmentIndex,
-                    attachmentDesc.format,
-                    attachmentDesc.imageType,
-                    attachmentDesc.loadOp,
-                    attachmentDesc.storeOp);
+                    attachmentDesc);
 
                 attachment->SetClearColor(Vec4f(
                     attachmentDesc.clearColor[0],

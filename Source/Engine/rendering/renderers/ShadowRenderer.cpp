@@ -295,9 +295,8 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
                 framebuffer->AddAttachment(
                     attachmentIndex,
-                    shadowMap->GetImageView(),
-                    attachmentDesc.loadOp,
-                    attachmentDesc.storeOp);
+                    attachmentDesc,
+                    shadowMap->GetImageView());
             }
 
             // remaining attachments - if any - are the framebuffers' own.
@@ -307,10 +306,7 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
 
                 framebuffer->AddAttachment(
                     attachmentIndex,
-                    attachmentDesc.format,
-                    attachmentDesc.imageType,
-                    attachmentDesc.loadOp,
-                    attachmentDesc.storeOp);
+                    attachmentDesc);
             }
 
             CheckResult(framebuffer->Create());

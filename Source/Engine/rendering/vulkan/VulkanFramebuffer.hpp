@@ -104,15 +104,12 @@ struct VulkanAttachmentMap
     VulkanAttachment* AddAttachment(
         uint32 binding,
         Vec2u extent,
-        TextureFormat format,
-        TextureType type,
-        VulkanRenderPassMode renderPassMode,
-        LoadOperation loadOp,
-        StoreOperation storeOp)
+        const AttachmentDesc& attachmentDesc,
+        VulkanRenderPassMode renderPassMode)
     {
         TextureDesc textureDesc;
-        textureDesc.type = type;
-        textureDesc.format = format;
+        textureDesc.type = attachmentDesc.imageType;
+        textureDesc.format = attachmentDesc.format;
         textureDesc.extent = Vec3u { extent.x, extent.y, 1 };
         textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
@@ -124,14 +121,7 @@ struct VulkanAttachmentMap
             imageView,
             framebufferWeak,
             renderPassMode,
-            AttachmentDesc {
-                .imageType = type,
-                .format = format,
-                .loadOp = loadOp,
-                .storeOp = storeOp,
-                .blendFunction = BlendFunction::None(),
-                .clearColor = {}
-            });
+            attachmentDesc);
 
         attachment->SetBinding(binding);
 
@@ -179,18 +169,8 @@ public:
 
     VulkanAttachment* AddAttachment(VulkanAttachment* attachment) override;
 
-    VulkanAttachment* AddAttachment(
-        uint32 binding,
-        const VulkanGpuImageViewRef& imageView,
-        LoadOperation loadOp,
-        StoreOperation storeOp) override;
-
-    VulkanAttachment* AddAttachment(
-        uint32 binding,
-        TextureFormat format,
-        TextureType type,
-        LoadOperation loadOp,
-        StoreOperation storeOp) override;
+    VulkanAttachment* AddAttachment(uint32 binding, const AttachmentDesc& desc) override;
+    VulkanAttachment* AddAttachment(uint32 binding, const AttachmentDesc& desc, const VulkanGpuImageViewRef& imageView) override;
 
     bool RemoveAttachment(uint32 binding) override;
 
