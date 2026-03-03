@@ -314,6 +314,7 @@ float sphericalCapsIntersection(float cosCap1, float cosCap2, float cosDistance)
     return area * (1.0 - max(cosCap1, cosCap2));
 }
 
+#ifdef PIXEL_SHADER
 /// Compute perceptual roughness a la filament
 float ComputePerceptualRoughness(float roughness, float3 normal)
 {
@@ -333,6 +334,7 @@ float ComputePerceptualRoughness(float roughness, float3 normal)
 
     return perceptualRoughness;
 }
+#endif
 
 float SpecularAO_Cones(vec3 bentNormal, float visibility, float roughness, vec3 shading_reflected)
 {
