@@ -1082,7 +1082,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     if (framebuffer)
     {
-        frame->renderQueue << BeginFramebuffer(framebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(framebuffer);
     }
 
     for (auto& mappings : groupsView)
@@ -1134,7 +1134,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     if (framebuffer)
     {
-        frame->renderQueue << EndFramebuffer(framebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 }
 

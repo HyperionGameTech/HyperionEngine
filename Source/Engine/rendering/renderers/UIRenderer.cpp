@@ -175,7 +175,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     if (framebuffer != nullptr)
     {
-        frame->renderQueue << BeginFramebuffer(framebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(framebuffer);
     }
 
     using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
@@ -234,7 +234,7 @@ void UIRenderCollector::ExecuteDrawCalls(Frame* frame, const RenderSetup& render
 
     if (framebuffer != nullptr)
     {
-        frame->renderQueue << EndFramebuffer(framebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 }
 

@@ -91,7 +91,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 
-    rq << BeginFramebuffer(framebuffer);
+    rq << SetCurrentFramebuffer(framebuffer);
 
     rq << SetCurrentView(framebuffer->GetRenderTargetDesc(), Viewport { rs.swapchain->GetExtent() });
 
@@ -157,7 +157,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     }
 #endif
 
-    rq << EndFramebuffer(framebuffer);
+    rq << SetCurrentFramebuffer(nullptr);
 
     // reset
     rq << SetCurrentBlendFunction(BlendFunction::None());

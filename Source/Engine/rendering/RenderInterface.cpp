@@ -1801,6 +1801,22 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
+    bool needsBeginCapture = false;
+    
+    if (state.framebuffer != state.prevFramebuffer)
+    {
+        if (state.prevFramebuffer != nullptr)
+        {
+            state.prevFramebuffer->EndCapture(commandBuffer);
+            state.prevFramebuffer = nullptr;
+        }
+
+        if (state.framebuffer != nullptr)
+        {
+            needsBeginCapture = true;
+        }
+    }
+
     // Transition images for use in shaders
     FOR_EACH_BIT(state.validUniforms | state.dirtyUniforms, uniformIndex)
     {
@@ -1833,6 +1849,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (subResource.numLayers == image->NumArrayLayers() && subResource.numLevels == image->NumMips())
             {
+                if (state.prevFramebuffer != nullptr)
+                {
+                    // have to end render pass if we are going to insert a barrier
+                    state.prevFramebuffer->EndCapture(commandBuffer);
+                    state.prevFramebuffer = nullptr;
+                }
+
                 image->InsertBarrier(commandBuffer, desiredResourceState, ShaderModuleType::None);
             }
             else
@@ -1855,6 +1878,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                         {
                             needsTransition = true;
 
+                            if (state.prevFramebuffer != nullptr)
+                            {
+                                // have to end render pass if we are going to insert a barrier
+                                state.prevFramebuffer->EndCapture(commandBuffer);
+                                state.prevFramebuffer = nullptr;
+                            }
+
                             break;
                         }
                     }
@@ -1871,6 +1901,13 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                 }
             }
         }
+    }
+
+    if (needsBeginCapture)
+    {
+        state.framebuffer->BeginCapture(commandBuffer);
+
+        state.prevFramebuffer = state.framebuffer;
     }
 
     if (state.dirtyUniforms)

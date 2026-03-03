@@ -611,7 +611,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
 
     if (shouldStartRecording)
     {
-        rq << BeginFramebuffer(framebuffer);
+        rq << SetCurrentFramebuffer(framebuffer);
     }
     
     rq << SetCurrentShader(m_shaderDesc);
@@ -620,7 +620,7 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
 
     if (shouldEndRecording)
     {
-        rq << EndFramebuffer(framebuffer);
+        rq << SetCurrentFramebuffer(nullptr);
     }
 
     m_isFirstFrame = false;
@@ -696,7 +696,7 @@ void FullScreenPass::Begin(Frame* frame, const RenderSetup& renderSetup)
     const uint32 frameIndex = frame->GetFrameIndex();
     RenderQueue& rq = frame->renderQueue;
 
-    rq << BeginFramebuffer(m_framebuffer);
+    rq << SetCurrentFramebuffer(m_framebuffer);
 
     // render previous frame's result to screen
     if (!m_isFirstFrame && m_historyTexture.IsValid())
@@ -747,7 +747,7 @@ void FullScreenPass::End(Frame* frame, const RenderSetup& renderSetup)
     rq << SetDepthWrite(true);
     rq << SetCurrentBlendFunction(BlendFunction::None());
 
-    rq << EndFramebuffer(m_framebuffer);
+    rq << SetCurrentFramebuffer(nullptr);
 
     if (ShouldRenderCheckerboarded())
     {

@@ -209,10 +209,15 @@ public:
             RayTracingPipeline* prevRayTracingPipeline;
         };
 
+        Framebuffer* framebuffer = nullptr;
+        Framebuffer* prevFramebuffer = nullptr;
+
         PSOType prevPsoType = PSO_Graphics;
 
         void Reset()
         {
+            AssertDebug(prevFramebuffer == nullptr);
+
             attributes = {};
             validUniforms = 0;
             dirtyUniforms = 0;
@@ -224,6 +229,9 @@ public:
             stencilReference = 0;
             stencilCompareMask = 0xFF;
             stencilWriteMask = 0x0;
+
+            framebuffer = nullptr;
+            prevFramebuffer = nullptr;
 
             prevPsoType = PSO_Graphics;
             prevGraphicsPipeline = nullptr;

@@ -149,22 +149,10 @@ public:
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 };
 
-class BeginFramebuffer final : public CmdBase
+class SetCurrentFramebuffer final : public CmdBase
 {
 public:
-    BeginFramebuffer(Framebuffer* framebuffer);
-    static void PrepareStatic(CmdBase* cmd, Frame* frame);
-
-    static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
-
-private:
-    Framebuffer* m_framebuffer;
-};
-
-class EndFramebuffer final : public CmdBase
-{
-public:
-    EndFramebuffer(Framebuffer* framebuffer);
+    SetCurrentFramebuffer(Framebuffer* framebuffer);
     static void PrepareStatic(CmdBase* cmd, Frame* frame);
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
