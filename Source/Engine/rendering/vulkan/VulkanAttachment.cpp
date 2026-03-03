@@ -26,15 +26,18 @@ extern VkImageLayout GetVkImageLayout(ResourceState state);
 
 VulkanAttachment::VulkanAttachment(
     const VulkanGpuImageRef& image,
+    const VulkanGpuImageViewRef& imageView,
     const VulkanFramebufferWeakRef& framebuffer,
     VulkanRenderPassMode renderPassMode,
     const AttachmentDesc& attachmentDesc)
-    : AttachmentBase(image, framebuffer, attachmentDesc),
+    : AttachmentBase(image, imageView, framebuffer, attachmentDesc),
       m_renderPassMode(renderPassMode),
       m_vkAttachmentReference {},
       m_vkAttachmentDescription {}
 {
-    if (image.IsValid())
+    Assert(m_image.IsValid());
+
+    if (!m_imageView.IsValid())
     {
         m_imageView = MakeHandle<VulkanGpuImageView>(image);
 #if HYP_DEBUG_MODE
@@ -62,14 +65,13 @@ RendererResult VulkanAttachment::Create()
 
     AssertDebug(HasBinding());
 
-    m_vkAttachmentReference = VkAttachmentReference {
-        .attachment = m_binding,
-        .layout = GetIntermediateLayout(IsDepthAttachment())
-    };
+    m_vkAttachmentReference = VkAttachmentReference {};
+    m_vkAttachmentReference.attachment = m_binding;
+    m_vkAttachmentReference.layout = GetIntermediateLayout(IsDepthAttachment());
 
     if (!m_image->IsCreated())
     {
-        return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
+        CheckResultOrReturn(m_image->Create());
     }
 
     return m_imageView->Create();

@@ -116,7 +116,7 @@ void SSRPass::CreatePasses()
         FramebufferRef writeUvsFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
         Attachment* attachment = writeUvsFramebuffer->AddAttachment(
             0,
-            m_uvsTexture->GetGpuImage(),
+            g_renderInterface->MakeImageView(m_uvsTexture->GetGpuImage()),
             LoadOperation::CLEAR,
             StoreOperation::STORE);
 
@@ -144,7 +144,7 @@ void SSRPass::CreatePasses()
         FramebufferRef sampleGbufferFramebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
         sampleGbufferFramebuffer->AddAttachment(
             0,
-            m_sampledResultTexture->GetGpuImage(),
+            g_renderInterface->MakeImageView(m_sampledResultTexture->GetGpuImage()),
             LoadOperation::CLEAR,
             StoreOperation::STORE);
 

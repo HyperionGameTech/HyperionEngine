@@ -1527,6 +1527,15 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         state.prevGraphicsPipeline = nullptr;
     }
 
+    union
+    {
+        ValueStorage<BindGraphicsPipeline> bindGraphicsCmd;
+        ValueStorage<BindComputePipeline> bindComputeCmd;
+        ValueStorage<BindRayTracingPipeline> bindRayTracingCmd;
+    } deferredBindCommandMemory;
+
+    void (*executeBindCmdFunction)(CmdBase*, CommandBuffer*) = nullptr;
+
     switch (psoType)
     {
     case PSO_Graphics:
@@ -1547,8 +1556,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
             pipeline = *cacheHandle;
 
-            BindGraphicsPipeline bindCmd(pipeline, state.viewport);
-            BindGraphicsPipeline::InvokeStatic(&bindCmd, commandBuffer);
+            new (&deferredBindCommandMemory.bindGraphicsCmd) BindGraphicsPipeline(pipeline, state.viewport);
+            executeBindCmdFunction = &BindGraphicsPipeline::InvokeStatic;
 
             state.prevGraphicsPipeline = pipeline;
             pipelineChanged = true;
@@ -1572,8 +1581,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             pipeline = computePipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
             AssertDebug(pipeline != nullptr);
 
-            BindComputePipeline bindCmd(pipeline);
-            BindComputePipeline::InvokeStatic(&bindCmd, commandBuffer);
+            new (&deferredBindCommandMemory.bindComputeCmd) BindComputePipeline(pipeline);
+            executeBindCmdFunction = &BindComputePipeline::InvokeStatic;
 
             state.prevComputePipeline = pipeline;
             pipelineChanged = true;
@@ -1597,8 +1606,8 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
             pipeline = rayTracingPipelineCache->GetOrCreate(state.attributes.GetShaderName(), state.attributes.GetShaderProperties());
             AssertDebug(pipeline != nullptr);
 
-            BindRayTracingPipeline bindCmd(pipeline);
-            BindRayTracingPipeline::InvokeStatic(&bindCmd, commandBuffer);
+            new (&deferredBindCommandMemory.bindRayTracingCmd) BindRayTracingPipeline(pipeline);
+            executeBindCmdFunction = &BindRayTracingPipeline::InvokeStatic;
 
             state.prevRayTracingPipeline = pipeline;
             pipelineChanged = true;
@@ -1801,19 +1810,12 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
-    bool needsBeginCapture = false;
-    
-    if (state.framebuffer != state.prevFramebuffer)
+    if (psoType == PSO_Graphics && state.framebuffer != state.prevFramebuffer)
     {
         if (state.prevFramebuffer != nullptr)
         {
             state.prevFramebuffer->EndCapture(commandBuffer);
             state.prevFramebuffer = nullptr;
-        }
-
-        if (state.framebuffer != nullptr)
-        {
-            needsBeginCapture = true;
         }
     }
 
@@ -1849,7 +1851,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         {
             if (subResource.numLayers == image->NumArrayLayers() && subResource.numLevels == image->NumMips())
             {
-                if (state.prevFramebuffer != nullptr)
+                if (psoType == PSO_Graphics && state.prevFramebuffer != nullptr)
                 {
                     // have to end render pass if we are going to insert a barrier
                     state.prevFramebuffer->EndCapture(commandBuffer);
@@ -1878,7 +1880,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
                         {
                             needsTransition = true;
 
-                            if (state.prevFramebuffer != nullptr)
+                            if (psoType == PSO_Graphics && state.prevFramebuffer != nullptr)
                             {
                                 // have to end render pass if we are going to insert a barrier
                                 state.prevFramebuffer->EndCapture(commandBuffer);
@@ -1903,11 +1905,23 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
         }
     }
 
-    if (needsBeginCapture)
+    if (psoType == PSO_Graphics)
     {
-        state.framebuffer->BeginCapture(commandBuffer);
+        if (state.prevFramebuffer == nullptr)
+        {
+            AssertDebug(state.framebuffer != nullptr, "No framebuffer bound at the time of CommitDrawState!");
 
-        state.prevFramebuffer = state.framebuffer;
+            state.framebuffer->BeginCapture(commandBuffer);
+
+            state.prevFramebuffer = state.framebuffer;
+        }
+    }
+
+    if (executeBindCmdFunction != nullptr)
+    {
+        executeBindCmdFunction(
+            reinterpret_cast<CmdBase*>(&deferredBindCommandMemory),
+            commandBuffer);
     }
 
     if (state.dirtyUniforms)

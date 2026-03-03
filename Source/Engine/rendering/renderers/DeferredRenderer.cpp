@@ -1284,25 +1284,17 @@ static FramebufferRef CreateDeferredShadingFramebuffer(GBuffer* gbuffer)
 
     FramebufferRef framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
-    TextureDesc textureDesc;
-    textureDesc.type = TextureType::Texture2D;
-    textureDesc.format = TextureFormat::RGBA16F;
-    textureDesc.extent = Vec3u { gbuffer->GetExtent(), 1 };
-    textureDesc.filterModeMin = TFM_NEAREST;
-    textureDesc.filterModeMag = TFM_NEAREST;
-    textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
-    textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
-
     Attachment* colorAttachment = framebuffer->AddAttachment(
         0,
-        g_renderInterface->MakeImage(textureDesc),
+        TextureFormat::RGBA16F,
+        TextureType::Texture2D,
         LoadOperation::CLEAR,
         StoreOperation::STORE);
 
     // depth for stencil testing
     Attachment* depthAttachment = framebuffer->AddAttachment(
         1,
-        gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImage(),
+        gbuffer->GetBucket(RenderBucket::Opaque).GetGBufferAttachment(GTN_DEPTH)->GetImageView(),
         LoadOperation::LOAD,
         StoreOperation::STORE);
 

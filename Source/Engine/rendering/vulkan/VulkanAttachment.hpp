@@ -33,6 +33,7 @@ class VulkanAttachment final : public AttachmentBase
 public:
     VulkanAttachment(
         const VulkanGpuImageRef& image,
+        const VulkanGpuImageViewRef& imageView, // May be null
         const VulkanFramebufferWeakRef& framebuffer,
         VulkanRenderPassMode renderPassMode,
         const AttachmentDesc& attachmentDesc);

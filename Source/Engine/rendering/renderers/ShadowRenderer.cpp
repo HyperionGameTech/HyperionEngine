@@ -291,14 +291,11 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
             // initial attachment writes to atlas element
             for (; attachmentIndex < 1; attachmentIndex++)
             {
-                const GpuImageRef& image = shadowMap->GetImageView()->GetImage();
-                AssertDebug(image != nullptr);
-
                 const AttachmentDesc& attachmentDesc = renderTargetDesc.attachments[attachmentIndex];
 
                 framebuffer->AddAttachment(
                     attachmentIndex,
-                    image,
+                    shadowMap->GetImageView(),
                     attachmentDesc.loadOp,
                     attachmentDesc.storeOp);
             }

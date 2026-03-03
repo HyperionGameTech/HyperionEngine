@@ -180,24 +180,10 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
     auto AddOwnedAttachment = [&](uint32 binding, TextureFormat format) -> Attachment*
     {
-        TextureDesc textureDesc;
-        textureDesc.type = TextureType::Texture2D;
-        textureDesc.format = format;
-        textureDesc.extent = Vec3u { resolution, 1 };
-        textureDesc.filterModeMin = TFM_NEAREST;
-        textureDesc.filterModeMag = TFM_NEAREST;
-        textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
-        textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
-
-        GpuImageRef gpuImage = g_renderInterface->MakeImage(textureDesc);
-        
-#if HYP_DEBUG_MODE
-        gpuImage->SetDebugName(NAME_FMT("GBufferTarget_{}_{}", binding, EnumToString(rb)));
-#endif
-
         return framebuffer->AddAttachment(
             binding,
-            gpuImage,
+            format,
+            TextureType::Texture2D,
             LoadOperation::CLEAR,
             StoreOperation::STORE);
     };
@@ -211,7 +197,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& parentFramebuffe
 
         return framebuffer->AddAttachment(
             binding,
-            parentAttachment->GetImage(),
+            g_renderInterface->MakeImageView(parentAttachment->GetImage()),
             LoadOperation::LOAD,
             StoreOperation::STORE);
     };

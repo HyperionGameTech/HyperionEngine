@@ -232,17 +232,20 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(VulkanAttachment* attachment)
 
 VulkanAttachment* VulkanFramebuffer::AddAttachment(
     uint32 binding,
-    const VulkanGpuImageRef& image,
+    const GpuImageViewRef& imageView,
     LoadOperation loadOp,
     StoreOperation storeOp)
 {
+    Assert(imageView.IsValid() && imageView->GetImage().IsValid());
+
     VulkanAttachment* attachment = new VulkanAttachment(
-        image,
+        imageView->GetImage(),
+        imageView,
         WeakHandleFromThis(),
         GetRenderPassMode(),
         AttachmentDesc {
-            .imageType = image->GetTextureDesc().type,
-            .format = image->GetTextureDesc().format,
+            .imageType = imageView->GetImage()->GetType(),
+            .format = imageView->GetImage()->GetTextureDesc().format,
             .loadOp = loadOp,
             .storeOp = storeOp,
             .blendFunction = BlendFunction::None(),
