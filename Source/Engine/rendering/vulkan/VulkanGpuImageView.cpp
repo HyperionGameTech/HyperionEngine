@@ -67,6 +67,11 @@ bool VulkanGpuImageView::IsCreated() const
 
 RendererResult VulkanGpuImageView::Create()
 {
+    if (IsCreated())
+    {
+        return {}; // already created
+    }
+
     if (!m_image)
     {
         return HYP_MAKE_ERROR(RendererError, "Cannot create image view on uninitialized image");

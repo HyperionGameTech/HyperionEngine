@@ -287,7 +287,12 @@ RendererResult VulkanSwapchain::Create()
         renderTargetDesc.extent = m_extent;
 
         VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
-        framebuffer->AddAttachment(0, image, LoadOperation::CLEAR, StoreOperation::STORE);
+        framebuffer->AddAttachment(
+            0,
+            g_renderInterface->MakeImageView(image),
+            LoadOperation::CLEAR,
+            StoreOperation::STORE);
+
         CheckResultOrReturn(framebuffer->Create());
         
         m_framebuffers.PushBack(framebuffer);

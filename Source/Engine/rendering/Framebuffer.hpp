@@ -70,7 +70,13 @@ public:
     virtual RendererResult Create() = 0;
 
     virtual Attachment* AddAttachment(Attachment* attachment) = 0;
-    virtual Attachment* AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) = 0;
+
+    virtual Attachment* AddAttachment(
+        uint32 binding,
+        const GpuImageViewRef& imageView,
+        LoadOperation loadOp,
+        StoreOperation storeOp) = 0;
+
     virtual Attachment* AddAttachment(
         uint32 binding,
         TextureFormat format,

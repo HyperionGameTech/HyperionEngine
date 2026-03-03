@@ -117,9 +117,11 @@ struct VulkanAttachmentMap
         textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
         VulkanGpuImageRef image = MakeHandle<VulkanGpuImage>(textureDesc);
+        VulkanGpuImageViewRef imageView = MakeHandle<VulkanGpuImageView>(image);
 
         VulkanAttachment* attachment = new VulkanAttachment(
             image,
+            imageView,
             framebufferWeak,
             renderPassMode,
             AttachmentDesc {
@@ -176,7 +178,12 @@ public:
     }
 
     VulkanAttachment* AddAttachment(VulkanAttachment* attachment) override;
-    VulkanAttachment* AddAttachment(uint32 binding, const VulkanGpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+
+    VulkanAttachment* AddAttachment(
+        uint32 binding,
+        const VulkanGpuImageViewRef& imageView,
+        LoadOperation loadOp,
+        StoreOperation storeOp) override;
 
     VulkanAttachment* AddAttachment(
         uint32 binding,

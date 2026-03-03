@@ -88,6 +88,14 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
         return;
     }
 
+    if (m_uiLayerImageView != nullptr)
+    {
+        // transition ui image before we do any rendering, so we don't
+        // need to end/begin the renderpass in between rendering view texture
+        // (better for performance this way, plus, would break blending and leave us with a blank screen due to CLEAR load op)
+        rq << InsertBarrier(m_uiLayerImageView->GetImage(), RS_SHADER_RESOURCE);
+    }
+
     const FramebufferRef& framebuffer = rs.swapchain->GetFramebuffers()[acquiredImageIndex];
     AssertDebug(framebuffer != nullptr);
 
@@ -163,6 +171,13 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetCurrentBlendFunction(BlendFunction::None());
     rq << SetDepthTest(true);
     rq << SetDepthWrite(true);
+
+    
+    if (m_uiLayerImageView != nullptr)
+    {
+        // @TODO: check if we can remove this transition.
+        rq << InsertBarrier(m_uiLayerImageView->GetImage(), RS_RENDER_TARGET);
+    }
 }
 
 #pragma endregion FinalPass

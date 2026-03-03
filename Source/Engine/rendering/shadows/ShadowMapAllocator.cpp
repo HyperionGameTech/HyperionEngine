@@ -76,7 +76,7 @@ void ShadowMapAllocator::Initialize()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         uint16(m_atlases.Size()),
-        IU_SAMPLED
+        IU_SAMPLED | IU_ATTACHMENT
     });
     
 #if HYP_DEBUG_MODE
@@ -94,13 +94,13 @@ void ShadowMapAllocator::Initialize()
 
     m_pointLightShadowMapImage = g_renderInterface->MakeImage(TextureDesc {
         TextureType::CubemapArray,
-        TextureFormat::RG16F,
+        TextureFormat::D16,
         Vec3u { 256, 256, 1 },
         TFM_NEAREST,
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         MaxBoundOmniShadowMaps * 6,
-        IU_SAMPLED
+        IU_SAMPLED | IU_ATTACHMENT
     });
     
 #if HYP_DEBUG_MODE
@@ -160,11 +160,20 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
             .scale = Vec2f::One()
         };
 
+        ImageSubResource subResource {};
+        subResource.baseArrayLayer = atlasElement.layerIndex * 6;
+        subResource.numLayers = 6;
+        subResource.baseMipLevel = 0;
+        subResource.numLevels = 1;
+        
+        GpuImageViewRef atlasImageView = MakeHandle<GpuImageView>(m_pointLightShadowMapImage, subResource);
+        DeferCreate(atlasImageView);
+
         ShadowMap* shadowMap = new ShadowMap(
             shadowMapType,
             filterMode,
             atlasElement,
-            m_pointLightShadowMapImageView);
+            atlasImageView);
 
         return shadowMap;
     }

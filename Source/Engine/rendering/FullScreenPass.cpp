@@ -348,25 +348,10 @@ void FullScreenPass::CreateFramebuffer()
 
     m_framebuffer = g_renderInterface->MakeFramebuffer(renderTargetDesc);
 
-    TextureDesc textureDesc;
-    textureDesc.type = TextureType::Texture2D;
-    textureDesc.format = m_imageFormat;
-    textureDesc.extent = Vec3u { framebufferExtent, 1 };
-    textureDesc.filterModeMin = TFM_NEAREST;
-    textureDesc.filterModeMag = TFM_NEAREST;
-    textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
-    textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
-
-    GpuImageRef attachmentImage = g_renderInterface->MakeImage(textureDesc);
-#if HYP_DEBUG_MODE
-    attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", GetName()));
-#endif
-
-    CheckResult(attachmentImage->Create());
-
     Attachment* attachment = m_framebuffer->AddAttachment(
         0,
-        attachmentImage,
+        m_imageFormat,
+        TextureType::Texture2D,
         ShouldRenderCheckerboarded() || (m_flags & FSP_RENDERTARGET_LOAD) ? LoadOperation::LOAD : LoadOperation::CLEAR,
         StoreOperation::STORE);
 
@@ -613,8 +598,6 @@ void FullScreenPass::RenderToFramebuffer(Frame* frame, const RenderSetup& render
     {
         rq << SetCurrentFramebuffer(framebuffer);
     }
-    
-    rq << SetCurrentShader(m_shaderDesc);
 
     RenderToFramebuffer_Internal(frame, renderSetup, framebuffer);
 
@@ -656,9 +639,7 @@ void FullScreenPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetu
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     
-    ShaderDesc shaderDesc;
-    shaderDesc.name = NAME("BlitTexture");
-    rq << SetCurrentShader(shaderDesc);
+    rq << SetCurrentShader(m_shaderDesc);
 
     rq << SetDepthTest(false);
     rq << SetDepthWrite(false);

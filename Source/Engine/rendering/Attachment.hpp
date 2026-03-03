@@ -115,9 +115,11 @@ public:
 protected:
     AttachmentBase(
         const GpuImageRef& image,
+        const GpuImageViewRef& imageView, // May be null
         const FramebufferWeakRef& framebuffer,
         const AttachmentDesc& attachmentDesc)
         : m_image(image),
+          m_imageView(imageView),
           m_framebuffer(framebuffer),
           m_attachmentDesc(attachmentDesc)
     {
