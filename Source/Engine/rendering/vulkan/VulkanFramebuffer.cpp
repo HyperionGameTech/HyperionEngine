@@ -299,10 +299,11 @@ void VulkanFramebuffer::BeginCapture(VulkanCommandBuffer* commandBuffer)
 {
     Assert(!commandBuffer->IsInRenderPass());
 
-    commandBuffer->m_isInRenderPass = true;
     commandBuffer->ResetBoundDescriptorSets();
 
     m_renderPass.Begin(commandBuffer, this);
+    
+    commandBuffer->m_isInRenderPass = true;
 }
 
 void VulkanFramebuffer::EndCapture(VulkanCommandBuffer* commandBuffer)

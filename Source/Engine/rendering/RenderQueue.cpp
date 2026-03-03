@@ -262,75 +262,54 @@ void InsertBarrier::CheckNotInRenderPass(CommandBuffer* commandBuffer) const
 
 #pragma endregion InsertBarrier
 
-#pragma region BeginFramebuffer
+#pragma region SetCurrentFramebuffer
 
-#if HYP_DEBUG_MODE
-thread_local int s_framebufferCount;
 thread_local Framebuffer* s_currentFramebuffer;
-#endif
 
-BeginFramebuffer::BeginFramebuffer(Framebuffer* framebuffer)
+SetCurrentFramebuffer::SetCurrentFramebuffer(Framebuffer* framebuffer)
     : m_framebuffer(framebuffer)
 {
-#if HYP_DEBUG_MODE
-    Assert(!s_framebufferCount, "Cannot begin framebuffer: already in a framebuffer");
-    s_framebufferCount++;
-    s_currentFramebuffer = framebuffer;
-#endif
+    if (m_framebuffer != nullptr)
+    {
+        m_framebuffer->SetIsDeferredRecording(true);
+    }
 
-    AssertDebug(!framebuffer->IsDeferredRecording(), "Beginning a framebuffer that is already recording");
+    if (s_currentFramebuffer != nullptr && s_currentFramebuffer != m_framebuffer)
+    {
+        s_currentFramebuffer->SetIsDeferredRecording(false);
+    }
 
-    m_framebuffer->SetIsDeferredRecording(true);
+    s_currentFramebuffer = m_framebuffer;
 }
 
-void BeginFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
+void SetCurrentFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
 {
 }
 
-void BeginFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
+void SetCurrentFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
 {
-    BeginFramebuffer* cmdCasted = static_cast<BeginFramebuffer*>(cmd);
+    SetCurrentFramebuffer* cmdCasted = static_cast<SetCurrentFramebuffer*>(cmd);
 
-    cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
+    RenderInterface::State& state = g_renderInterface->state;
 
-    static_assert(std::is_trivially_destructible_v<BeginFramebuffer>);
-    // cmdCasted->~BeginFramebuffer();
+    if (cmdCasted->m_framebuffer == nullptr && state.prevFramebuffer != nullptr)
+    {
+        // end render pass if we are in one.
+        // otherwise, we don't call BeginCapture() until CommitDrawState...
+        // this lets us transition textures before we actually begin the pass
+        state.prevFramebuffer->EndCapture(commandBuffer);
+        state.prevFramebuffer = nullptr;
+    }
+
+    state.framebuffer = cmdCasted->m_framebuffer;
+
+    //cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
+
+    static_assert(std::is_trivially_destructible_v<SetCurrentFramebuffer>);
+    // cmdCasted->~SetCurrentFramebuffer();
 }
 
-#pragma endregion BeginFramebuffer
-
-#pragma region EndFramebuffer
-
-EndFramebuffer::EndFramebuffer(Framebuffer* framebuffer)
-    : m_framebuffer(framebuffer)
-{
-#if HYP_DEBUG_MODE
-    Assert(s_framebufferCount, "Cannot end framebuffer: not in a framebuffer");
-    s_framebufferCount--;
-
-    Assert(s_currentFramebuffer == framebuffer, "Cannot end framebuffer: mismatched framebuffer");
-    s_currentFramebuffer = nullptr;
-#endif
-    AssertDebug(framebuffer->IsDeferredRecording(), "Ending a framebuffer that is not recording");
-
-    m_framebuffer->SetIsDeferredRecording(false);
-}
-
-void EndFramebuffer::PrepareStatic(CmdBase* cmd, Frame* frame)
-{
-}
-
-void EndFramebuffer::InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer)
-{
-    EndFramebuffer* cmdCasted = static_cast<EndFramebuffer*>(cmd);
-
-    cmdCasted->m_framebuffer->EndCapture(commandBuffer);
-
-    static_assert(std::is_trivially_destructible_v<EndFramebuffer>);
-    // cmdCasted->~EndFramebuffer();
-}
-
-#pragma endregion EndFramebuffer
+#pragma endregion SetCurrentFramebuffer
 
 #pragma region ClearFramebuffer
 

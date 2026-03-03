@@ -296,6 +296,8 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         return;
     }
 
+    Assert(!cmd->IsInRenderPass());
+
     Assert(framebuffer != nullptr);
     Assert(m_handle != VK_NULL_HANDLE);
 

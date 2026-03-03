@@ -1117,7 +1117,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         }
     }
 
-    rq << BeginFramebuffer(GetFramebuffer());
+    rq << SetCurrentFramebuffer(GetFramebuffer());
 
     // render previous frame's result to screen if doing temporal blending (and not checkerboarded)
     if (!m_isFirstFrame && UsesTemporalBlending() && !ShouldRenderCheckerboarded())
@@ -1209,7 +1209,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         rq << SetCurrentBlendFunction(BlendFunction::None());
     }
 
-    frame->renderQueue << EndFramebuffer(GetFramebuffer());
+    frame->renderQueue << SetCurrentFramebuffer(nullptr);
 
     if (ShouldRenderCheckerboarded())
     {
@@ -1888,11 +1888,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     PerformOcclusionCulling(frame, rs, renderCollector);
 
     { // render opaque objects into separate framebuffer
-        frame->renderQueue << BeginFramebuffer(opaquePassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(opaquePassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Opaque>);
 
-        frame->renderQueue << EndFramebuffer(opaquePassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 
     // render lightmap volume objects
@@ -1900,11 +1900,11 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     {
         // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
-        frame->renderQueue << BeginFramebuffer(lightmapPassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(lightmapPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Lightmapped>);
 
-        frame->renderQueue << EndFramebuffer(lightmapPassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 
     passData.reflectionsPass->Render(frame, rs);
@@ -1980,7 +1980,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             passData.deferredShadingFramebuffer->GetAttachment(1)->GetImage(),
             RS_DEPTH_STENCIL);
 
-        frame->renderQueue << BeginFramebuffer(passData.deferredShadingFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(passData.deferredShadingFramebuffer);
 
         passData.indirectPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
         passData.directPass->RenderToFramebuffer(frame, rs, passData.deferredShadingFramebuffer);
@@ -1996,7 +1996,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             passData.lightmapPass->RenderToFramebuffer(frame, lightmapPassRS, passData.deferredShadingFramebuffer);
         }
 
-        frame->renderQueue << EndFramebuffer(passData.deferredShadingFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
@@ -2005,7 +2005,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     }
 
     { // combined + translucent (forward pass)
-        frame->renderQueue << BeginFramebuffer(translucentPassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(translucentPassFramebuffer);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
 
@@ -2071,7 +2071,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
             }
         }
 
-        frame->renderQueue << EndFramebuffer(translucentPassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 
     { // render depth pyramid
@@ -2085,13 +2085,13 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
     if (renderCollector.mappingsByBucket[uint32(RenderBucket::Debug)].Any()
         || DebugDrawer::GetInstance().NumEnqueuedDrawCommands() > 0)
     {
-        frame->renderQueue << BeginFramebuffer(debugPassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(debugPassFramebuffer);
 
         ExecuteDrawCalls(frame, rs, renderCollector, RenderBucketMask<RenderBucket::Debug>);
 
         DebugDrawer::GetInstance().Render(frame, rs);
 
-        frame->renderQueue << EndFramebuffer(debugPassFramebuffer);
+        frame->renderQueue << SetCurrentFramebuffer(nullptr);
     }
 
     passData.postProcessing->RenderPost(frame, rs);

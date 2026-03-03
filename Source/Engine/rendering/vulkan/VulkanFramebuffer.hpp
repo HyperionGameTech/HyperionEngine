@@ -94,8 +94,9 @@ struct VulkanAttachmentMap
         attachments.Set(
             binding,
             VulkanAttachmentDef {
-                VulkanGpuImageRef(attachment->GetImage()),
-                attachment });
+                attachment->GetImage(),
+                attachment
+            });
 
         return attachment;
     }
