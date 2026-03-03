@@ -577,7 +577,7 @@ struct TextureDesc
             * NumArrayLayers();
     }
 
-    uint32 GetMipByteSize(uint8 mipIndex) const
+    uint32 GetMipByteSize(uint8 mipIndex, bool includeArrayLayers = false) const
     {
         const uint32 numMips = NumMips();
         if (mipIndex >= numMips)
@@ -589,7 +589,8 @@ struct TextureDesc
 
         return uint32(mipExtent.x * mipExtent.y * mipExtent.z)
             * TextureUtils::BytesPerComponent(format)
-            * TextureUtils::NumComponents(format);
+            * TextureUtils::NumComponents(format)
+            * (includeArrayLayers ? NumArrayLayers() : 1);
     }
 
     HashCode GetHashCode() const
