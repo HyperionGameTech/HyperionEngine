@@ -25,7 +25,7 @@ namespace Hyperion {
 
 class VulkanCommandBuffer;
 
-enum class VulkanRenderPassMode : uint8;
+enum class RenderPassMode : uint8;
 
 extern Pool* g_vulkanPool;
 
@@ -105,7 +105,7 @@ struct VulkanAttachmentMap
         uint32 binding,
         Vec2u extent,
         const AttachmentDesc& attachmentDesc,
-        VulkanRenderPassMode renderPassMode)
+        RenderPassMode renderPassMode)
     {
         TextureDesc textureDesc;
         textureDesc.type = attachmentDesc.imageType;
@@ -144,7 +144,7 @@ class VulkanFramebuffer final : public FramebufferBase
     HYP_OBJECT_BODY(VulkanFramebuffer);
 
 public:
-    VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode);
+    explicit VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc);
     ~VulkanFramebuffer() override;
 
     HYP_FORCE_INLINE const VkFramebuffer& GetVulkanHandle() const
@@ -155,11 +155,6 @@ public:
     HYP_FORCE_INLINE const VulkanRenderPass& GetRenderPass() const
     {
         return m_renderPass;
-    }
-
-    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
-    {
-        return m_renderPassMode;
     }
 
     HYP_FORCE_INLINE const VulkanAttachmentMap& GetAttachmentMap() const
@@ -192,7 +187,6 @@ public:
 
 private:
     VkFramebuffer m_handle;
-    VulkanRenderPassMode m_renderPassMode;
     VulkanRenderPass m_renderPass;
     VulkanAttachmentMap m_attachmentMap;
 };

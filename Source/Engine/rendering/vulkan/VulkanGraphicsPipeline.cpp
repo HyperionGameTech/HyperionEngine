@@ -186,7 +186,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     if (!m_renderPass)
     {
-        m_renderPass = new VulkanRenderPass(m_renderTargetDesc, VulkanRenderPassMode::RenderTarget);
+        m_renderPass = new VulkanRenderPass(m_renderTargetDesc);
         CheckResultOrReturn(m_renderPass->Create());
     }
 

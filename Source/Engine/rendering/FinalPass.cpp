@@ -101,7 +101,7 @@ void FinalPass::Render(Frame* frame, const RenderSetup& rs)
 
     rq << SetCurrentFramebuffer(framebuffer);
 
-    rq << SetCurrentView(framebuffer->GetRenderTargetDesc(), Viewport { rs.swapchain->GetExtent() });
+    rq << SetCurrentViewport(Viewport { rs.swapchain->GetExtent() });
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 

@@ -374,7 +374,7 @@ void View::PrepareShadowViews(Array<View*, SceneTempAllocator>& outShadowViews)
 
                         break;
                     default:
-                        HYP_LOG(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
+                        HYP_LOG_ONCE(Scene, Warning, "Shadow view update not implemented for light type {}", EnumToString(light->GetLightType()));
                         break;
                     }
                 }
@@ -840,7 +840,7 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
             meshProxy.instanceData = meshComponent->instanceData;
-            //meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1);
+            meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1); // @TODO: Reduce allocations caused by this
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();

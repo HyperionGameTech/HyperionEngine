@@ -18,8 +18,6 @@
 
 namespace Hyperion {
 
-enum class VulkanRenderPassMode : uint8;
-
 extern Pool* g_vulkanPool;
 
 HYP_CLASS(NoScriptBindings)
@@ -32,9 +30,7 @@ public:
 
     VulkanRenderPass();
 
-    VulkanRenderPass(
-        const RenderTargetDesc& renderTargetDesc,
-        VulkanRenderPassMode renderPassMode);
+    explicit VulkanRenderPass(const RenderTargetDesc& renderTargetDesc);
 
     VulkanRenderPass(VulkanRenderPass&& other) noexcept;
     VulkanRenderPass& operator=(VulkanRenderPass&& other) noexcept;
@@ -44,11 +40,6 @@ public:
     HYP_FORCE_INLINE VkRenderPass GetVulkanHandle() const
     {
         return m_handle;
-    }
-
-    HYP_FORCE_INLINE VulkanRenderPassMode GetRenderPassMode() const
-    {
-        return m_renderPassMode;
     }
 
     HYP_FORCE_INLINE RenderTargetDesc& GetRenderTargetDesc()
@@ -90,7 +81,6 @@ private:
     }
     
     RenderTargetDesc m_renderTargetDesc;
-    VulkanRenderPassMode m_renderPassMode;
     
     Array<VkSubpassDependency, VulkanAllocator> m_dependencies;
     Array<VkClearValue, VulkanAllocator> m_vkClearValues;

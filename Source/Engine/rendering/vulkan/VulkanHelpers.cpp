@@ -534,7 +534,7 @@ VkImageLayout GetInitialLayout(LoadOperation loadOperation, bool isDepthStencil,
     return GetVkImageLayout(PreRenderResourceStates[loadOperationIndex], isDepthStencil, onlyDepth, onlyStencil);
 }
 
-VkImageLayout GetFinalLayout(VulkanRenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth, bool onlyStencil)
+VkImageLayout GetFinalLayout(RenderPassMode renderPassMode, bool isDepthStencil, bool onlyDepth, bool onlyStencil)
 {
     return GetVkImageLayout(PostRenderResourceStates[uint8(renderPassMode)], isDepthStencil, onlyDepth, onlyStencil);
 }
@@ -654,7 +654,7 @@ VkCompareOp ToVkCompareOp(StencilCompareOp compareOp)
 
 VkAttachmentDescription ToVkAttachmentDescription(
     const AttachmentDesc& attachmentDesc,
-    VulkanRenderPassMode renderPassMode)
+    RenderPassMode renderPassMode)
 {
     const bool isDepthStencil = TextureUtils::IsDepthFormat(attachmentDesc.format);
     const bool hasStencil = isDepthStencil && TextureUtils::HasStencilComponent(attachmentDesc.format);

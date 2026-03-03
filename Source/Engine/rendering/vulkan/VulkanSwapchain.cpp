@@ -285,8 +285,9 @@ RendererResult VulkanSwapchain::Create()
 
         RenderTargetDesc renderTargetDesc {};
         renderTargetDesc.extent = m_extent;
+        renderTargetDesc.renderPassMode = RenderPassMode::Present;
 
-        VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::Presentation);
+        VulkanFramebufferRef framebuffer = MakeHandle<VulkanFramebuffer>(renderTargetDesc);
         framebuffer->AddAttachment(
             0,
             AttachmentDesc {

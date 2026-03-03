@@ -716,19 +716,17 @@ private:
     ShaderDesc shaderDesc;
 };
 
-class SetCurrentView final : public CmdBase
+class SetCurrentViewport final : public CmdBase
 {
 public:
-    SetCurrentView(const RenderTargetDesc& renderTargetDesc, const Viewport& viewport)
-        : renderTargetDesc(renderTargetDesc),
-          viewport(viewport)
+    explicit SetCurrentViewport(const Viewport& viewport)
+        : viewport(viewport)
     {
     }
 
     static void InvokeStatic(CmdBase* cmd, CommandBuffer* commandBuffer);
 
 private:
-    RenderTargetDesc renderTargetDesc;
     Viewport viewport;
 };
 

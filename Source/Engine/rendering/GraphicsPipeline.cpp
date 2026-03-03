@@ -82,7 +82,6 @@ bool GraphicsPipelineBase::MatchesSignature(
     const RenderableAttributeSet& attributes,
     const RenderTargetDesc& renderTargetDesc) const
 {
-
     if (renderTargetDesc != m_renderTargetDesc)
         return false;
 

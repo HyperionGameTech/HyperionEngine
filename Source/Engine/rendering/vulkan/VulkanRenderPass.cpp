@@ -21,13 +21,12 @@ namespace Hyperion {
 extern VulkanRenderInterface* g_renderInterface;
 
 VulkanRenderPass::VulkanRenderPass()
-    : VulkanRenderPass(RenderTargetDesc(), VulkanRenderPassMode::RenderTarget)
+    : VulkanRenderPass(RenderTargetDesc {})
 {
 }
 
-VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode)
+VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc)
     : m_renderTargetDesc(renderTargetDesc),
-      m_renderPassMode(renderPassMode),
       m_handle(VK_NULL_HANDLE),
       m_recordingFramebuffer(nullptr)
 {
@@ -35,7 +34,6 @@ VulkanRenderPass::VulkanRenderPass(const RenderTargetDesc& renderTargetDesc, Vul
 
 VulkanRenderPass::VulkanRenderPass(VulkanRenderPass&& other) noexcept
     : m_renderTargetDesc(other.m_renderTargetDesc),
-      m_renderPassMode(other.m_renderPassMode),
       m_dependencies(std::move(other.m_dependencies)),
       m_vkClearValues(std::move(other.m_vkClearValues)),
       m_handle(other.m_handle),
@@ -58,7 +56,6 @@ VulkanRenderPass& VulkanRenderPass::operator=(VulkanRenderPass&& other) noexcept
     }
 
     m_renderTargetDesc = other.m_renderTargetDesc;
-    m_renderPassMode = other.m_renderPassMode;
 
     m_dependencies = std::move(other.m_dependencies);
 
@@ -93,9 +90,9 @@ void VulkanRenderPass::CreateDependencies()
     Optional<VkSubpassDependency> loadDependency;
     Optional<VkSubpassDependency> storeDependency;
 
-    switch (m_renderPassMode)
+    switch (m_renderTargetDesc.renderPassMode)
     {
-    case VulkanRenderPassMode::Presentation:
+    case RenderPassMode::Present:
         loadDependency = VkSubpassDependency {
             .srcSubpass = VK_SUBPASS_EXTERNAL,
             .dstSubpass = 0,
@@ -107,7 +104,7 @@ void VulkanRenderPass::CreateDependencies()
         };
 
         break;
-    case VulkanRenderPassMode::RenderTarget:
+    case RenderPassMode::RenderTarget:
     {
         for (uint32 attachmentIdx = 0; attachmentIdx < m_renderTargetDesc.numAttachments; attachmentIdx++)
         {
@@ -226,7 +223,7 @@ RendererResult VulkanRenderPass::Create()
         const AttachmentDesc& attachmentDesc = m_renderTargetDesc.attachments[attachmentIdx];
 
         uint32 attachmentIndex = uint32(vkAttachmentDescriptions.Size());
-        vkAttachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, m_renderPassMode));
+        vkAttachmentDescriptions.PushBack(ToVkAttachmentDescription(attachmentDesc, m_renderTargetDesc.renderPassMode));
 
         if (TextureUtils::IsDepthFormat(attachmentDesc.format))
         {
@@ -381,7 +378,7 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
         VulkanAttachment* attachment = m_recordingFramebuffer->GetAttachment(attachmentIndex);
         AssertDebug(attachment != nullptr);
 
-        const ResourceState newState = PostRenderResourceStates[uint32(m_renderPassMode)];
+        const ResourceState newState = PostRenderResourceStates[uint32(m_renderTargetDesc.renderPassMode)];
 
         if (attachment->IsDepthAttachment())
         {

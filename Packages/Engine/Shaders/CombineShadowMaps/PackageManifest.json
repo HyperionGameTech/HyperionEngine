@@ -1,7 +1,0 @@
-{
-  "Dependencies": [],
-  "Name": "CombineShadowMaps",
-  "FriendlyName": "CombineShadowMaps",
-  "Flags": 0,
-  "Path": "Engine/Shaders/CombineShadowMaps"
-}

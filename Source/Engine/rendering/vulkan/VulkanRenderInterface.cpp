@@ -445,6 +445,16 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
 
     outVkDescriptorPool = GetDescriptorPool(GetFrameCounter(), reqs, poolIndex);
 
+    const uint32 variableDescriptorCount = (reqs & VDPR_BindlessTextures)
+        ? MaxBindlessResources[BindlessStorage_Textures]
+        : (reqs & VDPR_BindlessBuffers)
+            ? MaxBindlessResources[BindlessStorage_Buffers]
+            : 0;
+
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO };
+    variableCountInfo.descriptorSetCount = 1;
+    variableCountInfo.pDescriptorCounts = &variableDescriptorCount;
+
     bool shouldRetry = false;
 
     do
@@ -457,6 +467,11 @@ RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(
         allocInfo.descriptorPool = outVkDescriptorPool;
         allocInfo.descriptorSetCount = ArraySize(layouts);
         allocInfo.pSetLayouts = &layouts[0];
+
+        if (variableDescriptorCount > 0)
+        {
+            allocInfo.pNext = &variableCountInfo;
+        }
 
         const VkResult vkResult = vkAllocateDescriptorSets(
             device->GetDevice(),
@@ -945,7 +960,7 @@ VulkanSamplerRef VulkanRenderInterface::MakeSampler(TextureFilterMode filterMode
 
 VulkanFramebufferRef VulkanRenderInterface::MakeFramebuffer(const RenderTargetDesc& renderTargetDesc)
 {
-    return MakeHandle<VulkanFramebuffer>(renderTargetDesc, VulkanRenderPassMode::RenderTarget);
+    return MakeHandle<VulkanFramebuffer>(renderTargetDesc);
 }
 
 VulkanFrameRef VulkanRenderInterface::MakeFrame(uint32 frameIndex)

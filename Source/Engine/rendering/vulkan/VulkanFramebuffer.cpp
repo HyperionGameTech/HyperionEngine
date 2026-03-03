@@ -34,12 +34,12 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
         const VulkanGpuImageRef& image = attachmentDef->image;
         Assert(image.IsValid());
 
-        switch (framebuffer->GetRenderPassMode())
+        switch (framebuffer->GetRenderTargetDesc().renderPassMode)
         {
-        case VulkanRenderPassMode::Presentation:
+        case RenderPassMode::Present:
             // renderQueue << InsertBarrier(image, RS_PRESENT);
             break;
-        case VulkanRenderPassMode::RenderTarget:
+        case RenderPassMode::RenderTarget:
             renderQueue << InsertBarrier(image, RS_SHADER_RESOURCE);
             break;
         default:
@@ -105,10 +105,9 @@ RendererResult VulkanAttachmentMap::Create()
 
 #pragma region VulkanFramebuffer
 
-VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc, VulkanRenderPassMode renderPassMode)
+VulkanFramebuffer::VulkanFramebuffer(const RenderTargetDesc& renderTargetDesc)
     : FramebufferBase(renderTargetDesc),
-      m_handle(VK_NULL_HANDLE),
-      m_renderPassMode(renderPassMode)
+      m_handle(VK_NULL_HANDLE)
 {
     m_attachmentMap.framebufferWeak = WeakHandleFromThis();
 }
@@ -157,7 +156,7 @@ RendererResult VulkanFramebuffer::Create()
         m_renderTargetDesc.AddAttachment(def.attachment->GetAttachmentDesc());
     }
 
-    m_renderPass = VulkanRenderPass(m_renderTargetDesc, m_renderPassMode);
+    m_renderPass = VulkanRenderPass(m_renderTargetDesc);
     CheckResultOrReturn(m_renderPass.Create());
 
     Array<VkImageView> attachmentImageViews;
@@ -241,7 +240,7 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
         imageView->GetImage(),
         imageView,
         WeakHandleFromThis(),
-        GetRenderPassMode(),
+        m_renderTargetDesc.renderPassMode,
         desc);
 
     attachment->SetBinding(binding);
@@ -257,7 +256,7 @@ VulkanAttachment* VulkanFramebuffer::AddAttachment(
         binding,
         m_renderTargetDesc.extent,
         attachmentDesc,
-        GetRenderPassMode());
+        m_renderTargetDesc.renderPassMode);
 }
 
 bool VulkanFramebuffer::RemoveAttachment(uint32 binding)

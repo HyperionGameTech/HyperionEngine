@@ -319,9 +319,7 @@ void DeferredPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     RenderQueue& rq = frame->renderQueue;
 
-    rq << SetCurrentView(
-        rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        rs.viewport);
+    rq << SetCurrentViewport(rs.viewport);
 
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
     rq << SetTopology(TOP_TRIANGLES);
@@ -683,9 +681,7 @@ void LightmapPass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup&
 
     rq << SetCurrentShader(m_shaderDesc);
 
-    rq << SetCurrentView(
-        viewFramebuffer->GetRenderTargetDesc(),
-        renderSetup.viewport);
+    rq << SetCurrentViewport(renderSetup.viewport);
 
     rq << SetVertexAttributes(vertexAttributes);
 
@@ -869,9 +865,7 @@ void FogVolumePass::RenderToFramebuffer_Internal(Frame* frame, const RenderSetup
 
     RenderQueue& rq = frame->renderQueue;
 
-    rq << SetCurrentView(
-        renderSetup.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        renderSetup.viewport);
+    rq << SetCurrentViewport(renderSetup.viewport);
 
     rq << SetTopology(m_volumeMesh->GetTopology());
     rq << SetVertexAttributes(m_volumeMesh->GetVertexAttributes());
@@ -1084,7 +1078,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetTopology(TOP_TRIANGLES);
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    rq << SetCurrentView(GetFramebuffer()->GetRenderTargetDesc(), viewport);
+    rq << SetCurrentViewport(viewport);
 
     rq << SetCurrentShader(m_shaderDesc);
 
@@ -1187,7 +1181,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
         renderTargetDesc.attachments[0].loadOp = LoadOperation::LOAD;
         renderTargetDesc.attachments[0].blendFunction = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA);
 
-        rq << SetCurrentView(renderTargetDesc, rs.viewport);
+        rq << SetCurrentViewport(rs.viewport);
 
         rq << SetCurrentShader(ShaderDesc(NAME("BlitTexture")));
 
@@ -2013,16 +2007,7 @@ void DeferredRenderer::RenderFrameForView(Frame* frame, const RenderSetup& rs)
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
 
-            // We need some state struct we can set up one time and reuse + clone instead of this..
-            // And we should also have a RAII struct so we can apply these states to the render interface, and when destructed, will
-            // undo them!
-            // Id' like to not use the render queue for this at some point but keep that functionality around for deferred command recording
-            // (parallel)
-            // but for stuff directly on the render thread we should just do g_renderInterface->SetTopology(...) etc. (and obv have something like g_renderInterface->SetDrawState(...) which sets in bulk)
-
-            frame->renderQueue << SetCurrentView(
-                rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-                rs.viewport);
+            frame->renderQueue << SetCurrentViewport(rs.viewport);
 
             frame->renderQueue << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
             frame->renderQueue << SetFaceCullMode(FCM_BACK);
