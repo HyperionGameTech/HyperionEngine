@@ -1084,9 +1084,7 @@ void ReflectionsPass::Render(Frame* frame, const RenderSetup& rs)
     rq << SetTopology(TOP_TRIANGLES);
     rq << SetVertexAttributes(VertexAttribute::Position | VertexAttribute::Normal | VertexAttribute::TexCoord0);
 
-    rq << SetCurrentView(
-        rs.view->GetOutputTarget().GetFramebuffer()->GetRenderTargetDesc(),
-        viewport);
+    rq << SetCurrentView(GetFramebuffer()->GetRenderTargetDesc(), viewport);
 
     rq << SetCurrentShader(m_shaderDesc);
 

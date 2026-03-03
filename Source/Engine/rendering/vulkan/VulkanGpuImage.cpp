@@ -723,12 +723,6 @@ void VulkanGpuImage::InsertBarrier(
         barrier.oldLayout = GetVkImageLayout(currResourceState, isDepthStencil);
     }
 
-    // debug
-    if (barrier.oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL)
-    {
-        HYP_BREAKPOINT;
-    }
-
     if (onlyDepth && currStencilState == newState)
     {
         onlyDepth = false;

@@ -114,6 +114,16 @@ public:
         return m_accelerationStructureProperties;
     }
 
+    const VkPhysicalDeviceScalarBlockLayoutFeatures& GetScalarBlockLayoutFeatures() const
+    {
+        return m_scalarBlockLayoutFeatures;
+    }
+
+    bool SupportsScalarBlockLayout() const
+    {
+        return m_scalarBlockLayoutFeatures.scalarBlockLayout == VK_TRUE;
+    }
+
     struct DeviceRequirementsResult
     {
         enum
@@ -420,6 +430,7 @@ private:
     VkPhysicalDeviceDescriptorIndexingFeatures m_indexingFeatures;
     VkPhysicalDeviceDescriptorIndexingProperties m_indexingProperties;
     VkPhysicalDeviceMultiviewFeatures m_multiviewFeatures;
+    VkPhysicalDeviceScalarBlockLayoutFeatures m_scalarBlockLayoutFeatures;
 
     VkPhysicalDeviceFeatures2 m_features2;
     VkPhysicalDeviceProperties2 m_properties2;

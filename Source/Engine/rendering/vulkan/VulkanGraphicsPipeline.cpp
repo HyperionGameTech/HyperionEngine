@@ -70,7 +70,12 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanShaderInstanceRef& sh
 
 VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
-    m_renderPass->Release();
+    if (m_renderPass != nullptr)
+    {
+        m_renderPass->Release();
+        m_renderPass = nullptr;
+    }
+
     m_shaderInstance.Reset();
 }
 
