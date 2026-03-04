@@ -19,9 +19,9 @@
         "Enabled": false
       },
       "GI": {
-        "Enabled": true
+        "Enabled": false
       },
-      "Enabled": true
+      "Enabled": false
     },
     "SSAO": {
       "Enabled": false
@@ -45,7 +45,7 @@
     "IndirectRendering": true,
     "ParallelCollection": true,
     "SSR": {
-      "Enabled": true,
+      "Enabled": false,
       "Quality": 2,
       "RoughnessScattering": false,
       "ConeTracing": true,
@@ -64,7 +64,7 @@
       }
     },
     "Debug": {
-      "Reflections": true,
+      "Reflections": false,
       "DebugDrawer": {
         "Enabled": true,
         "EnvGridProbes": false

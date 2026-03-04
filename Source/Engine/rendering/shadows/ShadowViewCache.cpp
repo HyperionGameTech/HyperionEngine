@@ -75,17 +75,14 @@ static RenderTargetDesc GetRenderTargetDesc(
 
         renderTargetDesc.numAttachments = 0;
         renderTargetDesc.numLayers = 6;
-        
-        //if (light->GetShadowMapFilter() == ShadowMapFilter::SMF_VSM)
-        //{
-        //    // depth, depth^2 texture (for variance shadow map)
-        //    AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
-        //    moments.imageType = TextureType::Cubemap;
-        //    moments.format = TextureFormat::RG16F;
-        //    moments.loadOp = LoadOperation::CLEAR;
-        //    moments.storeOp = StoreOperation::STORE;
-        //    std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
-        //}
+    
+        // depth, depth^2 texture (for variance shadow map)
+        AttachmentDesc& moments = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
+        moments.imageType = TextureType::Cubemap;
+        moments.format = TextureFormat::RG16F;
+        moments.loadOp = LoadOperation::CLEAR;
+        moments.storeOp = StoreOperation::STORE;
+        std::fill(std::begin(moments.clearColor), std::end(moments.clearColor), 1000.0f);
 
         AttachmentDesc& depth = renderTargetDesc.attachments[renderTargetDesc.numAttachments++];
         depth.imageType = TextureType::Cubemap;

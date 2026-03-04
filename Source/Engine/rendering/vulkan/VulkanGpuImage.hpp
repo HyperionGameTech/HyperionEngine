@@ -42,9 +42,6 @@ public:
 
     HANDLE GetNativeHandle() const override;
 
-    void SetResourceState(ResourceState newState) override;
-    void SetStencilState(ResourceState newState);
-
     void InsertBarrier(
         VulkanCommandBuffer* commandBuffer,
         ResourceState newState,

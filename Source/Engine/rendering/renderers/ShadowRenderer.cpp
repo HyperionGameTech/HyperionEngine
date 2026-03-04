@@ -358,11 +358,25 @@ void ShadowRendererBase::RenderFrame(Frame* frame, const RenderSetup& renderSetu
                 continue;
             }
 
-            // @TODO: Octree transforms hash check?
+            Attachment* attachment = framebuffer->GetAttachment(0);
+
+            GpuImage* resultImage = attachment->GetImage();
+            Assert(resultImage != nullptr);
+
+            // transition to render target before rendering
+            /*frame->renderQueue << InsertBarrier(
+                resultImage,
+                RS_RENDER_TARGET,
+                attachment->GetImageView()->GetImageSubResource());*/
 
             pd->prevCameraMatrices[cascadeIndex] = cascadeBufferData.viewProjMat;
 
             GetRenderCollector(shadowView).ExecuteDrawCalls(frame, rs, BucketMask);
+
+            // back to shader read
+            frame->renderQueue << InsertBarrier(
+                resultImage,
+                RS_SHADER_RESOURCE);
 
 #if 0
             if (!shouldCombineShadowMaps)

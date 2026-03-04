@@ -321,13 +321,23 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
         const AttachmentDesc& attachmentDesc = attachment->GetAttachmentDesc();
 
         VulkanGpuImage* image = attachment->GetImage();
+        
+        const ImageSubResource& subResource = attachment->GetImageView()->GetImageSubResource();
 
         const TextureDesc& textureDesc = image->GetTextureDesc();
 
         const bool isDepthStencil = textureDesc.IsDepthStencil();
         const bool hasStencil = TextureUtils::HasStencilComponent(textureDesc.format);
 
-        if (isDepthStencil && hasStencil)
+        const bool fullSubResource = image->IsFullSubResource(subResource);
+
+        if (hasStencil && (attachmentDesc.onlyStencil || attachmentDesc.onlyDepth))
+        {
+            AssertDebug(fullSubResource,
+                "OnlyStencil / OnlyDepth can only be used with attachments that cover the full range of the image");
+        }
+
+        if (hasStencil && fullSubResource)
         {
             const bool transitionDepth = !attachmentDesc.onlyStencil && image->GetResourceState() != RS_RENDER_TARGET;
             const bool transitionStencil = !attachmentDesc.onlyDepth && image->GetStencilState() != RS_RENDER_TARGET;
@@ -352,9 +362,13 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* frameb
             continue;
         }
 
-        if (image->GetResourceState() != RS_RENDER_TARGET)
+        if (fullSubResource)
         {
             image->InsertBarrier(cmd, RS_RENDER_TARGET, ShaderModuleType::Pixel);
+        }
+        else if (image->GetSubResourceState(subResource) != RS_RENDER_TARGET)
+        {
+            image->InsertBarrier(cmd, subResource, RS_RENDER_TARGET, ShaderModuleType::Pixel);
         }
     }
 
@@ -380,10 +394,16 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
         const ResourceState newState = PostRenderResourceStates[uint32(m_renderTargetDesc.renderPassMode)];
 
+        const ImageSubResource& subResource = attachment->GetImageView()->GetImageSubResource();
+
+        const bool fullSubResource = attachment->GetImage()->IsFullSubResource(subResource);
+
         if (attachment->IsDepthAttachment())
         {
             if (attachment->GetAttachmentDesc().onlyStencil)
             {
+                AssertDebug(fullSubResource);
+
                 attachment->GetImage()->SetStencilState(newState);
 
                 continue;
@@ -391,6 +411,8 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 
             if (attachment->GetAttachmentDesc().onlyDepth)
             {
+                AssertDebug(fullSubResource);
+
                 const ResourceState stencilState = attachment->GetImage()->GetStencilState();
 
                 attachment->GetImage()->SetResourceState(newState);
@@ -400,7 +422,14 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
             }
         }
 
-        attachment->GetImage()->SetResourceState(newState);
+        if (fullSubResource)
+        {
+            attachment->GetImage()->SetResourceState(newState);
+        }
+        else
+        {
+            attachment->GetImage()->SetSubResourceState(subResource, newState);
+        }
     }
 
     m_recordingFramebuffer = nullptr;
