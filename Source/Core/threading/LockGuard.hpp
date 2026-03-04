@@ -98,8 +98,30 @@ public:
         obj.LockReader();
     }
 
-    TSharedLock(const TSharedLock& other) = delete;
-    TSharedLock& operator=(const TSharedLock& other) = delete;
+    TSharedLock(const TSharedLock& other)
+        : obj(other.obj)
+    {
+        if (obj)
+            obj->LockReader();
+    }
+
+    TSharedLock& operator=(const TSharedLock& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if (obj)
+            obj->UnlockReader();
+
+        obj = other.obj;
+
+        if (obj)
+            obj->LockReader();
+
+        return *this;
+    }
 
     TSharedLock(TSharedLock&& other) noexcept
         : obj(other.obj)

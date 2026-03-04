@@ -329,16 +329,16 @@ Result AssetObject::SaveBlobData(
     for (auto& tup : blobDataReferences)
     {
         const char* magic = tup.GetElement<0>();
+        uint16 version = tup.GetElement<1>();
+        BlobDataReference* reference = tup.GetElement<2>();
+
+        AssertDebug(reference != nullptr && reference->raw != nullptr);
+
         const SizeType magicLen = magic ? std::strlen(magic) : 0;
 
         AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
             "Blob data reference magic must be non-empty and at most {} characters long",
             sizeof(BlobHeader::magic));
-
-        uint16 version = tup.GetElement<1>();
-        BlobDataReference* reference = tup.GetElement<2>();
-
-        Assert(reference != nullptr && reference->raw != nullptr);
 
         BlobHeader header {};
         Memory::Copy((char*)header.magic, magic, MathUtil::Min(magicLen, sizeof(header.magic)));

@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/HBAO/HBAO_8236835507331236931"
+        "Value": "Engine/Shaders/HBAO/HBAO_17352435291464807847"
       }
     }],
   "Name": "HBAO",

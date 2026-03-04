@@ -11,7 +11,6 @@
 #include <Core/math/Frustum.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
-#include <rendering/MeshInstanceData.hpp>
 #include <rendering/RenderObject.hpp>
 
 namespace Hyperion {
@@ -30,6 +29,7 @@ class Skeleton;
 class EnvProbe;
 class EnvGrid;
 class ShadowMap;
+class InstancedMeshProxy;
 
 enum LightmapTextureType : uint32;
 
@@ -87,6 +87,16 @@ struct alignas(16) EntityShaderData
 
 enum class LightmapElementId : uint32;
 
+struct InstanceData
+{
+    static constexpr uint32 MaxBuffers = 5;
+
+    ByteBuffer buffers[MaxBuffers];
+
+    uint32 bufferStructSizes[MaxBuffers] {};
+    uint32 bufferStructAlignments[MaxBuffers] {};
+};
+
 /*! \brief Proxy for a renderable Entity with a valid Mesh and Material assigned */
 class RenderProxyMesh final : public IRenderProxy
 {
@@ -99,42 +109,19 @@ public:
 
     uint32 numIndices = 0;
 
+    uint32 numInstances = 1;
+    bool enableAutoInstancing = false;
+
     LightmapVolume* lightmapVolume = nullptr;
     LightmapElementId lightmapElementId = LightmapElementId(~0u);
 
     RenderableAttributeSet cachedAttributes;
 
-    MeshInstanceData instanceData;
+    InstanceData instanceData;
 
     MeshRayTracingData rayTracingData;
 
     EntityShaderData bufferData {};
-
-    HYP_FORCE_INLINE bool operator==(const RenderProxyMesh& other) const
-    {
-        return entity == other.entity
-            && mesh == other.mesh
-            && material == other.material
-            && skeleton == other.skeleton
-            && numIndices == other.numIndices
-            && lightmapVolume == other.lightmapVolume
-            && lightmapElementId == other.lightmapElementId
-            && cachedAttributes == other.cachedAttributes
-            && instanceData == other.instanceData;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const RenderProxyMesh& other) const
-    {
-        return entity != other.entity
-            || mesh != other.mesh
-            || material != other.material
-            || numIndices != other.numIndices
-            || skeleton != other.skeleton
-            || lightmapVolume != other.lightmapVolume
-            || lightmapElementId != other.lightmapElementId
-            || cachedAttributes != other.cachedAttributes
-            || instanceData != other.instanceData;
-    }
 };
 
 struct alignas(16) EnvProbeShaderData

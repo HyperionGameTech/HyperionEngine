@@ -26,6 +26,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderProxyList.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/InstancedMeshProxy.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/Mesh.hpp>
@@ -35,6 +36,8 @@
 #include <rendering/shadows/ShadowCameraHelper.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
+
+#include <asset/AssetRegistry.hpp>
 
 #include <Core/threading/Task.hpp>
 
@@ -833,14 +836,43 @@ void View::CollectMeshEntities(RenderProxyList& rpl)
             meshProxy.material = meshComponent->material;
             meshProxy.skeleton = meshComponent->skeleton;
             meshProxy.numIndices = meshComponent->mesh->NumIndices();
+            meshProxy.numInstances = meshComponent->numInstances;
+            meshProxy.enableAutoInstancing = meshComponent->enableAutoInstancing;
             meshProxy.lightmapVolume = lightmapElementComponent ? lightmapElementComponent->lightmapVolume.GetUnsafe() : nullptr;
             meshProxy.lightmapElementId = lightmapElementComponent ? lightmapElementComponent->lightmapElementId : InvalidLightmapElementId;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
 
             Mat4f transformMatrix = transformComponent->GetMatrix();
             
-            meshProxy.instanceData = meshComponent->instanceData;
-            meshProxy.instanceData.SetBufferData(0, &transformMatrix, 1); // @TODO: Reduce allocations caused by this
+            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1)
+                && meshComponent->instanceData.IsLoaded())
+            {
+                const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
+                AssertDebug(imp.IsValid());
+
+                auto writeScope = imp->GetWriteScope();
+
+                // set transform matrix
+                imp->SetBufferData(0, &transformMatrix, 1);
+
+                for (uint32 i = 0; i < uint32(imp->buffers.Size()); i++)
+                {
+                    if (imp->buffers[i].size == 0)
+                        continue;
+
+                    meshProxy.instanceData.buffers[i].SetSize(imp->buffers[i].size, false);
+
+                    AssertDebug(imp->buffers[i].raw != nullptr);
+                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), imp->buffers[i].raw, imp->buffers[i].size);
+
+                    meshProxy.instanceData.bufferStructSizes[i] = imp->bufferStructSizes[i];
+                    meshProxy.instanceData.bufferStructAlignments[i] = imp->bufferStructAlignments[i];
+                }
+            }
+            else
+            {
+                meshProxy.instanceData = {};
+            }
 
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();

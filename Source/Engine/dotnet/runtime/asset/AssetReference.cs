@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name = "AssetReference")]
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 8)]
     public unsafe struct AssetReference
     {
         [FieldOffset(0)]

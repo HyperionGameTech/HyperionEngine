@@ -8,6 +8,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/InstancedMeshProxy.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -102,7 +103,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
     uint32 indexMapIndex = 0;
     uint32 instanceOffset = 0;
 
-    const uint32 initialNumInstances = renderProxy.instanceData.numInstances;
+    const uint32 initialNumInstances = renderProxy.numInstances;
     uint32 numInstances = initialNumInstances;
 
     AssertDebug(initialNumInstances > 0);
@@ -146,7 +147,12 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
             batch = nullptr;
         }
 
-        const uint32 remainingInstances = PushEntityToBatch(drawCallIndex, renderProxy.entity.GetUnsafe(), renderProxy.instanceData, numInstances, instanceOffset);
+        const uint32 remainingInstances = PushEntityToBatch(
+            drawCallIndex,
+            renderProxy.entity.GetUnsafe(),
+            renderProxy.instanceData,
+            numInstances,
+            instanceOffset);
 
         instanceOffset += numInstances - remainingInstances;
         numInstances = remainingInstances;
@@ -218,24 +224,26 @@ void DrawCallCollection::ResetDrawCalls()
     indexMap.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* entity, const MeshInstanceData& meshInstanceData, uint32 numInstances, uint32 instanceOffset)
+uint32 DrawCallCollection::PushEntityToBatch(
+    SizeType drawCallIndex,
+    Entity* entity,
+    const InstanceData& instanceData,
+    uint32 numInstances,
+    uint32 instanceOffset)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
 
-#if HYP_DEBUG_MODE // Sanity checks
-    // type check - cannot be a subclass of Entity, indices would get messed up
-    Assert(entity->InstanceClass() == Entity::StaticClass(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
-
-    // bounds check
-    Assert(numInstances <= meshInstanceData.numInstances);
-
-    // buffer size check
-    for (uint32 bufferIndex = 0; bufferIndex < uint32(meshInstanceData.buffers.Size()); bufferIndex++)
-    {
-        Assert(meshInstanceData.buffers[bufferIndex].Size() / meshInstanceData.bufferStructSizes[bufferIndex] == meshInstanceData.numInstances);
-    }
-#endif
+//#if HYP_DEBUG_MODE // Sanity checks
+//    // type check - cannot be a subclass of Entity, indices would get messed up
+//    Assert(entity->InstanceClass() == Entity::StaticClass(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
+//
+//    // buffer size check
+//    for (uint32 bufferIndex = 0; bufferIndex < uint32(imp.buffers.Size()); bufferIndex++)
+//    {
+//        Assert(imp.buffers[bufferIndex].Size() / imp.bufferStructSizes[bufferIndex] == imp.numInstances);
+//    }
+//#endif
 
     const SizeType batchStructSize = batchAllocator->GetStructSize();
 
@@ -245,7 +253,9 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
 
     bool dirty = false;
 
-    if (meshInstanceData.buffers.Any())
+    const bool hasBufferData = (instanceData.bufferStructSizes[0] != 0);
+
+    if (hasBufferData)
     {
         while (batch->numEntities < MaxEntitiesPerBatch && numInstances != 0)
         {
@@ -257,28 +267,31 @@ uint32 DrawCallCollection::PushEntityToBatch(SizeType drawCallIndex, Entity* ent
             // after the `indices` element
             uint32 fieldOffset = offsetof(EntityInstanceBatch, transforms);
 
-            for (uint32 bufferIndex = 0; bufferIndex < uint32(meshInstanceData.buffers.Size()); bufferIndex++)
+            for (uint32 bufferIndex = 0; bufferIndex < std::size(instanceData.buffers); bufferIndex++)
             {
-                const uint32 bufferStructSize = meshInstanceData.bufferStructSizes[bufferIndex];
-                const uint32 bufferStructAlignment = meshInstanceData.bufferStructAlignments[bufferIndex];
+                const uint32 bufferStructSize = instanceData.bufferStructSizes[bufferIndex];
+                const uint32 bufferStructAlignment = instanceData.bufferStructAlignments[bufferIndex];
 
-                AssertDebug(meshInstanceData.buffers[bufferIndex].Size() % bufferStructSize == 0,
-                    "Buffer size is not a multiple of buffer struct size! Buffer size: %u, Buffer struct size: %u",
-                    meshInstanceData.buffers[bufferIndex].Size(), bufferStructSize);
+                if (bufferStructSize == 0)
+                    continue;
+
+                AssertDebug(instanceData.buffers[bufferIndex].Size() % bufferStructSize == 0,
+                    "Buffer size is not a multiple of buffer struct size! Buffer size: {}, Buffer struct size: {}",
+                    instanceData.buffers[bufferIndex].Size(), bufferStructSize);
 
                 fieldOffset = ByteUtil::AlignAs(fieldOffset, bufferStructAlignment);
 
                 void* dstPtr = reinterpret_cast<void*>((UIntPtr(batch)) + fieldOffset + (entityIndex * bufferStructSize));
-                void* srcPtr = reinterpret_cast<void*>(UIntPtr(meshInstanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
+                void* srcPtr = reinterpret_cast<void*>(UIntPtr(instanceData.buffers[bufferIndex].Data()) + (instanceOffset * bufferStructSize));
 
                 // sanity checks
                 AssertDebug((UIntPtr(dstPtr) + bufferStructSize) - UIntPtr(batch) <= batchStructSize,
-                    "Buffer struct size is larger than batch size! Buffer struct size: %u, Buffer struct alignment: %u, Batch size: %u, Entity index: %u, Field offset: %u",
+                    "Buffer struct size is larger than batch size! Buffer struct size: {}, Buffer struct alignment: {}, Batch size: {}, Entity index: {}, Field offset: {}",
                     bufferStructSize, bufferStructAlignment, batchStructSize, entityIndex, fieldOffset);
 
-                AssertDebug(meshInstanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,
-                    "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
-                    meshInstanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
+                AssertDebug(instanceData.buffers[bufferIndex].Size() >= (instanceOffset + 1) * bufferStructSize,
+                    "Buffer size is not large enough to copy data! Buffer size: {}, Buffer struct size: {}, Instance offset: {}",
+                    instanceData.buffers[bufferIndex].Size(), bufferStructSize, instanceOffset);
 
                 Memory::Copy(dstPtr, srcPtr, bufferStructSize);
 

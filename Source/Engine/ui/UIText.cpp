@@ -11,6 +11,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/Texture.hpp>
+#include <rendering/InstancedMeshProxy.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -406,12 +407,30 @@ void UIText::UpdateMeshData_Internal()
 
     instanceProperties.Resize(instanceTransforms.Size());
 
-    meshComponent.instanceData.numInstances = instanceTransforms.Size();
-    meshComponent.instanceData.SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
-    meshComponent.instanceData.SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
-    meshComponent.instanceData.SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
-    meshComponent.instanceData.SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
-    meshComponent.instanceData.SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
+    meshComponent.numInstances = uint32(instanceTransforms.Size());
+    
+    Handle<InstancedMeshProxy> imp = ObjCast<InstancedMeshProxy>(meshComponent.instanceData.Resolve());
+
+    if (!imp)
+    {
+        imp = MakeHandle<InstancedMeshProxy>(NAME_FMT("IMP_{}_{}", InstanceClass()->GetName(), GetName()));
+
+        Result registerResult = imp->Register("$Memory/Objects/Types/InstancedMeshProxy", AddAssetConflictMode::GenerateNewName);
+        if (registerResult.HasError())
+        {
+            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshProxy: {}", registerResult.GetError().GetMessage());
+        }
+
+        meshComponent.instanceData = AssetReference(imp);
+    }
+
+    auto writeScope = imp->GetWriteScope();
+
+    imp->SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
+    imp->SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
+    imp->SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
+    imp->SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
+    imp->SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
 
     GetEntity()->SetNeedsRenderProxyUpdate();
 }

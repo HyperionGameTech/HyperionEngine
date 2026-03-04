@@ -23,12 +23,96 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/InstancedMeshProxy.hpp>
 
 #include <engine/EngineDriver.hpp>
+
+#include <asset/AssetObject.hpp>
+#include <asset/AssetRegistry.hpp>
 
 #include <Entity.generated.inl>
 
 namespace Hyperion {
+
+static void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool removeFromPackage = false);
+
+static void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
+{
+    if (!meshComponent.enableAutoInstancing && meshComponent.numInstances <= 1)
+    {
+        if (meshComponent.instanceData.IsValid())
+        {
+            DestroyInstancedMeshData(entity, meshComponent, /* removeFromPackage */ true);
+        }
+
+        return;
+    }
+
+    if (!meshComponent.instanceData.IsValid())
+    {
+        Handle<InstancedMeshProxy> imp = MakeHandle<InstancedMeshProxy>(NAME_FMT("IMP_{}", entity.GetName()));
+
+        Result registerResult = imp->Register("$Memory/Objects/Types/InstancedMeshProxy", AddAssetConflictMode::GenerateNewName);
+
+        if (registerResult.HasError())
+        {
+            HYP_LOG(Scene, Error, "Failed to register InstancedMeshProxy: {}", registerResult.GetError().GetMessage());
+        }
+
+        meshComponent.instanceData = AssetReference(imp);
+    }
+    
+    const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent.instanceData.Resolve());
+
+    if (imp.IsValid())
+    {
+        auto writeScope = imp->GetWriteScope();
+
+        imp->SetBufferData(0, &entity.GetWorldMatrix(), 1);
+    }
+    else
+    {
+        HYP_LOG(Scene, Error, "Failed to load instanced mesh data for Entity {}", entity.GetName());
+
+        DestroyInstancedMeshData(entity, meshComponent, /* removeFromPackage */ false);
+    }
+}
+
+static void DestroyInstancedMeshData(Entity& entity, MeshComponent& meshComponent, bool removeFromPackage)
+{
+    if (meshComponent.instanceData.IsValid())
+    {
+        if (!removeFromPackage)
+        {
+            if (meshComponent.instanceData.IsLoaded())
+            {
+                meshComponent.instanceData = AssetReference(meshComponent.instanceData.GetAssetPath());
+            }
+
+            return;
+        }
+
+        Handle<AssetObject> obj = meshComponent.instanceData.Resolve();
+        meshComponent.instanceData = AssetReference();
+
+        if (obj.IsValid())
+        {
+            Handle<AssetPackage> package = obj->GetPackage();
+            if (package.IsValid())
+            {
+                Result removeAssetResult = package->RemoveAssetObject(obj);
+
+                if (removeAssetResult.HasError())
+                {
+                    HYP_LOG(Scene, Error, "Failed to remove InstancedMeshProxy asset from package. Error was: {}",
+                        removeAssetResult.GetError().GetMessage());
+                }
+            }
+        }
+    }
+}
+
+#pragma region Entity
 
 Entity::Entity()
     : Entity(Name::Invalid())
@@ -266,6 +350,8 @@ void Entity::OnComponentAdded(AnyRef component)
 
     if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
     {
+        InitInstancedMeshData(*this, *meshComponent);
+
         bool isInvalid = false;
 
         if (!meshComponent->mesh.IsValid())
@@ -314,6 +400,10 @@ void Entity::OnComponentAdded(AnyRef component)
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
+    if (MeshComponent* meshComponent = component.TryGet<MeshComponent>())
+    {
+        DestroyInstancedMeshData(*this, *meshComponent);
+    }
 }
 
 void Entity::OnTagAdded(EntityTag tag)
@@ -623,5 +713,7 @@ void Entity::DeserializeComponents(const Array<BoxedValue, DynamicAllocator>& co
         m_entityManager->AddComponent(this, componentData);
     }
 }
+
+#pragma endregion Entity
 
 } // namespace Hyperion

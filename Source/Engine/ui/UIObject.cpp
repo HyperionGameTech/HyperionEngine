@@ -21,6 +21,7 @@
 #include <scene/components/UIComponent.hpp>
 
 #include <rendering/Mesh.hpp>
+#include <rendering/InstancedMeshProxy.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -215,7 +216,7 @@ void UIObject::Init()
     MeshComponent meshComponent;
     meshComponent.mesh = GetQuadMesh();
     meshComponent.material = CreateMaterial();
-    meshComponent.instanceData.enableAutoInstancing = true;
+    meshComponent.enableAutoInstancing = true;
     meshComponent.userData = MeshComponentUserData {};
 
     Entity* entity = GetEntity();
@@ -2429,12 +2430,30 @@ void UIObject::UpdateMeshData_Internal()
         | ((uint32(m_borderFlags) & 0xFu) << 8u)
         | ((uint32(m_focusState) & 0xFFu) << 16u);
 
-    meshComponent->instanceData.numInstances = 1;
-    meshComponent->instanceData.SetBufferData(0, &instanceTransform, 1);
-    meshComponent->instanceData.SetBufferData(1, &instanceTexcoords, 1);
-    meshComponent->instanceData.SetBufferData(2, &instanceOffsets, 1);
-    meshComponent->instanceData.SetBufferData(3, &instanceSizes, 1);
-    meshComponent->instanceData.SetBufferData(4, &instanceProperties, 1);
+    meshComponent->numInstances = 1;
+
+    Handle<InstancedMeshProxy> imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
+
+    if (!imp)
+    {
+        imp = MakeHandle<InstancedMeshProxy>(NAME_FMT("IMP_{}_{}", InstanceClass()->GetName(), GetName()));
+
+        Result registerResult = imp->Register("$Memory/Objects/Types/InstancedMeshProxy", AddAssetConflictMode::GenerateNewName);
+        if (registerResult.HasError())
+        {
+            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshProxy: {}", registerResult.GetError().GetMessage());
+        }
+
+        meshComponent->instanceData = AssetReference(imp);
+    }
+
+    auto writeScope = imp->GetWriteScope();
+
+    imp->SetBufferData(0, &instanceTransform, 1);
+    imp->SetBufferData(1, &instanceTexcoords, 1);
+    imp->SetBufferData(2, &instanceOffsets, 1);
+    imp->SetBufferData(3, &instanceSizes, 1);
+    imp->SetBufferData(4, &instanceProperties, 1);
 
     GetEntity()->SetNeedsRenderProxyUpdate();
 }

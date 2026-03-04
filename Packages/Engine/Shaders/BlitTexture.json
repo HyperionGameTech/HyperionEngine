@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/BlitTexture/BlitTexture_1829828941827249593"
+        "Value": "Engine/Shaders/BlitTexture/BlitTexture_9029785001816139390"
       }
     }],
   "Name": "BlitTexture",

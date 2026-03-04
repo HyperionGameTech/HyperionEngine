@@ -557,7 +557,8 @@ extern struct MeshComponent
     Mesh : Mesh
     Material : Material
     Skeleton : Skeleton
-    InstanceData : MeshInstanceData
+    NumInstances : uint32
+    EnableAutoInstancing : bool
     PreviousModelMatrix : Mat4f
 end
 extern struct BoundingBoxComponent
@@ -698,10 +699,10 @@ extern enum ViewFlags : uint32
     SKIP_CAMERAS = 0x800,
     NOT_MULTI_BUFFERED = 0x1000,
     NO_DRAW_CALLS = 0x2000,
-    ENABLE_READBACK = 0x4000,
     RAY_TRACING = 0x100000,
     MATCH_CAMERA_DIMENSIONS = 0x200000,
     SHADOW_VIEW = 0x400000,
+    EXTERNAL_RENDERTARGET = 0x800000,
     DEFAULT = (ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES)
 end
 extern class View
@@ -1195,13 +1196,6 @@ end
 extern struct RayTracingReflectionsConfig
     Extent : Vec2u
     PathTracing : bool
-end
-extern struct MeshInstanceData
-    NumInstances : uint32
-    EnableAutoInstancing : bool
-    Buffers : Array<ByteBuffer>
-    BufferStructSizes : Array<uint32>
-    BufferStructAlignments : Array<uint32>
 end
 extern struct HBAOConfig
     Radius : float
@@ -2428,6 +2422,11 @@ extern class Material : AssetObject
     Textures : MaterialTextures
     Attributes : MaterialAttributes
     IsDynamic : bool
+end
+extern class InstancedMeshProxy : AssetObject
+    Buffers : Array<BlobDataReference>
+    BufferStructSizes : Array<uint32>
+    BufferStructAlignments : Array<uint32>
 end
 extern class AssetLoaderBase
 end

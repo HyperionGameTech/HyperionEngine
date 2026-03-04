@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/ComputeSH/ComputeSH_6262962084631960208"
+        "Value": "Engine/Shaders/ComputeSH/ComputeSH_9561729017799516580"
       }
     }],
   "Name": "ComputeSH",
