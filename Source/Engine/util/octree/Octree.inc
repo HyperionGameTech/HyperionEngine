@@ -418,7 +418,7 @@ bool OctreeBase<Derived, Payload>::GetNearestOctants(const Vec3f& position, Fixe
         }
     }
 
-    for (SizeType i = 0; i < m_octants.Size(); i++)
+    for (size_t i = 0; i < m_octants.Size(); i++)
     {
         out[i] = m_octants[i].octree;
     }

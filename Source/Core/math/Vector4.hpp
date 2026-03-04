@@ -163,12 +163,12 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return Vec3<Type>(x, y, z);
     }
 
-    constexpr Type& operator[](SizeType index)
+    constexpr Type& operator[](size_t index)
     {
         return values[index];
     }
 
-    constexpr Type operator[](SizeType index) const
+    constexpr Type operator[](size_t index) const
     {
         return values[index];
     }
@@ -506,12 +506,12 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return Vec3<Type>(x, y, z);
     }
 
-    constexpr Type& operator[](SizeType index)
+    constexpr Type& operator[](size_t index)
     {
         return values[index];
     }
 
-    constexpr Type operator[](SizeType index) const
+    constexpr Type operator[](size_t index) const
     {
         return values[index];
     }

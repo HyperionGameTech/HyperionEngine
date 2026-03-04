@@ -32,7 +32,7 @@ public:
                 : Element::empty;
         }
 
-        const Element& GetValue(SizeType index) const
+        const Element& GetValue(size_t index) const
         {
             return index < elements.Size()
                 ? elements[index]
@@ -45,7 +45,7 @@ public:
             elements.PushBack(std::move(value));
         }
 
-        void SetValue(SizeType index, Element value)
+        void SetValue(size_t index, Element value)
         {
             if (index >= elements.Size())
             {

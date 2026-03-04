@@ -22,7 +22,7 @@ class VulkanGpuBuffer final : public GpuBufferBase
     HYP_OBJECT_BODY(VulkanGpuBuffer);
 
 public:
-    VulkanGpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
+    VulkanGpuBuffer(GpuBufferType type, size_t size, size_t alignment = 0);
     ~VulkanGpuBuffer() override;
 
     HYP_FORCE_INLINE VkBuffer GetVulkanHandle() const
@@ -47,33 +47,33 @@ public:
         uint32 srcOffset, uint32 dstOffset,
         uint32 count) override;
 
-    RendererResult CheckCanAllocate(SizeType size) const;
+    RendererResult CheckCanAllocate(size_t size) const;
 
     uint64 GetBufferDeviceAddress() const;
 
     RendererResult Create() override;
 
     RendererResult EnsureCapacity(
-        SizeType minimumSize,
+        size_t minimumSize,
         bool* outSizeChanged = nullptr) override;
 
     RendererResult EnsureCapacity(
-        SizeType minimumSize,
-        SizeType alignment,
+        size_t minimumSize,
+        size_t alignment,
         bool* outSizeChanged = nullptr) override;
 
-    void Memset(SizeType count, ubyte value) override;
+    void Memset(size_t count, ubyte value) override;
 
-    void Copy(SizeType count, const void* ptr) override;
-    void Copy(SizeType offset, SizeType count, const void* ptr) override;
+    void Copy(size_t count, const void* ptr) override;
+    void Copy(size_t offset, size_t count, const void* ptr) override;
 
-    void Read(SizeType count, void* outPtr) const override;
-    void Read(SizeType offset, SizeType count, void* outPtr) const override;
+    void Read(size_t count, void* outPtr) const override;
+    void Read(size_t offset, size_t count, void* outPtr) const override;
 
     void* Map() const override;
     void Unmap() const override;
 
-    void Flush(SizeType offset, SizeType count) override;
+    void Flush(size_t offset, size_t count) override;
 
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name) override;
@@ -83,7 +83,7 @@ private:
     RendererResult CheckCanAllocate(
         const VkBufferCreateInfo& bufferCreateInfo,
         const VmaAllocationCreateInfo& allocationCreateInfo,
-        SizeType size) const;
+        size_t size) const;
 
     VmaAllocationCreateInfo GetAllocationCreateInfo() const;
     VkBufferCreateInfo GetBufferCreateInfo() const;

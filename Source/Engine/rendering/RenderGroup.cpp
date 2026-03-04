@@ -84,7 +84,7 @@ void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet& renderab
 }
 
 template <class OutArray>
-static void DivideDrawCalls(SizeType numDrawCalls, uint32 numBatches, OutArray& outDividedDrawCalls)
+static void DivideDrawCalls(size_t numDrawCalls, uint32 numBatches, OutArray& outDividedDrawCalls)
 {
     HYP_SCOPE;
 
@@ -101,11 +101,11 @@ static void DivideDrawCalls(SizeType numDrawCalls, uint32 numBatches, OutArray& 
 
     const uint32 numDrawCallsDivided = (uint32(numDrawCalls) + numBatches - 1) / numBatches;
 
-    SizeType drawCallIndex = 0;
+    size_t drawCallIndex = 0;
 
     for (uint32 containerIndex = 0; containerIndex < numBatches; containerIndex++)
     {
-        const SizeType diffToNextOrEnd = MathUtil::Min(SizeType(numDrawCallsDivided), numDrawCalls - drawCallIndex);
+        const size_t diffToNextOrEnd = MathUtil::Min(size_t(numDrawCallsDivided), numDrawCalls - drawCallIndex);
 
         outDividedDrawCalls[containerIndex] = DrawCallRange {
             drawCallIndex,
@@ -187,7 +187,7 @@ static void RenderAll(
     Mesh* prevMesh = nullptr;
 
     const DrawCallStorage& drawCalls = drawCallCollection.drawCalls;
-    for (SizeType i = 0; i < drawCalls.Size(); i++)
+    for (size_t i = 0; i < drawCalls.Size(); i++)
     {
         AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
@@ -269,7 +269,7 @@ static void RenderAll(
 
     const InstancedDrawCallStorage& instancedDrawCalls = drawCallCollection.instancedDrawCalls;
 
-    for (SizeType i = 0; i < instancedDrawCalls.Size(); i++)
+    for (size_t i = 0; i < instancedDrawCalls.Size(); i++)
     {
         uint32 numDrawCallUniforms = numShaderUniforms;
 
@@ -440,7 +440,7 @@ static void RenderAll_Parallel(
 
                 Mesh* prevMesh = nullptr;
 
-                for (SizeType i = range.start; i < range.start + range.count; i++)
+                for (size_t i = range.start; i < range.start + range.count; i++)
                 {
                     AssertDebug(drawCalls.entityIds[i].GetTypeId() == TypeId::ForType<Entity>());
 
@@ -545,7 +545,7 @@ static void RenderAll_Parallel(
 
                 Mesh* prevMesh = nullptr;
 
-                for (SizeType i = range.start; i < range.start + range.count; i++)
+                for (size_t i = range.start; i < range.start + range.count; i++)
                 {
                     uint32 numDrawCallUniforms = numShaderUniforms;
 

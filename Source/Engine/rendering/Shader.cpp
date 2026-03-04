@@ -42,7 +42,7 @@ void Shader::AddShaderModule(
     // if we already have this module type, replace the blob and entry point name
     if (it != moduleTypes.End())
     {
-        const SizeType index = it - moduleTypes.Begin();
+        const size_t index = it - moduleTypes.Begin();
 
         Assert(index < shaderBlobs.Size() && index < entryPointNames.Size());
 

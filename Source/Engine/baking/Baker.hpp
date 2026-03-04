@@ -315,7 +315,7 @@ protected:
     void DispatchJobs();
     void OnCompleted();
 
-    BakeJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
+    BakeJobParams CreateLightmapJobParams(size_t startIndex, size_t endIndex);
 
     void AddJob(UniquePtr<BakeJobBase>&& job);
 

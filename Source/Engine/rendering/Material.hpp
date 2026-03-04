@@ -87,13 +87,13 @@ struct MaterialParameter
         Memory::Fill(&value, 0, sizeof(value));
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     explicit MaterialParameter(FixedArray<float, Size>&& v)
         : MaterialParameter(v.Data(), Size)
     {
     }
 
-    explicit MaterialParameter(const float* v, SizeType count)
+    explicit MaterialParameter(const float* v, size_t count)
         : type(Type(MPT_FLOAT + (count - 1)))
     {
         Assert(count >= 1 && count <= 4);
@@ -131,13 +131,13 @@ struct MaterialParameter
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     explicit MaterialParameter(FixedArray<int32, Size>&& v)
         : MaterialParameter(v.Data(), Size)
     {
     }
 
-    explicit MaterialParameter(const int32* v, SizeType count)
+    explicit MaterialParameter(const int32* v, size_t count)
         : type(Type(MPT_INT + (count - 1)))
     {
         Assert(count >= 1 && count <= 4);
@@ -383,31 +383,31 @@ public:
         return m_values[EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::EnumToOrdinal(key)];
     }
 
-    HYP_FORCE_INLINE MaterialParameter& AtIndex(SizeType index)
+    HYP_FORCE_INLINE MaterialParameter& AtIndex(size_t index)
     {
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE const MaterialParameter& AtIndex(SizeType index) const
+    HYP_FORCE_INLINE const MaterialParameter& AtIndex(size_t index) const
     {
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE Pair<MaterialParameterKey, MaterialParameter&> KeyValueAt(SizeType index)
+    HYP_FORCE_INLINE Pair<MaterialParameterKey, MaterialParameter&> KeyValueAt(size_t index)
     {
         return Pair<MaterialParameterKey, MaterialParameter&>(
             EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::OrdinalToEnum(index),
             m_values[index]);
     }
 
-    HYP_FORCE_INLINE Pair<MaterialParameterKey, const MaterialParameter&> KeyValueAt(SizeType index) const
+    HYP_FORCE_INLINE Pair<MaterialParameterKey, const MaterialParameter&> KeyValueAt(size_t index) const
     {
         return Pair<MaterialParameterKey, const MaterialParameter&>(
             EnumOptions<MaterialParameterKey, MaterialParameter, MaxParameters>::OrdinalToEnum(index),
             m_values[index]);
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_values.Size();
     }
@@ -478,31 +478,31 @@ public:
         return bool(m_values[EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::EnumToOrdinal(key)]);
     }
 
-    HYP_FORCE_INLINE Handle<Texture>& AtIndex(SizeType index)
+    HYP_FORCE_INLINE Handle<Texture>& AtIndex(size_t index)
     {
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE const Handle<Texture>& AtIndex(SizeType index) const
+    HYP_FORCE_INLINE const Handle<Texture>& AtIndex(size_t index) const
     {
         return m_values[index];
     }
 
-    HYP_FORCE_INLINE Pair<MaterialTextureKey, Handle<Texture>&> KeyValueAt(SizeType index)
+    HYP_FORCE_INLINE Pair<MaterialTextureKey, Handle<Texture>&> KeyValueAt(size_t index)
     {
         return Pair<MaterialTextureKey, Handle<Texture>&>(
             EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::OrdinalToEnum(index),
             m_values[index]);
     }
 
-    HYP_FORCE_INLINE Pair<MaterialTextureKey, const Handle<Texture>&> KeyValueAt(SizeType index) const
+    HYP_FORCE_INLINE Pair<MaterialTextureKey, const Handle<Texture>&> KeyValueAt(size_t index) const
     {
         return Pair<MaterialTextureKey, const Handle<Texture>&>(
             EnumOptions<MaterialTextureKey, Handle<Texture>, MaxTextures>::OrdinalToEnum(index),
             m_values[index]);
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_values.Size();
     }

@@ -21,13 +21,13 @@ struct PairSequence
 {
     using Type = Pair;
 
-    static constexpr SizeType Size()
+    static constexpr size_t Size()
     {
         return sizeof...(Pairs);
     }
 };
 
-template <class T, SizeType N, class F, SizeType... Indices>
+template <class T, size_t N, class F, size_t... Indices>
 constexpr auto MakePairSequenceHelper(F f, std::index_sequence<Indices...>)
 {
     return PairSequence<T, (f()[Indices])...> {};
@@ -36,12 +36,12 @@ constexpr auto MakePairSequenceHelper(F f, std::index_sequence<Indices...>)
 template <class T, class F>
 constexpr auto MakePairSequence(F f)
 {
-    constexpr SizeType size = f().size();
+    constexpr size_t size = f().size();
 
     return MakePairSequenceHelper<T, size>(f, std::make_index_sequence<size>());
 }
 
-template <class T, SizeType N, class F, SizeType... Indices>
+template <class T, size_t N, class F, size_t... Indices>
 constexpr auto makeSeqHelper(F f, std::index_sequence<Indices...>)
 {
     return std::integer_sequence<T, (f()[Indices])...> {};
@@ -50,18 +50,18 @@ constexpr auto makeSeqHelper(F f, std::index_sequence<Indices...>)
 template <class T, class F>
 constexpr auto makeSeq(F f)
 {
-    constexpr SizeType size = f().size();
+    constexpr size_t size = f().size();
 
     return makeSeqHelper<T, size>(f, std::make_index_sequence<size>());
 }
 
-template <SizeType Offset, SizeType... Indices>
+template <size_t Offset, size_t... Indices>
 constexpr std::index_sequence<(Offset + Indices)...> makeOffsetIndexSequence(std::index_sequence<Indices...>)
 {
     return {};
 }
 
-template <SizeType N, SizeType Offset>
+template <size_t N, size_t Offset>
 using OffsetSequence = decltype(makeOffsetIndexSequence<Offset>(std::make_index_sequence<N>()));
 
 // Fwd decl of IntegerSequenceFromString template
@@ -72,7 +72,7 @@ struct IntegerSequenceFromString;
  *  Params are provided as template
  *
  *  \tparam Sz The size of the string, including the null terminator. */
-template <SizeType Sz>
+template <size_t Sz>
 struct StaticString
 {
     using CharType = char;
@@ -80,14 +80,14 @@ struct StaticString
     using Iterator = const CharType*;
     using ConstIterator = const CharType*;
 
-    static constexpr SizeType size = Sz;
+    static constexpr size_t size = Sz;
 
     CharType data[Sz];
 
     constexpr StaticString(const CharType (&str)[Sz])
         : data { '\0' }
     {
-        for (SizeType i = 0; i < Sz; ++i)
+        for (size_t i = 0; i < Sz; ++i)
         {
             data[i] = str[i];
         }
@@ -96,7 +96,7 @@ struct StaticString
     constexpr StaticString(const CharType* begin, const CharType* end)
         : data { '\0' }
     {
-        SizeType index = 0;
+        size_t index = 0;
 
         for (const CharType* ptr = begin; ptr != end && index < Sz; ++ptr, ++index)
         {
@@ -121,7 +121,7 @@ struct StaticString
     }
 
     template <typename IntegerSequence, int Index = 0>
-    constexpr SizeType FindFirst() const
+    constexpr size_t FindFirst() const
     {
         constexpr auto thisSize = Sz - 1;                       // -1 to account for null terminator
         constexpr auto otherSize = IntegerSequence::Size() - 1; // -1 to account for null terminator
@@ -138,7 +138,7 @@ struct StaticString
         {
             bool found = true;
 
-            for (SizeType j = 0; j < otherSize && j < thisSize; ++j)
+            for (size_t j = 0; j < otherSize && j < thisSize; ++j)
             {
                 if (data[Index + j] != IntegerSequence {}.Data()[j])
                 {
@@ -159,7 +159,7 @@ struct StaticString
     }
 
     template <typename IntegerSequence, int Index = (int(Sz) - int(IntegerSequence::Size()))>
-    constexpr SizeType FindLast() const
+    constexpr size_t FindLast() const
     {
         constexpr auto thisSize = Sz - 1;                       // -1 to account for null terminator
         constexpr auto otherSize = IntegerSequence::Size() - 1; // -1 to account for null terminator
@@ -176,7 +176,7 @@ struct StaticString
         {
             bool found = true;
 
-            for (SizeType j = 0; j < otherSize; ++j)
+            for (size_t j = 0; j < otherSize; ++j)
             {
                 if (data[Index + j] != IntegerSequence {}.Data()[j])
                 {
@@ -196,14 +196,14 @@ struct StaticString
         }
     }
 
-    template <SizeType First, SizeType Last>
+    template <size_t First, size_t Last>
     constexpr auto Substr() const
     {
         constexpr auto clampedEnd = Last >= Sz ? Sz - 1 : Last;
 
         StaticString<clampedEnd - First + 1> result = { { '\0' } };
 
-        for (SizeType index = First; index < clampedEnd; index++)
+        for (size_t index = First; index < clampedEnd; index++)
         {
             result.data[index] = data[index];
         }
@@ -240,9 +240,9 @@ struct StaticString
     template <CharType Char>
     constexpr auto Count() const
     {
-        SizeType count = 0;
+        size_t count = 0;
 
-        for (SizeType i = 0; i < Sz; i++)
+        for (size_t i = 0; i < Sz; i++)
         {
             if (data[i] == Char)
             {
@@ -273,7 +273,7 @@ struct StaticString
         return &data[0];
     }
 
-    constexpr SizeType Size() const
+    constexpr size_t Size() const
     {
         return Sz;
     }
@@ -289,7 +289,7 @@ struct StaticString
 
     // Implementations
 
-    template <auto OtherStaticString, SizeType... Indices>
+    template <auto OtherStaticString, size_t... Indices>
     constexpr auto Concat_Impl(std::index_sequence<Indices...>) const -> StaticString<Sz + decltype(OtherStaticString)::size - 1 /* remove extra null terminator */>
     {
         return {
@@ -297,17 +297,17 @@ struct StaticString
         };
     }
 
-    constexpr SizeType FindTrimLastIndex_Left_Impl() const
+    constexpr size_t FindTrimLastIndex_Left_Impl() const
     {
         constexpr char whitespaceChars[] = { ' ', '\n', '\r', '\t', '\f', '\v' };
 
-        SizeType index = 0;
+        size_t index = 0;
 
         for (; index < Sz; index++)
         {
             bool found = false;
 
-            for (SizeType j = 0; j < std::size(whitespaceChars); j++)
+            for (size_t j = 0; j < std::size(whitespaceChars); j++)
             {
                 if (data[index] == whitespaceChars[j])
                 {
@@ -326,17 +326,17 @@ struct StaticString
         return index;
     }
 
-    constexpr SizeType FindTrimLastIndex_Right_Impl() const
+    constexpr size_t FindTrimLastIndex_Right_Impl() const
     {
         constexpr char whitespaceChars[] = { ' ', '\n', '\r', '\t', '\f', '\v' };
 
-        SizeType index = Sz - 1 /* for NUL char*/;
+        size_t index = Sz - 1 /* for NUL char*/;
 
         for (; index != 0; index--)
         {
             bool found = false;
 
-            for (SizeType j = 0; j < std::size(whitespaceChars); j++)
+            for (size_t j = 0; j < std::size(whitespaceChars); j++)
             {
                 if (data[index - 1] == whitespaceChars[j])
                 {
@@ -381,7 +381,7 @@ public:
         return &StaticString.data[0];
     }
 
-    static constexpr SizeType Size()
+    static constexpr size_t Size()
     {
         return StaticString.size;
     }
@@ -403,37 +403,37 @@ struct BasicStaticStringTransformer
 
 #pragma region Substr
 
-template <auto String, SizeType Start, SizeType End, bool PastEnd>
+template <auto String, size_t Start, size_t End, bool PastEnd>
 struct Substr_Impl;
 
-template <auto String, SizeType Start, SizeType End>
+template <auto String, size_t Start, size_t End>
 struct Substr_Impl<String, Start, End, false>
 {
-    template <SizeType... Indices>
+    template <size_t... Indices>
     constexpr auto operator()(std::index_sequence<Indices...>) const
     {
         return StaticString { { String.data[Indices]..., '\0' } };
     }
 };
 
-template <auto String, SizeType Start, SizeType End>
+template <auto String, size_t Start, size_t End>
 struct Substr_Impl<String, Start, End, true>
 {
-    template <SizeType... Indices>
+    template <size_t... Indices>
     constexpr auto operator()(std::index_sequence<Indices...>) const
     {
         return StaticString { { '\0' } };
     }
 };
 
-template <auto String, SizeType Start, SizeType End>
+template <auto String, size_t Start, size_t End>
 struct Substr
 {
     static constexpr auto value = Substr_Impl<String, Start, End, Start >= (End >= String.size ? String.size - 1 : End)>()(containers::OffsetSequence<(End >= String.size ? String.size - 1 : End) - Start, Start>());
 };
 
-/*template <auto String, SizeType Start>
-struct Substr<String, Start, SizeType(-1)>
+/*template <auto String, size_t Start>
+struct Substr<String, Start, size_t(-1)>
 {
     static_assert(Start <= String.size - 1, "Start must be less than or equal to end");
     static_assert(Start < String.size, "Start must be less than string size");
@@ -446,20 +446,20 @@ struct Substr<String, Start, SizeType(-1)>
 #pragma region Trim
 
 template <auto Str>
-constexpr SizeType FindTrimLastIndex_Left()
+constexpr size_t FindTrimLastIndex_Left()
 {
     return Str.FindTrimLastIndex_Left_Impl();
 }
 
 template <auto Str>
-constexpr SizeType FindTrimLastIndex_Right()
+constexpr size_t FindTrimLastIndex_Right()
 {
     return Str.FindTrimLastIndex_Right_Impl();
 }
 
 // TrimLeft
 
-template <auto String, SizeType LastIndex>
+template <auto String, size_t LastIndex>
 struct TrimLeft_Impl;
 
 template <auto String>
@@ -469,7 +469,7 @@ struct TrimLeft_Impl<String, 0>
     static constexpr auto value = String;
 };
 
-template <auto String, SizeType LastIndex>
+template <auto String, size_t LastIndex>
 struct TrimLeft_Impl
 {
     // Trim left side
@@ -477,17 +477,17 @@ struct TrimLeft_Impl
 };
 
 // TrimRight
-template <auto String, SizeType LastIndex>
+template <auto String, size_t LastIndex>
 struct TrimRight_Impl;
 
 template <auto String>
-struct TrimRight_Impl<String, SizeType(-1)>
+struct TrimRight_Impl<String, size_t(-1)>
 {
     // Trim right side
     static constexpr auto value = String;
 };
 
-template <auto String, SizeType LastIndex>
+template <auto String, size_t LastIndex>
 struct TrimRight_Impl
 {
     // Trim right side
@@ -534,11 +534,11 @@ struct Trim
 
 #pragma region Split
 
-template <auto String, char Delimiter, class Transformer, SizeType Index = 0>
+template <auto String, char Delimiter, class Transformer, size_t Index = 0>
 struct Split_Impl;
 
 template <auto String, char Delimiter, class Transformer>
-struct Split_Impl<String, Delimiter, Transformer, SizeType(-1)>
+struct Split_Impl<String, Delimiter, Transformer, size_t(-1)>
 {
     static constexpr auto value = MakeTuple(Transformer::template Transform<String>());
 };
@@ -568,7 +568,7 @@ struct Split_ApplyDelimiter_Impl<String, Delimiter, false>
 template <auto String, char Delimiter, class Transformer = BasicStaticStringTransformer>
 struct Split;
 
-template <auto String, char Delimiter, class Transformer, SizeType Index>
+template <auto String, char Delimiter, class Transformer, size_t Index>
 struct Split_Impl
 {
     static constexpr auto value = ConcatTuples(
@@ -606,13 +606,13 @@ struct Concat<First, Rest...>
     static constexpr auto value = First.template Concat<Concat<Rest...>::value>();
 };
 
-template <SizeType FirstSize, SizeType... OtherSizes>
+template <size_t FirstSize, size_t... OtherSizes>
 struct ConcatStrings_Impl;
 
-template <SizeType FirstSize, SizeType... OtherSizes>
+template <size_t FirstSize, size_t... OtherSizes>
 struct ConcatStrings_Impl
 {
-    template <class SecondStaticStringType, SizeType... Indices>
+    template <class SecondStaticStringType, size_t... Indices>
     constexpr auto Impl(StaticString<FirstSize> str0, SecondStaticStringType&& str1, std::index_sequence<Indices...>) const -> StaticString<FirstSize + SecondStaticStringType::size - 1 /* remove extra null terminator */>
     {
         return {
@@ -678,19 +678,19 @@ constexpr auto ConcatStrings(StaticStringInstance&&... strings)
 
 #pragma region TransformParts
 
-template <class Transformer, SizeType FirstSize, SizeType... OtherSizes>
+template <class Transformer, size_t FirstSize, size_t... OtherSizes>
 struct TransformParts_Impl;
 
-template <class Transformer, SizeType FirstSize, SizeType... OtherSizes>
+template <class Transformer, size_t FirstSize, size_t... OtherSizes>
 struct TransformParts_Impl
 {
-    template <SizeType... Indices>
+    template <size_t... Indices>
     constexpr auto Impl(StaticString<FirstSize> str0, std::index_sequence<Indices...>) const
     {
         return str0;
     }
 
-    template <class SecondStaticStringType, SizeType... Indices>
+    template <class SecondStaticStringType, size_t... Indices>
     constexpr auto Impl(StaticString<FirstSize> str0, SecondStaticStringType&& str1, std::index_sequence<Indices...>) const
     {
         return ConcatStrings(str0, StaticString { { Transformer::delimiter, '\0' } }, std::forward<SecondStaticStringType>(str1));
@@ -774,23 +774,23 @@ struct FindCharCount;
 template <auto String, char Delimiter>
 struct FindCharCount<String, Delimiter, BALANCE_BRACKETS_NONE>
 {
-    static constexpr SizeType value = String.template Count<Delimiter>();
+    static constexpr size_t value = String.template Count<Delimiter>();
 };
 
 template <auto String, char Delimiter, uint32 BracketOptions>
 struct FindCharCount_Impl
 {
-    constexpr SizeType operator()() const
+    constexpr size_t operator()() const
     {
         constexpr char brackets[] = "[]()<>";
 
-        SizeType count = 0;
+        size_t count = 0;
 
         int bracketCounts[(std::size(brackets) - 1) / 2] = { 0 };
 
-        for (SizeType i = 0; i < String.Size(); i++)
+        for (size_t i = 0; i < String.Size(); i++)
         {
-            for (SizeType j = 0; j < std::size(brackets) - 1; j++)
+            for (size_t j = 0; j < std::size(brackets) - 1; j++)
             {
                 if (String.data[i] == brackets[j])
                 {
@@ -826,39 +826,39 @@ struct FindCharCount_Impl
 template <auto String, char Delimiter, uint32 BracketOptions>
 struct FindCharCount
 {
-    static constexpr SizeType value = FindCharCount_Impl<String, Delimiter, BracketOptions> {}();
+    static constexpr size_t value = FindCharCount_Impl<String, Delimiter, BracketOptions> {}();
 };
 
 #pragma endregion FindCharCount
 
 #pragma region GetSplitIndices
 
-template <auto String, char Delimiter, uint32 BracketOptions, SizeType Count>
+template <auto String, char Delimiter, uint32 BracketOptions, size_t Count>
 struct GetSplitIndices_Impl
 {
     constexpr auto operator()() const
     {
-        return containers::MakePairSequence<Pair<SizeType, SizeType>>([]() -> std::array<Pair<SizeType, SizeType>, Count + 1>
+        return containers::MakePairSequence<Pair<size_t, size_t>>([]() -> std::array<Pair<size_t, size_t>, Count + 1>
             {
-                std::array<Pair<SizeType, SizeType>, Count + 1> splitIndices = {};
+                std::array<Pair<size_t, size_t>, Count + 1> splitIndices = {};
 
                 if constexpr (Count == 0)
                 {
-                    splitIndices[0] = Pair<SizeType, SizeType> { 0, String.Size() - 1 /* -1 for NUL char */ };
+                    splitIndices[0] = Pair<size_t, size_t> { 0, String.Size() - 1 /* -1 for NUL char */ };
                 }
                 else
                 {
-                    std::array<SizeType, Count> delimiterIndices = {};
+                    std::array<size_t, Count> delimiterIndices = {};
 
-                    SizeType index = 0;
+                    size_t index = 0;
 
                     constexpr char brackets[] = "[]()<>";
 
                     int bracketCounts[(std::size(brackets) - 1) / 2] = { 0 };
 
-                    for (SizeType i = 0; i < String.size; i++)
+                    for (size_t i = 0; i < String.size; i++)
                     {
-                        for (SizeType j = 0; j < std::size(brackets) - 1; j++)
+                        for (size_t j = 0; j < std::size(brackets) - 1; j++)
                         {
                             if (String.data[i] == brackets[j])
                             {
@@ -890,16 +890,16 @@ struct GetSplitIndices_Impl
                         }
                     }
 
-                    for (SizeType i = 0; i < std::size(delimiterIndices); i++)
+                    for (size_t i = 0; i < std::size(delimiterIndices); i++)
                     {
-                        SizeType prev = i == 0 ? 0 : delimiterIndices[i - 1] + 1;
-                        SizeType current = delimiterIndices[i];
+                        size_t prev = i == 0 ? 0 : delimiterIndices[i - 1] + 1;
+                        size_t current = delimiterIndices[i];
 
                         splitIndices[i] = { prev, current };
                     }
 
-                    splitIndices[Count] = Pair<SizeType, SizeType> {
-                        SizeType(delimiterIndices[std::size(delimiterIndices) - 1] + 1),
+                    splitIndices[Count] = Pair<size_t, size_t> {
+                        size_t(delimiterIndices[std::size(delimiterIndices) - 1] + 1),
                         String.Size() - 1 /* -1 for NUL char */
                     };
                 }
@@ -910,16 +910,16 @@ struct GetSplitIndices_Impl
 };
 
 /*! \brief Get the indices of the occurrences of a character in the StaticString.  */
-template <auto String, char Delimiter, uint32 BracketOptions, SizeType Count = SizeType(-1)>
+template <auto String, char Delimiter, uint32 BracketOptions, size_t Count = size_t(-1)>
 struct GetSplitIndices;
 
 template <auto String, char Delimiter, uint32 BracketOptions>
-struct GetSplitIndices<String, Delimiter, BracketOptions, SizeType(-1)>
+struct GetSplitIndices<String, Delimiter, BracketOptions, size_t(-1)>
 {
     static constexpr auto value = GetSplitIndices<String, Delimiter, BracketOptions, FindCharCount<String, Delimiter, BracketOptions>::value>::value;
 };
 
-template <auto String, char Delimiter, uint32 BracketOptions, SizeType Count>
+template <auto String, char Delimiter, uint32 BracketOptions, size_t Count>
 struct GetSplitIndices
 {
     static constexpr auto value = GetSplitIndices_Impl<String, Delimiter, BracketOptions, Count> {}();
@@ -929,8 +929,8 @@ struct GetSplitIndices
 
 #pragma region TransformSplit
 
-template <class Transformer, auto String, Pair<SizeType, SizeType>... SplitIndices>
-constexpr auto TransformSplit_Impl(PairSequence<Pair<SizeType, SizeType>, SplitIndices...>)
+template <class Transformer, auto String, Pair<size_t, size_t>... SplitIndices>
+constexpr auto TransformSplit_Impl(PairSequence<Pair<size_t, size_t>, SplitIndices...>)
 {
     return TransformParts<Transformer, Substr<String, SplitIndices.first, SplitIndices.second>::value...>::value;
 }
@@ -951,31 +951,31 @@ struct TransformSplit
 
 #pragma region ParseInteger
 
-template <auto String, SizeType CharIndex = 0, int Value = 0>
+template <auto String, size_t CharIndex = 0, int Value = 0>
 struct ParseInteger;
 
-template <auto String, SizeType CharIndex>
+template <auto String, size_t CharIndex>
 struct ParseInteger_ParseChar_Impl
 {
     static constexpr auto value = String.data[CharIndex] - '0';
 };
 
-template <auto String, SizeType CharIndex, int Value, bool AtEnd>
+template <auto String, size_t CharIndex, int Value, bool AtEnd>
 struct ParseInteger_Impl;
 
-template <auto String, SizeType CharIndex, int Value>
+template <auto String, size_t CharIndex, int Value>
 struct ParseInteger_Impl<String, CharIndex, Value, false>
 {
     static constexpr auto value = ParseInteger<String, CharIndex + 1, Value * 10 + ParseInteger_ParseChar_Impl<String, CharIndex>::value>::value;
 };
 
-template <auto String, SizeType CharIndex, int Value>
+template <auto String, size_t CharIndex, int Value>
 struct ParseInteger_Impl<String, CharIndex, Value, true>
 {
     static constexpr auto value = Value;
 };
 
-template <auto String, SizeType CharIndex, int Value>
+template <auto String, size_t CharIndex, int Value>
 struct ParseInteger
 {
     static constexpr auto value = ParseInteger_Impl < String, CharIndex, Value, CharIndex >= String.size - 1 || String.data[CharIndex] == '\0' > ::value;

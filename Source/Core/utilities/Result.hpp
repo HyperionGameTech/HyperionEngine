@@ -53,7 +53,7 @@ public:
     {
         if (other.m_message != nullptr)
         {
-            const SizeType length = Memory::StrLen(other.m_message);
+            const size_t length = Memory::StrLen(other.m_message);
             m_message = new char[length + 1];
             Memory::StrCpy(m_message, other.m_message, length + 1);
         }
@@ -76,7 +76,7 @@ public:
 
         if (other.m_message != nullptr)
         {
-            const SizeType length = Memory::StrLen(other.m_message);
+            const size_t length = Memory::StrLen(other.m_message);
             m_message = new char[length + 1];
             Memory::StrCpy(m_message, other.m_message, length + 1);
         }

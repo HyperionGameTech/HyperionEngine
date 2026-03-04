@@ -71,12 +71,12 @@ FBOMArray& FBOMArray::AddElement(FBOMData&& value)
     return *this;
 }
 
-FBOMData& FBOMArray::GetElement(SizeType index)
+FBOMData& FBOMArray::GetElement(size_t index)
 {
     return const_cast<FBOMData&>(static_cast<const FBOMArray*>(this)->GetElement(index));
 }
 
-const FBOMData& FBOMArray::GetElement(SizeType index) const
+const FBOMData& FBOMArray::GetElement(size_t index) const
 {
     // invalid result
     static const FBOMData s_defaultValue {};
@@ -89,7 +89,7 @@ const FBOMData& FBOMArray::GetElement(SizeType index) const
     return m_values[index];
 }
 
-const FBOMData* FBOMArray::TryGetElement(SizeType index) const
+const FBOMData* FBOMArray::TryGetElement(size_t index) const
 {
     if (index >= m_values.Size())
     {

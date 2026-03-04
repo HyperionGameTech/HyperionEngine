@@ -44,7 +44,7 @@ public:
     ByteWriter& operator=(const ByteWriter& other) = delete;
     virtual ~ByteWriter() = default;
 
-    void Write(const void* ptr, SizeType size)
+    void Write(const void* ptr, size_t size)
     {
         WriteBytes(reinterpret_cast<const char*>(ptr), size);
     }
@@ -107,13 +107,13 @@ public:
         WriteString(StringView<StringType::UTF8>(str));
     }
 
-    virtual SizeType Position() const = 0;
-    virtual void Seek(SizeType position, bool truncate = false) = 0;
+    virtual size_t Position() const = 0;
+    virtual void Seek(size_t position, bool truncate = false) = 0;
     virtual void Close() = 0;
     virtual void Flush() = 0;
 
 protected:
-    virtual void WriteBytes(const char* ptr, SizeType size) = 0;
+    virtual void WriteBytes(const char* ptr, size_t size) = 0;
 };
 
 class MemoryByteWriter final : public ByteWriter
@@ -126,12 +126,12 @@ public:
 
     virtual ~MemoryByteWriter() override = default;
 
-    virtual SizeType Position() const override
+    virtual size_t Position() const override
     {
         return m_pos;
     }
 
-    virtual void Seek(SizeType position, bool truncate = false) override
+    virtual void Seek(size_t position, bool truncate = false) override
     {
         m_pos = position;
 
@@ -165,16 +165,16 @@ public:
 
 private:
     ByteBuffer m_buffer;
-    SizeType m_pos;
+    size_t m_pos;
 
-    virtual void WriteBytes(const char* ptr, SizeType size) override
+    virtual void WriteBytes(const char* ptr, size_t size) override
     {
-        const SizeType requiredCapacity = m_buffer.Size() + size;
+        const size_t requiredCapacity = m_buffer.Size() + size;
 
         if (m_buffer.GetCapacity() < requiredCapacity)
         {
             // Add some padding to reduce number of allocations we need to do
-            m_buffer.SetCapacity(SizeType(double(requiredCapacity) * 1.5));
+            m_buffer.SetCapacity(size_t(double(requiredCapacity) * 1.5));
         }
 
         m_buffer.SetSize(m_buffer.Size() + size);
@@ -210,12 +210,12 @@ public:
         }
     }
 
-    virtual SizeType Position() const override
+    virtual size_t Position() const override
     {
         return m_pos;
     }
 
-    virtual void Seek(SizeType position, bool truncate = false) override
+    virtual void Seek(size_t position, bool truncate = false) override
     {
         m_pos = position;
 
@@ -249,17 +249,17 @@ public:
 
 private:
     TByteBuffer<AllocatorType>* m_buffer;
-    SizeType m_pos;
+    size_t m_pos;
     bool m_ownsBuffer;
 
-    virtual void WriteBytes(const char* ptr, SizeType size) override
+    virtual void WriteBytes(const char* ptr, size_t size) override
     {
-        const SizeType requiredCapacity = m_buffer->Size() + size;
+        const size_t requiredCapacity = m_buffer->Size() + size;
 
         if (m_buffer->GetCapacity() < requiredCapacity)
         {
             // Add some padding to reduce number of allocations we need to do
-            m_buffer->SetCapacity(SizeType(double(requiredCapacity) * 1.5));
+            m_buffer->SetCapacity(size_t(double(requiredCapacity) * 1.5));
         }
 
         m_buffer->SetSize(m_buffer->Size() + size);
@@ -322,7 +322,7 @@ public:
         }
     }
 
-    virtual SizeType Position() const override
+    virtual size_t Position() const override
     {
         if (m_file == nullptr)
         {
@@ -332,7 +332,7 @@ public:
         return ftell(m_file);
     }
 
-    virtual void Seek(SizeType position, bool truncate = false) override
+    virtual void Seek(size_t position, bool truncate = false) override
     {
         if (m_file == nullptr)
         {
@@ -388,7 +388,7 @@ private:
     FilePath m_filepath;
     FILE* m_file;
 
-    virtual void WriteBytes(const char* ptr, SizeType size) override
+    virtual void WriteBytes(const char* ptr, size_t size) override
     {
         if (m_file == nullptr)
         {
@@ -404,8 +404,8 @@ class MemoryMappedByteWriter final : public ByteWriter
 public:
     explicit MemoryMappedByteWriter(
         MemoryMappedFile* mappedFile,
-        SizeType offset = 0,
-        SizeType size = 0)
+        size_t offset = 0,
+        size_t size = 0)
         : m_mappedFile(mappedFile),
           m_pos(0),
           m_baseOffset(0),
@@ -427,8 +427,8 @@ public:
 
     MemoryMappedByteWriter(
         const FilePath& filepath,
-        SizeType offset = 0,
-        SizeType size = 0)
+        size_t offset = 0,
+        size_t size = 0)
         : m_mappedFile(new MemoryMappedFile(filepath, MemoryMappedFile::Mode::READ_WRITE)),
           m_pos(0),
           m_baseOffset(0),
@@ -451,12 +451,12 @@ public:
         MemoryMappedByteWriter::Close();
     }
 
-    virtual SizeType Position() const override
+    virtual size_t Position() const override
     {
         return m_pos;
     }
 
-    virtual void Seek(SizeType position, bool truncate = false) override
+    virtual void Seek(size_t position, bool truncate = false) override
     {
         (void)truncate;
 
@@ -499,18 +499,18 @@ public:
 private:
     MemoryMappedFile* m_mappedFile;
     MemoryMappedFileView m_mappedView;
-    SizeType m_pos;
-    SizeType m_baseOffset;
+    size_t m_pos;
+    size_t m_baseOffset;
     bool m_ownsFile;
 
-    static constexpr SizeType GrowthGranularity = SizeType(4) * 1024 * 1024;
+    static constexpr size_t GrowthGranularity = size_t(4) * 1024 * 1024;
 
-    SizeType Max() const
+    size_t Max() const
     {
         return m_mappedView.Size();
     }
 
-    virtual void WriteBytes(const char* ptr, SizeType size) override
+    virtual void WriteBytes(const char* ptr, size_t size) override
     {
         if (size == 0)
         {

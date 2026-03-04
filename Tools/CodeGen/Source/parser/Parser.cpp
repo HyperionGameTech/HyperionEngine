@@ -356,7 +356,7 @@ QualifiedName::ToString(bool includeNamespace) const
     {
         String result = parts[0];
 
-        for (SizeType i = 1; i < parts.Size(); i++)
+        for (size_t i = 1; i < parts.Size(); i++)
         {
             result += "::" + parts[i];
         }
@@ -544,7 +544,7 @@ String ASTInitializerExpr::ToString() const
 {
     String result = "{ ";
 
-    for (SizeType i = 0; i < values.Size(); i++)
+    for (size_t i = 0; i < values.Size(); i++)
     {
         if (i > 0)
         {
@@ -653,7 +653,7 @@ String ASTType::Format(bool useCsharpSyntax) const
         {
             base = "::";
         }
-        for (SizeType i = 0; i < typeName->parts.Size(); i++)
+        for (size_t i = 0; i < typeName->parts.Size(); i++)
         {
             if (i > 0)
                 base += "::";
@@ -760,7 +760,7 @@ String ASTType::FormatDecl(const String& declName, bool useCsharpSyntax) const
         {
             base = "::";
         }
-        for (SizeType i = 0; i < typeName->parts.Size(); i++)
+        for (size_t i = 0; i < typeName->parts.Size(); i++)
         {
             if (i > 0)
                 base += "::";
@@ -967,7 +967,7 @@ String ASTFunctionType::Format(bool useCsharpSyntax) const
     {
         String params;
 
-        for (SizeType i = 0; i < parameters.Size(); ++i)
+        for (size_t i = 0; i < parameters.Size(); ++i)
         {
             if (i > 0)
             {
@@ -985,7 +985,7 @@ String ASTFunctionType::Format(bool useCsharpSyntax) const
 
     String params;
 
-    for (SizeType i = 0; i < parameters.Size(); ++i)
+    for (size_t i = 0; i < parameters.Size(); ++i)
     {
         if (i > 0)
         {
@@ -1028,7 +1028,7 @@ String ASTFunctionType::FormatDecl(const String& declName, bool useCsharpSyntax)
     {
         String params;
 
-        for (SizeType i = 0; i < parameters.Size(); ++i)
+        for (size_t i = 0; i < parameters.Size(); ++i)
         {
             if (i > 0)
             {
@@ -1046,7 +1046,7 @@ String ASTFunctionType::FormatDecl(const String& declName, bool useCsharpSyntax)
 
     String params;
 
-    for (SizeType i = 0; i < parameters.Size(); ++i)
+    for (size_t i = 0; i < parameters.Size(); ++i)
     {
         if (i > 0)
         {

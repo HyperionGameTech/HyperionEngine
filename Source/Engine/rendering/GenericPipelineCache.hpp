@@ -62,7 +62,7 @@ private:
         HashCode key;
     };
 
-    using PipelineMap = HashMap<HashCode, SizeType, NodeAllocator<RenderAllocator>>;
+    using PipelineMap = HashMap<HashCode, size_t, NodeAllocator<RenderAllocator>>;
     using PipelineStorage = SparsePagedArray<CachedPipeline, 64, RenderAllocator>;
 
     PipelineStorage m_pipelines;

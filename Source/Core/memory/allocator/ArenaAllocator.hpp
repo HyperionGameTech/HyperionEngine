@@ -33,7 +33,7 @@ class TArena
         Block* next;
 
         typename AllocatorType::template Allocation<ubyte> allocation;
-        SizeType offset;
+        size_t offset;
     };
 
 public:
@@ -45,9 +45,9 @@ public:
     };
 
     /*! \param blockSize Size of a block. */
-    explicit TArena(SizeType blockSize);
+    explicit TArena(size_t blockSize);
 
-    TArena(AllocatorType* pAllocator, SizeType blockSize);
+    TArena(AllocatorType* pAllocator, size_t blockSize);
 
     TArena(const TArena& other) = delete;
     TArena& operator=(const TArena& other) = delete;
@@ -88,7 +88,7 @@ public:
         \param size Number of bytes to allocate
         \param alignment Alignment requirement (must be <= 16)
         \return Pointer to allocated memory, or nullptr if out of space */
-    void* Allocate(SizeType size, SizeType alignment);
+    void* Allocate(size_t size, size_t alignment);
 
     /*! \brief Does nothing as individual allocations from Arena cannot be freed. This method is only here to confirm to Allocator interface. */
     void Free(void* ptr)
@@ -98,11 +98,11 @@ public:
 private:
     AllocatorType* m_pAllocator;
     Block m_firstBlock;
-    SizeType m_blockSize;
+    size_t m_blockSize;
 };
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(SizeType blockSize)
+TArena<AllocatorType>::TArena(size_t blockSize)
     : m_pAllocator(GetDefaultAllocatorInstance<AllocatorType>()),
       m_blockSize(blockSize)
 {
@@ -115,7 +115,7 @@ TArena<AllocatorType>::TArena(SizeType blockSize)
 }
 
 template <class AllocatorType>
-TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType blockSize)
+TArena<AllocatorType>::TArena(AllocatorType* pAllocator, size_t blockSize)
     : m_pAllocator(pAllocator),
       m_blockSize(blockSize)
 {
@@ -128,7 +128,7 @@ TArena<AllocatorType>::TArena(AllocatorType* pAllocator, SizeType blockSize)
 }
 
 template <class AllocatorType>
-void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
+void* TArena<AllocatorType>::Allocate(size_t size, size_t alignment)
 {
     HYP_CORE_ASSERT(alignment != 0 && alignment <= maxAlign && ((alignment & (alignment - 1)) == 0),
         "Arena requires power-of-two, non-zero alignment and must have alignment requirement <= 16 bytes");
@@ -142,8 +142,8 @@ void* TArena<AllocatorType>::Allocate(SizeType size, SizeType alignment)
 
         UIntPtr currentAddress = reinterpret_cast<UIntPtr>(base + block->offset);
         UIntPtr alignedAddress = ByteUtil::AlignAs(currentAddress, uint32(alignment));
-        SizeType padding = alignedAddress - currentAddress;
-        SizeType totalSize = size + padding;
+        size_t padding = alignedAddress - currentAddress;
+        size_t totalSize = size + padding;
 
         if (block->offset + totalSize <= m_blockSize)
         {

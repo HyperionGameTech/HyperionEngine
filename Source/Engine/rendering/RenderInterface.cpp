@@ -175,7 +175,7 @@ struct ResourceSubtypeData final
     SparsePagedArray<IRenderProxy*, 1024, RenderAllocator> proxies;
     bool hasProxyData : 1;
 
-    template <class ResourceType, class ProxyType, SizeType NumResourceBinders>
+    template <class ResourceType, class ProxyType, size_t NumResourceBinders>
     ResourceSubtypeData(
         TypeWrapper<ResourceType>,
         TypeWrapper<ProxyType>,
@@ -192,7 +192,7 @@ struct ResourceSubtypeData final
             "Number of resource binders exceeds MaxResourceBindersPerType!");
 
         // copy resource binders
-        for (SizeType i = 0; i < NumResourceBinders; i++)
+        for (size_t i = 0; i < NumResourceBinders; i++)
         {
             this->resourceBinders[i] = resourceBinders[i];
 
@@ -647,7 +647,7 @@ static void SyncResources(
     //    }
 }
 
-template <class AllocatorType, SizeType... Indices>
+template <class AllocatorType, size_t... Indices>
 static inline void SyncResourcesT(
     ResourceContainer& resources,
     ResourceTrackerBase<AllocatorType>** dstResourceTrackers,
@@ -1181,7 +1181,7 @@ void RenderInterface::BeginFrame(AtomicFlag* pCancelFlag)
     // copy deps to render side owned lists
     AssertDebug(frameData.ownedLists.Size() == frameData.sharedLists.Size());
 
-    for (SizeType i = 0; i < frameData.ownedLists.Size(); i++)
+    for (size_t i = 0; i < frameData.ownedLists.Size(); i++)
     {
         RenderProxyList* rplRender = frameData.ownedLists[i];
         AssertDebug(rplRender != nullptr);
@@ -2130,14 +2130,14 @@ void RenderInterface::CreateBlueNoiseBuffer()
     static_assert(sizeof(BlueNoiseBuffer::scramblingTile) == sizeof(BlueNoise::scramblingTile));
     static_assert(sizeof(BlueNoiseBuffer::rankingTile) == sizeof(BlueNoise::rankingTile));
 
-    constexpr SizeType blueNoiseBufferSize = sizeof(BlueNoiseBuffer);
+    constexpr size_t blueNoiseBufferSize = sizeof(BlueNoiseBuffer);
 
-    constexpr SizeType sobol256spp256dOffset = offsetof(BlueNoiseBuffer, sobol256spp256d);
-    constexpr SizeType sobol256spp256dSize = sizeof(BlueNoise::sobol256spp256d);
-    constexpr SizeType scramblingTileOffset = offsetof(BlueNoiseBuffer, scramblingTile);
-    constexpr SizeType scramblingTileSize = sizeof(BlueNoise::scramblingTile);
-    constexpr SizeType rankingTileOffset = offsetof(BlueNoiseBuffer, rankingTile);
-    constexpr SizeType rankingTileSize = sizeof(BlueNoise::rankingTile);
+    constexpr size_t sobol256spp256dOffset = offsetof(BlueNoiseBuffer, sobol256spp256d);
+    constexpr size_t sobol256spp256dSize = sizeof(BlueNoise::sobol256spp256d);
+    constexpr size_t scramblingTileOffset = offsetof(BlueNoiseBuffer, scramblingTile);
+    constexpr size_t scramblingTileSize = sizeof(BlueNoise::scramblingTile);
+    constexpr size_t rankingTileOffset = offsetof(BlueNoiseBuffer, rankingTile);
+    constexpr size_t rankingTileSize = sizeof(BlueNoise::rankingTile);
 
     static_assert(blueNoiseBufferSize
         == (sobol256spp256dOffset + sobol256spp256dSize)

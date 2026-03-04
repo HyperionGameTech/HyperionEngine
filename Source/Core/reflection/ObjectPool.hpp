@@ -260,7 +260,7 @@ public:
         HYP_CORE_ASSERT(m_pool != nullptr);
     }
 
-    HYP_NODISCARD ObjectHeader* AllocateObject(SizeType size)
+    HYP_NODISCARD ObjectHeader* AllocateObject(size_t size)
     {
         static constexpr uint32 MaxObjectAlignment = 16;
 
@@ -270,7 +270,7 @@ public:
         HYP_CORE_ASSERT(size >= sizeof(T));
 
         // allocation would be the header size + object size, aligned to the object alignment
-        const SizeType totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
+        const size_t totalSize = ByteUtil::AlignAs(ByteUtil::AlignAs(sizeof(ObjectHeader), MaxObjectAlignment) + size, MaxObjectAlignment);
 
         TLockGuard<AtomicFlag> guard;
         LockIfNeeded(guard, PF_WRITER | PF_ALLOCATE);
@@ -331,13 +331,13 @@ public:
     }
 
     // To match allocator interface
-    HYP_NODISCARD void* Allocate(SizeType size)
+    HYP_NODISCARD void* Allocate(size_t size)
     {
         return reinterpret_cast<void*>(reinterpret_cast<UIntPtr>(AllocateObject(size)) + sizeof(ObjectHeader));
     }
 
     // To match allocator interface
-    HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment)
+    HYP_NODISCARD void* Allocate(size_t size, size_t alignment)
     {
         HYP_CORE_ASSERT(alignment <= 16, "ObjectContainer does not support alignments greater than 16!");
 

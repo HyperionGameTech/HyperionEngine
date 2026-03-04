@@ -51,7 +51,7 @@ ShadowMapAllocator::ShadowMapAllocator()
 {
     m_atlases.Reserve(4);
 
-    for (SizeType i = 0; i < 4; i++)
+    for (size_t i = 0; i < 4; i++)
     {
         m_atlases.PushBack(ShadowMapAtlas(uint32(i), m_atlasDimensions));
     }

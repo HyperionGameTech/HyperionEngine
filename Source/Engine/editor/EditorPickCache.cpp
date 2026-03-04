@@ -21,8 +21,8 @@ extern uint32 GetFrameCounter();
 static constexpr int MinResidency = 1;
 static constexpr int MaxResidency = 10;
 
-constexpr SizeType IdealHeadroom = 1 * 1024 * 1024;
-constexpr SizeType MaxMemoryUsageBytes = 256 * 1024 * 1024;
+constexpr size_t IdealHeadroom = 1 * 1024 * 1024;
+constexpr size_t MaxMemoryUsageBytes = 256 * 1024 * 1024;
 
 // @TOOD Would be nice to compute screenspace size for each object using viewport camera and use that as part of residency computation?
 // so small objects are worth less, and if less than some pixel threshold, discard it entirely.
@@ -152,7 +152,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     const Span<const Vertex> vertexData = mesh->GetVertexData();
     const Span<const ubyte> indexData = mesh->GetIndexData();
     const uint32 indexSize = GpuElemTypeSize(meshDesc.meshAttributes.indexBufferElemType);
-    const SizeType numIndices = indexData.Size() / indexSize;
+    const size_t numIndices = indexData.Size() / indexSize;
 
     // make sure we have enough memory before adding, otherwise fail
     if (!HasFreeSpace((vertexData.Size() * sizeof(Vec3f)) + numIndices * indexSize))
@@ -166,7 +166,7 @@ void EditorPickCache::PutEntry(const Mesh* mesh)
     entry.frameVisible = fc;
 
     entry.positions.Resize(vertexData.Size());
-    for (SizeType i = 0; i < vertexData.Size(); ++i)
+    for (size_t i = 0; i < vertexData.Size(); ++i)
     {
         entry.positions[i] = vertexData[i].position;
     }
@@ -242,7 +242,7 @@ void EditorPickCache::Clear()
     }
 }
 
-bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
+bool EditorPickCache::EvictEntries(size_t bytesNeeded)
 {
     const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
 
@@ -252,8 +252,8 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
         return true;
     }
 
-    SizeType currentMemoryUsageBytes = metrics[MemoryMetrics::MM_BYTES_USED];
-    const SizeType targetMemoryUsageBytes = MaxMemoryUsageBytes - bytesNeeded;
+    size_t currentMemoryUsageBytes = metrics[MemoryMetrics::MM_BYTES_USED];
+    const size_t targetMemoryUsageBytes = MaxMemoryUsageBytes - bytesNeeded;
 
     for (int residency = MinResidency; residency <= MaxResidency; ++residency)
     {
@@ -277,8 +277,8 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
         // sort by size in this bucket (largest first)
         std::sort(sortedEntries.Begin(), sortedEntries.End(), [](const Pair<EditorPickCacheEntry*, uint32>& a, const Pair<EditorPickCacheEntry*, uint32>& b)
             {
-                const SizeType aSize = a.first->positions.ByteSize() + a.first->indices.ByteSize();
-                const SizeType bSize = b.first->positions.ByteSize() + b.first->indices.ByteSize();
+                const size_t aSize = a.first->positions.ByteSize() + a.first->indices.ByteSize();
+                const size_t bSize = b.first->positions.ByteSize() + b.first->indices.ByteSize();
 
                 return aSize > bSize;
             });
@@ -291,7 +291,7 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
             }
 
             // evict
-            const SizeType infoSize = pair.first->positions.ByteSize() + pair.first->indices.ByteSize();
+            const size_t infoSize = pair.first->positions.ByteSize() + pair.first->indices.ByteSize();
             currentMemoryUsageBytes -= infoSize;
 
             entrySet.Set(pair.second, false);
@@ -302,7 +302,7 @@ bool EditorPickCache::EvictEntries(SizeType bytesNeeded)
     return currentMemoryUsageBytes <= targetMemoryUsageBytes;
 }
 
-bool EditorPickCache::HasFreeSpace(SizeType bytes)
+bool EditorPickCache::HasFreeSpace(size_t bytes)
 {
     const MemoryMetrics metrics = g_editorPickCachePool->GetMemoryMetrics();
 

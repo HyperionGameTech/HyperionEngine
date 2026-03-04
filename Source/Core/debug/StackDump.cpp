@@ -92,7 +92,7 @@ struct StackDump::Impl
 
             if (strings != nullptr)
             {
-                for (SizeType i = 0; i < rawFrames.Size(); ++i)
+                for (size_t i = 0; i < rawFrames.Size(); ++i)
                 {
                     stringCache.PushBack(strings[i]);
                 }

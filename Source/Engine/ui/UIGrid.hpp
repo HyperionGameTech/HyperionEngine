@@ -83,7 +83,7 @@ public:
      * \param index The index of the column to retrieve.
      * \return A reference counted pointer to the column at the specified index.
      *  If the index is out of bounds, a null pointer is returned. */
-    HYP_FORCE_INLINE UIGridColumn* GetColumn(SizeType index) const
+    HYP_FORCE_INLINE UIGridColumn* GetColumn(size_t index) const
     {
         return index < m_columns.Size() ? m_columns[index] : nullptr;
     }

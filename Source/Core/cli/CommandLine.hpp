@@ -161,7 +161,7 @@ public:
         return m_values;
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_values.Size();
     }

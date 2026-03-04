@@ -149,7 +149,7 @@ GpuBufferHolderBase::~GpuBufferHolderBase()
     EnqueueDeletion(std::move(m_gpuBuffer));
 }
 
-void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initialCount, SizeType size)
+void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, size_t initialCount, size_t size)
 {
     HYP_SCOPE;
     AssertOnThread(g_renderThread);
@@ -159,10 +159,10 @@ void GpuBufferHolderBase::CreateBuffers(GpuBufferType bufferType, SizeType initi
         initialCount = 1;
     }
 
-    const SizeType structSize = TypeInfo_GetSize(*m_structTypeInfo);
+    const size_t structSize = TypeInfo_GetSize(*m_structTypeInfo);
     AssertDebug(size == structSize, "Size does not match the expected size! Size = {}, Expected = {}", size, structSize);
 
-    const SizeType gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
+    const size_t gpuBufferSize = MathUtil::NextMultiple(size * initialCount, structSize);
 
     if (m_gpuBuffer.IsValid())
     {
@@ -202,13 +202,13 @@ void GpuBufferHolderBase::CopyStagingToGpu(
 
     AssertDebug(m_gpuBuffer != nullptr);
 
-    const SizeType requiredBufferSize = rangeEnd;
+    const size_t requiredBufferSize = rangeEnd;
 
     AssertDebug(m_gpuBuffer->Size() >= requiredBufferSize);
 
     renderQueue << InsertBarrier(m_gpuBuffer, RS_COPY_DST);
 
-    for (SizeType i = 0; i < stagingBuffers.Size(); i++)
+    for (size_t i = 0; i < stagingBuffers.Size(); i++)
     {
         GpuBuffer* stagingBuffer = stagingBuffers[i];
         const uint32 chunkStart = chunkStarts[i];

@@ -35,7 +35,7 @@ protected:
 public:
     ~GlobalContextHolderBase()
     {
-        for (SizeType i = m_stack.Size(); i > 0; i--)
+        for (size_t i = m_stack.Size(); i > 0; i--)
         {
             if (m_pFnDestructor != nullptr)
             {
@@ -46,7 +46,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_stack.Size();
     }

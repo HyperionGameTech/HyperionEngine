@@ -199,7 +199,7 @@ public:
         }
 
         virtual void* Alloc(uint32 size, uint32 alignment, EntryHeader& outHeader) = 0;
-        virtual void ResizeBuffer(SizeType newMinSize) = 0;
+        virtual void ResizeBuffer(size_t newMinSize) = 0;
 
         void Push(const EntryHeader& header)
         {
@@ -275,7 +275,7 @@ public:
             return ptr;
         }
 
-        virtual void ResizeBuffer(SizeType newMinSize) override
+        virtual void ResizeBuffer(size_t newMinSize) override
         {
             HYP_SCOPE;
 
@@ -472,7 +472,7 @@ static inline void EnqueueDeletion(Array<T, AllocatorType>&& value)
 }
 
 /*! \see EnqueueDeletion(T&& value) */
-template <class T, SizeType Sz>
+template <class T, size_t Sz>
 static inline void EnqueueDeletion(FixedArray<T, Sz>&& value)
 {
     for (auto& it : value)

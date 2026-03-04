@@ -162,19 +162,19 @@ struct ShaderStruct
         return Pair<Name, ShaderStruct&> { fieldNames.PushBack(fieldName), fieldTypes.PushBack(type) };
     }
 
-    HYP_FORCE_INLINE Pair<Name, ShaderStruct&> GetField(SizeType index)
+    HYP_FORCE_INLINE Pair<Name, ShaderStruct&> GetField(size_t index)
     {
         return { fieldNames[index], fieldTypes[index] };
     }
 
-    HYP_FORCE_INLINE const Pair<Name, const ShaderStruct&> GetField(SizeType index) const
+    HYP_FORCE_INLINE const Pair<Name, const ShaderStruct&> GetField(size_t index) const
     {
         return { fieldNames[index], fieldTypes[index] };
     }
 
     HYP_FORCE_INLINE Optional<Pair<Name, ShaderStruct&>> FindField(StringHash fieldName)
     {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
+        for (size_t i = 0; i < fieldNames.Size(); i++)
         {
             if (fieldNames[i] == fieldName)
             {
@@ -187,7 +187,7 @@ struct ShaderStruct
 
     HYP_FORCE_INLINE Optional<Pair<Name, const ShaderStruct&>> FindField(StringHash fieldName) const
     {
-        for (SizeType i = 0; i < fieldNames.Size(); i++)
+        for (size_t i = 0; i < fieldNames.Size(); i++)
         {
             if (fieldNames[i] == fieldName)
             {
@@ -210,7 +210,7 @@ struct ShaderStruct
             return fieldTypes.Size() < other.fieldTypes.Size();
         }
 
-        for (SizeType i = 0; i < fieldTypes.Size(); i++)
+        for (size_t i = 0; i < fieldTypes.Size(); i++)
         {
             if (fieldTypes[i] != other.fieldTypes[i])
             {
@@ -437,7 +437,7 @@ struct ShaderInputGroup
 
             uint32 setIndex = ~0u;
 
-            for (SizeType i = 0; i < table->elements.Size(); ++i)
+            for (size_t i = 0; i < table->elements.Size(); ++i)
             {
                 if (table->elements[i].name == setName)
                 {

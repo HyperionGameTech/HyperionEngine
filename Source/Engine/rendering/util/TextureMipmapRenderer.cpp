@@ -45,7 +45,7 @@ struct RenderTextureMipmapLevelsTask
 
         Assert(this->passes.Size() == this->mipImageViews.Size());
 
-        for (SizeType index = 0; index < this->mipImageViews.Size(); index++)
+        for (size_t index = 0; index < this->mipImageViews.Size(); index++)
         {
             Assert(this->mipImageViews[index] != nullptr);
             Assert(this->passes[index] != nullptr);

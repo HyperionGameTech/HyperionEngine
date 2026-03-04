@@ -217,7 +217,7 @@ static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(co
 
     for (const String& attribute : attributes)
     {
-        const SizeType equalsIndex = attribute.FindFirstIndex('=');
+        const size_t equalsIndex = attribute.FindFirstIndex('=');
 
         if (equalsIndex == String::NotFound)
         {
@@ -245,7 +245,7 @@ static TResult<Array<Pair<String, ClassAttributeValue>>> BuildClassAttributes(co
         bool hasDecimal = false;
         bool isNumeric = false;
 
-        for (SizeType i = 0; i < value.Size(); i++)
+        for (size_t i = 0; i < value.Size(); i++)
         {
             const char c = value[i];
 
@@ -349,8 +349,8 @@ template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
 static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
     const HashMap<String, E>& usableMacros,
     const String& line,
-    SizeType& outStartIndex,
-    SizeType& outEndIndex,
+    size_t& outStartIndex,
+    size_t& outEndIndex,
     bool requireParens = true)
 {
     outStartIndex = String::NotFound;
@@ -358,7 +358,7 @@ static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
 
     for (const Pair<String, E>& it : usableMacros)
     {
-        SizeType macroStartIndex = line.FindFirstIndex(it.first);
+        size_t macroStartIndex = line.FindFirstIndex(it.first);
 
         if (macroStartIndex != String::NotFound)
         {
@@ -370,7 +370,7 @@ static TResult<Pair<E, Array<Pair<String, ClassAttributeValue>>>> ParseHypMacro(
             int parenIndex = -1;
 
             // skip whitespace after macro name
-            for (SizeType i = outEndIndex; i < line.Length(); i++)
+            for (size_t i = outEndIndex; i < line.Length(); i++)
             {
                 const utf::Char32 ch = line.GetChar(i);
                 if (ch == ' ' || ch == '\t')
@@ -468,12 +468,12 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
 
     Array<String> lines = reader.ReadAllLines();
 
-    for (SizeType i = 0; i < lines.Size(); i++)
+    for (size_t i = 0; i < lines.Size(); i++)
     {
         ClassDefinition classDefinition;
 
-        SizeType macroStartIndex;
-        SizeType macroEndIndex;
+        size_t macroStartIndex;
+        size_t macroEndIndex;
 
         auto parseMacroResult = ParseHypMacro(s_classDefinitionTypes, lines[i], macroStartIndex, macroEndIndex, true);
 
@@ -559,7 +559,7 @@ static TResult<Array<ClassDefinition>, AnalyzerError> BuildClasses(const Analyze
 
         const String contentToEnd = String::Join(lines.Slice(i, lines.Size()), '\n');
 
-        const SizeType braceIndex = contentToEnd.FindFirstIndex("{");
+        const size_t braceIndex = contentToEnd.FindFirstIndex("{");
 
         classDefinition.source = contentToEnd.Substr(0, braceIndex);
 
@@ -659,7 +659,7 @@ static TResult<void, AnalyzerError> CreateParser(const Analyzer& analyzer, const
     {
         String error_message;
 
-        for (SizeType index = 0; index < unit.GetErrorList().Size(); index++)
+        for (size_t index = 0; index < unit.GetErrorList().Size(); index++)
         {
             error_message += String::ToString(unit.GetErrorList()[index].GetLocation().GetLine() + 1)
                 + "," + String::ToString(unit.GetErrorList()[index].GetLocation().GetColumn() + 1)
@@ -703,12 +703,12 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildClassMembers(const Analyzer
 
     Array<String> lines = classDefinition.source.Split('\n');
 
-    for (SizeType i = 0; i < lines.Size(); i++)
+    for (size_t i = 0; i < lines.Size(); i++)
     {
         const String& line = lines[i];
 
-        SizeType macroStartIndex;
-        SizeType macroEndIndex;
+        size_t macroStartIndex;
+        size_t macroEndIndex;
 
         auto parseMacroResult = ParseHypMacro(s_memberDefinitionTypes, line, macroStartIndex, macroEndIndex, false);
 
@@ -773,7 +773,7 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer&
     String innerContent;
     ParseInnerContent(classDefinition.source, innerContent);
 
-    SizeType openingBraceIndex = innerContent.FindFirstIndex('{');
+    size_t openingBraceIndex = innerContent.FindFirstIndex('{');
 
     if (openingBraceIndex == String::NotFound)
     {
@@ -784,7 +784,7 @@ static TResult<Array<MemberDef>, AnalyzerError> BuildEnumMembers(const Analyzer&
     innerContent = innerContent.Substr(openingBraceIndex + 1);
 
     // Find the closing brace
-    SizeType closingBraceIndex = innerContent.FindLastIndex('}');
+    size_t closingBraceIndex = innerContent.FindLastIndex('}');
 
     if (closingBraceIndex == String::NotFound)
     {

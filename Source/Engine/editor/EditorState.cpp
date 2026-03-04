@@ -19,7 +19,7 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 
 #if HYP_EDITOR
 
-static constexpr SizeType BlockSize = (16 * 1024 * 1024);
+static constexpr size_t BlockSize = (16 * 1024 * 1024);
 
 Pool s_editorPickCachePool { BlockSize };
 HYP_API Pool* g_editorPickCachePool = &s_editorPickCachePool;

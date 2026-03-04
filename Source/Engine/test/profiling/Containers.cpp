@@ -48,25 +48,25 @@ using TestAllocator = DynamicAllocator;
 
 namespace {
 
-constexpr SizeType SmallElementCount = 128;
-constexpr SizeType SmallLookupCount = 64;
-constexpr SizeType LargeElementCount = 10000;
-constexpr SizeType LargeLookupCount = 1000;
-constexpr SizeType SparseStride = 3;
+constexpr size_t SmallElementCount = 128;
+constexpr size_t SmallLookupCount = 64;
+constexpr size_t LargeElementCount = 10000;
+constexpr size_t LargeLookupCount = 1000;
+constexpr size_t SparseStride = 3;
 
 volatile uint64 g_sink = 0;
 
 struct Dataset
 {
     const char* label = "";
-    SizeType elementCount = 0;
-    SizeType lookupCount = 0;
+    size_t elementCount = 0;
+    size_t lookupCount = 0;
     Array<uint32> keys;
     Array<uint32> lookupKeys;
-    Array<SizeType> sparseIndices;
-    Array<SizeType> lookupIndices;
+    Array<size_t> sparseIndices;
+    Array<size_t> lookupIndices;
     Array<uint32> removalKeys;
-    Array<SizeType> removalIndices;
+    Array<size_t> removalIndices;
 };
 
 enum class DatasetSize
@@ -89,7 +89,7 @@ void Consume(uint64 value)
     g_sink += value;
 }
 
-Dataset BuildDataset(const char* label, SizeType elementCount, SizeType lookupCount, uint32 seed, uint32 lookupSeed)
+Dataset BuildDataset(const char* label, size_t elementCount, size_t lookupCount, uint32 seed, uint32 lookupSeed)
 {
     Dataset dataset;
     dataset.label = label;
@@ -104,20 +104,20 @@ Dataset BuildDataset(const char* label, SizeType elementCount, SizeType lookupCo
     dataset.removalIndices.ResizeUninitialized(elementCount / 2);
 
     uint32 state = seed;
-    for (SizeType i = 0; i < elementCount; ++i)
+    for (size_t i = 0; i < elementCount; ++i)
     {
         dataset.keys[i] = NextRandom(state);
         dataset.sparseIndices[i] = i * SparseStride + (i & 3);
     }
 
     state = lookupSeed;
-    for (SizeType i = 0; i < lookupCount; ++i)
+    for (size_t i = 0; i < lookupCount; ++i)
     {
         dataset.lookupKeys[i] = NextRandom(state);
         dataset.lookupIndices[i] = i * SparseStride + (i & 3);
     }
 
-    for (SizeType i = 0; i < dataset.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < dataset.removalKeys.Size(); ++i)
     {
         dataset.removalKeys[i] = dataset.keys[i];
         dataset.removalIndices[i] = dataset.sparseIndices[i];
@@ -161,7 +161,7 @@ void ProfileArrayInsertion()
 
     Array<uint32, TestAllocator> array;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.PushBack(data.keys[i]);
     }
@@ -176,13 +176,13 @@ void ProfileArrayIteration()
     Array<uint32, TestAllocator> array;
     array.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.PushBack(data.keys[i]);
     }
 
     uint64 sum = 0;
-    for (SizeType i = 0; i < array.Size(); ++i)
+    for (size_t i = 0; i < array.Size(); ++i)
     {
         sum += array[i];
     }
@@ -197,13 +197,13 @@ void ProfileArrayFind()
     Array<uint32, TestAllocator> array;
     array.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.PushBack(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (array.Find(data.lookupKeys[i]) != array.End())
         {
@@ -221,12 +221,12 @@ void ProfileArrayRemoval()
     Array<uint32, TestAllocator> array;
     array.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.PushBack(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         array.Erase(data.removalKeys[i]);
     }
@@ -240,7 +240,7 @@ void ProfileSparsePagedArrayInsertion()
 
     SparsePagedArray<uint32, 64, TestAllocator> array;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.Set(data.sparseIndices[i], data.keys[i]);
     }
@@ -254,7 +254,7 @@ void ProfileSparsePagedArrayIteration()
 
     SparsePagedArray<uint32, 64, TestAllocator> array;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.Set(data.sparseIndices[i], data.keys[i]);
     }
@@ -274,13 +274,13 @@ void ProfileSparsePagedArrayFind()
 
     SparsePagedArray<uint32, 64, TestAllocator> array;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.Set(data.sparseIndices[i], data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (array.TryGet(data.lookupIndices[i]) != nullptr)
         {
@@ -297,12 +297,12 @@ void ProfileSparsePagedArrayRemoval()
 
     SparsePagedArray<uint32, 64, TestAllocator> array;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         array.Set(data.sparseIndices[i], data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalIndices.Size(); ++i)
+    for (size_t i = 0; i < data.removalIndices.Size(); ++i)
     {
         array.EraseAt(data.removalIndices[i]);
     }
@@ -317,7 +317,7 @@ void ProfileHashMapInsertion()
     HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
@@ -332,7 +332,7 @@ void ProfileHashMapDynamicInsertion()
     HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
@@ -347,7 +347,7 @@ void ProfileHashMapIteration()
     HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
@@ -368,7 +368,7 @@ void ProfileHashMapDynamicIteration()
     HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
@@ -389,13 +389,13 @@ void ProfileHashMapFind()
     HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (map.Find(data.lookupKeys[i]) != map.End())
         {
@@ -413,13 +413,13 @@ void ProfileHashMapDynamicFind()
     HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (map.Find(data.lookupKeys[i]) != map.End())
         {
@@ -437,12 +437,12 @@ void ProfileHashMapRemoval()
     HashMap<uint32, uint32, PooledNodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         map.Erase(data.removalKeys[i]);
     }
@@ -457,12 +457,12 @@ void ProfileHashMapDynamicRemoval()
     HashMap<uint32, uint32, NodeAllocator<TestAllocator>> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         map.Erase(data.removalKeys[i]);
     }
@@ -477,7 +477,7 @@ void ProfileFlatMapInsertion()
     FlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
@@ -492,7 +492,7 @@ void ProfileFlatMapIteration()
     FlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
@@ -513,13 +513,13 @@ void ProfileFlatMapFind()
     FlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (map.Find(data.lookupKeys[i]) != map.End())
         {
@@ -537,12 +537,12 @@ void ProfileFlatMapRemoval()
     FlatMap<uint32, uint32> map;
     map.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.Set(data.keys[i], static_cast<uint32>(i));
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         map.Erase(data.removalKeys[i]);
     }
@@ -557,7 +557,7 @@ void ProfileHashSetInsertion()
     HashSet<uint32, &KeyBy_Identity<uint32>, PooledNodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
@@ -572,7 +572,7 @@ void ProfileHashSetDynamicInsertion()
     HashSet<uint32, &KeyBy_Identity<uint32>, NodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
@@ -587,7 +587,7 @@ void ProfileHashSetIteration()
     HashSet<uint32, &KeyBy_Identity<uint32>, PooledNodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
@@ -608,7 +608,7 @@ void ProfileHashSetDynamicIteration()
     HashSet<uint32, &KeyBy_Identity<uint32>, NodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
@@ -629,13 +629,13 @@ void ProfileHashSetFind()
     HashSet<uint32, &KeyBy_Identity<uint32>, PooledNodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (set.Find(data.lookupKeys[i]) != set.End())
         {
@@ -653,13 +653,13 @@ void ProfileHashSetDynamicFind()
     HashSet<uint32, &KeyBy_Identity<uint32>, NodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (set.Find(data.lookupKeys[i]) != set.End())
         {
@@ -677,12 +677,12 @@ void ProfileHashSetRemoval()
     HashSet<uint32, &KeyBy_Identity<uint32>, PooledNodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         set.Erase(data.removalKeys[i]);
     }
@@ -697,12 +697,12 @@ void ProfileHashSetDynamicRemoval()
     HashSet<uint32, &KeyBy_Identity<uint32>, NodeAllocator<TestAllocator>> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         set.Erase(data.removalKeys[i]);
     }
@@ -717,7 +717,7 @@ void ProfileFlatSetInsertion()
     FlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
@@ -732,7 +732,7 @@ void ProfileFlatSetIteration()
     FlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
@@ -753,13 +753,13 @@ void ProfileFlatSetFind()
     FlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (set.Find(data.lookupKeys[i]) != set.End())
         {
@@ -777,12 +777,12 @@ void ProfileFlatSetRemoval()
     FlatSet<uint32> set;
     set.Reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.Insert(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         set.Erase(data.removalKeys[i]);
     }
@@ -797,7 +797,7 @@ void ProfileStdVectorInsertion()
     std::vector<uint32> vec;
     vec.reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         vec.push_back(data.keys[i]);
     }
@@ -812,13 +812,13 @@ void ProfileStdVectorIteration()
     std::vector<uint32> vec;
     vec.reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         vec.push_back(data.keys[i]);
     }
 
     uint64 sum = 0;
-    for (SizeType i = 0; i < vec.size(); ++i)
+    for (size_t i = 0; i < vec.size(); ++i)
     {
         sum += vec[i];
     }
@@ -833,13 +833,13 @@ void ProfileStdVectorFind()
     std::vector<uint32> vec;
     vec.reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         vec.push_back(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (std::find(vec.begin(), vec.end(), data.lookupKeys[i]) != vec.end())
         {
@@ -857,12 +857,12 @@ void ProfileStdVectorRemoval()
     std::vector<uint32> vec;
     vec.reserve(data.elementCount);
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         vec.push_back(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         const auto it = std::find(vec.begin(), vec.end(), data.removalKeys[i]);
         if (it != vec.end())
@@ -881,7 +881,7 @@ void ProfileStdUnorderedMapInsertion()
     std::unordered_map<uint32, uint32> map;
     map.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
@@ -896,7 +896,7 @@ void ProfileStdUnorderedMapIteration()
     std::unordered_map<uint32, uint32> map;
     map.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
@@ -917,13 +917,13 @@ void ProfileStdUnorderedMapFind()
     std::unordered_map<uint32, uint32> map;
     map.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (map.find(data.lookupKeys[i]) != map.end())
         {
@@ -941,12 +941,12 @@ void ProfileStdUnorderedMapRemoval()
     std::unordered_map<uint32, uint32> map;
     map.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         map.erase(data.removalKeys[i]);
     }
@@ -960,7 +960,7 @@ void ProfileStdMapInsertion()
 
     std::map<uint32, uint32> map;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
@@ -974,7 +974,7 @@ void ProfileStdMapIteration()
 
     std::map<uint32, uint32> map;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
@@ -994,13 +994,13 @@ void ProfileStdMapFind()
 
     std::map<uint32, uint32> map;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (map.find(data.lookupKeys[i]) != map.end())
         {
@@ -1017,12 +1017,12 @@ void ProfileStdMapRemoval()
 
     std::map<uint32, uint32> map;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         map.emplace(data.keys[i], static_cast<uint32>(i));
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         map.erase(data.removalKeys[i]);
     }
@@ -1037,7 +1037,7 @@ void ProfileStdUnorderedSetInsertion()
     std::unordered_set<uint32> set;
     set.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
@@ -1052,7 +1052,7 @@ void ProfileStdUnorderedSetIteration()
     std::unordered_set<uint32> set;
     set.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
@@ -1073,13 +1073,13 @@ void ProfileStdUnorderedSetFind()
     std::unordered_set<uint32> set;
     set.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (set.find(data.lookupKeys[i]) != set.end())
         {
@@ -1097,12 +1097,12 @@ void ProfileStdUnorderedSetRemoval()
     std::unordered_set<uint32> set;
     set.reserve(static_cast<size_t>(data.elementCount));
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         set.erase(data.removalKeys[i]);
     }
@@ -1116,7 +1116,7 @@ void ProfileStdSetInsertion()
 
     std::set<uint32> set;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
@@ -1130,7 +1130,7 @@ void ProfileStdSetIteration()
 
     std::set<uint32> set;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
@@ -1150,13 +1150,13 @@ void ProfileStdSetFind()
 
     std::set<uint32> set;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
 
     uint64 hits = 0;
-    for (SizeType i = 0; i < data.lookupCount; ++i)
+    for (size_t i = 0; i < data.lookupCount; ++i)
     {
         if (set.find(data.lookupKeys[i]) != set.end())
         {
@@ -1173,12 +1173,12 @@ void ProfileStdSetRemoval()
 
     std::set<uint32> set;
 
-    for (SizeType i = 0; i < data.elementCount; ++i)
+    for (size_t i = 0; i < data.elementCount; ++i)
     {
         set.insert(data.keys[i]);
     }
 
-    for (SizeType i = 0; i < data.removalKeys.Size(); ++i)
+    for (size_t i = 0; i < data.removalKeys.Size(); ++i)
     {
         set.erase(data.removalKeys[i]);
     }
@@ -1192,15 +1192,15 @@ struct SectionEntry
     Profile::ProfileFunction function;
 };
 
-template <SizeType Count>
-void RunSection(const char *title, const SectionEntry (&entries)[Count], const Dataset& dataset, SizeType runsPer, SizeType numIterations, SizeType runsPerIteration)
+template <size_t Count>
+void RunSection(const char *title, const SectionEntry (&entries)[Count], const Dataset& dataset, size_t runsPer, size_t numIterations, size_t runsPerIteration)
 {
     g_dataset = &dataset;
 
     Array<Profile> profiles;
     profiles.Reserve(Count);
 
-    for (SizeType i = 0; i < Count; ++i)
+    for (size_t i = 0; i < Count; ++i)
     {
         profiles.EmplaceBack(entries[i].function);
     }
@@ -1208,7 +1208,7 @@ void RunSection(const char *title, const SectionEntry (&entries)[Count], const D
     Array<Profile *> profilePtrs;
     profilePtrs.Reserve(Count);
 
-    for (SizeType i = 0; i < Count; ++i)
+    for (size_t i = 0; i < Count; ++i)
     {
         profilePtrs.PushBack(&profiles[i]);
     }
@@ -1218,7 +1218,7 @@ void RunSection(const char *title, const SectionEntry (&entries)[Count], const D
     std::printf("%s\n", title);
     std::printf("--------\n");
 
-    for (SizeType i = 0; i < Count; ++i)
+    for (size_t i = 0; i < Count; ++i)
     {
         std::printf("%-22s : %.6f s\n", entries[i].label, results[i]);
     }
@@ -1233,7 +1233,7 @@ void PrintDatasetHeader(const Dataset& dataset)
 
 } // namespace
 
-HYP_EXPORT void PrintContainerProfiling(SizeType runsPer = 5, SizeType numIterations = 50, SizeType runsPerIteration = 10)
+HYP_EXPORT void PrintContainerProfiling(size_t runsPer = 5, size_t numIterations = 50, size_t runsPerIteration = 10)
 {
     const Dataset &small = GetDataset(DatasetSize::Small);
     const Dataset &large = GetDataset(DatasetSize::Large);

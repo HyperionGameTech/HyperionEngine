@@ -9,7 +9,7 @@
 
 namespace Hyperion {
 
-static constexpr SizeType ConstantBufferSize = 65536;
+static constexpr size_t ConstantBufferSize = 65536;
 
 
 struct ConstantAllocatorBlock
@@ -109,7 +109,7 @@ void* ConstantsAllocator::Allocate(uint32 size, GpuBuffer*& outBuffer, uint32& o
     {
         Block* lastBlock = m_currentFrameBlocks.Back();
 
-        const SizeType offset = lastBlock->offset;
+        const size_t offset = lastBlock->offset;
 
         if (offset + size <= ConstantBufferSize)
         {

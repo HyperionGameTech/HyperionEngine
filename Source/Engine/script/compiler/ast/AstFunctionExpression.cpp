@@ -109,7 +109,7 @@ void AstFunctionExpression::Visit(AstVisitor* visitor, Module* mod)
         m_closureSelfParam->Visit(visitor, mod);
     }
 
-    for (SizeType index = 0; index < m_parameters.Size(); index++)
+    for (size_t index = 0; index < m_parameters.Size(); index++)
     {
         Assert(m_parameters[index] != nullptr);
         m_parameters[index]->Visit(visitor, mod);
@@ -594,7 +594,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
     AstParameter* variadicParam = nullptr;
 
     // Find variadic parameter, reserve stack location for the array that will be created:
-    for (SizeType index = m_parameters.Size(); index > 0; index--)
+    for (size_t index = m_parameters.Size(); index > 0; index--)
     {
         const RC<AstParameter>& param = m_parameters[index - 1];
         Assert(param != nullptr);
@@ -617,7 +617,7 @@ UniquePtr<Buildable> AstFunctionExpression::Build(AstVisitor* visitor, Module* m
         numArgs++;
     }
 
-    for (SizeType index = 0; index < m_parameters.Size(); index++, numArgs++)
+    for (size_t index = 0; index < m_parameters.Size(); index++, numArgs++)
     {
         const RC<AstParameter>& param = m_parameters[index];
         Assert(param != nullptr);
@@ -683,7 +683,7 @@ UniquePtr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor* visito
     UniquePtr<BytecodeChunk> chunk = BytecodeUtil::Make<BytecodeChunk>();
 
     // increase stack size by the number of parameters
-    const SizeType paramStackSize = m_parameters.Size() + ((m_isClosure && m_closureSelfParam != nullptr) ? 1 : 0);
+    const size_t paramStackSize = m_parameters.Size() + ((m_isClosure && m_closureSelfParam != nullptr) ? 1 : 0);
 
     // increase stack size for call stack info
     visitor->GetCompilationUnit()->GetInstructionStream().IncStackSize();
@@ -697,7 +697,7 @@ UniquePtr<Buildable> AstFunctionExpression::BuildFunctionBody(AstVisitor* visito
         chunk->Append(BytecodeUtil::Make<Return>());
     }
 
-    for (SizeType i = 0; i < paramStackSize; i++)
+    for (size_t i = 0; i < paramStackSize; i++)
     {
         visitor->GetCompilationUnit()->GetInstructionStream().DecStackSize();
     }

@@ -22,7 +22,7 @@ class DX12GpuBuffer final : public GpuBufferBase
     HYP_OBJECT_BODY(DX12GpuBuffer);
 
 public:
-    DX12GpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
+    DX12GpuBuffer(GpuBufferType type, size_t size, size_t alignment = 0);
     ~DX12GpuBuffer() override;
 
     HYP_FORCE_INLINE ID3D12Resource* GetResource() const
@@ -55,26 +55,26 @@ public:
         uint32 count) override;
 
     RendererResult EnsureCapacity(
-        SizeType minimumSize,
+        size_t minimumSize,
         bool* outSizeChanged = nullptr) override;
         
     RendererResult EnsureCapacity(
-        SizeType minimumSize,
-        SizeType alignment,
+        size_t minimumSize,
+        size_t alignment,
         bool* outSizeChanged = nullptr) override;
 
-    void Memset(SizeType count, ubyte value) override;
+    void Memset(size_t count, ubyte value) override;
 
-    void Copy(SizeType count, const void* ptr) override;
-    void Copy(SizeType offset, SizeType count, const void* ptr) override;
+    void Copy(size_t count, const void* ptr) override;
+    void Copy(size_t offset, size_t count, const void* ptr) override;
 
-    void Read(SizeType count, void* outPtr) const override;
-    void Read(SizeType offset, SizeType count, void* outPtr) const override;
+    void Read(size_t count, void* outPtr) const override;
+    void Read(size_t offset, size_t count, void* outPtr) const override;
 
     void* Map() const override;
     void Unmap() const override;
 
-    void Flush(SizeType offset, SizeType count) override;
+    void Flush(size_t offset, size_t count) override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

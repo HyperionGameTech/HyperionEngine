@@ -83,7 +83,7 @@ bool SocketServer::Start()
 
     const char* socketPath = m_name.Data();
 
-    constexpr SizeType maxConnections = 5;
+    constexpr size_t maxConnections = 5;
 
 #ifdef HYP_UNIX
     m_impl->local.sun_family = AF_UNIX;
@@ -416,7 +416,7 @@ SocketResultType SocketClient::Receive(ByteBuffer& outData)
 
 #if defined(HYP_UNIX)
     uint32 dataSize;
-    SizeType received = recv(m_internalId.value, &dataSize, sizeof(dataSize), MSG_WAITALL);
+    size_t received = recv(m_internalId.value, &dataSize, sizeof(dataSize), MSG_WAITALL);
 
     if (received < 0)
     {

@@ -47,7 +47,7 @@ public:
     }
 
     template <class StructType>
-    void SetBufferData(int bufferIndex, const StructType* ptr, SizeType count)
+    void SetBufferData(int bufferIndex, const StructType* ptr, size_t count)
     {
         static_assert(IsPodTypeV<StructType>, "Struct type must a POD type");
         static_assert(alignof(StructType) <= 16);

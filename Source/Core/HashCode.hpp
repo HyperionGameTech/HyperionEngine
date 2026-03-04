@@ -22,12 +22,12 @@ struct FNV1
     static constexpr uint64 offsetBasis = 14695981039346656037ull;
     static constexpr uint64 fnvPrime = 1099511628211ull;
 
-    template <class CharType, SizeType Size>
+    template <class CharType, size_t Size>
     static constexpr uint64 DoHashString(const CharType (&str)[Size])
     {
         uint64 hash = offsetBasis;
 
-        for (SizeType i = 0; i < Size; ++i)
+        for (size_t i = 0; i < Size; ++i)
         {
             if (!str[i])
             {
@@ -216,7 +216,7 @@ struct HashCode
         return GetHashCode(reinterpret_cast<UIntPtr>(ptr));
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     static constexpr inline HashCode GetHashCode(const char (&str)[Size])
     {
         return HashCode(FNV1::DoHashString<char, Size>(str));
@@ -232,7 +232,7 @@ struct HashCode
         return HashCode(FNV1::DoHashString(_begin, _end));
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     static constexpr inline HashCode GetHashCode(const char16_t (&str)[Size])
     {
         return HashCode(FNV1::DoHashString<char16_t, Size>(str));
@@ -248,7 +248,7 @@ struct HashCode
         return HashCode(FNV1::DoHashString(_begin, _end));
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     static constexpr inline HashCode GetHashCode(const char32_t (&str)[Size])
     {
         return HashCode(FNV1::DoHashString<char32_t, Size>(str));
@@ -264,7 +264,7 @@ struct HashCode
         return HashCode(FNV1::DoHashString(_begin, _end));
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     static constexpr inline HashCode GetHashCode(const wchar_t (&bytes)[Size])
     {
         return HashCode(FNV1::DoHashString<wchar_t, Size>(bytes));
@@ -285,11 +285,11 @@ struct HashCode
         return HashCode(FNV1::DoHashBytes(_begin, _end));
     }
 
-    template <class T, SizeType Size>
+    template <class T, size_t Size>
     static constexpr inline HashCode GetHashCode(const T (&elems)[Size])
     {
         HashCode hc;
-        for (SizeType i = 0; i < Size; i++)
+        for (size_t i = 0; i < Size; i++)
         {
             hc = hc.Combine(HashCode::GetHashCode(elems[i]));
         }

@@ -156,7 +156,7 @@ Result FontAtlas::RenderAtlasTextures(float mainAtlasScale, float maxScale, floa
 
         UniquePtr<FontAtlasBitmap> atlasBitmap = MakeUnique<FontAtlasBitmap>(uint32(scaledExtent.x * SymbolColumns), uint32(scaledExtent.y * SymbolRows));
 
-        for (SizeType i = 0; i < m_symbolList.Size(); i++)
+        for (size_t i = 0; i < m_symbolList.Size(); i++)
         {
             const FontFace::WChar symbol = m_symbolList[i];
 
@@ -282,7 +282,7 @@ Optional<const Glyph::Metrics&> FontAtlas::GetGlyphMetrics(FontFace::WChar symbo
         return {};
     }
 
-    const SizeType index = std::distance(m_symbolList.Begin(), it);
+    const size_t index = std::distance(m_symbolList.Begin(), it);
     Assert(index < m_glyphMetrics.Size(), "Index {} out of bounds of glyph metrics buffer, size: {}", index, m_glyphMetrics.Size());
 
     return m_glyphMetrics[index];

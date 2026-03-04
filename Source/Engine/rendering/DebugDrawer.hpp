@@ -264,7 +264,7 @@ private:
     FixedArray<uint32, RingBufferDepth> m_bufferOffsets;
 
     // buffer sizes over the last X frames. we max() this to determine if we should compact the buffer
-    FixedArray<SizeType, 10> m_bufferSizeHistory;
+    FixedArray<size_t, 10> m_bufferSizeHistory;
 
     FixedArray<LinkedList<DebugDrawCommandList>, RingBufferDepth> m_commandLists;
 

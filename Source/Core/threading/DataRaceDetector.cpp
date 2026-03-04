@@ -51,7 +51,7 @@ static Span<const DataRaceDetector::ThreadAccessState> GetPreallocatedStates()
 
         PreallocatedThreadAccessStates()
         {
-            for (SizeType i = 0; i < DataRaceDetector::numPreallocatedStates; i++)
+            for (size_t i = 0; i < DataRaceDetector::numPreallocatedStates; i++)
             {
                 const StaticThreadId threadId = StaticThreadId(i);
 
@@ -250,7 +250,7 @@ void DataRaceDetector::LogDataRace(uint64 readersMask, uint64 writersMask) const
     {
         readerThreadsString.Clear();
 
-        for (SizeType i = 0; i < readerThreadIds.Size(); i++)
+        for (size_t i = 0; i < readerThreadIds.Size(); i++)
         {
             if (i == 0)
             {
@@ -269,7 +269,7 @@ void DataRaceDetector::LogDataRace(uint64 readersMask, uint64 writersMask) const
     {
         writerThreadsString.Clear();
 
-        for (SizeType i = 0; i < writerThreadIds.Size(); i++)
+        for (size_t i = 0; i < writerThreadIds.Size(); i++)
         {
             if (i == 0)
             {

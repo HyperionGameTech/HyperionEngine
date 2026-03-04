@@ -14,7 +14,7 @@ SourceFile::SourceFile()
 {
 }
 
-SourceFile::SourceFile(const String& filepath, SizeType size)
+SourceFile::SourceFile(const String& filepath, size_t size)
     : m_filepath(filepath),
       m_position(0)
 {
@@ -51,20 +51,20 @@ void SourceFile::ReadIntoBuffer(const ByteBuffer& inputBuffer)
     // make sure we have enough space in the buffer
     Assert(m_position + inputBuffer.Size() <= m_buffer.Size(), "not enough space in buffer");
 
-    for (SizeType i = 0; i < inputBuffer.Size(); i++)
+    for (size_t i = 0; i < inputBuffer.Size(); i++)
     {
         m_buffer.Data()[m_position++] = inputBuffer.Data()[i];
     }
 }
 
-void SourceFile::ReadIntoBuffer(const ubyte* data, SizeType size)
+void SourceFile::ReadIntoBuffer(const ubyte* data, size_t size)
 {
     Assert(m_buffer.Size() >= size);
 
     // make sure we have enough space in the buffer
     Assert(m_position + size <= m_buffer.Size(), "not enough space in buffer");
 
-    for (SizeType i = 0; i < size; i++)
+    for (size_t i = 0; i < size; i++)
     {
         m_buffer.Data()[m_position++] = data[i];
     }

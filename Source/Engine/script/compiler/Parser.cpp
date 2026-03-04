@@ -772,7 +772,7 @@ RC<AstExpression> Parser::ParseParentheses()
 {
     SourceLocation location = CurrentLocation();
     RC<AstExpression> expr;
-    const SizeType beforePos = m_tokenStream->GetPosition();
+    const size_t beforePos = m_tokenStream->GetPosition();
 
     Expect(TK_OPEN_PARENTH, true);
 
@@ -822,7 +822,7 @@ RC<AstExpression> Parser::ParseParentheses()
             }
             else if (Match(TK_CLOSE_PARENTH, false))
             {
-                const SizeType before = m_tokenStream->GetPosition();
+                const size_t before = m_tokenStream->GetPosition();
                 m_tokenStream->Next();
 
                 // function return type
@@ -893,7 +893,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
     }
 
     SourceLocation location = CurrentLocation();
-    const SizeType beforePos = m_tokenStream->GetPosition();
+    const size_t beforePos = m_tokenStream->GetPosition();
 
     Array<RC<AstTypeSpecifier>> args;
 
@@ -922,7 +922,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
             // replace current token with two '>' tokens at current position
             const SourceLocation loc = m_tokenStream->Peek().GetLocation();
             auto& tokens = m_tokenStream->m_tokens;
-            const SizeType pos = m_tokenStream->m_position;
+            const size_t pos = m_tokenStream->m_position;
             // erase the '>>' token
             tokens.Erase(tokens.Begin() + pos);
             // insert two '>' tokens in its place
@@ -994,7 +994,7 @@ RC<AstTemplateInstantiation> Parser::ParseTemplateInstantiation(RC<AstExpression
             {
                 const SourceLocation loc = m_tokenStream->Peek().GetLocation();
                 auto& tokens = m_tokenStream->m_tokens;
-                const SizeType pos = m_tokenStream->m_position;
+                const size_t pos = m_tokenStream->m_position;
                 tokens.Erase(tokens.Begin() + pos);
                 tokens.Insert(tokens.Begin() + pos, Token(TK_OPERATOR, ">", loc));
                 tokens.Insert(tokens.Begin() + pos + 1, Token(TK_OPERATOR, ">", loc));
@@ -2688,7 +2688,7 @@ RC<AstClass> Parser::ParseClass(
         // place rollback position here because ParseVariableDeclaration()
         // will handle everything. put keywords that ParseVariableDeclaration()
         // does /not/ handle, above.
-        const SizeType positionBefore = m_tokenStream->GetPosition();
+        const size_t positionBefore = m_tokenStream->GetPosition();
 
         if (MatchKeyword(Keyword_ref, true))
         {

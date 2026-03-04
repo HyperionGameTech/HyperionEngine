@@ -21,7 +21,7 @@ using AssetAllocator = AllocatorInstance<Pool, &g_assetPool>;
 class MappedBlobStorage
 {
 public:
-    MappedBlobStorage(const FilePath& baseDir, SizeType pageSize, bool readOnly)
+    MappedBlobStorage(const FilePath& baseDir, size_t pageSize, bool readOnly)
         : m_baseDir(baseDir),
           m_pageSize(pageSize),
           m_readOnly(readOnly)
@@ -93,7 +93,7 @@ public:
         return mappedFile;
     }
 
-    SizeType Size() const
+    size_t Size() const
     {
         TSharedLock lock(m_mutex);
         return m_mappedFiles.Size();
@@ -115,7 +115,7 @@ public:
 
 private:
     FilePath m_baseDir;
-    SizeType m_pageSize;
+    size_t m_pageSize;
     bool m_readOnly;
 
     HashMap<ANSIString, MemoryMappedFile*> m_mappedFiles;

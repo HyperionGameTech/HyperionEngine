@@ -403,7 +403,7 @@ public:
         return {};
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 

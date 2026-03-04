@@ -208,7 +208,7 @@ void DX12GraphicsPipeline::Bind(CommandBuffer* cmd, Vec2i viewportOffset, Vec2u 
     // @TODO
 }
 
-void DX12GraphicsPipeline::SetPushConstants(const void* data, SizeType size)
+void DX12GraphicsPipeline::SetPushConstants(const void* data, size_t size)
 {
     // @TODO
 }
@@ -345,7 +345,7 @@ RendererResult DX12GraphicsPipeline::BuildRootSignature()
         return rangeAllocations.Back().Data();
     };
 
-    for (SizeType setIndex = 0; setIndex < decl->elements.Size(); ++setIndex)
+    for (size_t setIndex = 0; setIndex < decl->elements.Size(); ++setIndex)
     {
         const DescriptorSetDeclaration& setDecl = decl->elements[setIndex];
 

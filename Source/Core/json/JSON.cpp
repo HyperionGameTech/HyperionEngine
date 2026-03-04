@@ -103,7 +103,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
 
     while (elementSubscriptWrapper.value && elementSubscriptWrapper.value->IsObject())
     {
-        SizeType characterIndex = 0;
+        size_t characterIndex = 0;
         UTF8StringView curr = path;
 
         for (utf::Char32 ch : path)
@@ -111,7 +111,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWra
             if (ch == PathSeparator)
             {
                 curr = path.Substr(0, characterIndex);
-                path = path.Substr(characterIndex + 1, SizeType(-1));
+                path = path.Substr(characterIndex + 1, size_t(-1));
 
                 ++characterIndex;
 
@@ -1050,11 +1050,11 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
             int n = std::snprintf(chars.Data(), chars.Size(), "%lld", (long long)number);
             if (n > int(chars.Size()))
             {
-                chars.Resize(SizeType(n) + 1);
+                chars.Resize(size_t(n) + 1);
                 std::snprintf(chars.Data(), chars.Size(), "%lld", (long long)number);
             }
 
-            chars.Resize(SizeType(n) + 1);
+            chars.Resize(size_t(n) + 1);
         }
         else
         {
@@ -1067,11 +1067,11 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
                 int n = std::snprintf(chars.Data(), chars.Size(), "%f", number);
                 if (n > int(chars.Size()))
                 {
-                    chars.Resize(SizeType(n) + 1);
+                    chars.Resize(size_t(n) + 1);
                     std::snprintf(chars.Data(), chars.Size(), "%f", number);
                 }
 
-                chars.Resize(SizeType(n) + 1);
+                chars.Resize(size_t(n) + 1);
             }
         }
 
@@ -1084,7 +1084,7 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
 
         JString result = "[";
 
-        for (SizeType index = 0; index < asArray.Size(); index++)
+        for (size_t index = 0; index < asArray.Size(); index++)
         {
             result += asArray[index].ToString(true, depth + 1);
 
@@ -1116,7 +1116,7 @@ JString Value::ToString_Internal(bool representation, uint32 depth) const
 
         JString result = "{";
 
-        for (SizeType index = 0; index < members.Size(); index++)
+        for (size_t index = 0; index < members.Size(); index++)
         {
             result += "\n" + propertyIndentation + "\"" + members[index]->first.Escape() + "\": ";
 
@@ -1176,12 +1176,12 @@ HashCode Value::GetHashCode() const
 
     if (IsNull())
     {
-        return HashCode::GetHashCode(SizeType(-1));
+        return HashCode::GetHashCode(size_t(-1));
     }
 
     if (IsUndefined())
     {
-        return HashCode::GetHashCode(SizeType(-2));
+        return HashCode::GetHashCode(size_t(-2));
     }
 
     return HashCode();
@@ -1257,7 +1257,7 @@ ParseResult Parse(const SourceFile& sourceFile)
 
         String errorMessage;
 
-        for (SizeType index = 0; index < unit.GetErrorList().Size(); index++)
+        for (size_t index = 0; index < unit.GetErrorList().Size(); index++)
         {
             errorMessage += String::ToString(unit.GetErrorList()[index].GetLocation().GetLine() + 1)
                 + "," + String::ToString(unit.GetErrorList()[index].GetLocation().GetColumn() + 1)

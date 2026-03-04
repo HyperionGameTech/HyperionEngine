@@ -366,14 +366,14 @@ public:
 
     /*! \brief Returns the total number of bits in the bitset.
         \returns The total number of bits in the bitset. */
-    HYP_FORCE_INLINE SizeType NumBits() const
+    HYP_FORCE_INLINE size_t NumBits() const
     {
         return m_blocks.Size() << NumBitsPerBlockLog2;
     }
 
     /*! \brief Resizes the bitset to the given number of bits.
         \param numBits The new number of bits in the bitset.*/
-    TBitset& SetNumBits(SizeType numBits);
+    TBitset& SetNumBits(size_t numBits);
 
     /*! \brief Returns the number of ones in the bitset.
         \returns The number of ones in the bitset. */
@@ -636,7 +636,7 @@ TBitset<AllocatorType> TBitset<AllocatorType>::operator<<(uint32 pos) const
 {
     TBitset result { m_pAllocator };
 
-    const SizeType totalBitSize = NumBits();
+    const size_t totalBitSize = NumBits();
 
     for (uint32 combinedBitIndex = 0; combinedBitIndex < totalBitSize; ++combinedBitIndex)
     {
@@ -902,10 +902,10 @@ void TBitset<AllocatorType>::Clear()
 }
 
 template <class AllocatorType>
-TBitset<AllocatorType>& TBitset<AllocatorType>::SetNumBits(SizeType numBits)
+TBitset<AllocatorType>& TBitset<AllocatorType>::SetNumBits(size_t numBits)
 {
-    const SizeType previousNumBlocks = m_blocks.Size();
-    SizeType newNumBlocks = (numBits + (NumBitsPerBlock - 1)) / NumBitsPerBlock;
+    const size_t previousNumBlocks = m_blocks.Size();
+    size_t newNumBlocks = (numBits + (NumBitsPerBlock - 1)) / NumBitsPerBlock;
 
     if (newNumBlocks < NumPreallocatedBlocks)
     {

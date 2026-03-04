@@ -23,17 +23,17 @@ public:
     ErrorList& operator=(ErrorList&& other) noexcept;
     ~ErrorList() = default;
 
-    SizeType Size() const
+    size_t Size() const
     {
         return m_errors.Size();
     }
 
-    CompilerError& operator[](SizeType index)
+    CompilerError& operator[](size_t index)
     {
         return m_errors[index];
     }
 
-    const CompilerError& operator[](SizeType index) const
+    const CompilerError& operator[](size_t index) const
     {
         return m_errors[index];
     }

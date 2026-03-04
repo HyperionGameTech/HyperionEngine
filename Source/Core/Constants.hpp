@@ -62,7 +62,7 @@ constexpr bool IsPodTypeV = std::is_standard_layout_v<T>
     && std::is_trivially_move_assignable_v<T>
     && std::is_trivially_destructible_v<T>;
 
-template <class T, SizeType = sizeof(T)>
+template <class T, size_t = sizeof(T)>
 std::true_type ImplementationExistsImpl(T*);
 
 std::false_type ImplementationExistsImpl(...);

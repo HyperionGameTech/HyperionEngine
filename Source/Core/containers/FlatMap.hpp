@@ -38,7 +38,7 @@ public:
 
     FlatMap();
 
-    template <SizeType Sz>
+    template <size_t Sz>
     FlatMap(KeyValuePairType const (&items)[Sz])
     {
         Base::Reserve(Sz);
@@ -49,7 +49,7 @@ public:
         }
     }
 
-    template <SizeType Sz>
+    template <size_t Sz>
     FlatMap(KeyValuePairType (&&items)[Sz])
     {
         Base::Reserve(Sz);
@@ -128,7 +128,7 @@ public:
     Iterator Erase(ConstIterator it);
     bool Erase(const Key& key);
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return Base::Size();
     }
@@ -158,7 +158,7 @@ public:
         Base::Clear();
     }
 
-    HYP_FORCE_INLINE void Reserve(SizeType size)
+    HYP_FORCE_INLINE void Reserve(size_t size)
     {
         Base::Reserve(size);
     }
@@ -246,13 +246,13 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE KeyValuePairType& AtIndex(SizeType index)
+    HYP_FORCE_INLINE KeyValuePairType& AtIndex(size_t index)
     {
         HYP_CORE_ASSERT(index < Size(), "Out of bounds");
         return *(Data() + index);
     }
 
-    HYP_FORCE_INLINE const KeyValuePairType& AtIndex(SizeType index) const
+    HYP_FORCE_INLINE const KeyValuePairType& AtIndex(size_t index) const
     {
         HYP_CORE_ASSERT(index < Size(), "Out of bounds");
         return *(Data() + index);

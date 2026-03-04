@@ -557,7 +557,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
         writer.WriteString(")\n");
         
-        for (SizeType i = 0; i < cls.members.Size(); ++i)
+        for (size_t i = 0; i < cls.members.Size(); ++i)
         {
             const MemberDef& member = cls.members[i];
             
@@ -567,7 +567,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
             {
                 attributesString = "Span<const ClassAttribute> { {";
 
-                for (SizeType i = 0; i < member.attributes.Size(); i++)
+                for (size_t i = 0; i < member.attributes.Size(); i++)
                 {
                     const String& name = member.attributes[i].first;
                     const ClassAttributeValue& value = member.attributes[i].second;
@@ -623,7 +623,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
 
                 if (member.attributes.Any())
                 {
-                    for (SizeType i = 0; i < member.attributes.Size(); i++)
+                    for (size_t i = 0; i < member.attributes.Size(); i++)
                     {
                         propertyArgsString += member.attributes[i].first;
 
@@ -681,7 +681,7 @@ Result CXXModuleGenerator::GenerateInline(const Analyzer& analyzer, const Module
                     String methodArgsStringSig;
                     String methodArgsStringCall;
 
-                    for (SizeType i = 0; i < functionType->parameters.Size(); ++i)
+                    for (size_t i = 0; i < functionType->parameters.Size(); ++i)
                     {
                         methodArgsStringSig += functionType->parameters[i]->type->FormatDecl(functionType->parameters[i]->name);
                         methodArgsStringCall += functionType->parameters[i]->name;
@@ -923,7 +923,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
         writer.WriteString(")\n");
 
-        for (SizeType i = 0; i < cls.members.Size(); ++i)
+        for (size_t i = 0; i < cls.members.Size(); ++i)
         {
             const MemberDef& member = cls.members[i];
 
@@ -937,7 +937,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
             {
                 attributesString = "Span<const ClassAttribute> { {";
 
-                for (SizeType i = 0; i < member.attributes.Size(); i++)
+                for (size_t i = 0; i < member.attributes.Size(); i++)
                 {
                     const String& name = member.attributes[i].first;
                     const ClassAttributeValue& value = member.attributes[i].second;
@@ -993,7 +993,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
 
                 if (member.attributes.Any())
                 {
-                    for (SizeType i = 0; i < member.attributes.Size(); i++)
+                    for (size_t i = 0; i < member.attributes.Size(); i++)
                     {
                         propertyArgsString += member.attributes[i].first;
 
@@ -1051,7 +1051,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
                     String methodArgsStringSig;
                     String methodArgsStringCall;
 
-                    for (SizeType i = 0; i < functionType->parameters.Size(); ++i)
+                    for (size_t i = 0; i < functionType->parameters.Size(); ++i)
                     {
                         methodArgsStringSig += functionType->parameters[i]->type->FormatDecl(functionType->parameters[i]->name);
                         methodArgsStringCall += functionType->parameters[i]->name;

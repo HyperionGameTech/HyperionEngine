@@ -55,10 +55,10 @@ public:
     virtual void DispatchIndirect(
         CommandBuffer* commandBuffer,
         const GpuBufferRef& indirectBuffer,
-        SizeType offset = 0) const = 0;
+        size_t offset = 0) const = 0;
 
     // Deprecated - will be removed to decouple from vulkan
-    HYP_DEPRECATED virtual void SetPushConstants(const void* data, SizeType size) = 0;
+    HYP_DEPRECATED virtual void SetPushConstants(const void* data, size_t size) = 0;
     
     bool MatchesSignature(const ShaderDesc& shaderDesc) const;
 

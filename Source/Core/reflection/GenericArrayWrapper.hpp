@@ -60,11 +60,11 @@ struct GenericArrayWrapper
         SerializeFunction serializeFunction;
 
         AnyRef (*pushBack)(GenericArrayWrapper& array, BoxedValue&& value);
-        AnyRef (*getElementAt)(GenericArrayWrapper& array, SizeType index);
-        bool (*getElementAt2)(GenericArrayWrapper& array, SizeType index, BoxedValue& outValue);
-        bool (*setElementAt)(GenericArrayWrapper& array, SizeType index, BoxedValue&& value);
-        SizeType (*size)(const GenericArrayWrapper& array);
-        bool (*resize)(GenericArrayWrapper& array, SizeType newSize);
+        AnyRef (*getElementAt)(GenericArrayWrapper& array, size_t index);
+        bool (*getElementAt2)(GenericArrayWrapper& array, size_t index, BoxedValue& outValue);
+        bool (*setElementAt)(GenericArrayWrapper& array, size_t index, BoxedValue&& value);
+        size_t (*size)(const GenericArrayWrapper& array);
+        bool (*resize)(GenericArrayWrapper& array, size_t newSize);
     };
 
     FunctionTable functionTable;
@@ -175,13 +175,13 @@ struct GenericArrayWrapper
 
     // FixedArray<T, Size>
 
-    template <class T, SizeType Sz>
+    template <class T, size_t Sz>
     GenericArrayWrapper(AsReferenceTag, FixedArray<T, Sz>& arr);
 
-    template <class T, SizeType Sz>
+    template <class T, size_t Sz>
     GenericArrayWrapper(AsCopyTag, const FixedArray<T, Sz>& arr);
 
-    template <class T, SizeType Sz>
+    template <class T, size_t Sz>
     GenericArrayWrapper(AsCopyTag, FixedArray<T, Sz>&& arr);
 
     // HashSet<T, KeyByFunction, AllocatorType>
@@ -257,7 +257,7 @@ struct GenericArrayWrapper
         return pInternalArray != nullptr;
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         if (!IsValid())
         {
@@ -289,7 +289,7 @@ struct GenericArrayWrapper
     }
 
     /*! \brief Get a reference to element at \p index */
-    HYP_FORCE_INLINE AnyRef GetElementAt(SizeType index)
+    HYP_FORCE_INLINE AnyRef GetElementAt(size_t index)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {
@@ -302,7 +302,7 @@ struct GenericArrayWrapper
     /*! \brief Get the element at \p index by value and store it in \p outValue
      *   \returns True on success, false otherwise. If false was returned, \p outValue has
      *   not been modified. */
-    HYP_FORCE_INLINE bool GetElementAt(SizeType index, BoxedValue& outValue)
+    HYP_FORCE_INLINE bool GetElementAt(size_t index, BoxedValue& outValue)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {
@@ -312,7 +312,7 @@ struct GenericArrayWrapper
         return functionTable.getElementAt2(*this, index, outValue);
     }
 
-    HYP_FORCE_INLINE bool SetElementAt(SizeType index, BoxedValue&& value)
+    HYP_FORCE_INLINE bool SetElementAt(size_t index, BoxedValue&& value)
     {
         if (!IsValid() || !CanGetElementByIndex() || index >= Size())
         {
@@ -327,7 +327,7 @@ struct GenericArrayWrapper
         return functionTable.resize != nullptr;
     }
 
-    HYP_FORCE_INLINE bool Resize(SizeType newSize)
+    HYP_FORCE_INLINE bool Resize(size_t newSize)
     {
         if (!IsValid() || !CanResize())
         {

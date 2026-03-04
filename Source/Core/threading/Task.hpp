@@ -1016,7 +1016,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
         Array<ReturnType> results;
         results.ResizeUninitialized(tasks.Size());
 
-        for (SizeType i = 0; i < tasks.Size(); ++i)
+        for (size_t i = 0; i < tasks.Size(); ++i)
         {
             Task<ReturnType>& task = tasks[i];
 
@@ -1032,7 +1032,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
         return results;
 
 #if 0
-        for (SizeType i = 0; i < tasks.Size(); ++i) {
+        for (size_t i = 0; i < tasks.Size(); ++i) {
             Task<ReturnType> &task = tasks[i];
 
             HYP_CORE_ASSERT(task.IsValid());
@@ -1048,7 +1048,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
         Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(tasks.Size());
 
         while ((completionStates | boundStates).Count() != tasks.Size()) {
-            for (SizeType i = 0; i < tasks.Size(); ++i) {
+            for (size_t i = 0; i < tasks.Size(); ++i) {
                 if (completionStates.Test(i) || boundStates.Test(i)) {
                     continue;
                 }
@@ -1080,7 +1080,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
         semaphore.Acquire();
 
         if constexpr (std::is_void_v<ReturnType>) {
-            for (SizeType i = 0; i < tasks.Size(); ++i) {
+            for (size_t i = 0; i < tasks.Size(); ++i) {
                 Task<ReturnType> &task = tasks[i];
                 HYP_CORE_ASSERT(task.IsCompleted());
 
@@ -1090,7 +1090,7 @@ struct TaskAwaitAll_Impl<Task<ReturnType>>
             Array<ReturnType> results;
             results.ResizeUninitialized(tasks.Size());
 
-            for (SizeType i = 0; i < tasks.Size(); ++i) {
+            for (size_t i = 0; i < tasks.Size(); ++i) {
                 Task<ReturnType> &task = tasks[i];
                 HYP_CORE_ASSERT(task.IsCompleted());
 
@@ -1108,7 +1108,7 @@ struct TaskAwaitAll_Impl<Task<void>>
 {
     void operator()(Span<Task<void>> tasks) const
     {
-        for (SizeType i = 0; i < tasks.Size(); ++i)
+        for (size_t i = 0; i < tasks.Size(); ++i)
         {
             Task<void>& task = tasks[i];
 
@@ -1121,7 +1121,7 @@ struct TaskAwaitAll_Impl<Task<void>>
         }
 
 #if 0
-        for (SizeType i = 0; i < tasks.Size(); ++i) {
+        for (size_t i = 0; i < tasks.Size(); ++i) {
             Task<void> &task = tasks[i];
 
             HYP_CORE_ASSERT(task.IsValid());
@@ -1137,7 +1137,7 @@ struct TaskAwaitAll_Impl<Task<void>>
         Semaphore<int, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE> semaphore(int(tasks.Size()));
 
         while ((completionStates | boundStates).Count() != tasks.Size()) {
-            for (SizeType i = 0; i < tasks.Size(); ++i) {
+            for (size_t i = 0; i < tasks.Size(); ++i) {
                 if (completionStates.Test(i) || boundStates.Test(i)) {
                     continue;
                 }
@@ -1168,7 +1168,7 @@ struct TaskAwaitAll_Impl<Task<void>>
 
         semaphore.Acquire();
 
-        for (SizeType i = 0; i < tasks.Size(); ++i) {
+        for (size_t i = 0; i < tasks.Size(); ++i) {
             Task<void> &task = tasks[i];
             HYP_CORE_ASSERT(task.IsCompleted());
 

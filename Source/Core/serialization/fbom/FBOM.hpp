@@ -137,7 +137,7 @@ struct FBOMVersion
 class HYP_API FBOM
 {
 public:
-    static constexpr SizeType headerSize = 32;
+    static constexpr size_t headerSize = 32;
     static constexpr char headerIdentifier[] = { 'H', 'Y', 'P', '\0' };
     static constexpr FBOMVersion version = FBOMVersion { 1, 9, 0 };
 

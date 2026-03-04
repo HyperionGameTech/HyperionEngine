@@ -20,7 +20,7 @@ AssetPath::AssetPath(const Array<Name>& names)
 
     chain = new Name[names.Size() + 1];
 
-    for (SizeType i = 0; i < names.Size(); i++)
+    for (size_t i = 0; i < names.Size(); i++)
     {
         chain[i] = names[i];
     }
@@ -36,7 +36,7 @@ AssetPath::AssetPath(const UTF8StringView& path)
 
     Array<Name> names;
 
-    SizeType index = 0;
+    size_t index = 0;
 
     UTF8StringView substr = path;
 
@@ -66,8 +66,8 @@ AssetPath::AssetPath(const UTF8StringView& path)
                 }
             }
 
-            substr = substr.Substr(index + 1, SizeType(-1));
-            index = SizeType(-1); // will become 0 on next iteration
+            substr = substr.Substr(index + 1, size_t(-1));
+            index = size_t(-1); // will become 0 on next iteration
         }
     }
 
@@ -98,7 +98,7 @@ AssetPath::AssetPath(const UTF8StringView& path)
 
     chain = new Name[names.Size() + 1];
 
-    for (SizeType i = 0; i < names.Size(); i++)
+    for (size_t i = 0; i < names.Size(); i++)
     {
         chain[i] = names[i];
     }
@@ -141,7 +141,7 @@ void AssetPath::SetChain(const Array<Name>& names)
 
     chain = new Name[names.Size() + 1];
 
-    for (SizeType i = 0; i < names.Size(); i++)
+    for (size_t i = 0; i < names.Size(); i++)
     {
         chain[i] = names[i];
     }
@@ -162,11 +162,11 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
     Array<Name> toChain = to.GetChain();
 
     // Find common prefix length
-    const SizeType minSize = MathUtil::Min(fromChain.Size(), toChain.Size());
+    const size_t minSize = MathUtil::Min(fromChain.Size(), toChain.Size());
 
-    SizeType commonPrefixLen = 0;
+    size_t commonPrefixLen = 0;
 
-    for (SizeType i = 0; i < minSize; i++)
+    for (size_t i = 0; i < minSize; i++)
     {
         if (fromChain[i] != toChain[i])
         {
@@ -187,7 +187,7 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
     {
         String result;
 
-        for (SizeType i = commonPrefixLen; i < toChain.Size(); i++)
+        for (size_t i = commonPrefixLen; i < toChain.Size(); i++)
         {
             if (result.Length() > 0)
             {
@@ -204,9 +204,9 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
 
     // Add ".." for each segment we need to go up from 'from' to reach the common ancestor
     // We need to go up (fromChain.Size() - commonPrefixLen) levels
-    const SizeType levelsUp = fromChain.Size() - commonPrefixLen;
+    const size_t levelsUp = fromChain.Size() - commonPrefixLen;
 
-    for (SizeType i = 0; i < levelsUp; i++)
+    for (size_t i = 0; i < levelsUp; i++)
     {
         if (result.Length() > 0)
         {
@@ -217,7 +217,7 @@ String AssetPath::MakeRelativePath(const AssetPath& from, const AssetPath& to)
     }
 
     // Add remaining elements from 'to' path after the common prefix
-    for (SizeType i = commonPrefixLen; i < toChain.Size(); i++)
+    for (size_t i = commonPrefixLen; i < toChain.Size(); i++)
     {
         if (result.Length() > 0)
         {
@@ -242,7 +242,7 @@ AssetPath AssetPath::FromRelativePath(const AssetPath& from, const String& relat
     Array<Name> resultChain = from.GetChain();
 
     UTF8StringView substr = relativePath;
-    SizeType index = 0;
+    size_t index = 0;
 
     for (auto it = substr.Begin(); it != substr.End(); ++index)
     {
@@ -268,9 +268,9 @@ AssetPath AssetPath::FromRelativePath(const AssetPath& from, const String& relat
                 }
             }
 
-            substr = substr.Substr(index + 1, SizeType(-1));
+            substr = substr.Substr(index + 1, size_t(-1));
             it = substr.Begin();
-            index = SizeType(-1); // will become 0 on next iteration
+            index = size_t(-1); // will become 0 on next iteration
         }
         else
         {

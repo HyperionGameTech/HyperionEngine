@@ -205,7 +205,7 @@ Material::~Material()
 {
     SetReady(false);
 
-    for (SizeType i = 0; i < m_textures.Size(); i++)
+    for (size_t i = 0; i < m_textures.Size(); i++)
     {
         Handle<Texture>& texture = m_textures.AtIndex(i);
 
@@ -220,7 +220,7 @@ void Material::Init()
 {
     HYP_SCOPE;
 
-    for (SizeType i = 0; i < m_textures.Size(); i++)
+    for (size_t i = 0; i < m_textures.Size(); i++)
     {
         Pair<MaterialTextureKey, Handle<Texture>&> keyValue = m_textures.KeyValueAt(i);
 
@@ -372,7 +372,7 @@ void Material::SetTextures(const MaterialTextures& textures)
         return;
     }
 
-    for (SizeType i = 0; i < m_textures.Size(); i++)
+    for (size_t i = 0; i < m_textures.Size(); i++)
     {
         Handle<Texture>& texture = m_textures.AtIndex(i);
 
@@ -388,7 +388,7 @@ void Material::SetTextures(const MaterialTextures& textures)
 
     if (IsInitCalled())
     {
-        for (SizeType i = 0; i < m_textures.Size(); i++)
+        for (size_t i = 0; i < m_textures.Size(); i++)
         {
             if (!m_textures.AtIndex(i).IsValid())
             {

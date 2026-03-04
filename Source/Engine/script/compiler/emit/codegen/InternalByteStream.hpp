@@ -13,14 +13,14 @@ namespace Hyperion {
 struct Fixup
 {
     LabelId labelId = LabelId(-1);
-    SizeType position = SizeType(-1);
-    SizeType offset = SizeType(-1);
+    size_t position = size_t(-1);
+    size_t offset = size_t(-1);
 };
 
 class InternalByteStream
 {
 public:
-    SizeType GetPosition() const
+    size_t GetPosition() const
     {
         return m_writer.Position();
     }
@@ -40,14 +40,14 @@ public:
         m_writer.Write(ConstByteView(&byte, 1));
     }
 
-    HYP_FORCE_INLINE void Put(const ubyte* bytes, SizeType size)
+    HYP_FORCE_INLINE void Put(const ubyte* bytes, size_t size)
     {
         m_writer.Write(ConstByteView(bytes, size));
     }
 
     void MarkLabel(LabelId labelId);
-    void AddFixup(LabelId labelId, SizeType position, SizeType offset);
-    void AddFixup(LabelId labelId, SizeType offset);
+    void AddFixup(LabelId labelId, size_t position, size_t offset);
+    void AddFixup(LabelId labelId, size_t offset);
 
     void Bake(const BuildParams& buildParams);
 

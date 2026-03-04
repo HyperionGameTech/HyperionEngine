@@ -329,7 +329,7 @@ void UIListView::UpdateLayout()
 
     Vec2i offset;
 
-    for (SizeType i = 0; i < m_listViewItems.Size(); i++)
+    for (size_t i = 0; i < m_listViewItems.Size(); i++)
     {
         UIObject* listViewItem = m_listViewItems[i];
 

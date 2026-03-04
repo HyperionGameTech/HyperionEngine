@@ -12,14 +12,14 @@ public:
     AstPrintVisitor(
         AstIterator* astIterator,
         CompilationUnit* compilationUnit,
-        SizeType indentSize = 2);
+        size_t indentSize = 2);
 
     virtual ~AstPrintVisitor() = default;
 
-    WideString PrintNode(AstStatement* node, SizeType depth = 0) const;
+    WideString PrintNode(AstStatement* node, size_t depth = 0) const;
     WideString PrintTree(AstStatement* root) const;
 
-    WideString GetIndentation(SizeType depth) const;
+    WideString GetIndentation(size_t depth) const;
 
     void SetShowTypes(bool show)
     {
@@ -50,12 +50,12 @@ private:
     WideString GetNodeDescription(AstStatement* node) const;
     WideString GetBasicNodeInfo(AstStatement* node) const;
     WideString GetTypeInfo(AstStatement* node) const;
-    WideString GetDetailedInfo(AstStatement* node, SizeType depth) const;
-    WideString PrintChildren(AstStatement* node, SizeType depth) const;
+    WideString GetDetailedInfo(AstStatement* node, size_t depth) const;
+    WideString PrintChildren(AstStatement* node, size_t depth) const;
     Array<AstStatement*> GetChildNodes(AstStatement* node) const;
     WideString Colorize(const WideString& text, const WideString& colorCode) const;
 
-    SizeType m_indentSize;
+    size_t m_indentSize;
 
     bool m_showTypes : 1;
     bool m_showLocations : 1;

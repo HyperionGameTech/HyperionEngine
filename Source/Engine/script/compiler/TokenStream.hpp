@@ -33,7 +33,7 @@ public:
 
     Token Peek(int n = 0) const
     {
-        SizeType pos = m_position + n;
+        size_t pos = m_position + n;
 
         if (pos >= m_tokens.Size())
         {
@@ -61,11 +61,11 @@ public:
         Assert(!m_tokens.Empty());
         return m_tokens.Back();
     }
-    SizeType GetSize() const
+    size_t GetSize() const
     {
         return m_tokens.Size();
     }
-    SizeType GetPosition() const
+    size_t GetPosition() const
     {
         return m_position;
     }
@@ -73,7 +73,7 @@ public:
     {
         return m_info;
     }
-    void SetPosition(SizeType position)
+    void SetPosition(size_t position)
     {
         m_position = position;
     }
@@ -83,7 +83,7 @@ public:
     }
 
     Array<Token> m_tokens;
-    SizeType m_position;
+    size_t m_position;
 
 private:
     TokenStreamInfo m_info;

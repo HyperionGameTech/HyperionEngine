@@ -67,7 +67,7 @@ const DX12GpuImageViewRef& DX12TextureViewCache::GetOrCreate(
 
     Assert(texture != nullptr);
 
-    const SizeType idx = texture->Id().ToIndex();
+    const size_t idx = texture->Id().ToIndex();
 
     if (!imageViews.HasIndex(idx))
     {
@@ -104,7 +104,7 @@ void DX12TextureViewCache::RemoveTexture(const Texture* texture)
         return;
     }
 
-    const SizeType idx = texture->Id().ToIndex();
+    const size_t idx = texture->Id().ToIndex();
 
     if (imageViews.HasIndex(idx))
     {
@@ -143,7 +143,7 @@ void DX12TextureViewCache::CleanupUnusedTextures()
 
         if (!entry.Lock())
         {
-            const SizeType idx = weakTextureHandles.IndexOf(cleanupIterator);
+            const size_t idx = weakTextureHandles.IndexOf(cleanupIterator);
 
             Assert(imageViews.HasIndex(idx));
             Assert(weakTextureHandles.HasIndex(idx));

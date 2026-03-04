@@ -299,7 +299,7 @@ Array<String> ExtractCXXNamespacePath(const String& source)
 String BuildNamespaceString(Span<const String> namespaceParts)
 {
     String str;
-    for (SizeType i = 0; i < namespaceParts.Size(); i++)
+    for (size_t i = 0; i < namespaceParts.Size(); i++)
     {
         str += namespaceParts[i];
 
@@ -402,14 +402,14 @@ static bool AreFileContentsSame(const FilePath& pathA, const FilePath& pathB)
         return false;
     }
 
-    const SizeType BufferSize = 4096;
+    const size_t BufferSize = 4096;
     ByteBuffer bufferA(BufferSize);
     ByteBuffer bufferB(BufferSize);
 
     while (true)
     {
-        SizeType bytesReadA = readerA.ReadBytes(bufferA.Data(), BufferSize);
-        SizeType bytesReadB = readerB.ReadBytes(bufferB.Data(), BufferSize);
+        size_t bytesReadA = readerA.ReadBytes(bufferA.Data(), BufferSize);
+        size_t bytesReadB = readerB.ReadBytes(bufferB.Data(), BufferSize);
 
         if (bytesReadA != bytesReadB)
         {
@@ -448,8 +448,8 @@ Result ReplaceFileIfDifferent(FilePath& tempFilePath, const FilePath& targetFile
     }
 
     // if file sizes differ, replace the original
-    const SizeType targetFileSize = targetFilePath.FileSizeOnDisk();
-    const SizeType newFileSize = tempFilePath.FileSizeOnDisk();
+    const size_t targetFileSize = targetFilePath.FileSizeOnDisk();
+    const size_t newFileSize = tempFilePath.FileSizeOnDisk();
 
     if (targetFileSize != newFileSize || !AreFileContentsSame(targetFilePath, tempFilePath))
     {

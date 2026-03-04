@@ -68,7 +68,7 @@ auto BakeData<ReflectionProbe>::ToBitmap() const -> BitmapType
 {
     Assert(m_envProbe != nullptr);
 
-    const SizeType numTexelsPerFace = dimensions.x * dimensions.y;
+    const size_t numTexelsPerFace = dimensions.x * dimensions.y;
 
     Assert(texels.Size() == 6 * numTexelsPerFace, "Invalid cubemap size");
 

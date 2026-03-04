@@ -17,7 +17,7 @@ namespace Hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Engine);
 
-static constexpr SizeType StatPoolBlockSize = 1 << 18;
+static constexpr size_t StatPoolBlockSize = 1 << 18;
 static constexpr const char* RootStatGroupName = "Root";
 
 static constexpr int NumReservedStatIds = 5;
@@ -91,7 +91,7 @@ static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView pa
     while (remainingPath.Size() > 0)
     {
         UTF8StringView curr = remainingPath;
-        SizeType characterIndex = 0;
+        size_t characterIndex = 0;
         bool separatorFound = false;
 
         for (utf::Char32 ch : remainingPath)
@@ -99,7 +99,7 @@ static void InitStat(EngineStats* stats, EngineStatBase* stat, UTF8StringView pa
             if (ch == utf::Char32('/'))
             {
                 curr = remainingPath.Substr(0, characterIndex);
-                remainingPath = remainingPath.Substr(characterIndex + 1, SizeType(-1));
+                remainingPath = remainingPath.Substr(characterIndex + 1, size_t(-1));
                 separatorFound = true;
                 break;
             }
@@ -214,7 +214,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
     while (currentStat != nullptr && path.Size() > 0)
     {
         UTF8StringView curr = path;
-        SizeType characterIndex = 0;
+        size_t characterIndex = 0;
         bool separatorFound = false;
 
         for (utf::Char32 ch : path)
@@ -222,7 +222,7 @@ EngineStatBase* EngineStats::GetStat(UTF8StringView path) const
             if (ch == PathSeparator)
             {
                 curr = path.Substr(0, characterIndex);
-                path = path.Substr(characterIndex + 1, SizeType(-1));
+                path = path.Substr(characterIndex + 1, size_t(-1));
                 separatorFound = true;
                 break;
             }

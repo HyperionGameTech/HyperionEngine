@@ -40,7 +40,7 @@ struct SuppressDataRaceDetectorContext
 class HYP_API DataRaceDetector
 {
 public:
-    static constexpr SizeType numPreallocatedStates = g_maxStaticThreadIds;
+    static constexpr size_t numPreallocatedStates = g_maxStaticThreadIds;
 
     struct DataAccessState
     {

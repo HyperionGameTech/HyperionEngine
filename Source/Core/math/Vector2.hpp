@@ -87,12 +87,12 @@ struct alignas(alignof(T) * 2) HYP_API Vec2
         return *this;
     }
 
-    constexpr T& operator[](SizeType index)
+    constexpr T& operator[](size_t index)
     {
         return values[index];
     }
 
-    constexpr T operator[](SizeType index) const
+    constexpr T operator[](size_t index) const
     {
         return values[index];
     }
@@ -422,12 +422,12 @@ struct alignas(alignof(float) * 2) HYP_API Vec2<float>
         return *this;
     }
 
-    constexpr float& operator[](SizeType index)
+    constexpr float& operator[](size_t index)
     {
         return values[index];
     }
 
-    constexpr float operator[](SizeType index) const
+    constexpr float operator[](size_t index) const
     {
         return values[index];
     }

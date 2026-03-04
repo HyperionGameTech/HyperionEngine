@@ -220,7 +220,7 @@ void UITabView::SetSelectedTabIndex(uint32 index)
         node->RemoveAllChildren();
     }
 
-    for (SizeType i = 0; i < m_tabs.Size(); i++)
+    for (size_t i = 0; i < m_tabs.Size(); i++)
     {
         if (i == m_selectedTabIndex)
         {
@@ -320,7 +320,7 @@ uint32 UITabView::GetTabIndex(Name name) const
 {
     AssertOnThread(g_simThread);
 
-    for (SizeType i = 0; i < m_tabs.Size(); i++)
+    for (size_t i = 0; i < m_tabs.Size(); i++)
     {
         if (m_tabs[i]->GetName() == name)
         {
@@ -352,7 +352,7 @@ bool UITabView::RemoveTab(Name name)
         return false;
     }
 
-    const SizeType index = it - m_tabs.Begin();
+    const size_t index = it - m_tabs.Begin();
 
     m_tabs.Erase(it);
 
@@ -377,7 +377,7 @@ void UITabView::UpdateTabSizes()
 
     int offset = 0;
 
-    for (SizeType i = 0; i < m_tabs.Size(); i++)
+    for (size_t i = 0; i < m_tabs.Size(); i++)
     {
         m_tabs[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
         m_tabs[i]->SetPosition(Vec2i { offset, 0 });

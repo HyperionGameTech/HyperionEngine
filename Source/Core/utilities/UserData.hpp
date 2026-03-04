@@ -9,7 +9,7 @@
 namespace Hyperion {
 namespace utilities {
 
-template <SizeType Size, SizeType Alignment>
+template <size_t Size, size_t Alignment>
 struct UserData
 {
     ValueStorage<ubyte, Size, Alignment> data;
@@ -23,7 +23,7 @@ struct UserData
     UserData(const UserData&) = default;
     UserData& operator=(const UserData&) = default;
 
-    template <SizeType OtherSize, SizeType OtherAlignment>
+    template <size_t OtherSize, size_t OtherAlignment>
     UserData(const UserData<OtherSize, OtherAlignment>& other)
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
@@ -31,7 +31,7 @@ struct UserData
         Memory::Copy(data.GetPointer(), other.data.GetPointer(), OtherSize);
     }
 
-    template <SizeType OtherSize, SizeType OtherAlignment>
+    template <size_t OtherSize, size_t OtherAlignment>
     UserData& operator=(const UserData<OtherSize, OtherAlignment>& other)
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
@@ -44,7 +44,7 @@ struct UserData
     UserData(UserData&&) noexcept = default;
     UserData& operator=(UserData&&) noexcept = default;
 
-    template <SizeType OtherSize, SizeType OtherAlignment>
+    template <size_t OtherSize, size_t OtherAlignment>
     UserData(UserData<OtherSize, OtherAlignment>&& other) noexcept
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
@@ -52,7 +52,7 @@ struct UserData
         Memory::Copy(data.GetPointer(), other.data.GetPointer(), OtherSize);
     }
 
-    template <SizeType OtherSize, SizeType OtherAlignment>
+    template <size_t OtherSize, size_t OtherAlignment>
     UserData& operator=(UserData<OtherSize, OtherAlignment>&& other) noexcept
     {
         static_assert(Size >= OtherSize, "Size must be greater than or equal to OtherSize");
@@ -121,7 +121,7 @@ struct UserData
 };
 } // namespace utilities
 
-template <SizeType Size, SizeType Alignment = alignof(ubyte)>
+template <size_t Size, size_t Alignment = alignof(ubyte)>
 using UserData = utilities::UserData<Size, Alignment>;
 
 } // namespace Hyperion

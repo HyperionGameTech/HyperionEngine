@@ -7,7 +7,7 @@
 namespace Hyperion {
 namespace memory {
 
-static constexpr SizeType ThreadAllocatorPoolSize = 1024 * 1024 * 10; // 10 MB per thread for thread allocator pool
+static constexpr size_t ThreadAllocatorPoolSize = 1024 * 1024 * 10; // 10 MB per thread for thread allocator pool
 
 void InitThreadAllocatorPool(void* allocator)
 {

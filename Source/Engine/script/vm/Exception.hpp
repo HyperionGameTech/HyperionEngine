@@ -36,7 +36,7 @@ public:
     static Exception InvalidConstructorException();
     static Exception NullReferenceException();
     static Exception DivisionByZeroException();
-    static Exception OutOfBoundsException(SizeType index, SizeType size);
+    static Exception OutOfBoundsException(size_t index, size_t size);
     static Exception MemberNotFoundException(BoxedValue* pValue, HashCode::ValueType hashCode);
     static Exception InvalidMemberAccessException(BoxedValue* pValue);
     static Exception FileOpenException(const char* fileName);

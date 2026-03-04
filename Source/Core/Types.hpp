@@ -24,7 +24,7 @@ static_assert(sizeof(float32) == 4, "Expected float to be 32-bit!");
 using float64 = double;
 static_assert(sizeof(float64) == 8, "Expected double to be 64-bit!");
 
-using SizeType = decltype(sizeof(int));
+using size_t = decltype(sizeof(int));
 
 #ifdef HYP_WINDOWS
 using TChar = wchar_t;
@@ -34,7 +34,7 @@ using TChar = char;
 
 // declare custom pointer-sized types so they don't get defined as long / unsigned long etc.
 
-template <SizeType Size, bool Signed>
+template <size_t Size, bool Signed>
 struct PointerSizedTypeHelper;
 
 template <>

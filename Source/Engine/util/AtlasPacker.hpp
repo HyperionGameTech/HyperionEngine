@@ -76,7 +76,7 @@ bool AtlasPacker<AtlasElement>::AddElement(const Vec2u& elementDimensions, Atlas
         int bestX = -1;
         int bestIndex = -1;
 
-        for (SizeType i = 0; i < freeSpaces.Size(); i++)
+        for (size_t i = 0; i < freeSpaces.Size(); i++)
         {
             Vec2u offset;
 
@@ -229,7 +229,7 @@ void AtlasPacker<AtlasElement>::AddSkylineNode(uint32 beforeIndex, const Vec2u& 
 {
     freeSpaces.Insert(freeSpaces.Begin() + beforeIndex, { Vec2i(offset), Vec2i(dimensions) });
 
-    for (SizeType i = beforeIndex + 1; i < freeSpaces.Size();)
+    for (size_t i = beforeIndex + 1; i < freeSpaces.Size();)
     {
         auto& spaceOffset = freeSpaces[i].first;
         auto& spaceDimensions = freeSpaces[i].second;
@@ -265,7 +265,7 @@ void AtlasPacker<AtlasElement>::MergeSkyline()
     // Should never happen as we always add at least one free space, but this will make debugging easier
     AssertDebug(freeSpaces.Any());
 
-    for (SizeType i = 0; i < freeSpaces.Size() - 1;)
+    for (size_t i = 0; i < freeSpaces.Size() - 1;)
     {
         int y0 = freeSpaces[i].first.y + freeSpaces[i].second.y;
         int y1 = freeSpaces[i + 1].first.y + freeSpaces[i + 1].second.y;

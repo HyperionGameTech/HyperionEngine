@@ -64,7 +64,7 @@ struct VulkanAttachmentMap
         attachments.Clear();
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return attachments.Size();
     }

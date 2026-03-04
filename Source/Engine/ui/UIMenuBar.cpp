@@ -204,7 +204,7 @@ void UIMenuItem::UpdateDropDownMenu()
     {
         UILockedUpdatesScope scope(*m_dropDownMenu, UIObjectUpdateType::UPDATE_SIZE);
 
-        for (SizeType i = 0; i < m_menuItems.Size(); i++)
+        for (size_t i = 0; i < m_menuItems.Size(); i++)
         {
             UIObject* menuItem = m_menuItems[i];
 
@@ -493,7 +493,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
     m_container->SetIsVisible(false);
     m_container->RemoveAllChildUIObjects();
 
-    for (SizeType i = 0; i < m_menuItems.Size(); i++)
+    for (size_t i = 0; i < m_menuItems.Size(); i++)
     {
         if (i == m_selectedMenuItemIndex)
         {
@@ -649,7 +649,7 @@ bool UIMenuBar::RemoveChildUIObject(UIObject* uiObject)
         return false;
     }
 
-    const SizeType index = menuItemsIt - m_menuItems.Begin();
+    const size_t index = menuItemsIt - m_menuItems.Begin();
 
     m_menuItems.Erase(menuItemsIt);
 
@@ -703,7 +703,7 @@ uint32 UIMenuBar::GetMenuItemIndex(Name name) const
 {
     AssertOnThread(g_simThread);
 
-    for (SizeType i = 0; i < m_menuItems.Size(); i++)
+    for (size_t i = 0; i < m_menuItems.Size(); i++)
     {
         if (m_menuItems[i]->GetName() == name)
         {
@@ -740,7 +740,7 @@ void UIMenuBar::UpdateMenuItemSizes()
 
     // Vec2i offset = { 0, 0 };
 
-    // for (SizeType i = 0; i < m_menuItems.Size(); i++)
+    // for (size_t i = 0; i < m_menuItems.Size(); i++)
     // {
     //     m_menuItems[i]->SetPosition(offset);
     //     m_menuItems[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
@@ -755,7 +755,7 @@ void UIMenuBar::UpdateMenuItemSizes()
         return;
     }
 
-    for (SizeType i = 0; i < childUiObjects.Size(); i++)
+    for (size_t i = 0; i < childUiObjects.Size(); i++)
     {
         UIObject* childUiObject = childUiObjects[i];
         Assert(childUiObject != nullptr);
@@ -769,7 +769,7 @@ void UIMenuBar::UpdateMenuItemSizes()
     int totalNonSpacerWidth = 0;
     int numSpacers = 0;
 
-    for (SizeType i = 0; i < childUiObjects.Size(); i++)
+    for (size_t i = 0; i < childUiObjects.Size(); i++)
     {
         if (childUiObjects[i]->IsA<UISpacer>())
         {
@@ -787,7 +787,7 @@ void UIMenuBar::UpdateMenuItemSizes()
     const int remainingWidth = MathUtil::Max(0, MathUtil::Floor(availableWidth - totalNonSpacerWidth));
     const int spacerWidth = numSpacers > 0 ? MathUtil::Ceil(remainingWidth / numSpacers) : 0;
 
-    for (SizeType i = 0; i < childUiObjects.Size(); i++)
+    for (size_t i = 0; i < childUiObjects.Size(); i++)
     {
         UIObject* childUiObject = childUiObjects[i];
         Assert(childUiObject != nullptr);

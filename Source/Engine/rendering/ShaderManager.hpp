@@ -25,7 +25,7 @@ public:
         const ShaderPropertySet& properties,
         const VertexAttributeSet& vertexAttributes);
 
-    SizeType CalculateMemoryUsage() const;
+    size_t CalculateMemoryUsage() const;
 
 private:
     /*! \brief Gets a unique ShaderCacheId for the given shader info.

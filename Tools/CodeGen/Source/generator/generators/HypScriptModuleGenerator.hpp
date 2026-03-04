@@ -28,7 +28,7 @@ public:
     virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
 protected:
-    Array<const ClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const ClassDefinition*>& classes, const HashMap<String, SizeType>& classNameToIndex) const;
+    Array<const ClassDefinition*> SortClassesTopologically(const Analyzer& analyzer, const Array<const ClassDefinition*>& classes, const HashMap<String, size_t>& classNameToIndex) const;
 };
 
 } // namespace CodeGen

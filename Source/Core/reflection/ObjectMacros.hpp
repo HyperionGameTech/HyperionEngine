@@ -102,7 +102,7 @@ protected:
 #define HYP_ALLOC_OBJECT(T, size) GetObjectContainer<T>().Allocate(size)
 #define HYP_FREE_OBJECT(T, ptr) GetObjectContainer<T>().Free(ptr)
 
-#define HYP_ALLOC_OBJECT_ALIGNED(T, size, alignment) GetObjectContainer<T>().Allocate(size, static_cast<SizeType>(alignment))
+#define HYP_ALLOC_OBJECT_ALIGNED(T, size, alignment) GetObjectContainer<T>().Allocate(size, static_cast<size_t>(alignment))
 #define HYP_FREE_OBJECT_ALIGNED(T, ptr) GetObjectContainer<T>().Free(ptr)
 
 #else
@@ -110,7 +110,7 @@ protected:
 #define HYP_ALLOC_OBJECT(T, size) (T*)Memory::Allocate(size)
 #define HYP_FREE_OBJECT(T, ptr) Memory::FreeAligned(ptr)
 
-#define HYP_ALLOC_OBJECT_ALIGNED(T, size, alignment) (T*)Memory::AllocateAligned(size, static_cast<SizeType>(alignment))
+#define HYP_ALLOC_OBJECT_ALIGNED(T, size, alignment) (T*)Memory::AllocateAligned(size, static_cast<size_t>(alignment))
 #define HYP_FREE_OBJECT_ALIGNED(T, ptr) Memory::FreeAligned(ptr)
 
 #endif

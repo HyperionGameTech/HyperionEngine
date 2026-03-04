@@ -31,7 +31,7 @@ public:
     Queue& operator=(const Queue& other);
     Queue& operator=(Queue&& other) noexcept;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return Base::Size();
     }
@@ -81,7 +81,7 @@ public:
         return Base::Contains(value);
     }
 
-    HYP_FORCE_INLINE void Reserve(SizeType capacity)
+    HYP_FORCE_INLINE void Reserve(size_t capacity)
     {
         Base::Reserve(capacity);
     }

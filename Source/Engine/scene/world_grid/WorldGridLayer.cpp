@@ -137,7 +137,7 @@ void WorldGridLayer::RemoveStreamingObject(const AssetObject* assetObject)
     {
         Array<AssetReference, DynamicAllocator>& assetsAtCoord = objectsIt->second;
 
-        for (SizeType i = 0; i < assetsAtCoord.Size(); ++i)
+        for (size_t i = 0; i < assetsAtCoord.Size(); ++i)
         {
             if (assetsAtCoord[i].GetAssetPath() == assetObject->GetPath())
             {

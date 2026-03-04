@@ -18,8 +18,8 @@
 
 namespace Hyperion {
 
-static constexpr SizeType ScriptMaxPathLength = 1024;
-static constexpr SizeType ScriptMaxClassNameLength = 1024;
+static constexpr size_t ScriptMaxPathLength = 1024;
+static constexpr size_t ScriptMaxClassNameLength = 1024;
 
 HYP_STRUCT()
 struct ScriptDesc

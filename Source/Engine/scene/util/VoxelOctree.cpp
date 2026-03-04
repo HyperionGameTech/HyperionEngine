@@ -229,7 +229,7 @@ VoxelOctreeBuildResult VoxelOctree::Build(const VoxelOctreeParams& params, Entit
 
             Assert(meshIndices.Size() % 3 == 0);
 
-            for (SizeType i = 0; i < meshIndices.Size(); i += 3)
+            for (size_t i = 0; i < meshIndices.Size(); i += 3)
             {
                 const Vec3f positions[3] = {
                     transformMatrix * vertexData[meshIndices[i + 0]].position,

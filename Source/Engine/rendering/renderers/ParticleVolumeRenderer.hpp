@@ -40,7 +40,7 @@ private:
 
         RenderableAttributeSet renderableAttributes;
 
-        SizeType maxParticles = 0;
+        size_t maxParticles = 0;
         bool hasPhysics = false;
 
         // last frame this volume was used for rendering

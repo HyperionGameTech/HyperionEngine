@@ -195,14 +195,14 @@ FBOMData FBOMData::FromArray(const FBOMArray& array)
     return value;
 }
 
-SizeType FBOMData::ReadBytes(SizeType n, void* out) const
+size_t FBOMData::ReadBytes(size_t n, void* out) const
 {
     if (!m_type.IsUnbounded())
     {
         HYP_CORE_ASSERT(n <= m_bytes.Size(), "Attempt to read past max size of object");
     }
 
-    SizeType toRead = MathUtil::Min(n, m_bytes.Size());
+    size_t toRead = MathUtil::Min(n, m_bytes.Size());
     Memory::Copy(out, m_bytes.Data(), toRead);
     return toRead;
 }
@@ -212,14 +212,14 @@ ByteBuffer FBOMData::ReadBytes() const
     return m_bytes;
 }
 
-ByteBuffer FBOMData::ReadBytes(SizeType n) const
+ByteBuffer FBOMData::ReadBytes(size_t n) const
 {
     if (!m_type.IsUnbounded())
     {
         HYP_CORE_ASSERT(n <= m_bytes.Size(), "Attempt to read past max size of object");
     }
 
-    SizeType toRead = MathUtil::Min(n, m_bytes.Size());
+    size_t toRead = MathUtil::Min(n, m_bytes.Size());
 
     return ByteBuffer(toRead, m_bytes.Data());
 }
@@ -234,7 +234,7 @@ void FBOMData::SetBytes(const ByteBuffer& byteBuffer)
     m_bytes = byteBuffer;
 }
 
-void FBOMData::SetBytes(SizeType count, const void* data)
+void FBOMData::SetBytes(size_t count, const void* data)
 {
     if (!m_type.IsUnbounded())
     {
@@ -426,7 +426,7 @@ FBOMResult FBOMData::ToJSON(FBOMLoadContext& context, JSON::Value& outJson) cons
 
         JSON::JArray arrayJson;
 
-        for (SizeType i = 0; i < array.Size(); i++)
+        for (size_t i = 0; i < array.Size(); i++)
         {
             JSON::Value elementJson;
 
@@ -562,7 +562,7 @@ String FBOMData::ToString(bool deep) const
 
     if (deep)
     {
-        for (SizeType i = 0; i < m_bytes.Size(); i++)
+        for (size_t i = 0; i < m_bytes.Size(); i++)
         {
             stream << std::hex << int(m_bytes[i]) << " ";
         }

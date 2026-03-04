@@ -77,21 +77,21 @@ FBOMDataLocation FBOMWriteStream::GetDataLocation(const UniqueId& uniqueId, cons
 
 void FBOMWriteStream::AddToObjectLibrary(FBOMObject& object)
 {
-    // static constexpr SizeType desiredMaxSize = 1024 * 1024 * 1024 * 32; // 32 MiB
-    static constexpr SizeType desiredMaxSize = 10;
+    // static constexpr size_t desiredMaxSize = 1024 * 1024 * 1024 * 32; // 32 MiB
+    static constexpr size_t desiredMaxSize = 10;
 
     FBOMExternalObjectInfo* externalObjectInfo = object.GetExternalObjectInfo();
     HYP_CORE_ASSERT(externalObjectInfo != nullptr);
     HYP_CORE_ASSERT(!externalObjectInfo->IsLinked());
 
     // FBOMData objectData = FBOMData::FromObject(object);
-    // const SizeType objectDataSize = objectData.TotalSize();
+    // const size_t objectDataSize = objectData.TotalSize();
 
     FBOMObjectLibrary* libraryPtr = nullptr;
 
     for (auto it = m_objectLibraries.Begin(); it != m_objectLibraries.End(); ++it)
     {
-        const SizeType librarySize = it->CalculateTotalSize();
+        const size_t librarySize = it->CalculateTotalSize();
 
         if (librarySize + 1 <= desiredMaxSize)
         {
@@ -419,7 +419,7 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter* out)
 
 #if HYP_DEBUG_MODE
     // sanity check: make sure no duplicate offsets
-    for (SizeType i = 1; i < staticDataOrdered.Size(); i++)
+    for (size_t i = 1; i < staticDataOrdered.Size(); i++)
     {
         HYP_CORE_ASSERT(staticDataOrdered[i]->offset == staticDataOrdered[i - 1]->offset + 1);
     }
@@ -429,14 +429,14 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter* out)
         "Values do not match, incorrect bookkeeping");
 
     MemoryByteWriter staticDataByteWriter;
-    Array<SizeType> staticDataBufferOffsets;
+    Array<size_t> staticDataBufferOffsets;
     staticDataBufferOffsets.Resize(staticDataOrdered.Size());
 
     for (FBOMStaticData* staticData : staticDataOrdered)
     {
         HYP_CORE_ASSERT(staticData->offset < staticDataOrdered.Size());
 
-        const SizeType bufferOffset = staticDataByteWriter.Position();
+        const size_t bufferOffset = staticDataByteWriter.Position();
 
         HYP_CORE_ASSERT(!staticData->IsWritten(),
             "Static data object has already been written: %s",
@@ -469,7 +469,7 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter* out)
     // write buffer size
     out->Write<uint64>(uint64(staticDataByteWriter.GetBuffer().Size()));
 
-    for (SizeType i = 0; i < staticDataOrdered.Size(); i++)
+    for (size_t i = 0; i < staticDataOrdered.Size(); i++)
     {
         const FBOMStaticData* staticData = staticDataOrdered[i];
 
@@ -509,7 +509,7 @@ FBOMResult FBOMWriter::WriteStaticData(ByteWriter* out)
 
 FBOMResult FBOMWriter::WriteHeader(ByteWriter* out)
 {
-    const SizeType positionBefore = out->Position();
+    const size_t positionBefore = out->Position();
 
     // hyp identifier string
     out->Write(FBOM::headerIdentifier, sizeof(FBOM::headerIdentifier));
@@ -520,10 +520,10 @@ FBOMResult FBOMWriter::WriteHeader(ByteWriter* out)
     // binary version
     out->Write<uint32>(FBOM::version.value);
 
-    const SizeType positionChange = SizeType(out->Position()) - positionBefore;
+    const size_t positionChange = size_t(out->Position()) - positionBefore;
     HYP_CORE_ASSERT(positionChange <= FBOM::headerSize);
 
-    const SizeType remainingBytes = FBOM::headerSize - positionChange;
+    const size_t remainingBytes = FBOM::headerSize - positionChange;
     HYP_CORE_ASSERT(remainingBytes < 64);
 
     void* zeros = StackAlloc(remainingBytes);
@@ -719,7 +719,7 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMData& data, UniqueId id,
             return err;
         }
 
-        SizeType size = data.TotalSize();
+        size_t size = data.TotalSize();
         ByteBuffer byteBuffer;
 
         if (FBOMResult err = data.ReadBytes(size, byteBuffer))
@@ -805,7 +805,7 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMArray& array, UniqueId i
 
         auto writeElementData = [this, &tempBuffer, attributes, writerPtr](const FBOMData& element) -> FBOMResult
         {
-            SizeType size = element.TotalSize();
+            size_t size = element.TotalSize();
 
             HYP_DEFER({
                 tempBuffer.SetSize(0); // keep capacity to avoid reallocations
@@ -822,7 +822,7 @@ FBOMResult FBOMWriter::Write(ByteWriter* out, const FBOMArray& array, UniqueId i
             return {};
         };
 
-        for (SizeType index = 0; index < array.Size(); index++)
+        for (size_t index = 0; index < array.Size(); index++)
         {
             const FBOMData& element = array.GetElement(index);
 

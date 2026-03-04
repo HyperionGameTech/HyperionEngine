@@ -228,12 +228,12 @@ struct DescriptorUsageSet
 
     void BuildDescriptorTableDeclaration(ShaderInputGroup& table) const;
 
-    HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
+    HYP_FORCE_INLINE DescriptorUsage& operator[](size_t index)
     {
         return elements[index];
     }
 
-    HYP_FORCE_INLINE const DescriptorUsage& operator[](SizeType index) const
+    HYP_FORCE_INLINE const DescriptorUsage& operator[](size_t index) const
     {
         return elements[index];
     }
@@ -248,7 +248,7 @@ struct DescriptorUsageSet
         return elements != other.elements;
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return elements.Size();
     }

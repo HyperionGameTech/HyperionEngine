@@ -20,7 +20,7 @@ public:
         READ_WRITE
     };
 
-    SharedMemory(const String& id, SizeType size, Mode mode = Mode::READ_ONLY);
+    SharedMemory(const String& id, size_t size, Mode mode = Mode::READ_ONLY);
     SharedMemory(const SharedMemory& other) = delete;
     SharedMemory& operator=(const SharedMemory& other) = delete;
     SharedMemory(SharedMemory&& other) noexcept;
@@ -32,7 +32,7 @@ public:
         return m_id;
     }
 
-    SizeType GetSize() const
+    size_t GetSize() const
     {
         return m_size;
     }
@@ -65,11 +65,11 @@ public:
 
     /*! \brief Write data into the shared memory. The shared memory must have been constructed with
         READ_WRITE option. */
-    void Write(const void* data, SizeType count);
+    void Write(const void* data, size_t count);
 
 private:
     String m_id;
-    SizeType m_size;
+    size_t m_size;
     Mode m_mode;
     int m_handle;
     Address m_address;

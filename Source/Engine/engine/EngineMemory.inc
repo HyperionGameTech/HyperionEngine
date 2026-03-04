@@ -16,25 +16,25 @@ HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX] = {
 
 #define HYP_ENGINE_MEMORY_DECL HYP_API extern
 
-static constexpr SizeType ObjectPoolBlockSize = 1 * 1024 * 1024;    // 1 MiB
-static constexpr SizeType RenderPoolBlockSize = 2 * 1024 * 1024;    // 2 MiB
-static constexpr SizeType FramePoolBlockSize = 16 * 1024;           // 16 KiB
-static constexpr SizeType ScenePoolBlockSize = 16 * 1024 * 1024;    // 16 KiB
-static constexpr SizeType TaskPoolBlockSize = 16 * 1024 * 1024;     // 16 KiB
-static constexpr SizeType ResourcePoolBlockSize = 1 * 1024 * 1024;  // 1 MiB
-static constexpr SizeType AssetPoolBlockSize = 64 * 1024 * 1024;    // 64 MiB
-static constexpr SizeType StreamingPoolBlockSize = 1 * 1024 * 1024; // 1 MiB
+static constexpr size_t ObjectPoolBlockSize = 1 * 1024 * 1024;    // 1 MiB
+static constexpr size_t RenderPoolBlockSize = 2 * 1024 * 1024;    // 2 MiB
+static constexpr size_t FramePoolBlockSize = 16 * 1024;           // 16 KiB
+static constexpr size_t ScenePoolBlockSize = 16 * 1024 * 1024;    // 16 KiB
+static constexpr size_t TaskPoolBlockSize = 16 * 1024 * 1024;     // 16 KiB
+static constexpr size_t ResourcePoolBlockSize = 1 * 1024 * 1024;  // 1 MiB
+static constexpr size_t AssetPoolBlockSize = 64 * 1024 * 1024;    // 64 MiB
+static constexpr size_t StreamingPoolBlockSize = 1 * 1024 * 1024; // 1 MiB
 
-static constexpr SizeType SceneArenaSize = 64 * 1024;               // 64 KiB
-static constexpr SizeType StreamingArenaSize = 64 * 1024;           // 64 KiB
-static constexpr SizeType RenderArenaSize = 64 * 1024;              // 64 KiB
+static constexpr size_t SceneArenaSize = 64 * 1024;               // 64 KiB
+static constexpr size_t StreamingArenaSize = 64 * 1024;           // 64 KiB
+static constexpr size_t RenderArenaSize = 64 * 1024;              // 64 KiB
 
 #if HYP_VULKAN
-static constexpr SizeType VulkanPoolBlockSize = 8 * 1024 * 1024;
-static constexpr SizeType VulkanArenaSize = 1 * 1024 * 1024;
+static constexpr size_t VulkanPoolBlockSize = 8 * 1024 * 1024;
+static constexpr size_t VulkanArenaSize = 1 * 1024 * 1024;
 #elif HYP_DX12
-static constexpr SizeType DX12PoolBlockSize = 8 * 1024 * 1024;
-static constexpr SizeType DX12ArenaSize = 1 * 1024 * 1024;
+static constexpr size_t DX12PoolBlockSize = 8 * 1024 * 1024;
+static constexpr size_t DX12ArenaSize = 1 * 1024 * 1024;
 #endif
 
 HYP_ENGINE_MEMORY_DECL Pool* const* g_enginePools[EPN_MAX];

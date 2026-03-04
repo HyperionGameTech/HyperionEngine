@@ -44,8 +44,8 @@ public:
         } waveData;
 
         ByteBuffer waveBytes;
-        SizeType size;
-        SizeType frequency;
+        size_t size;
+        size_t frequency;
 
         AudioSourceFormat format;
     };

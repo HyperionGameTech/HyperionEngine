@@ -88,7 +88,7 @@ public:
     void Shutdown();
 
     /*! \brief Get or create a buffer of at least the given size */
-    const GpuBufferRef& GetOrCreateBuffer(GpuBufferType bufferType, SizeType requiredSize, bool exactSize = false)
+    const GpuBufferRef& GetOrCreateBuffer(GpuBufferType bufferType, size_t requiredSize, bool exactSize = false)
     {
         // AssertOnThread(g_renderThread);
 
@@ -99,8 +99,8 @@ public:
 
         auto& bufferContainer = m_buffers.At(bufferType);
 
-        // typename FlatMap<SizeType, GpuBufferWeakRef>::Iterator it;
-        typename FlatMap<SizeType, GpuBufferRef>::Iterator it;
+        // typename FlatMap<size_t, GpuBufferWeakRef>::Iterator it;
+        typename FlatMap<size_t, GpuBufferRef>::Iterator it;
 
         if (exactSize)
         {
@@ -144,9 +144,9 @@ public:
     }
 
 private:
-    GpuBufferRef CreateGpuBuffer(GpuBufferType bufferType, SizeType size);
+    GpuBufferRef CreateGpuBuffer(GpuBufferType bufferType, size_t size);
 
-    FlatMap<GpuBufferType, FlatMap<SizeType, GpuBufferRef>> m_buffers;
+    FlatMap<GpuBufferType, FlatMap<size_t, GpuBufferRef>> m_buffers;
 };
 
 } // namespace Hyperion

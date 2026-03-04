@@ -154,7 +154,7 @@ DescriptorSetLayout::DescriptorSetLayout(const ShaderInputSet* decl)
 
     m_dynamicElements.Resize(dynamicElementsWithIndex.Size());
 
-    for (SizeType i = 0; i < dynamicElementsWithIndex.Size(); i++)
+    for (size_t i = 0; i < dynamicElementsWithIndex.Size(); i++)
     {
         m_dynamicElements[i] = dynamicElementsWithIndex[i].first;
     }

@@ -109,13 +109,13 @@ public:
     HYP_API void BeginRead(bool* pOutSuccess = nullptr);
     HYP_API void EndRead();
 
-    template <SizeType Index>
+    template <size_t Index>
     HYP_FORCE_INLINE auto GetResources() -> typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*
     {
         return static_cast<typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);
     }
 
-    template <SizeType Index>
+    template <size_t Index>
     HYP_FORCE_INLINE auto GetResources() const -> const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*
     {
         return static_cast<const typename TupleElement_Tuple<Index, ResourceTrackerTypes>::Type*>(resourceTrackers[Index]);

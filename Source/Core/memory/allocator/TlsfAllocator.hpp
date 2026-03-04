@@ -21,11 +21,11 @@ public:
     TlsfAllocator();
     ~TlsfAllocator();
 
-    void AddPool(void* memory, SizeType bytes);
+    void AddPool(void* memory, size_t bytes);
     void RemovePool(void* memory);
 
-    void* Allocate(SizeType bytes, SizeType alignment = 16);
-    void* Reallocate(void* ptr, SizeType newSize, SizeType alignment = 16);
+    void* Allocate(size_t bytes, size_t alignment = 16);
+    void* Reallocate(void* ptr, size_t newSize, size_t alignment = 16);
     void Free(void* ptr);
 
     MemoryMetrics GetMemoryMetrics() const;
@@ -35,7 +35,7 @@ private:
     {
         void* pool;    // pool_t handle from tlsf_add_pool
         void* memory;  // base memory pointer
-        SizeType size; // total pool size
+        size_t size; // total pool size
     };
 
     void* m_tlsf;
@@ -53,9 +53,9 @@ public:
     static constexpr uint32 SlCount = 1 << SliBits; // 32
 
     // Smallest block size managed by TLSF, including header; must be power of two
-    static constexpr SizeType MinBlockSize = 32;
+    static constexpr size_t MinBlockSize = 32;
 
-    static constexpr SizeType DefaultAlign = 16;
+    static constexpr size_t DefaultAlign = 16;
 
     // Maximum first-level classes supported (kept <= 30 so we can pack bitmap in 32 bits)
     static constexpr uint32 MaxFli = 30; // supports blocks up to ~1<<30 bytes with SliBits splitting
@@ -64,16 +64,16 @@ public:
     ~TlsfAllocator();
 
     // Adds a memory pool to manage. The memory must remain valid for the lifetime of the allocator.
-    void AddPool(void* memory, SizeType bytes);
+    void AddPool(void* memory, size_t bytes);
 
     // Removes a previously added pool. The pool must be completely free.
     void RemovePool(void* memory);
 
-    void* Allocate(SizeType bytes, SizeType alignment = DefaultAlign);
-    void* Reallocate(void* ptr, SizeType newSize, SizeType alignment = DefaultAlign);
+    void* Allocate(size_t bytes, size_t alignment = DefaultAlign);
+    void* Reallocate(void* ptr, size_t newSize, size_t alignment = DefaultAlign);
     void Free(void* ptr);
 
-    SizeType GetUsableSize(void* ptr) const;
+    size_t GetUsableSize(void* ptr) const;
 
     /*! \brief Returns memory usage metrics for this allocator.
      *  This provides standardized statistics about memory consumption, utilization, and fragmentation. */
@@ -83,21 +83,21 @@ public:
     {
         // sizeAndFlags: upper bits store block size, lower 2 bits are flags
         // bit 0: used flag, bit 1: prevPhysUsed flag
-        SizeType sizeAndFlags;
+        size_t sizeAndFlags;
         Block* prevPhys; // physical neighbor before this block
         Block* nextFree; // freelist links when free
         Block* prevFree;
 
-        static constexpr SizeType UsedMask = 0x1;
-        static constexpr SizeType PrevUsedMask = 0x2;
-        static constexpr SizeType FlagMask = UsedMask | PrevUsedMask;
+        static constexpr size_t UsedMask = 0x1;
+        static constexpr size_t PrevUsedMask = 0x2;
+        static constexpr size_t FlagMask = UsedMask | PrevUsedMask;
 
-        HYP_FORCE_INLINE SizeType Size() const
+        HYP_FORCE_INLINE size_t Size() const
         {
             return sizeAndFlags & ~FlagMask;
         }
 
-        HYP_FORCE_INLINE void SetSize(SizeType sz)
+        HYP_FORCE_INLINE void SetSize(size_t sz)
         {
             sizeAndFlags = (sz & ~FlagMask) | (sizeAndFlags & FlagMask);
         }
@@ -145,7 +145,7 @@ public:
     struct Pool
     {
         uint8* base;
-        SizeType size;
+        size_t size;
         Block* first;
         Block* sentinel; // zero-sized used block at end
     };
@@ -162,10 +162,10 @@ private:
     Array<Pool> m_pools;
 
 private:
-    Block* CarveFront(Block* b, SizeType size);
+    Block* CarveFront(Block* b, size_t size);
 
     // Mapping of size -> (fli, sli)
-    static HYP_FORCE_INLINE void Mapping(SizeType size, uint32& fli, uint32& sli)
+    static HYP_FORCE_INLINE void Mapping(size_t size, uint32& fli, uint32& sli)
     {
         // Round to at least MinBlockSize
         if (size < MinBlockSize)
@@ -184,8 +184,8 @@ private:
         const uint32 l = Msbit(size);
         fli = l - Msbit(MinBlockSize);
 
-        const SizeType base = SizeType(1) << l;
-        const SizeType step = base >> SliBits;
+        const size_t base = size_t(1) << l;
+        const size_t step = base >> SliBits;
         sli = uint32((size - base) / step);
         if (sli >= SlCount)
         {
@@ -204,7 +204,7 @@ private:
 #endif
     }
 
-    static HYP_FORCE_INLINE uint32 Msbit(SizeType x)
+    static HYP_FORCE_INLINE uint32 Msbit(size_t x)
     {
 #if defined(_MSC_VER) && INTPTR_MAX == INT64_MAX
         unsigned long idx;
@@ -215,7 +215,7 @@ private:
         _BitScanReverse(&idx, uint32(x));
         return uint32(idx);
 #else
-        return uint32((sizeof(SizeType) * 8) - 1 - __builtin_clzl(x));
+        return uint32((sizeof(size_t) * 8) - 1 - __builtin_clzl(x));
 #endif
     }
 
@@ -223,12 +223,12 @@ private:
     void RemoveFree(Block* b, uint32 fli, uint32 sli);
     void RemoveFree(Block* b);
 
-    Block* FindSuitable(SizeType size, uint32& outFli, uint32& outSli);
-    Block* Split(Block* b, SizeType size);
+    Block* FindSuitable(size_t size, uint32& outFli, uint32& outSli);
+    Block* Split(Block* b, size_t size);
     Block* MergePrev(Block* b);
     Block* MergeNext(Block* b);
 
-    static SizeType AdjustRequest(SizeType bytes, SizeType alignment);
+    static size_t AdjustRequest(size_t bytes, size_t alignment);
 
     Pool* FindOwningPool(const Block* b);
 };

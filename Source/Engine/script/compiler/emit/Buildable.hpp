@@ -12,7 +12,7 @@ using LabelPosition = uint32;
 
 using Opcode = uint8;
 using RegIndex = uint8;
-using LabelId = SizeType;
+using LabelId = size_t;
 
 struct LabelInfo
 {
@@ -35,8 +35,8 @@ struct LabelInfo
 
 struct BuildParams
 {
-    SizeType blockOffset = 0;
-    SizeType localOffset = 0;
+    size_t blockOffset = 0;
+    size_t localOffset = 0;
     SortedArray<LabelInfo> labels;
 };
 

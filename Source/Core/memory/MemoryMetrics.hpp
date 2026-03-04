@@ -24,7 +24,7 @@ struct MemoryMetrics
         MM_MAX_ // windows defines MM_MAX lol
     };
 
-    SizeType values[8]; // reserve some space for future use
+    size_t values[8]; // reserve some space for future use
     static_assert(HYP_ARRAY_SIZE(values) >= MM_MAX_, "Not enough space in MemoryMetrics values array.");
 
     MemoryMetrics()
@@ -81,12 +81,12 @@ struct MemoryMetrics
         return result;
     }
 
-    HYP_FORCE_INLINE SizeType& operator[](int i)
+    HYP_FORCE_INLINE size_t& operator[](int i)
     {
         return values[i];
     }
 
-    HYP_FORCE_INLINE SizeType operator[](int i) const
+    HYP_FORCE_INLINE size_t operator[](int i) const
     {
         return values[i];
     }

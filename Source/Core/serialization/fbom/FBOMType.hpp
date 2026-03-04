@@ -40,16 +40,16 @@ class HYP_API FBOMType : public FBOMSerializableBase
 {
 public:
     ANSIString name;
-    SizeType size;
+    size_t size;
     TypeId typeId;
     EnumFlags<FBOMTypeFlags> flags;
     FBOMType* extends;
 
     FBOMType();
-    FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId);
-    FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, const FBOMType& extends);
-    FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags);
-    FBOMType(const ANSIStringView& name, SizeType size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends);
+    FBOMType(const ANSIStringView& name, size_t size, TypeId typeId);
+    FBOMType(const ANSIStringView& name, size_t size, TypeId typeId, const FBOMType& extends);
+    FBOMType(const ANSIStringView& name, size_t size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags);
+    FBOMType(const ANSIStringView& name, size_t size, TypeId typeId, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends);
     FBOMType(const FBOMType& other);
     FBOMType& operator=(const FBOMType& other);
     FBOMType(FBOMType&& other) noexcept;
@@ -67,7 +67,7 @@ public:
 
     HYP_FORCE_INLINE bool IsUnbounded() const
     {
-        return size == SizeType(-1);
+        return size == size_t(-1);
     }
 
     HYP_FORCE_INLINE bool IsUnset() const

@@ -18,7 +18,7 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
     using Type = T;
 
     // For compatibility with ContainerBase interface
-    using KeyType = SizeType;
+    using KeyType = size_t;
     using ValueType = T;
 
     using Iterator = Type*;
@@ -119,20 +119,20 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
     {
     }
 
-    constexpr Span(Type* first, SizeType size)
+    constexpr Span(Type* first, size_t size)
         : first(first),
           last(first + size)
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     constexpr Span(Type (&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     constexpr Span(Type (&&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
@@ -161,7 +161,7 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
         return ptrdiff_t(last - first) > 0;
     }
 
-    HYP_FORCE_INLINE constexpr Type& operator[](SizeType index) const
+    HYP_FORCE_INLINE constexpr Type& operator[](size_t index) const
     {
         return first[index];
     }
@@ -171,9 +171,9 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
         return Span(first + amount, last);
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
-        return SizeType(last - first);
+        return size_t(last - first);
     }
 
     HYP_FORCE_INLINE constexpr Type* Data() const
@@ -181,7 +181,7 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
         return first;
     }
 
-    HYP_FORCE_INLINE Span Slice(SizeType offset, SizeType count) const
+    HYP_FORCE_INLINE Span Slice(size_t offset, size_t count) const
     {
         if (offset >= Size())
         {
@@ -226,7 +226,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
     using Type = std::remove_const_t<T>;
 
     // For compatibility with ContainerBase interface
-    using KeyType = SizeType;
+    using KeyType = size_t;
     using ValueType = T;
 
     using Iterator = const Type*;
@@ -280,34 +280,34 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
     {
     }
 
-    constexpr Span(const Type* first, SizeType size)
+    constexpr Span(const Type* first, size_t size)
         : first(first),
           last(first + size)
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     constexpr Span(Type (&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     constexpr Span(const Type (&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     constexpr Span(Type (&&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
     {
     }
 
-    template <SizeType Size>
+    template <size_t Size>
     constexpr Span(const Type (&&ary)[Size])
         : first(&ary[0]),
           last(&ary[Size])
@@ -341,7 +341,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
         return ptrdiff_t(last - first) > 0;
     }
 
-    HYP_FORCE_INLINE constexpr const Type& operator[](SizeType index) const
+    HYP_FORCE_INLINE constexpr const Type& operator[](size_t index) const
     {
         return first[index];
     }
@@ -351,9 +351,9 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
         return Span(first + amount, last);
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
-        return SizeType(last - first);
+        return size_t(last - first);
     }
 
     HYP_FORCE_INLINE constexpr const Type* Data() const
@@ -361,7 +361,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
         return first;
     }
 
-    HYP_FORCE_INLINE Span Slice(SizeType offset, SizeType count = SizeType(-1)) const
+    HYP_FORCE_INLINE Span Slice(size_t offset, size_t count = size_t(-1)) const
     {
         if (offset >= Size())
         {
@@ -373,7 +373,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
             return Span();
         }
 
-        const SizeType maxSize = Size() - offset;
+        const size_t maxSize = Size() - offset;
 
         if (count > maxSize)
         {

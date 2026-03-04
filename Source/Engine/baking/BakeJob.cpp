@@ -253,7 +253,7 @@ void BakeJobBase::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 
     BakeDataBase& bakeData = GetBakeData();
 
-    for (SizeType i = 0; i < hits.Size(); i++)
+    for (size_t i = 0; i < hits.Size(); i++)
     {
         const LightmapRay& ray = rays[i];
         const LightmapHit& hit = hits[i];
@@ -300,7 +300,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
 
         if (m_currentTasks.Any())
         {
-            for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
+            for (size_t taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
             {
                 TaskBatch* taskBatch = m_currentTasks[taskIndex];
 
@@ -316,7 +316,7 @@ uint32 BakeJobBase::Process(uint32 maxTexels)
 
             TUniqueLock uniqueLock(m_currentTasksMutex);
 
-            for (SizeType taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
+            for (size_t taskIndex = 0; taskIndex < m_currentTasks.Size(); taskIndex++)
             {
                 TaskBatch* taskBatch = m_currentTasks[taskIndex];
 

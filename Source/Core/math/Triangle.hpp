@@ -39,27 +39,27 @@ struct HYP_API Triangle
         return points != other.points;
     }
 
-    HYP_FORCE_INLINE Vec3f& operator[](SizeType index)
+    HYP_FORCE_INLINE Vec3f& operator[](size_t index)
     {
         return points[index];
     }
 
-    HYP_FORCE_INLINE const Vec3f& operator[](SizeType index) const
+    HYP_FORCE_INLINE const Vec3f& operator[](size_t index) const
     {
         return points[index];
     }
 
-    HYP_FORCE_INLINE Vec3f& GetPoint(SizeType index)
+    HYP_FORCE_INLINE Vec3f& GetPoint(size_t index)
     {
         return points[index];
     }
 
-    HYP_FORCE_INLINE const Vec3f& GetPoint(SizeType index) const
+    HYP_FORCE_INLINE const Vec3f& GetPoint(size_t index) const
     {
         return points[index];
     }
 
-    HYP_FORCE_INLINE void SetPoint(SizeType index, const Vec3f& value)
+    HYP_FORCE_INLINE void SetPoint(size_t index, const Vec3f& value)
     {
         points[index] = value;
     }

@@ -41,13 +41,13 @@ using OBJMesh = OBJModel::OBJMesh;
 using OBJIndex = OBJModel::OBJIndex;
 
 template <class Vector>
-static Vector ReadVector(const Tokens& tokens, SizeType offset = 1)
+static Vector ReadVector(const Tokens& tokens, size_t offset = 1)
 {
     Vector result { 0.0f };
 
     int valueIndex = 0;
 
-    for (SizeType i = offset; i < tokens.Size(); i++)
+    for (size_t i = offset; i < tokens.Size(); i++)
     {
         const String& token = tokens[i];
 
@@ -96,7 +96,7 @@ static OBJMesh& LastMesh(OBJModel& model)
 static OBJIndex ParseOBJIndex(const String& token)
 {
     OBJIndex objIndex { 0, 0, 0 };
-    SizeType tokenIndex = 0;
+    size_t tokenIndex = 0;
 
     const Array<String> parts = token.Split('/');
 
@@ -244,7 +244,7 @@ OBJModel OBJModelLoader::LoadModel(LoaderState& state)
                 {
                     String materialLibraryName;
 
-                    for (SizeType i = 1; i < tokens.Size(); i++)
+                    for (size_t i = 1; i < tokens.Size(); i++)
                     {
                         if (i != 1)
                         {

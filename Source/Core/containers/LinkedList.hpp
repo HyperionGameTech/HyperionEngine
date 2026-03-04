@@ -34,7 +34,7 @@ template <class T, class AllocatorType = DynamicAllocator>
 class LinkedList;
 
 template <class T, class AllocatorType>
-class LinkedList : public ContainerBase<LinkedList<T, AllocatorType>, SizeType>
+class LinkedList : public ContainerBase<LinkedList<T, AllocatorType>, size_t>
 {
     using Node = containers::LinkedListNode<T, AllocatorType>;
 
@@ -78,16 +78,16 @@ public:
             return Iterator { node->next };
         }
 
-        HYP_FORCE_INLINE Iterator operator+(SizeType n) const
+        HYP_FORCE_INLINE Iterator operator+(size_t n) const
         {
             Iterator it = *this;
             it += n;
             return it;
         }
 
-        Iterator& operator+=(SizeType n)
+        Iterator& operator+=(size_t n)
         {
-            for (SizeType i = 0; i < n; i++)
+            for (size_t i = 0; i < n; i++)
             {
                 HYP_CORE_ASSERT(node != nullptr);
                 node = node->next;
@@ -107,16 +107,16 @@ public:
             return Iterator { node->previous };
         }
 
-        HYP_FORCE_INLINE Iterator operator-(SizeType n) const
+        HYP_FORCE_INLINE Iterator operator-(size_t n) const
         {
             Iterator it = *this;
             it -= n;
             return it;
         }
 
-        Iterator& operator-=(SizeType n)
+        Iterator& operator-=(size_t n)
         {
-            for (SizeType i = 0; i < n; i++)
+            for (size_t i = 0; i < n; i++)
             {
                 HYP_CORE_ASSERT(node != nullptr);
                 node = node->previous;
@@ -192,7 +192,7 @@ public:
         }
     };
 
-    using Base = ContainerBase<LinkedList<T, AllocatorType>, SizeType>;
+    using Base = ContainerBase<LinkedList<T, AllocatorType>, size_t>;
     using KeyType = typename Base::KeyType;
     using ValueType = T;
     
@@ -213,7 +213,7 @@ public:
     LinkedList& operator=(const LinkedList& other);
     LinkedList& operator=(LinkedList&& other) noexcept;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_size;
     }
@@ -250,13 +250,13 @@ public:
 
     /*! \brief Access the element at \p index. Note that the LinkedList must be traversed until we reach the element,
      *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */
-    HYP_FORCE_INLINE T& operator[](SizeType index)
+    HYP_FORCE_INLINE T& operator[](size_t index)
     {
         HYP_CORE_ASSERT(index < m_size);
 
         Node* node = m_head;
 
-        SizeType curr = 0;
+        size_t curr = 0;
 
         while (curr < index)
         {
@@ -272,7 +272,7 @@ public:
 
     /*! \brief Access the element at \p index. Note that the LinkedList must be traversed until we reach the element,
      *  so this is operation is not O(1), but O(n) where n is the number of elements in the LinkedList */
-    HYP_FORCE_INLINE const T& operator[](SizeType index) const
+    HYP_FORCE_INLINE const T& operator[](size_t index) const
     {
         return const_cast<LinkedList<T, AllocatorType>*>(this)->operator[](index);
     }
@@ -374,7 +374,7 @@ public:
     void Clear();
 
 #if 0
-    template <SizeType OtherNumInlineBytes>
+    template <size_t OtherNumInlineBytes>
     [[nodiscard]]
     bool operator==(const Array<T, OtherNumInlineBytes> &other) const
     {
@@ -399,7 +399,7 @@ public:
         return true;
     }
 
-    template <SizeType OtherNumInlineBytes>
+    template <size_t OtherNumInlineBytes>
     [[nodiscard]]
     HYP_FORCE_INLINE
     bool operator!=(const Array<T, OtherNumInlineBytes> &other) const
@@ -414,7 +414,7 @@ private:
 
     Node* m_head;
     Node* m_tail;
-    SizeType m_size;
+    size_t m_size;
 };
 
 template <class T, class AllocatorType>

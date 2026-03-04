@@ -75,7 +75,7 @@ static inline void ValidateDynamicOffset(
 
             if (buffer != nullptr)
             {
-                const SizeType bufferSize = buffer->Size();
+                const size_t bufferSize = buffer->Size();
 
                 AssertDebug(offset + layoutElement->size <= bufferSize,
                     "Dynamic offset {} + element size {} for element {} exceeds buffer size {}",
@@ -96,7 +96,7 @@ static inline void PopulateDynamicOffsets(
 {
     outNumDynamicOffsets = uint32(layout.GetDynamicElements().Size());
 
-    for (SizeType i = 0; i < layout.GetDynamicElements().Size(); i++)
+    for (size_t i = 0; i < layout.GetDynamicElements().Size(); i++)
     {
         const StringHash dynamicElementName = layout.GetDynamicElements()[i];
 
@@ -362,7 +362,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
 
         Range<uint32> localDirtyRange = Range<uint32>::Invalid();
 
-        for (SizeType i = 0; i < localDescriptors.Size(); i++)
+        for (size_t i = 0; i < localDescriptors.Size(); i++)
         {
             if (localDescriptors[i] != cachedValues[i])
             {
@@ -375,7 +375,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
             AssertDebug(localDirtyRange.GetEnd() <= cachedValues.Size());
             AssertDebug(localDirtyRange.GetEnd() <= localDescriptors.Size());
             
-            Memory::Copy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * SizeType(localDirtyRange.Distance()));
+            Memory::Copy(cachedValues.Data() + localDirtyRange.GetStart(), localDescriptors.Data() + localDirtyRange.GetStart(), sizeof(VulkanCachedDescriptor) * size_t(localDirtyRange.Distance()));
             // std::copy_n(
             //     std::begin(cachedValues) + localDirtyRange.GetStart(),
             //     localDirtyRange.Distance(),
@@ -418,7 +418,7 @@ void VulkanDescriptorSet::Update(bool force)
 
     Array<VkWriteDescriptorSetAccelerationStructureKHR, VulkanTempAllocator> vkWriteDescriptorSetAccelerationStructures;
 
-    for (SizeType i = 0; i < vkWriteDescriptorSets.Size(); i++)
+    for (size_t i = 0; i < vkWriteDescriptorSets.Size(); i++)
     {
         const VulkanCachedDescriptor& descriptor = m_pendingDescriptors[i];
 
@@ -541,7 +541,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanG
     Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
-    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
+    for (size_t i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
         const Name dynamicElementName = m_layout.GetDynamicElements()[i];
 
@@ -622,7 +622,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanC
     Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
-    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
+    for (size_t i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
         const Name dynamicElementName = m_layout.GetDynamicElements()[i];
 
@@ -703,7 +703,7 @@ void VulkanDescriptorSet::Bind(VulkanCommandBuffer* commandBuffer, const VulkanR
     Assert(m_handle != VK_NULL_HANDLE);
 
 #if defined(HYP_DEBUG_MODE) && false
-    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
+    for (size_t i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
         const Name dynamicElementName = m_layout.GetDynamicElements()[i];
 

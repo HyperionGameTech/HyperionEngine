@@ -17,7 +17,7 @@ extern const TypeInfo& TypeInfo_Void();
 extern const TypeInfo& TypeInfo_ForClass(const Class* cls);
 extern const TypeId& TypeInfo_GetId(const TypeInfo& typeInfo);
 extern const Name& TypeInfo_GetName(const TypeInfo& typeInfo);
-extern SizeType TypeInfo_GetSize(const TypeInfo& typeInfo);
+extern size_t TypeInfo_GetSize(const TypeInfo& typeInfo);
 const Class* TypeInfo_GetClass(const TypeInfo& typeInfo);
 
 template <class T>

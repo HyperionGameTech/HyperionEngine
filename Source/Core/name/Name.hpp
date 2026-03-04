@@ -103,10 +103,10 @@ struct Formatter<StringType, Name>
 } // namespace utilities
 
 // Name string literal conversion
-Name operator""_name(const char*, SizeType);
+Name operator""_name(const char*, size_t);
 
 // StringHash literal conversion
-consteval StringHash operator""_sh(const char* str, SizeType)
+consteval StringHash operator""_sh(const char* str, size_t)
 {
     return StringHash(str);
 }

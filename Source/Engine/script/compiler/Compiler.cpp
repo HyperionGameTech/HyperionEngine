@@ -28,7 +28,7 @@ UniquePtr<Buildable> Compiler::BuildArgumentsStart(
     chunk->Append(BytecodeUtil::Make<Comment>("Building function arguments - total count: " + String::ToString(args.Size())));
 
     // push a copy of each argument to the stack
-    for (SizeType index = 0; index < args.Size(); index++)
+    for (size_t index = 0; index < args.Size(); index++)
     {
         const RC<AstArgument>& arg = args[index];
         Assert(arg != nullptr);

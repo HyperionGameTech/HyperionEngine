@@ -19,7 +19,7 @@ public:
     static bool IsEnabled();
 
     Archive();
-    Archive(ByteBuffer&& compressedBuffer, SizeType uncompressedSize);
+    Archive(ByteBuffer&& compressedBuffer, size_t uncompressedSize);
 
     /*! Deleted to prevent unintentional copying of large buffers */
     Archive(const Archive& other) = delete;
@@ -37,12 +37,12 @@ public:
         return m_compressedBuffer;
     }
 
-    HYP_FORCE_INLINE SizeType GetCompressedSize() const
+    HYP_FORCE_INLINE size_t GetCompressedSize() const
     {
         return m_compressedBuffer.Size();
     }
 
-    HYP_FORCE_INLINE SizeType GetUncompressedSize() const
+    HYP_FORCE_INLINE size_t GetUncompressedSize() const
     {
         return m_uncompressedSize;
     }
@@ -51,7 +51,7 @@ public:
 
 private:
     ByteBuffer m_compressedBuffer;
-    SizeType m_uncompressedSize;
+    size_t m_uncompressedSize;
 };
 
 class HYP_API ArchiveBuilder

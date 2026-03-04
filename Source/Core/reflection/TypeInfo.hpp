@@ -227,12 +227,12 @@ public:
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual bool GetElementAt(const BoxedValue& instance, SizeType index, BoxedValue& outValue) const = 0;
-    virtual bool SetElementAt(const BoxedValue& instance, SizeType index, BoxedValue&& value) const = 0;
+    virtual bool GetElementAt(const BoxedValue& instance, size_t index, BoxedValue& outValue) const = 0;
+    virtual bool SetElementAt(const BoxedValue& instance, size_t index, BoxedValue&& value) const = 0;
 
-    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
+    virtual size_t GetSize(const BoxedValue& instance) const = 0;
 
-    virtual void Resize(const BoxedValue& instance, SizeType newSize) const = 0;
+    virtual void Resize(const BoxedValue& instance, size_t newSize) const = 0;
 };
 
 class ITypeInfoLinkedListHandler : public ITypeInfoHandler
@@ -249,12 +249,12 @@ public:
 
     virtual bool CreateInstance(BoxedValue& outInstance) const override = 0;
 
-    virtual AnyRef GetElementAt(const BoxedValue& instance, SizeType index) const = 0;
-    virtual void SetElementAt(const BoxedValue& instance, SizeType index, const BoxedValue& value) const = 0;
+    virtual AnyRef GetElementAt(const BoxedValue& instance, size_t index) const = 0;
+    virtual void SetElementAt(const BoxedValue& instance, size_t index, const BoxedValue& value) const = 0;
 
-    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
+    virtual size_t GetSize(const BoxedValue& instance) const = 0;
 
-    virtual void Resize(const BoxedValue& instance, SizeType newSize) const = 0;
+    virtual void Resize(const BoxedValue& instance, size_t newSize) const = 0;
 };
 
 class ITypeInfoMapHandler : public ITypeInfoHandler
@@ -277,7 +277,7 @@ public:
     virtual bool ContainsKey(const BoxedValue& instance, const BoxedValue& key) const = 0;
     virtual bool RemoveKey(const BoxedValue& instance, const BoxedValue& key) const = 0;
 
-    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
+    virtual size_t GetSize(const BoxedValue& instance) const = 0;
 };
 
 class ITypeInfoSetHandler : public ITypeInfoHandler
@@ -298,7 +298,7 @@ public:
     virtual bool Insert(const BoxedValue& instance, const BoxedValue& value) const = 0;
     virtual bool Remove(const BoxedValue& instance, const BoxedValue& value) const = 0;
 
-    virtual SizeType GetSize(const BoxedValue& instance) const = 0;
+    virtual size_t GetSize(const BoxedValue& instance) const = 0;
 
     /*! \brief Create an iterator for the set
      *  \param instance The set instance to iterate over
@@ -453,7 +453,7 @@ struct TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::valu
     void operator()(TypeInfo& result) const;
 };
 
-template <class T, SizeType Size, class TBoxed>
+template <class T, size_t Size, class TBoxed>
 struct TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>
 {
     void operator()(TypeInfo& result) const;
@@ -917,7 +917,7 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrap
             return true;
         }
 
-        virtual bool GetElementAt(const TBoxed& instance, SizeType index, TBoxed& outValue) const override
+        virtual bool GetElementAt(const TBoxed& instance, size_t index, TBoxed& outValue) const override
         {
             T& array = instance.template Get<T>();
 
@@ -929,7 +929,7 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrap
             return array.GetElementAt(index, outValue);
         }
 
-        virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
+        virtual bool SetElementAt(const TBoxed& instance, size_t index, TBoxed&& value) const override
         {
             T& array = instance.template Get<T>();
             if (index >= array.Size())
@@ -940,13 +940,13 @@ void TypeInfoImpl<T, TBoxed, std::enable_if_t<std::is_same_v<T, GenericArrayWrap
             return array.SetElementAt(index, std::move(value));
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             T& array = instance.template Get<T>();
             return array.Size();
         }
 
-        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, size_t newSize) const override
         {
             T& array = instance.template Get<T>();
 
@@ -982,7 +982,7 @@ void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>
             return true;
         }
 
-        virtual bool GetElementAt(const TBoxed& instance, SizeType index, TBoxed& outValue) const override
+        virtual bool GetElementAt(const TBoxed& instance, size_t index, TBoxed& outValue) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
 
@@ -996,7 +996,7 @@ void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>
             return true;
         }
 
-        virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
+        virtual bool SetElementAt(const TBoxed& instance, size_t index, TBoxed&& value) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
 
@@ -1017,13 +1017,13 @@ void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>
             return true;
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
             return array.Size();
         }
 
-        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, size_t newSize) const override
         {
             ArrayType& array = instance.template Get<ArrayType>();
             array.Resize(newSize);
@@ -1037,7 +1037,7 @@ void TypeInfoImpl<ArrayType, TBoxed, std::enable_if_t<IsArray<ArrayType>::value>
     result.extendedInfo.handler = new ArrayHandler();
 }
 
-template <class T, SizeType Size, class TBoxed>
+template <class T, size_t Size, class TBoxed>
 void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo& result) const
 {
     using FixedArrayType = FixedArray<T, Size>;
@@ -1056,7 +1056,7 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
             return true;
         }
 
-        virtual bool GetElementAt(const TBoxed& instance, SizeType index, TBoxed& outValue) const override
+        virtual bool GetElementAt(const TBoxed& instance, size_t index, TBoxed& outValue) const override
         {
             FixedArrayType& array = instance.template Get<FixedArrayType>();
 
@@ -1070,7 +1070,7 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
             return true;
         }
 
-        virtual bool SetElementAt(const TBoxed& instance, SizeType index, TBoxed&& value) const override
+        virtual bool SetElementAt(const TBoxed& instance, size_t index, TBoxed&& value) const override
         {
             FixedArrayType& array = instance.template Get<FixedArrayType>();
 
@@ -1091,13 +1091,13 @@ void TypeInfoImpl<containers::FixedArray<T, Size>, TBoxed>::operator()(TypeInfo&
             return true;
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             FixedArrayType& array = instance.template Get<FixedArrayType>();
             return array.Size();
         }
 
-        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, size_t newSize) const override
         {
             // FixedArray has a fixed size, so resizing is not supported
             // This operation is a no-op
@@ -1130,27 +1130,27 @@ void TypeInfoImpl<containers::LinkedList<T, AllocatorType>, TBoxed>::operator()(
             return true;
         }
 
-        virtual AnyRef GetElementAt(const TBoxed& instance, SizeType index) const override
+        virtual AnyRef GetElementAt(const TBoxed& instance, size_t index) const override
         {
             ListType& list = instance.template Get<ListType>();
             auto it = list.Begin() + index;
             return AnyRef(&(*it));
         }
 
-        virtual void SetElementAt(const TBoxed& instance, SizeType index, const TBoxed& value) const override
+        virtual void SetElementAt(const TBoxed& instance, size_t index, const TBoxed& value) const override
         {
             ListType& list = instance.template Get<ListType>();
             auto it = list.Begin() + index;
             *it = value.template Get<T>();
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             ListType& list = instance.template Get<ListType>();
             return list.Size();
         }
 
-        virtual void Resize(const TBoxed& instance, SizeType newSize) const override
+        virtual void Resize(const TBoxed& instance, size_t newSize) const override
         {
             ListType& list = instance.template Get<ListType>();
 
@@ -1286,7 +1286,7 @@ void TypeInfoImpl<containers::HashMap<Key, Value, NodeAllocatorType>, TBoxed>::o
             return false;
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             MapType& map = instance.template Get<MapType>();
 
@@ -1371,7 +1371,7 @@ void TypeInfoImpl<containers::FlatMap<Key, Value>, TBoxed>::operator()(TypeInfo&
             return false;
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
 
             MapType& map = instance.template Get<MapType>();
@@ -1457,7 +1457,7 @@ void TypeInfoImpl<containers::ArrayMap<Key, Value>, TBoxed>::operator()(TypeInfo
             return false;
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             MapType& map = instance.template Get<MapType>();
 
@@ -1514,7 +1514,7 @@ void TypeInfoImpl<containers::FlatSet<Value>, TBoxed>::operator()(TypeInfo& resu
             return set.Erase(value.template Get<Value>());
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Size();
@@ -1627,7 +1627,7 @@ void TypeInfoImpl<containers::HashSet<Value, KeyBy, NodeAllocatorType>, TBoxed>:
             return set.Erase(value.template Get<Value>());
         }
 
-        virtual SizeType GetSize(const TBoxed& instance) const override
+        virtual size_t GetSize(const TBoxed& instance) const override
         {
             SetType& set = instance.template Get<SetType>();
             return set.Size();
@@ -1710,7 +1710,7 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
 
     result.flags |= TypeInfoFlags::VARIANT_TYPE;
 
-    constexpr SizeType VariantSize = sizeof...(Types);
+    constexpr size_t VariantSize = sizeof...(Types);
 
     if constexpr (VariantSize > 0)
     {
@@ -1720,7 +1720,7 @@ void TypeInfoImpl<utilities::Variant<Types...>, TBoxed>::operator()(TypeInfo& re
         TypeInfoEx* head = nullptr;
         TypeInfoEx* current = nullptr;
 
-        for (SizeType i = 0; i < altArray.Size(); ++i)
+        for (size_t i = 0; i < altArray.Size(); ++i)
         {
             TypeInfoEx* node = new TypeInfoEx();
             node->data.typeInfo = altArray[i];
@@ -2169,7 +2169,7 @@ inline const Class* TypeInfo_GetClass(const TypeInfo& typeInfo)
     return typeInfo.GetClass();
 }
 
-inline SizeType TypeInfo_GetSize(const TypeInfo& typeInfo)
+inline size_t TypeInfo_GetSize(const TypeInfo& typeInfo)
 {
     return typeInfo.size;
 }

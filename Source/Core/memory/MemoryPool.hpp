@@ -104,7 +104,7 @@ struct MemoryPoolBlock final
 class MemoryPoolManager;
 
 extern HYP_API MemoryPoolManager& GetMemoryPoolManager();
-extern HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, SizeType>>& outBytesPerPool);
+extern HYP_API void CalculateMemoryUsagePerPool(Array<Pair<MemoryPoolBase*, size_t>>& outBytesPerPool);
 
 class HYP_API MemoryPoolBase
 {
@@ -120,7 +120,7 @@ public:
     }
 
 protected:
-    MemoryPoolBase(Name poolName, ThreadId ownerThreadId, SizeType (*getNumAllocatedBytes)(MemoryPoolBase*));
+    MemoryPoolBase(Name poolName, ThreadId ownerThreadId, size_t (*getNumAllocatedBytes)(MemoryPoolBase*));
     ~MemoryPoolBase();
 
     Name m_poolName;
@@ -143,7 +143,7 @@ protected:
     using Block = MemoryPoolBlock<ElementType, TInitInfo, OnBlockAllocated>;
 
 protected:
-    static SizeType CalculateMemoryUsage(MemoryPoolBase* memoryPool)
+    static size_t CalculateMemoryUsage(MemoryPoolBase* memoryPool)
     {
         return static_cast<MemoryPool*>(memoryPool)->NumAllocatedBytes();
     }
@@ -175,12 +175,12 @@ public:
 
     ~MemoryPool() = default;
 
-    HYP_FORCE_INLINE SizeType NumAllocatedElements() const
+    HYP_FORCE_INLINE size_t NumAllocatedElements() const
     {
         return m_numBlocks.Get(MemoryOrder::ACQUIRE) * numElementsPerBlock;
     }
 
-    HYP_FORCE_INLINE SizeType NumAllocatedBytes() const
+    HYP_FORCE_INLINE size_t NumAllocatedBytes() const
     {
         return m_numBlocks.Get(MemoryOrder::ACQUIRE) * sizeof(Block);
     }

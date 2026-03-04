@@ -23,36 +23,36 @@ class Memory
 {
 public:
     template <BitwiseComparable T, BitwiseComparable U>
-    HYP_FORCE_INLINE static int Compare(const T* a, const U* b, SizeType count)
+    HYP_FORCE_INLINE static int Compare(const T* a, const U* b, size_t count)
     {
         return std::memcmp(a, b, count);
     }
 
     template <BitwiseCopyable T, BitwiseCopyable U>
-    HYP_FORCE_INLINE static void* Copy(T* dest, const U* src, SizeType count)
+    HYP_FORCE_INLINE static void* Copy(T* dest, const U* src, size_t count)
     {
         return std::memcpy(dest, src, count);
     }
 
     template <BitwiseCopyable T, BitwiseCopyable U>
-    HYP_FORCE_INLINE static void* Move(T* dest, const U* src, SizeType size)
+    HYP_FORCE_INLINE static void* Move(T* dest, const U* src, size_t size)
     {
         return std::memmove(dest, src, size);
     }
 
     template <class T>
-    HYP_FORCE_INLINE static void* Fill(T* dest, ubyte ch, SizeType size)
+    HYP_FORCE_INLINE static void* Fill(T* dest, ubyte ch, size_t size)
     {
         return std::memset(dest, ch, size);
     }
 
     template <class T>
-    HYP_FORCE_INLINE static void* Zero(T* dest, SizeType size)
+    HYP_FORCE_INLINE static void* Zero(T* dest, size_t size)
     {
         return std::memset(dest, 0, size);
     }
 
-    HYP_FORCE_INLINE static void Garble(void* dest, SizeType length)
+    HYP_FORCE_INLINE static void Garble(void* dest, size_t length)
     {
         if (!dest || length == 0)
         {
@@ -62,7 +62,7 @@ public:
         std::memset(dest, 0xDEAD, length);
     }
 
-    HYP_FORCE_INLINE static int StrCmp(const char* lhs, const char* rhs, SizeType length = 0)
+    HYP_FORCE_INLINE static int StrCmp(const char* lhs, const char* rhs, size_t length = 0)
     {
         if (length)
         {
@@ -73,7 +73,7 @@ public:
     }
 
     template <class T>
-    static constexpr bool StrEqual(const T* lhs, const T* rhs, SizeType length, SizeType index = 0)
+    static constexpr bool StrEqual(const T* lhs, const T* rhs, size_t length, size_t index = 0)
     {
         if (std::is_constant_evaluated())
         {
@@ -88,7 +88,7 @@ public:
         else
         {
             // Fallback for non 8-bit char types
-            for (SizeType i = 0; i < length || length == 0; ++i)
+            for (size_t i = 0; i < length || length == 0; ++i)
             {
                 if (lhs[i] != rhs[i] || lhs[i] == T('\0'))
                 {
@@ -100,7 +100,7 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE static char* StrCpy(char* dest, const char* src, SizeType length = 0)
+    HYP_FORCE_INLINE static char* StrCpy(char* dest, const char* src, size_t length = 0)
     {
         if (length)
         {
@@ -112,7 +112,7 @@ public:
         return std::strcpy(dest, src);
     }
 
-    static inline SizeType StrLen(const char* str)
+    static inline size_t StrLen(const char* str)
     {
         if (!str)
         {
@@ -291,12 +291,12 @@ public:
         std::free(ptr);
     }
 
-    HYP_FORCE_INLINE static void* AllocateZeros(SizeType count)
+    HYP_FORCE_INLINE static void* AllocateZeros(size_t count)
     {
         return std::calloc(count, 1);
     }
 
-    HYP_FORCE_INLINE static void* Allocate(SizeType count)
+    HYP_FORCE_INLINE static void* Allocate(size_t count)
     {
         return std::malloc(count);
     }
@@ -317,7 +317,7 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE static T* Allocate(SizeType count)
+    HYP_FORCE_INLINE static T* Allocate(size_t count)
     {
         if (count == 0)
         {
@@ -336,13 +336,13 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE static void* AllocateAligned(SizeType count, SizeType alignment)
+    HYP_FORCE_INLINE static void* AllocateAligned(size_t count, size_t alignment)
     {
         return HYP_ALLOC_ALIGNED(count, alignment);
     }
 
     template <class T>
-    HYP_FORCE_INLINE static T* AllocateAligned(SizeType count, SizeType alignment)
+    HYP_FORCE_INLINE static T* AllocateAligned(size_t count, size_t alignment)
     {
         if (count == 0)
         {

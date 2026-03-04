@@ -462,7 +462,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
         lightmapElement->offsetUV, lightmapElement->scale);
 
     // Update meshes
-    for (SizeType bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
+    for (size_t bakeEntityIndex = 0; bakeEntityIndex < m_bakeEntities.Size(); bakeEntityIndex++)
     {
         BakeEntity& bakeEntity = m_bakeEntities[bakeEntityIndex];
 
@@ -482,7 +482,7 @@ void Baker<LightmapVolume>::OnCompleted_Internal()
             newMeshDesc.numVertices = uint32(bakeMesh.vertices.Size());
             newMeshDesc.numIndices = uint32(bakeMesh.indices.Size());
 
-            for (SizeType i = 0; i < bakeMesh.vertices.Size(); i++)
+            for (size_t i = 0; i < bakeMesh.vertices.Size(); i++)
             {
                 Vertex& vertex = bakeMesh.vertices[i];
 

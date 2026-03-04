@@ -307,7 +307,7 @@ public:
             return InvalidTextureFormat;
         }
 
-        for (SizeType i = 0; i < possibleFormats.Size(); i++)
+        for (size_t i = 0; i < possibleFormats.Size(); i++)
         {
             if (IsSupportedFormat(possibleFormats[i], supportType) != VK_FORMAT_UNDEFINED)
             {

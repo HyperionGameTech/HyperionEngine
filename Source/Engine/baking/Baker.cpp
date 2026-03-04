@@ -209,7 +209,7 @@ void BakerBase::Initialize()
     }
 }
 
-BakeJobParams BakerBase::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
+BakeJobParams BakerBase::CreateLightmapJobParams(size_t startIndex, size_t endIndex)
 {
     BakeJobParams jobParams {
         &m_config,
@@ -349,7 +349,7 @@ void BakerBase::Build()
     }
 
     // set pointers in map after pushing, so that the addresses are stable
-    for (SizeType index = 0; index < m_bakeEntities.Size(); index++)
+    for (size_t index = 0; index < m_bakeEntities.Size(); index++)
     {
         BakeEntity& bakeEntity = m_bakeEntities[index];
 

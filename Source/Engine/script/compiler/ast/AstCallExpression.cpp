@@ -345,7 +345,7 @@ String AstCallExpression::ToString() const
 {
     String result = (m_expr ? m_expr->ToString() : "<null>") + "(";
 
-    for (SizeType i = 0; i < m_args.Size(); ++i)
+    for (size_t i = 0; i < m_args.Size(); ++i)
     {
         if (i > 0)
             result += ", ";

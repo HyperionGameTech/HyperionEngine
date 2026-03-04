@@ -137,7 +137,7 @@ Time FilePath::LastModifiedTimestamp() const
 #endif
 }
 
-SizeType FilePath::FileSizeOnDisk() const
+size_t FilePath::FileSizeOnDisk() const
 {
     struct stat st;
 
@@ -197,9 +197,9 @@ Hyperion::containers::Array<FilePath, DynamicAllocator> FilePath::GetSubdirector
     return files;
 }
 
-SizeType FilePath::DirectorySize() const
+size_t FilePath::DirectorySize() const
 {
-    SizeType size = 0;
+    size_t size = 0;
 
     for (const auto& entry : std::filesystem::directory_iterator(Data()))
     {
@@ -212,7 +212,7 @@ SizeType FilePath::DirectorySize() const
     return size;
 }
 
-SizeType FilePath::FileSize() const
+size_t FilePath::FileSize() const
 {
     struct stat st;
 

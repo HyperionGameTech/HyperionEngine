@@ -58,9 +58,9 @@ struct TypeNameStringTransformer
     template <auto String>
     static constexpr auto Transform()
     {
-        constexpr SizeType lastIndex = ShouldStripNamespace
+        constexpr size_t lastIndex = ShouldStripNamespace
             ? containers::helpers::Trim<String>::value.template FindLast<containers::IntegerSequenceFromString<StaticString("::")>>()
-            : SizeType(-1);
+            : size_t(-1);
 
         if constexpr (lastIndex == -1)
         {
@@ -68,7 +68,7 @@ struct TypeNameStringTransformer
         }
         else
         {
-            return StripClassOrStruct<containers::helpers::Substr<containers::helpers::Trim<String>::value, lastIndex + 2, SizeType(-1)>::value>();
+            return StripClassOrStruct<containers::helpers::Substr<containers::helpers::Trim<String>::value, lastIndex + 2, size_t(-1)>::value>();
         }
     }
 };
@@ -101,7 +101,7 @@ constexpr auto ParseTypeName()
     constexpr auto leftArrowIndex = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
     constexpr auto rightArrowIndex = Str.template FindLast<containers::IntegerSequenceFromString<StaticString(">")>>();
 
-    if constexpr (leftArrowIndex != SizeType(-1) && rightArrowIndex != SizeType(-1))
+    if constexpr (leftArrowIndex != size_t(-1) && rightArrowIndex != size_t(-1))
     {
         static_assert(leftArrowIndex < rightArrowIndex, "Left arrow index must be less than right arrow index or parsing will fail!");
 
@@ -208,7 +208,7 @@ constexpr auto StripReturnType()
 {
     constexpr auto firstSpaceIndex = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString(" ")>>();
 
-    if constexpr (firstSpaceIndex == SizeType(-1))
+    if constexpr (firstSpaceIndex == size_t(-1))
     {
         return Str;
     }
@@ -219,13 +219,13 @@ constexpr auto StripReturnType()
         constexpr auto leftAngleBracketIndex = withoutReturnType.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
         constexpr auto leftParenthesisIndex = withoutReturnType.template FindFirst<containers::IntegerSequenceFromString<StaticString("(")>>();
 
-        constexpr auto firstTokenIndex = leftAngleBracketIndex != SizeType(-1) && (leftParenthesisIndex == SizeType(-1) || leftAngleBracketIndex < leftParenthesisIndex)
+        constexpr auto firstTokenIndex = leftAngleBracketIndex != size_t(-1) && (leftParenthesisIndex == size_t(-1) || leftAngleBracketIndex < leftParenthesisIndex)
             ? leftAngleBracketIndex
             : leftParenthesisIndex;
 
         constexpr auto secondSpaceIndex = withoutReturnType.template FindFirst<containers::IntegerSequenceFromString<StaticString(" ")>>();
 
-        if constexpr (secondSpaceIndex != SizeType(-1) && firstTokenIndex != SizeType(-1) && secondSpaceIndex < firstTokenIndex)
+        if constexpr (secondSpaceIndex != size_t(-1) && firstTokenIndex != size_t(-1) && secondSpaceIndex < firstTokenIndex)
         {
             return containers::helpers::Substr<withoutReturnType, secondSpaceIndex + 1, withoutReturnType.Size()>::value;
         }
@@ -256,7 +256,7 @@ constexpr auto StripNamespaceFromFunctionName()
     {
         constexpr auto firstColonIndex = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("::")>>();
 
-        if constexpr (firstColonIndex != SizeType(-1))
+        if constexpr (firstColonIndex != size_t(-1))
         {
             constexpr auto substr = containers::helpers::Substr<Str, firstColonIndex + 2, Str.Size()>::value;
 
@@ -282,9 +282,9 @@ constexpr auto PrettyFunctionName()
     constexpr auto leftAngleBracketIndex = withoutReturnType.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
     constexpr auto leftParenthesisIndex = withoutReturnType.template FindFirst<containers::IntegerSequenceFromString<StaticString("(")>>();
 
-    if constexpr (leftParenthesisIndex != SizeType(-1))
+    if constexpr (leftParenthesisIndex != size_t(-1))
     {
-        if constexpr (leftAngleBracketIndex != SizeType(-1) && leftAngleBracketIndex < leftParenthesisIndex)
+        if constexpr (leftAngleBracketIndex != size_t(-1) && leftAngleBracketIndex < leftParenthesisIndex)
         {
             return StripNamespaceFromFunctionName<containers::helpers::Substr<withoutReturnType, 0, leftAngleBracketIndex>::value>();
         }
@@ -481,20 +481,20 @@ struct FirstOf
 #pragma region StaticForEach
 
 // Helper for static foreach over tuple types - no instance version
-template <class FunctionType, class... Types, SizeType... Indices>
+template <class FunctionType, class... Types, size_t... Indices>
 constexpr void StaticForEach_TypesOnly_Impl(FunctionType&& function, Hyperion::utilities::TupleIndices<Indices...>)
 {
     (function(TypeWrapper<Types> {}), ...);
 }
 
 // Helper for static foreach over tuple types - with instance version
-template <class FunctionType, class... Types, SizeType... Indices>
+template <class FunctionType, class... Types, size_t... Indices>
 constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, Tuple<Types...>& tuple, Hyperion::utilities::TupleIndices<Indices...>)
 {
     (function(TypeWrapper<Types> {}, tuple.template GetElement<Indices>()), ...);
 }
 
-template <class FunctionType, class... Types, SizeType... Indices>
+template <class FunctionType, class... Types, size_t... Indices>
 constexpr void StaticForEach_WithInstance_Impl(FunctionType&& function, const Tuple<Types...>& tuple, Hyperion::utilities::TupleIndices<Indices...>)
 {
     (function(TypeWrapper<Types> {}, tuple.template GetElement<Indices>()), ...);

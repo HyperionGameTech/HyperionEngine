@@ -469,7 +469,7 @@ void LogChannelRegistrar::RegisterAll()
     Array<LogChannel*> order;
     order.Reserve(n);
 
-    SizeType head = 0;
+    size_t head = 0;
 
     while (head < queue.Size())
     {

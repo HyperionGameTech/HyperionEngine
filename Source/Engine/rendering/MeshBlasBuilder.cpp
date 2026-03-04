@@ -39,8 +39,8 @@ struct BuildMeshBlas : public RenderCommand
           packedIndices(std::move(packedIndices)),
           material(material)
     {
-        const SizeType packedVerticesSize = this->packedVertices.Size() * sizeof(PackedVertex);
-        const SizeType packedIndicesSize = this->packedIndices.Size() * sizeof(uint32);
+        const size_t packedVerticesSize = this->packedVertices.Size() * sizeof(PackedVertex);
+        const size_t packedIndicesSize = this->packedIndices.Size() * sizeof(uint32);
 
         packedVerticesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_VERTEX_BUFFER, packedVerticesSize);
         packedIndicesBuffer = g_renderInterface->MakeGpuBuffer(GpuBufferType::RT_MESH_INDEX_BUFFER, packedIndicesSize);
@@ -71,8 +71,8 @@ struct BuildMeshBlas : public RenderCommand
 
     virtual RendererResult operator()() override
     {
-        const SizeType packedVerticesSize = packedVertices.Size() * sizeof(PackedVertex);
-        const SizeType packedIndicesSize = packedIndices.Size() * sizeof(uint32);
+        const size_t packedVerticesSize = packedVertices.Size() * sizeof(PackedVertex);
+        const size_t packedIndicesSize = packedIndices.Size() * sizeof(uint32);
 
         CheckResultOrReturn(packedVerticesBuffer->Create());
         CheckResultOrReturn(packedIndicesBuffer->Create());
@@ -131,7 +131,7 @@ GpuBlasRef MeshBlasBuilder::Build(Mesh* mesh, Material* material)
     }
 
     // some assertions to prevent gpu faults down the line
-    for (SizeType i = 0; i < packedIndices.Size(); i++)
+    for (size_t i = 0; i < packedIndices.Size(); i++)
     {
         Assert(packedIndices[i] < packedVertices.Size());
     }

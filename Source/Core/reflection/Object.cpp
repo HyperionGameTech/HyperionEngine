@@ -181,7 +181,7 @@ ObjectBase::~ObjectBase()
         {
             const Class* cls = m_header->cls;
 
-            SizeType fieldOffset = sizeof(ObjectBase);
+            size_t fieldOffset = sizeof(ObjectBase);
 
             // `class` field
             fieldOffset = ByteUtil::AlignAs(fieldOffset, alignof(ClassRef));

@@ -124,7 +124,7 @@ String GetShaderVersionFromSource(const String& source, String& outSourceWithout
 
     if (sourceTrimmed.StartsWith("#version"))
     {
-        SizeType firstNewline = sourceTrimmed.FindFirstIndex('\n');
+        size_t firstNewline = sourceTrimmed.FindFirstIndex('\n');
         String versionLine = sourceTrimmed.Substr(0, firstNewline);
 
         outSourceWithoutVersion = sourceTrimmed.Substr(firstNewline + 1);
@@ -237,7 +237,7 @@ static String BuildAttributesDefines(
 
     Array<const VertexAttribute*> attributesArray = perm.GetRequiredVertexAttributes().BuildAttributes();
 
-    for (SizeType attrIndex = 0; attrIndex < attributesArray.Size(); attrIndex++)
+    for (size_t attrIndex = 0; attrIndex < attributesArray.Size(); attrIndex++)
     {
         const VertexAttribute* attr = attributesArray[attrIndex];
 
@@ -1343,18 +1343,18 @@ static void ForEachPermutation(
         }
     }
 
-    const SizeType numPermutations = 1ull << variableProperties.Size();
+    const size_t numPermutations = 1ull << variableProperties.Size();
 
     Array<ShaderVariantPerms> propertiesBeforeValueGroups;
     Array<ShaderVariantPerms>* currentCombinations = &propertiesBeforeValueGroups;
 
-    for (SizeType i = 0; i < numPermutations; i++)
+    for (size_t i = 0; i < numPermutations; i++)
     {
         HashSet<ShaderProperty> currentProperties;
         currentProperties.Reserve(ByteUtil::BitCount(i) + staticProperties.Size());
         currentProperties.Merge(staticProperties);
 
-        for (SizeType j = 0; j < variableProperties.Size(); j++)
+        for (size_t j = 0; j < variableProperties.Size(); j++)
         {
             if (i & (1ull << j))
             {
@@ -1374,7 +1374,7 @@ static void ForEachPermutation(
         propertiesWithValueGroupsApplied = propertiesBeforeValueGroups;
 
         // the index where value groups begin.
-        const SizeType valueGroupsStart = propertiesBeforeValueGroups.Size();
+        const size_t valueGroupsStart = propertiesBeforeValueGroups.Size();
 
         currentCombinations = &propertiesWithValueGroupsApplied;
 
@@ -1384,9 +1384,9 @@ static void ForEachPermutation(
             Array<ShaderVariantPerms> currentGroupPerms;
             currentGroupPerms.Resize(valueGroup.enumValues.Size() * currentCombinations->Size());
 
-            for (SizeType existingCombinationIndex = 0; existingCombinationIndex < currentCombinations->Size(); existingCombinationIndex++)
+            for (size_t existingCombinationIndex = 0; existingCombinationIndex < currentCombinations->Size(); existingCombinationIndex++)
             {
-                for (SizeType valueIndex = 0; valueIndex < valueGroup.enumValues.Size(); valueIndex++)
+                for (size_t valueIndex = 0; valueIndex < valueGroup.enumValues.Size(); valueIndex++)
                 {
                     // copy the current version of the array
                     ShaderVariantPerms merged = (*currentCombinations)[existingCombinationIndex];
@@ -1893,7 +1893,7 @@ bool ShaderCompiler::HandleBundle(
 
         if (anyMissing)
         {
-            SizeType index = 0;
+            size_t index = 0;
 
             for (const ShaderVariantPerms& perm : missingPerms)
             {
@@ -2137,7 +2137,7 @@ static String ExtractFirstToken(const String& str)
 {
     String result;
 
-    for (SizeType i = 0; i < str.Size(); i++)
+    for (size_t i = 0; i < str.Size(); i++)
     {
         const char ch = str.Data()[i];
 
@@ -2306,7 +2306,7 @@ static String FormatDescriptorDeclaration(
     if (language == ShaderLanguage::HLSL)
     {
         String remaining = declarationBody.Trimmed();
-        SizeType insertPos = remaining.FindFirstIndex(";");
+        size_t insertPos = remaining.FindFirstIndex(";");
 
         if (insertPos == String::NotFound)
         {
@@ -2421,7 +2421,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
         String argsString;
 
         int parenthesesDepth = 0;
-        SizeType index;
+        size_t index;
 
         // Note: using 'Size' and 'Data' to index -- not using utf-8 chars here.
         for (index = 0; index < substr.Size(); index++)
@@ -2486,7 +2486,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 Optional<String> attributeCondition;
 
-                SizeType attrStringIndex = 0;
+                size_t attrStringIndex = 0;
 
                 {
                     while (attrStringIndex != parts.Front().Size() && (std::isalpha(ch = parts.Front()[attrStringIndex]) || ch == '_'))
@@ -2569,7 +2569,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
             {
                 String commandStr;
 
-                for (SizeType index = 0; index < line.Size(); index++)
+                for (size_t index = 0; index < line.Size(); index++)
                 {
                     if (std::isalnum(line.Data()[index]) || line.Data()[index] == '_')
                     {
@@ -2639,7 +2639,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
 
                 if (parseResult.args.Size() > 2)
                 {
-                    for (SizeType index = 2; index < parseResult.args.Size(); index++)
+                    for (size_t index = 2; index < parseResult.args.Size(); index++)
                     {
                         Array<String> split = parseResult.args[index].Split('=');
 
@@ -2760,7 +2760,7 @@ bool ShaderCompiler::CompileBundle(
 
     TaskBatch taskBatch;
 
-    for (SizeType index = 0; index < decl.sources.Size(); index++)
+    for (size_t index = 0; index < decl.sources.Size(); index++)
     {
         StaticMessage debugName;
         debugName.value = ANSIStringView(*decl.sources.AtIndex(index).second);
@@ -2817,7 +2817,7 @@ bool ShaderCompiler::CompileBundle(
 
                     if (splitIt != split.End())
                     {
-                        const SizeType versionIndex = splitIt - split.Begin();
+                        const size_t versionIndex = splitIt - split.Begin();
 
                         preamble += String("#line ") + String::ToString(versionIndex + 1) + "\n";
                     }
@@ -3100,7 +3100,7 @@ bool ShaderCompiler::CompileBundle(
             // does, check if it is older than the source file if it is, we can
             // reuse the file. otherwise, we process the source and prepare it for
             // compilation
-            for (SizeType index = 0; index < loadedSourceFiles.Size(); index++)
+            for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
             {
                 const LoadedSourceFile& item = loadedSourceFiles[index];
 
@@ -3162,7 +3162,7 @@ bool ShaderCompiler::CompileBundle(
             descriptorUsageSetsPerFile.Clear();
 
             // final substitution of properties + compilation
-            for (SizeType index = 0; index < loadedSourceFiles.Size(); index++)
+            for (size_t index = 0; index < loadedSourceFiles.Size(); index++)
             {
                 const LoadedSourceFile& item = loadedSourceFiles[index];
 

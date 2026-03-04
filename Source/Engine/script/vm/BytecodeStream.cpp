@@ -14,13 +14,13 @@ BytecodeStream::BytecodeStream()
 {
 }
 
-BytecodeStream::BytecodeStream(const ubyte* buffer, SizeType size, SizeType position)
+BytecodeStream::BytecodeStream(const ubyte* buffer, size_t size, size_t position)
     : m_byteBuffer(size, buffer),
       m_position(position)
 {
 }
 
-BytecodeStream::BytecodeStream(const ByteBuffer& byteBuffer, SizeType position)
+BytecodeStream::BytecodeStream(const ByteBuffer& byteBuffer, size_t position)
     : m_byteBuffer(byteBuffer),
       m_position(position)
 {
@@ -43,7 +43,7 @@ BytecodeStream& BytecodeStream::operator=(const BytecodeStream& other)
 void BytecodeStream::ReadZeroTerminatedString(char* ptr)
 {
     ubyte ch;
-    SizeType i = 0;
+    size_t i = 0;
 
     const auto* data = m_byteBuffer.Data();
 

@@ -11,10 +11,10 @@
 namespace Hyperion {
 namespace containers {
 
-template <class T, SizeType Size>
+template <class T, size_t Size>
 struct StaticArray
 {
-    static constexpr SizeType size = Size;
+    static constexpr size_t size = Size;
 
     using HeldType = T;
 
@@ -23,7 +23,7 @@ struct StaticArray
     using Iterator = typename std::array<T, Size>::iterator;
     using ConstIterator = typename std::array<T, Size>::constIterator;
 
-    constexpr const T& operator[](SizeType index) const
+    constexpr const T& operator[](size_t index) const
     {
         return items[index];
     }
@@ -92,7 +92,7 @@ struct StaticArray
     }
 
     /// impl
-    template <auto OtherStaticArray, SizeType... Indices>
+    template <auto OtherStaticArray, size_t... Indices>
     constexpr auto ConcatImpl(std::index_sequence<Indices...>) const -> StaticArray<T, Size + decltype(OtherStaticArray)::size>
     {
         return {
@@ -120,7 +120,7 @@ struct ConcatStaticArrays<First, Rest...>
 
 } // namespace containers
 
-template <class T, SizeType Size>
+template <class T, size_t Size>
 using StaticArray = containers::StaticArray<T, Size>;
 
 using containers::ConcatStaticArrays;

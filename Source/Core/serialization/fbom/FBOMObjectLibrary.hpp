@@ -92,9 +92,9 @@ struct FBOMObjectLibrary
     //     return nextIndex;
     // }
 
-    SizeType CalculateTotalSize() const
+    size_t CalculateTotalSize() const
     {
-        // SizeType size = 0;
+        // size_t size = 0;
 
         // for (const FBOMData &data : objectData) {
         //     size += data.TotalSize();

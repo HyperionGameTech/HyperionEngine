@@ -59,8 +59,8 @@ struct BlobAllocationInfo
 
 struct BlobAllocationDesc
 {
-    SizeType offset = 0;
-    SizeType size = 0;
+    size_t offset = 0;
+    size_t size = 0;
 
     HYP_FORCE_INLINE constexpr bool operator==(const BlobAllocationDesc& other) const = default;
 
@@ -108,7 +108,7 @@ public:
     ByteWriter* GetWriteStream(uint32 page);
     ByteReader* GetReadStream(uint32 page);
     
-    bool GetData(StringHash key, SizeType size, void*& outRawData);
+    bool GetData(StringHash key, size_t size, void*& outRawData);
     bool PutData(StringHash key, const BlobHeader& header, const void* rawData);
     
     Result SaveManifest();

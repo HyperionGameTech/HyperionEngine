@@ -474,9 +474,9 @@ void EngineDriver::UpdateSim(float delta)
     worldUpdateTaskBatch.AwaitCompletion();
 
     { // collect shadow views
-        const SizeType initialNumViews = views.Size();
+        const size_t initialNumViews = views.Size();
 
-        for (SizeType viewIndex = 0; viewIndex < initialNumViews; viewIndex++)
+        for (size_t viewIndex = 0; viewIndex < initialNumViews; viewIndex++)
         {
             View* view = views[viewIndex];
             Assert(view != nullptr);
@@ -487,7 +487,7 @@ void EngineDriver::UpdateSim(float delta)
 
     static const auto RemoveNonUnique = []<class ArrayType>(ArrayType& elems)
     {
-        for (SizeType idx = 0; idx < elems.Size();)
+        for (size_t idx = 0; idx < elems.Size();)
         {
             if (elems.Find(elems[idx]) != elems.begin() + idx)
             {
@@ -623,7 +623,7 @@ void EngineDriver::UpdateSim(float delta)
             scene->GetEntityManager()->Lock();
     }
 
-    for (SizeType viewIndex = 0; viewIndex < views.Size(); viewIndex++)
+    for (size_t viewIndex = 0; viewIndex < views.Size(); viewIndex++)
     {
         HYP_NAMED_SCOPE("Per-view entity collection");
 
@@ -643,7 +643,7 @@ void EngineDriver::UpdateSim(float delta)
     TaskSystem::GetInstance().EnqueueBatch(m_viewCollectionBatch);
     m_viewCollectionBatch->AwaitCompletion();
 
-    for (SizeType index = 0; index < views.Size(); index++)
+    for (size_t index = 0; index < views.Size(); index++)
     {
         views[index]->EndAsyncCollection();
     }

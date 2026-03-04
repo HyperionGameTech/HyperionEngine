@@ -225,7 +225,7 @@ protected:
         // do nothing
     }
 
-    void AllocateBlobData(BlobDataReference& reference, const void* inData, SizeType count, SizeType alignment = 16);
+    void AllocateBlobData(BlobDataReference& reference, const void* inData, size_t count, size_t alignment = 16);
     void FreeBlobData(BlobDataReference& reference);
 
     void SetBlobDataResident(bool resident);

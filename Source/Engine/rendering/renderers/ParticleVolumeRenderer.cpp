@@ -280,7 +280,7 @@ void ParticleVolumeRenderer::RenderFrame(Frame* frame, const RenderSetup& render
         
         rq << SetShaderUniform(12, "ParticleSpawnerData"_sh, cBuffer);
 
-        const SizeType maxParticles = proxy->bufferData.maxParticles;
+        const size_t maxParticles = proxy->bufferData.maxParticles;
         rq << DispatchCompute(Vec3u { uint32((maxParticles + 255) / 256), 1, 1 });
 
         rq << InsertBarrier(state.indirectBuffer, RS_INDIRECT_ARG);

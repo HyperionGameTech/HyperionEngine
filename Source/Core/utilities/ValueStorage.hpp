@@ -18,34 +18,34 @@ struct ValueStorageAlignment;
 template <class T>
 struct ValueStorageAlignment
 {
-    static constexpr SizeType value = alignof(T);
+    static constexpr size_t value = alignof(T);
 };
 
 template <>
 struct ValueStorageAlignment<void>
 {
-    static constexpr SizeType value = 1;
+    static constexpr size_t value = 1;
 };
 
 /*! \brief  Provides storage values and arrays of type T, providing methods for manual construction and destruction.
  *  \details This class provides a way to store an array of values of type T in a buffer with a specified alignment.
  *  It allows for explicit construction, destruction, and retrieval of the values stored in the buffer.
  *  The alignment can be specified as a template parameter, defaulting to the alignment of T. */
-template <class T, SizeType Count = 1, SizeType Alignment = ValueStorageAlignment<T>::value, typename T2 = void>
+template <class T, size_t Count = 1, size_t Alignment = ValueStorageAlignment<T>::value, typename T2 = void>
 struct ValueStorage;
 
 /*! \brief A storage class for values of type T with a specified alignment.
  *  \details This class provides a way to store values of type T in a buffer with a specified alignment.
  *  It allows for explicit construction, destruction, and retrieval of the value stored in the buffer.
  *  The alignment can be specified as a template parameter, defaulting to the alignment of T. */
-template <class T, SizeType Alignment>
+template <class T, size_t Alignment>
 struct alignas(Alignment) ValueStorage<T, 1, Alignment, std::enable_if_t<!std::is_void_v<T>>>
 {
     struct ConstructTag
     {
     };
 
-    static constexpr SizeType alignment = Alignment;
+    static constexpr size_t alignment = Alignment;
 
     alignas(Alignment) ubyte dataBuffer[sizeof(T)];
 
@@ -57,7 +57,7 @@ struct alignas(Alignment) ValueStorage<T, 1, Alignment, std::enable_if_t<!std::i
         new (dataBuffer) T(std::forward<Args>(args)...);
     }
 
-    template <class OtherType, SizeType OtherCount, SizeType OtherAlignment>
+    template <class OtherType, size_t OtherCount, size_t OtherAlignment>
     explicit ValueStorage(const ValueStorage<OtherType, OtherCount, OtherAlignment>& other) = delete;
 
     template <class OtherType>
@@ -105,19 +105,19 @@ struct alignas(Alignment) ValueStorage<T, 1, Alignment, std::enable_if_t<!std::i
         return reinterpret_cast<const T*>(&dataBuffer[0]);
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
         return 1;
     }
 
-    HYP_FORCE_INLINE constexpr SizeType TotalSize() const
+    HYP_FORCE_INLINE constexpr size_t TotalSize() const
     {
         return sizeof(T);
     }
 };
 
 // Void type specialization
-template <SizeType Count, SizeType Alignment>
+template <size_t Count, size_t Alignment>
 struct ValueStorage<void, Count, Alignment>
 {
     void* GetPointer() &
@@ -132,21 +132,21 @@ struct ValueStorage<void, Count, Alignment>
 };
 
 // 0 count specialization
-template <class T, SizeType Alignment>
+template <class T, size_t Alignment>
 struct ValueStorage<T, 0, Alignment>
 {
 };
 
 // Array specialization
-template <class T, SizeType Count, SizeType Alignment>
+template <class T, size_t Count, size_t Alignment>
 struct alignas(Alignment) ValueStorage<T, Count, Alignment, std::enable_if_t<!std::is_void_v<T> && (Count > 1)>>
 {
-    static constexpr SizeType alignment = Alignment;
+    static constexpr size_t alignment = Alignment;
 
     alignas(Alignment) ubyte dataBuffer[sizeof(T) * Count];
 
     template <class... Args>
-    HYP_FORCE_INLINE T* ConstructElement(SizeType index, Args&&... args)
+    HYP_FORCE_INLINE T* ConstructElement(size_t index, Args&&... args)
     {
         T* address = GetPointer() + index;
         new (address) T(std::forward<Args>(args)...);
@@ -154,7 +154,7 @@ struct alignas(Alignment) ValueStorage<T, Count, Alignment, std::enable_if_t<!st
         return address;
     }
 
-    HYP_FORCE_INLINE void DestructElement(SizeType index)
+    HYP_FORCE_INLINE void DestructElement(size_t index)
     {
         GetPointer()[index].~T();
     }
@@ -179,12 +179,12 @@ struct alignas(Alignment) ValueStorage<T, Count, Alignment, std::enable_if_t<!st
         return static_cast<const void*>(&dataBuffer[0]);
     }
 
-    HYP_FORCE_INLINE constexpr SizeType Size() const
+    HYP_FORCE_INLINE constexpr size_t Size() const
     {
         return Count;
     }
 
-    HYP_FORCE_INLINE constexpr SizeType TotalSize() const
+    HYP_FORCE_INLINE constexpr size_t TotalSize() const
     {
         return Count * sizeof(T);
     }

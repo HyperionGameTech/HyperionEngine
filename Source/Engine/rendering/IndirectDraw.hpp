@@ -69,8 +69,8 @@ public:
 
     void Create();
 
-    void PushDrawCall(SizeType drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out);
-    void PushInstancedDrawCall(SizeType drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out);
+    void PushDrawCall(size_t drawCallIndex, const DrawCallStorage& drawCalls, DrawCommandData& out);
+    void PushInstancedDrawCall(size_t drawCallIndex, const InstancedDrawCallStorage& drawCalls, DrawCommandData& out);
 
     void ResetDrawState();
 

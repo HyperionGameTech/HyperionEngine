@@ -91,8 +91,8 @@ private:
         struct Element
         {
             FBOMStaticData::Type type = FBOMStaticData::FBOM_STATIC_DATA_NONE;
-            SizeType offset = 0;
-            SizeType size = 0;
+            size_t offset = 0;
+            size_t size = 0;
             UniquePtr<FBOMSerializableBase> ptr;
 
             HYP_FORCE_INLINE bool IsValid() const
@@ -110,13 +110,13 @@ private:
 
         Array<Element> elements;
 
-        void Initialize(SizeType size)
+        void Initialize(size_t size)
         {
             elements.Resize(size);
         }
 
-        FBOMSerializableBase* GetOrInitializeElement(FBOMLoadContext& context, FBOMReader* reader, SizeType index);
-        void SetElementDesc(SizeType index, FBOMStaticData::Type type, SizeType offset, SizeType size);
+        FBOMSerializableBase* GetOrInitializeElement(FBOMLoadContext& context, FBOMReader* reader, size_t index);
+        void SetElementDesc(size_t index, FBOMStaticData::Type type, size_t offset, size_t size);
     };
 
     template <class T>
@@ -150,7 +150,7 @@ private:
     FBOMResult ReadArchive(BufferedReader*, Archive& outArchive);
     FBOMResult ReadArchive(const ByteBuffer& inBuffer, ByteBuffer& outBuffer);
 
-    FBOMResult ReadRawData(BufferedReader*, SizeType count, ByteBuffer& outBuffer);
+    FBOMResult ReadRawData(BufferedReader*, size_t count, ByteBuffer& outBuffer);
 
     template <class T>
     FBOMResult ReadRawData(BufferedReader* reader, T* outPtr)
@@ -159,7 +159,7 @@ private:
 
         HYP_CORE_ASSERT(outPtr != nullptr);
 
-        constexpr SizeType size = sizeof(NormalizedType<T>);
+        constexpr size_t size = sizeof(NormalizedType<T>);
 
         ByteBuffer byteBuffer;
 

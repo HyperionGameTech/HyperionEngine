@@ -37,7 +37,7 @@ UUID::UUID()
 
 UUID::UUID(const char* str)
 {
-    SizeType len = Memory::StrLen(str);
+    size_t len = Memory::StrLen(str);
 
     if (!len) // null or zero length
     {

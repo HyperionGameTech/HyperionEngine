@@ -52,8 +52,8 @@ public:
     void Update(float delta);
 
 private:
-    bool EvictEntries(SizeType bytesNeeded);
-    bool HasFreeSpace(SizeType bytes);
+    bool EvictEntries(size_t bytesNeeded);
+    bool HasFreeSpace(size_t bytes);
 
     Pimpl<struct EditorPickCacheImpl> m_impl;
 };

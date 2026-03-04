@@ -45,7 +45,7 @@ struct ClassAttributeValue final
     {
         if (str)
         {
-            const SizeType len = Memory::StrLen(str);
+            const size_t len = Memory::StrLen(str);
             strValue = new char[len + 1];
 
             Memory::StrCpy(strValue, str, len + 1);
@@ -72,7 +72,7 @@ struct ClassAttributeValue final
         case ClassAttributeType::STRING:
             if (other.strValue)
             {
-                const SizeType len = Memory::StrLen(other.strValue);
+                const size_t len = Memory::StrLen(other.strValue);
                 strValue = new char[len + 1];
 
                 Memory::StrCpy(strValue, other.strValue, len + 1);
@@ -112,7 +112,7 @@ struct ClassAttributeValue final
             case ClassAttributeType::STRING:
                 if (other.strValue)
                 {
-                    const SizeType len = Memory::StrLen(other.strValue);
+                    const size_t len = Memory::StrLen(other.strValue);
                     strValue = new char[len + 1];
 
                     Memory::StrCpy(strValue, other.strValue, len + 1);
@@ -424,7 +424,7 @@ public:
         return m_attributes.Empty();
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_attributes.Size();
     }

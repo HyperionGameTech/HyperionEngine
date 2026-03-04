@@ -48,7 +48,7 @@ void DX12RayTracingPipeline::TraceRays(CommandBuffer* commandBuffer, const Vec3u
     // @TODO
 }
 
-void DX12RayTracingPipeline::SetPushConstants(const void* data, SizeType size)
+void DX12RayTracingPipeline::SetPushConstants(const void* data, size_t size)
 {
     // @TODO
 }

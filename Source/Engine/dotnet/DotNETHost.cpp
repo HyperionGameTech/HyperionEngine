@@ -389,7 +389,7 @@ private:
     bool LoadHostFxr()
     {
         TChar wbuffer[2048];
-        SizeType bufferSize = sizeof(wbuffer) / sizeof(TChar);
+        size_t bufferSize = sizeof(wbuffer) / sizeof(TChar);
 
         PlatformString wpath;
 

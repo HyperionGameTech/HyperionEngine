@@ -312,7 +312,7 @@ void Camera::SetCameraControllers(const Array<Handle<CameraController>>& cameraC
             currentCameraController->OnDeactivated();
         }
 
-        for (SizeType i = m_cameraControllers.Size(); i > 1; --i)
+        for (size_t i = m_cameraControllers.Size(); i > 1; --i)
         {
             m_cameraControllers[i]->OnRemoved();
         }
@@ -370,7 +370,7 @@ void Camera::AddCameraController(const Handle<CameraController>& cameraControlle
         }
     }
 
-    SizeType realIndex = 0;
+    size_t realIndex = 0;
 
     if (index < 0 || index >= int(m_cameraControllers.Size()))
     {
@@ -386,7 +386,7 @@ void Camera::AddCameraController(const Handle<CameraController>& cameraControlle
         }
         else
         {
-            realIndex = SizeType(index);
+            realIndex = size_t(index);
         }
 
         m_cameraControllers.Insert(m_cameraControllers.Begin() + realIndex, cameraController);

@@ -17,15 +17,15 @@ namespace StringUtil {
 
 static inline String Basename(const String& filepath)
 {
-    SizeType index0 = filepath.FindLastIndex('/');
-    SizeType index1 = filepath.FindLastIndex('\\');
+    size_t index0 = filepath.FindLastIndex('/');
+    size_t index1 = filepath.FindLastIndex('\\');
 
     if (index0 == String::NotFound && index1 == String::NotFound)
     {
         return filepath;
     }
 
-    const SizeType lastIndex = (index0 == String::NotFound)
+    const size_t lastIndex = (index0 == String::NotFound)
         ? index1
         : (index1 == String::NotFound ? index0 : (index0 > index1 ? index0 : index1));
 
@@ -34,15 +34,15 @@ static inline String Basename(const String& filepath)
 
 static inline String BasePath(const String& filepath)
 {
-    SizeType index0 = filepath.FindLastIndex('/');
-    SizeType index1 = filepath.FindLastIndex('\\');
+    size_t index0 = filepath.FindLastIndex('/');
+    size_t index1 = filepath.FindLastIndex('\\');
 
     if (index0 == String::NotFound && index1 == String::NotFound)
     {
         return "";
     }
 
-    const SizeType lastIndex = (index0 == String::NotFound)
+    const size_t lastIndex = (index0 == String::NotFound)
         ? index1
         : (index1 == String::NotFound ? index0 : (index0 > index1 ? index0 : index1));
 
@@ -70,7 +70,7 @@ static inline Array<String> CanonicalizePath(const Array<String>& original)
 
 static inline String StripExtension(const String& filename)
 {
-    SizeType lastIndex = filename.FindLastIndex('.');
+    size_t lastIndex = filename.FindLastIndex('.');
 
     if (lastIndex == String::NotFound)
     {
@@ -91,7 +91,7 @@ static inline String GetExtension(const String& path)
 
     const String& filename = splitPath.Back();
 
-    SizeType lastIndex = filename.FindLastIndex('.');
+    size_t lastIndex = filename.FindLastIndex('.');
 
     if (lastIndex == String::NotFound)
     {
@@ -105,7 +105,7 @@ static inline String ToPascalCase(const String& str, bool preserveCase = false)
 {
     Array<String> parts = str.Split('_', ' ', '-');
 
-    for (SizeType i = 0; i < parts.Size(); i++)
+    for (size_t i = 0; i < parts.Size(); i++)
     {
         String& part = parts[i];
 
@@ -158,7 +158,7 @@ static inline String ToSnakeCase(const String& str)
     bool lastWasUpper = false;
     bool isFirstChar = true;
 
-    for (SizeType i = 0; i < str.Size(); i++)
+    for (size_t i = 0; i < str.Size(); i++)
     {
         utf::Char32 ch = str.GetChar(i);
 

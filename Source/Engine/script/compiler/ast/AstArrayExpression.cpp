@@ -99,7 +99,7 @@ void AstArrayExpression::Visit(AstVisitor* visitor, Module* mod)
         }
     }
 
-    for (SizeType index = 0; index < m_replacedMembers.Size(); index++)
+    for (size_t index = 0; index < m_replacedMembers.Size(); index++)
     {
         auto& replacedMember = m_replacedMembers[index];
         Assert(replacedMember != nullptr);
@@ -185,7 +185,7 @@ UniquePtr<Buildable> AstArrayExpression::Build(AstVisitor* visitor, Module* mod)
     }
 
     // assign all array items
-    for (SizeType index = 0; index < m_replacedMembers.Size(); index++)
+    for (size_t index = 0; index < m_replacedMembers.Size(); index++)
     {
         auto& member = m_replacedMembers[index];
 

@@ -67,14 +67,14 @@ struct DynamicAllocationBase : AllocationBase<T>
         struct
         {
             T* buffer;
-            SizeType capacity;
+            size_t capacity;
         };
 
         // The following nested union fields are unused but make natvis work correctly for arrays.
         union
         {
             UIntPtr buffer;
-            SizeType capacity;
+            size_t capacity;
         } dynamicAllocation;
 
         union
@@ -84,7 +84,7 @@ struct DynamicAllocationBase : AllocationBase<T>
     };
 
     template <class AllocatorType>
-    HYP_FORCE_INLINE void Allocate(AllocatorType* allocator, SizeType count, SizeType alignment = alignof(T))
+    HYP_FORCE_INLINE void Allocate(AllocatorType* allocator, size_t count, size_t alignment = alignof(T))
     {
         HYP_CORE_ASSERT(buffer == nullptr);
 
@@ -121,11 +121,11 @@ struct DynamicAllocationBase : AllocationBase<T>
         capacity = end - begin;
     }
 
-    HYP_FORCE_INLINE void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+    HYP_FORCE_INLINE void InitFromRangeCopy(const T* begin, const T* end, size_t offset = 0)
     {
         HYP_CORE_ASSERT(end >= begin);
 
-        const SizeType count = end - begin;
+        const size_t count = end - begin;
 
         HYP_CORE_ASSERT(capacity >= count + offset);
 
@@ -135,18 +135,18 @@ struct DynamicAllocationBase : AllocationBase<T>
         }
         else
         {
-            for (SizeType i = 0; i < count; i++)
+            for (size_t i = 0; i < count; i++)
             {
                 new (buffer + offset + i) T(begin[i]);
             }
         }
     }
 
-    HYP_FORCE_INLINE void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+    HYP_FORCE_INLINE void InitFromRangeMove(T* begin, T* end, size_t offset = 0)
     {
         HYP_CORE_ASSERT(end >= begin);
 
-        const SizeType count = end - begin;
+        const size_t count = end - begin;
 
         HYP_CORE_ASSERT(capacity >= count + offset);
 
@@ -156,27 +156,27 @@ struct DynamicAllocationBase : AllocationBase<T>
         }
         else
         {
-            for (SizeType i = 0; i < count; i++)
+            for (size_t i = 0; i < count; i++)
             {
                 new (buffer + offset + i) T(std::move(begin[i]));
             }
         }
     }
 
-    HYP_FORCE_INLINE void InitZeroed(SizeType count, SizeType offset = 0)
+    HYP_FORCE_INLINE void InitZeroed(size_t count, size_t offset = 0)
     {
         HYP_CORE_ASSERT(capacity >= count + offset);
 
         Memory::Zero(buffer + offset, count * sizeof(T));
     }
 
-    HYP_FORCE_INLINE void DestructInRange(SizeType startIndex, SizeType lastIndex)
+    HYP_FORCE_INLINE void DestructInRange(size_t startIndex, size_t lastIndex)
     {
         HYP_CORE_ASSERT(lastIndex <= capacity);
 
         if constexpr (!std::is_trivially_destructible_v<T>)
         {
-            for (SizeType i = lastIndex; i > startIndex;)
+            for (size_t i = lastIndex; i > startIndex;)
             {
                 buffer[--i].~T();
             }
@@ -199,7 +199,7 @@ struct DynamicAllocationBase : AllocationBase<T>
         return buffer != nullptr;
     }
 
-    HYP_FORCE_INLINE SizeType GetCapacity() const
+    HYP_FORCE_INLINE size_t GetCapacity() const
     {
         return capacity;
     }
@@ -209,7 +209,7 @@ struct DynamicAllocationBase : AllocationBase<T>
 template <class Derived>
 struct Allocator
 {
-    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         return static_cast<Derived*>(this)->Allocate(size, alignment);
     }
@@ -229,7 +229,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
     {
     };
 
-    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         HYP_CORE_ASSERT(size > 0);
         HYP_CORE_ASSERT(alignment > 0);
@@ -245,7 +245,7 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
     }
 };
 
-template <SizeType Count, class DynamicAllocatorType = DynamicAllocator>
+template <size_t Count, class DynamicAllocatorType = DynamicAllocator>
 struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 {
     static constexpr uint32 maxAlign = ~0u;
@@ -254,7 +254,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
     struct Allocation : AllocationBase<T>
     {
         static constexpr AllocationType allocationType = AT_INLINE;
-        static constexpr SizeType capacity = Count;
+        static constexpr size_t capacity = Count;
 
         HYP_FORCE_INLINE T* GetBuffer()
         {
@@ -271,12 +271,12 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             return isDynamic;
         }
 
-        HYP_FORCE_INLINE SizeType GetCapacity() const
+        HYP_FORCE_INLINE size_t GetCapacity() const
         {
             return isDynamic ? dynamicAllocation.GetCapacity() : Count;
         }
 
-        HYP_FORCE_INLINE void Allocate(InlineAllocator<Count, DynamicAllocatorType>* allocator, SizeType count, SizeType alignment = alignof(T))
+        HYP_FORCE_INLINE void Allocate(InlineAllocator<Count, DynamicAllocatorType>* allocator, size_t count, size_t alignment = alignof(T))
         {
             HYP_CORE_ASSERT(!isDynamic);
 
@@ -319,11 +319,11 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+        void InitFromRangeCopy(const T* begin, const T* end, size_t offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
-            const SizeType count = end - begin;
+            const size_t count = end - begin;
 
             if (isDynamic)
             {
@@ -340,7 +340,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
                 else
                 {
                     // placement new
-                    for (SizeType i = 0; i < count; i++)
+                    for (size_t i = 0; i < count; i++)
                     {
                         new (storage.GetPointer() + offset + i) T(begin[i]);
                     }
@@ -350,11 +350,11 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+        void InitFromRangeMove(T* begin, T* end, size_t offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
-            const SizeType count = end - begin;
+            const size_t count = end - begin;
 
             if (isDynamic)
             {
@@ -371,7 +371,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
                 else
                 {
                     // placement new
-                    for (SizeType i = 0; i < count; i++)
+                    for (size_t i = 0; i < count; i++)
                     {
                         new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
                     }
@@ -381,7 +381,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void InitZeroed(SizeType count, SizeType offset = 0)
+        void InitZeroed(size_t count, size_t offset = 0)
         {
             if (isDynamic)
             {
@@ -397,7 +397,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void DestructInRange(SizeType startIndex, SizeType lastIndex)
+        void DestructInRange(size_t startIndex, size_t lastIndex)
         {
             if (isDynamic)
             {
@@ -410,7 +410,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
 
                 if constexpr (!std::is_trivially_destructible_v<T>)
                 {
-                    for (SizeType i = lastIndex; i > startIndex;)
+                    for (size_t i = lastIndex; i > startIndex;)
                     {
                         storage.GetPointer()[--i].~T();
                     }
@@ -442,7 +442,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
         bool isDynamic : 1 = false;
     };
 
-    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         // Inline allocations should be handled by the Allocation struct itself
         HYP_NOT_IMPLEMENTED();
@@ -457,7 +457,7 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
     DynamicAllocatorType dynamicAllocator;
 };
 
-template <SizeType Count>
+template <size_t Count>
 struct FixedAllocator : Allocator<FixedAllocator<Count>>
 {
     static constexpr uint32 maxAlign = ~0u;
@@ -466,7 +466,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
     struct Allocation : AllocationBase<T>
     {
         static constexpr AllocationType allocationType = AT_INLINE;
-        static constexpr SizeType capacity = Count;
+        static constexpr size_t capacity = Count;
 
         HYP_FORCE_INLINE T* GetBuffer()
         {
@@ -483,12 +483,12 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             return false;
         }
 
-        HYP_FORCE_INLINE constexpr SizeType GetCapacity() const
+        HYP_FORCE_INLINE constexpr size_t GetCapacity() const
         {
             return Count;
         }
 
-        HYP_FORCE_INLINE void Allocate(FixedAllocator<Count>* allocator, SizeType count, SizeType alignment = alignof(T))
+        HYP_FORCE_INLINE void Allocate(FixedAllocator<Count>* allocator, size_t count, size_t alignment = alignof(T))
         {
             HYP_CORE_ASSERT(count <= Count, "Allocation size exceeds fixed capacity!");
 
@@ -506,7 +506,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
         {
             HYP_CORE_ASSERT(end >= begin);
 
-            const SizeType count = end - begin;
+            const size_t count = end - begin;
 
             if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
             {
@@ -515,7 +515,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             else
             {
                 // placement new
-                for (SizeType i = 0; i < count; i++)
+                for (size_t i = 0; i < count; i++)
                 {
                     new (storage.GetPointer()) T(begin[i]);
                 }
@@ -524,11 +524,11 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+        void InitFromRangeCopy(const T* begin, const T* end, size_t offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
-            const SizeType count = end - begin;
+            const size_t count = end - begin;
 
             HYP_CORE_ASSERT(offset + count <= Count);
 
@@ -539,7 +539,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             else
             {
                 // placement new
-                for (SizeType i = 0; i < count; i++)
+                for (size_t i = 0; i < count; i++)
                 {
                     new (storage.GetPointer() + offset + i) T(begin[i]);
                 }
@@ -548,11 +548,11 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+        void InitFromRangeMove(T* begin, T* end, size_t offset = 0)
         {
             HYP_CORE_ASSERT(end >= begin);
 
-            const SizeType count = end - begin;
+            const size_t count = end - begin;
 
             HYP_CORE_ASSERT(offset + count <= Count);
 
@@ -563,7 +563,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             else
             {
                 // placement new
-                for (SizeType i = 0; i < count; i++)
+                for (size_t i = 0; i < count; i++)
                 {
                     new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
                 }
@@ -572,7 +572,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void InitZeroed(SizeType count, SizeType offset = 0)
+        void InitZeroed(size_t count, size_t offset = 0)
         {
             HYP_CORE_ASSERT(offset + count <= Count);
 
@@ -581,14 +581,14 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             HYP_CORE_ASSERT(magic == 0xBADA55u, "stomp detected!");
         }
 
-        void DestructInRange(SizeType startIndex, SizeType lastIndex)
+        void DestructInRange(size_t startIndex, size_t lastIndex)
         {
             HYP_CORE_ASSERT(lastIndex <= Count);
             HYP_CORE_ASSERT(startIndex <= lastIndex);
 
             if constexpr (!std::is_trivially_destructible_v<T>)
             {
-                for (SizeType i = lastIndex; i > startIndex;)
+                for (size_t i = lastIndex; i > startIndex;)
                 {
                     storage.GetPointer()[--i].~T();
                 }
@@ -612,7 +612,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
             union
             {
                 UIntPtr buffer;
-                SizeType capacity;
+                size_t capacity;
             } dynamicAllocation;
 
             T* buffer; // for natvis
@@ -623,7 +623,7 @@ struct FixedAllocator : Allocator<FixedAllocator<Count>>
         bool isDynamic : 1 = false;
     };
 
-    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         // Fixed allocations should be handled by the Allocation struct itself
         HYP_NOT_IMPLEMENTED();
@@ -668,7 +668,7 @@ struct AllocatorInstance : Allocator<AllocatorInstance<AllocatorType, GlobalInst
     {
     }
 
-    HYP_FORCE_INLINE void* Allocate(SizeType size, SizeType alignment)
+    HYP_FORCE_INLINE void* Allocate(size_t size, size_t alignment)
     {
         HYP_CORE_ASSERT(pAllocator != nullptr);
 

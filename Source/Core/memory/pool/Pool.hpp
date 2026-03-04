@@ -49,11 +49,11 @@ public:
     {
         ByteBuffer buffer;
 
-        explicit Block(SizeType capacity);
+        explicit Block(size_t capacity);
         ~Block() = default;
     };
 
-    explicit Pool(SizeType blockSize, EnumFlags<PoolFlags> flags = PF_DEFAULT, const ThreadId& ownerThreadId = ThreadId::Invalid())
+    explicit Pool(size_t blockSize, EnumFlags<PoolFlags> flags = PF_DEFAULT, const ThreadId& ownerThreadId = ThreadId::Invalid())
         : m_blockSize(blockSize),
           m_flags(flags),
           m_ownerThreadId(ownerThreadId)
@@ -75,7 +75,7 @@ public:
 
     ~Pool();
 
-    HYP_FORCE_INLINE SizeType GetBlockSize() const
+    HYP_FORCE_INLINE size_t GetBlockSize() const
     {
         return m_blockSize;
     }
@@ -91,7 +91,7 @@ public:
     }
 
     /*! \brief Allocates memory from the pool with the given size and alignment. */
-    HYP_NODISCARD void* Allocate(SizeType size, SizeType alignment = 16);
+    HYP_NODISCARD void* Allocate(size_t size, size_t alignment = 16);
 
     /*! \brief Allocates an object of type T from the pool. */
     template <class T>
@@ -112,7 +112,7 @@ protected:
     TlsfAllocator m_tlsf;
 
     LinkedList<Block> m_blocks;
-    SizeType m_blockSize;
+    size_t m_blockSize;
     EnumFlags<PoolFlags> m_flags;
     AtomicFlag m_atomicFlag;
     
@@ -229,7 +229,7 @@ inline void operator delete[](void* ptr, std::align_val_t alignment, Hyperion::P
                                                                            \
     void* operator new(size_t size, std::align_val_t alignment)            \
     {                                                                      \
-        return poolName->Allocate(size, static_cast<SizeType>(alignment)); \
+        return poolName->Allocate(size, static_cast<size_t>(alignment)); \
     }                                                                      \
                                                                            \
     void operator delete(void* ptr, std::align_val_t)                      \

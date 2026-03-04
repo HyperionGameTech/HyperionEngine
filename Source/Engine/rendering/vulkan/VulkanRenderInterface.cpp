@@ -292,7 +292,7 @@ void VulkanDescriptorSetManager::OnFrameStart()
         return;
 
     // Reset descriptor pools for this frame
-    for (SizeType i = 0; i < m_pools.Size(); i++)
+    for (size_t i = 0; i < m_pools.Size(); i++)
     {
         VulkanDescriptorPool& dp = m_pools[i];
 
@@ -315,7 +315,7 @@ RendererResult VulkanDescriptorSetManager::Destroy(VulkanDevice* device)
 
     m_vkDescriptorSetLayouts.Clear();
 
-    for (SizeType i = 0; i < m_pools.Size(); i++)
+    for (size_t i = 0; i < m_pools.Size(); i++)
     {
         VkDescriptorPool& descriptorPool = m_pools[i].pool;
         AssertDebug(descriptorPool != VK_NULL_HANDLE);
@@ -344,7 +344,7 @@ VkDescriptorPool VulkanDescriptorSetManager::GetDescriptorPool(
 
     // return last descriptor pool, it's most likely for allocations
     // to succeed with it since it would have more free memory
-    for (SizeType idx = m_pools.Size(); idx != 0; --idx)
+    for (size_t idx = m_pools.Size(); idx != 0; --idx)
     {
         VulkanDescriptorPool& dp = m_pools[idx - 1];
 
@@ -917,7 +917,7 @@ VulkanRayTracingPipelineRef VulkanRenderInterface::MakeRayTracingPipeline(const 
     return MakeHandle<VulkanRayTracingPipeline>(shaderInstance);
 }
 
-VulkanGpuBufferRef VulkanRenderInterface::MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment)
+VulkanGpuBufferRef VulkanRenderInterface::MakeGpuBuffer(GpuBufferType bufferType, size_t size, size_t alignment)
 {
     return MakeHandle<VulkanGpuBuffer>(bufferType, size, alignment);
 }
@@ -1001,7 +1001,7 @@ void VulkanRenderInterface::PopulateIndirectDrawCommandsBuffer(
     uint32 instanceOffset,
     TByteBuffer<RenderAllocator>& outByteBuffer)
 {
-    const SizeType requiredSize = (SizeType(instanceOffset) + 1) * sizeof(VkDrawIndexedIndirectCommand);
+    const size_t requiredSize = (size_t(instanceOffset) + 1) * sizeof(VkDrawIndexedIndirectCommand);
 
     if (outByteBuffer.Size() < requiredSize)
     {

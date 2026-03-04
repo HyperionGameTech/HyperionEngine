@@ -99,7 +99,7 @@ struct Formatter<StringType, T, std::enable_if_t<std::is_enum_v<T>>>
 };
 
 // StaticString< Size >
-template <class StringType, SizeType Size>
+template <class StringType, size_t Size>
 struct Formatter<StringType, StaticString<Size>>
 {
     auto operator()(const StaticString<Size>& value) const
@@ -164,7 +164,7 @@ struct Formatter<StringType, char*>
     }
 };
 
-template <class StringType, SizeType Size>
+template <class StringType, size_t Size>
 struct Formatter<StringType, char[Size]>
 {
     auto operator()(const char (&value)[Size]) const
@@ -182,7 +182,7 @@ struct Formatter<StringType, wchar_t*>
     }
 };
 
-template <class StringType, SizeType Size>
+template <class StringType, size_t Size>
 struct Formatter<StringType, wchar_t[Size]>
 {
     auto operator()(const wchar_t (&value)[Size]) const
@@ -200,7 +200,7 @@ struct Formatter<StringType, char16_t*>
     }
 };
 
-template <class StringType, SizeType Size>
+template <class StringType, size_t Size>
 struct Formatter<StringType, char16_t[Size]>
 {
     auto operator()(const char16_t (&value)[Size]) const
@@ -218,7 +218,7 @@ struct Formatter<StringType, char32_t*>
     }
 };
 
-template <class StringType, SizeType Size>
+template <class StringType, size_t Size>
 struct Formatter<StringType, char32_t[Size]>
 {
     auto operator()(const char32_t (&value)[Size]) const
@@ -340,14 +340,14 @@ containers::String<StringType> FormatString_FormatElement_Runtime(const T& eleme
 
 #pragma region FormatString_BuildTuple
 
-template <auto Str, class Transformer, SizeType SubIndex = 0>
+template <auto Str, class Transformer, size_t SubIndex = 0>
 struct FormatString_BuildTuple;
 
-template <auto Str, class Transformer, SizeType StringIndexStart = 0, SizeType StringIndexEnd = 0, SizeType SubIndex = 0>
+template <auto Str, class Transformer, size_t StringIndexStart = 0, size_t StringIndexEnd = 0, size_t SubIndex = 0>
 struct FormatString_BuildTuple_Impl;
 
-template <auto Str, class Transformer, SizeType SubIndex>
-struct FormatString_BuildTuple_Impl<Str, Transformer, SizeType(-1), SizeType(-1), SubIndex>
+template <auto Str, class Transformer, size_t SubIndex>
+struct FormatString_BuildTuple_Impl<Str, Transformer, size_t(-1), size_t(-1), SubIndex>
 {
     template <class... Args>
     constexpr auto operator()(Args&&... args) const
@@ -356,7 +356,7 @@ struct FormatString_BuildTuple_Impl<Str, Transformer, SizeType(-1), SizeType(-1)
     }
 };
 
-template <auto Str, class Transformer, SizeType StringIndexStart, SizeType StringIndexEnd, SizeType SubIndex>
+template <auto Str, class Transformer, size_t StringIndexStart, size_t StringIndexEnd, size_t SubIndex>
 struct FormatString_BuildTuple_Impl
 {
     template <class... Args>
@@ -367,7 +367,7 @@ struct FormatString_BuildTuple_Impl
         if constexpr (innerValue.Size() > 1 /* NUL */)
         {
             // Parse string to integer, use it as SubIndex.
-            constexpr SizeType parsedInteger = SizeType(containers::helpers::ParseInteger<innerValue>::value);
+            constexpr size_t parsedInteger = size_t(containers::helpers::ParseInteger<innerValue>::value);
 
             if constexpr (parsedInteger < sizeof...(Args))
             {
@@ -399,7 +399,7 @@ struct FormatString_BuildTuple_Impl
     }
 };
 
-template <auto Str, class Transformer, SizeType SubIndex>
+template <auto Str, class Transformer, size_t SubIndex>
 struct FormatString_BuildTuple
 {
     template <class... Args>
@@ -419,14 +419,14 @@ struct FormatString_BuildTuple
 #pragma region FormatString_ProcessTuple
 
 #if 0
-template <class... Ts, SizeType... Indices>
+template <class... Ts, size_t... Indices>
 constexpr auto FormatString_ProcessTuple_ProcessElements_CompileTime(const Tuple< Ts... > &args, std::index_sequence<Indices...>)
 {
     return containers::helpers::ConcatStrings(FormatString_FormatElement_CompileTime(args.template GetElement< Indices >())...);
 }
 #endif
 
-template <int StringType, class... Ts, SizeType... Indices>
+template <int StringType, class... Ts, size_t... Indices>
 containers::String<StringType> FormatString_ProcessTuple_ProcessElements_Runtime(const Tuple<Ts...>& args, std::index_sequence<Indices...>)
 {
     return ConcatRuntimeStrings<StringType>(FormatString_FormatElement_Runtime<StringType>(args.template GetElement<Indices>())...);

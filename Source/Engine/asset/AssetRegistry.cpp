@@ -210,7 +210,7 @@ static bool ShouldRelocateAssetBeforeSave(const AssetObject& assetObject)
     return !assetObject.IsRegistered() || IsRelocatable(assetObject.GetPath());
 }
 
-template <SizeType Size>
+template <size_t Size>
 static bool IsPackageInList(
     const AssetPackage& package,
     const StringHash(&elems)[Size],
@@ -225,7 +225,7 @@ static bool IsPackageInList(
         substrHash = StringHash(substr);
     }
 
-    for (SizeType i = 0; i < Size; i++)
+    for (size_t i = 0; i < Size; i++)
     {
         StringHash packageName = elems[i];
 
@@ -1359,14 +1359,14 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     Array<String> outputParts = outputDirectory.Split('/', '\\');
     Array<String> packageParts = packagePath.Split('/', '\\');
 
-    SizeType packageStartIndex = 0;
+    size_t packageStartIndex = 0;
 
     if (packageParts.Any() && outputParts.Any())
     {
         // Check if the last part of outputDirectory matches any part of packagePath
         const String& lastOutputPart = outputParts.Back();
 
-        for (SizeType i = 0; i < packageParts.Size(); ++i)
+        for (size_t i = 0; i < packageParts.Size(); ++i)
         {
             if (packageParts[i] == lastOutputPart)
             {
@@ -1380,7 +1380,7 @@ Result AssetPackage::Save(const FilePath& outputDirectory, bool saveEvenIfNotDir
     {
         // Append remaining package path components
         Array<String> remainingParts;
-        for (SizeType i = packageStartIndex; i < packageParts.Size(); ++i)
+        for (size_t i = packageStartIndex; i < packageParts.Size(); ++i)
         {
             remainingParts.PushBack(packageParts[i]);
         }
@@ -3563,9 +3563,9 @@ void AssetRegistry::RegisterAssetsRecursively(
                 return;
             }
 
-            SizeType size = array.Size();
+            size_t size = array.Size();
 
-            for (SizeType i = 0; i < size; ++i)
+            for (size_t i = 0; i < size; ++i)
             {
                 BoxedValue boxed;
                 if (!array.GetElementAt(i, boxed))

@@ -43,7 +43,7 @@ public:
     void Bind(CommandBuffer* cmd) override;
     void Bind(CommandBuffer* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;
 
-    void SetPushConstants(const void* data, SizeType size) override;
+    void SetPushConstants(const void* data, size_t size) override;
 
 #ifdef HYP_DEBUG_MODE
     void SetDebugName(Name name) override;

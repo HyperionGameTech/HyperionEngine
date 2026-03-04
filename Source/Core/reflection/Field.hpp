@@ -154,7 +154,7 @@ public:
 
                     if (data.IsNull())
                     {
-                        for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
+                        for (size_t i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
                         {
                             (target.*member)[i] = NormalizedType<InnerType> {};
                         }
@@ -163,7 +163,7 @@ public:
                     {
                         auto& arrayValue = data.Get<NormalizedType<FieldType>>();
 
-                        for (SizeType i = 0; i < arrayValue.Size(); i++)
+                        for (size_t i = 0; i < arrayValue.Size(); i++)
                         {
                             (target.*member)[i] = arrayValue[i];
                         }
@@ -223,7 +223,7 @@ public:
 
                     if (value.IsNull())
                     {
-                        for (SizeType i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
+                        for (size_t i = 0; i < std::extent_v<NormalizedType<FieldType>>; i++)
                         {
                             (target.*member)[i] = NormalizedType<InnerType> {};
                         }
@@ -232,7 +232,7 @@ public:
                     {
                         auto& arrayValue = value.Get<NormalizedType<FieldType>>();
 
-                        for (SizeType i = 0; i < arrayValue.Size(); i++)
+                        for (size_t i = 0; i < arrayValue.Size(); i++)
                         {
                             (target.*member)[i] = arrayValue[i];
                         }

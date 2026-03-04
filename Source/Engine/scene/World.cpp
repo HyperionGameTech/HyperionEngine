@@ -493,7 +493,7 @@ void World::BeginUpdate(TaskBatch& inBatch, float delta)
     TaskBatch* lastTaskBatch = nullptr;
 
     // Prepare task dependencies
-    for (SizeType index = 0; index < m_systemExecutionGroups.Size(); index++)
+    for (size_t index = 0; index < m_systemExecutionGroups.Size(); index++)
     {
         SystemExecutionGroup& systemExecutionGroup = *m_systemExecutionGroups[index];
 
@@ -692,23 +692,23 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
     }
 
     { // set buffered Views for current frame index
-        for (SizeType i = 0; i < m_views.Size(); i++)
+        for (size_t i = 0; i < m_views.Size(); i++)
         {
             m_viewsPerFrame[slot][i] = m_views[i].Get();
         }
 
-        const SizeType offset = m_views.Size();
-        for (SizeType i = 0; i < m_processViews.Size(); i++)
+        const size_t offset = m_views.Size();
+        for (size_t i = 0; i < m_processViews.Size(); i++)
         {
             m_viewsPerFrame[slot][offset + i] = m_processViews[i];
         }
     }
 
     { // add all views to outViews
-        SizeType offset = outViews.Size();
+        size_t offset = outViews.Size();
         outViews.Resize(offset + m_processViews.Size() + m_views.Size());
 
-        for (SizeType i = 0; i < m_views.Size(); i++)
+        for (size_t i = 0; i < m_views.Size(); i++)
         {
             AssertDebug(m_views[i] != nullptr);
             AssertDebug(!m_processViews.Contains(m_views[i]));
@@ -718,7 +718,7 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
 
         offset += m_views.Size();
 
-        for (SizeType i = 0; i < m_processViews.Size(); i++)
+        for (size_t i = 0; i < m_processViews.Size(); i++)
         {
             outViews[offset + i] = m_processViews[i];
         }
@@ -730,10 +730,10 @@ void World::CollectViews(Array<View*, SceneTempAllocator>& outViews)
 
 void World::CollectSubsystems(Array<Subsystem*, SceneTempAllocator>& outSubsystems)
 {
-    const SizeType offset = outSubsystems.Size();
+    const size_t offset = outSubsystems.Size();
     outSubsystems.Resize(offset + m_subsystemsArray.Size());
 
-    for (SizeType i = 0; i < m_subsystemsArray.Size(); i++)
+    for (size_t i = 0; i < m_subsystemsArray.Size(); i++)
     {
         outSubsystems[offset + i] = m_subsystemsArray[i];
     }
@@ -1352,7 +1352,7 @@ Array<WGLayerDesc, DynamicAllocator> World::SerializeStreamingLayers() const
 void World::DeserializeSystems(const Array<Handle<SystemBase>>& systems)
 {
     // remove existing
-    for (SizeType systemIdx = 0; systemIdx < m_systems.Size();)
+    for (size_t systemIdx = 0; systemIdx < m_systems.Size();)
     {
         SystemBase* system = m_systems[systemIdx];
 

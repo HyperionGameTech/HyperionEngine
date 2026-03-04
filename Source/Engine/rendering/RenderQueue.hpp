@@ -1011,13 +1011,13 @@ public:
         //static_assert(std::is_trivially_copyable_v<TCmd> && std::is_trivially_destructible_v<TCmd>,
          //   "CmdType should be trivially copyable and destructible!");
 
-        constexpr SizeType CmdSize = sizeof(TCmd);
+        constexpr size_t CmdSize = sizeof(TCmd);
 
         const uint32 alignedOffset = ByteUtil::AlignAs(m_offset, 16);
 
         if (m_buffer.Size() < alignedOffset + CmdSize)
         {
-            m_buffer.SetSize(MathUtil::Ceil<SizeType>(1.5 * (alignedOffset + CmdSize)), /* zeroize */ false);
+            m_buffer.SetSize(MathUtil::Ceil<size_t>(1.5 * (alignedOffset + CmdSize)), /* zeroize */ false);
         }
 
         void* startPtr = m_buffer.Data() + alignedOffset;
@@ -1050,7 +1050,7 @@ public:
 
         if (m_buffer.GetCapacity() < newStartOffset + other.m_offset)
         {
-            m_buffer.SetSize(MathUtil::Ceil<SizeType>(1.5 * (newStartOffset + other.m_offset)), /* zeroize */ false);
+            m_buffer.SetSize(MathUtil::Ceil<size_t>(1.5 * (newStartOffset + other.m_offset)), /* zeroize */ false);
         }
         else
         {
@@ -1063,7 +1063,7 @@ public:
             AssertDebug(m_buffer.Data() == prevPtr);
         }
 
-        SizeType cmdsOffset = m_cmdHeaders.Size();
+        size_t cmdsOffset = m_cmdHeaders.Size();
 
         // Reconstruct the commands into our memory
         Memory::Copy(m_buffer.Data() + newStartOffset, other.m_buffer.Data(), other.m_offset);

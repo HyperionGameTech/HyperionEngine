@@ -7,7 +7,7 @@ namespace memory {
 
 #pragma region Block
 
-Pool::Block::Block(SizeType capacity)
+Pool::Block::Block(size_t capacity)
 {
     buffer.SetSize(capacity);
 }
@@ -19,7 +19,7 @@ Pool::~Pool()
     m_blocks.Clear();
 }
 
-HYP_NODISCARD void* Pool::Allocate(SizeType size, SizeType alignment)
+HYP_NODISCARD void* Pool::Allocate(size_t size, size_t alignment)
 {
     if (m_flags & PF_THREAD_SAFE)
     {

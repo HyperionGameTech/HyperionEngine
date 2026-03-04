@@ -32,7 +32,7 @@ public:
 
     bool IsCreated() const;
 
-    void SetPushConstants(const void* data, SizeType size);
+    void SetPushConstants(const void* data, size_t size);
 
 #if HYP_DEBUG_MODE
     void SetDebugName(Name name);

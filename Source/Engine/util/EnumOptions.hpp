@@ -30,17 +30,17 @@ constexpr EnumType OrdinalToEnum(OrdinalType ordinal)
     return EnumType(1ull << ordinal);
 }
 
-template <class ContainerType, typename EnumType, typename ValueType, SizeType Sz>
+template <class ContainerType, typename EnumType, typename ValueType, size_t Sz>
 struct EnumMapIterator
 {
     using OrdinalType = std::underlying_type_t<EnumType>;
 
     ContainerType& ref;
-    SizeType index;
+    size_t index;
 
     EnumMapIterator() = delete;
 
-    EnumMapIterator(ContainerType& ref, SizeType index)
+    EnumMapIterator(ContainerType& ref, size_t index)
         : ref(ref),
           index(index)
     {
@@ -120,7 +120,7 @@ struct EnumMapIterator
 
 } // namespace containers
 
-template <typename EnumType, typename ValueType, SizeType Sz>
+template <typename EnumType, typename ValueType, size_t Sz>
 class EnumOptions : public FixedArray<ValueType, Sz>
 {
 public:
@@ -192,22 +192,22 @@ public:
 
     ~EnumOptions() = default;
 
-    constexpr KeyValuePairType KeyValueAt(SizeType index) const
+    constexpr KeyValuePairType KeyValueAt(size_t index) const
     {
         return KeyValuePairType { EnumType(OrdinalToEnum(index)), Base::m_values[index] };
     }
 
-    constexpr EnumType KeyAt(SizeType index) const
+    constexpr EnumType KeyAt(size_t index) const
     {
         return EnumType(OrdinalToEnum(index));
     }
 
-    constexpr ValueType& ValueAt(SizeType index)
+    constexpr ValueType& ValueAt(size_t index)
     {
         return Base::operator[](index);
     }
 
-    constexpr const ValueType& ValueAt(SizeType index) const
+    constexpr const ValueType& ValueAt(size_t index) const
     {
         return Base::operator[](index);
     }
@@ -262,7 +262,7 @@ public:
         return *this;
     }
 
-    constexpr SizeType Size() const
+    constexpr size_t Size() const
     {
         return Base::Size();
     }

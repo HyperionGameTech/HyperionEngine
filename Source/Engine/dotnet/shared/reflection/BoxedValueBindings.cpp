@@ -217,7 +217,7 @@ extern "C"
             }
 
             BoxedValue tmp;
-            if (!arrayWrapper.GetElementAt(SizeType(index), tmp))
+            if (!arrayWrapper.GetElementAt(size_t(index), tmp))
             {
                 return false;
             }

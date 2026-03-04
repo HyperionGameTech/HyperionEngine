@@ -15,7 +15,7 @@ namespace Hyperion {
 // false while in static initialization to disable mutex locking; set to true on engine startup
 static bool s_isNameRegistryInitialized = false;
 
-static constexpr SizeType NamePoolBlockSize = 1024 * 1024; // 1 MB
+static constexpr size_t NamePoolBlockSize = 1024 * 1024; // 1 MB
 
 static Pool* s_namePool;
 

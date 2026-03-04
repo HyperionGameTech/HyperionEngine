@@ -99,7 +99,7 @@ static void BuildFilterBuffer(Span<const ANSIStringView> extensions, MemoryByteW
     {
         WideString patternString;
 
-        for (SizeType i = 0; i < extensions.Size(); i++)
+        for (size_t i = 0; i < extensions.Size(); i++)
         {
             if (i != 0)
             {
@@ -175,7 +175,7 @@ void ShowOpenFileDialog(
     fileNameBufferData.SetSize(65535 * sizeof(wchar_t));
 
     static constexpr uint32 MaxRetries = 10;
-    static constexpr SizeType MaxFileNameBufferSize = 1u << 16;
+    static constexpr size_t MaxFileNameBufferSize = 1u << 16;
 
     bool retry;
     uint32 numRetries = 0;

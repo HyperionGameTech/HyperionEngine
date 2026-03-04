@@ -478,11 +478,11 @@ public:
         return &m_entries.Get(uint64(shaderCacheId));
     }
 
-    SizeType CalculateMemoryUsage() const
+    size_t CalculateMemoryUsage() const
     {
         HYP_SCOPE;
 
-        SizeType totalMemoryUsage = 0;
+        size_t totalMemoryUsage = 0;
 
         TSharedLock lock(m_mutex);
 
@@ -524,7 +524,7 @@ ShaderCacheId ShaderManager::GetShaderCacheId(
     return m_impl->GetShaderCacheId(name, properties, vertexAttributes, createIfNotExists);
 }
 
-SizeType ShaderManager::CalculateMemoryUsage() const
+size_t ShaderManager::CalculateMemoryUsage() const
 {
     return m_impl->CalculateMemoryUsage();
 }

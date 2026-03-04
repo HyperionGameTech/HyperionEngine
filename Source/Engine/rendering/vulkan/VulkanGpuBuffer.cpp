@@ -47,7 +47,7 @@ static uint32 FindMemoryType(uint32 vkTypeFilter, VkMemoryPropertyFlags vkMemory
 
 #pragma region VulkanGpuBuffer
 
-VulkanGpuBuffer::VulkanGpuBuffer(GpuBufferType type, SizeType size, SizeType alignment)
+VulkanGpuBuffer::VulkanGpuBuffer(GpuBufferType type, size_t size, size_t alignment)
     : GpuBufferBase(type, size, alignment)
 {
 }
@@ -74,7 +74,7 @@ VulkanGpuBuffer::~VulkanGpuBuffer()
     m_resourceState = RS_UNDEFINED;
 }
 
-void VulkanGpuBuffer::Memset(SizeType count, ubyte value)
+void VulkanGpuBuffer::Memset(size_t count, ubyte value)
 {
     if (m_mapping == nullptr)
     {
@@ -84,7 +84,7 @@ void VulkanGpuBuffer::Memset(SizeType count, ubyte value)
     Memory::Fill(m_mapping, value, count);
 }
 
-void VulkanGpuBuffer::Copy(SizeType count, const void* ptr)
+void VulkanGpuBuffer::Copy(size_t count, const void* ptr)
 {
     if (m_mapping == nullptr)
     {
@@ -94,7 +94,7 @@ void VulkanGpuBuffer::Copy(SizeType count, const void* ptr)
     Memory::Copy(m_mapping, ptr, count);
 }
 
-void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
+void VulkanGpuBuffer::Copy(size_t offset, size_t count, const void* ptr)
 {
     if (m_mapping == nullptr)
     {
@@ -106,7 +106,7 @@ void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
     Memory::Copy(reinterpret_cast<void*>(UIntPtr(m_mapping) + offset), ptr, count);
 }
 
-void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
+void VulkanGpuBuffer::Read(size_t count, void* outPtr) const
 {
     if (m_mapping == nullptr)
     {
@@ -120,7 +120,7 @@ void VulkanGpuBuffer::Read(SizeType count, void* outPtr) const
     Memory::Copy(outPtr, m_mapping, count);
 }
 
-void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* outPtr) const
+void VulkanGpuBuffer::Read(size_t offset, size_t count, void* outPtr) const
 {
     if (m_mapping == nullptr)
     {
@@ -159,7 +159,7 @@ void VulkanGpuBuffer::Unmap() const
     m_mapping = nullptr;
 }
 
-void VulkanGpuBuffer::Flush(SizeType offset, SizeType count)
+void VulkanGpuBuffer::Flush(size_t offset, size_t count)
 {
     if (!IsCreated())
     {
@@ -188,7 +188,7 @@ bool VulkanGpuBuffer::IsCpuAccessible() const
     return (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 }
 
-RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
+RendererResult VulkanGpuBuffer::CheckCanAllocate(size_t size) const
 {
     const VkBufferCreateInfo createInfo = GetBufferCreateInfo();
     const VmaAllocationCreateInfo allocInfo = GetAllocationCreateInfo();
@@ -421,8 +421,8 @@ RendererResult VulkanGpuBuffer::Create()
 }
 
 RendererResult VulkanGpuBuffer::EnsureCapacity(
-    SizeType minimumSize,
-    SizeType alignment,
+    size_t minimumSize,
+    size_t alignment,
     bool* outSizeChanged)
 {
     AssertOnThread(g_renderThread);
@@ -478,7 +478,7 @@ RendererResult VulkanGpuBuffer::EnsureCapacity(
 }
 
 RendererResult VulkanGpuBuffer::EnsureCapacity(
-    SizeType minimumSize,
+    size_t minimumSize,
     bool* outSizeChanged)
 {
     return EnsureCapacity(minimumSize, 0, outSizeChanged);
@@ -510,7 +510,7 @@ VmaAllocationCreateInfo VulkanGpuBuffer::GetAllocationCreateInfo() const
 RendererResult VulkanGpuBuffer::CheckCanAllocate(
     const VkBufferCreateInfo& bufferCreateInfo,
     const VmaAllocationCreateInfo& allocationCreateInfo,
-    SizeType size) const
+    size_t size) const
 {
     const VulkanFeatures& features = g_renderInterface->GetDevice()->GetFeatures();
 

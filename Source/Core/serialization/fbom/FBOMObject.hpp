@@ -152,7 +152,7 @@ public:
 
     FBOMObject& SetProperty(ANSIStringView key, const FBOMData& data);
     FBOMObject& SetProperty(ANSIStringView key, FBOMData&& data);
-    FBOMObject& SetProperty(ANSIStringView key, const FBOMType& type, SizeType size, const void* bytes);
+    FBOMObject& SetProperty(ANSIStringView key, const FBOMType& type, size_t size, const void* bytes);
 
     HYP_FORCE_INLINE FBOMObject& SetProperty(ANSIStringView key, const UTF8StringView& str)
     {

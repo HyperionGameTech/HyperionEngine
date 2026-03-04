@@ -31,7 +31,7 @@ public:
     Stack& operator=(const Stack& other);
     Stack& operator=(Stack&& other) noexcept;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return Base::Size();
     }
@@ -66,7 +66,7 @@ public:
         return Base::Any();
     }
 
-    HYP_FORCE_INLINE void Reserve(SizeType capacity)
+    HYP_FORCE_INLINE void Reserve(size_t capacity)
     {
         Base::Reserve(capacity);
     }

@@ -51,7 +51,7 @@ void INIFile::Parse()
     {
         String lineTrimmed = line.TrimmedLeft();
 
-        FixedArray<SizeType, 2> commentIndices {
+        FixedArray<size_t, 2> commentIndices {
             lineTrimmed.FindFirstIndex(";"),
             lineTrimmed.FindFirstIndex("#")
         };
@@ -76,7 +76,7 @@ void INIFile::Parse()
         {
             String sectionName;
 
-            for (SizeType index = 1; index < lineTrimmed.Length() && lineTrimmed.GetChar(index) != ']'; index++)
+            for (size_t index = 1; index < lineTrimmed.Length() && lineTrimmed.GetChar(index) != ']'; index++)
             {
                 sectionName += lineTrimmed.GetChar(index);
             }
@@ -127,7 +127,7 @@ void INIFile::Parse()
             int parenthesesDepth = 0;
             String subElementName;
 
-            for (SizeType index = 0; index < itemTrimmed.Size(); index++)
+            for (size_t index = 0; index < itemTrimmed.Size(); index++)
             {
                 if (std::isspace(itemTrimmed[index]) || itemTrimmed[index] == ',')
                 {

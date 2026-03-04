@@ -45,7 +45,7 @@ namespace Hyperion {
     }
 
 constexpr uint32 maxRenderCommandTypes = 128;
-constexpr SizeType renderCommandCacheSizeBytes = 1 << 16;
+constexpr size_t renderCommandCacheSizeBytes = 1 << 16;
 
 using RenderCommandFunc = void (*)(void* /*ptr */, uint32 /* bufferIndex */);
 
@@ -54,7 +54,7 @@ struct RenderCommandList
 {
     struct Block
     {
-        static constexpr SizeType renderCommandCacheSize = MathUtil::Max(renderCommandCacheSizeBytes / sizeof(T), 1);
+        static constexpr size_t renderCommandCacheSize = MathUtil::Max(renderCommandCacheSizeBytes / sizeof(T), 1);
 
         FixedArray<ValueStorage<T>, renderCommandCacheSize> storage;
         uint32 index = 0;
@@ -98,7 +98,7 @@ struct RenderCommandList
             lastBlock = &blocksBuffer.Back();
         }
 
-        const SizeType commandIndex = lastBlock->index++;
+        const size_t commandIndex = lastBlock->index++;
 
         return lastBlock->storage.Data() + commandIndex;
     }
@@ -143,13 +143,13 @@ struct RenderScheduler
     struct FlushResult
     {
         RendererResult result;
-        SizeType numExecuted;
+        size_t numExecuted;
     };
 
     Array<RenderCommand*> m_commands;
 
     std::mutex m_mutex;
-    AtomicVar<SizeType> m_numEnqueued;
+    AtomicVar<size_t> m_numEnqueued;
 
     RenderScheduler() = default;
 

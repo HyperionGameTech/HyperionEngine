@@ -50,7 +50,7 @@ void AstMemberCallExpression::Visit(AstVisitor* visitor, Module* mod)
         "self",
         selfTarget->GetLocation()));
 
-    const SizeType numArguments = m_arguments != nullptr
+    const size_t numArguments = m_arguments != nullptr
         ? m_arguments->GetArguments().Size() + 1
         : 1;
 
@@ -305,7 +305,7 @@ String AstMemberCallExpression::ToString() const
 
     if (m_arguments && !m_arguments->GetArguments().Empty())
     {
-        for (SizeType i = 0; i < m_arguments->GetArguments().Size(); ++i)
+        for (size_t i = 0; i < m_arguments->GetArguments().Size(); ++i)
         {
             if (i > 0)
                 result += ", ";

@@ -40,25 +40,25 @@ FilePath HypScriptModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, c
 Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically(
     const Analyzer& analyzer,
     const Array<const ClassDefinition*>& classes,
-    const HashMap<String, SizeType>& classNameToIndex) const
+    const HashMap<String, size_t>& classNameToIndex) const
 {
-    const SizeType numClasses = classes.Size();
+    const size_t numClasses = classes.Size();
     if (numClasses <= 1)
     {
         return classes; // Already sorted or empty
     }
 
-    Array<Array<SizeType>> dependents(numClasses); // dependents[i] contains classes that depend on class i
-    Array<SizeType> inDegree(numClasses);          // number of classes this class depends on
+    Array<Array<size_t>> dependents(numClasses); // dependents[i] contains classes that depend on class i
+    Array<size_t> inDegree(numClasses);          // number of classes this class depends on
 
     // Initialize inDegree to 0
-    for (SizeType i = 0; i < numClasses; i++)
+    for (size_t i = 0; i < numClasses; i++)
     {
         inDegree[i] = 0;
     }
 
     // Build dependency graph within this set of classes
-    for (SizeType i = 0; i < numClasses; i++)
+    for (size_t i = 0; i < numClasses; i++)
     {
         const ClassDefinition* currentClass = classes[i];
 
@@ -68,17 +68,17 @@ Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically
             if (it != classNameToIndex.End())
             {
                 // This class depends on baseClass, so baseClass should come before this class
-                const SizeType baseClassIndex = it->second;
+                const size_t baseClassIndex = it->second;
                 dependents[baseClassIndex].PushBack(i); // baseClass has currentClass as dependent
                 inDegree[i]++;                          // currentClass has one more dependency
             }
         }
     }
 
-    Array<SizeType> result;
-    Array<SizeType> queue;
+    Array<size_t> result;
+    Array<size_t> queue;
 
-    for (SizeType i = 0; i < numClasses; i++)
+    for (size_t i = 0; i < numClasses; i++)
     {
         if (inDegree[i] == 0)
         {
@@ -88,10 +88,10 @@ Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically
 
     while (!queue.Empty())
     {
-        const SizeType currentIndex = queue.PopBack();
+        const size_t currentIndex = queue.PopBack();
         result.PushBack(currentIndex);
 
-        for (SizeType dependentIndex : dependents[currentIndex])
+        for (size_t dependentIndex : dependents[currentIndex])
         {
             inDegree[dependentIndex]--;
             if (inDegree[dependentIndex] == 0)
@@ -103,7 +103,7 @@ Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically
 
     if (result.Size() != numClasses)
     {
-        for (SizeType i = 0; i < numClasses; i++)
+        for (size_t i = 0; i < numClasses; i++)
         {
             if (inDegree[i] > 0)
             {
@@ -115,7 +115,7 @@ Array<const ClassDefinition*> HypScriptModuleGenerator::SortClassesTopologically
     Array<const ClassDefinition*> sortedClasses;
     sortedClasses.Reserve(result.Size());
 
-    for (SizeType index : result)
+    for (size_t index : result)
     {
         sortedClasses.PushBack(classes[index]);
     }
@@ -127,7 +127,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 {
     // First, collect all classes that will be generated
     Array<const ClassDefinition*> classesToGenerate;
-    HashMap<String, SizeType> classNameToIndex;
+    HashMap<String, size_t> classNameToIndex;
 
     for (const Pair<String, ClassDefinition>& pair : mod.GetClasses())
     {
@@ -146,7 +146,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
             }
         }
 
-        const SizeType index = classesToGenerate.Size();
+        const size_t index = classesToGenerate.Size();
         classNameToIndex[cls.name] = index;
         classesToGenerate.PushBack(&cls);
     }
@@ -202,7 +202,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             HYP_DEFER({ writer.WriteString("end\n"); });
 
-            for (SizeType i = 0; i < cls->members.Size(); ++i)
+            for (size_t i = 0; i < cls->members.Size(); ++i)
             {
                 const MemberDef& member = cls->members[i];
 
@@ -255,7 +255,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
                     Array<String> methodArgDecls;
                     Array<String> methodArgNames;
 
-                    for (SizeType i = 0; i < functionType->parameters.Size(); ++i)
+                    for (size_t i = 0; i < functionType->parameters.Size(); ++i)
                     {
                         const ASTMemberDecl* parameter = functionType->parameters[i];
 
@@ -335,7 +335,7 @@ Result HypScriptModuleGenerator::Generate(const Analyzer& analyzer, const Module
 
             uint32 enumMemberIndex = 0;
 
-            for (SizeType i = 0; i < cls->members.Size(); ++i)
+            for (size_t i = 0; i < cls->members.Size(); ++i)
             {
                 const MemberDef& member = cls->members[i];
 

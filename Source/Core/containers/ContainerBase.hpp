@@ -170,9 +170,9 @@ public:
 
     /*! \brief Returns the number of elements matching the given value. */
     template <class T>
-    SizeType Count(const T& value) const
+    size_t Count(const T& value) const
     {
-        SizeType count = 0;
+        size_t count = 0;
 
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
@@ -259,7 +259,7 @@ public:
     }
 
     template <class ConstIterator>
-    SizeType IndexOf(ConstIterator iter) const
+    size_t IndexOf(ConstIterator iter) const
     {
         static_assert(Container::isContiguous, "Container must be contiguous to perform IndexOf()");
 
@@ -268,8 +268,8 @@ public:
             "Iterator type does not match container");
 
         return iter != static_cast<const Container*>(this)->End()
-            ? SizeType(iter - static_cast<const Container*>(this)->Begin())
-            : SizeType(-1);
+            ? size_t(iter - static_cast<const Container*>(this)->Begin())
+            : size_t(-1);
     }
 
     template <class OtherContainer>
@@ -277,8 +277,8 @@ public:
     {
         static_assert(Container::isContiguous && OtherContainer::isContiguous, "Containers must be contiguous to perform bitwise comparison");
 
-        const SizeType thisSizeBytes = static_cast<const Container*>(this)->ByteSize();
-        const SizeType otherSizeBytes = otherContainer.ByteSize();
+        const size_t thisSizeBytes = static_cast<const Container*>(this)->ByteSize();
+        const size_t otherSizeBytes = otherContainer.ByteSize();
 
         if (thisSizeBytes != otherSizeBytes)
         {

@@ -34,7 +34,7 @@ public:
 
     virtual ~FBOMArray() override;
 
-    HYP_FORCE_INLINE SizeType Size() const
+    HYP_FORCE_INLINE size_t Size() const
     {
         return m_values.Size();
     }
@@ -42,9 +42,9 @@ public:
     FBOMArray& AddElement(const FBOMData& value);
     FBOMArray& AddElement(FBOMData&& value);
 
-    FBOMData& GetElement(SizeType index);
-    const FBOMData& GetElement(SizeType index) const;
-    const FBOMData* TryGetElement(SizeType index) const;
+    FBOMData& GetElement(size_t index);
+    const FBOMData& GetElement(size_t index) const;
+    const FBOMData* TryGetElement(size_t index) const;
 
     FBOMResult Visit(FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
     {

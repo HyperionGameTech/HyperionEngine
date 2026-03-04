@@ -334,7 +334,7 @@ Result AssetObject::SaveBlobData(
 
         AssertDebug(reference != nullptr && reference->raw != nullptr);
 
-        const SizeType magicLen = magic ? std::strlen(magic) : 0;
+        const size_t magicLen = magic ? std::strlen(magic) : 0;
 
         AssertDebug(magicLen <= sizeof(BlobHeader::magic) && magicLen != 0,
             "Blob data reference magic must be non-empty and at most {} characters long",
@@ -429,7 +429,7 @@ Result AssetObject::Load(
     return {};
 }
 
-void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inData, SizeType count, SizeType alignment)
+void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inData, size_t count, size_t alignment)
 {
     Assert(reference.raw == nullptr || reference.readOnly);
 
@@ -440,7 +440,7 @@ void AssetObject::AllocateBlobData(BlobDataReference& reference, const void* inD
         if (alignment < alignof(std::max_align_t))
             alignment = alignof(std::max_align_t);
 
-        const SizeType countAligned = ByteUtil::AlignAs(count, alignment);
+        const size_t countAligned = ByteUtil::AlignAs(count, alignment);
 
         reference.raw = HYP_ALLOC_ALIGNED(countAligned, alignment);
         Assert(reference.raw != nullptr);
