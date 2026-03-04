@@ -14,6 +14,7 @@
 #include <engine/threads/VisThread.hpp>
 
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <Core/Core.hpp>
 

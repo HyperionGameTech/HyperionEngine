@@ -6,6 +6,7 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <engine/EngineGlobals.hpp>
 

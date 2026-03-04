@@ -4,6 +4,7 @@
 
 #include <asset/AssetRegistry.hpp>
 #include <asset/Assets.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Bone.hpp>

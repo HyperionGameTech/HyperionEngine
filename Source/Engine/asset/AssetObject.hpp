@@ -5,7 +5,6 @@
 #include <asset/AssetPath.hpp>
 #include <asset/AssetEnums.hpp>
 #include <asset/BlobStorageStructs.hpp>
-#include <asset/BlobStorage.hpp>
 
 #include <Core/reflection/ObjectBase.hpp>
 #include <Core/reflection/Handle.hpp>
