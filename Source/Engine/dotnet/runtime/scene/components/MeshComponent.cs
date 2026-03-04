@@ -4,27 +4,19 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [ClassBinding(Name="MeshComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 208, Pack = 16)]
+    [StructLayout(LayoutKind.Sequential, Pack = 16)]
     public unsafe ref struct MeshComponent : IComponent
     {
         public static Class Class => Class.GetClass(typeof(MeshComponent));
 
-        [FieldOffset(0)]
         private Handle<Mesh> _meshHandle;
-
-        [FieldOffset(8)]
         private Handle<Material> _materialHandle;
-        
-        [FieldOffset(16)]
         private Handle<Skeleton> _skeletonHandle;
+        private uint _numInstances;
+        private bool _enableAutoInstancing;
+        private AssetReference _instanceData;
 
-        [FieldOffset(24)]
-        private MeshInstanceData _instanceData;
-
-        [FieldOffset(112)]
         private Mat4f _previousModelMatrix;
-
-        [FieldOffset(176)] // aligned by 16
         private fixed byte _userData[32];
 
         public void Dispose()
@@ -87,8 +79,6 @@ namespace Hyperion
                 _skeletonHandle = new Handle<Skeleton>(value);
             }
         }
-
-        public ref MeshInstanceData InstanceData => ref _instanceData;
 
         public unsafe IntPtr NativeAddress
         {

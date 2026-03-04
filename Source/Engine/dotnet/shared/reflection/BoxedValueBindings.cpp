@@ -397,7 +397,7 @@ extern "C"
             return true;
         }
 
-        dotnet::ObjectReference objectReference;
+        dotnet::ObjectReference objectReference {};
 
         if (cls->GetManagedObject(pBoxed->ToRef().GetPointer(), objectReference))
         {

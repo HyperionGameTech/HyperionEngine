@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_389825393634412506"
+        "Value": "Engine/Shaders/SSRWriteUVs/SSRWriteUVs_13648030715569562491"
       }
     }],
   "Name": "SSRWriteUVs",

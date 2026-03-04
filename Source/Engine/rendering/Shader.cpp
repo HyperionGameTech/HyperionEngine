@@ -115,6 +115,7 @@ void Shader::PageBlobData()
         }
     }
 
+#if HYP_EDITOR
     if (needSaveBlobData)
     {    
         BlobStorage& blobStorage = g_assetManager->GetAssetRegistry()->GetBlobStorage();
@@ -126,6 +127,7 @@ void Shader::PageBlobData()
             HYP_LOG(Editor, Error, "Failed to save local blob data: {}", saveBlobDataResult.GetError().GetMessage());
         }
     }
+#endif
 }
 
 void Shader::UnpageBlobData()

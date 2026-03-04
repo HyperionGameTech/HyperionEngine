@@ -111,6 +111,11 @@ public:
     const Handle<AssetObject>& Resolve() const;
     void Reload();
 
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return GetAssetPath().GetHashCode();
+    }
+
 private:
     mutable Variant<AssetPath, Handle<AssetObject>> m_data;
 };

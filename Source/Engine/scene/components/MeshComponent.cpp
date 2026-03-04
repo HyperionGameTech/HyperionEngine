@@ -39,19 +39,12 @@ MeshComponent& MeshComponent::operator=(const MeshComponent& other)
     mesh = other.mesh;
     material = other.material;
     skeleton = other.skeleton;
+    enableAutoInstancing = other.enableAutoInstancing;
+    numInstances = other.numInstances;
     instanceData = other.instanceData;
     previousModelMatrix = other.previousModelMatrix;
 
     return *this;
-}
-
-MeshComponent::MeshComponent(MeshComponent&& other) noexcept
-    : mesh(std::move(other.mesh)),
-      material(std::move(other.material)),
-      skeleton(std::move(other.skeleton)),
-      instanceData(std::move(other.instanceData)),
-      previousModelMatrix(std::move(other.previousModelMatrix))
-{
 }
 
 MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
@@ -79,6 +72,8 @@ MeshComponent& MeshComponent::operator=(MeshComponent&& other) noexcept
     mesh = std::move(other.mesh);
     material = std::move(other.material);
     skeleton = std::move(other.skeleton);
+    enableAutoInstancing = other.enableAutoInstancing;
+    numInstances = other.numInstances;
     instanceData = std::move(other.instanceData);
     previousModelMatrix = std::move(other.previousModelMatrix);
 

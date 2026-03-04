@@ -27,7 +27,7 @@ class RenderProxyMesh;
 struct DrawCommandData;
 class IndirectDrawState;
 class GpuBufferHolderBase;
-struct MeshInstanceData;
+struct InstanceData;
 
 HYP_API extern GpuBufferHolderMap* GetGpuBufferHolderMap();
 
@@ -307,7 +307,7 @@ struct DrawCallCollection
     uint32 PushEntityToBatch(
         SizeType drawCallIndex,
         Entity* entity,
-        const MeshInstanceData& meshInstanceData,
+        const InstanceData& instanceData,
         uint32 numInstances,
         uint32 instanceOffset);
 

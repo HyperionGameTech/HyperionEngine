@@ -9,7 +9,7 @@
 
 #include <Core/math/Mat4f.hpp>
 
-#include <rendering/MeshInstanceData.hpp>
+#include <asset/AssetReference.hpp>
 
 namespace Hyperion {
 
@@ -20,10 +20,11 @@ class BVHNode;
 class RenderProxyMesh;
 struct MeshRayTracingData;
 class LightmapVolume;
+class InstancedMeshProxy;
 
 using MeshComponentUserData = UserData<32, 16>;
 
-HYP_STRUCT(Component, Size = 208, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
+HYP_STRUCT(Component, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
 struct MeshComponent
 {
     HYP_STRUCT_BODY(MeshComponent);
@@ -31,32 +32,26 @@ struct MeshComponent
     HYP_FIELD(Property = "Mesh", Editor = true)
     Handle<Mesh> mesh;
 
-    // 8
-
     HYP_FIELD(Property = "Material", Editor = true)
     Handle<Material> material;
-
-    // 16
 
     HYP_FIELD(Property = "Skeleton", Editor = true)
     Handle<Skeleton> skeleton;
 
-    // 24
+    HYP_FIELD(Property = "NumInstances", Serialize = true)
+    uint32 numInstances = 1;
 
-    HYP_FIELD(Property = "InstanceData", Editor = true)
-    MeshInstanceData instanceData;
+    HYP_FIELD(Property = "EnableAutoInstancing", Serialize = true)
+    bool enableAutoInstancing = false;
 
-    // 112
+    HYP_FIELD(Property = "InstanceData", NoScriptBindings)
+    AssetReference instanceData;
 
     HYP_FIELD(Transient)
     Mat4f previousModelMatrix;
 
-    // 176
-
     HYP_FIELD(NoScriptBindings, Transient)
     MeshComponentUserData userData;
-
-    // 208
 
     MeshComponent(const Handle<Mesh>& mesh = nullptr, const Handle<Material>& material = nullptr, const Handle<Skeleton>& skeleton = nullptr)
         : mesh(mesh),
@@ -67,18 +62,10 @@ struct MeshComponent
     {
     }
 
-    MeshComponent(const MeshComponent& other)
-        : mesh(other.mesh),
-          material(other.material),
-          skeleton(other.skeleton),
-          instanceData(other.instanceData),
-          previousModelMatrix(other.previousModelMatrix)
-    {
-    }
-
+    MeshComponent(const MeshComponent& other) = default;
     HYP_API MeshComponent& operator=(const MeshComponent& other);
 
-    HYP_API MeshComponent(MeshComponent&& other) noexcept;
+    MeshComponent(MeshComponent&& other) noexcept = default;
     HYP_API MeshComponent& operator=(MeshComponent&& other) noexcept;
 
     HYP_API ~MeshComponent();
@@ -88,6 +75,8 @@ struct MeshComponent
         return mesh == other.mesh
             && material == other.material
             && skeleton == other.skeleton
+            && numInstances == other.numInstances
+            && enableAutoInstancing == other.enableAutoInstancing
             && instanceData == other.instanceData;
     }
 
@@ -108,6 +97,8 @@ struct MeshComponent
         hashCode.Add(mesh);
         hashCode.Add(material);
         hashCode.Add(skeleton);
+        hashCode.Add(numInstances);
+        hashCode.Add(enableAutoInstancing);
         hashCode.Add(instanceData);
 
         return hashCode;

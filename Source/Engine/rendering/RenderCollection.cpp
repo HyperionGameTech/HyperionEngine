@@ -218,7 +218,7 @@ static void BuildAttributes(const RenderProxyMesh& proxy, RenderableAttributeSet
         attributes.SetMaterialAttributes(newMaterialAttributes);
     }
 
-    const bool hasInstancing = proxy.instanceData.enableAutoInstancing || proxy.instanceData.numInstances > 1;
+    const bool hasInstancing = proxy.enableAutoInstancing || proxy.numInstances > 1;
     const bool hasForwardLighting = attributes.GetMaterialAttributes().bucket == RenderBucket::Translucent;
     const bool hasLightmaps = attributes.GetMaterialAttributes().bucket == RenderBucket::Lightmapped;
     const bool hasDeferredLighting = !hasForwardLighting && !hasLightmaps;
@@ -1205,14 +1205,14 @@ void RenderCollector::BuildDrawCalls(uint32 bucketBits)
 
             AssertDebug(meshProxy->material != nullptr && meshProxy->material->IsReady());
 
-            if (meshProxy->instanceData.numInstances == 0)
+            if (meshProxy->numInstances == 0)
             {
                 continue;
             }
 
             DrawCallID drawCallId = DrawCallID(meshProxy->mesh->Id(), meshProxy->material->Id());
 
-            if (!meshProxy->instanceData.enableAutoInstancing && meshProxy->instanceData.numInstances == 1)
+            if (!meshProxy->enableAutoInstancing && meshProxy->numInstances == 1)
             {
                 drawCallCollection.PushRenderProxy(drawCallId, *meshProxy); // NOLINT(bugprone-use-after-move)
 

@@ -784,7 +784,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     }
 
     // Add the entity and its components to the other EntityManager
-    auto addToOtherEntityManager = [other = other, entity = entity, components = std::move(components)]() mutable
+    auto AddToOtherEntityManager = [other = other, entity = entity, components = std::move(components)]() mutable
     {
         Assert(!other->IsLocked() && IsOnThread(other->m_ownerThreadId));
 
@@ -819,9 +819,10 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                 {
                     // Duplicate of the same tag, don't worry about it
 
-                    return;
+                    continue;
                 }
 
+                // @FIXME -- issue a warning message but set the component anyway.
                 HYP_FAIL("Cannot add duplicate component of type '{}'", *GetComponentTypeName(componentTypeId));
             }
 
@@ -882,11 +883,11 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
     if (IsOnThread(other->GetOwnerThreadId()))
     {
-        addToOtherEntityManager();
+        AddToOtherEntityManager();
     }
     else
     {
-        Task<void> task = GetThreadById(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(addToOtherEntityManager));
+        Task<void> task = GetThreadById(other->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(AddToOtherEntityManager));
         task.Await();
     }
 }

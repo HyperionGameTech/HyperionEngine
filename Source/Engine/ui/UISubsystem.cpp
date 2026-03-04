@@ -32,6 +32,7 @@
 #include <rendering/TextureViewCache.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Buffers.hpp>
+#include <rendering/InstancedMeshProxy.hpp>
 
 #include <rendering/renderers/UIRenderer.hpp>
 
@@ -323,6 +324,32 @@ void UISubsystem::Update(float delta)
             AssertDebug(meshComponent != nullptr);
 
             RenderProxyMesh& meshProxy = *rpl.GetMeshEntities().SetProxy(entity->Id(), RenderProxyMesh());
+
+            if ((meshComponent->enableAutoInstancing || meshComponent->numInstances > 1)
+                && meshComponent->instanceData.IsLoaded())
+            {
+                const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent->instanceData.Resolve());
+                Assert(imp.IsValid());
+
+                for (uint32 i = 0; i < uint32(imp->buffers.Size()); i++)
+                {
+                    if (imp->buffers[i].size == 0)
+                        continue;
+
+                    meshProxy.instanceData.buffers[i].SetSize(imp->buffers[i].size, false);
+
+                    AssertDebug(imp->buffers[i].raw != nullptr);
+                    Memory::Copy(meshProxy.instanceData.buffers[i].Data(), imp->buffers[i].raw, imp->buffers[i].size);
+
+                    meshProxy.instanceData.bufferStructSizes[i] = imp->bufferStructSizes[i];
+                    meshProxy.instanceData.bufferStructAlignments[i] = imp->bufferStructAlignments[i];
+                }
+            }
+            else
+            {
+                meshProxy.instanceData = {};
+            }
+
             meshProxy.version = *entity->GetRenderProxyVersionPtr();
             meshProxy.forceRebind = false;
             meshProxy.entity = MakeWeakRef(entity);
@@ -330,8 +357,9 @@ void UISubsystem::Update(float delta)
             meshProxy.material = meshComponent->material;
             meshProxy.skeleton = meshComponent->skeleton;
             meshProxy.numIndices = meshComponent->mesh->NumIndices();
+            meshProxy.numInstances = meshComponent->numInstances;
+            meshProxy.enableAutoInstancing = meshComponent->enableAutoInstancing;
             meshProxy.cachedAttributes = RenderableAttributeSet(meshComponent->mesh->GetMeshAttributes(), meshComponent->material->GetRenderAttributes());
-            meshProxy.instanceData = meshComponent->instanceData;
             meshProxy.bufferData.worldAabbMax = boundingBoxComponent ? boundingBoxComponent->worldAabb.max : MathUtil::MinSafeValue<Vec3f>();
             meshProxy.bufferData.worldAabbMin = boundingBoxComponent ? boundingBoxComponent->worldAabb.min : MathUtil::MaxSafeValue<Vec3f>();
         }

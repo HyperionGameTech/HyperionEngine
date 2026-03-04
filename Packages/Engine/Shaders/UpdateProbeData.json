@@ -1,0 +1,12 @@
+{
+  "$Class": "ShaderBundle",
+  "CompiledShaders": [{
+      "$Class": "AssetReference",
+      "AssetPath": {
+        "Value": "Engine/Shaders/UpdateProbeData/UpdateProbeData_16172820568252373801"
+      }
+    }],
+  "Name": "UpdateProbeData",
+  "FriendlyName": "UpdateProbeData",
+  "OriginalFilepath": ""
+}
