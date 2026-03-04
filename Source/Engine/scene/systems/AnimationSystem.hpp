@@ -4,7 +4,6 @@
 
 #include <scene/System.hpp>
 #include <scene/components/AnimationComponent.hpp>
-#include <scene/components/MeshComponent.hpp>
 
 #include <Core/containers/HashMap.hpp>
 
@@ -15,6 +14,8 @@
 namespace Hyperion {
 
 class Skeleton;
+
+struct MeshComponent;
 
 HYP_CLASS(NoScriptBindings, Serialize=false)
 class AnimationSystem : public SystemBase
