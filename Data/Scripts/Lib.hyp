@@ -827,6 +827,11 @@ extern struct SSRRendererConfig
     ScreenEdgeFade : Vec2f
     ResolutionScale : float
 end
+extern struct HBAOConfig
+    Radius : float
+    Power : float
+    UseTemporalBlending : bool
+end
 extern struct Vertex
     Position : Vec3f
     Normal : Vec3f
@@ -1196,11 +1201,6 @@ end
 extern struct RayTracingReflectionsConfig
     Extent : Vec2u
     PathTracing : bool
-end
-extern struct HBAOConfig
-    Radius : float
-    Power : float
-    UseTemporalBlending : bool
 end
 extern enum GpuImageFlags : uint32
     NONE = 0x0

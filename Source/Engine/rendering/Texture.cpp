@@ -17,6 +17,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <Core/utilities/DeferredScope.hpp>
 

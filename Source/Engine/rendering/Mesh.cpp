@@ -13,6 +13,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/BlobStorage.hpp>
 
 #include <scene/BVH.hpp>
 

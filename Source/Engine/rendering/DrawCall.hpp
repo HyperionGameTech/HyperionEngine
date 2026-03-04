@@ -8,8 +8,6 @@
 #include <Core/reflection/Handle.hpp>
 #include <Core/reflection/TypeInfoFwd.hpp>
 
-#include <Core/memory/UniquePtr.hpp>
-
 #include <rendering/GlobalBuffers.hpp>
 #include <rendering/RenderMemory.hpp>
 #include <rendering/RenderObject.hpp>
