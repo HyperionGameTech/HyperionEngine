@@ -14,7 +14,7 @@
 #include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/passes/SSRPass.hpp>
 #include <rendering/SSGI.hpp>
-#include <rendering/HBAO.hpp>
+#include <rendering/passes/HBAOPass.hpp>
 #include <rendering/DepthOfField.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
