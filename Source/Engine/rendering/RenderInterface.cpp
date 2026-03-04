@@ -432,7 +432,7 @@ static ViewData* GetViewData(View* view)
         }
         else
         {
-            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator<EntityInstanceBatch>();
+            vd->renderCollector.batchAllocator = GetOrCreateEntityBatchAllocator<MeshEntityInstanceBatch>();
         }
 
         AssertDebug(vd->renderCollector.batchAllocator != nullptr);

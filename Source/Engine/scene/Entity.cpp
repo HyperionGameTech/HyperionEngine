@@ -64,13 +64,7 @@ static void InitInstancedMeshData(Entity& entity, MeshComponent& meshComponent)
     
     const Handle<InstancedMeshProxy>& imp = ObjCast<InstancedMeshProxy>(meshComponent.instanceData.Resolve());
 
-    if (imp.IsValid())
-    {
-        auto writeScope = imp->GetWriteScope();
-
-        imp->SetBufferData(0, &entity.GetWorldMatrix(), 1);
-    }
-    else
+    if (!imp.IsValid())
     {
         HYP_LOG(Scene, Error, "Failed to load instanced mesh data for Entity {}", entity.GetName());
 

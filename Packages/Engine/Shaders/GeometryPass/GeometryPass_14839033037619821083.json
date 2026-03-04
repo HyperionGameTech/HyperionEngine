@@ -285,7 +285,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_14839033037619821083.VS",
-      "Size": 7508
+      "Size": 7660
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/GeometryPass/GeometryPass_14839033037619821083.PS",

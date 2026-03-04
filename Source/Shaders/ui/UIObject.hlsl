@@ -36,7 +36,7 @@ DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<UIEnt
 #define currentBatch currentBatchBuffer[0]
 
 #undef OBJECT_INDEX
-#define OBJECT_INDEX (currentBatch.batch.indices[instanceId >> 2][instanceId & 3])
+#define OBJECT_INDEX (currentBatch.indices[instanceId >> 2][instanceId & 3])
 
 VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
 {
@@ -46,7 +46,7 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     float2 size = currentBatch.sizes[instanceId].xy;
     float2 clamped_size = currentBatch.sizes[instanceId].zw;
 
-    float4 position = mul(currentBatch.batch.transforms[instanceId], float4(input.a_position, 1.0));
+    float4 position = mul(currentBatch.transforms[instanceId], float4(input.a_position, 1.0));
     float4 ndc_position = mul(camera.viewProjMat, position);
 
     float4 instance_texcoords = currentBatch.texcoords[instanceId];

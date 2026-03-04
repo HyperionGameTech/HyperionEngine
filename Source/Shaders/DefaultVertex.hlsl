@@ -38,7 +38,7 @@ DECLARE_BUFFER_DYNAMIC(Default, CamerasBuffer) cbuffer CamerasBuffer
 
 #ifdef INSTANCING
     DECLARE_SRV(Default, EntitiesBuffer) StructuredBuffer<Entity> entities;
-    DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<EntityInstanceBatch> entity_instance_batches;
+    DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) StructuredBuffer<MeshEntityInstanceBatch> entity_instance_batches;
 
     #define entity_instance_batch entity_instance_batches[0]
 #else
@@ -93,7 +93,12 @@ VSOutput VSMain(VSInput input, uint instanceId : SV_InstanceID)
     normal_matrix = mul(normal_matrix, (float3x3)skinning_matrix);
 #else
     position = mul(model_matrix, float4(input.a_position, 1.0));
+
+#ifdef INSTANCING
+    previous_position = mul(mul(entity_instance_batch.previousTransforms[instanceId], currentEntity.previous_model_matrix), float4(input.a_position, 1.0));
+#else
     previous_position = mul(currentEntity.previous_model_matrix, float4(input.a_position, 1.0));
+#endif
 #endif
 
     output.position = position.xyz / position.w;

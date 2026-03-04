@@ -46,7 +46,7 @@ constexpr uint32 MaxShadowMapCascades = 4;
 
 constexpr uint32 NumGBufferTargets = 5;
 
-constexpr uint32 MaxEntitiesPerBatch = 60;
+constexpr uint32 MaxEntitiesPerBatch = 16;
 
 template <class... T>
 constexpr bool ResolutionFailureV = false;

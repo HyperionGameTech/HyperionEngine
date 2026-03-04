@@ -121,7 +121,7 @@
   "ShaderBlobs": [{
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_9029785001816139390.VS",
-      "Size": 5044
+      "Size": 4984
     }, {
       "$Class": "BlobDataReference",
       "Key": "Engine/Shaders/UIObject/UIObject_9029785001816139390.PS",

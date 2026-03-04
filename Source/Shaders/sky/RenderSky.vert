@@ -44,7 +44,7 @@ DECLARE_SRV(Default, EntitiesBuffer) readonly buffer EntitiesBuffer
 
 DECLARE_SRV_DYNAMIC(Default, EntityInstanceBatchesBuffer) readonly buffer EntityInstanceBatchesBuffer
 {
-    EntityInstanceBatch entity_instance_batch;
+    MeshEntityInstanceBatch entity_instance_batch;
 };
 #else
 DECLARE_SRV_DYNAMIC(Default, CurrentEntity) readonly buffer CurrentEntity
