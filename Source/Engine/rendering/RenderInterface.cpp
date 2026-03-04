@@ -1851,7 +1851,7 @@ void RenderInterface::CommitPipelineState(PSOType psoType, CommandBuffer* comman
 
         if (image->GetResourceState() != desiredResourceState || image->HasSubResourceStates())
         {
-            if (subResource.numLayers == image->NumArrayLayers() && subResource.numLevels == image->NumMips())
+            if (image->IsFullSubResource(subResource))
             {
                 if (psoType == PSO_Graphics && state.prevFramebuffer != nullptr)
                 {

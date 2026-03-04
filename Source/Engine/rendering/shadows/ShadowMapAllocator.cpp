@@ -94,7 +94,7 @@ void ShadowMapAllocator::Initialize()
 
     m_pointLightShadowMapImage = g_renderInterface->MakeImage(TextureDesc {
         TextureType::CubemapArray,
-        TextureFormat::D16,
+        TextureFormat::RG16F, // Variance shadow maps are used for point lights
         Vec3u { 256, 256, 1 },
         TFM_NEAREST,
         TFM_NEAREST,

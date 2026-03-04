@@ -68,53 +68,15 @@ public:
     {
         return m_stencilState;
     }
+    
+    void SetStencilState(ResourceState newState);
+    void SetResourceState(ResourceState newState);
 
-    virtual void SetResourceState(ResourceState newState)
-    {
-        m_resourceState = newState;
-    }
+    ResourceState GetSubResourceState(const ImageSubResource& subResource) const;
+    void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState);
 
-    ResourceState GetSubResourceState(const ImageSubResource& subResource) const
-    {
-        auto it = m_subResourceStates.Find(subResource.GetSubResourceKey());
-
-        if (it == m_subResourceStates.End())
-        {
-            return m_resourceState;
-        }
-
-        return it->second;
-    }
-
-    void SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
-    {
-        AssertDebug(subResource.numLayers == 1 && subResource.numLevels == 1,
-            "Cannot call SetSubResourceState() with a range; must be a single mip/layer of an image.");
-
-        const uint64 key = subResource.GetSubResourceKey();
-
-        auto it = m_subResourceStates.Find(key);
-        
-        // no sense setting it if it is the current state and non existent
-        if (newState == m_resourceState)
-        {
-            if (it != m_subResourceStates.End())
-            {
-                // so we just delete it from our map since it will be the same state as the image itself
-                m_subResourceStates.Erase(it);
-            }
-
-            return;
-        }
-
-        if (it != m_subResourceStates.End())
-        {
-            it->second = newState;
-            return;
-        }
-
-        m_subResourceStates.Set(subResource.GetSubResourceKey(), newState);
-    }
+    /*! \brief Checks if the given ImageSubResource \p subResource makes up the entirety of the image */
+    bool IsFullSubResource(const ImageSubResource& subResource) const;
 
     HYP_FORCE_INLINE bool HasSubResourceStates() const
     {

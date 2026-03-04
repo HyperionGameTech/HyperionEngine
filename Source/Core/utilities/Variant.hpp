@@ -277,8 +277,12 @@ public:
         : m_currentIndex(invalidTypeIndex)
     {
         static_assert(Helper::template holdsType<T> || ResolutionFailureV<T>, "Type is not valid for the variant");
-
+        
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#else
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#endif
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
@@ -294,8 +298,12 @@ public:
         : m_currentIndex(invalidTypeIndex)
     {
         static_assert(Helper::template holdsType<T> || ResolutionFailureV<T>, "Type is not valid for the variant");
-
+        
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#else
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#endif
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
@@ -360,7 +368,11 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId otherTypeId = TypeId::ForType<NormalizedType<T>>();
+#else
         const TypeId otherTypeId = TypeId::ForType<NormalizedType<T>>();
+#endif
 
         return m_currentIndex == TypeIndexHelper<VariantBase<Types...>> {}(otherTypeId);
     }
@@ -461,8 +473,12 @@ public:
                 destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
             }
         }
-
-        TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+        
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#else
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#endif
 
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
         const bool constructResult = copyConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
@@ -487,8 +503,13 @@ public:
                 destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
             }
         }
+        
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#else
+        const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#endif
 
-        TypeId typeId = TypeId::ForType<NormalizedType<T>>();
         m_currentIndex = TypeIndexHelper<VariantBase<Types...>> {}(typeId);
 
         const bool constructResult = moveConstructFunctions[m_currentIndex](typeId, m_storage.GetPointer(), &value);
@@ -515,8 +536,12 @@ public:
         }
 
         m_currentIndex = invalidTypeIndex;
-
+        
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#else
         const TypeId typeId = TypeId::ForType<NormalizedType<T>>();
+#endif
 
         Memory::Construct<NormalizedType<T>>(m_storage.GetPointer(), std::forward<Args>(args)...);
 
@@ -1002,9 +1027,17 @@ const TypeInfo* Variant<Types...>::typeInfos[sizeof...(Types) + 1] = { nullptr, 
 template <class T>
 struct TypeIndex_Impl
 {
-    HYP_FORCE_INLINE bool operator()(TypeId typeId, int& index) const
+#if HYP_TYPE_ID_COMPILE_TIME
+    consteval bool operator()(TypeId typeId, int& index) const
+#else
+    bool operator()(TypeId typeId, int& index) const
+#endif
     {
+#if HYP_TYPE_ID_COMPILE_TIME
+        constexpr TypeId otherTypeId = TypeId::ForType<T>();
+#else
         const TypeId otherTypeId = TypeId::ForType<T>();
+#endif
 
         if (typeId != otherTypeId)
         {
@@ -1023,7 +1056,11 @@ struct TypeIndexHelper;
 template <class T>
 struct TypeIndexHelper<VariantBase<T>>
 {
-    constexpr int operator()(TypeId typeId) const
+#if HYP_TYPE_ID_COMPILE_TIME
+    consteval int operator()(TypeId typeId) const
+#else
+    int operator()(TypeId typeId) const
+#endif
     {
         int index = 0;
 
@@ -1039,7 +1076,11 @@ struct TypeIndexHelper<VariantBase<T>>
 template <class T, class... Types>
 struct TypeIndexHelper<VariantBase<T, Types...>>
 {
-    constexpr int operator()(TypeId typeId) const
+#if HYP_TYPE_ID_COMPILE_TIME
+    consteval int operator()(TypeId typeId) const
+#else
+    int operator()(TypeId typeId) const
+#endif
     {
         int value = 0;
 

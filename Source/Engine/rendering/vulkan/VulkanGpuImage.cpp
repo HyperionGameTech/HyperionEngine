@@ -495,25 +495,6 @@ auto VulkanGpuImage::GetNativeHandle() const -> HANDLE
 #endif
 }
 
-void VulkanGpuImage::SetResourceState(ResourceState newState)
-{
-    m_resourceState = newState;
-    m_stencilState = TextureUtils::HasStencilComponent(m_textureDesc.format) ? newState : RS_UNDEFINED;
-
-    m_subResourceStates.Clear();
-}
-
-void VulkanGpuImage::SetStencilState(ResourceState newState)
-{
-    if (!TextureUtils::HasStencilComponent(m_textureDesc.format))
-    {
-        m_stencilState = RS_UNDEFINED;
-        return;
-    }
-
-    m_stencilState = newState;
-}
-
 void VulkanGpuImage::InsertBarrier(
     VulkanCommandBuffer* commandBuffer,
     ResourceState newState,
@@ -939,13 +920,15 @@ RendererResult VulkanGpuImage::Blit(
                 .baseMipLevel = uint8(srcSubResource.baseMipLevel + mipLevel),
                 .numLevels = 1,
                 .baseArrayLayer = uint16(srcSubResource.baseArrayLayer + layerIndex),
-                .numLayers = 1 });
+                .numLayers = 1
+            });
 
             const ResourceState dstResourceState = GetSubResourceState(ImageSubResource {
                 .baseMipLevel = uint8(dstSubResource.baseMipLevel + mipLevel),
                 .numLevels = 1,
                 .baseArrayLayer = uint16(dstSubResource.baseArrayLayer + layerIndex),
-                .numLayers = 1 });
+                .numLayers = 1
+            });
 
             AssertDebug(srcResourceState == RS_COPY_SRC);
             AssertDebug(dstResourceState == RS_COPY_DST);

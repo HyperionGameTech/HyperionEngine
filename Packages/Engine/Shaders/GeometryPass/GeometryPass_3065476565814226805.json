@@ -1,0 +1,180 @@
+{
+  "$Class": "Shader",
+  "PropertySet": [{
+      "$Class": "ShaderProperty",
+      "Name": "HYP_VULKAN",
+      "Flags": 0,
+      "Value": 4202496,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_WINDOWS",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "NUM_GBUFFER_TEXTURES",
+      "Flags": 0,
+      "Value": 5,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "HYP_FEATURES_BINDLESS_TEXTURES",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "INSTANCING",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "ALPHA_DISCARD",
+      "Flags": 0,
+      "Value": null,
+      "EnumValues": []
+    }, {
+      "$Class": "ShaderProperty",
+      "Name": "SHADING_TYPE",
+      "Flags": 0,
+      "Value": "DEFERRED",
+      "EnumValues": []
+    }],
+  "RevisionNumber": 31459917,
+  "BaseName": "GeometryPass",
+  "VertexAttributes": {
+    "FlagMask": 95
+  },
+  "ShaderInputGroup": {
+    "Elements": [{
+        "$Class": "ShaderInputSet",
+        "SetIndex": 0,
+        "Name": "Default",
+        "Slots": [[{
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 3,
+              "Name": "EntitiesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "EntityInstanceBatchesBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 1,
+              "ElementType": 4,
+              "Name": "MaterialsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [], [{
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 1,
+              "Name": "WorldsBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 3,
+              "ElementType": 2,
+              "Name": "CamerasBuffer",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": true,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], [{
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerNearest",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }, {
+              "$Class": "ShaderInput",
+              "Register": 4,
+              "ElementType": 7,
+              "Name": "SamplerLinear",
+              "Count": 1,
+              "Size": 4294967295,
+              "IsDynamic": false,
+              "StructInfo": {
+                "Name": "",
+                "Size": 4294967295,
+                "FieldNames": [],
+                "FieldTypes": []
+              }
+            }], []],
+        "Flags": 0
+      }, {
+        "$Class": "ShaderInputSet",
+        "SetIndex": 1,
+        "Name": "BindlessResources0",
+        "Slots": [[], [], [], [], []],
+        "Flags": 1
+      }]
+  },
+  "ShaderModuleTypes": [1, 2],
+  "ShaderModuleNames": ["DefaultVertex.hlsl", "GeometryPass.hlsl"],
+  "EntryPointNames": ["VSMain", "PSMain"],
+  "ShaderBlobs": [{
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/GeometryPass/GeometryPass_3065476565814226805.VS",
+      "Size": 7744
+    }, {
+      "$Class": "BlobDataReference",
+      "Key": "Engine/Shaders/GeometryPass/GeometryPass_3065476565814226805.PS",
+      "Size": 3868
+    }],
+  "PropertySetHashCode": {},
+  "Name": "GeometryPass_3065476565814226805",
+  "FriendlyName": "GeometryPass_3065476565814226805",
+  "OriginalFilepath": ""
+}
