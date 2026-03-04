@@ -11,7 +11,7 @@
 #include <rendering/Frame.hpp>
 #include <rendering/GraphicsPipeline.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/InstancedMeshProxy.hpp>
+#include <rendering/InstancedMeshData.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -409,28 +409,28 @@ void UIText::UpdateMeshData_Internal()
 
     meshComponent.numInstances = uint32(instanceTransforms.Size());
     
-    Handle<InstancedMeshProxy> imp = ObjCast<InstancedMeshProxy>(meshComponent.instanceData.Resolve());
+    Handle<InstancedMeshData> instancedMesh = ObjCast<InstancedMeshData>(meshComponent.instanceData.Resolve());
 
-    if (!imp)
+    if (!instancedMesh)
     {
-        imp = MakeHandle<InstancedMeshProxy>(NAME_FMT("IMP_{}_{}", InstanceClass()->GetName(), GetName()));
+        instancedMesh = MakeHandle<InstancedMeshData>(NAME_FMT("IMD_{}_{}", InstanceClass()->GetName(), GetName()));
 
-        Result registerResult = imp->Register("$Memory/Objects/Types/InstancedMeshProxy", AddAssetConflictMode::GenerateNewName);
+        Result registerResult = instancedMesh->Register("$Memory/Objects/Types/InstancedMeshData", AddAssetConflictMode::GenerateNewName);
         if (registerResult.HasError())
         {
-            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshProxy: {}", registerResult.GetError().GetMessage());
+            HYP_LOG(UI, Error, "Failed to register UIObject InstancedMeshData: {}", registerResult.GetError().GetMessage());
         }
 
-        meshComponent.instanceData = AssetReference(imp);
+        meshComponent.instanceData = AssetReference(instancedMesh);
     }
 
-    auto writeScope = imp->GetWriteScope();
+    auto writeScope = instancedMesh->GetWriteScope();
 
-    imp->SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
-    imp->SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
-    imp->SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
-    imp->SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
-    imp->SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
+    instancedMesh->SetBufferData(0, instanceTransforms.Data(), instanceTransforms.Size());
+    instancedMesh->SetBufferData(1, instanceTexcoords.Data(), instanceTexcoords.Size());
+    instancedMesh->SetBufferData(2, instanceOffsets.Data(), instanceOffsets.Size());
+    instancedMesh->SetBufferData(3, instanceSizes.Data(), instanceSizes.Size());
+    instancedMesh->SetBufferData(4, instanceProperties.Data(), instanceProperties.Size());
 
     GetEntity()->SetNeedsRenderProxyUpdate();
 }

@@ -3,7 +3,7 @@
   "CompiledShaders": [{
       "$Class": "AssetReference",
       "AssetPath": {
-        "Value": "Engine/Shaders/UpdateProbeData/UpdateProbeData_16172820568252373801"
+        "Value": "Engine/Shaders/UpdateProbeData/UpdateProbeData_8967415772004485939"
       }
     }],
   "Name": "UpdateProbeData",

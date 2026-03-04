@@ -20,7 +20,7 @@ class BVHNode;
 class RenderProxyMesh;
 struct MeshRayTracingData;
 class LightmapVolume;
-class InstancedMeshProxy;
+class InstancedMeshData;
 
 using MeshComponentUserData = UserData<32, 16>;
 

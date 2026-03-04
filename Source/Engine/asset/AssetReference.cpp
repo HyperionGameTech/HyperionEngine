@@ -55,9 +55,12 @@ const AssetPath& AssetReference::GetAssetPath() const
 #endif
 
     const AssetPath& assetPath = m_data.GetUnchecked<AssetPath>();
-    AssertDebug(assetPath.IsValid());
-
-    return assetPath;
+    if (assetPath.IsValid())
+    {
+        return assetPath;
+    }
+    
+    return s_invalidAssetPath;
 }
 
 const Handle<AssetObject>& AssetReference::Resolve() const
@@ -83,7 +86,7 @@ const Handle<AssetObject>& AssetReference::Resolve() const
         HYP_LOG(Assets, Error, "Failed to resolve asset reference for path '{}'", assetPath);
     }
 
-    return Handle<AssetObject>::empty;
+    return Handle<AssetObject>::Null();
 }
 
 void AssetReference::Reload()

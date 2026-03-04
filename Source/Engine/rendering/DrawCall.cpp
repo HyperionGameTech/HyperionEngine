@@ -8,7 +8,7 @@
 #include <rendering/RenderProxy.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
-#include <rendering/InstancedMeshProxy.hpp>
+#include <rendering/InstancedMeshData.hpp>
 
 #include <rendering/util/DeletionQueue.hpp>
 
@@ -240,9 +240,9 @@ uint32 DrawCallCollection::PushEntityToBatch(
 //    Assert(entity->InstanceClass() == Entity::StaticClass(), "Cannot push Entity subclass to EntityInstanceBatch: {}", entity->InstanceClass()->GetName());
 //
 //    // buffer size check
-//    for (uint32 bufferIndex = 0; bufferIndex < uint32(imp.buffers.Size()); bufferIndex++)
+//    for (uint32 bufferIndex = 0; bufferIndex < uint32(instancedMesh.buffers.Size()); bufferIndex++)
 //    {
-//        Assert(imp.buffers[bufferIndex].Size() / imp.bufferStructSizes[bufferIndex] == imp.numInstances);
+//        Assert(instancedMesh.buffers[bufferIndex].Size() / instancedMesh.bufferStructSizes[bufferIndex] == instancedMesh.numInstances);
 //    }
 //#endif
 

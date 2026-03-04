@@ -2423,7 +2423,7 @@ extern class Material : AssetObject
     Attributes : MaterialAttributes
     IsDynamic : bool
 end
-extern class InstancedMeshProxy : AssetObject
+extern class InstancedMeshData : AssetObject
     Buffers : Array<BlobDataReference>
     BufferStructSizes : Array<uint32>
     BufferStructAlignments : Array<uint32>
