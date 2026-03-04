@@ -15,11 +15,6 @@
 
 #include <scene/sky/DynamicSkySystem.hpp>
 
-#include <scene/components/MeshComponent.hpp>
-#include <scene/components/TransformComponent.hpp>
-#include <scene/components/AudioComponent.hpp>
-#include <scene/components/VisibilityStateComponent.hpp>
-#include <scene/components/RigidBodyComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
 
 #include <scene/camera/FirstPersonCamera.hpp>
